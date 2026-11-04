@@ -22,7 +22,7 @@ public sealed class PowerPointPdfHandoutGeometryTests {
                 OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(slideWidth), OfficeIMO.OfficeLength.Points(slideHeight)).WithFrame(0, 0, PowerPointUnits.FromPoints(slideWidth), PowerPointUnits.FromPoints(slideHeight));
             slide.AddTextBox("SLIDE " + (index + 1),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(40));
             PowerPointAutoShape circle = slide.AddShape(OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(100));
-            circle.FillColor = "E68A2E"; circle.OutlineColor = "000000";
+            circle.FillColor = OfficeColor.Parse("E68A2E"); circle.OutlineColor = OfficeColor.Parse("000000");
             slide.Notes.Text = "PRESENTER " + (index + 1);
         }
         presentation.Slides[0].TextBoxes.First().Paragraphs[0].Runs[0].SetHyperlink(presentation.Slides[2]);

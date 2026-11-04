@@ -15,8 +15,8 @@ public sealed class VisioBackgroundCompositionTests {
         foreach (VisioDocument document in Reopened(source)) {
             byte[] before = document.ToLegacyXmlResult().Value;
             VisioPage foreground = document.Pages[2];
-            OfficeRasterImage native = Decode(foreground.ToPng(new VisioPngSaveOptions {
-                PixelsPerInch = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false
+            OfficeRasterImage native = Decode(foreground.ToImage(new VisioImageExportOptions {
+                TargetDpi = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false
             }));
             OfficeDrawing scene = foreground.ToDrawing().Value;
             OfficeRasterImage drawing = Decode(OfficeDrawingRasterRenderer.ToPng(scene, background: OfficeColor.White));

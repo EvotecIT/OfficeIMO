@@ -43,8 +43,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Reused_storage_declarations_are_reported_once_under_the_source_limit(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind, BytesField(8, new byte[] { 0x80 }), aliases: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 });
         IReadOnlyList<IWorkSourceDeclarationIssue> issues = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().SourceDeclarationIssues,
             IWorkDocumentKind.Numbers => source.ReadNumbers().SourceDeclarationIssues,
@@ -61,8 +61,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Declaration_limit_remains_fatal_and_uses_the_captured_options(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind,
             Message(BytesField(5, new byte[] { 0x80 }), BytesField(8, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind, options);
+        var options = new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 };
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind, options);
         options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(
             ArchiveRecord(1, kind == IWorkDocumentKind.Pages ? 10000u : 1u, new byte[] { 0x80 }))),
             ("preview.png", ValidPreviewPng()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         IWorkConversionReport report = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().CreateConversionReport(IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview),
             IWorkDocumentKind.Numbers => source.ReadNumbers().CreateConversionReport(IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview),
@@ -148,8 +148,8 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Declaration_options_are_positive_and_clone_preserves_the_limit() {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkReadOptions { MaxSourceDeclarationIssues = 0 }.Clone());
-        Assert.Equal(7, new IWorkReadOptions { MaxSourceDeclarationIssues = 7 }.Clone().MaxSourceDeclarationIssues);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkLoadOptions { MaxSourceDeclarationIssues = 0 }.Clone());
+        Assert.Equal(7, new IWorkLoadOptions { MaxSourceDeclarationIssues = 7 }.Clone().MaxSourceDeclarationIssues);
     }
 
     [Theory]
@@ -159,8 +159,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Attribute_field_limit_is_not_downgraded_to_declaration_evidence(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(8, Enumerable.Range(0, 9).Select(_ => AttributeEntry(0, Message())).ToArray()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -184,8 +184,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Declaration_evidence_does_not_require_retained_source_payloads() {
         using MemoryStream package = SelectedRichTextPackage(IWorkDocumentKind.Numbers,
             BytesField(8, new byte[] { 0x80 }));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         IWorkConversionReport report = source.ReadNumbers().CreateConversionReport(
             IWorkProjectionKind.VisualFallback, source.PreferredRasterPreview);
         Assert.Empty(report.PreservedRecords);
@@ -202,8 +202,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] entry = Message(VarintField(1, 0),
             Message(Enumerable.Range(3, 8).Select(field => VarintField(field, 0)).ToArray()));
         using MemoryStream package = SelectedRichTextPackage(kind, AttributeTable(8, entry));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -213,8 +213,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Nested_protobuf_depth_limit_remains_fatal(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind, AttributeTable(8, AttributeEntry(0, Message())));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProtobufDepth = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProtobufDepth = 1 });
         Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -222,8 +222,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_text_budget_failure_is_not_malformed_storage_even_with_an_empty_sheet_name() {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "12345",
             sheetNameBytes: Array.Empty<byte>());
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 4 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 4 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 
@@ -235,8 +235,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2023, Message(BytesField(11, Enumerable.Repeat((byte)2, 9).ToArray()))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("value", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -251,8 +251,8 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(11, Message(VarintField(1, 100))))),
             ArchiveRecord(50, 11006, Message(BytesField(4, metadataEntry)))))),
             ("Data/image.png", ValidPreviewPng()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadPages()).Message);
     }
 }

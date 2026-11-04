@@ -67,8 +67,8 @@ namespace OfficeIMO.Tests {
             PowerPointTextBox hiddenText = slide.AddTextBox("Hidden shape",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(110),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(40));
             hiddenText.Hidden = true;
             PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(140),global::OfficeIMO.OfficeLength.Points(400),global::OfficeIMO.OfficeLength.Points(160));
-            table.RowItems[0].Cells[0].Text = "A1";
-            table.RowItems[0].Cells[0].Runs[0].Italic = true;
+            table.Rows[0].Cells[0].Text = "A1";
+            table.Rows[0].Cells[0].Runs[0].Italic = true;
             slide.Notes.Text = "Speaker note";
 
             GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch(new GoogleSlidesSaveOptions { Title = "Deck" });
@@ -512,7 +512,7 @@ namespace OfficeIMO.Tests {
         public void PlanBuilder_RasterizesOrReportsUnsupportedSlideBackgrounds() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.SetBackgroundGradient("112233", "445566", 45);
+            slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"), 45);
 
             GoogleSlidesBatch rasterPlan = GoogleSlidesBatchCompiler.Build(
                 presentation,
@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide authoredSlide = presentation.AddSlide();
             authoredSlide.Hidden = true;
-            authoredSlide.BackgroundColor = "112233";
+            authoredSlide.BackgroundColor = OfficeColor.Parse("112233");
             PowerPointTextBox mixedText = authoredSlide.AddTextBox("Hello ",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
             {
                 PowerPointTextRun run = mixedText.Paragraphs[0].AddText("Slides");
@@ -726,9 +726,9 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide().AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(40));
             shape.HorizontalFlip = true;
-            shape.FillColor = "336699";
+            shape.FillColor = OfficeColor.Parse("336699");
             shape.FillTransparency = 25;
-            shape.OutlineColor = "CC3300";
+            shape.OutlineColor = OfficeColor.Parse("CC3300");
             shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(3);
             string? batchBody = null;
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Tests {
             using (imported.Document) {
                 PowerPointSlide slide = Assert.Single(imported.Document.Slides);
                 Assert.True(slide.Hidden);
-                Assert.Equal("336699", slide.BackgroundColor);
+                Assert.Equal(OfficeColor.Parse("336699"), slide.BackgroundColor);
                 PowerPointTextBox importedText = Assert.Single(slide.TextBoxes, text => text.Text == "Imported text");
                 IReadOnlyList<PowerPointTextRun> importedRuns = Assert.Single(importedText.Paragraphs).Runs;
                 Assert.Collection(importedRuns,
@@ -1062,11 +1062,11 @@ namespace OfficeIMO.Tests {
                     });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
                 Assert.Equal(OfficePresetShapeType.Rectangle, importedShape.ShapeType);
-                Assert.Equal("CC6633", importedShape.FillColor);
+                Assert.Equal(OfficeColor.Parse("CC6633"), importedShape.FillColor);
                 Assert.Equal(25, importedShape.FillTransparency);
-                Assert.Equal("336699", importedShape.OutlineColor);
+                Assert.Equal(OfficeColor.Parse("336699"), importedShape.OutlineColor);
                 Assert.Equal(2.5d, importedShape.OutlineWidth?.ToPoints());
-                Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
+                Assert.Equal("Cell", Assert.Single(slide.Tables).Rows[0].Cells[0].Text);
                 Assert.Equal("Imported notes", slide.Notes.Text);
                 Assert.Equal("r4", imported.Source.RevisionId);
                 GoogleSlidesShape roundTripShape = Assert.Single(
@@ -1292,7 +1292,7 @@ namespace OfficeIMO.Tests {
             byte[] imageBytes = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.SetBackgroundGradient("112233", "445566", 45.5D);
+            slide.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("445566"), 45.5D);
             PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(30.5D), OfficeIMO.OfficeLength.Points(160.75D), OfficeIMO.OfficeLength.Points(90.125D));
             shape.Rotation = 22.5D;
             shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25D);

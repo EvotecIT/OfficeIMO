@@ -50,8 +50,8 @@ namespace OfficeIMO.Tests {
                     Assert.Contains("Portfolio\t6\t30\t49", chart.CreateDataSummary(),
                         StringComparison.Ordinal);
 
-                    chart.SetSeriesFillColor(0, "123456")
-                        .SetSeriesLineColor(0, "654321", width: OfficeLength.Points(2.5D))
+                    chart.SetSeriesFillColor(0, OfficeColor.Parse("123456"))
+                        .SetSeriesLineColor(0, OfficeColor.Parse("654321"), width: OfficeLength.Points(2.5D))
                         .SetDataLabels(showValue: true)
                         .SetSeriesDataLabels(0, showValue: true, numberFormat: "0.0");
                     ChartPart authoredChartPart = presentation.Slides[0].SlidePart.ChartParts.Single();
@@ -280,7 +280,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(bubble.Shape.StrokeColor);
             Assert.Equal(0D, bubble.Shape.StrokeWidth);
 
-            chart.SetSeriesLineColor(0, "445566", width: OfficeLength.Points(1.25D));
+            chart.SetSeriesLineColor(0, OfficeColor.Parse("445566"), width: OfficeLength.Points(1.25D));
             Assert.Null(outline.GetFirstChild<A.NoFill>());
             Assert.Equal("445566", outline.GetFirstChild<A.SolidFill>()!
                 .RgbColorModelHex!.Val!.Value);
@@ -398,7 +398,7 @@ namespace OfficeIMO.Tests {
 
             chart.SetLegendTextStyle(
                 fontSize: OfficeLength.Points(10D), bold: true,
-                color: "445566", fontName: "Arial");
+                color: OfficeColor.Parse("445566"), fontFamily: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
             chart.ClearLegendTextStyle();
@@ -491,14 +491,14 @@ namespace OfficeIMO.Tests {
 
             chart.SetScatterXAxisTitleTextStyle(
                 fontSize: OfficeLength.Points(11D), bold: true,
-                color: "445566", fontName: "Arial");
+                color: OfficeColor.Parse("445566"), fontFamily: "Arial");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearScatterXAxisTitleTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             chart.SetScatterXAxisLabelTextStyle(
                 fontSize: OfficeLength.Points(9D), italic: true,
-                color: "778899", fontName: "Calibri");
+                color: OfficeColor.Parse("778899"), fontFamily: "Calibri");
             Assert.False(chart.TryGetOfficeSnapshot(out _));
             chart.ClearScatterXAxisLabelTextStyle();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
@@ -653,7 +653,7 @@ namespace OfficeIMO.Tests {
             chart.SetTitle("Styled title")
                 .SetTitleTextStyle(
                     fontSize: OfficeLength.Points(14D), bold: true,
-                    color: "445566", fontName: "Arial");
+                    color: OfficeColor.Parse("445566"), fontFamily: "Arial");
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot styledTitle));
             Assert.Equal(14D, styledTitle.Style.TitleFontSize);
             Assert.Equal("Arial", styledTitle.Style.TitleFontFamily);
@@ -677,14 +677,14 @@ namespace OfficeIMO.Tests {
             manualLayout.Remove();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
-            chart.SetChartAreaStyle(fillColor: "112233");
+            chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("112233"));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
 
             chartPart.ChartSpace!.GetFirstChild<C.ShapeProperties>()!.Remove();
             Assert.True(chart.TryGetOfficeSnapshot(out _));
 
             chart.SetPlotAreaStyle(
-                fillColor: "445566", lineColor: "778899",
+                fillColor: OfficeColor.Parse("445566"), lineColor: OfficeColor.Parse("778899"),
                 lineWidth: OfficeLength.Points(1.5D));
             Assert.False(chart.TryGetOfficeSnapshot(out _));
         }
@@ -1302,7 +1302,7 @@ namespace OfficeIMO.Tests {
             properties.RemoveAllChildren<A.SolidFill>();
             properties.PrependChild(new A.BlipFill());
 
-            chart.SetSeriesFillColor(0, "445566");
+            chart.SetSeriesFillColor(0, OfficeColor.Parse("445566"));
 
             Assert.Null(properties.GetFirstChild<A.BlipFill>());
             Assert.Equal("445566", properties.GetFirstChild<A.SolidFill>()!
@@ -1310,7 +1310,7 @@ namespace OfficeIMO.Tests {
 
             properties.RemoveAllChildren<A.SolidFill>();
             properties.PrependChild(new A.GroupFill());
-            chart.SetSeriesFillColor(0, "778899");
+            chart.SetSeriesFillColor(0, OfficeColor.Parse("778899"));
 
             Assert.Null(properties.GetFirstChild<A.GroupFill>());
             Assert.Equal("778899", properties.GetFirstChild<A.SolidFill>()!
@@ -1392,7 +1392,7 @@ namespace OfficeIMO.Tests {
             outline.RemoveAllChildren<A.SolidFill>();
             outline.Append(new A.GradientFill());
 
-            chart.SetSeriesLineColor(0, "445566", width: OfficeLength.Points(1.25D));
+            chart.SetSeriesLineColor(0, OfficeColor.Parse("445566"), width: OfficeLength.Points(1.25D));
 
             Assert.Null(outline.GetFirstChild<A.GradientFill>());
             Assert.Equal("445566",
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests {
 
             outline.RemoveAllChildren<A.SolidFill>();
             outline.Append(new A.PatternFill());
-            chart.SetSeriesLineColor(0, "778899", width: OfficeLength.Points(1.5D));
+            chart.SetSeriesLineColor(0, OfficeColor.Parse("778899"), width: OfficeLength.Points(1.5D));
 
             Assert.Null(outline.GetFirstChild<A.PatternFill>());
             Assert.Equal("778899",

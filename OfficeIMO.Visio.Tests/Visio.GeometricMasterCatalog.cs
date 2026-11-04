@@ -5,7 +5,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -95,19 +94,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentHelpersCreateGeometricShapes() {
+        public void NativeHelpersCreateGeometricShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
 
-            document.AsFluent()
-                .AddPage("Shapes", p => p
-                    .AddParallelogram("para", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Parallelogram")
-                    .AddHexagon("hex", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Hexagon")
-                    .AddTrapezoid("trap", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Trapezoid")
-                    .AddPentagon("pent", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Pentagon"))
-                .End()
-                .Save();
+            document.AddPage("Shapes", p => {
+                p.AddParallelogram("para", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Parallelogram");
+                p.AddHexagon("hex", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Hexagon");
+                p.AddTrapezoid("trap", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Trapezoid");
+                p.AddPentagon("pent", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Pentagon");
+            });
+            document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.Equal(new[] { "Parallelogram", "Hexagon", "Trapezoid", "Pentagon" }, loaded.Pages[0].Shapes.Select(shape => shape.NameU));

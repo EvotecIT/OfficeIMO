@@ -9,7 +9,7 @@ public class CsvTransformTests
     [Fact]
     public void AddColumn_Filter_Sort_Works()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Name", "Age", "City");
 
         doc.AddRow("Przemek", 36, "Mikołów")

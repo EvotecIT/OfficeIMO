@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true, textBox: "Rotated",
             includePreview: true, textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -28,12 +28,12 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithSharedDrawableText(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
             Assert.False(result.IsVisualFallback);
             Assert.Equal(2, result.Projection.TextBoxObjects.Count);
             Assert.Equal(2, result.Value.TextBoxes.Count);
         } else {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
             Assert.False(result.IsVisualFallback);
             Assert.Equal(2, Assert.Single(result.Projection.Slides).TextBoxes.Count);
             Assert.Equal(2, Assert.Single(result.Value.Slides).TextBoxes.Count());
@@ -45,8 +45,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Shared_drawable_text_is_charged_for_each_destination_use(IWorkDocumentKind kind) {
         using MemoryStream package = CreatePackageWithSharedDrawableText(kind);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 11 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 11 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) source.ReadPages();
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Table_drawable_hyperlinks_disable_editable_reconstruction() {
         using MemoryStream package = CreateNumbersPackageWithTableHyperlink();
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.HasEditableContent);
@@ -75,14 +75,14 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackageWithUncachedFormulaTable(kind);
 
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             IWorkTableCell cell = Assert.Single(Assert.Single(result.Projection.Tables).Cells);
             Assert.True(result.IsVisualFallback);
             Assert.True(result.Projection.HasEditableContent);
             Assert.True(cell.FormulaIsComplete);
             Assert.Null(cell.Value);
         } else {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             IWorkTableCell cell = Assert.Single(Assert.Single(
                 Assert.Single(result.Projection.Slides).Tables).Cells);
             Assert.True(result.IsVisualFallback);

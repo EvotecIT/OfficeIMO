@@ -113,7 +113,7 @@ public sealed class VisioRichTextRenderingTests {
         byte[] before = document.ToLegacyXmlResult().Value;
         foreach (VisioPage page in document.Pages) {
             page.ToSvg();
-            page.ToPng(new VisioPngSaveOptions { Supersampling = 1 });
+            page.ToImage(new VisioImageExportOptions { Supersampling = 1 });
             page.ExportImage(OfficeImageExportFormat.Svg);
         }
         Assert.Equal(before, document.ToLegacyXmlResult().Value);
@@ -172,7 +172,7 @@ public sealed class VisioRichTextRenderingTests {
         .Where(node => string.Equals((string?)node.Attribute("fill"), color, StringComparison.OrdinalIgnoreCase)).Select(node => node.Value));
 
     private static void AssertRasterColors(VisioPage page, bool red, bool green) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToPng(new VisioPngSaveOptions { Supersampling = 1 }), out var raster));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions { Supersampling = 1 }), out var raster));
         byte[] rgba = raster!.GetPixels();
         bool foundRed = false, foundGreen = false;
         for (int offset = 0; offset < rgba.Length; offset += 4) {

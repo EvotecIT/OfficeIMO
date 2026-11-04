@@ -629,9 +629,9 @@ namespace OfficeIMO.Tests {
         public void NativeWriter_RoundTripsSolidGradientAndNoFillSlideBackgrounds() {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             PowerPointSlide solid = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-            solid.BackgroundColor = "123456";
+            solid.BackgroundColor = OfficeColor.Parse("123456");
             PowerPointSlide gradient = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
-            gradient.SetBackgroundGradient("112233", "AABBCC", 45D);
+            gradient.SetBackgroundGradient(OfficeColor.Parse("112233"), OfficeColor.Parse("AABBCC"), 45D);
             PowerPointSlide noFill = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
             noFill.SlidePart.Slide!.CommonSlideData!.Background = new P.Background(
                 new P.BackgroundProperties(new A.NoFill()));

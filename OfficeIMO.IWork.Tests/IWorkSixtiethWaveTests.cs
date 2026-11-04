@@ -19,8 +19,8 @@ public sealed partial class IWorkBoundaryTests {
             : new MemoryStream(oversizedDirectory.ToArray(), writable: false);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaxEntryCount = nested ? 2 : 1 }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+                new IWorkLoadOptions { MaxEntryCount = nested ? 2 : 1 }));
 
         Assert.Contains("before package entries are opened", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             slideWidth: 960.0001f, slideHeight: 540f);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             textBoxDrawable: Message(BytesField(1, geometry)));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -62,7 +62,7 @@ public sealed partial class IWorkBoundaryTests {
             defaultRowHeight: 0.5d / global::OfficeIMO.OfficeLength.Points(1).ToEmus(),
             defaultColumnWidth: 30d, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_image_extents_below_half_an_emu_remain_editable() {
         using MemoryStream package = CreateKeynotePackageWithTinyImageExtent();
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -148,8 +148,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream malformed = PatchDeclaredZipEntryCount(package, 2);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(malformed, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaxEntryCount = 10 }));
+            IWorkSourceDocument.Load(malformed, IWorkDocumentKind.Numbers,
+                new IWorkLoadOptions { MaxEntryCount = 10 }));
 
         Assert.Contains("declares 2 entries but contains 1", exception.Message,
             StringComparison.OrdinalIgnoreCase);

@@ -28,7 +28,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     public void FontFacesAndParagraphLayoutResolveThroughStyleReferencesAndParents() {
         OdtDocument document = OdtDocument.Create();
         OdtParagraph paragraph = document.AddParagraph();
-        OdtSpan span = paragraph.AddSpan("Styled");
+        OdtSpan span = paragraph.AddRun("Styled");
         OdfStyle parent = document.Styles.CreateNamed("ParagraphParent", OdfStyleFamily.Paragraph);
         parent.WritingMode = "rl-tb";
         parent.LineHeight = OdfLength.Parse("175%");
@@ -714,7 +714,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         child.TextBackgroundColor = OdfColor.Parse("#000000");
         child.Element.Element(OdfNamespaces.Style + "text-properties")!
             .SetAttributeValue(OdfNamespaces.Fo + "background-color", "transparent");
-        OdtSpan span = document.AddParagraph().AddSpan("Not highlighted");
+        OdtSpan span = document.AddParagraph().AddRun("Not highlighted");
         span.StyleName = child.Name;
 
         Assert.Equal(OdfColor.Parse("#FF0000"), parent.TextBackgroundColor);
@@ -742,15 +742,15 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
         OdtDocument document = OdtDocument.Create();
         OdfStyle style = document.Styles.CreateNamed("Decorated", OdfStyleFamily.Text);
         style.Underline = true;
-        style.StrikeThrough = true;
+        style.Strikethrough = true;
         XElement properties = style.Element.Element(OdfNamespaces.Style + "text-properties")!;
         properties.SetAttributeValue(OdfNamespaces.Style + "text-underline-style", "wave");
         properties.SetAttributeValue(OdfNamespaces.Style + "text-line-through-style", "dotted");
-        OdtSpan span = document.AddParagraph().AddSpan("Decorated");
+        OdtSpan span = document.AddParagraph().AddRun("Decorated");
         span.StyleName = style.Name;
 
         Assert.True(span.Underline);
-        Assert.True(span.StrikeThrough);
+        Assert.True(span.Strikethrough);
         Assert.True(span.UsesNonSolidUnderlineStyle);
         Assert.True(span.UsesNonSolidLineThroughStyle);
     }

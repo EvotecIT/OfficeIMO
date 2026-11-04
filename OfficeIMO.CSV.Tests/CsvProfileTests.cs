@@ -117,7 +117,7 @@ public class CsvProfileTests {
     [InlineData(CsvProfile.Strict, false)]
     [InlineData(CsvProfile.Spreadsheet, true)]
     public void SaveProfilesKeepTypedNumbersAndApplyTextFormulaPolicy(CsvProfile profile, bool escape) {
-        var document = new CsvDocument().WithHeader("Formula", "Number", "Text", "Unicode");
+        var document = CsvDocument.Create().WithHeader("Formula", "Number", "Text", "Unicode");
         document.AddRow("=1+2", -12, "  @SUM(A1)", "Żółć");
         byte[] bytes = document.ToBytes(CsvProfiles.CreateSaveOptions(profile));
         Assert.Equal(escape, bytes.Take(3).SequenceEqual(new byte[] { 0xEF, 0xBB, 0xBF }));

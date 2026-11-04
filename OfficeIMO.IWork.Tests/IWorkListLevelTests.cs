@@ -12,13 +12,13 @@ public sealed partial class IWorkBoundaryTests {
     public void Explicit_list_levels_override_equal_indents_and_keep_cache_entries_distinct(IWorkDocumentKind kind) {
         using MemoryStream package = ListLevelPackage(kind, AttributeTable(6,
             ListLevelEntry(0, 1), ListLevelEntry(6, 0)));
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells).RichText!;
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells).RichText!;
         Assert.Equal(new[] { 1, 0 }, content.Paragraphs.Select(p => p.ListLevel));
         Assert.Equal(new[] { "–", "•" }, content.Paragraphs.Select(p => p.ListLabel));
         Assert.True(content.IsFormattingComplete);
         if (kind != IWorkDocumentKind.Pages) return;
         package.Position = 0;
-        using var result = IWorkSourceDocument.Open(package).ToWordResult(
+        using var result = IWorkSourceDocument.Load(package).ToWordResult(
             new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream();
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Invalid_level_boundary_does_not_carry_the_previous_explicit_level() {
         using MemoryStream package = ListLevelPackage(IWorkDocumentKind.Numbers, AttributeTable(6,
             ListLevelEntry(0, 1), Message(VarintField(1, 6), FloatField(2, 1), VarintField(3, 0))));
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var content = Assert.Single(Assert.Single(projection.Sheets).Tables).Cells[0].RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.Equal(new[] { 1, 0 }, content.Paragraphs.Select(p => p.ListLevel));
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unqualified_paragraph_counter_metadata_remains_reported() {
         using MemoryStream package = ListLevelPackage(IWorkDocumentKind.Numbers,
             AttributeTable(6, ListLevelEntry(0, 1, 1)));
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 15
             && issue.FieldPath == "6/1[1]/3" && issue.Kind == IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
         Assert.False(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells[0].RichText!.IsFormattingComplete);
@@ -57,8 +57,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Explicit_list_level_boundaries_charge_the_text_attribute_budget() {
         using MemoryStream package = ListLevelPackage(IWorkDocumentKind.Numbers,
             AttributeTable(6, Enumerable.Range(0, 20).Select(i => ListLevelEntry(0, 0)).ToArray()));
-        var source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxProjectedTextItems = 10 });
+        var source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxProjectedTextItems = 10 });
         Assert.Contains("attribute", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

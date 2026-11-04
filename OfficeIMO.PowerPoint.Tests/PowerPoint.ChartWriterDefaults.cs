@@ -29,7 +29,7 @@ public class PowerPointChartWriterDefaultsTests {
         C.DoughnutChart doughnut = presentation.Slides[0].SlidePart.ChartParts.Single().ChartSpace!
             .Descendants<C.DoughnutChart>().Single();
         Assert.True(doughnut.GetFirstChild<C.VaryColors>()!.Val!.Value);
-        chart.SetSeriesFillColor(0, "156082");
+        chart.SetSeriesFillColor(0, OfficeColor.Parse("156082"));
         // A series fill colours every slice in PowerPoint; c:varyColors must agree for other readers.
         Assert.False(doughnut.GetFirstChild<C.VaryColors>()!.Val!.Value);
     }

@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
             slide.Hidden = true;
             PowerPointAutoShape shape = slide.AddRectangle(
                 OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(100000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(500000));
-            shape.Fill("FF0000");
-            shape.SetGlow("4472C4", radius: OfficeIMO.OfficeLength.Points(4D));
+            shape.Fill(OfficeColor.Parse("FF0000"));
+            shape.SetGlow(OfficeColor.Parse("4472C4"), radius: OfficeIMO.OfficeLength.Points(4D));
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
 

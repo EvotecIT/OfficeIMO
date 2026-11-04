@@ -4,7 +4,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Visio.Tests;
@@ -40,15 +39,13 @@ public sealed class PhysicalLengthApiTests {
     }
 
     [Fact]
-    public void FluentCreationAndExplicitLookupUseTheObjectModelContract() {
+    public void NativeCreationAndExplicitLookupUseTheObjectModelContract() {
         var document = VisioDocument.Create();
         var x = OfficeLength.Inches(1);
         var y = OfficeLength.Centimeters(5.08);
         var width = OfficeLength.Points(144);
         var height = OfficeLength.Millimeters(25.4);
-        document.AsFluent().AddPage("Diagram", configure: page => page
-            .AddRectangle("node", x, y, width, height, "Node")
-            .SetMargins(OfficeLength.Inches(0.5)));
+        document.AddPage("Diagram", configure: page => { page.AddRectangle("node", x, y, width, height, "Node"); page.SetMargins(OfficeLength.Inches(0.5)); });
         var page = document.GetPage("diagram");
         var expected = new VisioPage("Reference").AddRectangle("node", x, y, width, height, "Node");
         var actual = Assert.Single(page.Shapes);
@@ -56,7 +53,7 @@ public sealed class PhysicalLengthApiTests {
         Assert.Equal(expected.NameU, actual.NameU);
         Assert.Equal(expected.Text, actual.Text);
         Assert.Same(page, document.GetOrAddPage("Diagram"));
-        document.AsFluent().GetPage(0, existing => existing.GetShape("node", shape => shape.ApplyStyle(new VisioShapeStyle(OfficeColor.White, OfficeColor.Black))));
+        document.GetPage(0, existing => { existing.GetShape("node", shape => shape.ApplyStyle(new VisioShapeStyle(OfficeColor.White, OfficeColor.Black))); });
         Assert.Single(document.Pages);
         Assert.Same(page, document.GetPage(0));
         Assert.Throws<InvalidOperationException>(() => document.GetPage("missing"));

@@ -12,7 +12,7 @@ public class CsvSchemaTests
     [Fact]
     public void MissingRequiredColumn_FailsValidation()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id", "Name")
             .AddRow(1, "Alice");
 
@@ -57,7 +57,7 @@ public class CsvSchemaTests
     [Fact]
     public void InvalidType_FailsValidation()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id", "Age")
             .AddRow(1, "abc");
 
@@ -182,7 +182,7 @@ public class CsvSchemaTests
     [Fact]
     public void InferSchema_ForTypedRows_IsNotOrderDependent()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Value")
             .AddRow(1234567890123L)
             .AddRow(1);
@@ -361,7 +361,7 @@ public class CsvSchemaTests
     [Fact]
     public void ToDataTable_WithRequiredSchema_RejectsMissingValues()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id")
             .AddRow(new object?[] { null });
         doc.EnsureSchema(schema => schema.Column("Id").AsInt32().Required());
@@ -374,7 +374,7 @@ public class CsvSchemaTests
     [Fact]
     public void ToDataTable_WithRequiredStringSchema_RejectsEmptyValues()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Name")
             .AddRow(string.Empty);
         doc.EnsureSchema(schema => schema.Column("Name").AsString().Required());

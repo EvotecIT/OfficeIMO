@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkNumbersCalculationTests {
     [Fact]
     public void Created_Numbers_tables_register_their_native_formula_owners_with_exact_identities_and_rectangular_bounds() {
-        var source = IWorkSourceDocument.Open(IWorkNumbersWritingTests.Example().SaveBytes());
+        var source = IWorkSourceDocument.Load(IWorkNumbersWritingTests.Example().ToBytes());
         var records = source.Records.ToDictionary(record => record.Identifier);
         var calculationRecord = Assert.Single(source.Records, record => record.MessageType == 4000);
         var tracker = source.Index.Message(calculationRecord).GetMessage(2)!;
@@ -55,13 +55,13 @@ public sealed class IWorkNumbersCalculationTests {
         var data = IWorkTableData.Create(2, 3).SetNumber(1, 1, 24);
         byte[] package;
         if (kind == IWorkDocumentKind.Numbers) {
-            var document = IWorkNumbersDocument.Create(); document.AddSheet("Values").AddTable(data); package = document.SaveBytes();
+            var document = IWorkNumbersDocument.Create(); document.AddSheet("Values").AddTable(data); package = document.ToBytes();
         } else if (kind == IWorkDocumentKind.Pages) {
-            var document = IWorkPagesDocument.Create(); document.AddTable(data); package = document.SaveBytes();
+            var document = IWorkPagesDocument.Create(); document.AddTable(data); package = document.ToBytes();
         } else {
-            var document = IWorkKeynoteDocument.Create(); document.AddSlide().AddTable(data, 0, 0, 400, 200); package = document.SaveBytes();
+            var document = IWorkKeynoteDocument.Create(); document.AddSlide().AddTable(data, 0, 0, 400, 200); package = document.ToBytes();
         }
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         Assert.Equal(expected, source.Index.Message(Assert.Single(source.Records, record => record.MessageType == 6000)).GetUnsigned(10));
     }
 }

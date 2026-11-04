@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                    PowerPointDocument.Create()) {
                 PowerPointSlide slide = created.AddSlide(
                     PowerPointSlideLayoutType.Blank);
-                slide.BackgroundColor = "112233";
+                slide.BackgroundColor = OfficeColor.Parse("112233");
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(sourceBytes);
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
             using var input = new MemoryStream(sourceBytes);
             using PowerPointDocument imported =
                 PowerPointDocument.Load(input);
-            imported.Slides[0].BackgroundColor = "445566";
+            imported.Slides[0].BackgroundColor = OfficeColor.Parse("445566");
 
             LegacyPptWritePreflightReport preflight = imported
                 .AnalyzeLegacyPptWrite();
@@ -227,7 +227,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument created =
                    PowerPointDocument.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank).BackgroundColor =
-                    "112233";
+                    OfficeColor.Parse("112233");
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original = LegacyPptDocument.Load(
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             using PowerPointDocument removal = PowerPointDocument.Load(
                 removalInput);
-            removal.Slides[0].BackgroundColor = "445566";
+            removal.Slides[0].BackgroundColor = OfficeColor.Parse("445566");
             LegacyPptWritePreflightReport removalPreflight = removal
                 .AnalyzeLegacyPptWrite();
             Assert.True(removalPreflight.CanWrite,
@@ -592,7 +592,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument created =
                    PowerPointDocument.Create()) {
                 created.AddSlide(PowerPointSlideLayoutType.Blank).BackgroundColor =
-                    "112233";
+                    OfficeColor.Parse("112233");
                 sourceBytes = created.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
             }
             LegacyPptDocument original =

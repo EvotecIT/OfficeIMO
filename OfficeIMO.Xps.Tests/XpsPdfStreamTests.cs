@@ -11,7 +11,7 @@ public sealed class XpsPdfStreamTests {
     [Fact]
     public void RepeatedPageOccurrencesShareProjectionCommandBudget() {
         var document = XpsDocument.Create();
-        var page = document.AddPage(100, 100).AddPath("M10,10H20V20H10Z");
+        var page = document.AddPage(100, 100).AddPath("M10,10H20V20H10Z").Page;
         var options = new XpsPdfExportOptions { MaximumPathCommands = 8 };
         using (var single = new MemoryStream())
             Assert.Equal(1, document.SaveAsPdf(single, options).ItemsWritten);

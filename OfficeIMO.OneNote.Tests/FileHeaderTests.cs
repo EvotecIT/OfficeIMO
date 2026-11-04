@@ -52,7 +52,7 @@ public sealed class FileHeaderTests {
     [Fact]
     public void RejectsInputOverConfiguredLimitBeforeParsing() {
         string path = FixturePath("testOneNote.one");
-        var options = new OneNoteReaderOptions { MaxInputBytes = 1024 };
+        var options = new OneNoteLoadOptions { MaxInputBytes = 1024 };
 
         IOException exception = Assert.Throws<IOException>(() => OneNoteFileProbe.ReadHeader(path, options));
 
@@ -118,7 +118,7 @@ public sealed class FileHeaderTests {
     public void TransactionLogCountMatchesMaterializedRootList() {
         string path = FixturePath("testOneNote.one");
         using (var stream = File.OpenRead(path)) {
-            var options = new OneNoteReaderOptions();
+            var options = new OneNoteLoadOptions();
             OneNoteFileHeader header = OneNoteFileProbe.ReadHeader(stream, options);
             IReadOnlyDictionary<uint, int> counts = OneNoteTransactionLogReader.Read(stream, header, options);
             OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(stream, options);
@@ -140,7 +140,7 @@ public sealed class FileHeaderTests {
             OneNoteTransactionLogReader.Read(
                 new MemoryStream(),
                 header,
-                new OneNoteReaderOptions { MaxInputBytes = null }));
+                new OneNoteLoadOptions { MaxInputBytes = null }));
 
         Assert.Equal("ONENOTE_TRANSACTION_FRAGMENT_SIZE", exception.Code);
         Assert.Equal(0, exception.Offset);
@@ -170,7 +170,7 @@ public sealed class FileHeaderTests {
                 new OneNoteFileChunkReference(0, (uint)first.Length),
                 (ulong)stream.Length,
                 new Dictionary<uint, int> { [0x10] = 3 },
-                new OneNoteReaderOptions());
+                new OneNoteLoadOptions());
 
             Assert.Equal(
                 new[] { OneNoteFileNodeId.ObjectGroupStart, OneNoteFileNodeId.GlobalIdTableStart2, OneNoteFileNodeId.ObjectGroupEnd },

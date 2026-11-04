@@ -7,7 +7,7 @@ public sealed class IWorkKeynoteTableWritingTests {
     public void Created_tables_link_to_Keynotes_table_theme_presets() {
         var document = IWorkKeynoteDocument.Create();
         document.AddSlide().AddTable(IWorkTableData.Create(1, 1), 0, 0, 400, 200);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(document.SaveBytes());
+        IWorkSourceDocument source = IWorkSourceDocument.Load(document.ToBytes());
         var theme = source.Index.Message(source.Records.Single(record => record.MessageType == 10));
         var properties = OfficeIMO.IWork.Internal.IWorkObjectIndex.TryGetMessage(theme, 1, out _)!;
         Assert.False(properties.HasField(120)); // Chart presets cannot activate Keynote's table style gallery.
@@ -31,7 +31,7 @@ public sealed class IWorkKeynoteTableWritingTests {
     public void Numeric_creation_uses_Apple_decimal_storage_without_changing_the_double(double value) {
         var document = IWorkKeynoteDocument.Create();
         document.AddSlide().AddTable(IWorkTableData.Create(1, 1).SetNumber(1, 1, value), 0, 0, 400, 200);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(document.SaveBytes());
+        IWorkSourceDocument source = IWorkSourceDocument.Load(document.ToBytes());
         var table = Assert.Single(source.ReadKeynote().Slides[0].Tables);
         Assert.Equal(value, Assert.Single(table.Cells).Value);
         var tile = source.Index.Message(source.Records.Single(record => record.MessageType == 6002));
@@ -50,8 +50,8 @@ public sealed class IWorkKeynoteTableWritingTests {
             .SetNumber(2, 1, -1234.5).SetBoolean(2, 2, true).SetBoolean(2, 3, false);
         slide.AddTable(data, 60, 100, 840, 300, "Values", "Arial", 24, "003366");
         slide.AddText("FRONT", 0, 0, 100, 100);
-        byte[] package = document.SaveBytes(); Assert.Equal(package, document.SaveBytes());
-        IWorkKeynoteProjection deck = IWorkSourceDocument.Open(package).ReadKeynote();
+        byte[] package = document.ToBytes(); Assert.Equal(package, document.ToBytes());
+        IWorkKeynoteProjection deck = IWorkSourceDocument.Load(package).ReadKeynote();
         Assert.Empty(deck.SourceDeclarationIssues); Assert.Empty(deck.SourceReferenceIssues);
         IWorkTable table = Assert.Single(deck.Slides[0].Tables);
         Assert.Equal(3, table.RowCount); Assert.Equal(3, table.ColumnCount);
@@ -66,7 +66,7 @@ public sealed class IWorkKeynoteTableWritingTests {
         Assert.Equal("FFFFFF", table.GetFill(3, 3)!.Color!.RgbHex);
         Assert.Equal("Arial", table.GetParagraphStyle(2, 2)!.TextStyle.FontName);
         Assert.Equal(24, table.GetParagraphStyle(2, 2)!.TextStyle.FontSizePoints);
-        using var conversion = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Load(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
@@ -88,9 +88,9 @@ public sealed class IWorkKeynoteTableWritingTests {
         var document = IWorkKeynoteDocument.Create(); var slide = document.AddSlide();
         var table = slide.AddTable(data, 0, 0, 400, 200);
         Assert.Equal("Table", table.Name); Assert.Equal("Arial", table.FontName);
-        byte[] before = document.SaveBytes();
+        byte[] before = document.ToBytes();
         data.SetText(1, 1, "CHANGED").SetBoolean(2, 2, true).ClearCell(1, 1);
-        Assert.Equal(before, document.SaveBytes()); Assert.Equal("ORIGINAL", Assert.Single(table.Cells).Value);
+        Assert.Equal(before, document.ToBytes()); Assert.Equal("ORIGINAL", Assert.Single(table.Cells).Value);
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkTableCell>)table.Cells).Clear());
         Assert.Throws<ArgumentOutOfRangeException>(() => data.SetNumber(1, 1, double.NaN));
         Assert.Throws<ArgumentOutOfRangeException>(() => data.SetNumber(1, 1, double.PositiveInfinity));
@@ -112,7 +112,7 @@ public sealed class IWorkKeynoteTableWritingTests {
         var document = IWorkKeynoteDocument.Create(); var slide = document.AddSlide();
         slide.AddTable(IWorkTableData.Create(2, 2).SetText(1, 1, "WORDS"), 0, 0, 400, 200);
         slide.AddTable(IWorkTableData.Create(2, 2), 400, 0, 400, 200);
-        var limits = new IWorkKeynoteWriteOptions();
+        var limits = new IWorkKeynoteSaveOptions();
         switch (boundary) {
             case "count": limits.MaxTables = 1; break;
             case "empty-grid": limits.MaxTableCells = 7; break;
@@ -134,7 +134,7 @@ public sealed class IWorkKeynoteTableWritingTests {
     public void Maximum_scalar_tile_retains_last_coordinates_and_empty_positions() {
         var document = IWorkKeynoteDocument.Create(4000, 4000);
         document.AddSlide().AddTable(IWorkTableData.Create(256, 256).SetNumber(256, 256, 123.5), 0, 0, 4000, 4000);
-        var table = Assert.Single(IWorkSourceDocument.Open(document.SaveBytes()).ReadKeynote().Slides[0].Tables);
+        var table = Assert.Single(IWorkSourceDocument.Load(document.ToBytes()).ReadKeynote().Slides[0].Tables);
         Assert.Equal(256, table.RowCount); Assert.Equal(256, table.ColumnCount);
         IWorkTableCell last = Assert.Single(table.Cells);
         Assert.Equal(256, last.Row); Assert.Equal(256, last.Column); Assert.Equal(123.5, last.Value);

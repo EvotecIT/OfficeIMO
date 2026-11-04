@@ -15,7 +15,7 @@ public sealed class IWorkDateTimeFormatCorpusTests {
             string path = Path.Combine(root, package.GetProperty("source").GetString()!);
             Assert.Equal(package.GetProperty("sourceSha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-            var projection = IWorkSourceDocument.Open(path, new IWorkReadOptions { PreserveSourceRecords = false }).ReadNumbers();
+            var projection = IWorkSourceDocument.Load(path, new IWorkLoadOptions { PreserveSourceRecords = false }).ReadNumbers();
             foreach (var expected in package.GetProperty("cells").EnumerateArray()) {
                 var table = projection.Sheets.Single(s => s.Name == expected.GetProperty("sheet").GetString())
                     .Tables.Single(t => t.Name == expected.GetProperty("table").GetString());
@@ -39,7 +39,7 @@ public sealed class IWorkDateTimeFormatCorpusTests {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "numbers-parser", "date-formats.json")));
         var package = manifest.RootElement.GetProperty("packages").EnumerateArray()
             .Single(p => p.GetProperty("source").GetString() == "numbers-parser/test-10-formulas.numbers");
-        using var result = IWorkSourceDocument.Open(Path.Combine(root, package.GetProperty("source").GetString()!), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(Path.Combine(root, package.GetProperty("source").GetString()!), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_DATE_DISPLAY_APPROXIMATED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

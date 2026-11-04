@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
                 completeFormula: true, mixedFormulaTypeWire: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Height", 1, 1, 1d, defaultRowHeight: 12.345d)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(12.345d)), result.Value.Sheets[0].DefaultRowHeight);
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
             includeBody: true, textBox: null, includePreview: true,
             documentLayoutFields: layout);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("Index/Slide-decoy.iwa", FrameIwa(ArchiveRecord(900, 999, Message()))));
 
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages);
 
         Assert.Equal(IWorkDocumentKind.Pages, source.Kind);
@@ -75,14 +75,14 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_z_order_references_are_bounded_before_nested_materialization() {
         using MemoryStream package = CreatePagesDrawableOccurrencePackage(
             duplicateWithinField: false, floating: false, occurrenceCount: 13);
-        var options = new IWorkReadOptions {
+        var options = new IWorkLoadOptions {
             MaxProjectedImages = 1,
             MaxProjectedTables = 1,
             MaxProjectedTextItems = 10
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages, options).ToWordResult());
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages, options).ToWordResult());
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -93,14 +93,14 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Repeated", 1, 1, 1d)
         }, repeatedFirstDrawableCount: 3);
-        var options = new IWorkReadOptions {
+        var options = new IWorkLoadOptions {
             MaxProjectedImages = 1,
             MaxProjectedTables = 1,
             MaxProjectedTextItems = 1
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options).ToExcelResult());
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, options).ToExcelResult());
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -110,14 +110,14 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_drawable_references_share_the_projection_bound() {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, drawableReferenceCount: 13);
-        var options = new IWorkReadOptions {
+        var options = new IWorkLoadOptions {
             MaxProjectedImages = 1,
             MaxProjectedTables = 1,
             MaxProjectedTextItems = 10
         };
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote, options).ToPowerPointResult());
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote, options).ToPowerPointResult());
 
         Assert.Contains("drawable references", exception.Message,
             StringComparison.OrdinalIgnoreCase);

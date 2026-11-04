@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 17), DoubleField(4, 1d))),
             BytesField(1, Message(VarintField(1, 32), StringField(25, "+WEBSERVICE(\"x\")"))));
         IWorkWireMessage formula = IWorkProtobuf.Parse(
-            Message(BytesField(1, nodeArray)), new IWorkReadOptions());
+            Message(BytesField(1, nodeArray)), new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 32, 128);
 
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Distinct_pages_list_identities_start_distinct_word_lists() {
         using MemoryStream package = CreatePagesPackageWithDistinctAdjacentLists();
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -49,12 +49,12 @@ public sealed partial class IWorkBoundaryTests {
     public void Duplicate_package_metadata_roots_disable_image_reconstruction() {
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: true,
             imageCount: 1, imageBytes: ValidPreviewPng());
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages);
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
 
         IWorkImageAsset? asset = IWorkDrawingReader.ReadImage(source, image,
-            new IWorkProjectionBudget(new IWorkReadOptions()), out bool complete);
+            new IWorkProjectionBudget(new IWorkLoadOptions()), out bool complete);
 
         Assert.Null(asset);
         Assert.False(complete);
@@ -65,11 +65,11 @@ public sealed partial class IWorkBoundaryTests {
         byte[] imageBytes = CreateSizedPreviewPng(20, 20);
         using MemoryStream package = CreatePagesImagePackage(duplicateMetadata: false,
             imageCount: 2, imageBytes: imageBytes);
-        var options = new IWorkReadOptions {
+        var options = new IWorkLoadOptions {
             MaxPackageBytes = 2_000,
             MaxDecodedImageBytes = 2_000
         };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages, options);
         IWorkArchiveRecord[] images = source.Records
             .Where(record => record.MessageType == 3005)
@@ -91,7 +91,7 @@ public sealed partial class IWorkBoundaryTests {
             ("preview.png", ValidPreviewPng()),
             ("Preview.PNG", ValidPreviewPng()));
 
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages);
 
         Assert.Single(source.Previews);
     }

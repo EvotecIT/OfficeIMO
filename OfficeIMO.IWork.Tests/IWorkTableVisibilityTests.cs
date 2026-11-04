@@ -10,12 +10,12 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Declared_hidden_content_requires_partial_policy_in_each_destination(IWorkDocumentKind kind) {
         using MemoryStream package = VisibilityCountPackage(kind, VarintField(14, 1));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal(42d, Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells).Value);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.True(report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => report.RequireCompleteEditableReconstruction());
         Assert.Empty(report.PreservedRecords);
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(42)]
     public void Each_native_hidden_or_filtered_count_retains_its_own_path(int field) {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(field, 1));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         IWorkSourceDeclarationIssue issue = Assert.Single(projection.SourceDeclarationIssues);
         Assert.Equal(field.ToString(System.Globalization.CultureInfo.InvariantCulture), issue.FieldPath);
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => VarintField(14, 4)
         };
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, declaration);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         IWorkSourceDeclarationIssue issue = Assert.Single(projection.SourceDeclarationIssues);
         Assert.Equal("14", issue.FieldPath);
@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (byte[] counts in new[] { Message(), Message(VarintField(14, 0), VarintField(15, 0),
             VarintField(40, 0), VarintField(41, 0), VarintField(42, 0)) }) {
             using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, counts);
-            IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+            IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
             Assert.True(projection.HasEditableContent);
             Assert.Empty(projection.SourceDeclarationIssues);
         }
@@ -78,14 +78,14 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Visibility_evidence_deduplicates_shared_models_and_uses_the_captured_declaration_budget() {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(14, 1), repeatModel: true);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
         using MemoryStream overBudget = VisibilityCountPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(14, 1), VarintField(41, 1)));
-        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(overBudget, options);
+        var options = new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 };
+        IWorkSourceDocument source = IWorkSourceDocument.Load(overBudget, options);
         options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
@@ -93,7 +93,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Partial_visibility_output_preserves_values_and_reader_warns_that_visibility_is_unassessed() {
         using MemoryStream package = VisibilityCountPackage(IWorkDocumentKind.Numbers, VarintField(14, 1));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
         using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });

@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Unselected_wrong_type_rich_wrappers_stay_outside_the_reference_inventory(IWorkDocumentKind kind) {
         using var package = SelectedRichTextPackage(kind, wrongTypeRecord: 17);
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         Assert.Equal("Value", Assert.Single(table.Cells).RichText!.PlainText);
         Assert.Empty(issues);
     }
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, declaration,
             includeTile: field != 3, additionalRecords: ArchiveRecord(13, 2021, Message()));
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         var issue = Assert.Single(issues);
         Assert.Equal(11ul, issue.Owner.RecordIdentifier);
         Assert.Equal(field == 1 ? "4/1/2" : field == 3 ? "4/3/1[1]/2" : "4/2", issue.FieldPath);
@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Wrong_type_inline_objects_keep_reference_evidence_without_discarding_healthy_siblings(
         string defect, ulong owner, string path, ulong target) {
         using var package = InlineImagePackage(defect);
-        var projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        var projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ReadPages();
         Assert.True(projection.Body.HasUnresolvedInlineObjects);
         Assert.False(projection.HasEditableContent);
         var issue = Assert.Single(projection.SourceReferenceIssues);
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(14, record == 14 ? 2021u : 3056u, Message(StringField(1, "Review"),
                     BytesField(2, DoubleField(1, 42d)), ReferenceField(3, 15))),
                 ArchiveRecord(15, record == 15 ? 2021u : 212u, StringField(1, "Reviewer"))));
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         var cell = Assert.Single(table.Cells);
         Assert.Equal(42d, cell.Value);
         Assert.Null(cell.Comment);
@@ -101,7 +101,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Wrong_type_number_format_catalog_preserves_raw_values_without_claiming_format_reconstruction() {
         using var package = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, 2), catalogType: 2021);
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         var cell = Assert.Single(table.Cells);
         Assert.Equal(0.5d, cell.Value);
         Assert.Null(cell.NumberFormat);
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(5, 13), ReferenceField(19, 13), ReferenceField(22, 13)),
             additionalRecords: ArchiveRecord(13, 2021, Message()));
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.Equal(42d, Assert.Single(table.Cells).Value);
         Assert.Empty(issues);
     }
@@ -128,7 +128,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(ArchiveRecord(13, 6006, BytesField(2, Message(VarintField(1, 0), FloatField(2, 22), VarintField(3, 0)))),
                 ArchiveRecord(14, 2021, Message()),
                 ArchiveRecord(15, 6006, BytesField(2, Message(VarintField(1, 0), FloatField(2, 44), VarintField(3, 0))))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = 2 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceReferenceIssues = 2 });
         var projection = source.ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Empty(table.RowHeights);
@@ -140,7 +140,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(projection.SourceDeclarationIssues, declaration => declaration.Owner.RecordIdentifier == 14
             && declaration.FieldPath == "$" && declaration.Kind == IWorkSourceDeclarationIssueKind.RejectedMessageSet);
         package.Position = 0;
-        var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        var bounded = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Contains("source reference issues", Assert.Throws<InvalidDataException>(() => bounded.ReadNumbers()).Message);
     }
 
@@ -150,8 +150,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Shared_wrong_type_rich_dependencies_report_each_physical_link_once(int record) {
         using var package = SelectedRichTextPackage(IWorkDocumentKind.Numbers, aliases: true, wrongTypeRecord: record);
         int physicalLinks = record == 14 ? 2 : 1;
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceReferenceIssues = physicalLinks }), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = physicalLinks }), IWorkDocumentKind.Numbers);
         Assert.Equal(2, table.Cells.Count);
         Assert.Equal(physicalLinks, issues.Count);
         Assert.All(issues, issue => {
@@ -166,7 +166,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             BytesField(1, Message(ReferenceField(2, 13), VarintField(2, 13))),
             additionalRecords: ArchiveRecord(13, 2021, Message()));
-        var (_, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (_, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.Equal(2, issues.Count);
         Assert.Equal(IWorkSourceReferenceIssueKind.RejectedReferenceSet, issues[0].Kind);
         Assert.Equal(13ul, issues[0].TargetIdentifier);
@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Selected_wrong_type_cell_style_catalog_keeps_numeric_values_and_qualified_role_defaults() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, "wrong-catalog-target-type");
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.Equal(42d, table.GetCell(3, 2)!.Value);
         Assert.Equal("0000FF", table.GetFill(3, 2)!.Color!.RgbHex);
         var issue = Assert.Single(issues);
@@ -194,7 +194,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(ArchiveRecord(10, 2022, Message(BytesField(1, ReferenceField(3, 12)), BytesField(11, FloatField(3, 18)))),
                 ArchiveRecord(12, 2021, Message())));
         IWorkConversionReport report = ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { MaxTextStyleInheritanceDepth = 1 });
+            readOptions: new IWorkLoadOptions { MaxTextStyleInheritanceDepth = 1 });
         var issue = Assert.Single(report.SourceReferenceIssues);
         Assert.Equal(10ul, issue.Owner.RecordIdentifier);
         Assert.Equal("1/3", issue.FieldPath);

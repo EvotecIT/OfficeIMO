@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (JsonElement expectedSource in manifest.RootElement.GetProperty("sources").EnumerateArray()) {
             string path = CorpusFixture(expectedSource.GetProperty("path").GetString()!);
             Assert.Equal(expectedSource.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-            var source = IWorkSourceDocument.Open(path);
+            var source = IWorkSourceDocument.Load(path);
             IEnumerable<IWorkTable> tables = source.Kind switch {
                 IWorkDocumentKind.Pages => source.ReadPages().Tables,
                 IWorkDocumentKind.Numbers => source.ReadNumbers().Sheets.SelectMany(sheet => sheet.Tables),
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Native_Keynote_table_fonts_alignment_and_pagination_loss_survive_saved_PPTX() {
-        using var result = IWorkSourceDocument.Open(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.True(result.Report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => result.Report.RequireCompleteEditableReconstruction());
@@ -60,13 +60,13 @@ public sealed partial class IWorkBoundaryTests {
         }
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_OMITTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
-        using var strict = IWorkSourceDocument.Open(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var strict = IWorkSourceDocument.Load(CorpusFixture("keynotekit/tabledeck-v15.2.1.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(strict.IsVisualFallback);
     }
 
     [Fact]
     public void Native_Pages_selected_table_fonts_survive_saved_DOCX_including_empty_rich_paragraphs() {
-        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
         for (int index = 0; index < result.Projection.Tables.Count; index++) {
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Table_role_precedence_selected_override_and_unstored_empty_cells_survive_saved_destinations(IWorkDocumentKind kind) {
         using var package = TableTextStylePackage(kind);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         IWorkTable table = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().Tables[0],
             IWorkDocumentKind.Numbers => source.ReadNumbers().Sheets[0].Tables[0],
@@ -135,7 +135,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         Assert.Throws<InvalidDataException>(() => {
-            var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxMaterializedCells = 1 });
+            var bounded = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxMaterializedCells = 1 });
             _ = kind switch { IWorkDocumentKind.Pages => (object)bounded.ReadPages(), IWorkDocumentKind.Numbers => bounded.ReadNumbers(), _ => bounded.ReadKeynote() };
         });
     }
@@ -157,7 +157,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => TableParagraphStyle(30, 18, false, 31)
         };
         using var package = TableTextStylePackage(IWorkDocumentKind.Pages, style);
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 }).ReadPages();
+        var projection = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128 }).ReadPages();
         var table = Assert.Single(projection.Tables);
         Assert.Equal(42d, table.GetCell(1, 1)!.Value);
         Assert.Null(table.GetParagraphStyle(1, 1)); Assert.NotNull(table.GetParagraphStyle(1, 3));
@@ -179,7 +179,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, 4001f)]
     public void Selected_table_font_outside_destination_range_falls_back_even_under_partial_policy(IWorkDocumentKind kind, float size) {
         using var package = TableTextStylePackage(kind, TableParagraphStyle(30, size, false));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
@@ -198,7 +198,7 @@ public sealed partial class IWorkBoundaryTests {
         string name = new string('A', 256);
         using var package = TableTextStylePackage(IWorkDocumentKind.Numbers,
             TableParagraphStyle(30, 18, false, fontName: name));
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
@@ -211,7 +211,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_rich_text_run_oversized_font_name_falls_back_before_cell_style_expansion() {
         string name = new string('B', 256);
         using var package = TableTextStylePackage(IWorkDocumentKind.Numbers, richRunFontName: name);
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
 
         Assert.True(result.IsVisualFallback);
@@ -224,14 +224,14 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Mixed_selected_text_and_cell_styles_share_one_catalog_budget_and_preserve_both_properties() {
         using var selected = TableTextStylePackage(IWorkDocumentKind.Pages, cellStyle: true);
-        var limited = IWorkSourceDocument.Open(selected, new IWorkReadOptions { MaxTableCatalogEntries = 2 });
+        var limited = IWorkSourceDocument.Load(selected, new IWorkLoadOptions { MaxTableCatalogEntries = 2 });
         Assert.All(limited.ReadPages().Tables[0].Cells, cell => {
             Assert.Equal("FF0000", cell.Fill!.Color!.RgbHex);
             Assert.Equal(18, cell.ParagraphStyle!.TextStyle.FontSizePoints);
         });
         selected.Position = 0;
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(selected,
-            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(selected,
+            new IWorkLoadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
     }
 
     [Theory]
@@ -239,7 +239,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Explicit_empty_rich_paragraph_font_overrides_table_defaults_in_saved_documents(IWorkDocumentKind kind) {
         using var package = TableTextStylePackage(kind, emptyRichParagraph: true);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         IWorkTable table = kind == IWorkDocumentKind.Pages ? source.ReadPages().Tables[0] : source.ReadKeynote().Slides[0].Tables[0];
         Assert.Equal(18, table.GetParagraphStyle(1, 1)!.TextStyle.FontSizePoints);
         Assert.All(table.GetCell(1, 1)!.RichText!.Paragraphs, paragraph => {
@@ -278,7 +278,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = TableTextStylePackage(IWorkDocumentKind.Pages,
             TableParagraphStyle(30, 18, false, spaceBefore: 12, spaceAfter: 8),
             richRunFontName: "HelveticaNeue", richSpaceBefore: before, richSpaceAfter: after);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         IWorkTable table = source.ReadPages().Tables[0];
         Assert.Equal(12d, table.GetParagraphStyle(1, 1)!.SpaceBeforePoints);
         Assert.Equal(8d, table.GetParagraphStyle(1, 1)!.SpaceAfterPoints);
@@ -309,7 +309,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, 4001f)]
     public void Empty_rich_paragraph_font_outside_destination_range_falls_back(IWorkDocumentKind kind, float fontSize) {
         using var package = TableTextStylePackage(kind, emptyRichParagraph: true, richParagraphFontSize: fontSize);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));
@@ -345,7 +345,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Header_roles_do_not_add_bold_to_plain_or_rich_source_cell_fonts(IWorkDocumentKind kind, bool richText) {
         using var package = TableTextStylePackage(kind, TableParagraphStyle(30, 18, null),
             richRunFontName: richText ? "Arial" : null, richParagraphBold: null);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {

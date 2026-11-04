@@ -67,7 +67,7 @@ internal static class XpsSidewaysFixtures {
     }
     internal static XpsDocument Create(string metrics, XpsFormat format = XpsFormat.Xps, bool positioned = false) {
         var doc = XpsDocument.Create(format);
-        var page = doc.AddPage(260, 160).AddPath("M0,0H260V160H0Z", "#FFFFFFFF");
+        var page = doc.AddPage(260, 160).AddPath("M0,0H260V160H0Z", "#FFFFFFFF").Page;
         page.AddText("AFQ", doc.AddFont(Font(metrics), false), 48, 30, 80);
         var xml = page.GetMarkup(); var glyphs = xml.Elements().Last();
         glyphs.SetAttributeValue("IsSideways", "true");

@@ -213,21 +213,21 @@ namespace OfficeIMO.Tests {
         public void DesignerTheme_UsesPresentationGradeFontsByDefault() {
             PowerPointDesignTheme theme = PowerPointDesignTheme.ModernBlue;
 
-            Assert.Equal("Poppins", theme.HeadingFontName);
-            Assert.Equal("Lato", theme.BodyFontName);
+            Assert.Equal("Poppins", theme.HeadingFontFamily);
+            Assert.Equal("Lato", theme.BodyFontFamily);
         }
 
         [Fact]
         public void DesignerTheme_FromBrandCreatesDistinctPalette() {
             PowerPointDesignTheme theme = PowerPointDesignTheme.FromBrand("#7A3E9D", "Brand Theme",
-                headingFontName: "Aptos Display", bodyFontName: "Aptos");
+                headingFontFamily: "Aptos Display", bodyFontFamily: "Aptos");
 
             Assert.Equal("Brand Theme", theme.Name);
             Assert.Equal("7A3E9D", theme.AccentColor);
             Assert.NotEqual(theme.AccentColor, theme.AccentDarkColor);
             Assert.NotEqual(theme.AccentColor, theme.AccentLightColor);
-            Assert.Equal("Aptos Display", theme.HeadingFontName);
-            Assert.Equal("Aptos", theme.BodyFontName);
+            Assert.Equal("Aptos Display", theme.HeadingFontFamily);
+            Assert.Equal("Aptos", theme.BodyFontFamily);
         }
 
         [Fact]
@@ -280,8 +280,8 @@ namespace OfficeIMO.Tests {
                 theme.WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif, "client-a");
 
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, styled.TypographyStyle);
-            Assert.Equal("Georgia", styled.HeadingFontName);
-            Assert.Equal("Aptos", styled.BodyFontName);
+            Assert.Equal("Georgia", styled.HeadingFontFamily);
+            Assert.Equal("Aptos", styled.BodyFontFamily);
         }
 
         [Fact]
@@ -290,8 +290,8 @@ namespace OfficeIMO.Tests {
                 .WithMood(PowerPointDesignMood.Energetic);
 
             Assert.Equal(PowerPointTypographyStyle.FriendlySans, energetic.TypographyStyle);
-            Assert.Equal("Poppins", energetic.HeadingFontName);
-            Assert.Equal("Lato", energetic.BodyFontName);
+            Assert.Equal("Poppins", energetic.HeadingFontFamily);
+            Assert.Equal("Lato", energetic.BodyFontFamily);
         }
 
         [Fact]
@@ -303,8 +303,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(first.TypographyStyle, second.TypographyStyle);
             Assert.NotEqual(PowerPointTypographyStyle.Auto, first.TypographyStyle);
-            Assert.Equal(first.HeadingFontName, second.HeadingFontName);
-            Assert.Equal(first.BodyFontName, second.BodyFontName);
+            Assert.Equal(first.HeadingFontFamily, second.HeadingFontFamily);
+            Assert.Equal(first.BodyFontFamily, second.BodyFontFamily);
         }
 
         [Fact]
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointDesignMood.Editorial, design.BaseIntent.Mood);
             Assert.Equal(PowerPointSlideDensity.Relaxed, design.BaseIntent.Density);
             Assert.Equal(PowerPointVisualStyle.Soft, design.BaseIntent.VisualStyle);
-            Assert.Equal("Aptos Display", design.Theme.HeadingFontName);
+            Assert.Equal("Aptos Display", design.Theme.HeadingFontFamily);
 
             PowerPointCaseStudySlideOptions options = design.Configure(new PowerPointCaseStudySlideOptions {
                 Variant = PowerPointCaseStudyLayoutVariant.VisualHero
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointDesignMood.Energetic, alternatives[3].BaseIntent.Mood);
             Assert.Equal(PowerPointVisualStyle.Soft, alternatives[4].BaseIntent.VisualStyle);
             Assert.Equal("Executive", alternatives[4].Direction.Name);
-            Assert.Equal("Segoe UI Semibold", alternatives[4].Theme.HeadingFontName);
+            Assert.Equal("Segoe UI Semibold", alternatives[4].Theme.HeadingFontFamily);
             Assert.NotEqual(alternatives[0].Theme.Accent2Color, alternatives[1].Theme.Accent2Color);
             Assert.False(alternatives[2].ShowDirectionMotif);
             Assert.Equal("Portfolio", alternatives[3].Options("cover").Eyebrow);
@@ -384,8 +384,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Executive", design.Direction.Name);
             Assert.Equal(PowerPointDesignMood.Corporate, design.BaseIntent.Mood);
             Assert.Equal(PowerPointVisualStyle.Soft, design.BaseIntent.VisualStyle);
-            Assert.Equal("Segoe UI Semibold", design.Theme.HeadingFontName);
-            Assert.Equal("Segoe UI", design.Theme.BodyFontName);
+            Assert.Equal("Segoe UI Semibold", design.Theme.HeadingFontFamily);
+            Assert.Equal("Segoe UI", design.Theme.BodyFontFamily);
             Assert.False(design.ShowDirectionMotif);
             Assert.Equal("CLIENT", design.Options("cover").FooterLeft);
         }
@@ -397,8 +397,8 @@ namespace OfficeIMO.Tests {
 
             PowerPointDeckDesignSummary summary = design.Describe();
 
-            Assert.Equal("Poppins", summary.HeadingFontName);
-            Assert.Equal("Aptos", summary.BodyFontName);
+            Assert.Equal("Poppins", summary.HeadingFontFamily);
+            Assert.Equal("Aptos", summary.BodyFontFamily);
             Assert.Equal(PowerPointTypographyStyle.Auto, summary.TypographyStyle);
         }
 
@@ -417,13 +417,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, alternatives.Count);
             Assert.Equal("Board Brief", alternatives[0].Direction.Name);
             Assert.Equal(PowerPointVisualStyle.Soft, alternatives[0].BaseIntent.VisualStyle);
-            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontFamily);
             Assert.False(alternatives[0].ShowDirectionMotif);
             Assert.Equal("custom-client/board-brief-1/cover", alternatives[0].Options("cover").DesignIntent.Seed);
 
             Assert.Equal("Field Ops", alternatives[1].Direction.Name);
             Assert.Equal(PowerPointSlideDensity.Compact, alternatives[1].BaseIntent.Density);
-            Assert.Equal("Segoe UI", alternatives[1].Theme.BodyFontName);
+            Assert.Equal("Segoe UI", alternatives[1].Theme.BodyFontFamily);
             Assert.True(alternatives[1].ShowDirectionMotif);
             Assert.Equal("CLIENT", alternatives[1].Options("cover").FooterLeft);
         }
@@ -439,7 +439,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Board Story", alternatives[0].Direction.Name);
             Assert.Equal(PowerPointDesignMood.Corporate, alternatives[0].BaseIntent.Mood);
             Assert.Equal(PowerPointVisualStyle.Soft, alternatives[0].BaseIntent.VisualStyle);
-            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontFamily);
             Assert.False(alternatives[0].ShowDirectionMotif);
             Assert.Equal("Project portfolio", alternatives[0].Options("cover").Eyebrow);
             Assert.Equal("service-client/consulting-portfolio-board-story-1/cover",
@@ -461,15 +461,15 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<PowerPointDeckDesign> alternatives =
                 PowerPointDeckDesign.CreateAlternativesFromBrand("#008C95", "technical-client",
                     PowerPointDesignRecipe.TechnicalProposal, count: 4, name: "Client",
-                    headingFontName: "Aptos Display", bodyFontName: "Aptos");
+                    headingFontFamily: "Aptos Display", bodyFontFamily: "Aptos");
 
             Assert.Equal(4, alternatives.Count);
             Assert.Equal("Architecture Map", alternatives[0].Direction.Name);
             Assert.Equal("Architecture Map", alternatives[3].Direction.Name);
             Assert.NotEqual(alternatives[0].Options("cover").DesignIntent.Seed,
                 alternatives[3].Options("cover").DesignIntent.Seed);
-            Assert.All(alternatives, design => Assert.Equal("Aptos Display", design.Theme.HeadingFontName));
-            Assert.All(alternatives, design => Assert.Equal("Aptos", design.Theme.BodyFontName));
+            Assert.All(alternatives, design => Assert.Equal("Aptos Display", design.Theme.HeadingFontFamily));
+            Assert.All(alternatives, design => Assert.Equal("Aptos", design.Theme.BodyFontFamily));
             Assert.Equal("Technical proposal", alternatives[1].Options("cover").Eyebrow);
         }
 
@@ -503,7 +503,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, alternatives.Count);
             Assert.Equal("North Star", alternatives[0].Direction.Name);
             Assert.Equal(PowerPointDesignMood.Editorial, alternatives[0].BaseIntent.Mood);
-            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontFamily);
             Assert.False(alternatives[0].ShowDirectionMotif);
 
             Assert.Equal("Momentum Map", alternatives[1].Direction.Name);
@@ -532,7 +532,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, recipes[3].DirectionCount);
             Assert.Equal("Momentum Map", recipes[3].Directions[1].Name);
             Assert.Equal(PowerPointDesignMood.Energetic, recipes[3].Directions[1].Mood);
-            Assert.Equal("Poppins", recipes[3].Directions[1].HeadingFontName);
+            Assert.Equal("Poppins", recipes[3].Directions[1].HeadingFontFamily);
             Assert.Contains("Transformation Roadmap", recipes[3].ToString());
             Assert.Contains("Momentum Map", recipes[3].Directions[1].ToString());
 
@@ -580,7 +580,7 @@ namespace OfficeIMO.Tests {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-client", "technical rollout proposal")
                 .WithIdentity("Client", footerLeft: "CLIENT")
-                .WithFonts(bodyFontName: "Segoe UI");
+                .WithFonts(bodyFontFamily: "Segoe UI");
 
             IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
 
@@ -589,8 +589,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Runbook", alternatives[1].Direction.Name);
             Assert.Equal("Technical proposal", alternatives[0].Options("cover").Eyebrow);
             Assert.Equal("CLIENT", alternatives[1].Options("cover").FooterLeft);
-            Assert.Equal("Segoe UI", alternatives[0].Theme.BodyFontName);
-            Assert.Equal("Segoe UI", alternatives[1].Theme.BodyFontName);
+            Assert.Equal("Segoe UI", alternatives[0].Theme.BodyFontFamily);
+            Assert.Equal("Segoe UI", alternatives[1].Theme.BodyFontFamily);
             Assert.NotEqual(alternatives[0].Theme.Accent2Color, alternatives[1].Theme.Accent2Color);
         }
 
@@ -657,7 +657,7 @@ namespace OfficeIMO.Tests {
             PowerPointDesignBrief brief = PowerPointDesignBrief
                 .FromBrand("#008C95", "brief-preview", "technical rollout proposal")
                 .WithIdentity("Client")
-                .WithFonts(bodyFontName: "Segoe UI");
+                .WithFonts(bodyFontFamily: "Segoe UI");
 
             IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(3);
 
@@ -667,7 +667,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Runbook", summaries[1].DirectionName);
             Assert.Equal(PowerPointDesignMood.Minimal, summaries[1].Mood);
             Assert.Equal("008C95", summaries[2].AccentColor);
-            Assert.Equal("Segoe UI", summaries[2].BodyFontName);
+            Assert.Equal("Segoe UI", summaries[2].BodyFontFamily);
             Assert.NotEqual(summaries[0].Accent2Color, summaries[1].Accent2Color);
             Assert.Contains("Delivery Signal", summaries[2].ToString());
         }
@@ -718,7 +718,7 @@ namespace OfficeIMO.Tests {
         public void DesignerDesignBrief_CanChooseTypographyStyleBeforeManualFontOverrides() {
             PowerPointDesignBrief brief = PowerPointDesignBrief.FromBrand("#008C95", "client-demo")
                 .WithTypographyStyle(PowerPointTypographyStyle.EditorialSerif)
-                .WithFonts(bodyFontName: "Segoe UI");
+                .WithFonts(bodyFontFamily: "Segoe UI");
 
             IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(2);
             IReadOnlyList<PowerPointDeckDesignSummary> summaries = brief.DescribeAlternatives(1);
@@ -726,10 +726,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
             Assert.All(alternatives, design => Assert.Equal(PowerPointTypographyStyle.EditorialSerif,
                 design.Theme.TypographyStyle));
-            Assert.All(alternatives, design => Assert.Equal("Georgia", design.Theme.HeadingFontName));
-            Assert.All(alternatives, design => Assert.Equal("Segoe UI", design.Theme.BodyFontName));
+            Assert.All(alternatives, design => Assert.Equal("Georgia", design.Theme.HeadingFontFamily));
+            Assert.All(alternatives, design => Assert.Equal("Segoe UI", design.Theme.BodyFontFamily));
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, summaries[0].TypographyStyle);
-            Assert.Equal("Segoe UI", summaries[0].BodyFontName);
+            Assert.Equal("Segoe UI", summaries[0].BodyFontFamily);
         }
 
         [Fact]
@@ -770,13 +770,13 @@ namespace OfficeIMO.Tests {
 
             Assert.Null(brief.SecondaryAccentColor);
             Assert.Null(brief.SurfaceColor);
-            Assert.Null(brief.HeadingFontName);
-            Assert.Null(brief.BodyFontName);
+            Assert.Null(brief.HeadingFontFamily);
+            Assert.Null(brief.BodyFontFamily);
             Assert.Equal(PowerPointPaletteStyle.SplitComplementary, alternatives[0].Theme.PaletteStyle);
             Assert.NotEqual("6D5BD0", alternatives[0].Theme.Accent2Color);
             Assert.NotEqual("F2F6F8", alternatives[0].Theme.SurfaceColor);
-            Assert.NotEqual("Segoe UI Semibold", alternatives[0].Theme.HeadingFontName);
-            Assert.NotEqual("Segoe UI", alternatives[0].Theme.BodyFontName);
+            Assert.NotEqual("Segoe UI Semibold", alternatives[0].Theme.HeadingFontFamily);
+            Assert.NotEqual("Segoe UI", alternatives[0].Theme.BodyFontFamily);
         }
 
         [Fact]
@@ -814,7 +814,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, brief.TypographyStyle);
             Assert.Equal(PowerPointTypographyStyle.EditorialSerif, alternatives[0].Theme.TypographyStyle);
-            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontName);
+            Assert.Equal("Georgia", alternatives[0].Theme.HeadingFontFamily);
         }
 
         [Fact]
@@ -826,8 +826,8 @@ namespace OfficeIMO.Tests {
             IReadOnlyList<PowerPointDeckDesign> alternatives = brief.CreateAlternatives(1);
             PowerPointDeckDesignSummary summary = brief.DescribeAlternatives(1)[0];
 
-            Assert.Equal("Poppins", alternatives[0].Theme.HeadingFontName);
-            Assert.Equal("Aptos", alternatives[0].Theme.BodyFontName);
+            Assert.Equal("Poppins", alternatives[0].Theme.HeadingFontFamily);
+            Assert.Equal("Aptos", alternatives[0].Theme.BodyFontFamily);
             Assert.Equal(PowerPointTypographyStyle.Auto, alternatives[0].Theme.TypographyStyle);
             Assert.Equal(PowerPointTypographyStyle.Auto, summary.TypographyStyle);
         }

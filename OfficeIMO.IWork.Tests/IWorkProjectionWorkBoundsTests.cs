@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord((ulong)(100 + index), 2001, new byte[] { 0x80 }));
 
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ReadKeynote();
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ReadKeynote();
         IWorkConversionReport report = projection.CreateConversionReport(
             IWorkProjectionKind.EditableReconstruction, null, Array.Empty<IWorkDiagnostic>(),
             allowPartialEditableReconstruction: true);
@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
         records.Insert(1, ArchiveRecord(2, 2, KeynoteShow(Message(slideNodes.ToArray()))));
 
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ReadKeynote();
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ReadKeynote();
 
         Assert.Equal(slideCount, projection.Slides.Count);
         Assert.Equal(slideCount, projection.Diagnostics.Count(diagnostic =>
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
         records.Insert(1, ArchiveRecord(2, 2001, Message(StringField(3, "Body"))));
 
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ReadPages();
 
         Assert.Equal(shapeCount, projection.Diagnostics.Count(diagnostic =>
             diagnostic.Code == "IWORK_PAGES_TEXT_UNSUPPORTED"));

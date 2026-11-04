@@ -42,7 +42,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     public void Native_decimal_levels_and_continuation_preserve_source_counters_and_DOCX_measurements(
         string fixture, bool reimported) {
         VerifyManifest(fixture + ".json");
-        using var result = IWorkSourceDocument.Open(Corpus("native-exports/" + fixture + ".pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(Corpus("native-exports/" + fixture + ".pages"), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.True(result.Projection.Body.IsFormattingComplete);
         Assert.Empty(result.Projection.SourceDeclarationIssues);
@@ -110,7 +110,7 @@ public sealed partial class IWorkEverydayNativeExportTests {
     [InlineData(8192)]
     [InlineData(8)]
     public void Reader_retains_nested_and_resumed_native_markers_across_chunks(int maximumChunkCharacters) {
-        var source = IWorkSourceDocument.Open(Corpus("native-exports/pages-list-continuation-v15.4.pages"));
+        var source = IWorkSourceDocument.Load(Corpus("native-exports/pages-list-continuation-v15.4.pages"));
         var output = new OfficeDocumentReadResult { Kind = ReaderInputKind.IWork };
         var reader = new IWorkReadProjection(output, "list-continuation.pages", new ReaderOptions {
             MaxChars = maximumChunkCharacters }, new ReaderIWorkOptions(), System.Threading.CancellationToken.None);

@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Fixed_millisecond_ranges_preserve_raw_seconds_and_saved_destination_display(
         IWorkDocumentKind kind, IWorkDurationUnit largest, string code, string expected) {
         using var package = DurationFormatPackage(kind, -129661.75, DurationFormat(largest: (ulong)largest, smallest: 32));
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         Assert.Equal(-129661.75d, cell.Value);
         Assert.Equal(IWorkCellKind.Duration, cell.ValueKind);
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Blank_millisecond_cells_preserve_selected_native_Xlsx_precision(IWorkDurationUnit largest, string code) {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers,
             format: DurationFormat(largest: (ulong)largest, smallest: 32));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkDurationUnit largest, double seconds, string expected) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, seconds,
             DurationFormat(largest: (ulong)largest, smallest: 32));
-        var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        var cell = Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.True(cell.TryGetFormattedNumber(out string display, out _));
         Assert.Equal(expected, display);
         package.Position = 0;

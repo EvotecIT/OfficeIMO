@@ -230,8 +230,8 @@ public sealed class VisioMasterTextStyleSerializationTests {
         double Read(string name) => double.Parse(background.Attribute(name)!.Value, CultureInfo.InvariantCulture);
         Assert.Equal(centerX * scale, Read("x") + Read("width") / 2, 3);
         Assert.Equal((page.Height.ToInches() - centerY) * scale, Read("y") + Read("height") / 2, 3);
-        OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = scale, Supersampling = 1, RenderStencilArtwork = false
+        OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
+            TargetDpi = scale, Supersampling = 1, RenderStencilArtwork = false
         }), "Default-frame PNG could not be decoded.");
         int left = raster.Width, top = raster.Height, right = -1, bottom = -1;
         for (int y = 0; y < raster.Height; y++) {

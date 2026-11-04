@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = Path.Combine(root, manifest.RootElement.GetProperty("source").GetProperty("path").GetString()!);
         Assert.Equal(manifest.RootElement.GetProperty("source").GetProperty("sha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(path);
         using var result = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable[] tables = result.Projection.Sheets.SelectMany(sheet => sheet.Tables).ToArray();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -46,7 +46,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_hidden_rows_and_columns_keep_populated_cells_and_reader_content() {
         using MemoryStream package = MappedHiddenPackage(IWorkDocumentKind.Numbers);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         using var result = source.ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.False(result.Report.IsPartialEditableReconstruction);
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Text_table_destinations_require_partial_policy_for_qualified_visibility(IWorkDocumentKind kind) {
         using MemoryStream package = MappedHiddenPackage(kind);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         if (kind == IWorkDocumentKind.Pages) {
             using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(automatic.IsVisualFallback);
         } else {
@@ -104,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         byte[] inverse = defect == "inverseConflict" ? Message(VarintField(6, 0), VarintField(6, 1), VarintField(6, 2)) : Message();
         using MemoryStream package = MappedHiddenPackage(IWorkDocumentKind.Numbers, rowMap: Message(rowUuids, indexes, inverse));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Empty(table.HiddenRows);
         Assert.Equal(new[] { 1 }, table.HiddenColumns);
@@ -121,7 +121,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] conflict = BytesField(2, malformed ? new byte[] { 0x80 }
             : Message(BytesField(1, VisibilityUuid(2)), VarintField(2, 0)));
         using MemoryStream package = MappedHiddenPackage(IWorkDocumentKind.Numbers, rowStates: Message(row, conflict));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.Empty(Assert.Single(Assert.Single(projection.Sheets).Tables).HiddenRows);
         Assert.False(projection.HasEditableContent);
     }
@@ -130,10 +130,10 @@ public sealed partial class IWorkBoundaryTests {
     public void Packed_mapping_indexes_are_supported_and_mapping_work_uses_existing_limits() {
         byte[] uuids = Message(BytesField(4, VisibilityUuid(1)), BytesField(4, VisibilityUuid(2)), BytesField(4, VisibilityUuid(3)));
         using MemoryStream package = MappedHiddenPackage(IWorkDocumentKind.Numbers, rowMap: Message(uuids, BytesField(5, new byte[] { 2, 0, 1 })));
-        Assert.Equal(new[] { 1 }, Assert.Single(Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets).Tables).HiddenRows);
+        Assert.Equal(new[] { 1 }, Assert.Single(Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets).Tables).HiddenRows);
         package.Position = 0;
-        Assert.Contains("limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxTableDimensionEntries = 10 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static byte[] VisibilityUuid(ulong lower, ulong upper = 10) => Message(VarintField(1, lower), VarintField(2, upper));

@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(stream)));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages));
 
         Assert.Contains("MessageInfo", exception.Message, StringComparison.Ordinal);
         Assert.Contains("wire encoding", exception.Message, StringComparison.Ordinal);
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(stream)));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages));
 
         Assert.Contains("ArchiveInfo", exception.Message, StringComparison.Ordinal);
         Assert.Contains("identifier", exception.Message, StringComparison.Ordinal);
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Undefined_conversion_modes_are_rejected_before_projection() {
         using MemoryStream package = CreatePagesPackage(
             includeBody: true, textBox: null, includePreview: false);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages);
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
             source.ToWordResult(
                 new IWorkConversionOptions { Mode = (IWorkConversionMode)99 }));
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = new MemoryStream();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            IWorkSourceDocument.Open(package, (IWorkDocumentKind)99));
+            IWorkSourceDocument.Load(package, (IWorkDocumentKind)99));
 
         Assert.Equal("expectedKind", exception.ParamName);
     }
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Undefined_projection_kinds_are_rejected() {
         using MemoryStream package = CreatePagesPackage(
             includeBody: true, textBox: null, includePreview: false);
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages).ReadPages();
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -85,7 +85,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Underflow", 1, 1, 0d, decimal128Underflow: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 

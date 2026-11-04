@@ -12,17 +12,17 @@ namespace OfficeIMO.Tests {
         public void Hidden_borders_can_be_restored_without_conflicting_fills_or_changing_other_edges() {
             using var presentation = PowerPointDocument.Create();
             var cell = presentation.AddSlide().AddTable(1,1).GetCell(0, 0);
-            cell.Text = "Preserved"; cell.FillColor = "ABCDEF";
-            cell.SetBorders(PowerPointTableCellBorders.All, "123456", global::OfficeIMO.OfficeLength.Points(1));
+            cell.Text = "Preserved"; cell.FillColor = OfficeColor.Parse("ABCDEF");
+            cell.SetBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("123456"), global::OfficeIMO.OfficeLength.Points(1));
             cell.HideBorders(PowerPointTableCellBorders.Right | PowerPointTableCellBorders.Bottom);
-            cell.SetBorders(PowerPointTableCellBorders.Bottom, "FF0000", global::OfficeIMO.OfficeLength.Points(3));
-            Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(PowerPointTableCellBorders.Top, "00FF00", global::OfficeIMO.OfficeLength.Points(1584.25)));
+            cell.SetBorders(PowerPointTableCellBorders.Bottom, OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(3));
+            Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(PowerPointTableCellBorders.Top, OfficeColor.Parse("00FF00"), global::OfficeIMO.OfficeLength.Points(1584.25)));
             Assert.Throws<ArgumentOutOfRangeException>(() => cell.HideBorders((PowerPointTableCellBorders)128));
             using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
             using (var reopened = PowerPointDocument.Load(saved)) {
                 Assert.Empty(reopened.ValidateDocument());
                 var output = reopened.Slides.Single().Tables.Single().GetCell(0, 0);
-                Assert.Equal("Preserved", output.Text); Assert.Equal("ABCDEF", output.FillColor);
+                Assert.Equal("Preserved", output.Text); Assert.Equal(OfficeColor.Parse("ABCDEF"), output.FillColor);
             }
             saved.Position = 0; using var package = PresentationDocument.Open(saved, false);
             var properties = package.PresentationPart!.SlideParts.Single().Slide.Descendants<A.TableCell>().Single().TableCellProperties!;
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 PowerPointTable table = slide.AddTable(2,2);
                 PowerPointTableCell cell = table.GetCell(0, 0);
                 cell.Text = "Header";
-                cell.SetBorders(PowerPointTableCellBorders.All, "FF0000", global::OfficeIMO.OfficeLength.Points(1.5));
+                cell.SetBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeLength.Points(1.5));
                 cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(4);
                 cell.PaddingRight = global::OfficeIMO.OfficeLength.Points(4);
                 cell.PaddingTop = global::OfficeIMO.OfficeLength.Points(3);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
 
             using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                 PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
-                Assert.Equal("FF0000", cell.BorderColor);
+                Assert.Equal(OfficeColor.Parse("FF0000"), cell.BorderColor);
                 Assert.Equal(4, cell.PaddingLeft?.ToPoints() ?? 0, 2);
                 Assert.Equal(4, cell.PaddingRight?.ToPoints() ?? 0, 2);
                 Assert.Equal(3, cell.PaddingTop?.ToPoints() ?? 0, 2);

@@ -58,11 +58,11 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using PowerPointDocument presentation = PowerPointDocument.Create(stream, new PowerPointCreateOptions());
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "FFFFFF";
+            slide.BackgroundColor = OfficeColor.Parse("FFFFFF");
             PowerPointTextBox link = slide.AddTextBox("click here",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(28));
             link.Color = OfficeColor.Parse("D0D0D0");
             link.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            link.FillColor = "FFFFFF";
+            link.FillColor = OfficeColor.Parse("FFFFFF");
             link.Paragraphs.Single().Runs.Single().SetHyperlink("https://example.test");
             PowerPointTable table = slide.AddTable(2,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(180),global::OfficeIMO.OfficeLength.Points(60));
             table.GetCell(0, 0).Text = "Metric";

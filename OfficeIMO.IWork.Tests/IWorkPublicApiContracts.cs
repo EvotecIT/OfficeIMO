@@ -17,7 +17,7 @@ public sealed class IWorkPublicApiContracts {
 
     [Fact]
     public void SourceReadingAndDestinationConversionRemainSeparate() {
-        Assert.Null(typeof(IWorkReadOptions).GetProperty("ImportMode"));
+        Assert.Null(typeof(IWorkLoadOptions).GetProperty("ImportMode"));
         Assert.NotNull(typeof(IWorkConversionOptions).GetProperty("Mode"));
 
         AssertSourceExtension(typeof(WordIWorkConverter), "ToWordResult");
@@ -40,8 +40,8 @@ public sealed class IWorkPublicApiContracts {
         MethodInfo[] methods = typeof(IWorkSourceDocument).GetMethods(
             BindingFlags.Public | BindingFlags.Static);
 
-        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(Stream), typeof(IWorkReadOptions)));
-        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(byte[]), typeof(IWorkReadOptions)));
+        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(Stream), typeof(IWorkLoadOptions)));
+        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(byte[]), typeof(IWorkLoadOptions)));
         Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(Stream), typeof(IWorkDocumentKind)));
         Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(byte[]), typeof(IWorkDocumentKind)));
     }

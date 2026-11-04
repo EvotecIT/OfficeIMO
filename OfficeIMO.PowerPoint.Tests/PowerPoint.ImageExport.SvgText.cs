@@ -20,7 +20,7 @@ public partial class PowerPointImageExportTests {
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(180));
         presentation.SetThemeColorForAllMasters(PowerPointThemeColor.Accent2, "146C94");
         PowerPointSlide slide = presentation.AddSlide();
-        slide.BackgroundColor = "FFF9E8";
+        slide.BackgroundColor = OfficeColor.Parse("FFF9E8");
 
         PowerPointTextBox title = slide.AddTextBox("Canonical slide",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(32));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
@@ -37,11 +37,11 @@ public partial class PowerPointImageExportTests {
         table.GetCell(0, 1).Text = "Revenue";
         table.GetCell(1, 0).Text = "North";
         table.GetCell(1, 1).Text = "42";
-        table.GetCell(0, 0).FillColor = "146C94";
+        table.GetCell(0, 0).FillColor = OfficeColor.Parse("146C94");
         table.GetCell(0, 0).Color = OfficeColor.Parse("FFFFFF");
 
         PowerPointAutoShape edge = slide.AddRectangle(OfficeIMO.OfficeLength.Points(-12), OfficeIMO.OfficeLength.Points(148), OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(48));
-        edge.FillColor = "D7263D";
+        edge.FillColor = OfficeColor.Parse("D7263D");
         edge.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
         AssertNativeImageRoute(presentation, format, scale: 1.5D);

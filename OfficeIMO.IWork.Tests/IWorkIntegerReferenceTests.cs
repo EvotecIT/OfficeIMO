@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(input.GetProperty("sha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
         }
-        using var result = IWorkSourceDocument.Open(CorpusFixture(
+        using var result = IWorkSourceDocument.Load(CorpusFixture(
             "native-exports/" + evidence.GetProperty("source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         IWorkTable table = Assert.Single(Assert.Single(result.Projection.Sheets).Tables);
         Assert.Equal(39, table.Cells.Count(c => c.Kind == IWorkCellKind.Formula && c.FormulaIsComplete));
@@ -61,23 +61,23 @@ public sealed partial class IWorkBoundaryTests {
         IWorkWireMessage formula = IntegerReferenceFormula(58, IntegerRectangle(2, external),
             Message(VarintField(1, 17), DoubleField(4, 6)));
         IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 100, 1000, bindings,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions()));
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions()));
         Assert.True(result.IsComplete);
         Assert.Equal("=GCD('Inputs'!$A$1:$C$1,6)", result.Text);
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000, owningTable: own,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         var duplicate = IWorkFormulaTableBindings.Create(new[] { table, table }, _ => "'Inputs'!", default);
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000, duplicate,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
 
         byte[] coordinate(int column) => Message(VarintField(1, 36),
             BytesField(26, Message(VarintField(1, (ulong)column * 2), VarintField(2, 1))),
             BytesField(27, Message(VarintField(1, 0), VarintField(2, 1))));
         IWorkWireMessage endpoints = IWorkProtobuf.Parse(BytesField(1, Message(
             BytesField(1, coordinate(0)), BytesField(1, coordinate(2)), BytesField(1, VarintField(1, 29)),
-            BytesField(1, Message(VarintField(1, 16), VarintField(2, 75), VarintField(3, 1))))), new IWorkReadOptions());
+            BytesField(1, Message(VarintField(1, 16), VarintField(2, 75), VarintField(3, 1))))), new IWorkLoadOptions());
         result = IWorkFormulaReader.Render(endpoints, 0, 0, 100, 1000, owningTable: own,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions()));
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions()));
         Assert.True(result.IsComplete);
         Assert.Equal("=LCM($A$1:$C$1)", result.Text);
     }
@@ -101,17 +101,17 @@ public sealed partial class IWorkBoundaryTests {
             var table = new IWorkTable("Inputs", 1, 1, new[] { cell });
             Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
                 owningTable: new IWorkFormulaTableBinding(table, string.Empty, false),
-                budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+                budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         }
         var missing = new IWorkTable("Inputs", 1, 1, Array.Empty<IWorkTableCell>());
         Assert.True(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
             owningTable: new IWorkFormulaTableBinding(missing, string.Empty, false),
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         var merged = new IWorkTable("Inputs", 1, 2, new[] { new IWorkTableCell(1, 1, IWorkCellKind.Number, 24d) },
             mergedRanges: new[] { new IWorkTableMergeRange(1, 1, 1, 2) });
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
             owningTable: new IWorkFormulaTableBinding(merged, string.Empty, false),
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
         var cells = Enumerable.Range(1, 5).Select(c => new IWorkTableCell(1, c, IWorkCellKind.Number, 12d)).ToArray();
         var own = new IWorkFormulaTableBinding(new IWorkTable("Inputs", 1, 5, cells), string.Empty, false);
         IWorkWireMessage formula = IntegerReferenceFormula(58, IntegerRectangle(4));
-        var options = new IWorkReadOptions { MaxFormulaRenderingOperations = 5 };
+        var options = new IWorkLoadOptions { MaxFormulaRenderingOperations = 5 };
         Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 4, 1000, owningTable: own,
             budget: new IWorkProjectionBudget(options)).IsComplete);
         var budget = new IWorkProjectionBudget(options);
@@ -130,7 +130,7 @@ public sealed partial class IWorkBoundaryTests {
             owningTable: own, budget: new IWorkProjectionBudget(options), cancellationToken: new CancellationToken(true)));
         IWorkWireMessage repeated = IntegerReferenceFormula(58, IntegerRectangle(4), IntegerRectangle(4));
         Assert.False(IWorkFormulaReader.Render(repeated, 0, 0, 5, 1000, owningTable: own,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
     }
 
     private static byte[] IntegerRectangle(int lastColumn, byte[]? identity = null) => Message(VarintField(1, 67),
@@ -140,5 +140,5 @@ public sealed partial class IWorkBoundaryTests {
     private static IWorkWireMessage IntegerReferenceFormula(int function, params byte[][] operands) =>
         IWorkProtobuf.Parse(BytesField(1, Message(operands.Select(o => BytesField(1, o)).Append(
             BytesField(1, Message(VarintField(1, 16), VarintField(2, (ulong)function),
-                VarintField(3, (ulong)operands.Length)))).ToArray())), new IWorkReadOptions());
+                VarintField(3, (ulong)operands.Length)))).ToArray())), new IWorkLoadOptions());
 }

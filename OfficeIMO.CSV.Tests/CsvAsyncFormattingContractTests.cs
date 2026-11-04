@@ -41,7 +41,7 @@ public class CsvAsyncFormattingContractTests
             case "EscapeFormulas": options.FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape; break;
         }
 
-        var document = new CsvDocument().WithHeader("Number", "Null", "Text");
+        var document = CsvDocument.Create().WithHeader("Number", "Null", "Text");
         document.AddRow(12.50m, null, "Łódź 🚀 漢字, \"quoted\"\r\nnext;part||end");
         document.AddRow(-123, DBNull.Value, "=SUM(A1:A2)");
         document.AddRow(long.MinValue, true, Guid.Parse("d0ce49a7-fb04-489e-9478-82d07f355a24"));

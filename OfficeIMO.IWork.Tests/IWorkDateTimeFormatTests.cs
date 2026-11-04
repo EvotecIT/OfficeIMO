@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_source_date_patterns_preserve_typed_values_and_saved_xlsx(string pattern, string code, string expected) {
         DateTime value = new(2026, 1, 5, 13, 4, 9, DateTimeKind.Utc);
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, pattern, value);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         var cell = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.Equal(value, cell.Value);
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
         DateTime value = new(2026, 1, 5, 13, 4, 9, DateTimeKind.Utc);
         foreach (var kind in new[] { IWorkDocumentKind.Pages, IWorkDocumentKind.Keynote }) {
             using var package = DateFormatPackage(kind, pattern, value);
-            var source = IWorkSourceDocument.Open(package, kind);
+            var source = IWorkSourceDocument.Load(package, kind);
             var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
             Assert.Equal(value, cell.Value);
             Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
@@ -73,7 +73,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(15, "d MMM yyyy", "5 Jan 0015")]
     public void Qualified_early_year_display_does_not_weaken_xlsx_date_safety(int year, string pattern, string expected) {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, pattern, new DateTime(year, 1, 5, 0, 0, 0, DateTimeKind.Utc));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var cell = Assert.Single(source.ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.True(cell.TryGetFormattedNumber(out string text, out _)); Assert.Equal(expected, text);
         using var result = source.ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_date_patterns_do_not_bypass_xlsx_submillisecond_precision_guards() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "HH:mm:ss", new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc).AddTicks(1));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -110,7 +110,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => Message(DateFormat("dd/MM/y"), VarintField(12, 2))
         };
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), format: format);
-        var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        var cell = Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.IsType<DateTime>(cell.Value); Assert.Null(cell.NumberFormat);
         Assert.Equal(IWorkCellUnsupportedFeatures.DateFormat, cell.UnsupportedFeatures);
         package.Position = 0; var report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false);
@@ -121,15 +121,15 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Qualified_date_patterns_preserve_blank_cells_and_consume_existing_budgets() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.Single(result.Projection.Sheets[0].Tables[0].Cells);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal("dd/mm/yyyy", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
         Assert.Equal("", Assert.Single(reopened.Sheets[0].Range("A1").CreateVisualSnapshot().Cells).Text);
         using var limited = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5), empty: true, columns: 2);
-        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(limited,
-            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
+        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(limited,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static byte[] DateFormat(string pattern) => Message(VarintField(1, 261), StringField(14, pattern));
@@ -138,25 +138,25 @@ public sealed partial class IWorkBoundaryTests {
     public void Qualified_date_metadata_is_charged_once_per_selected_format_and_budget_failures_are_fatal() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             empty: true, columns: 2, sheetName: "");
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions {
+        var projection = IWorkSourceDocument.Load(package, new IWorkLoadOptions {
             MaxProjectedTextCharacters = 7, MaxProjectedTextItems = 1
         }).ReadNumbers();
         Assert.Equal(2, projection.Sheets[0].Tables[0].Cells.Count);
         Assert.Same(projection.Sheets[0].Tables[0].Cells[0].NumberFormat, projection.Sheets[0].Tables[0].Cells[1].NumberFormat);
         package.Position = 0;
-        Assert.Contains("Text character", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 6 }).ReadNumbers()).Message);
+        Assert.Contains("Text character", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 6 }).ReadNumbers()).Message);
         using var oversized = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             format: Message(DateFormat("dd/MM/y"), Message(Enumerable.Repeat(VarintField(99, 0), 17).ToArray())));
-        Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(oversized,
-            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(oversized,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Explicit_false_date_suppression_flags_preserve_the_qualified_pattern() {
         using var package = DateFormatPackage(IWorkDocumentKind.Numbers, "dd/MM/y", new DateTime(2026, 1, 5),
             format: Message(DateFormat("dd/MM/y"), VarintField(12, 0), VarintField(13, 0)));
-        var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        var cell = Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.Equal("dd/MM/y", cell.NumberFormat!.DateTimeFormat!.SourcePattern);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
     }
@@ -169,7 +169,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2),
                 BytesField(3, FormatEntry(DateFormat("dd/MM/y"))),
                 BytesField(3, Message(VarintField(1, 2), BytesField(6, DurationFormat()))))));
-        var actual = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        var actual = Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.Equal(IWorkNumberFormatKind.DateTime, actual.NumberFormat!.Kind); Assert.Null(actual.Value);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, actual.UnsupportedFeatures);
     }

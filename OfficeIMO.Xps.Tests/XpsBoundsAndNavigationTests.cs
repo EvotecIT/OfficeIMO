@@ -80,7 +80,7 @@ public sealed class XpsBoundsAndNavigationTests {
 
     [Fact]
     public void NativeMiterDefaultAndClippedMitersAreRetained() {
-        var page = XpsDocument.Create().AddPage(100, 100).AddPath("M0,90L50,0L70,90", null, "#FF000000", 3);
+        var page = XpsDocument.Create().AddPage(100, 100).AddPath("M0,90L50,0L70,90", null, "#FF000000", 3).Page;
         Assert.Contains("stroke-miterlimit=\"10\"", page.ToSvg().Svg);
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("StrokeMiterLimit", "2"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);
@@ -94,7 +94,7 @@ public sealed class XpsBoundsAndNavigationTests {
     [InlineData("M10,10 L50,10 C50,10 50,10 50,10 L50,50")]
     [InlineData("M10,10 L10,10 L50,10 L50,50 Z")]
     public void DegenerateSegmentsUseTheNativeImpliedMiterLimit(string geometry) {
-        var page = XpsDocument.Create().AddPage(100, 100).AddPath(geometry, null, "#FF000000", 4);
+        var page = XpsDocument.Create().AddPage(100, 100).AddPath(geometry, null, "#FF000000", 4).Page;
         Assert.True(page.ToSvg().IsComplete);
         Assert.Contains("fill-rule=\"nonzero\"", page.ToSvg().Svg);
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("StrokeLineJoin", "Round"); page.ReplaceMarkup(xml);
@@ -103,7 +103,7 @@ public sealed class XpsBoundsAndNavigationTests {
 
     [Fact]
     public void DefaultFlatDashCapsDoNotSilentlyBecomeRound() {
-        var page = XpsDocument.Create().AddPage(100, 100).AddPath("M10,20L90,20", null, "#FF000000", 3);
+        var page = XpsDocument.Create().AddPage(100, 100).AddPath("M10,20L90,20", null, "#FF000000", 3).Page;
         var xml = page.GetMarkup(); var path = xml.Elements().Single();
         path.SetAttributeValue("StrokeStartLineCap", "Round"); path.SetAttributeValue("StrokeEndLineCap", "Round"); path.SetAttributeValue("StrokeDashArray", "2,1"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);

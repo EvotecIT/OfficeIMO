@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTextBox textBox = Assert.Single(result.Projection.TextBoxObjects);
 
         Assert.True(result.Projection.HasEditableContent);
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithStyleChain(
             depth: 1, includePreview: true, fontSize: 10.25f);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -59,13 +59,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesImagePackage(
             duplicateMetadata: false, imageCount: 1,
             imageBytes: ValidPreviewPng(), malformedIdentifierWire: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages);
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
 
         IWorkImageAsset? asset = IWorkDrawingReader.ReadImage(source, image,
-            new IWorkProjectionBudget(new IWorkReadOptions()), out bool complete);
+            new IWorkProjectionBudget(new IWorkLoadOptions()), out bool complete);
 
         Assert.Null(asset);
         Assert.False(complete);
@@ -76,13 +76,13 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesImagePackage(
             duplicateMetadata: false, imageCount: 1,
             imageBytes: ValidPreviewPng(), malformedImageIdentifierWire: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages);
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
 
         IWorkImageAsset? asset = IWorkDrawingReader.ReadImage(source, image,
-            new IWorkProjectionBudget(new IWorkReadOptions()), out bool complete);
+            new IWorkProjectionBudget(new IWorkLoadOptions()), out bool complete);
 
         Assert.Null(asset);
         Assert.False(complete);
@@ -93,7 +93,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, fontSize: 10.125f);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);
@@ -109,7 +109,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Malformed Boolean", 1, 1, value, boolean: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -127,7 +127,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Boolean", 1, 1, value, boolean: true)
         });
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 

@@ -13,8 +13,8 @@ public sealed class XpsPdfNavigationTests {
     [Fact]
     public void NamedTargetLookupTracksPageMarkupReplacement() {
         var doc = XpsDocument.Create();
-        var source = doc.AddPage(100, 100).AddPath("M10,10H30V30H10Z");
-        var target = doc.AddPage(100, 100).AddPath("M40,40H60V60H40Z");
+        var source = doc.AddPage(100, 100).AddPath("M10,10H30V30H10Z").Page;
+        var target = doc.AddPage(100, 100).AddPath("M40,40H60V60H40Z").Page;
         var targetMarkup = target.GetMarkup();
         targetMarkup.Elements().Single().SetAttributeValue("Name", "first");
         target.ReplaceMarkup(targetMarkup);
@@ -43,7 +43,7 @@ public sealed class XpsPdfNavigationTests {
     [InlineData("https://example.com/report", "https://example.com/report")]
     [InlineData("https://example.com/ż?q=é", "https://example.com/%C5%BC?q=%C3%A9")]
     public void NativeWebLinkExportsThroughSharedDrawingWriter(string uri, string expected) {
-        var doc = XpsDocument.Create(); var page = doc.AddPage(200, 100).AddPath("M20,30H60V50H20Z");
+        var doc = XpsDocument.Create(); var page = doc.AddPage(200, 100).AddPath("M20,30H60V50H20Z").Page;
         var xml = page.GetMarkup(); xml.Elements().Single().SetAttributeValue("FixedPage.NavigateUri", uri); page.ReplaceMarkup(xml);
         var read = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))); var link = Assert.Single(read.Pages[0].GetLinkAnnotations());
         Assert.Equal(expected, link.Uri);

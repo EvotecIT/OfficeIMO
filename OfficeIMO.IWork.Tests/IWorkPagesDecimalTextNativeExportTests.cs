@@ -8,14 +8,14 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkPagesDecimalTextNativeExportTests {
     [Fact]
     public void Preserving_edit_matches_the_independently_compared_Apple_accepted_bytes() {
-        var source = IWorkSourceDocument.Open(Corpus("pages-third-level-saved-v15.4.pages"));
+        var source = IWorkSourceDocument.Load(Corpus("pages-third-level-saved-v15.4.pages"));
         var body = source.ReadPages().Body; var edit = source.BeginEdit();
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 2, "Edited seven");
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 3, "Child two");
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 4, "Grandchild six");
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 12, "Updated grandchild six");
         Assert.Equal(File.ReadAllBytes(Corpus("pages-preserved-decimal-v15.4.pages")),
-            edit.SaveBytes(new() { AllowUnassessedVisualCaches = true }));
+            edit.ToBytes(new() { AllowUnassessedVisualCaches = true }));
         using var manifest = Manifest();
         foreach (JsonProperty artifact in manifest.RootElement.GetProperty("artifacts").EnumerateObject()) {
             byte[] bytes = File.ReadAllBytes(Corpus(artifact.Value.GetProperty("path").GetString()!));
@@ -29,7 +29,7 @@ public sealed class IWorkPagesDecimalTextNativeExportTests {
     [InlineData(1)]
     public void Preserved_and_Apple_resaved_items_retain_counters_and_allow_a_further_fixed_length_edit(int caseIndex) {
         using var manifest = Manifest(); var scenario = manifest.RootElement.GetProperty("cases")[caseIndex];
-        var source = IWorkSourceDocument.Open(Corpus(scenario.GetProperty("source").GetString()!));
+        var source = IWorkSourceDocument.Load(Corpus(scenario.GetProperty("source").GetString()!));
         var projection = source.ReadPages();
         Assert.True(projection.HasEditableContent); Assert.True(projection.Body.IsFormattingComplete);
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
@@ -41,9 +41,9 @@ public sealed class IWorkPagesDecimalTextNativeExportTests {
         IWorkPagesDecimalTextEditingTests.CheckWord(source);
         var edit = source.BeginEdit(); var id = projection.Body.SourceIdentity!;
         edit.SetPagesBodyParagraphText(id, 2, "Further edit");
-        Assert.Equal("Further edit", IWorkSourceDocument.Open(edit.SaveBytes(new() { AllowUnassessedVisualCaches = true })).ReadPages().Paragraphs[1]);
+        Assert.Equal("Further edit", IWorkSourceDocument.Load(edit.ToBytes(new() { AllowUnassessedVisualCaches = true })).ReadPages().Paragraphs[1]);
         edit.SetPagesBodyParagraphText(id, 2, projection.Paragraphs[1]);
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport1), Report: nativeReport1).Report.OutputPackageContentHash);
     }
 
     [Fact]

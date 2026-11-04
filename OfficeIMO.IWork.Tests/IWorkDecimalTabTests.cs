@@ -11,10 +11,10 @@ public sealed partial class IWorkBoundaryTests {
     public void PPTX_reports_an_explicit_decimal_tab_symbol_omission_and_requires_partial_acceptance(string symbol) {
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Keynote, Message(StringField(3, symbol),
             BytesField(25, BytesField(1, Message(FloatField(1, 90), VarintField(2, 3))))));
-        using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { RequireCompleteVisualCoverage = false });
+        using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { RequireCompleteVisualCoverage = false });
         Assert.True(fallback.IsVisualFallback);
         package.Position = 0;
-        using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { AllowPartialEditableReconstruction = true });
+        using var partial = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { AllowPartialEditableReconstruction = true });
         Assert.True(partial.Report.IsPartialEditableReconstruction);
         Assert.Contains(partial.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_DECIMAL_TAB_SYMBOL_OMITTED"
             && diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission);
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(",")]
     public void Uniform_explicit_decimal_tab_symbol_survives_saved_DOCX_settings(string symbol) {
         using var package = DecimalTabPackage(StringField(3, symbol), StringField(3, symbol));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.All(result.Projection.Body.Paragraphs, paragraph => Assert.Equal(symbol, paragraph.Style.DecimalTabSymbol));
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Different_or_unspecified_decimal_tab_symbols_require_destination_fallback(bool unspecified) {
         using var package = DecimalTabPackage(StringField(3, "."), unspecified ? Array.Empty<byte>() : StringField(3, ","));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new() { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new() { AllowPartialEditableReconstruction = true, RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_PAGES_WORD_DESTINATION_UNSUPPORTED"
             && diagnostic.Message.Contains("separators", StringComparison.Ordinal));
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(20, 2022, BytesField(12, StringField(3, "."))),
                 ArchiveRecord(19, 2022, Message(BytesField(1, ReferenceField(3, 20)), BytesField(12, child)))));
-        var projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        var projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ReadPages();
         var rich = Assert.Single(projection.Tables).Cells.Single().RichText!;
         Assert.Null(Assert.Single(rich.Paragraphs).Style.DecimalTabSymbol);
         Assert.False(rich.IsFormattingComplete);
@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(20, 2022, BytesField(12, StringField(3, "."))),
                 ArchiveRecord(19, 2022, Message(BytesField(1, ReferenceField(3, 20)),
                     BytesField(12, variant == 0 ? Message() : VarintField(2, (ulong)variant))))));
-        var projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        var projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ReadPages();
         var rich = Assert.Single(projection.Tables).Cells.Single().RichText!;
         Assert.Equal(expected, Assert.Single(rich.Paragraphs).Style.DecimalTabSymbol);
         Assert.Equal(complete, rich.IsFormattingComplete);
@@ -124,7 +124,7 @@ public sealed partial class IWorkBoundaryTests {
                 additionalRecords: Message(ArchiveRecord(30, 2022, BytesField(12, defaults)),
                     ArchiveRecord(31, 2022, BytesField(12, Message(tabs, StringField(3, ",")))),
                     ArchiveRecord(19, 2022, BytesField(12, selected))));
-            var source = IWorkSourceDocument.Open(package, kind);
+            var source = IWorkSourceDocument.Load(package, kind);
             // The header role is inactive and must not affect active reconstruction.
             var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true };
             if (kind == IWorkDocumentKind.Pages) {
@@ -160,7 +160,7 @@ public sealed partial class IWorkBoundaryTests {
                     BytesField(3, Message(VarintField(1, 1), ReferenceField(4, 30))), BytesField(3, Message(VarintField(1, 2), ReferenceField(4, 31))))),
                     ArchiveRecord(30, 2022, BytesField(12, anchorDecimal ? Message(tabs, StringField(3, ".")) : Message())),
                     ArchiveRecord(31, 2022, BytesField(12, Message(tabs, StringField(3, ","))))));
-            var source = IWorkSourceDocument.Open(package, kind);
+            var source = IWorkSourceDocument.Load(package, kind);
             var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true };
             if (kind == IWorkDocumentKind.Pages) {
                 using var result = source.ToWordResult(policy);

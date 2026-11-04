@@ -81,7 +81,7 @@ public sealed class VisioDrawingScaleRenderingTests {
         VisioDocument drawing = TextDocument(0.25, rich: true, paragraphs: true);
         string[] Expected(XDocument svg) => svg.Descendants(Svg + "text").Select(node => node.ToString()).ToArray();
         Assert.Equal(Expected(RenderSvg(reference.Pages[0])), Expected(RenderSvg(drawing.Pages[0])));
-        Assert.Equal(reference.Pages[0].ToPng(PngOptions()), drawing.Pages[0].ToPng(PngOptions()));
+        Assert.Equal(reference.Pages[0].ToImage(PngOptions()), drawing.Pages[0].ToImage(PngOptions()));
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public sealed class VisioDrawingScaleRenderingTests {
         string[] Labels(XDocument svg) => svg.Descendants(Svg + "g")
             .Where(node => node.Attribute("data-visio-connector-id") != null).Select(node => node.ToString()).ToArray();
         Assert.Equal(Labels(RenderSvg(reference.Pages[0], overlap)), Labels(RenderSvg(drawing.Pages[0], overlap)));
-        Assert.Equal(reference.Pages[0].ToPng(PngOptions(overlap)), drawing.Pages[0].ToPng(PngOptions(overlap)));
+        Assert.Equal(reference.Pages[0].ToImage(PngOptions(overlap)), drawing.Pages[0].ToImage(PngOptions(overlap)));
         VisioDocument reopened = VisioDocument.Load(new MemoryStream(drawing.ToBytes()));
         Assert.Equal(5.6, reopened.Pages[0].Connectors[0].LabelPlacement!.Width, 8);
         Assert.Equal(16, reopened.Pages[0].Shapes[0].PinX.ToInches(), 8);
@@ -173,7 +173,7 @@ public sealed class VisioDrawingScaleRenderingTests {
         VisioPage reference = Create(1), drawing = Create(0.25);
         XElement Artwork(XDocument svg) => svg.Descendants(Svg + "g").Single(node => node.Attribute("data-officeimo-stencil-artwork") != null);
         Assert.Equal(Artwork(RenderSvg(reference)).ToString(), Artwork(RenderSvg(drawing)).ToString());
-        Assert.Equal(reference.ToPng(PngOptions()), drawing.ToPng(PngOptions()));
+        Assert.Equal(reference.ToImage(PngOptions()), drawing.ToImage(PngOptions()));
     }
 
     [Fact]
@@ -225,10 +225,10 @@ public sealed class VisioDrawingScaleRenderingTests {
     private static XDocument RenderSvg(VisioPage page, bool overlap = true) => XDocument.Parse(page.ToSvg(new VisioSvgSaveOptions {
         PixelsPerInch = Density, ResolveConnectorLabelOverlaps = overlap
     }));
-    private static VisioPngSaveOptions PngOptions(bool overlap = true) => new() {
-        PixelsPerInch = Density, Supersampling = 1, ResolveConnectorLabelOverlaps = overlap
+    private static VisioImageExportOptions PngOptions(bool overlap = true) => new() {
+        TargetDpi = Density, Supersampling = 1, ResolveConnectorLabelOverlaps = overlap
     };
-    private static OfficeRasterImage RenderPng(VisioPage page) => VisualBaselineTestSupport.DecodePng(page.ToPng(PngOptions()), "Drawing-scale PNG did not decode.");
+    private static OfficeRasterImage RenderPng(VisioPage page) => VisualBaselineTestSupport.DecodePng(page.ToImage(PngOptions()), "Drawing-scale PNG did not decode.");
     private static double Read(XElement element, string name) => Parse(element.Attribute(name)!.Value);
     private static double Parse(string value) => double.Parse(value, CultureInfo.InvariantCulture);
     private static void AssertRedCenter(OfficeRasterImage image, double x, double y) {

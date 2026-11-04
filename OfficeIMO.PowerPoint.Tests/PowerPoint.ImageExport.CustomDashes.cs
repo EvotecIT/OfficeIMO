@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             presentation.SlideSize.SetSize(OfficeLength.Points(320), OfficeLength.Points(180));
             var slide = presentation.AddSlide();
             var line = slide.AddLine(OfficeLength.Points(20), OfficeLength.Points(40), OfficeLength.Points(300), OfficeLength.Points(40));
-            line.OutlineColor = "111111";
+            line.OutlineColor = OfficeColor.Parse("111111");
             line.OutlineWidth = OfficeLength.Points(2);
             var native = Assert.IsType<Shape>(line.Element);
             var outline = native.ShapeProperties!.GetFirstChild<A.Outline>()!;

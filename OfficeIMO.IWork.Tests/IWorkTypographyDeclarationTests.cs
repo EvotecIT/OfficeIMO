@@ -12,27 +12,27 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, Message(
                 VarintField(10, 2), VarintField(13, 2), FloatField(14, 3), FloatField(15, -1)))));
-        var (table, references) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, references) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTextContent text = Assert.Single(table.Cells).RichText!;
         Assert.Equal("Value", text.PlainText);
         Assert.False(text.IsFormattingComplete);
         Assert.Empty(references);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Pages) {
-            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         } else {
-            using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(fallback.IsVisualFallback);
         }
         package.Position = 0;
         Assert.True(ConvertUnitReport(package, kind, visual: false).IsPartialEditableReconstruction);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: true,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal(new[] { "11/10", "11/13", "11/14", "11/15" },
             report.SourceDeclarationIssues.Select(issue => issue.FieldPath).OrderBy(path => path));
         Assert.All(report.SourceDeclarationIssues, issue => {
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(19, 2021, BytesField(11, Message(VarintField(10, 0), VarintField(13, 0),
                     FloatField(14, 0), FloatField(15, 0), FloatField(27, 0)))),
                 ArchiveRecord(20, 2021, BytesField(11, VarintField(10, 1)))));
-        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.True(Assert.Single(table.Cells).RichText!.IsFormattingComplete);
         package.Position = 0;
         Assert.Empty(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues);
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.All(report.SourceDeclarationIssues, issue => Assert.Equal(IWorkSourceDeclarationIssueKind.InvalidValue, issue.Kind));
         Assert.Equal(2, Assert.Single(report.SourceDeclarationIssues, issue => issue.FieldPath == "11/13").DeclaredValueCount);
         package.Position = 0;
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 }

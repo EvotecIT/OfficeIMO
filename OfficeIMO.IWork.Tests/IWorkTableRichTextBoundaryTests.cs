@@ -74,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     [InlineData(false)]
     public void Malformed_rich_text_cell_records_do_not_abort_table_decoding(bool malformedWrapper) {
-        var options = new IWorkReadOptions();
+        var options = new IWorkLoadOptions();
         const ulong listId = 1;
         const ulong wrapperId = 2;
         const ulong storageId = 3;
@@ -107,7 +107,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Unresolved_rich_cell_style_does_not_invalidate_complete_plain_text() {
-        var options = new IWorkReadOptions();
+        var options = new IWorkLoadOptions();
         const ulong listId = 1;
         const ulong wrapperId = 2;
         const ulong storageId = 3;
@@ -141,7 +141,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Plain_text_cell_does_not_traverse_style_inheritance() {
-        var options = new IWorkReadOptions { MaxTextStyleInheritanceDepth = 2 };
+        var options = new IWorkLoadOptions { MaxTextStyleInheritanceDepth = 2 };
         const ulong listId = 1;
         const ulong wrapperId = 2;
         const ulong storageId = 3;
@@ -177,7 +177,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Aliased_rich_catalog_entries_share_decoding_and_retain_partial_text_status() {
-        var options = new IWorkReadOptions();
+        var options = new IWorkLoadOptions();
         var records = new[] {
             Record(1, 6005, Message(VarintField(1, 8),
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 2))),
@@ -205,7 +205,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Unused_rich_catalog_aliases_do_not_consume_cell_text_budget() {
-        var options = new IWorkReadOptions { MaxProjectedTextItems = 2 };
+        var options = new IWorkLoadOptions { MaxProjectedTextItems = 2 };
         var records = new[] {
             Record(1, 6005, Message(VarintField(1, 8),
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 2))),
@@ -227,7 +227,7 @@ public sealed partial class IWorkBoundaryTests {
                 Array.Empty<ulong>(), "Index/Tables/Test.iwa", 0, payload);
     }
 
-    private static IWorkTableRichTextCatalog CreateRichCatalog(IWorkArchiveRecord[] records, IWorkReadOptions options) {
+    private static IWorkTableRichTextCatalog CreateRichCatalog(IWorkArchiveRecord[] records, IWorkLoadOptions options) {
         byte[] store = Message(ReferenceField(17, 1));
         using MemoryStream package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(
             ArchiveRecord(100, 1, Message(ReferenceField(1, 101))),
@@ -235,7 +235,7 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(104, 6001, Message(BytesField(4, store))),
             Message(records.Select(record => ArchiveRecord(record.Identifier, record.MessageType,
                 record.Payload, record.ObjectReferences.ToArray())).ToArray())))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, options);
         return IWorkTableRichTextCatalog.Create(source, IWorkProtobuf.Parse(store, source.Options),
             source.Index.Find(104)!, new IWorkProjectionBudget(source.Options), new IWorkSourceReferenceIssueCollector(source));
     }

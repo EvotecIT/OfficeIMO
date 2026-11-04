@@ -1974,13 +1974,13 @@ namespace OfficeIMO.Tests {
 
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
             try {
-                page.SaveAsSvg(path, new VisioSvgSaveOptions { IncludeXmlDeclaration = true });
+                page.SaveAsImage(path, new VisioImageExportOptions { Format = OfficeImageExportFormat.Svg, IncludeSvgXmlDeclaration = true });
                 string fileText = File.ReadAllText(path);
                 Assert.StartsWith("<?xml", fileText, StringComparison.Ordinal);
                 Assert.True(fileText.IndexOf("<ellipse", StringComparison.Ordinal) >= 0);
 
                 using MemoryStream stream = new();
-                document.SaveAsSvg(stream);
+                document.SaveAsImage(stream, new VisioImageExportOptions { Format = OfficeImageExportFormat.Svg });
                 string streamText = Encoding.UTF8.GetString(stream.ToArray());
                 Assert.True(streamText.IndexOf("<svg", StringComparison.Ordinal) >= 0);
                 Assert.True(streamText.IndexOf("Node", StringComparison.Ordinal) >= 0);

@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(1, 1, Message()))),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
                 completeFormula: true, emptyCellWithFormula: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Every_protobuf_entry_point_rejects_field_numbers_above_29_bits() {
         byte[] invalid = Message(Varint(1UL << 32), Varint(0));
-        var options = new IWorkReadOptions();
+        var options = new IWorkLoadOptions();
 
         Assert.Throws<InvalidDataException>(() => IWorkProtobuf.Parse(invalid, options));
         Assert.Throws<InvalidDataException>(() => IWorkProtobuf.CountFields(
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>

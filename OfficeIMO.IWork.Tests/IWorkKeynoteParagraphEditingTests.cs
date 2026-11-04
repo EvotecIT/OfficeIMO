@@ -9,13 +9,13 @@ public sealed class IWorkKeynoteParagraphEditingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Apple_qualified_paragraphs_and_native_resave_keep_images_and_allow_another_edit(bool nativeResave) {
-        var original = IWorkSourceDocument.Open(Fixture("keynote-created-images-edited-v15.4.key"));
+        var original = IWorkSourceDocument.Load(Fixture("keynote-created-images-edited-v15.4.key"));
         var deck = original.ReadKeynote(); var edit = original.BeginEdit();
         string[] replacements = ["Edited PNG — image behind text", "Edited alpha PNG", "Edited JPEG"];
         for (int index = 0; index < 3; index++)
             edit.SetKeynoteTextBoxParagraphText(deck.Slides[index].TextBoxes[0].SourceIdentity!, 1, replacements[index]);
-        Assert.Equal(File.ReadAllBytes(Fixture("keynote-preserved-paragraphs-v15.4.key")), edit.SaveBytes(AcceptCaches()));
-        var source = IWorkSourceDocument.Open(Fixture("keynote-preserved-paragraphs" + (nativeResave ? "-edited" : "") + "-v15.4.key"));
+        Assert.Equal(File.ReadAllBytes(Fixture("keynote-preserved-paragraphs-v15.4.key")), edit.ToBytes(AcceptCaches()));
+        var source = IWorkSourceDocument.Load(Fixture("keynote-preserved-paragraphs" + (nativeResave ? "-edited" : "") + "-v15.4.key"));
         var output = source.ReadKeynote(); Assert.True(output.HasEditableContent); Assert.Empty(output.Diagnostics);
         if (nativeResave) replacements[2] = "Native checked JPEG";
         for (int index = 0; index < 3; index++) {
@@ -26,7 +26,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
             Assert.Equal(before.GetBytes(), image.GetBytes());
         }
         Assert.Equal(2, output.Slides[1].TextBoxes[1].Content.Paragraphs[0].Runs.Count);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(source.BeginEdit().ToBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes);
         using var xml = PresentationDocument.Open(new MemoryStream(bytes.ToArray()), false);
@@ -35,9 +35,9 @@ public sealed class IWorkKeynoteParagraphEditingTests {
         foreach (string expected in replacements) Assert.Contains(expected, texts);
         var next = source.BeginEdit(); var first = output.Slides[0].TextBoxes[0];
         next.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 1, "Native PNG — image behind text");
-        Assert.Equal("Native PNG — image behind text", IWorkSourceDocument.Open(next.SaveBytes(AcceptCaches())).ReadKeynote().Slides[0].TextBoxes[0].Content.Paragraphs[0].Text);
+        Assert.Equal("Native PNG — image behind text", IWorkSourceDocument.Load(next.ToBytes(AcceptCaches())).ReadKeynote().Slides[0].TextBoxes[0].Content.Paragraphs[0].Text);
         next.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 1, first.Content.Paragraphs[0].Text);
-        Assert.Equal(source.ComputePackageContentHash(), next.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: next.ToBytes(out var nativeReport1), Report: nativeReport1).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -47,7 +47,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
         edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 1, "Bravo café 😃");
         edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, "Edited body");
         edit.SetKeynoteTextBoxParagraphText(other.SourceIdentity!, 1, "Other slide");
-        var result = edit.SaveBytesResult(AcceptCaches()); var saved = IWorkSourceDocument.Open(result.GetPackageBytes());
+        var result = (Bytes: edit.ToBytes(out var nativeReport2, AcceptCaches()), Report: nativeReport2); var saved = IWorkSourceDocument.Load(result.Bytes);
         var output = saved.ReadKeynote(); Assert.True(output.HasEditableContent); Assert.Empty(output.Diagnostics);
         Assert.Equal("Bravo café 😃\nEdited body\n", output.Slides[0].TextBoxes[0].Content.PlainText);
         Assert.Equal("Other slide\n", output.Slides[1].TextBoxes[0].Content.PlainText);
@@ -65,7 +65,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
             Assert.Equal(entry.GetBytes(), saved.Entries.Single(item => item.Path == entry.Path).GetBytes());
         Assert.Equal(first.Geometry!.LeftPoints, output.Slides[0].TextBoxes[0].Geometry!.LeftPoints);
         Assert.Equal(first.Geometry.WidthPoints, output.Slides[0].TextBoxes[0].Geometry!.WidthPoints);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(result.Bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes);
         using var xml = PresentationDocument.Open(new MemoryStream(bytes.ToArray()), false);
@@ -79,7 +79,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
         var source = Source(); var first = source.ReadKeynote().Slides[0].TextBoxes[0]; var edit = source.BeginEdit();
         edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 1, "Bravo café 😃");
         edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, "Edited body");
-        byte[] before = edit.SaveBytes(AcceptCaches());
+        byte[] before = edit.ToBytes(AcceptCaches());
         Assert.Throws<NotSupportedException>(() => edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, "short"));
         Assert.Throws<NotSupportedException>(() => edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, "Edited bódy"));
         Assert.Throws<ArgumentException>(() => edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, "Edited\nbody"));
@@ -88,35 +88,35 @@ public sealed class IWorkKeynoteParagraphEditingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 99, ""));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, "Second body", cancellation.Token));
-        Assert.Equal(before, edit.SaveBytes(AcceptCaches()));
+        Assert.Equal(before, edit.ToBytes(AcceptCaches()));
         using var stream = new MemoryStream(); stream.WriteByte(9);
         Assert.Throws<InvalidOperationException>(() => edit.Save(stream)); Assert.Equal(new byte[] { 9 }, stream.ToArray());
         edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 1, first.Content.Paragraphs[0].Text);
-        Assert.Single(edit.SaveBytesResult(AcceptCaches()).Report.UpdatedRecords);
+        Assert.Single((Bytes: edit.ToBytes(out var nativeReport3, AcceptCaches()), Report: nativeReport3).Report.UpdatedRecords);
         edit.SetKeynoteTextBoxParagraphText(first.SourceIdentity!, 2, first.Content.Paragraphs[1].Text);
-        Assert.Empty(edit.SaveBytesResult().Report.UpdatedRecords);
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Empty((Bytes: edit.ToBytes(out var nativeReport4), Report: nativeReport4).Report.UpdatedRecords);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport5), Report: nativeReport5).Report.OutputPackageContentHash);
     }
 
     [Fact]
     public void Selected_mixed_runs_and_shared_storage_are_rejected_before_mutation() {
         var original = Source(); var boxes = original.ReadKeynote().Slides[0].TextBoxes; var edit = original.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetKeynoteTextBoxParagraphText(boxes[1].SourceIdentity!, 1, "Other end"));
-        Assert.Equal(original.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(original.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport6), Report: nativeReport6).Report.OutputPackageContentHash);
         var shape = original.Records.Single(item => item.Identifier == boxes[1].SourceIdentity!.RecordIdentifier && item.PayloadIndex == 0);
         byte[] payload = shape.GetPayload();
         byte[] reference = new IWorkProtoWriter(32, default).UInt(1, boxes[0].Content.SourceIdentity!.RecordIdentifier).ToArray();
         foreach (int field in new[] { 2, 4 }) IWorkPreservingWireEdit.ReplaceBytesRange(payload, new[] { (field, -1) }, 0, reference, new(), default);
         var package = IWorkPreservationPackageWriter.Write(original, new Dictionary<IWorkArchiveRecord, byte[]> { [shape] = payload }, AcceptCaches(), default);
-        var shared = IWorkSourceDocument.Open(package.GetPackageBytes()); Assert.True(shared.ReadKeynote().HasEditableContent);
+        var shared = IWorkSourceDocument.Load(package.Bytes); Assert.True(shared.ReadKeynote().HasEditableContent);
         edit = shared.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetKeynoteTextBoxParagraphText(boxes[0].SourceIdentity!, 1, "Bravo café 😃"));
-        Assert.Equal(shared.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(shared.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport7), Report: nativeReport7).Report.OutputPackageContentHash);
     }
 
     [Fact]
     public void Locked_shape_is_rejected_without_mutating_its_native_text() {
-        var original = IWorkSourceDocument.Open(Fixture("keynote-created-images-edited-v15.4.key"));
+        var original = IWorkSourceDocument.Load(Fixture("keynote-created-images-edited-v15.4.key"));
         var box = original.ReadKeynote().Slides[0].TextBoxes[0];
         var record = original.Records.Single(item => item.Identifier == box.SourceIdentity!.RecordIdentifier && item.PayloadIndex == 0);
         var root = IWorkProtobuf.Parse(record.GetPayload(), new());
@@ -138,10 +138,10 @@ public sealed class IWorkKeynoteParagraphEditingTests {
         Assert.True(found); byte[] payload = record.GetPayload();
         IWorkPreservingWireEdit.ReplaceBytesRange(payload, new[] { (1, -1), (1, -1) }, 0, drawable, new(), default);
         var package = IWorkPreservationPackageWriter.Write(original, new Dictionary<IWorkArchiveRecord, byte[]> { [record] = payload }, AcceptCaches(), default);
-        var locked = IWorkSourceDocument.Open(package.GetPackageBytes()); Assert.True(locked.ReadKeynote().HasEditableContent);
+        var locked = IWorkSourceDocument.Load(package.Bytes); Assert.True(locked.ReadKeynote().HasEditableContent);
         var edit = locked.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetKeynoteTextBoxParagraphText(box.SourceIdentity!, 1, "Edited PNG — image behind text"));
-        Assert.Equal(locked.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(locked.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport8), Report: nativeReport8).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -156,9 +156,9 @@ public sealed class IWorkKeynoteParagraphEditingTests {
             foreach (var entry in original.Entries.Where(item => !item.Path.StartsWith("Index/", StringComparison.Ordinal)))
                 using (var stream = package.CreateEntry(entry.Path).Open()) { stream.Write(entry.GetBytes()); }
         }
-        var nested = IWorkSourceDocument.Open(outer.ToArray(), IWorkDocumentKind.Keynote); var edit = nested.BeginEdit();
+        var nested = IWorkSourceDocument.Load(outer.ToArray(), IWorkDocumentKind.Keynote); var edit = nested.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetKeynoteTextBoxParagraphText(nested.ReadKeynote().Slides[0].TextBoxes[0].SourceIdentity!, 1, "Bravo café 😃"));
-        Assert.Equal(nested.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(nested.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport9), Report: nativeReport9).Report.OutputPackageContentHash);
     }
 
     private static IWorkSourceDocument Source() {
@@ -166,7 +166,7 @@ public sealed class IWorkKeynoteParagraphEditingTests {
         slide.AddText("Alpha café 😀\nSecond body", 40, 40, 600, 150);
         slide.AddRichText(new[] { new IWorkTextRunData("Rich", bold: true), new IWorkTextRunData(" tail") }, 40, 240, 600, 100);
         model.AddSlide().AddText("Final slide", 60, 60, 600, 120);
-        return IWorkSourceDocument.Open(model.SaveBytes());
+        return IWorkSourceDocument.Load(model.ToBytes());
     }
     private static IWorkNativeSaveOptions AcceptCaches() => new() { AllowUnassessedVisualCaches = true };
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", name);

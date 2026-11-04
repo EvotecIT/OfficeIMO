@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Opened_source_cancellation_governs_later_projection_and_conversion(
         IWorkDocumentKind kind, string fixture) {
         using var cancellation = new CancellationTokenSource();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture(fixture), kind, null, cancellation.Token);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(Fixture(fixture), kind, null, cancellation.Token);
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => Project(source));
@@ -36,8 +36,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] bytes = File.ReadAllBytes(Fixture("nim-iwork/simple.pages"));
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        Assert.Throws<OperationCanceledException>(() => IWorkSourceDocument.Open(bytes, null, cancellation.Token));
-        Assert.Throws<OperationCanceledException>(() => IWorkSourceDocument.Open(bytes,
+        Assert.Throws<OperationCanceledException>(() => IWorkSourceDocument.Load(bytes, null, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => IWorkSourceDocument.Load(bytes,
             IWorkDocumentKind.Pages, null, cancellation.Token));
     }
 
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Reusing_loaded_source_with_an_independent_token_preserves_other_operations(
         IWorkDocumentKind kind, string fixture) {
         using var opening = new CancellationTokenSource();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(Fixture(fixture), kind, null, opening.Token);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(Fixture(fixture), kind, null, opening.Token);
         Project(source); // Exercise reuse after the shared parsed-message cache has been populated.
         using var operation = new CancellationTokenSource();
         IWorkSourceDocument view = source.WithCancellation(operation.Token);
@@ -81,9 +81,9 @@ public sealed partial class IWorkBoundaryTests {
 
     private static void ConvertForCancellation(Stream input, IWorkDocumentKind kind, CancellationToken token) {
         using IDisposable result = kind switch {
-            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages, null, token).ToWordResult(cancellationToken: token),
-            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers, null, token).ToExcelResult(cancellationToken: token),
-            IWorkDocumentKind.Keynote => IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(cancellationToken: token),
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Load(input, IWorkDocumentKind.Pages, null, token).ToWordResult(cancellationToken: token),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(input, IWorkDocumentKind.Numbers, null, token).ToExcelResult(cancellationToken: token),
+            IWorkDocumentKind.Keynote => IWorkSourceDocument.Load(input, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(cancellationToken: token),
             _ => throw new ArgumentOutOfRangeException()
         };
     }

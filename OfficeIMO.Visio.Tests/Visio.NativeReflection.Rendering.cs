@@ -70,8 +70,8 @@ public sealed class VisioNativeReflectionRenderingTests {
     [Fact]
     public void ReflectedNativeAndDrawingRasterPaintTheSameVisibleAsymmetricTriangle() {
         VisioDocument document = Load(Create(true, false)); VisioPage page = document.Pages[0];
-        var native = VisualBaselineTestSupport.DecodePng(page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false
+        var native = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
+            TargetDpi = 72, Supersampling = 1, RenderText = false, RenderStencilArtwork = false
         }), "Native reflected PNG");
         var drawing = VisualBaselineTestSupport.DecodePng(OfficeDrawingRasterRenderer.ToPng(page.ToDrawing().Value,
             background: OfficeColor.White), "Drawing reflected PNG");

@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
             richAttributes: attributes, additionalRecords: Message(
                 ArchiveRecord(30, 2021, BytesField(11, character)),
                 ArchiveRecord(31, 2021, BytesField(11, character))));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -37,9 +37,9 @@ public sealed partial class IWorkBoundaryTests {
                 AttributeEntry(3, ReferenceField(2, 31))), additionalRecords: Message(
                 ArchiveRecord(30, 2021, BytesField(11, VarintField(1, 1))),
                 ArchiveRecord(31, 2021, BytesField(11, VarintField(1, 0)))));
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
         package.Position = 0;
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL"
             && d.LossKind == OfficeConversionLossKind.Omission);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = CreateNumbersWithPartialRichCell(true, richText: "Styled",
             richAttributes: AttributeTable(8, AttributeEntry(0, ReferenceField(2, 30))),
             additionalRecords: ArchiveRecord(30, 2021, BytesField(11, FloatField(3, 410))));
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true }));
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
                 AttributeEntry(3, ReferenceField(2, mixedTargets ? 31ul : 30ul))), additionalRecords: Message(
                 ArchiveRecord(30, 2032, StringField(2, first)),
                 ArchiveRecord(31, 2032, StringField(2, "https://example.test/second"))));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = mixedTargets });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = mixedTargets });
         Assert.Equal(mixedTargets, result.Report.Diagnostics.Any(d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL"));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -84,9 +84,9 @@ public sealed partial class IWorkBoundaryTests {
             richAttributes: AttributeTable(11, AttributeEntry(0, ReferenceField(2, 30))),
             additionalRecords: ArchiveRecord(30, 2032, StringField(2, unsafeTarget)));
 
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
         package.Position = 0;
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL"
             && d.LossKind == OfficeConversionLossKind.Omission);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -102,13 +102,13 @@ public sealed partial class IWorkBoundaryTests {
         using var package = CreateNumbersWithPartialRichCell(true, richStorage: Message(
             StringField(3, "Readable"), unexpectedWire ? VarintField(3, 1) : BytesField(3, new byte[] { 0xff })));
         IWorkTableCell sourceCell = Assert.Single(Assert.Single(Assert.Single(
-            IWorkSourceDocument.Open(package).ReadNumbers().Sheets).Tables).Cells);
+            IWorkSourceDocument.Load(package).ReadNumbers().Sheets).Tables).Cells);
         Assert.False(sourceCell.RichText!.IsTextComplete);
         Assert.True(sourceCell.RichText.IsFormattingComplete);
         package.Position = 0;
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
         package.Position = 0;
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_CACHE_PARTIAL");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
         Assert.Equal("1", result.Value.Sheets[0].GetFormulaText(1, 1));
@@ -124,10 +124,10 @@ public sealed partial class IWorkBoundaryTests {
             richAttributes: AttributeTable(5, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2022, BytesField(12, VarintField(1, 4))));
         if (mixedDirections) {
-            Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
+            Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly }));
             package.Position = 0;
         }
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = mixedDirections });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = mixedDirections });
         Assert.Equal(mixedDirections, result.Report.Diagnostics.Any(d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL"));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

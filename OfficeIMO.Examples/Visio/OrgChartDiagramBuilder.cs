@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Org chart diagram builder");
             string filePath = Path.Combine(folderPath, "Org Chart Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
-                .OrgChartDiagram("Leadership", org => org
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.OrgChartDiagram("Leadership", org => org
                     .Theme(VisioStyleTheme.Modern())
                     .Root("ceo", "Marta Nowak", "Chief Executive Officer")
                     .Assistant("ea", "Eli Green", "Executive Assistant", "ceo")
@@ -22,8 +22,8 @@ namespace OfficeIMO.Examples.Visio {
                     .Position("platform", "Nina Patel", "Platform Lead", "cto", "engineering")
                     .Position("security", "Owen Brooks", "Security Lead", "cto", "engineering")
                     .Vacancy("sre", "Open SRE Role", "coo", "operations")
-                    .External("advisor", "Taylor Reed", "Advisor", "cfo"))
-                .Save();
+                    .External("advisor", "Taylor Reed", "Advisor", "cfo"));
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

@@ -10,11 +10,11 @@ public sealed partial class IWorkBoundaryTests {
     public void Row_cell_count_mismatch_retains_recoverable_cells_and_native_path(IWorkDocumentKind kind) {
         byte[] row = Message(TileTestRow(0), VarintField(2, 2));
         using MemoryStream package = TableDependencyPackage(kind, Message(), tilePayload: BytesField(5, row));
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1;
         Assert.Equal(42d, Assert.Single(table.Cells).Value);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
         Assert.True(report.IsPartialEditableReconstruction);
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5[1]/2", 1,
@@ -34,8 +34,8 @@ public sealed partial class IWorkBoundaryTests {
             : VarintField(2, ulong.MaxValue);
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             tilePayload: BytesField(5, Message(TileTestRow(0), count)), repeatModel: true);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.All(Assert.Single(projection.Sheets).Tables, table => Assert.Equal(42d, Assert.Single(table.Cells).Value));
         AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues), "5[1]/2", outerCount,
             IWorkSourceDeclarationIssueKind.InvalidValue);
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(7, new byte[] { 255, 255 }));
         using MemoryStream package = TableDependencyPackage(kind, Message(), tilePayload: BytesField(5, row));
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5[1]/6", 1,
             IWorkSourceDeclarationIssueKind.InvalidValue);
         Assert.Empty(report.SourceCellIssues);
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), VarintField(2, storedEmpty ? 1ul : 0ul),
             BytesField(6, emptyCell), BytesField(7, storedEmpty ? new byte[] { 0, 0 } : new byte[] { 255, 255 }));
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), tilePayload: BytesField(5, row));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.Empty(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells);
         Assert.Empty(projection.SourceDeclarationIssues);
         Assert.True(projection.HasEditableContent);
@@ -83,14 +83,14 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), VarintField(2, 1), BytesField(6, new byte[] { 5 }), BytesField(7, new byte[] { 255, 255 }));
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), tilePayload: BytesField(5, row));
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]
     public void Inconsistent_row_count_requires_partial_policy_and_preserves_saved_numeric_value() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             tilePayload: BytesField(5, Message(TileTestRow(0), VarintField(2, 2))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
         using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });

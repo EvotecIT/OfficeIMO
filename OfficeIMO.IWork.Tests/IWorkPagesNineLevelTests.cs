@@ -14,9 +14,9 @@ public sealed class IWorkPagesNineLevelWritingTests {
 
     [Fact]
     public void Nine_native_decimal_levels_retain_resets_restarts_and_resumed_scope_in_saved_Word() {
-        var model = Example(); byte[] bytes = model.SaveBytes();
-        Assert.Equal(bytes, model.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var model = Example(); byte[] bytes = model.ToBytes();
+        Assert.Equal(bytes, model.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete); Assert.Empty(projection.Diagnostics);
         Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         var items = projection.Body.Paragraphs.Where(p => p.ListNumber.HasValue).ToArray();
@@ -38,41 +38,41 @@ public sealed class IWorkPagesNineLevelWritingTests {
         var model = IWorkPagesDocument.Create(); var list = model.CreateNumberedList();
         for (int level = 0; level < 9; level++) list.AddItem("Initial " + level, level, 5);
         Assert.Equal(6, list.AddItem("Advance ancestor", ancestor).ListNumber);
-        byte[] before = model.SaveBytes();
+        byte[] before = model.ToBytes();
         if (ancestor < 7)
             Assert.Throws<InvalidOperationException>(() => list.AddItem("Missing immediate parent", ancestor + 2));
-        Assert.Equal(before, model.SaveBytes());
+        Assert.Equal(before, model.ToBytes());
         for (int level = ancestor + 1; level < 9; level++)
             Assert.Equal(1, list.AddItem("Reset descendant " + level, level).ListNumber);
-        var projection = IWorkSourceDocument.Open(model.SaveBytes()).ReadPages();
+        var projection = IWorkSourceDocument.Load(model.ToBytes()).ReadPages();
         Assert.True(projection.Body.IsFormattingComplete);
         Assert.Equal(list.Items.Select(p => p.ListNumber), projection.Body.Paragraphs.Take(list.Items.Count).Select(p => p.ListNumber));
-        IWorkPagesDecimalTextEditingTests.CheckWord(IWorkSourceDocument.Open(model.SaveBytes()));
+        IWorkPagesDecimalTextEditingTests.CheckWord(IWorkSourceDocument.Load(model.ToBytes()));
     }
 
     [Fact]
     public void Deepest_counter_overflow_and_outside_native_vector_levels_are_atomic() {
         var model = IWorkPagesDocument.Create(); var list = model.CreateNumberedList();
         for (int level = 0; level < 8; level++) list.AddItem("Parent " + level, level);
-        list.AddItem("Deepest last", 8, int.MaxValue); byte[] before = model.SaveBytes();
+        list.AddItem("Deepest last", 8, int.MaxValue); byte[] before = model.ToBytes();
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Overflow", 8));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddItem("Outside native vector", 9));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddRichItem(new[] { new IWorkTextRunData("Outside", "Arial", 12) }, 9));
-        Assert.Equal(before, model.SaveBytes());
+        Assert.Equal(before, model.ToBytes());
         Assert.Equal(2, list.AddItem("Advance immediate parent", 7).ListNumber);
         Assert.Equal(1, list.AddRichItem(new[] { new IWorkTextRunData("Reset deepest", "Arial", 12) }, 8).ListNumber);
     }
 
     [Fact]
     public void Uniform_text_edits_at_every_native_level_preserve_all_counters_and_native_records() {
-        var source = IWorkSourceDocument.Open(Example().SaveBytes()); var before = source.ReadPages().Body;
+        var source = IWorkSourceDocument.Load(Example().ToBytes()); var before = source.ReadPages().Body;
         var edit = source.BeginEdit();
         foreach (string text in LevelNames) {
             int index = before.Paragraphs.ToList().FindIndex(p => p.Text == text);
             edit.SetPagesBodyParagraphText(before.SourceIdentity!, index + 1, text.ToUpperInvariant());
         }
-        byte[] pending = edit.SaveBytes(new() { AllowUnassessedVisualCaches = true });
-        var saved = IWorkSourceDocument.Open(pending); var after = saved.ReadPages().Body;
+        byte[] pending = edit.ToBytes(new() { AllowUnassessedVisualCaches = true });
+        var saved = IWorkSourceDocument.Load(pending); var after = saved.ReadPages().Body;
         Assert.True(after.IsFormattingComplete);
         Assert.Equal(before.Paragraphs.Select(p => p.ListNumber), after.Paragraphs.Select(p => p.ListNumber));
         Assert.Equal(before.Paragraphs.Select(p => p.ListLevel), after.Paragraphs.Select(p => p.ListLevel));
@@ -93,13 +93,13 @@ public sealed class IWorkPagesNineLevelWritingTests {
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(before.SourceIdentity!, deepest, "short"));
         using var cancel = new CancellationTokenSource(); cancel.Cancel();
         Assert.Throws<OperationCanceledException>(() => edit.SetPagesBodyParagraphText(before.SourceIdentity!, deepest, "Level eight", cancel.Token));
-        Assert.Equal(pending, edit.SaveBytes(new() { AllowUnassessedVisualCaches = true }));
+        Assert.Equal(pending, edit.ToBytes(new() { AllowUnassessedVisualCaches = true }));
         foreach (string text in LevelNames) {
             int index = before.Paragraphs.ToList().FindIndex(p => p.Text == text);
             edit.SetPagesBodyParagraphText(before.SourceIdentity!, index + 1, text);
         }
-        Assert.Empty(edit.SaveBytesResult().Report.UpdatedRecords);
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Empty((Bytes: edit.ToBytes(out var nativeReport1), Report: nativeReport1).Report.UpdatedRecords);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport2), Report: nativeReport2).Report.OutputPackageContentHash);
         Assert.Equal(LevelNames, before.Paragraphs.Skip(1).Take(9).Select(p => p.Text));
     }
 

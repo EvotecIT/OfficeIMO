@@ -8,8 +8,8 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkPagesNumberedListWritingTests {
     [Fact]
     public void Decimal_groups_levels_restarts_and_continuation_survive_native_readback_and_saved_Word() {
-        var document = Example(); byte[] bytes = document.SaveBytes(); Assert.Equal(bytes, document.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var document = Example(); byte[] bytes = document.ToBytes(); Assert.Equal(bytes, document.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.True(projection.Body.IsFormattingComplete);
         IWorkTextParagraph[] items = projection.Body.Paragraphs.Where(paragraph => paragraph.ListNumber.HasValue).ToArray();
@@ -65,17 +65,17 @@ public sealed class IWorkPagesNumberedListWritingTests {
     [InlineData("First\u2029Second")]
     public void Unicode_separators_are_rejected_atomically_by_all_single_paragraph_paths(string text) {
         var document = IWorkPagesDocument.Create(); var list = document.CreateNumberedList();
-        list.AddItem("Before", restartAt: 7); byte[] baseline = document.SaveBytes();
+        list.AddItem("Before", restartAt: 7); byte[] baseline = document.ToBytes();
         Assert.Throws<ArgumentException>(() => document.AddParagraph(text));
         Assert.Throws<ArgumentException>(() => document.AddParagraph(text, new IWorkPagesParagraphLayout()));
         var runs = new[] { new IWorkTextRunData("Prefix"), new IWorkTextRunData(text) };
         Assert.Throws<ArgumentException>(() => document.AddRichParagraph(runs));
         Assert.Throws<ArgumentException>(() => document.AddRichParagraph(runs, new IWorkPagesParagraphLayout()));
         Assert.Throws<ArgumentException>(() => list.AddItem(text, restartAt: 100));
-        Assert.Equal(baseline, document.SaveBytes()); Assert.Single(list.Items);
+        Assert.Equal(baseline, document.ToBytes()); Assert.Single(list.Items);
         Assert.Single(document.Paragraphs); Assert.Single(document.BodyBlocks);
         Assert.Equal(8, list.AddItem("After").ListNumber);
-        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(document.ToBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { 7, 8 }, result.Projection.Body.Paragraphs
             .Where(paragraph => paragraph.ListNumber.HasValue).Select(paragraph => paragraph.ListNumber));
@@ -90,7 +90,7 @@ public sealed class IWorkPagesNumberedListWritingTests {
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Child overflow", 1)); Assert.Equal(2, list.Items.Count);
         Assert.Equal(4, list.AddItem("Parent restart", restartAt: 4).ListNumber);
         Assert.Equal(1, list.AddItem("Reset child", 1).ListNumber);
-        using var result = IWorkSourceDocument.Open(document.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(document.ToBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { int.MaxValue, int.MaxValue, 4, 1 }, result.Projection.Body.Paragraphs
             .Where(paragraph => paragraph.ListNumber.HasValue).Select(paragraph => paragraph.ListNumber));
@@ -98,15 +98,15 @@ public sealed class IWorkPagesNumberedListWritingTests {
 
     [Fact]
     public void Used_list_budget_is_atomic_and_unused_lists_do_not_change_native_bytes() {
-        var document = IWorkPagesDocument.Create(); document.AddParagraph("Plain"); byte[] baseline = document.SaveBytes();
+        var document = IWorkPagesDocument.Create(); document.AddParagraph("Plain"); byte[] baseline = document.ToBytes();
         for (int index = 0; index < 5; index++) document.CreateNumberedList();
-        Assert.Equal(baseline, document.SaveBytes());
+        Assert.Equal(baseline, document.ToBytes());
         document.NumberedLists[2].AddItem("First"); document.NumberedLists[4].AddItem("Other");
         using var stream = new MemoryStream(); stream.WriteByte(9);
-        var options = new IWorkPagesWriteOptions { MaxNumberedLists = 1 };
+        var options = new IWorkPagesSaveOptions { MaxNumberedLists = 1 };
         Assert.Throws<InvalidDataException>(() => document.Save(stream, options)); Assert.Equal(new byte[] { 9 }, stream.ToArray());
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxNumberedLists = 0 }));
-        options.MaxNumberedLists = 2; Assert.NotEmpty(document.SaveBytes(options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.ToBytes(new() { MaxNumberedLists = 0 }));
+        options.MaxNumberedLists = 2; Assert.NotEmpty(document.ToBytes(options));
         string path = Path.Combine(Path.GetTempPath(), "iwork-list-bound-" + Guid.NewGuid().ToString("N") + ".pages");
         try {
             File.WriteAllBytes(path, new byte[] { 37 }); options.MaxNumberedLists = 1;
@@ -116,12 +116,12 @@ public sealed class IWorkPagesNumberedListWritingTests {
 
     [Fact]
     public void Grouping_restarts_and_fonts_affect_identity_and_independent_models_are_deterministic() {
-        var first = Example(); var second = Example(); Assert.Equal(first.SaveBytes(), second.SaveBytes());
+        var first = Example(); var second = Example(); Assert.Equal(first.ToBytes(), second.ToBytes());
         var grouped = IWorkPagesDocument.Create(); var list = grouped.CreateNumberedList(); list.AddItem("One"); list.AddItem("Two");
         var split = IWorkPagesDocument.Create(); split.CreateNumberedList().AddItem("One"); split.CreateNumberedList().AddItem("Two", restartAt: 2);
-        Assert.NotEqual(grouped.SaveBytes(), split.SaveBytes());
+        Assert.NotEqual(grouped.ToBytes(), split.ToBytes());
         var restarted = IWorkPagesDocument.Create(); var restart = restarted.CreateNumberedList(); restart.AddItem("One"); restart.AddItem("Two", restartAt: 2);
-        Assert.NotEqual(grouped.SaveBytes(), restarted.SaveBytes());
+        Assert.NotEqual(grouped.ToBytes(), restarted.ToBytes());
         Assert.Throws<ArgumentOutOfRangeException>(() => first.CreateNumberedList(fontSizePoints: 11.5f));
         Assert.Throws<ArgumentException>(() => first.CreateNumberedList(fontName: " "));
         Assert.Throws<ArgumentOutOfRangeException>(() => first.CreateNumberedList(fontSizePoints: float.NaN));

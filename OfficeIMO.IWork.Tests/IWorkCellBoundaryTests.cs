@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkDocumentKind kind, bool wide, bool formula) {
         using var package = TableDependencyPackage(kind, Message(), tilePayload:
             BytesField(5, CrossingTrailingCellRow(wide, formula)));
-        var source = IWorkSourceDocument.Open(package, kind, new IWorkReadOptions { PreserveSourceRecords = false });
+        var source = IWorkSourceDocument.Load(package, kind, new IWorkLoadOptions { PreserveSourceRecords = false });
         IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         Assert.True(cell.HasDecodeError);
         Assert.Null(cell.Value);
@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (bool visual in new[] { false, true }) {
             package.Position = 0;
             IWorkConversionReport report = ConvertUnitReport(package, kind, visual,
-                new IWorkReadOptions { PreserveSourceRecords = false });
+                new IWorkLoadOptions { PreserveSourceRecords = false });
             Assert.Empty(report.PreservedRecords);
             IWorkSourceCellIssue issue = Assert.Single(report.SourceCellIssues);
             Assert.Equal((1, 1), (issue.Row, issue.Column));
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_saved_tables_keep_decode_markers_instead_of_borrowed_record_bytes(IWorkDocumentKind kind) {
         using var package = TableDependencyPackage(kind, Message(), tilePayload:
             BytesField(5, CrossingTrailingCellRow(wide: true, formula: true)));
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         const string marker = "Truncated cell value field.";
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), BytesField(6, cell), BytesField(7, offsets));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), columns: 300,
             tilePayload: BytesField(5, row));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
         Assert.Empty(result.Report.SourceDeclarationIssues);
@@ -102,7 +102,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] row = Message(VarintField(1, 0), BytesField(6, Message(header, new byte[24])), BytesField(7, offsets));
         using var package = TableDependencyPackage(kind, Message(), rows: 2, tilePayload:
             Message(BytesField(5, row), BytesField(5, TileTestRow(1))));
-        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal((2, 1, 42d), (cell.Row, cell.Column, Assert.IsType<double>(cell.Value)));
         package.Position = 0;
         var report = ConvertUnitReport(package, kind, visual: false);
@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = new byte[12]; cell[0] = 5;
         byte[] row = Message(VarintField(1, 0), BytesField(6, cell), BytesField(7, new byte[] { 0, 0, 255, 255, 255, 255 }));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), tilePayload: BytesField(5, row));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableDimensionEntries = 2 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxTableDimensionEntries = 2 });
         Assert.Contains("dimension", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }
@@ -134,7 +134,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(7, new byte[] { 0, 0, 254, 255 }), VarintField(8, wide ? 1ul : 0ul));
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), columns: selected ? 2ul : 1ul,
             tilePayload: BytesField(5, row));
-        var table = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1;
+        var table = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1;
         Assert.Equal(42d, Assert.Single(table.Cells, c => c.Column == 1).Value);
         if (selected) Assert.True(Assert.Single(table.Cells, c => c.Column == 2).HasDecodeError);
         else Assert.Single(table.Cells);
@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Row_offset_budget_is_shared_across_selected_rows() {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,
             tilePayload: Message(BytesField(5, TileTestRow(0)), BytesField(5, TileTestRow(1))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableDimensionEntries = 1 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxTableDimensionEntries = 1 });
         Assert.Contains("dimension", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

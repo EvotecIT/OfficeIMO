@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(14, true)]
     public void Qualified_fixed_frames_only_make_keep_lines_inactive(int paginationField, bool fallback) {
         using var package = NativeTextFramePackage(Message(), paginationField: paginationField);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.Equal(fallback, result.IsVisualFallback);
         Assert.Equal(fallback, result.Report.Diagnostics.Any(diagnostic =>
             diagnostic.Code == "IWORK_KEYNOTE_PARAGRAPH_PAGINATION_UNSUPPORTED"));
@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(8, 1)]
     public void Rejected_selected_child_frame_properties_do_not_reuse_parent_layout(int field, ulong value) {
         using var package = NativeTextFramePackage(Message(VarintField(field, value)));
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ReadKeynote();
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ReadKeynote();
         Assert.False(projection.HasEditableContent);
         Assert.Null(Assert.Single(projection.Slides).TitleBox!.Layout);
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath == "11/" + field);
@@ -32,17 +32,17 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Text_frame_inheritance_respects_the_configured_depth_and_rejects_cycles() {
         using var limited = NativeTextFramePackage(Message());
-        var source = IWorkSourceDocument.Open(limited, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaxTextStyleInheritanceDepth = 1 });
+        var source = IWorkSourceDocument.Load(limited, IWorkDocumentKind.Keynote,
+            new IWorkLoadOptions { MaxTextStyleInheritanceDepth = 1 });
         Assert.Contains("inheritance", Assert.Throws<InvalidDataException>(() => source.ReadKeynote()).Message);
         using var cyclic = NativeTextFramePackage(Message(), cyclicParent: true);
-        Assert.False(IWorkSourceDocument.Open(cyclic, IWorkDocumentKind.Keynote).ReadKeynote().HasEditableContent);
+        Assert.False(IWorkSourceDocument.Load(cyclic, IWorkDocumentKind.Keynote).ReadKeynote().HasEditableContent);
     }
 
     [Fact]
     public void Connected_text_flow_is_not_qualified_as_a_fixed_frame() {
         using var package = NativeTextFramePackage(Message(), connectedFlow: true);
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ReadKeynote();
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ReadKeynote();
         Assert.False(projection.HasEditableContent);
         Assert.Null(Assert.Single(projection.Slides).TitleBox!.Layout);
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath == "1/3");
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Explicit_padding_uses_zero_defaults_for_omitted_sides_instead_of_parent_insets(bool leftOnly) {
         using var package = NativeTextFramePackage(BytesField(6, leftOnly ? FloatField(1, 8) : Message()));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.Report.RequireCompleteEditableReconstruction();
         IWorkTextBoxLayout layout = result.Projection.Slides[0].TitleBox!.Layout!;
         Assert.Equal(leftOnly ? 8 : 0, layout.LeftInsetPoints);
@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => FloatField(5, 0)
         };
         using var package = NativeTextFramePackage(BytesField(6, padding));
-        var projection = IWorkSourceDocument.Open(package).ReadKeynote();
+        var projection = IWorkSourceDocument.Load(package).ReadKeynote();
         Assert.False(projection.HasEditableContent);
         Assert.Null(projection.Slides[0].TitleBox!.Layout);
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath.StartsWith("11/6", StringComparison.Ordinal));
@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Finite_native_frame_insets_round_to_the_PPTX_grid_with_precision_evidence() {
         using var package = NativeTextFramePackage(BytesField(6, FloatField(1, 3.6f)));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal((double)3.6f, result.Projection.Slides[0].TitleBox!.Layout!.LeftInsetPoints);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_KEYNOTE_PPTX_PRECISION"
@@ -105,7 +105,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Frame_insets_outside_the_destination_range_remain_rejected() {
         using var package = NativeTextFramePackage(BytesField(6, FloatField(1, 200000)));
         Assert.Contains("padding outside", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly })).Message);
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly })).Message);
     }
 
     private static MemoryStream NativeTextFramePackage(byte[] childProperties,

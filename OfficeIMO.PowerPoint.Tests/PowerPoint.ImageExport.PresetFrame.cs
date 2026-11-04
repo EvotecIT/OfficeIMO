@@ -15,9 +15,9 @@ public partial class PowerPointImageExportTests {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.BackgroundColor = "FFFFFF";
+        slide.BackgroundColor = OfficeColor.Parse("FFFFFF");
         PowerPointAutoShape shape = slide.AddShape(OfficePresetShapeType.RightTriangle, OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
-        shape.FillColor = "000000";
+        shape.FillColor = OfficeColor.Parse("000000");
         shape.HorizontalFlip = flipH;
         Shape raw = Assert.IsType<Shape>(shape.Element);
         raw.ShapeProperties!.RemoveAllChildren<A.Outline>();
@@ -47,7 +47,7 @@ public partial class PowerPointImageExportTests {
         using PowerPointDocument presentation = PowerPointDocument.Create();
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(120),OfficeIMO.OfficeLength.Points(90));
         PowerPointSlide slide = presentation.AddSlide();
-        slide.BackgroundColor = "FFFFFF";
+        slide.BackgroundColor = OfficeColor.Parse("FFFFFF");
         PowerPointShape shape = textBox ? slide.AddTextBox("",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(80),global::OfficeIMO.OfficeLength.Points(40)) : slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(40));
         shape.HorizontalFlip = flipH;
         shape.VerticalFlip = flipV;

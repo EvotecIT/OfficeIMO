@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 
@@ -13,18 +12,15 @@ namespace OfficeIMO.Tests {
             string planPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".txt");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("First", page => page
-                    .AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Worker A=B\\C"))
-                .AddPage("Second", page => page
-                    .AddStencilShape(id: "queue", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Queue\nLine 2"))
-                .End()
-                .Save();
+            using var nativeDocument2 = VisioDocument.Create(filePath);
+            nativeDocument2.AddPage("First", page => page.AddStencilShape(id: "worker", stencil: VisioStencils.Flowchart.Get("process"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Worker A=B\\C"));
+            nativeDocument2.AddPage("Second", page => page.AddStencilShape(id: "queue", stencil: VisioStencils.Flowchart.Get("data"), x: OfficeLength.Inches(2), y: OfficeLength.Inches(5), text: "Queue\nLine 2"));
+            nativeDocument2.Save();
 
-            VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => builder
-                .MapStencilId("flow.process", VisioStencils.Infrastructure.Get("server"), resizeToStencil: true)
-                .MapStencilId("flow.data", VisioStencils.DataPlatform.Get("stream"), resizeToStencil: true));
+            VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => {
+                builder.MapStencilId("flow.process", VisioStencils.Infrastructure.Get("server"), resizeToStencil: true);
+                builder.MapStencilId("flow.data", VisioStencils.DataPlatform.Get("stream"), resizeToStencil: true);
+            });
 
             VisioStencilMigrationPlan reviewPlan = VisioDocument.Load(filePath).PlanStencilMigration(map);
             reviewPlan.SaveText(planPath);
@@ -53,15 +49,11 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string planPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".txt");
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("Empty Text", page => page
-                    .AddRectangle("empty", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), string.Empty))
-                .End()
-                .Save();
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.AddPage("Empty Text", page => page.AddRectangle("empty", OfficeLength.Inches(2), OfficeLength.Inches(5), OfficeLength.Inches(1.6), OfficeLength.Inches(0.7), string.Empty));
+            nativeDocument1.Save();
 
-            VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => builder
-                .MapMaster("Rectangle", VisioStencils.Flowchart.Get("process"), resizeToStencil: true));
+            VisioStencilMigrationMap map = VisioStencilMigrationMap.Create(builder => builder.MapMaster("Rectangle", VisioStencils.Flowchart.Get("process"), resizeToStencil: true));
 
             VisioStencilMigrationPlan plan = VisioDocument.Load(filePath).PlanStencilMigration(map);
             plan.SaveText(planPath);

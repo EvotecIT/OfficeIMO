@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             var parentCell = Assert.IsType<WordTableCell>(p.Parent);
             Assert.True(parentCell == innerCell);
             // Avoid reference equality on WordTable wrappers; assert structural expectations
-            Assert.Equal(1, parentCell.ParentTable.RowsCount);
+            Assert.Equal(1, parentCell.ParentTable.RowCount);
             Assert.True(outerCell == outer.Rows[0].Cells[0]);
             Assert.True(outerCell.HasNestedTables);
         }

@@ -12,13 +12,13 @@ public sealed partial class IWorkBoundaryTests {
         using var input = new CancellingReadStream(File.ReadAllBytes(Fixture("nim-iwork/simple.pages")),
             cancellation);
 
-        Assert.Throws<OperationCanceledException>(() => IWorkSourceDocument.Open(input,
+        Assert.Throws<OperationCanceledException>(() => IWorkSourceDocument.Load(input,
             IWorkDocumentKind.Pages, null, cancellation.Token));
     }
 
     [Fact]
     public void Keynote_reader_retains_block_roles_geometry_links_and_source_diagnostics() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote);
         var textStyle = new IWorkTextStyle(null, null, null, null, null, null, null,
             null, null);
@@ -108,7 +108,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Keynote_reader_retains_each_slides_skipped_state() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote);
         var empty = new IWorkTextContent(Array.Empty<IWorkTextParagraph>(), true, true);
         var slides = new[] {

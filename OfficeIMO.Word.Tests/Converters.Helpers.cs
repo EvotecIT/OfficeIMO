@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 paragraph.AddFormattedText("Hello");
                 paragraph.AddFormattedText("Bold", bold: true);
                 paragraph.AddFormattedText("Italic", italic: true);
-                paragraph.AddFormattedText("Strike").Strike = true;
+                paragraph.AddFormattedText("Strike").Strikethrough = true;
                 var codeRun = paragraph.AddFormattedText("Code");
                 codeRun.SetFontFamily(WordFontResolver.Resolve("monospace")!);
                 paragraph.AddHyperLink("Link", new Uri("https://example.com/"));
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(runs, r => r.Text == "Hello" && !r.Bold);
                 Assert.Contains(runs, r => r.Text == "Bold" && r.Bold);
                 Assert.Contains(runs, r => r.Text == "Italic" && r.Italic);
-                Assert.Contains(runs, r => r.Text == "Strike" && r.Strike);
+                Assert.Contains(runs, r => r.Text == "Strike" && r.Strikethrough);
                 Assert.Contains(runs, r => r.Text == "Code" && r.Code);
                 Assert.Contains(runs, r => r.Text == "Link" && r.Hyperlink == "https://example.com/");
                 Assert.Contains(runs, r => r.Image != null);

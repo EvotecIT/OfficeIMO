@@ -11,7 +11,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
     [Fact]
     public void Independent_single_cell_source_coordinates_and_typed_caches_are_qualified_without_bypassing_date_safety() {
         using var manifest = ReadManifest("single-cell-formulas", out string path);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(path);
         IWorkNumbersProjection projection = source.ReadNumbers();
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray())
             AssertSourceCell(projection, expected);
@@ -44,7 +44,7 @@ public sealed class IWorkSingleCellFormulaCorpusTests {
     [Fact]
     public void Independent_endpoint_ranges_and_single_cell_offset_preserve_saved_formulas_caches_and_edited_calculation() {
         using var manifest = ReadManifest("endpoint-formulas", out string path);
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(diagnostic => diagnostic.Code + ": " + diagnostic.Message)));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

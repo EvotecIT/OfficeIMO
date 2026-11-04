@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -21,12 +20,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentInfoSetsMetadata() {
+        public void NativeInfoSetsMetadata() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            document.AsFluent()
-                .Info(info => info.Title("Fluent Diagram").Author("Jane Doe"))
-                .End();
+            document
+                .ConfigureProperties(info => { info.SetTitle("Fluent Diagram"); info.SetAuthor("Jane Doe"); });
             document.AddPage("Page1");
             document.Save();
 

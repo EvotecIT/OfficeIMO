@@ -12,7 +12,7 @@ public sealed class IWorkKeynoteWritingTests {
     public void Apple_saved_native_creation_retains_the_edit_fonts_colors_geometry_and_zero_padding() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
             "keynote-created-edited-v15.4.key");
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(path).ReadKeynote();
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(path).ReadKeynote();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceDeclarationIssues);
         Assert.Equal(3, projection.Slides.Count);
@@ -26,7 +26,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal(0, box.Layout!.LeftInsetPoints);
         Assert.Equal(0, box.Layout.TopInsetPoints);
         Assert.Equal("Times New Roman", projection.Slides[0].TextBoxes[1].Content.Paragraphs[0].Runs[0].Style.FontName);
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved); saved.Position = 0;
@@ -39,9 +39,9 @@ public sealed class IWorkKeynoteWritingTests {
     [Fact]
     public void Native_creation_preserves_positioned_multilingual_text_fonts_colors_and_blank_slides() {
         var document = Example();
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         using var input = new MemoryStream(bytes);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(input);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(input);
         Assert.True(input.CanRead);
         Assert.Equal(IWorkDocumentKind.Keynote, source.Kind);
         IWorkKeynoteProjection deck = source.ReadKeynote();
@@ -68,7 +68,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.Equal("Times New Roman", deck.Slides[0].TextBoxes[1].Content.Paragraphs[0].Runs[0].Style!.FontName);
 
         input.Position = 0;
-        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
@@ -86,8 +86,8 @@ public sealed class IWorkKeynoteWritingTests {
         var slide = document.AddSlide();
         for (int index = 0; index < 10; index++)
             slide.AddText("BOX " + index, 0, index * 40, 600, 40);
-        byte[] package = document.SaveBytes();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(package));
+        byte[] package = document.ToBytes();
+        IWorkSourceDocument source = IWorkSourceDocument.Load(new MemoryStream(package));
         var identifiers = source.Records.Select(record => record.Identifier).ToHashSet();
         Assert.DoesNotContain(71UL, identifiers);
         Assert.DoesNotContain(72UL, identifiers);
@@ -95,7 +95,7 @@ public sealed class IWorkKeynoteWritingTests {
         Assert.All(source.Records, record => Assert.All(record.ObjectReferences,
             identifier => Assert.Contains(identifier, identifiers)));
         Assert.Equal(10, Assert.Single(source.ReadKeynote().Slides).TextBoxes.Count);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
@@ -106,11 +106,11 @@ public sealed class IWorkKeynoteWritingTests {
 
     [Fact]
     public void Native_slide_and_paragraph_profile_protects_Apple_editing_and_export_regressions() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(Example().SaveBytes()));
+        IWorkSourceDocument source = IWorkSourceDocument.Load(new MemoryStream(Example().ToBytes()));
         var ids = source.Records.Select(record => record.Identifier).ToHashSet();
         foreach (IWorkArchiveRecord record in source.Records) {
             Assert.All(record.ObjectReferences, id => Assert.Contains(id, ids));
-            IWorkWireMessage wire = IWorkProtobuf.Parse(record.GetPayload(), new IWorkReadOptions());
+            IWorkWireMessage wire = IWorkProtobuf.Parse(record.GetPayload(), new IWorkLoadOptions());
             if (record.MessageType == 5) {
                 // Apple creates a layout class when field 10 is present; putting it on a show slide breaks editing/export.
                 Assert.Equal(wire.HasField(17) ? null : "Blank", wire.GetString(10));
@@ -131,8 +131,8 @@ public sealed class IWorkKeynoteWritingTests {
     [Fact]
     public void Native_packages_are_deterministic_and_content_dependent_across_byte_stream_and_path_APIs() {
         var document = Example();
-        byte[] bytes = document.SaveBytes();
-        Assert.Equal(bytes, Example().SaveBytes());
+        byte[] bytes = document.ToBytes();
+        Assert.Equal(bytes, Example().ToBytes());
         using (var zip = new ZipArchive(new MemoryStream(bytes))) {
             Assert.All(zip.Entries, entry => Assert.Equal(new DateTime(1980, 1, 1), entry.LastWriteTime.DateTime));
         }
@@ -149,7 +149,7 @@ public sealed class IWorkKeynoteWritingTests {
             Assert.Throws<IOException>(() => document.Save(path));
             Assert.Equal(bytes, File.ReadAllBytes(path));
             document.AddSlide("000000");
-            byte[] changed = document.SaveBytes();
+            byte[] changed = document.ToBytes();
             Assert.NotEqual(DocumentId(bytes), DocumentId(changed));
             document.Save(path, overwrite: true);
             Assert.Equal(changed, File.ReadAllBytes(path));
@@ -163,7 +163,7 @@ public sealed class IWorkKeynoteWritingTests {
     [InlineData("characters")]
     [InlineData("bytes")]
     public void Native_write_limits_reject_before_destination_mutation(string limit) {
-        var options = new IWorkKeynoteWriteOptions();
+        var options = new IWorkKeynoteSaveOptions();
         switch (limit) {
             case "slides": options.MaxSlides = 1; break;
             case "boxes": options.MaxTextBoxes = 1; break;
@@ -216,9 +216,9 @@ public sealed class IWorkKeynoteWritingTests {
         var document = IWorkKeynoteDocument.Create();
         string text = string.Concat(Enumerable.Repeat("A😀B café\n", 12_000));
         document.AddSlide().AddText(text, 0, 0, 960, 540);
-        byte[] bytes = document.SaveBytes();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(bytes),
-            options: new IWorkReadOptions { MaxSnappyChunkBytes = 65_536 });
+        byte[] bytes = document.ToBytes();
+        IWorkSourceDocument source = IWorkSourceDocument.Load(new MemoryStream(bytes),
+            options: new IWorkLoadOptions { MaxSnappyChunkBytes = 65_536 });
         Assert.Equal(text + "\n", Assert.Single(source.ReadKeynote().Slides[0].TextBoxes).Content.PlainText);
         using var zip = new ZipArchive(new MemoryStream(bytes));
         using Stream entry = zip.GetEntry("Index/Document.iwa")!.Open();
@@ -247,7 +247,7 @@ public sealed class IWorkKeynoteWritingTests {
     [Fact]
     public void Native_creation_normalizes_lines_and_rejects_unencodable_text_and_invalid_frames() {
         var document = IWorkKeynoteDocument.Create();
-        Assert.Throws<InvalidOperationException>(() => document.SaveBytes());
+        Assert.Throws<InvalidOperationException>(() => document.ToBytes());
         Assert.Throws<ArgumentException>(() => document.AddSlide("#FFFFFF"));
         var slide = document.AddSlide();
         Assert.Equal("one\ntwo\nthree", slide.AddText("one\r\ntwo\rthree", 0, 0, 100, 100).Text);

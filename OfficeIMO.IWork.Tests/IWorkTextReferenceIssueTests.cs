@@ -91,8 +91,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] templates = Message(ReferenceField(23, 4), ReferenceField(24, 4), ReferenceField(25, 4));
         using MemoryStream package = HeaderReferencePackage(templates,
             Message(ReferenceField(field, 999), ReferenceField(field, 999)), twoSections: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 2 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 2 });
         IWorkPagesProjection projection = source.ReadPages();
         Assert.Equal(2, projection.SourceReferenceIssues.Count);
         Assert.Equal(new[] { 1, 2 }, projection.SourceReferenceIssues.Select(issue => issue.ReferenceIndex));
@@ -111,8 +111,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Header_reference_limit_failure_is_not_swallowed_as_a_partial_projection() {
         using MemoryStream package = HeaderReferencePackage(ReferenceField(25, 4),
             Message(ReferenceField(1, 999), ReferenceField(2, 998)));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Throws<InvalidDataException>(() => source.ReadPages());
     }
 
@@ -124,8 +124,8 @@ public sealed partial class IWorkBoundaryTests {
             ArchiveRecord(3, 4, Message(ReferenceField(2, 4))),
             ArchiveRecord(4, 5, Message(ReferenceField(27, 5))),
             ArchiveRecord(5, 15, Message(ReferenceField(1, 999), ReferenceField(1, 998)))))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
     }
 
@@ -152,8 +152,8 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Graph_and_text_reference_evidence_share_the_limit_and_propagate_failure(IWorkDocumentKind kind) {
         using MemoryStream package = TextReferencePackage(kind, ReferenceField(2, 999), graphFailure: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) source.ReadPages();
             else if (kind == IWorkDocumentKind.Numbers) source.ReadNumbers();

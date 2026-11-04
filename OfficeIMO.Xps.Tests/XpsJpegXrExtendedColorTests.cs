@@ -41,7 +41,7 @@ public sealed class XpsJpegXrExtendedColorTests {
             byte[] source = embedded ? OfficeIMO.TestAssets.JpegXrTestFixture.WithField(encoded, 0x8773, 7, profileBytes) : encoded;
             var document = XpsDocument.Create(XpsFormat.OpenXps);
             string imageUri = document.AddResource("Images/source.jxr", source, "image/jxr");
-            var page = document.AddPage(19, 13).AddImage(imageUri, 0, 0, 19, 13);
+            var page = document.AddPage(19, 13).AddImage(imageUri, 0, 0, 19, 13).Page;
             if (!embedded) {
                 string profileUri = document.AddResource("Profiles/source.icc", profileBytes, "application/vnd.ms-color.iccprofile");
                 var markup = page.GetMarkup();

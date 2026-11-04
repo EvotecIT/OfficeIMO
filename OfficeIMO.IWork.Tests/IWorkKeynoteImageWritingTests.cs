@@ -10,8 +10,8 @@ public sealed class IWorkKeynoteImageWritingTests {
     [Fact]
     public void Image_creation_matches_the_Apple_qualified_graph_and_exported_PowerPoint() {
         byte[] expected = File.ReadAllBytes(Fixture("keynote-created-images-v15.4.key"));
-        Assert.Equal(expected, ImageExample().SaveBytes());
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(expected), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        Assert.Equal(expected, ImageExample().ToBytes());
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(expected), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -31,9 +31,9 @@ public sealed class IWorkKeynoteImageWritingTests {
 
     [Fact]
     public void Apple_saved_image_edit_keeps_pixels_stacking_and_description_after_reopen() {
-        IWorkKeynoteProjection original = IWorkSourceDocument.Open(Fixture("keynote-created-images-v15.4.key")).ReadKeynote();
+        IWorkKeynoteProjection original = IWorkSourceDocument.Load(Fixture("keynote-created-images-v15.4.key")).ReadKeynote();
         string editedPath = Fixture("keynote-created-images-edited-v15.4.key");
-        IWorkKeynoteProjection edited = IWorkSourceDocument.Open(editedPath).ReadKeynote();
+        IWorkKeynoteProjection edited = IWorkSourceDocument.Load(editedPath).ReadKeynote();
         Assert.Equal(3, edited.Slides.Count);
         for (int i = 0; i < 3; i++) {
             Assert.Equal(original.Slides[i].Drawables.Select(drawable => drawable.Kind),
@@ -47,7 +47,7 @@ public sealed class IWorkKeynoteImageWritingTests {
             Assert.Equal(expected.Geometry.WidthPoints, actual.Geometry.WidthPoints);
             Assert.Equal(expected.Geometry.HeightPoints, actual.Geometry.HeightPoints);
         }
-        using var converted = IWorkSourceDocument.Open(editedPath, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(editedPath, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
@@ -66,13 +66,13 @@ public sealed class IWorkKeynoteImageWritingTests {
         IWorkKeynoteImage added = slide.AddImage(imageBytes, 20, 40, 120, 80, "Native image 😀");
         slide.AddText("IN FRONT", 30, 50, 240, 60);
         slide.AddImage(imageBytes, 160, 40, 80, 120);
-        byte[] package = document.SaveBytes();
-        Assert.Equal(package, document.SaveBytes());
+        byte[] package = document.ToBytes();
+        Assert.Equal(package, document.ToBytes());
         Assert.Equal(jpeg ? "image/jpeg" : "image/png", added.MediaType);
         Assert.Equal(24, added.PixelWidth); Assert.Equal(16, added.PixelHeight);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(new MemoryStream(package));
+        IWorkSourceDocument source = IWorkSourceDocument.Load(new MemoryStream(package));
         IWorkWireMessage metadata = IWorkProtobuf.Parse(Assert.Single(source.Records,
-            record => record.MessageType == 11006).GetPayload(), new IWorkReadOptions());
+            record => record.MessageType == 11006).GetPayload(), new IWorkLoadOptions());
         IWorkWireMessage[] resources = metadata.GetRepeatedMessages(4).ToArray();
         Assert.Equal(2, resources.Length);
         foreach (IWorkWireMessage resource in resources) {
@@ -97,7 +97,7 @@ public sealed class IWorkKeynoteImageWritingTests {
         Assert.Equal(20, image.Geometry!.LeftPoints); Assert.Equal(40, image.Geometry.TopPoints);
         Assert.Equal(120, image.Geometry.WidthPoints); Assert.Equal(80, image.Geometry.HeightPoints);
         Assert.False(image.HasMask);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(package), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
@@ -125,7 +125,7 @@ public sealed class IWorkKeynoteImageWritingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => slide.AddImage(expected, 0, 0, float.NaN, 100));
         Assert.Single(slide.Images);
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkKeynoteImage>)slide.Images).Clear());
-        Assert.Equal(expected, Assert.Single(IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes()))
+        Assert.Equal(expected, Assert.Single(IWorkSourceDocument.Load(new MemoryStream(document.ToBytes()))
             .ReadKeynote().Slides[0].Images).GetBytes());
     }
 
@@ -150,7 +150,7 @@ public sealed class IWorkKeynoteImageWritingTests {
         byte[] payload = ImageBytes(false);
         var document = IWorkKeynoteDocument.Create(); var slide = document.AddSlide();
         slide.AddImage(payload, 0, 0, 100, 100); slide.AddImage(payload, 100, 0, 100, 100);
-        var limits = new IWorkKeynoteWriteOptions();
+        var limits = new IWorkKeynoteSaveOptions();
         switch (boundary) {
             case "count": limits.MaxImages = 1; break;
             case "encoded": limits.MaxEncodedImageBytes = payload.Length; break;
@@ -191,14 +191,14 @@ public sealed class IWorkKeynoteImageWritingTests {
             if (front) slide.AddText("LABEL", 0, 0, 100, 100);
             return document;
         }
-        byte[] original = Make(false, false).SaveBytes();
-        Assert.Equal(original, Make(false, false).SaveBytes());
+        byte[] original = Make(false, false).ToBytes();
+        Assert.Equal(original, Make(false, false).ToBytes());
         string Identity(byte[] package) {
             using var zip = new ZipArchive(new MemoryStream(package));
             return System.Text.Encoding.ASCII.GetString(Read(zip.GetEntry("Metadata/DocumentIdentifier")!));
         }
-        Assert.NotEqual(Identity(original), Identity(Make(true, false).SaveBytes()));
-        Assert.NotEqual(Identity(original), Identity(Make(false, true).SaveBytes()));
+        Assert.NotEqual(Identity(original), Identity(Make(true, false).ToBytes()));
+        Assert.NotEqual(Identity(original), Identity(Make(false, true).ToBytes()));
     }
 
     internal static byte[] ImageBytes(bool jpeg, bool changed = false) {

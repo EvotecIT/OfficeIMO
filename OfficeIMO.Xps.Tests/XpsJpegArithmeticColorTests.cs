@@ -21,7 +21,7 @@ public sealed class XpsJpegArithmeticColorTests {
             var document = XpsDocument.Create(format);
             string source = document.AddResource("Images/source.jpg", File.ReadAllBytes(Path.Combine(corpus, name)), "image/jpeg");
             string profileUri = document.AddResource("Profiles/source.icc", profile, "application/vnd.ms-color.iccprofile");
-            var page = document.AddPage(105, 57).AddImage(source, 0, 0, 105, 57);
+            var page = document.AddPage(105, 57).AddImage(source, 0, 0, 105, 57).Page;
             var markup = page.GetMarkup();
             markup.Descendants().Single(e => e.Name.LocalName == "ImageBrush").SetAttributeValue("ImageSource",
                 "{ColorConvertedBitmap " + source + " " + profileUri + "}");

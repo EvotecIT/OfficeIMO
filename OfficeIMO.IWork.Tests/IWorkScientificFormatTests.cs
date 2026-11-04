@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Scientific_precision_is_shared_metadata_without_changing_values(IWorkDocumentKind kind) {
         using MemoryStream package = NumberFormatPackage(kind, NumericFormat(259, 4), value: 1250d);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells);
         Assert.Equal(1250d, cell.Value);
         Assert.Equal("1250", cell.DisplayText);
         Assert.Equal(IWorkNumberFormatKind.Scientific, cell.NumberFormat!.Kind);
@@ -26,12 +26,12 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(0u, 1u)]
     public void Unqualified_scientific_negative_styles_and_grouping_retain_source_evidence(uint negative, uint grouping) {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(259, 2, negative, grouping), value: -1250d);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(-1250d, cell.Value);
         Assert.Null(cell.NumberFormat);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal("3[1]/6", Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13).FieldPath);
         Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Unassessed);
@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(NumericFormat(259, 3))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))));
         package.Position = 0;
-        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var converted = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(converted.IsVisualFallback);
         IWorkTableCell projected = Assert.Single(Assert.Single(Assert.Single(converted.Projection.Sheets).Tables).Cells);
         Assert.Equal(IWorkCellKind.Formula, projected.Kind);

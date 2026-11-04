@@ -56,9 +56,9 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetCategoryAxisTitle("Quarter")
-                        .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Calibri")
                         .SetValueAxisTitle("Revenue")
-                        .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "C55A11", fontName: "Arial");
+                        .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("C55A11"), fontFamily: "Arial");
                     presentation.Save();
                 }
 
@@ -107,9 +107,9 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
                     chart.SetCategoryAxisTitle("Quarter")
-                        .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Calibri")
                         .SetValueAxisTitle("Revenue")
-                        .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "C55A11", fontName: "Arial")
+                        .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("C55A11"), fontFamily: "Arial")
                         .ClearCategoryAxisTitleTextStyle()
                         .ClearValueAxisTitleTextStyle();
                     presentation.Save();
@@ -184,8 +184,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: "404040", fontName: "Calibri")
-                        .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "1F4E79", fontName: "Arial");
+                    chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: OfficeColor.Parse("404040"), fontFamily: "Calibri")
+                        .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Arial");
                     presentation.Save();
                 }
 
@@ -232,8 +232,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: "404040", fontName: "Calibri")
-                        .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "1F4E79", fontName: "Arial")
+                    chart.SetCategoryAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: OfficeColor.Parse("404040"), fontFamily: "Calibri")
+                        .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Arial")
                         .ClearCategoryAxisLabelTextStyle()
                         .ClearValueAxisLabelTextStyle();
                     presentation.Save();
@@ -322,8 +322,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidth: OfficeLength.Points(0.5))
-                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidth: OfficeLength.Points(0.75));
+                    chart.SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("D9D9D9"), lineWidth: OfficeLength.Points(0.5))
+                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75));
                     presentation.Save();
                 }
 
@@ -431,8 +431,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart();
-                    chart.SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: "404040", fontName: "Calibri")
-                        .SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "1F4E79", fontName: "Arial");
+                    chart.SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: OfficeColor.Parse("404040"), fontFamily: "Calibri")
+                        .SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Arial");
                     presentation.Save();
                 }
 
@@ -485,10 +485,10 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = slide.AddScatterChart();
                     chart.SetScatterXAxisTitle("Month")
                         .SetScatterYAxisTitle("Revenue")
-                        .SetScatterXAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: "1F4E79", fontName: "Calibri")
-                        .SetScatterYAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "C55A11", fontName: "Arial")
-                        .SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: "404040", fontName: "Calibri")
-                        .SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "1F4E79", fontName: "Arial")
+                        .SetScatterXAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Calibri")
+                        .SetScatterYAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("C55A11"), fontFamily: "Arial")
+                        .SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), bold: true, color: OfficeColor.Parse("404040"), fontFamily: "Calibri")
+                        .SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Arial")
                         .ClearScatterXAxisTitleTextStyle()
                         .ClearScatterYAxisTitleTextStyle()
                         .ClearScatterXAxisLabelTextStyle()
@@ -651,8 +651,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart();
-                    chart.SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidth: OfficeLength.Points(0.5))
-                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidth: OfficeLength.Points(0.75));
+                    chart.SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("D9D9D9"), lineWidth: OfficeLength.Points(0.5))
+                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75));
                     presentation.Save();
                 }
 
@@ -695,8 +695,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetCategoryAxisGridlines(showMajor: true, lineColor: "D9D9D9", lineWidth: OfficeLength.Points(0.5))
-                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidth: OfficeLength.Points(0.75))
+                    chart.SetCategoryAxisGridlines(showMajor: true, lineColor: OfficeColor.Parse("D9D9D9"), lineWidth: OfficeLength.Points(0.5))
+                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75))
                         .ClearCategoryAxisGridlines()
                         .ClearValueAxisGridlines();
                     presentation.Save();
@@ -1072,8 +1072,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddScatterChart();
-                    chart.SetScatterXAxisGridlines(showMajor: true, lineColor: "D9D9D9", lineWidth: OfficeLength.Points(0.5))
-                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidth: OfficeLength.Points(0.75))
+                    chart.SetScatterXAxisGridlines(showMajor: true, lineColor: OfficeColor.Parse("D9D9D9"), lineWidth: OfficeLength.Points(0.5))
+                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75))
                         .ClearScatterXAxisGridlines()
                         .ClearScatterYAxisGridlines();
                     presentation.Save();
@@ -1113,18 +1113,18 @@ namespace OfficeIMO.Tests {
                     PowerPointChart barChart = barSlide.AddChart();
                     barChart.SetTitle("Axis Stress")
                         .SetCategoryAxisTitle("Quarter")
-                        .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetCategoryAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Calibri")
                         .SetCategoryAxisNumberFormat("0")
                         .SetCategoryAxisLabelRotation(35)
                         .SetCategoryAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High)
-                        .SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidth: OfficeLength.Points(0.5))
+                        .SetCategoryAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("D9D9D9"), lineWidth: OfficeLength.Points(0.5))
                         .SetCategoryAxisReverseOrder()
                         .SetCategoryAxisCrossing(OfficeChartAxisCrossingPosition.Minimum)
                         .SetValueAxisTitle("Revenue")
-                        .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "C55A11", fontName: "Arial")
+                        .SetValueAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("C55A11"), fontFamily: "Arial")
                         .SetValueAxisNumberFormat("#,##0.00")
-                        .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(10), color: "404040", fontName: "Aptos")
-                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidth: OfficeLength.Points(0.75))
+                        .SetValueAxisLabelTextStyle(fontSize: OfficeLength.Points(10), color: OfficeColor.Parse("404040"), fontFamily: "Aptos")
+                        .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75))
                         .SetValueAxisScale(minimum: 0, maximum: 100, majorUnit: 25, minorUnit: 5)
                         .SetValueAxisCrossing(OfficeChartAxisCrossingPosition.Maximum)
                         .SetValueAxisCrossBetween(OfficeChartAxisCrossBetween.Between)
@@ -1133,22 +1133,22 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide scatterSlide = presentation.AddSlide();
                     PowerPointChart scatterChart = scatterSlide.AddScatterChart();
                     scatterChart.SetScatterXAxisTitle("Month")
-                        .SetScatterXAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: "1F4E79", fontName: "Calibri")
+                        .SetScatterXAxisTitleTextStyle(fontSize: OfficeLength.Points(11), bold: true, color: OfficeColor.Parse("1F4E79"), fontFamily: "Calibri")
                         .SetScatterXAxisNumberFormat("0.0")
-                        .SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: "404040", fontName: "Aptos")
+                        .SetScatterXAxisLabelTextStyle(fontSize: OfficeLength.Points(9), color: OfficeColor.Parse("404040"), fontFamily: "Aptos")
                         .SetScatterXAxisLabelRotation(45)
                         .SetScatterXAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.Low)
-                        .SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: "D9D9D9", lineWidth: OfficeLength.Points(0.5))
+                        .SetScatterXAxisGridlines(showMajor: true, showMinor: false, lineColor: OfficeColor.Parse("D9D9D9"), lineWidth: OfficeLength.Points(0.5))
                         .SetScatterXAxisScale(minimum: 1, maximum: 10, majorUnit: 1)
                         .SetScatterXAxisCrossing(OfficeChartAxisCrossingPosition.AutoZero, crossesAt: 2d)
                         .SetScatterXAxisDisplayUnits(OfficeChartDisplayUnit.Hundreds, "Hundreds X", showLabel: true)
                         .SetScatterYAxisTitle("Revenue")
-                        .SetScatterYAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: "C55A11", fontName: "Arial")
+                        .SetScatterYAxisTitleTextStyle(fontSize: OfficeLength.Points(10), italic: true, color: OfficeColor.Parse("C55A11"), fontFamily: "Arial")
                         .SetScatterYAxisNumberFormat("#,##0.00")
-                        .SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(10), color: "1F4E79", fontName: "Aptos")
+                        .SetScatterYAxisLabelTextStyle(fontSize: OfficeLength.Points(10), color: OfficeColor.Parse("1F4E79"), fontFamily: "Aptos")
                         .SetScatterYAxisLabelRotation(-30)
                         .SetScatterYAxisTickLabelPosition(OfficeChartAxisTickLabelPosition.High)
-                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: "C0C0C0", lineWidth: OfficeLength.Points(0.75))
+                        .SetScatterYAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("C0C0C0"), lineWidth: OfficeLength.Points(0.75))
                         .SetScatterYAxisScale(minimum: 0, maximum: 6, majorUnit: 1)
                         .SetScatterYAxisCrossing(crossesAt: 3d)
                         .SetScatterYAxisDisplayUnits(1000d, "Thousands Y", showLabel: true);

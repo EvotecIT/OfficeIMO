@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Create();
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(180),OfficeIMO.OfficeLength.Points(100));
             var slide = presentation.AddSlide();
-            slide.BackgroundColor = "FFFF00";
+            slide.BackgroundColor = OfficeColor.Parse("FFFF00");
             const string styleId = "{6A0E6B20-52C9-4C93-9DA8-000000000103}";
             AddImageExportTableStyle(slide, styleId);
             var table = slide.AddTable(1,2,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(48));

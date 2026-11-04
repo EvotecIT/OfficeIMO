@@ -108,8 +108,8 @@ public sealed class VisioConnectorLabelRenderingTests {
         Assert.Equal(expectedX, Read("x") + Read("width") / 2, 3);
         Assert.Equal(expectedY, Read("y") + Read("height") / 2, 3);
 
-        OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = pixelsPerInch,
+        OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
+            TargetDpi = pixelsPerInch,
             Supersampling = 1,
             ResolveConnectorLabelOverlaps = resolveOverlaps
         }), "Connector label PNG could not be decoded.");

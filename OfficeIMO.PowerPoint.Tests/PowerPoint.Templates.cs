@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
 
                 PowerPointDesignBrief brief = inventory.CreateDesignBrief("template-brand", "executive review");
                 Assert.Equal("0B7FAB", brief.AccentColor);
-                Assert.Equal("Aptos Display", brief.HeadingFontName);
-                Assert.Equal("Aptos", brief.BodyFontName);
+                Assert.Equal("Aptos Display", brief.HeadingFontFamily);
+                Assert.Equal("Aptos", brief.BodyFontFamily);
                 Assert.Equal("CONFIDENTIAL", brief.FooterLeft);
 
                 using PowerPointDocument target = PowerPointDocument.Create(targetPath);

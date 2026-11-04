@@ -167,7 +167,7 @@ public class CsvLoadFeatureParityTests
     [Fact]
     public void Save_Uses_Null_Token_And_DateTime_Format()
     {
-        var document = new CsvDocument()
+        var document = CsvDocument.Create()
             .WithHeader("Name", "Created", "Value")
             .AddRow("Alpha", new DateTime(2026, 7, 7, 13, 45, 0, DateTimeKind.Utc), null);
 
@@ -513,7 +513,7 @@ public class CsvLoadFeatureParityTests
     [Fact]
     public void Save_Writes_MultiCharacter_Delimiter()
     {
-        var document = new CsvDocument()
+        var document = CsvDocument.Create()
             .WithHeader("Name", "Value")
             .AddRow("Alpha", "one||two");
 
@@ -525,7 +525,7 @@ public class CsvLoadFeatureParityTests
     [Fact]
     public void Save_Writes_SingleCharacter_DelimiterText()
     {
-        var document = new CsvDocument()
+        var document = CsvDocument.Create()
             .WithHeader("Name", "Value")
             .AddRow("Alpha", "1");
 
@@ -580,7 +580,7 @@ public class CsvLoadFeatureParityTests
         try
         {
             File.WriteAllText(path, "existing");
-            var document = new CsvDocument().WithHeader("Name").AddRow("Alpha");
+            var document = CsvDocument.Create().WithHeader("Name").AddRow("Alpha");
 
             Assert.Throws<IOException>(() => document.Save(path, new CsvSaveOptions { NoClobber = true }));
         }
@@ -600,7 +600,7 @@ public class CsvLoadFeatureParityTests
         try
         {
             File.WriteAllText(path, "Name\nAlpha\n");
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name")
                 .AddRow("Beta")
                 .Save(path, new CsvSaveOptions { Append = true, IncludeHeader = false, NewLine = "\n" });

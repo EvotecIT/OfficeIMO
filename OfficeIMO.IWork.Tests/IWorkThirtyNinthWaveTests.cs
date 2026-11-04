@@ -9,8 +9,8 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Formula catalog", 1, 1, 42d,
                 hasFormula: true, duplicateFormula: true)
         });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxMaterializedCells = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 });
 
         IWorkNumbersProjection projection = source.ReadNumbers();
 
@@ -24,8 +24,8 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("String catalog", 1, 1, 0d,
                 textValue: "Value", duplicateString: true)
         });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxMaterializedCells = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 });
 
         IWorkNumbersProjection projection = source.ReadNumbers();
 

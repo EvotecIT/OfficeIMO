@@ -64,7 +64,7 @@ public sealed class XpsColorTests {
     public void ProfileFailuresAndChannelMismatchCannotSilentlyRender() {
         var doc = XpsDocument.Create();
         string uri = doc.AddResource("Profiles/color.icc", new byte[128], ProfileType);
-        var page = doc.AddPage(20, 20).AddPath("M0,0H20V20H0Z", "ContextColor " + uri + " 1,0,0,0");
+        var page = doc.AddPage(20, 20).AddPath("M0,0H20V20H0Z", "ContextColor " + uri + " 1,0,0,0").Page;
         Assert.Throws<NotSupportedException>(() => page.ToSvg());
         Assert.Contains("Unsupported ICC profile", page.ToSvg(true).Diagnostics);
         doc.ReplaceResource(uri, File.ReadAllBytes(Path.Combine(Corpus, "littlecms-cmyk-lut.icc")));
@@ -82,7 +82,7 @@ public sealed class XpsColorTests {
         byte[] tiff = OfficeRasterImageEncoder.Encode(image, OfficeImageExportFormat.Tiff, new OfficeRasterEncodingOptions { Resolution = new OfficeImageResolution(192, 192), WriteResolutionMetadata = true });
         var doc = XpsDocument.Create(format);
         string uri = doc.AddResource("Images/color.tif", tiff, "image/tiff");
-        var page = doc.AddPage(80, 40).AddImage(uri, 0, 0, 80, 40);
+        var page = doc.AddPage(80, 40).AddImage(uri, 0, 0, 80, 40).Page;
         Assert.Equal("0,0,4,2", (string?)page.GetMarkup().Descendants().Single(e => e.Name.LocalName == "ImageBrush").Attribute("Viewbox"));
         page = XpsDocument.Load(doc.ToBytes()).Pages[0];
         var raster = Raster(page);
@@ -105,7 +105,7 @@ public sealed class XpsColorTests {
         writer.Write(newIfd + 2 + (count + 1) * 12 + 4); writer.Write(0); writer.Write(profile);
         stream.Position = 4; writer.Write(newIfd);
         var doc = XpsDocument.Create(); string uri = doc.AddResource("Images/profile.tif", stream.ToArray(), "image/tiff");
-        var page = doc.AddPage(20, 20).AddImage(uri, 0, 0, 20, 20);
+        var page = doc.AddPage(20, 20).AddImage(uri, 0, 0, 20, 20).Page;
         Assert.Empty(page.ToSvg().Diagnostics);
         Assert.Equal(OfficeColor.Red, Raster(page).GetPixel(10, 10));
     }

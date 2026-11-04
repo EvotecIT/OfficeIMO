@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
 
                     PowerPointAutoShape rect = slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1), OfficeIMO.OfficeLength.Centimeters(7),
                         OfficeIMO.OfficeLength.Centimeters(4), OfficeIMO.OfficeLength.Centimeters(2), "Card");
-                    rect.FillColor = "E7F7FF";
-                    rect.OutlineColor = "007ACC";
+                    rect.FillColor = OfficeColor.Parse("E7F7FF");
+                    rect.OutlineColor = OfficeColor.Parse("007ACC");
 
                     using (var imageStream = new MemoryStream(OnePixelPng)) {
                         slide.AddImage(imageStream, PptImagePartType.Png,
@@ -116,36 +116,36 @@ namespace OfficeIMO.Tests {
                         minorComplexScript: "Arial"));
 
                     PowerPointSlide cover = presentation.AddSlide(PowerPointSlideLayoutType.TitleOnly);
-                    cover.BackgroundColor = "F8F5EF";
+                    cover.BackgroundColor = OfficeColor.Parse("F8F5EF");
                     cover.Transition = PowerPointSlideTransition.Morph;
                     PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",                        new PowerPointLayoutBox(global::OfficeIMO.OfficeLength.Centimeters(1.4),global::OfficeIMO.OfficeLength.Centimeters(1.0),                            global::OfficeIMO.OfficeLength.Centimeters(18.0),global::OfficeIMO.OfficeLength.Centimeters(1.2)));
                     title.FontSize = global::OfficeIMO.OfficeLength.Points(32);
                     title.Color = OfficeColor.Parse("161411");
 
                     PowerPointAutoShape hero = cover.AddRectangle(OfficeIMO.OfficeLength.Centimeters(1.4), OfficeIMO.OfficeLength.Centimeters(3.0), OfficeIMO.OfficeLength.Centimeters(16.0), OfficeIMO.OfficeLength.Centimeters(3.0), "Hero Card");
-                    hero.FillColor = "156082";
+                    hero.FillColor = OfficeColor.Parse("156082");
                     hero.FillTransparency = 8;
-                    hero.OutlineColor = "156082";
-                    hero.SetShadow("000000", blur: OfficeIMO.OfficeLength.Points(10), distance: OfficeIMO.OfficeLength.Points(4), angleDegrees: 90, transparencyPercent: 70);
+                    hero.OutlineColor = OfficeColor.Parse("156082");
+                    hero.SetShadow(OfficeColor.Parse("000000"), blur: OfficeIMO.OfficeLength.Points(10), distance: OfficeIMO.OfficeLength.Points(4), angleDegrees: 90, transparencyPercent: 70);
 
                     PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",                        new PowerPointLayoutBox(global::OfficeIMO.OfficeLength.Centimeters(2.0),global::OfficeIMO.OfficeLength.Centimeters(3.6),                            global::OfficeIMO.OfficeLength.Centimeters(14.8),global::OfficeIMO.OfficeLength.Centimeters(1.3)));
                     insight.FontSize = global::OfficeIMO.OfficeLength.Points(18);
                     insight.Color = OfficeColor.Parse("FFFFFF");
 
                     PowerPointAutoShape accent = cover.AddEllipse(OfficeIMO.OfficeLength.Centimeters(17.8), OfficeIMO.OfficeLength.Centimeters(0.7), OfficeIMO.OfficeLength.Centimeters(2.5), OfficeIMO.OfficeLength.Centimeters(2.5), "Glow Accent");
-                    accent.FillColor = "F26A3D";
+                    accent.FillColor = OfficeColor.Parse("F26A3D");
                     accent.FillTransparency = 18;
-                    accent.OutlineColor = "F26A3D";
-                    accent.SetGlow("F26A3D", radius: OfficeIMO.OfficeLength.Points(8), transparencyPercent: 30);
+                    accent.OutlineColor = OfficeColor.Parse("F26A3D");
+                    accent.SetGlow(OfficeColor.Parse("F26A3D"), radius: OfficeIMO.OfficeLength.Points(8), transparencyPercent: 30);
 
                     PowerPointSlide dashboard = presentation.AddSlide(PowerPointSlideLayoutType.Blank);
                     dashboard.SetBackgroundImage(backgroundPath);
                     dashboard.Transition = PowerPointSlideTransition.Fade;
 
                     PowerPointAutoShape panel = dashboard.AddRectangle(OfficeIMO.OfficeLength.Centimeters(0.9), OfficeIMO.OfficeLength.Centimeters(0.7), OfficeIMO.OfficeLength.Centimeters(24.0), OfficeIMO.OfficeLength.Centimeters(12.0), "Dashboard Surface");
-                    panel.FillColor = "F8F5EF";
+                    panel.FillColor = OfficeColor.Parse("F8F5EF");
                     panel.FillTransparency = 3;
-                    panel.OutlineColor = "EFE8DA";
+                    panel.OutlineColor = OfficeColor.Parse("EFE8DA");
                     panel.SetSoftEdges(OfficeIMO.OfficeLength.Points(1.5));
 
                     PowerPointChartData data = new(
@@ -157,11 +157,11 @@ namespace OfficeIMO.Tests {
                     PowerPointChart chart = dashboard.AddLineChartCm(data, 1.4, 1.3, 14.5, 7.0);
                     chart.SetTitle("Momentum Over Time");
                     chart.SetLegend(OfficeChartLegendPosition.Bottom);
-                    chart.SetChartAreaStyle(fillColor: "FFFFFF", lineColor: "EFE8DA");
-                    chart.SetPlotAreaStyle(fillColor: "FFFFFF", lineColor: "FFFFFF");
-                    chart.SetSeriesLineColor("Revenue", "156082", width: OfficeLength.Points(2.5));
-                    chart.SetSeriesLineColor("Profit", "F26A3D", width: OfficeLength.Points(2.5));
-                    chart.SetValueAxisGridlines(showMajor: true, lineColor: "D8D5CC", lineWidth: OfficeLength.Points(0.75));
+                    chart.SetChartAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("EFE8DA"));
+                    chart.SetPlotAreaStyle(fillColor: OfficeColor.Parse("FFFFFF"), lineColor: OfficeColor.Parse("FFFFFF"));
+                    chart.SetSeriesLineColor("Revenue", OfficeColor.Parse("156082"), width: OfficeLength.Points(2.5));
+                    chart.SetSeriesLineColor("Profit", OfficeColor.Parse("F26A3D"), width: OfficeLength.Points(2.5));
+                    chart.SetValueAxisGridlines(showMajor: true, lineColor: OfficeColor.Parse("D8D5CC"), lineWidth: OfficeLength.Points(0.75));
 
                     PowerPointTable table = dashboard.AddTable(rows: 3,columns: 2,                        styleName: presentation.TableStyles.First().Name,left: global::OfficeIMO.OfficeLength.Centimeters(16.8),top: global::OfficeIMO.OfficeLength.Centimeters(1.5),width: global::OfficeIMO.OfficeLength.Centimeters(7.0),height: global::OfficeIMO.OfficeLength.Centimeters(3.8),                        firstRow: true,bandedRows: true);
                     table.GetCell(0, 0).Text = "Metric";
@@ -172,9 +172,9 @@ namespace OfficeIMO.Tests {
                     table.GetCell(2, 1).Text = "13";
 
                     PowerPointAutoShape callout = dashboard.AddRectangle(OfficeIMO.OfficeLength.Centimeters(16.8), OfficeIMO.OfficeLength.Centimeters(6.1), OfficeIMO.OfficeLength.Centimeters(7.0), OfficeIMO.OfficeLength.Centimeters(3.1), "Observation Card");
-                    callout.FillColor = "EFE8DA";
+                    callout.FillColor = OfficeColor.Parse("EFE8DA");
                     callout.FillTransparency = 0;
-                    callout.OutlineColor = "6B6EA8";
+                    callout.OutlineColor = OfficeColor.Parse("6B6EA8");
                     callout.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2);
                     callout.SetReflection(blur: OfficeIMO.OfficeLength.Points(2), distance: OfficeIMO.OfficeLength.Points(1), startOpacityPercent: 20, endOpacityPercent: 0);
 

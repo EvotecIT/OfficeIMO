@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Ambiguous_selected_style_flags_preserve_inheritance_and_identify_the_physical_property(IWorkDocumentKind kind) {
         using MemoryStream package = AmbiguousStylePackage(kind);
-        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
+        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells).RichText!;
         Assert.False(text.IsFormattingComplete);
         Assert.False(Assert.Single(Assert.Single(text.Paragraphs).Runs).Style.Bold);
         package.Position = 0;
@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkSourceDeclarationIssueKind.InvalidValue, issue.Kind);
         if (kind == IWorkDocumentKind.Numbers) return;
         package.Position = 0;
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
@@ -74,12 +74,12 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(attribute, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, type, payload));
-        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
+        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells).RichText!;
         Assert.Equal("Value", text.PlainText);
         Assert.False(text.IsFormattingComplete);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: true,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
         Assert.Equal(19ul, issue.Owner.RecordIdentifier);
         Assert.Equal(path, issue.FieldPath);
@@ -102,8 +102,8 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(19, 2021, Message(BytesField(1, ReferenceField(3, 20)),
                     BytesField(11, Message(VarintField(4, 0), VarintField(4, 1), StringField(5, "Other"))))),
                 ArchiveRecord(20, 2021, Message(BytesField(11, StringField(5, "Arial"))))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 });
         IWorkTable table = ReadSelectedRichTable(source, kind).Item1;
         Assert.Equal(2, table.Cells.Count);
         foreach (IWorkTableCell cell in table.Cells) {
@@ -112,7 +112,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         IWorkSourceDeclarationIssue issue = Assert.Single(ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).SourceDeclarationIssues);
+            readOptions: new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).SourceDeclarationIssues);
         Assert.Equal("11/4", issue.FieldPath); Assert.Equal(2, issue.DeclaredValueCount);
     }
 
@@ -122,8 +122,8 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11,
                 Message(VarintField(1, 2), FloatField(3, float.NaN)))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 });
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -133,8 +133,8 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, BytesField(7,
                 Message(Enumerable.Range(3, 9).Select(field => FloatField(field, 0)).ToArray())))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 

@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(root.GetProperty("sourceSha256").GetString(), HashFile(source));
         foreach (var artifact in root.GetProperty("artifacts").EnumerateArray())
             Assert.Equal(artifact.GetProperty("sha256").GetString(), HashFile(CorpusFixture("native-exports/" + artifact.GetProperty("path").GetString())));
-        using var result = IWorkSourceDocument.Open(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(source, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_FILL_DEFAULTS_UNSUPPORTED");
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Banded_body_fill_alone_is_bounded_by_the_destination_style_budget() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, rows: 100_001, banded: true, roleDefaults: false);
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("styled-cell budget", StringComparison.Ordinal));
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Disabled_banding_ignores_an_inactive_unsupported_band_fill() {
         using var package = RoleFillPackage(IWorkDocumentKind.Pages, "inactive-band-gradient");
-        var projection = IWorkSourceDocument.Open(package).ReadPages();
+        var projection = IWorkSourceDocument.Load(package).ReadPages();
         var table = Assert.Single(projection.Tables);
         Assert.Null(table.FillStyles.BandedBody);
         Assert.Equal("0000FF", table.GetFill(3, 2)!.Color!.RgbHex);
@@ -72,7 +72,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Active_banding_inherits_the_parent_fill_when_the_child_only_enables_banding() {
         using var package = RoleFillPackage(IWorkDocumentKind.Numbers, "inherited-band");
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Equal("808080", table.FillStyles.BandedBody!.Color!.RgbHex);
         Assert.Equal("808080", table.GetFill(3, 2)!.Color!.RgbHex);

@@ -167,7 +167,7 @@ public class CsvDataReaderTests
     [Fact]
     public void GetBoolean_RequiresAnOpenInMemoryRow()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Active")
             .AddRow(true);
         doc.EnsureSchema(schema => schema.Column("Active").AsBoolean());
@@ -437,7 +437,7 @@ public class CsvDataReaderTests
 
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Id", "DisplayName", "Score", "CreatedUtc")
                 .AddRow(1, "Alice", 12.5m, new DateTime(2026, 1, 2, 3, 4, 5))
                 .AddRow(2, "Bob", 13.75m, new DateTime(2026, 1, 3, 4, 5, 6))
@@ -519,7 +519,7 @@ public class CsvDataReaderTests
     [Fact]
     public void CreateDataReader_WithoutSchema_ConvertsObjectValuesToStringsAndDbNull()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id", "Missing")
             .AddRow(42, null);
 
@@ -640,7 +640,7 @@ public class CsvDataReaderTests
     [Fact]
     public void CreateDataReader_WithRequiredSchema_RejectsMissingValues()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id")
             .AddRow(new object?[] { null });
         doc.EnsureSchema(schema => schema.Column("Id").AsInt32().Required());
@@ -657,7 +657,7 @@ public class CsvDataReaderTests
     [Fact]
     public void CreateDataReader_WithRequiredStringSchema_RejectsEmptyValues()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Name")
             .AddRow(string.Empty);
         doc.EnsureSchema(schema => schema.Column("Name").AsString().Required());
@@ -676,7 +676,7 @@ public class CsvDataReaderTests
     [Fact]
     public void CreateDataReader_WithDefaultSchemaValue_IsNotDbNull()
     {
-        var doc = new CsvDocument()
+        var doc = CsvDocument.Create()
             .WithHeader("Id")
             .AddRow(new object?[] { null });
         doc.EnsureSchema(schema => schema.Column("Id").AsInt32().WithDefault(7));

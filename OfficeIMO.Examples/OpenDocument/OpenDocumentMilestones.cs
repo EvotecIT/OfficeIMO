@@ -14,7 +14,7 @@ internal static class OpenDocumentMilestones {
             text.AddHeading("Native OpenDocument", 1);
             text.AddTrackedParagraphInsertion("This paragraph is tracked.", "OfficeIMO").Accept();
             text.AddParagraph("The same document can be written as packaged ODT or flat FODT XML.");
-            OdtSpan formatted = text.AddParagraph().AddSpan("Native wavy double underline, double strike, superscript, and uppercase display.");
+            OdtSpan formatted = text.AddParagraph().AddRun("Native wavy double underline, double strike, superscript, and uppercase display.");
             formatted.FontFamily = "Aptos";
             formatted.FontSize = OdfLength.Parse("12pt");
             formatted.Color = OdfColor.Parse("#7030A0");

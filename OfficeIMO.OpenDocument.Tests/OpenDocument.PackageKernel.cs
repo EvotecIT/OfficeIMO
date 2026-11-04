@@ -278,7 +278,7 @@ public class OpenDocumentPackageKernelTests {
 
     [Fact]
     public async Task LoadAsyncHonorsPreCanceledTokenAndRestoresPosition() {
-        using var stream = OdtDocument.Create().ToStream();
+        using var stream = new MemoryStream(OdtDocument.Create().ToBytes());
         stream.Position = 3;
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();

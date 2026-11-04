@@ -280,8 +280,8 @@ namespace OfficeIMO.Tests {
                 hyperlinkWithoutStyle.FontSize = global::OfficeIMO.OfficeLength.Points(12);
                 hyperlinkWithoutStyle.FontFamily = "Arial";
                 hyperlinkWithoutStyle.Highlight = WordHighlightColor.Cyan;
-                hyperlinkWithoutStyle.Strike = true;
-                hyperlinkWithoutStyle.DoubleStrike = true;
+                hyperlinkWithoutStyle.Strikethrough = true;
+                hyperlinkWithoutStyle.DoubleStrikethrough = true;
                 hyperlinkWithoutStyle.CapsStyle = WordCapsStyle.SmallCaps;
 
                 Assert.True(hyperlinkWithoutStyle.Bold);
@@ -292,8 +292,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(hyperlinkWithoutStyle.FontSize?.ToPoints() == 12);
                 Assert.True(hyperlinkWithoutStyle.FontFamily == "Arial");
                 Assert.True(hyperlinkWithoutStyle.Highlight == WordHighlightColor.Cyan);
-                Assert.True(hyperlinkWithoutStyle.Strike);
-                Assert.True(hyperlinkWithoutStyle.DoubleStrike);
+                Assert.True(hyperlinkWithoutStyle.Strikethrough);
+                Assert.True(hyperlinkWithoutStyle.DoubleStrikethrough);
                 Assert.True(hyperlinkWithoutStyle.CapsStyle == WordCapsStyle.SmallCaps);
 
                 Assert.True(hyperlinkWithoutStyleElement._runProperties.Bold != null);

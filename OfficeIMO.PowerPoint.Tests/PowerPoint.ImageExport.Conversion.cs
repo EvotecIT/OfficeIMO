@@ -66,7 +66,7 @@ public sealed class PowerPointImageConversionTests {
     public async Task ImageBatchSaving_ReportsSelectedSlidesAndHonorsConflicts() {
         using var document = PowerPointDocument.Create();
         document.SlideSize.SetSize(OfficeLength.Points(100), OfficeLength.Points(60));
-        document.AddSlide().BackgroundColor = "112233";
+        document.AddSlide().BackgroundColor = OfficeColor.Parse("112233");
         document.AddSlide().Hidden = true;
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-SlideBatch-" + Guid.NewGuid().ToString("N"));
         var options = new PowerPointImageExportOptions {

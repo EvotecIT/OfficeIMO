@@ -16,9 +16,9 @@ public sealed partial class IWorkBoundaryTests {
             ("preview.png", malformed),
             ("preview-web.png", ValidPreviewPng()));
 
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions {
+            new IWorkLoadOptions {
                 MaxPackageBytes = 40_002,
                 MaxDecodedImageBytes = 1_622
             });
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] booleanNode = Message(VarintField(1, 18), VarintField(5, 2));
         IWorkWireMessage formula = IWorkProtobuf.Parse(
             Message(BytesField(1, Message(BytesField(1, booleanNode)))),
-            new IWorkReadOptions());
+            new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(
             formula, 0, 0, maximumNodes: 32, maximumCharacters: 128);
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
         string malformedRecord, string diagnosticCode) {
         using MemoryStream package = CreateKeynotePackageWithMalformedGraphRecord(malformedRecord);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

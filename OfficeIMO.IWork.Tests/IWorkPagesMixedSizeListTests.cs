@@ -13,7 +13,7 @@ public sealed class IWorkPagesMixedSizeListTests {
     public void Apple_mixed_size_reference_keeps_native_marker_sizes_and_counters_in_saved_Word(string scenario) {
         var path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports",
             "pages-mixed-size-" + scenario + "-v15.4.pages");
-        var source = IWorkSourceDocument.Open(path);
+        var source = IWorkSourceDocument.Load(path);
         Assert.True(source.ReadPages().Body.IsFormattingComplete);
         CheckWord(source);
     }
@@ -21,9 +21,9 @@ public sealed class IWorkPagesMixedSizeListTests {
     [Fact]
     public void Mixed_sizes_keep_first_run_markers_default_indents_and_counters_in_saved_Word() {
         var document = Example();
-        byte[] bytes = document.SaveBytes();
-        Assert.Equal(bytes, document.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes);
+        byte[] bytes = document.ToBytes();
+        Assert.Equal(bytes, document.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes);
         var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete);
         Assert.Empty(projection.Diagnostics);
@@ -50,9 +50,9 @@ public sealed class IWorkPagesMixedSizeListTests {
         foreach (float defaultSize in new[] { 12f, 14f }) {
             var document = IWorkPagesDocument.Create();
             document.CreateNumberedList(fontSizePoints: defaultSize).AddRichItem(Runs("Same body", 18, 8, 14));
-            byte[] bytes = document.SaveBytes();
-            Assert.Equal(bytes, document.SaveBytes());
-            var source = IWorkSourceDocument.Open(bytes);
+            byte[] bytes = document.ToBytes();
+            Assert.Equal(bytes, document.ToBytes());
+            var source = IWorkSourceDocument.Load(bytes);
             Assert.Equal(defaultSize, source.ReadPages().Body.Paragraphs[0].Style.TextStyle.FontSizePoints);
             CheckWord(source);
             using var package = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));

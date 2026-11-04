@@ -26,7 +26,7 @@ public sealed class IWorkPagesImageWritingTests {
         document.AddImage(Payload("alpha.png"), 120, 80, "Transparent, half-alpha, opaque purple");
         document.AddTable(IWorkTableData.Create(2, 2).SetText(1, 1, "Grid").SetNumber(2, 2, 42), "Values", 100, 28);
         document.AddImage(Payload("jpeg.jpg"), 160, 80, "Four-color JPEG, stretched frame"); document.AddParagraph("After");
-        Assert.Equal(File.ReadAllBytes(Path.Combine(corpus, artifacts.GetProperty("created").GetProperty("path").GetString()!)), document.SaveBytes());
+        Assert.Equal(File.ReadAllBytes(Path.Combine(corpus, artifacts.GetProperty("created").GetProperty("path").GetString()!)), document.ToBytes());
     }
 
     [Theory]
@@ -34,7 +34,7 @@ public sealed class IWorkPagesImageWritingTests {
     [InlineData(true)]
     public void Apple_accepted_and_resized_inline_images_keep_frames_and_payloads_after_strict_saved_Word(bool edited) {
         string name = edited ? "pages-created-images-edited-v15.4.pages" : "pages-created-images-v15.4.pages";
-        var source = IWorkSourceDocument.Open(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", name));
+        var source = IWorkSourceDocument.Load(Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", name));
         var projection = source.ReadPages();
         Assert.Equal(3, projection.Images.Count); Assert.Empty(projection.Diagnostics);
         if (edited) Assert.Equal(20.392578125, projection.Images[0].Geometry!.TopPoints);
@@ -69,8 +69,8 @@ public sealed class IWorkPagesImageWritingTests {
             typeof(IWorkPagesImage), typeof(IWorkPagesParagraphData) }, document.BodyBlocks.Select(block => block.GetType()));
         Assert.Equal(24, image.PixelWidth); Assert.Equal(16, image.PixelHeight);
         Assert.Equal(jpeg ? "image/jpeg" : "image/png", image.MediaType);
-        byte[] bytes = document.SaveBytes(); Assert.Equal(bytes, document.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        byte[] bytes = document.ToBytes(); Assert.Equal(bytes, document.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.Equal(2, projection.Images.Count);
         for (int index = 0; index < 2; index++) {
@@ -105,20 +105,20 @@ public sealed class IWorkPagesImageWritingTests {
     public void An_image_only_body_snapshots_bytes_and_rejected_additions_leave_collections_unchanged() {
         var document = IWorkPagesDocument.Create(); byte[] input = IWorkKeynoteImageWritingTests.ImageBytes(false);
         byte[] expected = (byte[])input.Clone(); IWorkPagesImage image = document.AddImage(input, 120, 80);
-        byte[] before = document.SaveBytes(); Array.Clear(input); Array.Clear(image.GetBytes());
-        Assert.Equal(expected, image.GetBytes()); Assert.Equal(before, document.SaveBytes());
+        byte[] before = document.ToBytes(); Array.Clear(input); Array.Clear(image.GetBytes());
+        Assert.Equal(expected, image.GetBytes()); Assert.Equal(before, document.ToBytes());
         Assert.Throws<ArgumentException>(() => document.AddImage(expected.Take(expected.Length - 5).ToArray(), 120, 80));
         Assert.Throws<ArgumentException>(() => document.AddImage([71, 73, 70, 56, 57, 97], 120, 80));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(expected, float.NaN, 80));
         Assert.Throws<ArgumentException>(() => document.AddImage(expected, 469, 80));
         Assert.Throws<ArgumentException>(() => document.AddImage(expected, 120, 649));
         Assert.Throws<ArgumentException>(() => document.AddImage(expected, 120, 80, new string('x', 4097)));
-        Assert.Equal(before, document.SaveBytes()); Assert.Same(image, Assert.Single(document.BodyBlocks));
+        Assert.Equal(before, document.ToBytes()); Assert.Same(image, Assert.Single(document.BodyBlocks));
         Assert.Empty(document.Paragraphs); Assert.Empty(document.Tables);
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkPagesImage>)document.Images).Clear());
-        using var result = IWorkSourceDocument.Open(before).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(before).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
-        Assert.Equal(expected, Assert.Single(IWorkSourceDocument.Open(before).ReadPages().Images).GetBytes());
+        Assert.Equal(expected, Assert.Single(IWorkSourceDocument.Load(before).ReadPages().Images).GetBytes());
     }
 
     [Theory]
@@ -132,7 +132,7 @@ public sealed class IWorkPagesImageWritingTests {
     public void Aggregate_image_limits_preserve_the_caller_stream_and_existing_file(string boundary) {
         byte[] payload = IWorkKeynoteImageWritingTests.ImageBytes(false);
         var document = IWorkPagesDocument.Create(); document.AddImage(payload, 120, 80, "Alt 😀"); document.AddImage(payload, 80, 120);
-        var limits = new IWorkPagesWriteOptions();
+        var limits = new IWorkPagesSaveOptions();
         switch (boundary) {
             case "count": limits.MaxImages = 1; break;
             case "encoded": limits.MaxEncodedImageBytes = payload.Length; break;
@@ -156,9 +156,9 @@ public sealed class IWorkPagesImageWritingTests {
     public void Exact_image_budgets_count_each_instance_description_and_attachment_marker() {
         byte[] payload = IWorkKeynoteImageWritingTests.ImageBytes(false);
         var document = IWorkPagesDocument.Create(); document.AddImage(payload, 120, 80, "Alt 😀"); document.AddImage(payload, 80, 120);
-        byte[] bytes = document.SaveBytes(new() { MaxImages = 2, MaxEncodedImageBytes = payload.Length * 2L,
+        byte[] bytes = document.ToBytes(new() { MaxImages = 2, MaxEncodedImageBytes = payload.Length * 2L,
             MaxDecodedImageBytes = 24 * 16 * 4 * 2, MaxTextCharacters = 10, MaxParagraphs = 2, MaxTextRuns = 2 });
-        Assert.Equal(2, IWorkSourceDocument.Open(bytes).ReadPages().Images.Count);
+        Assert.Equal(2, IWorkSourceDocument.Load(bytes).ReadPages().Images.Count);
     }
 
     [Fact]
@@ -177,7 +177,7 @@ public sealed class IWorkPagesImageWritingTests {
             var document = IWorkPagesDocument.Create(); if (before) document.AddParagraph("Label");
             document.AddImage(IWorkKeynoteImageWritingTests.ImageBytes(false, changed), width, 80, description);
             if (!before) document.AddParagraph("Label");
-            using var zip = new ZipArchive(new MemoryStream(document.SaveBytes()));
+            using var zip = new ZipArchive(new MemoryStream(document.ToBytes()));
             using var text = new StreamReader(zip.GetEntry("Metadata/DocumentIdentifier")!.Open()); return text.ReadToEnd();
         }
         string original = Identity(); Assert.Equal(original, Identity());

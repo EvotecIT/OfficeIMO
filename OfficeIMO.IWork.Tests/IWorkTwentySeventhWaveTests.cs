@@ -9,8 +9,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void New_pages_header_footer_text_is_charged_once() {
         using MemoryStream package = CreatePagesPackageWithHeaderFooterVariants();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedTextItems = 14 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProjectedTextItems = 14 });
 
         IWorkPagesProjection projection = source.ReadPages();
 
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Numbers_text_boxes_normalize_iwork_break_controls(char separator) {
         using MemoryStream package = CreateNumbersPackageWithTextBox("Before" + separator + "After");
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal("Before\nAfter", Assert.Single(Assert.Single(
@@ -69,7 +69,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("Data/example.iwa", new byte[] { 0xff, 0x00, 0x01 }));
 
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages);
 
         Assert.Equal("Body", Assert.Single(source.ReadPages().Paragraphs));
         Assert.Contains(source.Entries, entry => entry.Path == "Data/example.iwa");
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Data/example.iwa", new byte[] { 0xff, 0x00, 0x01 }));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages));
 
         Assert.Contains("does not contain modern iWork IWA archives", exception.Message,
             StringComparison.Ordinal);

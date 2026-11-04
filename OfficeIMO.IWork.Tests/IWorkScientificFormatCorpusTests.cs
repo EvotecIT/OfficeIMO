@@ -14,7 +14,7 @@ public sealed class IWorkScientificFormatCorpusTests {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
         Assert.Equal(manifest.RootElement.GetProperty("sourceSha256").GetString(),
             Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Fixture("numbers")))).ToLowerInvariant());
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(Fixture("numbers")).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(Fixture("numbers")).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Equal(manifest.RootElement.GetProperty("cases").GetArrayLength(), table.RowCount);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
@@ -44,7 +44,7 @@ public sealed class IWorkScientificFormatCorpusTests {
     [Fact]
     public void Saved_scientific_values_match_the_explicit_producer_and_report_automatic_approximation() {
         using JsonDocument manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var result = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_AUTOMATIC_DECIMALS_APPROXIMATED"

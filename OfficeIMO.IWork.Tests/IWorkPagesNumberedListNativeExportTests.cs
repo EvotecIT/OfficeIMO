@@ -18,7 +18,7 @@ public sealed class IWorkPagesNumberedListNativeExportTests {
             Assert.Equal(artifact.Value.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
         Assert.Equal(File.ReadAllBytes(Corpus("pages-created-numbering-v15.4.pages")),
-            IWorkPagesNumberedListWritingTests.Example().SaveBytes());
+            IWorkPagesNumberedListWritingTests.Example().ToBytes());
     }
 
     [Theory]
@@ -27,7 +27,7 @@ public sealed class IWorkPagesNumberedListNativeExportTests {
     public void Apple_accepted_and_edited_lists_keep_counters_indents_and_objects_in_saved_Word(int caseIndex) {
         using var manifest = Manifest();
         JsonElement scenario = manifest.RootElement.GetProperty("cases")[caseIndex];
-        var source = IWorkSourceDocument.Open(Artifact(manifest.RootElement, scenario.GetProperty("source").GetString()!));
+        var source = IWorkSourceDocument.Load(Artifact(manifest.RootElement, scenario.GetProperty("source").GetString()!));
         var projection = source.ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.True(projection.Body.IsFormattingComplete);
@@ -90,8 +90,8 @@ public sealed class IWorkPagesNumberedListNativeExportTests {
     public void A_list_only_body_matches_the_Apple_accepted_profile_without_a_trailing_marker() {
         var document = IWorkPagesDocument.Create(); var list = document.CreateNumberedList();
         list.AddItem("Only parent"); list.AddItem("Only child", 1);
-        Assert.Equal(File.ReadAllBytes(Corpus("pages-created-numbering-only-v15.4.pages")), document.SaveBytes());
-        var source = IWorkSourceDocument.Open(document.SaveBytes()); var projection = source.ReadPages();
+        Assert.Equal(File.ReadAllBytes(Corpus("pages-created-numbering-only-v15.4.pages")), document.ToBytes());
+        var source = IWorkSourceDocument.Load(document.ToBytes()); var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete); Assert.Empty(projection.Diagnostics);
         Assert.Equal(new int?[] { 1, 1, null }, projection.Body.Paragraphs.Select(paragraph => paragraph.ListNumber));
         using var word = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });

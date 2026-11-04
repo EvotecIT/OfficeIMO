@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
             using (var doc = WordDocument.Create(filePath)) {
                 var categories = new[] { "A", "B", "C" }.ToList();
                 var line = doc.AddChart("KPIs",false,OfficeIMO.OfficeLength.Pixels(600),OfficeIMO.OfficeLength.Pixels(320));
-                line.AddChartAxisX(categories);
+                line.AddCategories(categories);
                 line.AddLine("Throughput", new[] { 1, 2, 3 }.ToList(), Color.Black);
                 line.AddLine("Latency", new[] { 3, 2, 1 }.ToList(), Color.Black);
                 line.ApplyPalette(WordChart.WordChartPalette.MonochromeGray)

@@ -8,7 +8,7 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public sealed class PowerPointContentPlanTests {
         private static PowerPointCompositionOptions Options() => PowerPointCompositionOptions.FromDesign(
-            PowerPointDeckDesign.FromBrand("#008C95", "content-plan", headingFontName: "Aptos", bodyFontName: "Aptos"));
+            PowerPointDeckDesign.FromBrand("#008C95", "content-plan", headingFontFamily: "Aptos", bodyFontFamily: "Aptos"));
 
         [Fact]
         public void ImageCardsRetainThePictureAndBodyText() {
@@ -284,14 +284,14 @@ namespace OfficeIMO.Tests {
             var result = document.Compose(plan, Options());
             Assert.True(result.Slides.Count > 1);
             Assert.Equal(document.Slides.ToArray(), result.Slides.ToArray());
-            Assert.Equal(35, result.Slides.Sum(slide => slide.Tables.Single().Rows - 1));
+            Assert.Equal(35, result.Slides.Sum(slide => slide.Tables.Single().RowCount - 1));
             Assert.All(result.Slides, slide => Assert.Equal("Item", slide.Tables.Single().GetCell(0, 0).Text));
             using var stream = new MemoryStream();
             document.Save(stream);
             stream.Position = 0;
             using var loaded = PowerPointDocument.Load(stream);
             Assert.Equal(result.Slides.Count, loaded.Slides.Count);
-            Assert.Equal(35, loaded.Slides.Sum(slide => slide.Tables.Single().Rows - 1));
+            Assert.Equal(35, loaded.Slides.Sum(slide => slide.Tables.Single().RowCount - 1));
         }
 
         [Fact]

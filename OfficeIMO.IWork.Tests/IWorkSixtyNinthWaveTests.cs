@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Slide.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: true,
             textBox: null, includePreview: true, documentLayoutFields: layout);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -63,8 +63,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackageWithRepeatedSharedStringCells();
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaxProjectedTextCharacters = 17 })
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+                new IWorkLoadOptions { MaxProjectedTextCharacters = 17 })
                 .ReadNumbers());
 
         Assert.Contains("Text character count", exception.Message,
@@ -91,8 +91,8 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-                new IWorkReadOptions { MaxProjectedTextCharacters = 13 })
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+                new IWorkLoadOptions { MaxProjectedTextCharacters = 13 })
                 .ReadPages());
 
         Assert.Contains("Text character count", exception.Message,
@@ -106,7 +106,7 @@ public sealed partial class IWorkBoundaryTests {
                 invalidWideOffsetFlag: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics, diagnostic =>
@@ -119,7 +119,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] reference = Message(VarintField(1, 36),
             BytesField(26, coordinate), BytesField(27, coordinate));
         IWorkWireMessage formula = IWorkProtobuf.Parse(Message(BytesField(1,
-            Message(BytesField(1, reference)))), new IWorkReadOptions());
+            Message(BytesField(1, reference)))), new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(
             formula, 0, 0, maximumNodes: 32, maximumCharacters: 128);

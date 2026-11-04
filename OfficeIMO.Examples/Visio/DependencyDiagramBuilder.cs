@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Dependency diagram builder");
             string filePath = Path.Combine(folderPath, "Dependency Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
-                .DependencyDiagram("Service Dependencies", diagram => diagram
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.DependencyDiagram("Service Dependencies", diagram => diagram
                     .Theme(VisioStyleTheme.Fluent())
                     .External("users", "Users")
                     .Component("web", "Web App")
@@ -22,12 +22,12 @@ namespace OfficeIMO.Examples.Visio {
                     .DependsOn("web", "api")
                     .ControlDependency("api", "policy", "Authorize")
                     .DataDependency("api", "database", "SQL")
-                    .DataDependency("api", "queue", "Events"))
-                .EnsureVisualQuality(new VisioDiagramQualityOptions {
+                    .DataDependency("api", "queue", "Events"));
+            nativeDocument1.EnsureVisualQuality(new VisioDiagramQualityOptions {
                     CheckConnectorShapeIntersections = false,
                     CheckConnectorLabelShapeOverlaps = false
-                })
-                .Save();
+                });
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

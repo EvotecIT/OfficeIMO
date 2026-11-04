@@ -27,7 +27,7 @@ public sealed class XpsJpegXrCmykTests {
                 var document = XpsDocument.Create(format);
                 byte[] source = embedded ? JpegXrTestFixture.WithField(encoded, 0x8773, 7, profileBytes) : encoded;
                 string imageUri = document.AddResource("Images/source.jxr", source, "image/jxr");
-                var page = document.AddPage(width * 3, height * 3).AddImage(imageUri, 0, 0, width * 3, height * 3);
+                var page = document.AddPage(width * 3, height * 3).AddImage(imageUri, 0, 0, width * 3, height * 3).Page;
                 if (!embedded) {
                     string profileUri = document.AddResource("Profiles/source.icc", profileBytes, "application/vnd.ms-color.iccprofile");
                     var markup = page.GetMarkup();
@@ -61,7 +61,7 @@ public sealed class XpsJpegXrCmykTests {
         var document = XpsDocument.Create();
         byte[] encoded = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "JpegXr", "cmyk8-frequency-q32-a0.jxr"));
         string uri = document.AddResource("Images/source.jxr", encoded, "image/jxr");
-        var page = document.AddPage(19, 13).AddImage(uri, 0, 0, 19, 13);
+        var page = document.AddPage(19, 13).AddImage(uri, 0, 0, 19, 13).Page;
         Assert.Throws<NotSupportedException>(() => page.ToSvg());
         var svg = page.ToSvg(allowPartial: true);
         Assert.Contains(svg.Diagnostics, d => d.Contains("CMYK image requires a usable ICC profile", StringComparison.Ordinal));

@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture(expectedSource.GetProperty("path").GetString()!);
         Assert.Equal(expectedSource.GetProperty("sha256").GetString(), Convert.ToHexString(
             System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Independent_selected_Pages_cell_fills_and_layout_survive_saved_DOCX_including_empty_cells() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(CorpusFixture("pages-cell-fills.json")));
-        using var result = IWorkSourceDocument.Open(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(CorpusFixture("picodocs/sample-v14.4.pages"), IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = OfficeIMO.Word.WordDocument.Load(saved);
@@ -98,7 +98,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Selected_cell_fill_inheritance_and_explicit_clear_survive_sparse_Pages_conversion(string mode, string? expected) {
         byte[]? declaration = mode == "inherit" ? null : mode == "none" ? Array.Empty<byte>() : FillColor(0, 0, 1);
         using var package = CellFillPackage(new[] { FillStyle(30, declaration, 31), FillStyle(31, FillColor(1, 0, 0)) });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         using var result = source.ToWordResult();
         Assert.False(result.IsVisualFallback);
         IWorkTable table = Assert.Single(result.Projection.Tables);
@@ -146,7 +146,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = CellFillPackage(defect == "missing-style" ? Array.Empty<byte[]>()
                 : new[] { style, FillStyle(31, FillColor(0, 0, 1)) },
             ambiguous: defect == "ambiguous-catalog", listType: defect == "wrong-catalog-type" ? 2 : 4);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions {
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions {
             MaxTextStyleInheritanceDepth = defect == "depth" ? 1 : 128
         });
         using var result = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
@@ -163,18 +163,18 @@ public sealed partial class IWorkBoundaryTests {
     public void Selected_cell_fill_catalog_and_styled_empty_cells_obey_existing_projection_limits() {
         byte[][] styles = { FillStyle(30, FillColor(1, 0, 0)) };
         using var package = CellFillPackage(styles);
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadPages());
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 }).ReadPages());
         package.Position = 0;
         using var moreEntries = CellFillPackage(styles, additionalEntry: true);
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(moreEntries,
-            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(moreEntries,
+            new IWorkLoadOptions { MaxTableCatalogEntries = 1 }).ReadPages());
     }
 
     [Fact]
     public void Unselected_cell_style_values_are_not_traversed() {
         using var package = CellFillPackage(new[] { FillStyle(30, FillColor(1, 0, 0)) }, additionalEntry: true);
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(package).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(package).ReadPages();
         Assert.True(projection.HasEditableContent);
         Assert.DoesNotContain(projection.SourceReferenceIssues, issue => issue.TargetIdentifier == 99);
     }
@@ -189,7 +189,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Selected_cell_fills_survive_saved_destinations_and_Reader_empty_cells_remain_empty(IWorkDocumentKind kind, string mode, string? expected) {
         byte[]? declaration = mode == "inherit" ? null : mode == "none" ? Array.Empty<byte>() : FillColor(0, 0, 1);
         using var package = CellFillPackage(new[] { FillStyle(30, declaration, 31), FillStyle(31, FillColor(1, 0, 0)) }, kind: kind);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Numbers) {
@@ -240,7 +240,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Styled_covered_merge_cells_block_conversion_only_when_they_have_content(IWorkDocumentKind kind, bool coveredContent) {
         using var package = CellFillPackage(new[] { FillStyle(30, Array.Empty<byte>()) }, kind: kind,
             merge: true, coveredContent: coveredContent);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(IWorkTestPolicy.ForIncompletePreview(policy));

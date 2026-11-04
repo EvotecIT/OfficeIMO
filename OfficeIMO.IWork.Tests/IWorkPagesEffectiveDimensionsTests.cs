@@ -9,7 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Pages_fully_overridden_fractional_table_defaults_do_not_require_partial_DOCX(bool allowPartial) {
         using var package = EffectivePagesDimensions();
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions {
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = allowPartial
             });
 
@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(false)]
     public void Pages_active_fractional_table_default_still_requires_partial_DOCX(bool missingRow) {
         using var package = EffectivePagesDimensions(missingRow, missingColumn: !missingRow);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         Assert.Contains("sizing", Assert.Throws<InvalidDataException>(() => source.ToWordResult(
             new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly })).Message);
 

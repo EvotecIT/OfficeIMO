@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
     [MemberData(nameof(ScalarFormatCases))]
     public void Selected_unqualified_scalar_formats_retain_values_and_require_partial_conversion(IWorkDocumentKind kind, int bit) {
         using var package = ScalarFormatPackage(kind, bit, Message(VarintField(1, 999)));
-        var source = IWorkSourceDocument.Open(package, kind, new IWorkReadOptions { PreserveSourceRecords = false });
+        var source = IWorkSourceDocument.Load(package, kind, new IWorkLoadOptions { PreserveSourceRecords = false });
         var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         Assert.False(cell.HasDecodeError);
         Assert.NotNull(cell.Value);
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         }, cell.UnsupportedFeatures);
         foreach (bool visual in new[] { false, true }) {
             package.Position = 0;
-            var report = ConvertUnitReport(package, kind, visual, new IWorkReadOptions { PreserveSourceRecords = false });
+            var report = ConvertUnitReport(package, kind, visual, new IWorkLoadOptions { PreserveSourceRecords = false });
             Assert.Empty(report.PreservedRecords);
             Assert.Empty(report.SourceCellIssues);
             AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 12),
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(18, 1)]
     public void Default_text_and_boolean_formats_keep_editable_typed_saved_output(int bit, int formatType) {
         using var package = ScalarFormatPackage(IWorkDocumentKind.Numbers, bit, VarintField(1, (ulong)formatType));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!.UnsupportedFeatures);
         Assert.Empty(result.Report.SourceDeclarationIssues);
@@ -64,7 +64,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] format = Message(VarintField(1, 260), customSettings ? VarintField(99, 0) : Message());
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13), cellPayload: cell,
             additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(format)))));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         var selected = result.Projection.Sheets[0].Tables[0].GetCell(1, 1)!;
         Assert.Equal(IWorkCellKind.Empty, selected.Kind);
         Assert.Equal(customSettings ? IWorkCellUnsupportedFeatures.TextFormat : IWorkCellUnsupportedFeatures.None,
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(18)]
     public void Truncated_scalar_format_fields_do_not_select_catalogs_or_claim_feature_presence(int bit) {
         using var package = ScalarFormatPackage(IWorkDocumentKind.Numbers, bit, Message(), truncate: true);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var cell = Assert.Single(ReadSelectedRichTable(source, IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.True(cell.HasDecodeError);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
@@ -131,17 +131,17 @@ public sealed partial class IWorkBoundaryTests {
         byte[] fields = Message(new[] { VarintField(1, 1) }.Concat(
             Enumerable.Range(0, 17).Select(_ => VarintField(99, 0))).ToArray());
         using var parserLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, fields);
-        Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(parserLimited,
-            new IWorkReadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("field", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(parserLimited,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 16 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
         using var catalogLimited = ScalarFormatPackage(IWorkDocumentKind.Numbers, 18, VarintField(1, 1), extraFormat: true);
-        Assert.Contains("catalog", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(catalogLimited,
-            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("catalog", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(catalogLimited,
+            new IWorkLoadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Unused_scalar_format_catalogs_remain_unselected() {
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 999));
-        var projection = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.SourceDeclarationIssues);
@@ -152,14 +152,14 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = FeatureCell(empty: true, (1u << 12) | (1u << 15));
         WriteUInt32(cell, 12, 3);
         using var package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), cellPayload: cell);
-        var selected = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        var selected = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, selected.Kind);
         Assert.Equal(IWorkCellUnsupportedFeatures.DateFormat, selected.UnsupportedFeatures);
         using var overBudget = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), columns: 2,
             tilePayload: BytesField(5, Message(VarintField(1, 0), BytesField(6, Message(cell, cell)),
                 BytesField(7, new byte[] { 0, 0, (byte)cell.Length, 0 }))));
-        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(overBudget,
-            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
+        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(overBudget,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     private static void AssertScalarFormatSavedValue(IWorkSourceDocument source, IWorkDocumentKind kind, IWorkTableCell cell) {

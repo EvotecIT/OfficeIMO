@@ -91,7 +91,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         var box = CreateBox(presentation, "FIRST", 220, 15);
         box.AddParagraph("SECOND");
         box.AddParagraph("LAST");
-        box.FillColor = "1264A3";
+        box.FillColor = OfficeColor.Parse("1264A3");
         box.SetTextAutoFit(mode, mode == PowerPointTextAutoFit.Normal ? new PowerPointTextAutoFitOptions(100, 0) : null);
 
         var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -124,7 +124,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         var box = CreateBox(presentation, "FIRST", 220, 15);
         box.AddParagraph("SECOND");
         box.AddParagraph("LAST");
-        box.FillColor = "1264A3";
+        box.FillColor = OfficeColor.Parse("1264A3");
         box.TextAutoFit = PowerPointTextAutoFit.Shape;
         string source = box.Element.OuterXml;
         var diagnostics = new List<OfficeImageExportDiagnostic>();
@@ -153,7 +153,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         box.AddParagraph("LAST");
         box.FontFamily = "Helvetica";
         box.FontSize = global::OfficeIMO.OfficeLength.Points(24);
-        box.FillColor = "1264A3";
+        box.FillColor = OfficeColor.Parse("1264A3");
         box.TextMarginLeft = box.TextMarginRight = box.TextMarginTop = box.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0);
         box.TextAutoFit = PowerPointTextAutoFit.Shape;
         string source = box.Element.OuterXml;
@@ -184,7 +184,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(200));
         var box = CreateBox(presentation, value, 80, 60);
-        box.FillColor = "1264A3";
+        box.FillColor = OfficeColor.Parse("1264A3");
         box.TextAutoFit = mode;
         box.TextBody!.GetFirstChild<A.BodyProperties>()!.Wrap = A.TextWrappingValues.None;
         string source = box.Element.OuterXml;
@@ -223,7 +223,7 @@ public sealed class PowerPointTextFittingRegressionTests {
         using var presentation = PowerPointDocument.Create(new MemoryStream());
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(200));
         var box = CreateBox(presentation, "FIRST LONG LINE\nSECOND LONG LINE", 80, 10);
-        box.FillColor = "1264A3";
+        box.FillColor = OfficeColor.Parse("1264A3");
         box.TextAutoFit = PowerPointTextAutoFit.Shape;
         box.TextBody!.GetFirstChild<A.BodyProperties>()!.Wrap = A.TextWrappingValues.None;
         string source = box.Element.OuterXml;

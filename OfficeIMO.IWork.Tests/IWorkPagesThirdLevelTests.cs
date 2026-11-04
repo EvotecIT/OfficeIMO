@@ -8,9 +8,9 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkPagesThirdLevelWritingTests {
     [Fact]
     public void Third_decimal_level_keeps_resets_restarts_and_resumed_scope_in_saved_Word() {
-        var document = Example(); byte[] bytes = document.SaveBytes();
-        Assert.Equal(bytes, document.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes);
+        var document = Example(); byte[] bytes = document.ToBytes();
+        Assert.Equal(bytes, document.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes);
         var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete);
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues);
@@ -41,20 +41,20 @@ public sealed class IWorkPagesThirdLevelWritingTests {
     [Fact]
     public void Third_level_parent_and_overflow_rejections_preserve_list_state() {
         var document = IWorkPagesDocument.Create(); var list = document.CreateNumberedList();
-        list.AddItem("Parent", restartAt: 7); byte[] before = document.SaveBytes();
+        list.AddItem("Parent", restartAt: 7); byte[] before = document.ToBytes();
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Missing child", 2));
-        Assert.Equal(before, document.SaveBytes());
+        Assert.Equal(before, document.ToBytes());
         list.AddItem("Child", 1); list.AddItem("Grandchild last", 2, int.MaxValue);
-        before = document.SaveBytes();
+        before = document.ToBytes();
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Grandchild overflow", 2));
-        Assert.Equal(before, document.SaveBytes());
+        Assert.Equal(before, document.ToBytes());
         Assert.Equal(2, list.AddItem("Next child", 1).ListNumber);
         Assert.Equal(1, list.AddRichItem(new[] { new IWorkTextRunData("Reset grandchild", "Arial", 12) }, 2).ListNumber);
         Assert.Equal(8, list.AddItem("Next parent").ListNumber);
-        before = document.SaveBytes();
+        before = document.ToBytes();
         Assert.Throws<InvalidOperationException>(() => list.AddItem("Missing new child", 2));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddItem("Outside native levels", 9));
-        Assert.Equal(before, document.SaveBytes());
+        Assert.Equal(before, document.ToBytes());
         Assert.Equal(1, list.AddItem("New child", 1).ListNumber);
         Assert.Equal(1, list.AddItem("New grandchild", 2).ListNumber);
     }
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Initializing_an_intermediate_counter_clears_an_earlier_explicit_descendant() {
         string[] text = { "Value", "Explicit grandchild", "First child", "Reset grandchild" };
         using var package = ThirdLevelCounterPackage(text, new[] { 0, 2, 1, 2 }, new ulong[] { 7, 5, 0, 0 }, 3);
-        var content = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells.Single().RichText!;
+        var content = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells.Single().RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, 5, 1, 1 }, content.Paragraphs.Select(p => p.ListNumber));
     }
@@ -94,7 +94,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void A_tenth_decimal_level_stays_partial_even_with_complete_decimal_vectors() {
         using var package = ThirdLevelCounterPackage(new[] { "Value" }, new[] { 9 }, new ulong[] { 7 }, 10);
-        var content = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells.Single().RichText!;
+        var content = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells.Single().RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.Null(content.Paragraphs.Single().ListNumber);
         Assert.Equal("Value", content.Paragraphs.Single().Text);
@@ -130,7 +130,7 @@ public sealed partial class IWorkBoundaryTests {
                 VarintField(11, 3), VarintField(11, 3), VarintField(11, 3),
                 VarintField(15, 0), VarintField(15, 0), VarintField(15, 0),
                 VarintField(25, 0), VarintField(25, 0), VarintField(25, 0))));
-        var content = ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells.Single().RichText!;
+        var content = ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells.Single().RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, 1, 1, 2, 2, 1, 8, 1, 1, 5, 6 }, content.Paragraphs.Select(p => p.ListNumber));
         Assert.Equal(level, content.Paragraphs.Select(p => p.ListLevel));

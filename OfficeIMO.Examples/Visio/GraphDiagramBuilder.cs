@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Visio {
             string filePath = Path.Combine(folderPath, "Graph Diagram Builder.vsdx");
             VisioStencilCatalog? installedCatalog = TryLoadInstalledAzureCatalog();
 
-            VisioDocument.Create(filePath)
-                .GraphDiagram("Event-driven operations graph", graph => {
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.GraphDiagram("Event-driven operations graph", graph => {
                     graph
                         .Title()
                         .Theme(VisioStyleTheme.Technical())
@@ -72,13 +72,13 @@ namespace OfficeIMO.Examples.Visio {
                         .Relationship("monitor", "function", "metrics")
                         .Relationship("monitor", "worker", "logs")
                         .EmphasisEdge("batch", "sql", "reconcile");
-                })
-                .EnsureVisualQuality(new VisioDiagramQualityOptions {
+                });
+            nativeDocument1.EnsureVisualQuality(new VisioDiagramQualityOptions {
                     CheckShapeOverlaps = false,
                     CheckConnectorShapeIntersections = false,
                     CheckConnectorLabelShapeOverlaps = false
-                })
-                .Save();
+                });
+            nativeDocument1.Save();
 
             IReadOnlyList<string> issues = VisioValidator.Validate(filePath);
             if (issues.Count > 0) {

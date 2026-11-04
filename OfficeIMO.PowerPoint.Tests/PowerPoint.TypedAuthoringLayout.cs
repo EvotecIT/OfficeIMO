@@ -149,7 +149,7 @@ public sealed class PowerPointTypedAuthoringLayoutTests {
         Chart(slide);
         Assert.Same(native, table.Element);
         Assert.InRange(table.GetColumnWidth(1).ToEmus() / (double)table.GetColumnWidth(0).ToEmus(), 2.999, 3.001);
-        Assert.InRange(Enumerable.Range(0, table.Columns).Sum(column => table.GetColumnWidth(column).ToEmus()), table.Width.ToEmus() - 1, table.Width.ToEmus());
+        Assert.InRange(Enumerable.Range(0, table.ColumnCount).Sum(column => table.GetColumnWidth(column).ToEmus()), table.Width.ToEmus() - 1, table.Width.ToEmus());
     }
 
     [Fact]

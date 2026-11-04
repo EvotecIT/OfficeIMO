@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkDocumentKind kind, bool visual) {
         using MemoryStream package = TableDependencyPackage(kind, Message(), tilePayload: new byte[] { 0x80 });
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
         IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
         AssertTileDeclaration(issue, "$", null, IWorkSourceDeclarationIssueKind.MalformedMessage);
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] rows = Message(wrongWire ? VarintField(5, 999) : BytesField(5, new byte[] { 0x80 }),
             BytesField(5, TileTestRow(1)));
         using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2, tilePayload: rows);
-        (IWorkTable table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        (IWorkTable table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTableCell cell = Assert.Single(table.Cells);
         Assert.Equal(2, cell.Row);
         Assert.Equal(42d, cell.Value);
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Recovered_tile_row_survives_partial_destination_save_and_reopen(IWorkDocumentKind kind) {
         using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2,
             tilePayload: Message(BytesField(5, new byte[] { 0x80 }), BytesField(5, TileTestRow(1))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
@@ -128,7 +128,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(kind, Message(),
             columns: failure == "duplicateOffsets" ? 2ul : 1ul, tilePayload: BytesField(5, row));
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 });
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 });
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), failure == "trailingOffset" ? "5[1]/7" : "5[1]", 1,
             failure == "legacy" ? IWorkSourceDeclarationIssueKind.RejectedMessageSet
                 : IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
@@ -156,8 +156,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Tile_row_evidence_budget_is_cumulative_and_fatal(IWorkDocumentKind kind) {
         using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2,
             tilePayload: Message(BytesField(5, new byte[] { 0x80 }), BytesField(5, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind, options);
+        var options = new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 };
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind, options);
         options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
@@ -173,8 +173,8 @@ public sealed partial class IWorkBoundaryTests {
         byte[] fields = Message(Enumerable.Range(0, 9).Select(_ => VarintField(1, 0)).ToArray());
         using MemoryStream package = TableDependencyPackage(kind, Message(),
             tilePayload: nested ? BytesField(5, fields) : fields);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -182,8 +182,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Reused_tile_evidence_reports_each_physical_path_once() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             repeatModel: true, tilePayload: BytesField(5, InvalidTileTestRow("wideFlag")));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues), "5[1]", 1,
             IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);
@@ -208,7 +208,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(),
             tilePayload: Message(BytesField(5, overLimitRow), BytesField(5, new byte[] { 0x80 })));
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers,
-            readOptions: new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+            readOptions: new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         AssertTileDeclaration(Assert.Single(report.SourceDeclarationIssues), "5", 2,
             IWorkSourceDeclarationIssueKind.RejectedMessageSet);
         Assert.DoesNotContain(report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_TILE_ROWS_UNSUPPORTED");
@@ -250,7 +250,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Duplicate_row_index_retains_the_first_cell_and_reports_the_later_entry() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), rows: 2,
             tilePayload: Message(BytesField(5, TileTestRow(0)), BytesField(5, TileTestRow(0))));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.Single(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells);
         AssertTileDeclaration(Assert.Single(projection.SourceDeclarationIssues), "5[2]", 1,
             IWorkSourceDeclarationIssueKind.InvalidSelectionMetadata);

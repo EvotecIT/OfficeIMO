@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
                 .SetCategoryAxisTitle("Quarter")
                 .SetValueAxisTitle("Revenue")
                 .SetValueAxisNumberFormat("$#,##0")
-                .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: "D9E2F3");
+                .SetValueAxisGridlines(showMajor: true, showMinor: true, lineColor: OfficeColor.Parse("D9E2F3"));
 
             chart.UpdateData(updated);
 

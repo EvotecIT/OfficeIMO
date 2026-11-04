@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                         if (table.IsNestedTable) {
                             var parentTable = table.ParentTable;
                             Assert.NotNull(parentTable);
-                            Assert.True(parentTable!.RowsCount > 0);
+                            Assert.True(parentTable!.RowCount > 0);
                         } else {
                             Assert.Null(table.ParentTable);
                         }
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
                         if (table.IsNestedTable) {
                             var parentTable = table.ParentTable;
                             Assert.NotNull(parentTable);
-                            Assert.True(parentTable!.RowsCount > 0);
+                            Assert.True(parentTable!.RowCount > 0);
                         } else {
                             Assert.Null(table.ParentTable);
                         }

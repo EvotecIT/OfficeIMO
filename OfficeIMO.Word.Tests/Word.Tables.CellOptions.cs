@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
 
                 var parentCell = Assert.IsType<WordTableCell>(paragraph.Parent);
                 Assert.Equal("Cell paragraph", parentCell.Paragraphs.First().Text);
-                Assert.Equal(table.RowsCount, parentCell.ParentTable.RowsCount);
+                Assert.Equal(table.RowCount, parentCell.ParentTable.RowCount);
 
                 document.Save();
             }
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
 
                 var parentCell = Assert.IsType<WordTableCell>(paragraph.Parent);
                 Assert.Equal(paragraph.Text, parentCell.Paragraphs.First().Text);
-                Assert.Equal(table.RowsCount, parentCell.ParentTable.RowsCount);
+                Assert.Equal(table.RowCount, parentCell.ParentTable.RowCount);
 
                 document.Save();
             }

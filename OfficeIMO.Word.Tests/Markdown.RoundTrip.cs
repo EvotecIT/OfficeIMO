@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests
                 paragraph5 = paragraph5.AddText(" ");
                 paragraph5.AddFormattedText("U", underline: WordUnderlineStyle.Single);
                 paragraph5 = paragraph5.AddText(" ");
-                paragraph5.AddText("S").SetStrike();
+                paragraph5.AddText("S").SetStrikethrough();
                 paragraph5 = paragraph5.AddText(" ");
                 paragraph5.AddText("C").SetFontFamily("Consolas");
                 var table6 = doc.AddTable(1, 2);

@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                         Assert.Equal("Name", table.GetCell(0, 1).Text);
                     });
                     string[] representedNames = result.Tables
-                        .SelectMany(table => Enumerable.Range(1, table.Rows - 1)
+                        .SelectMany(table => Enumerable.Range(1, table.RowCount - 1)
                             .Select(row => table.GetCell(row, 1).Text))
                         .ToArray();
                     Assert.Equal(source.Select(row => row.Name), representedNames);
@@ -88,11 +88,11 @@ namespace OfficeIMO.Tests {
                 };
                 PowerPointPaginatedTableResult result = document.AddTableSlides(rows, columns, options);
                 Assert.Equal(3, result.PageCount);
-                Assert.Equal(new[] { 3, 3, 2 }, result.Tables.Select(table => table.Rows));
+                Assert.Equal(new[] { 3, 3, 2 }, result.Tables.Select(table => table.RowCount));
                 Assert.All(result.Tables, table => {
                     Assert.Equal(OfficeLength.Points(20), table.Left);
                     Assert.Equal(OfficeLength.Points(30), table.Top);
-                    Assert.All(table.RowItems, row => Assert.Equal(rowHeight, row.Height));
+                    Assert.All(table.Rows, row => Assert.Equal(rowHeight, row.Height));
                 });
                 Assert.Throws<ArgumentOutOfRangeException>(() => options.MinimumRowHeight = OfficeLength.Zero);
                 Assert.Equal(rowHeight, options.MinimumRowHeight);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument reopened = PowerPointDocument.Load(stream);
             Assert.Equal(new long[] { 914403, 914403, 609602 },
                 reopened.Slides.Select(slide => slide.Tables.Single().Height.ToEmus()));
-            Assert.All(reopened.Slides, slide => Assert.All(slide.Tables.Single().RowItems,
+            Assert.All(reopened.Slides, slide => Assert.All(slide.Tables.Single().Rows,
                 row => Assert.Equal(OfficeLength.Emus(304801), row.Height)));
         }
 

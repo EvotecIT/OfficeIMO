@@ -23,7 +23,7 @@ public class OpenDocumentSchemaArtifactTests {
                 OdtParagraph richText = text.AddParagraph("Native ODT ");
                 richText.Alignment = OdtParagraphAlignment.Center;
                 richText.IndentStart = OdfLength.Points(12);
-                OdtSpan richSpan = richText.AddSpan("with formatting");
+                OdtSpan richSpan = richText.AddRun("with formatting");
                 richSpan.Bold = true;
                 richSpan.Underline = true;
                 richSpan.BackgroundColor = OdfColor.Parse("#FFF200");
@@ -133,7 +133,7 @@ public class OpenDocumentSchemaArtifactTests {
                 presentationText.AddText("Native ODP ");
                 OdpRun presentationRun = presentationText.AddRun("with formatting");
                 presentationRun.Bold = true;
-                presentationRun.StrikeThrough = true;
+                presentationRun.Strikethrough = true;
                 presentationRun.BackgroundColor = OdfColor.Parse("#FFF200");
                 presentationText.AddText(" and ");
                 presentationText.AddHyperlink("a link", "https://example.com").Underline = true;
@@ -218,7 +218,7 @@ public class OpenDocumentSchemaArtifactTests {
             } else if (document is OdpPresentation presentation) {
                 OdpParagraph rich = presentation.Slides.SelectMany(slide => slide.Shapes).OfType<OdpTextBox>()
                     .SelectMany(box => box.Paragraphs).Single(paragraph => paragraph.Text.IndexOf("Native ODP", StringComparison.Ordinal) >= 0);
-                Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Run && node.Run!.StrikeThrough == true);
+                Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Run && node.Run!.Strikethrough == true);
                 Assert.Contains(rich.InlineNodes, node => node.Kind == OdpInlineNodeKind.Hyperlink &&
                     Uri.Compare(new Uri(node.Hyperlink!.Href), new Uri("https://example.com"),
                         UriComponents.AbsoluteUri, UriFormat.SafeUnescaped, StringComparison.OrdinalIgnoreCase) == 0);
