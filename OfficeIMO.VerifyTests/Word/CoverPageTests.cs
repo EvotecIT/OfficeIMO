@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Word;
+﻿using OfficeIMO.Word;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;

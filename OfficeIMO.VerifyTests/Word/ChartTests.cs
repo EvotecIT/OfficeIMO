@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Drawing.Charts;
-using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Color = OfficeIMO.OfficeColor;
 using System.Collections.Generic;
