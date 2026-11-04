@@ -107,7 +107,8 @@ internal static partial class MarkdownPowerPointProjection {
             if (own != InlineStyle.None) _styles.Add((inline, own));
             switch (inline) {
                 case LinkInline link: ReportLink(link.Url); break;
-                case ImageLinkInline image: ReportLink(image.LinkUrl); break;
+                case ImageInline image: ReportImage(image.Src); break;
+                case ImageLinkInline image: ReportImage(image.ImageUrl); ReportLink(image.LinkUrl); break;
                 case CodeSpanInline: ReportSimplification(inline, "Inline code typography"); break;
                 case HtmlRawInline: ReportSimplification(inline, "Raw inline HTML presentation"); break;
                 case HtmlTagSequenceInline tag when own == InlineStyle.None:
@@ -138,6 +139,12 @@ internal static partial class MarkdownPowerPointProjection {
             notes ? $"Hyperlink '{target}' is retained as Markdown source in speaker notes, without an interactive link."
                 : $"The hyperlink target '{target}' is omitted from {context}; its visible label is retained.",
             target, "Markdown", notes ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.Omission));
+
+        private void ReportImage(string source) => findings.Add(new OfficeDiagnostic(
+            OfficeDiagnosticCodes.SimplifiedBlock, OfficeDiagnosticSeverity.Warning,
+            notes ? "Inline image markup is retained in speaker notes without rendering the image."
+                : $"Inline image content is omitted from {context}; its alternate text is retained.",
+            source, "Markdown", notes ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.Omission));
 
         private void ReportSimplification(MarkdownInline node, string feature) => findings.Add(new OfficeDiagnostic(
             OfficeDiagnosticCodes.SimplifiedBlock, OfficeDiagnosticSeverity.Warning,

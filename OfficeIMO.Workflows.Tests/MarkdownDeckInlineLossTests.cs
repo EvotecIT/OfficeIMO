@@ -34,6 +34,38 @@ public sealed class MarkdownDeckInlineLossTests {
         Assert.True(rejected.CanWrite);
     }
 
+    [Theory]
+    [InlineData("Plain ![Image marker](diagram.png)", false)]
+    [InlineData("Plain [![Image marker](diagram.png)](https://example.test/runbook)", false)]
+    [InlineData("> Plain ![Image marker](diagram.png)", true)]
+    public async Task FlattenedInlineImagesReportLossBeforeStrictSave(string body, bool notes) {
+        using MarkdownDocument source = MarkdownDocument.Parse("# Title\n\n" + body);
+        var options = new MarkdownToPowerPointOptions();
+        using var output = new MemoryStream();
+        OfficeConversionReport report = await source.SaveAsPowerPointAsync(output, options);
+        AssertImageLoss(report, notes);
+        output.Position = 0;
+        using (PowerPointDocument deck = PowerPointDocument.Load(output)) {
+            Assert.All(deck.Slides, slide => Assert.Empty(slide.Images));
+            string retained = string.Join("\n", deck.Slides.SelectMany(slide => slide.TextBoxes).Select(box => box.Text))
+                + string.Join("\n", deck.Slides.Select(slide => slide.Notes.Text));
+            Assert.Contains("Image marker", retained, StringComparison.Ordinal);
+        }
+
+        options.FailOnLoss = true;
+        using var rejected = new MemoryStream();
+        OfficeConversionException error = await Assert.ThrowsAsync<OfficeConversionException>(() => source.SaveAsPowerPointAsync(rejected, options));
+        AssertImageLoss(error.Report, notes);
+        Assert.Equal(0, rejected.Length);
+    }
+
+    private static void AssertImageLoss(OfficeConversionReport report, bool notes) {
+        Assert.True(report.HasLoss);
+        Assert.Contains(report.Diagnostics, finding => finding.Code == OfficeDiagnosticCodes.SimplifiedBlock
+            && finding.Location == "diagram.png" && finding.Message.Contains("image", StringComparison.OrdinalIgnoreCase)
+            && finding.LossKind == (notes ? OfficeConversionLossKind.Approximation : OfficeConversionLossKind.Omission));
+    }
+
     [Fact]
     public async Task UniformFormattingUsesNativeBlockStyleWithoutRejectingStrictOutput() {
         using MarkdownDocument source = MarkdownDocument.Parse("# Title\n\n**_Uniform marker_**");
