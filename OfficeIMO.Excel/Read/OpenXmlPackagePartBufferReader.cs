@@ -105,7 +105,18 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken,
             out byte[]? buffer,
             out int length,
+            Func<byte[], int, bool>? acceptPrefix = null) =>
+            TryRead(partName, maximumBytes, cancellationToken, out buffer, out length, out _, acceptPrefix);
+
+        internal bool TryRead(
+            string partName,
+            int maximumBytes,
+            CancellationToken cancellationToken,
+            out byte[]? buffer,
+            out int length,
+            out bool validatedIndexedXml,
             Func<byte[], int, bool>? acceptPrefix = null) {
+            validatedIndexedXml = false;
             if (_disposed) {
                 throw new ObjectDisposedException(nameof(OpenXmlPackagePartBufferReader));
             }
@@ -145,6 +156,7 @@ namespace OfficeIMO.Excel {
             using (prefetched) {
                 // Prefetch may already have completed without the caller's prefix filter.
                 if (prefetchTask != null && acceptPrefix != null && !prefetched.AcceptsPrefix(acceptPrefix)) return false;
+                validatedIndexedXml = prefetched.ValidatedIndexedXml;
                 prefetched.Detach(out buffer, out length);
                 return true;
             }
@@ -184,12 +196,12 @@ namespace OfficeIMO.Excel {
         /// and indexing keep their own validation, but need not inflate the same bytes twice.
         /// The existing single prefetch slot bounds retention and owns disposal after transfer.
         /// </summary>
-        internal bool TryRetainReadBuffer(string partName, byte[] buffer, int length) {
+        internal bool TryRetainReadBuffer(string partName, byte[] buffer, int length, bool validatedIndexedXml) {
             string normalizedPartName = NormalizePartName(partName);
             lock (_prefetchSync) {
                 if (_disposed || _prefetchTask != null) return false;
                 _prefetchPartName = normalizedPartName;
-                _prefetchTask = Task.FromResult<PrefetchedPartBuffer?>(new PrefetchedPartBuffer(buffer, length));
+                _prefetchTask = Task.FromResult<PrefetchedPartBuffer?>(new PrefetchedPartBuffer(buffer, length, validatedIndexedXml));
                 return true;
             }
         }
@@ -445,12 +457,14 @@ namespace OfficeIMO.Excel {
         private sealed class PrefetchedPartBuffer : IDisposable {
             private byte[]? _buffer;
 
-            internal PrefetchedPartBuffer(byte[] buffer, int length) {
+            internal PrefetchedPartBuffer(byte[] buffer, int length, bool validatedIndexedXml = false) {
                 _buffer = buffer;
                 Length = length;
+                ValidatedIndexedXml = validatedIndexedXml;
             }
 
             internal int Length { get; }
+            internal bool ValidatedIndexedXml { get; }
 
             internal bool AcceptsPrefix(Func<byte[], int, bool> predicate) =>
                 predicate(_buffer ?? throw new ObjectDisposedException(nameof(PrefetchedPartBuffer)), Math.Min(Length, 256));

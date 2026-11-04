@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
                 // A row-like token in trailing comments may publish sheetData's end
                 // before the root XML is complete. Global proof needs the full part.
                 if (_inflation != null) _length = _inflation.WaitForCompletion(ct);
-                if (!IsCanonicalWorksheetXmlFullyValidated(ct) && !ValidateBufferedWorksheetXml(ct)) return false;
+                if (!_validatedIndexedXml && !IsCanonicalWorksheetXmlFullyValidated(ct) && !ValidateBufferedWorksheetXml(ct)) return false;
                 ct.ThrowIfCancellationRequested();
                 declaredFirstColumn = firstColumn;
                 return true;

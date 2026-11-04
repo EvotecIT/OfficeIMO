@@ -49,20 +49,21 @@ namespace OfficeIMO.Excel {
                         ExcelSheetReader.CanBufferUtf8WorksheetPrefix)) {
                     using var buffered = new MemoryStream(buffer!, 0, length, writable: false);
                     using XmlReader bufferedReader = XmlReader.Create(buffered, QualificationXmlReaderSettings);
-                    WorksheetExtent? extent = ExcelSheetReader.MeasureCanonicalWorksheet(bufferedReader, options.CancellationToken);
+                    WorksheetExtent? extent = ExcelSheetReader.MeasureCanonicalWorksheet(bufferedReader, options.CancellationToken,
+                        out bool validatedIndexedXml);
                     int bufferedRows = Math.Max(
                         Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
                         options.SchemaSampleRows);
                     if (extent is WorksheetExtent known
                         && known.Columns * Math.Min(known.Rows, bufferedRows) <= options.MaxDataReaderBufferedCells
-                        && PartBufferReader.TryRetainReadBuffer(worksheet.Uri.OriginalString, buffer!, length)) {
+                        && PartBufferReader.TryRetainReadBuffer(worksheet.Uri.OriginalString, buffer!, length, validatedIndexedXml)) {
                         buffer = null;
                     }
                     return extent;
                 }
                 using Stream stream = worksheet.GetStream(FileMode.Open, FileAccess.Read);
                 using XmlReader reader = XmlReader.Create(stream, QualificationXmlReaderSettings);
-                return ExcelSheetReader.MeasureCanonicalWorksheet(reader, options.CancellationToken);
+                return ExcelSheetReader.MeasureCanonicalWorksheet(reader, options.CancellationToken, out _);
             } catch (XmlException) {
                 return null;
             } catch (IOException) {

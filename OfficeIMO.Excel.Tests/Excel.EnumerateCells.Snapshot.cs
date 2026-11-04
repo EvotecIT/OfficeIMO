@@ -252,6 +252,47 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1.25d, document.Sheets[0].EnumerateCells(options).Single().Value);
         }
 
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LargeSnapshotReadRequiresTheIndexedValueNamespace(bool foreignValueNamespace) {
+            string valueNamespace = foreignValueNamespace ? " xmlns:p=\"urn:foreign\"" : string.Empty;
+            byte[] package = CreatePackage("<!--" + new string(' ', 1_048_576) + "-->"
+                + $"<row r=\"1\"><c r=\"A1\"><v{valueNamespace}>42</v></c></row>");
+            using var rewritten = new MemoryStream();
+            rewritten.Write(package, 0, package.Length);
+            rewritten.Position = 0;
+            using (var archive = new ZipArchive(rewritten, ZipArchiveMode.Update, leaveOpen: true)) {
+                var entry = archive.GetEntry("xl/worksheets/sheet1.xml")!;
+                string xml;
+                using (var text = new StreamReader(entry.Open())) xml = text.ReadToEnd();
+                entry.Delete();
+                xml = xml.Replace("<sheetData>", "<dimension ref=\"A1:A1\"/><sheetData>");
+                xml = xml.Replace("<worksheet ", $"<p:worksheet xmlns:p=\"{SpreadsheetNamespace}\" ");
+                foreach (string tag in new[] { "worksheet", "dimension", "sheetData", "row", "c", "v" }) {
+                    xml = xml.Replace("<" + tag + ">", "<p:" + tag + ">")
+                        .Replace("<" + tag + " ", "<p:" + tag + " ")
+                        .Replace("</" + tag + ">", "</p:" + tag + ">");
+                }
+                using var writer = new StreamWriter(archive.CreateEntry("xl/worksheets/sheet1.xml").Open(), new UTF8Encoding(false));
+                writer.Write(xml);
+            }
+            using var document = ExcelDocument.Load(new MemoryStream(rewritten.ToArray()));
+            var options = new ExcelReaderOptions { HasHeaderRow = false, InferSchema = false };
+            if (foreignValueNamespace) {
+                Assert.Throws<InvalidDataException>(() => {
+                    using var rejected = document.CreateDataReader(options);
+                    rejected.Read();
+                });
+            } else {
+                using var reader = document.CreateDataReader(options);
+                Assert.True(reader.Read());
+                Assert.Equal(42, reader.GetInt32(0));
+                Assert.False(reader.Read());
+                Assert.False(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().IsRootElementLoaded);
+            }
+        }
+
         [Fact]
         public void CellValueConverterSeesCellsWithoutContent() {
             byte[] package = CreatePackage("<row r=\"1\"><c r=\"A1\"><v>1</v></c><c r=\"B1\"/></row>");
