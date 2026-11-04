@@ -1,6 +1,6 @@
 ---
 title: "Publisher to PDF"
-description: "Convert a Microsoft Publisher .pub file to PDF in your browser. Try a sample, review the preview and diagnostics, and download the PDF without uploading your file."
+description: "Convert a Microsoft Publisher .pub file to PDF in your browser. Preview the result and download the PDF and diagnostics without uploading your file."
 layout: browser-tool
 meta.tool: "publisher-to-pdf"
 meta.seo_title: "Convert Publisher (.pub) to PDF in your browser | OfficeIMO"

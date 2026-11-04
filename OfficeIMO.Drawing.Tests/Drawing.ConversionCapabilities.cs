@@ -63,7 +63,8 @@ public sealed class DrawingConversionCapabilities {
                 "pdf-xlsx",
                 "pdf-pptx",
                 "pdf-html",
-                "pdf-png"
+                "pdf-png",
+                "publisher-pdf"
             ],
             OfficeConversionCapabilityCatalog.BrowserRoutes.Select(static route => route.Id));
         Assert.All(OfficeConversionCapabilityCatalog.All, static route => {

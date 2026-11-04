@@ -83,7 +83,7 @@
       "title": "Publisher to PDF",
       "summary": "Convert a Microsoft Publisher (.pub) file to PDF. Check the preview and conversion warnings before downloading.",
       "seoTitle": "Convert Publisher (.pub) to PDF in your browser | OfficeIMO",
-      "seoDescription": "Convert a Microsoft Publisher .pub file to PDF in your browser. Try a sample, review the preview and diagnostics, and download the PDF without uploading your file.",
+      "seoDescription": "Convert a Microsoft Publisher .pub file to PDF in your browser. Preview the result and download the PDF and diagnostics without uploading your file.",
       "input": { "kind": "file", "accept": ".pub", "label": "Publisher publication", "sample": "samples/native-authored.pub", "sampleName": "OfficeIMO-Publisher-Sample.pub" },
       "options": [],
       "engine": { "kind": "convert", "target": "publisher-pdf", "action": "convert", "assemblies": ["OfficeIMO.Publisher.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Publisher.Pdf.wasm"] },

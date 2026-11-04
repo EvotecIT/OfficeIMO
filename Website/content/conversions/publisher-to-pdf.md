@@ -1,6 +1,6 @@
 ---
 title: "Convert Publisher (.pub) to PDF after Microsoft Publisher retirement"
-description: "Convert Microsoft Publisher .pub files to PDF without Publisher. Try the browser converter for one file, or use the OfficeIMO CLI, PowerShell, or .NET to preserve an archive."
+description: "Convert Microsoft Publisher .pub files to PDF after retirement. Use the browser for one file or OfficeIMO CLI, PowerShell, or .NET for an archive."
 meta.seo_title: "Convert Publisher (.pub) to PDF after retirement | OfficeIMO"
 meta.eyebrow: "Microsoft Publisher retirement"
 meta.source_format: "Publisher (.pub)"

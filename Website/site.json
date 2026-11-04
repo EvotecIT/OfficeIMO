@@ -1016,6 +1016,13 @@
       "PreserveQuery": true
     },
     {
+      "From": "/browser/",
+      "To": "/convert/",
+      "Status": 301,
+      "MatchType": "Exact",
+      "PreserveQuery": true
+    },
+    {
       "From": "/api/html/officeimo-html-htmlrtfconversiondiagnostic/",
       "To": "/api/html-rtf/officeimo-html-htmlrtfconversiondiagnostic/",
       "Status": 301,
