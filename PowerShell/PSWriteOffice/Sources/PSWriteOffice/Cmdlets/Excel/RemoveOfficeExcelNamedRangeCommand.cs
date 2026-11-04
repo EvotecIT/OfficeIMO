@@ -1,86 +1,67 @@
-#pragma warning disable CS1591
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Removes a workbook or sheet-scoped Excel named range.</summary>
+/// <summary>Removes a defined name.</summary>
 /// <example>
-///   <summary>Remove a stale sheet-scoped named range from a workbook.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$workbook = Open-OfficeExcel -Path .\Report.xlsx
-/// $removed = $workbook | Remove-OfficeExcelNamedRange -Sheet Data -Name OldCriteria -PassThru
-/// Save-OfficeExcel -Document $workbook</code>
-///   <para>Uses the thin PowerShell surface over OfficeIMO named-range removal and saves the updated workbook.</para>
+/// <summary>Remove a defined name</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     Remove-OfficeExcelNamedRange OldTaxRate
+/// }</code>
+/// <para>Deletes the OldTaxRate name from the workbook.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Remove, "OfficeExcelNamedRange", SupportsShouldProcess = true, DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelNamedRangeRemove")]
-[OutputType(typeof(bool))]
-public sealed class RemoveOfficeExcelNamedRangeCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+/// <example>
+/// <summary>Clean up names that no longer resolve</summary>
+/// <code>$broken = Get-OfficeExcelNamedRange -Path .\Finance\Budget-2027.xlsx | Where-Object Reference -like '*#REF!*'
+/// Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     foreach ($name in $broken) {
+///         Remove-OfficeExcelNamedRange -Name $name.Name
+///     }
+/// }</code>
+/// <para>Removes every defined name that points to #REF! and saves the workbook.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Remove, "OfficeExcelNamedRange", DefaultParameterSetName = "Default")]
+public sealed class RemoveOfficeExcelNamedRangeCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name for a sheet-scoped operation.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
-
-    /// <summary>Zero-based worksheet index for a sheet-scoped operation.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Named range name.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Name { get; set; } = string.Empty;
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
+    public string Name { get; set; } = null!;
 
     /// <summary>Use workbook-global scope from inside the DSL.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Global { get; set; }
 
-    /// <summary>Emit a result object.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
-    /// <summary>Save the workbook immediately after removing the name.</summary>
-    [Parameter]
-    public SwitchParameter Save { get; set; }
-
-    protected override void ProcessRecord()
-    {
-        ExcelDocument document;
-        ExcelSheet? scope = null;
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            document = Document;
-            scope = ExcelSheetResolver.ResolveOptional(document, Sheet, SheetIndex);
-        }
-        else
-        {
-            var context = ExcelDslContext.Require(this);
-            document = context.Document;
-            if (!Global.IsPresent)
-            {
-                scope = context.CurrentSheet;
-            }
-        }
-
-        if (ShouldProcess(Name, "Remove Excel named range"))
-        {
-            var removed = document.RemoveNamedRange(Name, scope, save: false);
-            if (removed && Save.IsPresent)
-            {
-                document.Save();
-            }
-            if (PassThru.IsPresent)
-            {
-                WriteObject(removed);
-            }
-        }
+    /// <inheritdoc />
+    protected override void ProcessRecord() {
+        var document = ExcelCommandTargets.Document(Document);
+        ExcelSheet? scope = Global ? null : Sheet == null ? (Document == null ? ExcelDslContext.Current?.CurrentSheet : null) : Sheet.Resolve(document.Sheets, sheet => sheet.Name);
+        bool changed = document.RemoveNamedRange(Name, scope, save: false);
+        if (PassThru) WriteObject(changed);
     }
+
 }
-#pragma warning restore CS1591

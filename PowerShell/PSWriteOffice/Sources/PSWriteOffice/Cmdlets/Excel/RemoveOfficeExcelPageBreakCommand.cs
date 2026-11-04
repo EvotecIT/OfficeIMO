@@ -10,22 +10,41 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Removes manual print page breaks from selected open worksheets.</summary>
 /// <example><summary>Clear manual breaks from report sheets before saving.</summary>
 /// <code>Open-OfficeExcel -Path ./Report.xlsx { Remove-OfficeExcelPageBreak -Sheet 'Report*' -All }</code></example>
+/// <example>
+/// <summary>Remove one page break</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+///     Remove-OfficeExcelPageBreak -Sheet Servers -Row 41
+/// }</code>
+/// <para>Removes the manual break above row 41.</para>
+/// </example>
+/// <example>
+/// <summary>Reset breaks before reprinting</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+///     Remove-OfficeExcelPageBreak -Sheet Servers, Services -All -PassThru
+/// }</code>
+/// <para>Removes every manual page break from the report sheets so the print layout can be set up again.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Remove, "OfficeExcelPageBreak", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelPageBreakInfo))]
 public sealed class RemoveOfficeExcelPageBreakCommand : OfficeDocumentCmdlet<ExcelDocument> {
     /// <summary>Worksheet names, wildcard patterns, one-based positions or native worksheets.</summary>
-    [Parameter(ParameterSetName = "Default"), OfficeSheetTransformation]
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
     public OfficeSheetSelector[]? Sheet { get; set; }
     /// <summary>One-based rows whose manual breaks are removed.</summary>
-    [Parameter, ValidateRange(1, 1048576)]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(1, 1048576)]
     public int[] Row { get; set; } = Array.Empty<int>();
     /// <summary>One-based columns whose manual breaks are removed.</summary>
-    [Parameter, ValidateRange(1, 16384)]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(1, 16384)]
     public int[] Column { get; set; } = Array.Empty<int>();
     /// <summary>Remove every manual row and column break on the selected worksheets.</summary>
-    [Parameter] public SwitchParameter All { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter All { get; set; }
     /// <summary>Emit a snapshot for each break actually removed.</summary>
-    [Parameter] public SwitchParameter PassThru { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {

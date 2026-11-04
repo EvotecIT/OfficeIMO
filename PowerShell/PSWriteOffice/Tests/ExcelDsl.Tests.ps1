@@ -367,7 +367,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $theme = Set-OfficeExcelTheme -Path $path -Default -Name 'Contoso Workbook Theme' -PassThru
+        $theme = Open-OfficeExcel -Path $path { Set-OfficeExcelTheme  -Theme Modern -Name 'Contoso Workbook Theme' -PassThru }
         $theme.HasTheme | Should -BeTrue
         $theme.Name | Should -Be 'Contoso Workbook Theme'
 
@@ -375,7 +375,7 @@ Describe 'Excel DSL surface' {
         $summary.HasTheme | Should -BeTrue
         $summary.ThemeName | Should -Be 'Contoso Workbook Theme'
 
-        $rename = Set-OfficeExcelTheme -Path $path -Name 'Renamed Workbook Theme' -PassThru
+        $rename = Open-OfficeExcel -Path $path { Set-OfficeExcelTheme  -Name 'Renamed Workbook Theme' -PassThru }
         $rename.HasTheme | Should -BeTrue
         $rename.Name | Should -Be 'Renamed Workbook Theme'
     }
@@ -409,8 +409,8 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $slicer = Add-OfficeExcelSlicer -Path $path -Name RegionSlicer -SourceName Region -PivotTableName SalesPivot -PassThru
-        $timeline = Add-OfficeExcelTimeline -Path $path -Name OrderDateTimeline -SourceName OrderDate -PivotTableName SalesPivot -PassThru
+        $slicer = Open-OfficeExcel -Path $path { Add-OfficeExcelSlicer  -Name RegionSlicer -SourceName Region -PivotTable SalesPivot -PassThru }
+        $timeline = Open-OfficeExcel -Path $path { Add-OfficeExcelSlicer -Timeline  -Name OrderDateTimeline -SourceName OrderDate -PivotTable SalesPivot -PassThru }
 
         $slicer.Kind | Should -Be 'Slicer'
         $slicer.ContentType | Should -Be 'application/xml'
@@ -436,7 +436,7 @@ Describe 'Excel DSL surface' {
 
         Add-TestWorkbookInteractionParts -Path $source
 
-        $copy = Copy-OfficeExcelWorkbook -Path $source -DestinationPath $destination -PassThru
+        $copy = New-OfficeExcel -Template $source -Path $destination -PassThru
 
         $copy.FullName | Should -Be $destination
         Test-Path $destination | Should -BeTrue
@@ -498,13 +498,13 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $connection = Add-OfficeExcelPackageMetadata -Path $path -Kind Connection -Xml $connectionXml -PassThru
-        $queryTable = Add-OfficeExcelPackageMetadata -Path $path -Kind QueryTable -WorksheetName Data -Xml $queryTableXml -PassThru
+        $connection = Open-OfficeExcel -Path $path { Add-OfficeExcelConnection  -Kind Connection -Xml $connectionXml -PassThru }
+        $queryTable = Open-OfficeExcel -Path $path { Add-OfficeExcelConnection  -Kind QueryTable -Sheet Data -Xml $queryTableXml -PassThru }
 
         $connection.Kind | Should -Be 'Connection'
         $connection.ContentType | Should -Be 'application/vnd.openxmlformats-officedocument.spreadsheetml.connections+xml'
         $queryTable.Kind | Should -Be 'QueryTable'
-        $queryTable.WorksheetName | Should -Be 'Data'
+        $queryTable.SheetName | Should -Be 'Data'
         $queryTable.ContentType | Should -Be 'application/vnd.openxmlformats-officedocument.spreadsheetml.queryTable+xml'
 
         $summary = Get-OfficeExcelSummary -Path $path -IncludeSchema
@@ -525,7 +525,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address B1 -Value 'Revenue'
                 Set-OfficeExcelCell -Address A2 -Value 'EU'
                 Set-OfficeExcelCell -Address B2 -Value 100
-                Set-OfficeExcelPrintLayout -Preset Report -PrintArea A1:D25 -RepeatFirstColumn 1 -RepeatLastColumn 1
+                Set-OfficeExcelPageSetup -Preset Report -PrintArea A1:D25 -RepeatColumns 'A:A'
             }
         }
 
@@ -541,10 +541,9 @@ Describe 'Excel DSL surface' {
         $titles | Should -Match '\$1:\$1'
         $titles | Should -Match '\$A:\$A'
 
-        $layoutResult = Set-OfficeExcelPrintLayout -Path $path -Sheet Report -Preset Worksheet -PassThru
-        $layoutResult.Path | Should -Be $path
-        $layoutResult.SheetName | Should -Be 'Report'
-        $layoutResult.Preset | Should -Be 'Worksheet'
+        $layoutResult = Open-OfficeExcel -Path $path { Set-OfficeExcelPageSetup  -Sheet Report -Preset Worksheet -PassThru }
+        $layoutResult.Name | Should -Be 'Report'
+        Get-TestWorkbookDefinedName -Path $path -Name '_xlnm.Print_Titles' | Should -BeNullOrEmpty
     }
 
     It 'adds dashboard chart presets through a thin command' {
@@ -557,7 +556,7 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Dashboard' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                $chart = Add-OfficeExcelDashboardChart -TableName Sales -Preset CompactComparison -Row 1 -Column 4 -Title 'Revenue' -PassThru
+                $chart = Add-OfficeExcelChart -Table Sales -Preset CompactComparison -Address D1 -Title 'Revenue' -PassThru
                 $chart.Title | Should -Be 'Revenue'
             }
         } | Out-Null
@@ -579,12 +578,10 @@ Describe 'Excel DSL surface' {
         )
 
         New-OfficeExcel -Path $path {
-            Add-OfficeExcelSheet -Name 'Dashboard' -Content {
-                $result = $rows | New-OfficeExcelDashboard -Title 'Sales Dashboard' -Subtitle 'Monthly revenue' -TableName 'Sales' -ChartPreset CompactComparison -ChartTitle 'Revenue' -PassThru
-                $result.TableRange | Should -Be 'A3:B5'
-                $result.TableName | Should -Be 'Sales'
-                $result.ChartTitle | Should -Be 'Revenue'
-                $result.ChartType | Should -Be 'BarClustered'
+            ExcelReportSheet Dashboard {
+                ExcelReportTitle 'Sales Dashboard' 'Monthly revenue'
+                $rows | ExcelReportTable -Name Sales
+                ExcelReportChart -Table Sales -Preset CompactComparison -Title Revenue
             }
         } | Out-Null
 
@@ -602,14 +599,13 @@ Describe 'Excel DSL surface' {
         )
 
         New-OfficeExcel -Path $path {
-            Add-OfficeExcelSheet -Name 'Dashboard' -Content {
-                $result = $rows | New-OfficeExcelDashboard -Title 'Document Dashboard' -TableName 'Documents' -NoChart -PassThru
-                $result.TableRange | Should -Be 'A3:C5'
-                $result.TableName | Should -Be 'Documents'
+            ExcelReportSheet Dashboard {
+                ExcelReportTitle 'Document Dashboard'
+                $rows | ExcelReportTable -Name Documents
             }
         } | Out-Null
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName Dashboard -Range 'A3:C5')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet Dashboard -Range 'A3:C5')
         $rows.Count | Should -Be 2
         $rows[0].Document | Should -Be 'Proposal'
         $rows[1].Document | Should -Be 'Contract'
@@ -646,7 +642,7 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path -SaveOptions @{ FullCalculationOnOpen = $true } {
             Add-OfficeExcelSheet -Name 'Calc' -Content {
                 Set-OfficeExcelCell -Address A1 -Value 2
-                Set-OfficeExcelFormula -Address B1 -Formula 'A1+1'
+                Set-OfficeExcelCell -Address B1 -Formula 'A1+1'
             }
         } | Out-Null
 
@@ -694,7 +690,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:C3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:C3')
         $imported[0].Property | Should -Be 'Region'
         $imported[0].Row1 | Should -Be 'Europe'
         $imported[0].Row2 | Should -Be 'Asia'
@@ -718,7 +714,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:C3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:C3')
         $imported[0].Property | Should -Be 'Name'
         $imported[0].Row1 | Should -Be 'One'
         $imported[0].Row2 | Should -Be 'Two'
@@ -788,7 +784,7 @@ Describe 'Excel DSL surface' {
         [void] $dataTable.Rows.Add('EMEA', 200)
         [void] $dataSet.Tables.Add($dataTable)
         New-OfficeExcel -Path $dataSetPath {
-            Add-OfficeExcelDataSet -DataSet $dataSet -ShowFirstColumn -ShowLastColumn -NoRowStripes -ShowColumnStripes
+            Add-OfficeExcelTable -InputObject $dataSet -ShowFirstColumn -ShowLastColumn -NoRowStripes -ShowColumnStripes
         }
 
         $tableParts = @(Get-ZipEntriesLocal -Path $dataSetPath | Where-Object { $_ -match '^xl/tables/[^/]+\.xml$' })
@@ -823,9 +819,12 @@ Describe 'Excel DSL surface' {
         }
         $doc = Open-OfficeExcel -Path $path
         try {
-            $result = $doc | Set-OfficeExcelExecutionPolicy -Mode Parallel -ParallelThreshold 3 -MaxDegreeOfParallelism 2 -WorksheetValidation Disabled -Diagnostics -DisableAutoFitImmediateSave -PassThru
-
-            $result | Should -Be $doc
+            $doc.Execution.Mode = 'Parallel'
+            $doc.Execution.ParallelThreshold = 3
+            $doc.Execution.MaxDegreeOfParallelism = 2
+            $doc.Execution.WorksheetValidation = 'Disabled'
+            $doc.Execution.DiagnosticsRequested = $true
+            $doc.Execution.SaveWorksheetAfterAutoFit = $false
             $doc.Execution.Mode.ToString() | Should -Be 'Parallel'
             $doc.Execution.ParallelThreshold | Should -Be 3
             $doc.Execution.MaxDegreeOfParallelism | Should -Be 2
@@ -855,7 +854,7 @@ Describe 'Excel DSL surface' {
         Test-Path $path | Should -BeTrue
     }
 
-    It 'preserves legacy Excel table data parameter aliases' {
+    It 'accepts objects and native DataTables through InputObject' {
         $path = Join-Path $TestDrive 'DslExcelTableDataAliases.xlsx'
         $rows = @(
             [PSCustomObject]@{ Item = 'Laptop'; Qty = 5 }
@@ -869,15 +868,15 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'DataAlias' -Content {
-                ExcelTable -Data $rows -Name 'RowsAlias'
+                ExcelTable -InputObject $rows -Name 'RowsAlias'
             }
             Add-OfficeExcelSheet -Name 'DataTableAlias' -Content {
-                ExcelTable -DataTable $table -Name 'TableAlias'
+                ExcelTable -InputObject $table -Name 'TableAlias'
             }
         }
 
-        $rowsAlias = @(Import-OfficeExcel -Path $path -WorksheetName 'DataAlias' -Range 'A1:B3')
-        $tableAlias = @(Import-OfficeExcel -Path $path -WorksheetName 'DataTableAlias' -Range 'A1:B2')
+        $rowsAlias = @(Import-OfficeExcel -Path $path -Sheet 'DataAlias' -Range 'A1:B3')
+        $tableAlias = @(Import-OfficeExcel -Path $path -Sheet 'DataTableAlias' -Range 'A1:B2')
         $rowsAlias[0].Item | Should -Be 'Laptop'
         $rowsAlias[1].Qty | Should -Be 12
         $tableAlias[0].Item | Should -Be 'Dock'
@@ -894,7 +893,7 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $table -Name 'PeopleTable' -AutoFit
+                Add-OfficeExcelTable -InputObject $table -Name 'PeopleTable'
             }
         }
 
@@ -903,7 +902,7 @@ Describe 'Excel DSL surface' {
         $tables.Count | Should -Be 1
         $tables[0].Range | Should -Be 'A1:B3'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
         $imported.Count | Should -Be 2
         $imported[0].Name | Should -Be 'Ada'
         $imported[0].Score | Should -Be 10
@@ -924,7 +923,7 @@ Describe 'Excel DSL surface' {
 
         $doc = Open-OfficeExcel -Path $path
         try {
-            $table = $doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) -PassThru
+            $table = $doc | Add-OfficeExcelTableRow -Sheet Data -Table Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) -PassThru
             $table.Range | Should -Be 'A1:B4'
 
             $doc | Save-OfficeExcel
@@ -937,7 +936,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B4')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B4')
         $imported.Count | Should -Be 3
         $imported[2].Region | Should -Be 'APAC'
         $imported[2].Revenue | Should -Be 300
@@ -958,9 +957,9 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        Add-OfficeExcelTableRow -Path $path -TableName Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 })
+        Open-OfficeExcel -Path $path { Add-OfficeExcelTableRow  -Table Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) }
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
         $imported.Count | Should -Be 2
         $imported[1].Region | Should -Be 'APAC'
         $imported[1].Revenue | Should -Be 300
@@ -979,11 +978,11 @@ Describe 'Excel DSL surface' {
         }
 
         $warnings = @()
-        $result = Add-OfficeExcelTableRow -Path $path -TableName Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) -PassThru -WarningVariable warnings
+        $result = Open-OfficeExcel -Path $path { Add-OfficeExcelTableRow  -Table Sales -InputObject ([pscustomobject]@{ Region = 'APAC'; Revenue = 300 }) -PassThru -WarningVariable warnings }
 
         $result | Should -BeNullOrEmpty
         $warnings[0].Message | Should -BeLike '*no live ExcelTable is emitted*'
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
         $imported.Count | Should -Be 2
         $imported[1].Region | Should -Be 'APAC'
         $imported[1].Revenue | Should -Be 300
@@ -1030,7 +1029,7 @@ Describe 'Excel DSL surface' {
         }
 
         foreach ($path in @($path1, $path2)) {
-            $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B3')
+            $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
             $imported.Count | Should -Be 2
             $imported[1].Region | Should -Be 'APAC'
             $imported[1].Revenue | Should -Be 300
@@ -1054,16 +1053,16 @@ Describe 'Excel DSL surface' {
         [void] $dataSet.Tables.Add($notes)
 
         New-OfficeExcel -Path $path {
-            Add-OfficeExcelDataSet -DataSet $dataSet -AutoFit
+            Add-OfficeExcelTable -InputObject $dataSet
         }
 
         Test-Path $path | Should -BeTrue
-        $salesRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026' -Range 'A1:B3')
+        $salesRows = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026' -Range 'A1:B3')
         $salesRows.Count | Should -Be 2
         $salesRows[1].Region | Should -Be 'EMEA'
         $salesRows[1].Revenue | Should -Be 200
 
-        $notesRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Notes' -Range 'A1:A2')
+        $notesRows = @(Import-OfficeExcel -Path $path -Sheet 'Notes' -Range 'A1:A2')
         $notesRows.Count | Should -Be 1
         $notesRows[0].Text | Should -Be 'Checked'
     }
@@ -1076,7 +1075,7 @@ Describe 'Excel DSL surface' {
         )
 
         $file = $rows |
-            Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales' -Title 'Sales Export' -AutoFit -FreezeTopRow -BoldTopRow -ExcludeProperty Internal -PassThru
+            Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales' -Title 'Sales Export'    -ExcludeProperty Internal -PassThru
 
         $file.FullName | Should -Be $path
         Test-Path $path | Should -BeTrue
@@ -1085,16 +1084,16 @@ Describe 'Excel DSL surface' {
         $tables.Count | Should -Be 1
         $tables[0].Range | Should -Be 'A2:B4'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A2:B4')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A2:B4')
         $imported.Count | Should -Be 2
         $imported[0].Region | Should -Be 'NA'
         $imported[0].Revenue | Should -Be 100
         $imported[0].PSObject.Properties.Name | Should -Not -Contain 'Internal'
 
-        { Import-OfficeExcel -Path $path -WorksheetName 'Data' -StartRow 4 -EndRow 2 -StartColumn 1 -EndColumn 2 } |
-            Should -Throw '*StartRow must be less than or equal to EndRow*'
-        { Import-OfficeExcel -Path $path -WorksheetName 'Data' -StartRow 2 -EndRow 4 -StartColumn 3 -EndColumn 1 } |
-            Should -Throw '*StartColumn must be less than or equal to EndColumn*'
+        { Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A0:B2' } |
+            Should -Throw
+        { Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'XFE1:XFE2' } |
+            Should -Throw
     }
 
     It 'exports plain objects through the default table path' {
@@ -1104,13 +1103,13 @@ Describe 'Excel DSL surface' {
             [PSCustomObject]@{ Region = 'EMEA'; Revenue = 200; Created = [DateTime] '2026-01-02'; Enabled = $false }
         )
 
-        $rows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales'
+        $rows | Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales'
 
         $tables = @(Get-OfficeExcelTable -Path $path | Where-Object Name -eq 'Sales')
         $tables.Count | Should -Be 1
         $tables[0].Range | Should -Be 'A1:D3'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:D3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:D3')
         $imported.Count | Should -Be 2
         $imported[0].Region | Should -Be 'NA'
         $imported[0].Revenue | Should -Be 100
@@ -1123,12 +1122,12 @@ Describe 'Excel DSL surface' {
         $path = Join-Path $TestDrive 'ExportOfficeExcelAppendNoClobber.xlsx'
 
         [PSCustomObject]@{ Region = 'NA'; Revenue = 100 } |
-            Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales'
+            Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales'
 
         [PSCustomObject]@{ Region = 'EMEA'; Revenue = 200 } |
-            Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales' -Append -NoClobber
+            Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales' -Append -NoClobber
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data')
         $imported.Count | Should -Be 2
         $imported[0].Region | Should -Be 'NA'
         $imported[1].Region | Should -Be 'EMEA'
@@ -1139,12 +1138,12 @@ Describe 'Excel DSL surface' {
         $path = Join-Path $TestDrive 'ExportOfficeExcelClearSheetNoClobber.xlsx'
 
         [PSCustomObject]@{ Region = 'NA'; Revenue = 100 } |
-            Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales'
+            Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales'
 
         [PSCustomObject]@{ Region = 'APAC'; Revenue = 300 } |
-            Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales' -ClearSheet -NoClobber
+            Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales' -ReplaceSheet
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data')
         $imported.Count | Should -Be 1
         $imported[0].Region | Should -Be 'APAC'
         $imported[0].Revenue | Should -Be 300
@@ -1156,10 +1155,12 @@ Describe 'Excel DSL surface' {
             [PSCustomObject]@{ Id = '00042'; Revenue = 1234.5; Rate = 0.125; Created = [DateTime] '2026-06-23' }
         )
 
-        $rows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales' -TextColumn Id -CurrencyColumn Revenue -ColumnFormat @{
+        $rows | Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales' -ColumnFormat @{
+            Id = 'Text'
+            Revenue = 'Currency'
             Rate = @{ Style = 'Percent'; Decimals = 1 }
             Created = 'Date'
-        } -FormatCultureName en-US -AutoFitFormattedColumn
+        } -Culture en-US
 
         $sheetXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $idCell = $sheetXml.SelectSingleNode("//*[local-name()='c' and @r='A2']")
@@ -1182,55 +1183,55 @@ Describe 'Excel DSL surface' {
         { $rows | Export-OfficeExcel -Path (Join-Path $TestDrive 'ExportOfficeExcelMissingColumnFormat.xlsx') -ColumnFormat @{ Missing = 'Integer' } -ErrorAction Stop } |
             Should -Throw '*Column format headers were not found*'
 
-        { $rows | Export-OfficeExcel -Path (Join-Path $TestDrive 'ExportOfficeExcelNoHeaderColumnFormat.xlsx') -NoHeader -CurrencyColumn Revenue -ErrorAction Stop } |
+        { $rows | Export-OfficeExcel -Path (Join-Path $TestDrive 'ExportOfficeExcelNoHeaderColumnFormat.xlsx') -NoHeader -ColumnFormat @{ Revenue = 'Currency' } -ErrorAction Stop } |
             Should -Throw '*require a header row*'
 
         $rawAppendPath = Join-Path $TestDrive 'ExportOfficeExcelRawAppendMissingHeader.xlsx'
         @([PSCustomObject]@{ Region = 'Revenue'; Amount = 100 }) |
-            Export-OfficeExcel -Path $rawAppendPath -WorksheetName 'Data' -NoTable
-        { [PSCustomObject]@{ Region = 'EMEA'; Amount = 200 } | Export-OfficeExcel -Path $rawAppendPath -WorksheetName 'Data' -Append -NoTable -CurrencyColumn Revenue -ErrorAction Stop } |
+            Export-OfficeExcel -Path $rawAppendPath -Sheet 'Data' -NoTable
+        { [PSCustomObject]@{ Region = 'EMEA'; Amount = 200 } | Export-OfficeExcel -Path $rawAppendPath -Sheet 'Data' -Append -NoTable -ColumnFormat @{ Revenue = 'Currency' } -ErrorAction Stop } |
             Should -Throw '*Column format headers were not found*'
 
         $rawAppendFormatPath = Join-Path $TestDrive 'ExportOfficeExcelRawAppendColumnFormats.xlsx'
         @([PSCustomObject]@{ Region = 'NA'; Revenue = 123.45 }) |
-            Export-OfficeExcel -Path $rawAppendFormatPath -WorksheetName 'Data' -NoTable
+            Export-OfficeExcel -Path $rawAppendFormatPath -Sheet 'Data' -NoTable
         [PSCustomObject]@{ Region = 'EMEA'; Revenue = 987.65 } |
-            Export-OfficeExcel -Path $rawAppendFormatPath -WorksheetName 'Data' -Append -NoTable -CurrencyColumn Revenue -FormatCultureName en-US
+            Export-OfficeExcel -Path $rawAppendFormatPath -Sheet 'Data' -Append -NoTable -ColumnFormat @{ Revenue = 'Currency' } -Culture en-US
         $rawAppendSheetXml = Get-ZipXmlDocumentLocal -Path $rawAppendFormatPath -Entry 'xl/worksheets/sheet1.xml'
         $rawAppendRevenueCell = $rawAppendSheetXml.SelectSingleNode("//*[local-name()='c' and @r='B3']")
         $rawAppendRevenueCell.GetAttribute('s') | Should -Not -BeNullOrEmpty
 
         $rawAppendPartialFormatPath = Join-Path $TestDrive 'ExportOfficeExcelRawAppendPartialColumnFormats.xlsx'
         @([PSCustomObject]@{ Region = 'NA'; Revenue = 123.45 }) |
-            Export-OfficeExcel -Path $rawAppendPartialFormatPath -WorksheetName 'Data' -NoTable
+            Export-OfficeExcel -Path $rawAppendPartialFormatPath -Sheet 'Data' -NoTable
         [PSCustomObject]@{ Region = 'EMEA'; Revenue = 987.65 } |
-            Export-OfficeExcel -Path $rawAppendPartialFormatPath -WorksheetName 'Data' -Append -NoTable -CurrencyColumn Revenue -IntegerColumn Missing -IgnoreMissingColumnFormat -FormatCultureName en-US
+            Export-OfficeExcel -Path $rawAppendPartialFormatPath -Sheet 'Data' -Append -NoTable -ColumnFormat @{ Revenue = 'Currency'; Missing = 'Text' } -IgnoreMissingColumnFormat -Culture en-US
         $rawAppendPartialSheetXml = Get-ZipXmlDocumentLocal -Path $rawAppendPartialFormatPath -Entry 'xl/worksheets/sheet1.xml'
         $rawAppendPartialRevenueCell = $rawAppendPartialSheetXml.SelectSingleNode("//*[local-name()='c' and @r='B3']")
         $rawAppendPartialRevenueCell.GetAttribute('s') | Should -Not -BeNullOrEmpty
 
         $headerlessTableAppendPath = Join-Path $TestDrive 'ExportOfficeExcelHeaderlessTableAppendColumnFormats.xlsx'
         @([PSCustomObject]@{ Region = 'Revenue'; Amount = 100 }) |
-            Export-OfficeExcel -Path $headerlessTableAppendPath -WorksheetName 'Data' -TableName 'Sales' -NoHeader
-        { [PSCustomObject]@{ Region = 'EMEA'; Amount = 200 } | Export-OfficeExcel -Path $headerlessTableAppendPath -WorksheetName 'Data' -TableName 'Sales' -Append -NoHeader -CurrencyColumn Revenue -ErrorAction Stop } |
+            Export-OfficeExcel -Path $headerlessTableAppendPath -Sheet 'Data' -TableName 'Sales' -NoHeader
+        { [PSCustomObject]@{ Region = 'EMEA'; Amount = 200 } | Export-OfficeExcel -Path $headerlessTableAppendPath -Sheet 'Data' -TableName 'Sales' -Append -NoHeader -ColumnFormat @{ Revenue = 'Currency' } -ErrorAction Stop } |
             Should -Throw '*require a header row*'
 
         $headerlessRawAppendPath = Join-Path $TestDrive 'ExportOfficeExcelHeaderlessRawAppendColumnFormats.xlsx'
         @([PSCustomObject]@{ Region = 'Revenue'; Amount = 100 }) |
-            Export-OfficeExcel -Path $headerlessRawAppendPath -WorksheetName 'Data' -NoTable -NoHeader
-        { [PSCustomObject]@{ Region = 'EMEA'; Amount = 200 } | Export-OfficeExcel -Path $headerlessRawAppendPath -WorksheetName 'Data' -Append -NoTable -NoHeader -CurrencyColumn Revenue -ErrorAction Stop } |
+            Export-OfficeExcel -Path $headerlessRawAppendPath -Sheet 'Data' -NoTable -NoHeader
+        { [PSCustomObject]@{ Region = 'EMEA'; Amount = 200 } | Export-OfficeExcel -Path $headerlessRawAppendPath -Sheet 'Data' -Append -NoTable -NoHeader -ColumnFormat @{ Revenue = 'Currency' } -ErrorAction Stop } |
             Should -Throw '*require a header row*'
 
         $titlePath = Join-Path $TestDrive 'ExportOfficeExcelColumnFormatsWithTitle.xlsx'
-        $rows | Export-OfficeExcel -Path $titlePath -WorksheetName 'Data' -TableName 'Sales' -Title 'Sales Export' -CurrencyColumn Revenue -FormatCultureName en-US
+        $rows | Export-OfficeExcel -Path $titlePath -Sheet 'Data' -TableName 'Sales' -Title 'Sales Export' -ColumnFormat @{ Revenue = 'Currency' } -Culture en-US
         $titleSheetXml = Get-ZipXmlDocumentLocal -Path $titlePath -Entry 'xl/worksheets/sheet1.xml'
         $titleRevenueCell = $titleSheetXml.SelectSingleNode("//*[local-name()='c' and @r='B3']")
         $titleRevenueCell.GetAttribute('s') | Should -Not -BeNullOrEmpty
 
         $appendTitlePath = Join-Path $TestDrive 'ExportOfficeExcelAppendColumnFormatsWithTitle.xlsx'
-        $rows | Export-OfficeExcel -Path $appendTitlePath -WorksheetName 'Data' -TableName 'Sales' -Title 'Sales Export'
+        $rows | Export-OfficeExcel -Path $appendTitlePath -Sheet 'Data' -TableName 'Sales' -Title 'Sales Export'
         [PSCustomObject]@{ Id = '00043'; Revenue = 987.65; Rate = 0.2; Created = [DateTime] '2026-06-24' } |
-            Export-OfficeExcel -Path $appendTitlePath -WorksheetName 'Data' -TableName 'Sales' -Append -CurrencyColumn Revenue -FormatCultureName en-US
+            Export-OfficeExcel -Path $appendTitlePath -Sheet 'Data' -TableName 'Sales' -Append -ColumnFormat @{ Revenue = 'Currency' } -Culture en-US
         $appendTitleSheetXml = Get-ZipXmlDocumentLocal -Path $appendTitlePath -Entry 'xl/worksheets/sheet1.xml'
         $appendTitleRevenueCell = $appendTitleSheetXml.SelectSingleNode("//*[local-name()='c' and @r='B4']")
         $appendTitleRevenueCell.GetAttribute('s') | Should -Not -BeNullOrEmpty
@@ -1255,9 +1256,9 @@ Describe 'Excel DSL surface' {
 
         $appendNoHeaderExistingTablePath = Join-Path $TestDrive 'ExportOfficeExcelAppendNoHeaderExistingTableColumnFormats.xlsx'
         @([PSCustomObject]@{ Region = 'NA'; Revenue = 123.45 }) |
-            Export-OfficeExcel -Path $appendNoHeaderExistingTablePath -WorksheetName 'Data' -TableName 'Sales'
+            Export-OfficeExcel -Path $appendNoHeaderExistingTablePath -Sheet 'Data' -TableName 'Sales'
         [PSCustomObject]@{ Region = 'EMEA'; Revenue = 987.65 } |
-            Export-OfficeExcel -Path $appendNoHeaderExistingTablePath -WorksheetName 'Data' -TableName 'Sales' -Append -NoHeader -CurrencyColumn Revenue -FormatCultureName en-US
+            Export-OfficeExcel -Path $appendNoHeaderExistingTablePath -Sheet 'Data' -TableName 'Sales' -Append -NoHeader -ColumnFormat @{ Revenue = 'Currency' } -Culture en-US
         $appendNoHeaderExistingTableSheetXml = Get-ZipXmlDocumentLocal -Path $appendNoHeaderExistingTablePath -Entry 'xl/worksheets/sheet1.xml'
         $appendNoHeaderExistingTableRevenueCell = $appendNoHeaderExistingTableSheetXml.SelectSingleNode("//*[local-name()='c' and @r='B3']")
         $appendNoHeaderExistingTableRevenueCell.GetAttribute('s') | Should -Not -BeNullOrEmpty
@@ -1274,7 +1275,7 @@ Describe 'Excel DSL surface' {
         $dataSet.Tables.Add($sales)
         $dataSet.Tables.Add($inventory)
 
-        { $dataSet | Export-OfficeExcel -Path (Join-Path $TestDrive 'ExportOfficeExcelDataSetColumnFormats.xlsx') -CurrencyColumn Revenue -IntegerColumn Count -ErrorAction Stop } |
+        { $dataSet | Export-OfficeExcel -Path (Join-Path $TestDrive 'ExportOfficeExcelDataSetColumnFormats.xlsx') -ColumnFormat @{ Revenue = 'Currency'; Count = 'Integer' } -ErrorAction Stop } |
             Should -Not -Throw
         { $dataSet | Export-OfficeExcel -Path (Join-Path $TestDrive 'ExportOfficeExcelDataSetMissingColumnFormat.xlsx') -ColumnFormat @{ Missing = 'Integer' } -ErrorAction Stop } |
             Should -Throw '*not found in any DataSet worksheet*'
@@ -1290,10 +1291,10 @@ Describe 'Excel DSL surface' {
             [PSCustomObject]@{ Region = 'APAC'; Revenue = 150 }
         )
 
-        $rows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales' -AutoFit
-        $moreRows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -Append -TableName 'Sales' -AutoFit
+        $rows | Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales'
+        $moreRows | Export-OfficeExcel -Path $path -Sheet 'Data' -Append -TableName 'Sales'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B4')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B4')
         $imported.Count | Should -Be 3
         $imported[2].Region | Should -Be 'APAC'
         $imported[2].Revenue | Should -Be 150
@@ -1317,18 +1318,18 @@ Describe 'Excel DSL surface' {
             [PSCustomObject]@{ Region = 'APAC'; Revenue = 150 }
         )
 
-        $rows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales'
-        $moreRows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -Append -AppendToTable -TableName 'Sales'
+        $rows | Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales'
+        $moreRows | Export-OfficeExcel -Path $path -Sheet 'Data' -Append -TableName 'Sales'
 
         $tables = @(Get-OfficeExcelTable -Path $path | Where-Object Name -eq 'Sales')
         $tables.Count | Should -Be 1
         $tables[0].Range | Should -Be 'A1:B4'
 
         $wrongRows = @([PSCustomObject]@{ Region = 'LATAM'; Amount = 400 })
-        { $wrongRows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -Append -AppendToTable -TableName 'Sales' } |
+        { $wrongRows | Export-OfficeExcel -Path $path -Sheet 'Data' -Append -TableName 'Sales' } |
             Should -Throw
 
-        { $moreRows | Export-OfficeExcel -Path $path -WorksheetName 'Missing' -Append -AppendToTable -TableName 'Sales' } |
+        { $moreRows | Export-OfficeExcel -Path $path -Sheet 'Missing' -Append -TableName 'Sales' } |
             Should -Throw
     }
 
@@ -1340,9 +1341,9 @@ Describe 'Excel DSL surface' {
         [void] $table.Rows.Add('NA', 100)
         [void] $table.Rows.Add('EMEA', 200)
 
-        Export-OfficeExcel -Path $path -InputObject $table -WorksheetName 'Data' -TableName 'Sales' -AutoFit
+        Export-OfficeExcel -Path $path -InputObject $table -Sheet 'Data' -TableName 'Sales'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
         $imported.Count | Should -Be 2
         $imported[0].Region | Should -Be 'NA'
         $imported[0].Revenue | Should -Be 100
@@ -1358,9 +1359,9 @@ Describe 'Excel DSL surface' {
         [void] $table.Rows.Add('B', 2)
         $reader = $table.CreateDataReader()
 
-        Export-OfficeExcel -Path $path -InputObject $reader -WorksheetName 'Data' -TableName 'SqlRows' -AutoFit -FreezeTopRow
+        Export-OfficeExcel -Path $path -InputObject $reader -Sheet 'Data' -TableName 'SqlRows'
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Data')
         $rows.Count | Should -Be 2
         $rows[0].Name | Should -Be 'A'
         $rows[1].Value | Should -Be 2
@@ -1375,7 +1376,7 @@ Describe 'Excel DSL surface' {
         [void] $table.Rows.Add('B', 2)
         $reader = $table.CreateDataReader()
 
-        Export-OfficeExcel -Path $path -InputObject $reader -WorksheetName 'Data' -TableName 'SqlRows'
+        Export-OfficeExcel -Path $path -InputObject $reader -Sheet 'Data' -TableName 'SqlRows'
 
         $reader.IsClosed | Should -BeFalse
         $archive = [System.IO.Compression.ZipFile]::OpenRead($path)
@@ -1405,7 +1406,7 @@ Describe 'Excel DSL surface' {
         $tableXml | Should -Match 'ref="A1:B3"'
         $tableXml | Should -Match '<autoFilter ref="A1:B3"'
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Data')
         $rows.Count | Should -Be 2
         $rows[0].Name | Should -Be 'A'
         $rows[1].Value | Should -Be 2
@@ -1414,7 +1415,7 @@ Describe 'Excel DSL surface' {
     It 'preserves an existing workbook when the compact IDataReader export fails' {
         $path = Join-Path $TestDrive 'ExportOfficeExcelDataReaderFailure.xlsx'
         [PSCustomObject]@{ Name = 'Original'; Value = 42 } |
-            Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'OriginalRows'
+            Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'OriginalRows'
         $beforeHash = (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash
 
         $table = [System.Data.DataTable]::new('SqlRows')
@@ -1424,13 +1425,13 @@ Describe 'Excel DSL surface' {
         $reader = $table.CreateDataReader()
         $reader.Close()
 
-        { Export-OfficeExcel -Path $path -InputObject $reader -WorksheetName 'Data' -TableName 'SqlRows' -ErrorAction Stop } |
+        { Export-OfficeExcel -Path $path -InputObject $reader -Sheet 'Data' -TableName 'SqlRows' -ErrorAction Stop } |
             Should -Throw
 
         (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash | Should -Be $beforeHash
         @(Get-ChildItem -LiteralPath $TestDrive -Filter '.*.tmp.xlsx').Count |
             Should -Be 0
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Data')
         $rows.Count | Should -Be 1
         $rows[0].Name | Should -Be 'Original'
         $rows[0].Value | Should -Be 42
@@ -1447,7 +1448,7 @@ Describe 'Excel DSL surface' {
             $path,
             'late destination')
 
-        { Export-OfficeExcel -Path $path -InputObject $reader -WorksheetName 'Data' -NoClobber -ErrorAction Stop } |
+        { Export-OfficeExcel -Path $path -InputObject $reader -Sheet 'Data' -NoClobber -ErrorAction Stop } |
             Should -Throw
 
         [System.IO.File]::ReadAllText($path) | Should -Be 'late destination'
@@ -1463,7 +1464,7 @@ Describe 'Excel DSL surface' {
         [void] $table.Rows.Add('A')
         $reader = $table.CreateDataReader()
 
-        { Export-OfficeExcel -Path $path -InputObject $reader -WorksheetName 'Data' -Append -AppendToTable -ErrorAction Stop } |
+        { Export-OfficeExcel -Path $path -InputObject $reader -Sheet 'Data' -Append -TableName Rows -ErrorAction Stop } |
             Should -Throw
 
         $path | Should -Not -Exist
@@ -1479,9 +1480,9 @@ Describe 'Excel DSL surface' {
         [void] $table.Rows.Add('Alpha', 'https://example.com/a', 'Ready')
         [void] $table.Rows.Add('Beta', 'https://example.com/b', 'Hold')
 
-        $table | Export-OfficeExcel -Path $path -WorksheetName 'Links' -TableName 'HtmlLinks' -AutoFit -FreezeTopRow
+        $table | Export-OfficeExcel -Path $path -Sheet 'Links' -TableName 'HtmlLinks'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Links' -Range 'A1:C3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Links' -Range 'A1:C3')
         $imported.Count | Should -Be 2
         $imported[0].Name | Should -Be 'Alpha'
         $imported[0].NameUrl | Should -Be 'https://example.com/a'
@@ -1508,10 +1509,10 @@ Describe 'Excel DSL surface' {
         [void] $inventory.Rows.Add('Laptop', 5)
         [void] $dataSet.Tables.Add($inventory)
 
-        Export-OfficeExcel -Path $path -InputObject $dataSet -TableName 'IgnoredForDataSet' -AutoFit
+        Export-OfficeExcel -Path $path -InputObject $dataSet -TableName 'IgnoredForDataSet'
 
-        $salesRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026' -Range 'A1:B2')
-        $inventoryRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Inventory' -Range 'A1:B2')
+        $salesRows = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026' -Range 'A1:B2')
+        $inventoryRows = @(Import-OfficeExcel -Path $path -Sheet 'Inventory' -Range 'A1:B2')
 
         $salesRows.Count | Should -Be 1
         $salesRows[0].Region | Should -Be 'NA'
@@ -1541,8 +1542,8 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $dataSet -ExcludeProperty Secret
 
-        $firstRows = @(Import-OfficeExcel -Path $path -WorksheetName 'T' -Range 'A1:A2')
-        $secondRows = @(Import-OfficeExcel -Path $path -WorksheetName 'T (2)' -Range 'A1:A2')
+        $firstRows = @(Import-OfficeExcel -Path $path -Sheet 'T' -Range 'A1:A2')
+        $secondRows = @(Import-OfficeExcel -Path $path -Sheet 'T (2)' -Range 'A1:A2')
 
         $firstRows.Count | Should -Be 1
         $firstRows[0].Name | Should -Be 'Inherited'
@@ -1573,7 +1574,7 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $appendSet -Append
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026' -Range 'A1:B3')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026' -Range 'A1:B3')
         $rows.Count | Should -Be 2
         $rows[1].Region | Should -Be 'EMEA'
         $rows[1].Revenue | Should -Be 200
@@ -1585,9 +1586,9 @@ Describe 'Excel DSL surface' {
         [void] $replacementSales.Rows.Add('APAC', 300)
         [void] $replacementSet.Tables.Add($replacementSales)
 
-        Export-OfficeExcel -Path $path -InputObject $replacementSet -ClearSheet
+        Export-OfficeExcel -Path $path -InputObject $replacementSet -ReplaceSheet
 
-        $replaced = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026' -Range 'A1:B2')
+        $replaced = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026' -Range 'A1:B2')
         $replaced.Count | Should -Be 1
         $replaced[0].Region | Should -Be 'APAC'
         $replaced[0].Revenue | Should -Be 300
@@ -1620,7 +1621,7 @@ Describe 'Excel DSL surface' {
             Close-OfficeExcel -Document $doc
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName '_' -Range 'A1:B2')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet '_' -Range 'A1:B2')
         $rows.Count | Should -Be 1
         $rows[0].Region | Should -Be 'NA'
         $rows[0].Revenue | Should -Be 100
@@ -1634,7 +1635,7 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $appendSet -Append
 
-        $appendedRows = @(Import-OfficeExcel -Path $path -WorksheetName '_' -Range 'A1:B3')
+        $appendedRows = @(Import-OfficeExcel -Path $path -Sheet '_' -Range 'A1:B3')
         $appendedRows.Count | Should -Be 2
         $appendedRows[1].Region | Should -Be 'EMEA'
         $appendedRows[1].Revenue | Should -Be 200
@@ -1646,9 +1647,9 @@ Describe 'Excel DSL surface' {
         [void] $replacementTable.Rows.Add('APAC', 300)
         [void] $replacementSet.Tables.Add($replacementTable)
 
-        Export-OfficeExcel -Path $path -InputObject $replacementSet -ClearSheet
+        Export-OfficeExcel -Path $path -InputObject $replacementSet -ReplaceSheet
 
-        $replacedRows = @(Import-OfficeExcel -Path $path -WorksheetName '_' -Range 'A1:B2')
+        $replacedRows = @(Import-OfficeExcel -Path $path -Sheet '_' -Range 'A1:B2')
         $replacedRows.Count | Should -Be 1
         $replacedRows[0].Region | Should -Be 'APAC'
         $replacedRows[0].Revenue | Should -Be 300
@@ -1697,8 +1698,8 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $appendSet -Append
 
-        $firstRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026' -Range 'A1:B3')
-        $secondRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026 (2)' -Range 'A1:B3')
+        $firstRows = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026' -Range 'A1:B3')
+        $secondRows = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026 (2)' -Range 'A1:B3')
         $firstRows.Count | Should -Be 2
         $secondRows.Count | Should -Be 2
         $firstRows[1].Region | Should -Be 'APAC'
@@ -1724,10 +1725,10 @@ Describe 'Excel DSL surface' {
         [void] $replacementSlash.Rows.Add('EMEA', 600)
         [void] $replacementSet.Tables.Add($replacementSlash)
 
-        Export-OfficeExcel -Path $path -InputObject $replacementSet -ClearSheet
+        Export-OfficeExcel -Path $path -InputObject $replacementSet -ReplaceSheet
 
-        $replacedFirst = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026' -Range 'A1:B2')
-        $replacedSecond = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales_2026 (2)' -Range 'A1:B2')
+        $replacedFirst = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026' -Range 'A1:B2')
+        $replacedSecond = @(Import-OfficeExcel -Path $path -Sheet 'Sales_2026 (2)' -Range 'A1:B2')
         $replacedFirst.Count | Should -Be 1
         $replacedSecond.Count | Should -Be 1
         $replacedFirst[0].Revenue | Should -Be 500
@@ -1783,9 +1784,9 @@ Describe 'Excel DSL surface' {
             Close-OfficeExcel -Document $doc
         }
 
-        $underscoredRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Q1__Ops' -Range 'A1:B2')
-        $firstRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sparse' -Range 'A1:B2')
-        $sparseRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Sparse (10)' -Range 'A1:B2')
+        $underscoredRows = @(Import-OfficeExcel -Path $path -Sheet 'Q1__Ops' -Range 'A1:B2')
+        $firstRows = @(Import-OfficeExcel -Path $path -Sheet 'Sparse' -Range 'A1:B2')
+        $sparseRows = @(Import-OfficeExcel -Path $path -Sheet 'Sparse (10)' -Range 'A1:B2')
 
         $underscoredRows.Count | Should -Be 1
         $underscoredRows[0].Revenue | Should -Be 100
@@ -1822,9 +1823,9 @@ Describe 'Excel DSL surface' {
 
         Export-OfficeExcel -Path $path -InputObject $dataSet -Append
 
-        $newRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B2')
-        $lowestRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data (2)' -Range 'A1:B2')
-        $higherRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data (3)' -Range 'A1:B2')
+        $newRows = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B2')
+        $lowestRows = @(Import-OfficeExcel -Path $path -Sheet 'Data (2)' -Range 'A1:B2')
+        $higherRows = @(Import-OfficeExcel -Path $path -Sheet 'Data (3)' -Range 'A1:B2')
 
         $newRows.Count | Should -Be 1
         $newRows[0].Region | Should -Be 'NA'
@@ -1850,9 +1851,9 @@ Describe 'Excel DSL surface' {
         [void] $table.Rows.Add('New')
         [void] $dataSet.Tables.Add($table)
 
-        Export-OfficeExcel -Path $path -InputObject $dataSet -ClearSheet
+        Export-OfficeExcel -Path $path -InputObject $dataSet -ReplaceSheet
 
-        $newRows = @(Import-OfficeExcel -Path $path -WorksheetName 'Budget' -Range 'A1:A2')
+        $newRows = @(Import-OfficeExcel -Path $path -Sheet 'Budget' -Range 'A1:A2')
         $newRows.Count | Should -Be 1
         $newRows[0].Status | Should -Be 'New'
         $doc = Open-OfficeExcel -Path $path -ReadOnly
@@ -1901,11 +1902,11 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $table -Name 'Items' -AutoFit
+                Add-OfficeExcelTable -InputObject $table -Name 'Items'
             }
         }
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B3')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
         $imported.Count | Should -Be 2
         $imported[0].Name | Should -Be 'Laptop'
         $imported[0].Quantity | Should -Be 5
@@ -1941,8 +1942,8 @@ Describe 'Excel DSL surface' {
             [PSCustomObject]@{ Region = 'APAC'; Revenue = 150 }
         )
 
-        $rows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Sales' -Title 'Sales Export' -FreezeTopRow
-        $moreRows | Export-OfficeExcel -Path $path -WorksheetName 'Data' -Append -TableName 'Sales' -FreezeTopRow
+        $rows | Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Sales' -Title 'Sales Export'
+        $moreRows | Export-OfficeExcel -Path $path -Sheet 'Data' -Append -TableName 'Sales'
 
         $sheetXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $pane = $sheetXml.SelectSingleNode("/*[local-name()='worksheet']/*[local-name()='sheetViews']/*[local-name()='sheetView']/*[local-name()='pane']")
@@ -1959,9 +1960,9 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Items' -AutoFit
-                Add-OfficeExcelValidationList -Range 'C2:C3' -Values 'New','In Progress','Done'
-                Invoke-OfficeExcelAutoFit -Columns
+                Add-OfficeExcelTable -InputObject $rows -Name 'Items'
+                Add-OfficeExcelValidation -Type List -Range 'C2:C3' -Values 'New','In Progress','Done'
+                Invoke-OfficeExcelAutoFit -Column '*'
             }
         }
 
@@ -1981,26 +1982,25 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelColumn -Column 1 -StartRow 2 -Values 'Alpha', 'Beta'
                 Set-OfficeExcelColumn -Column 2 -StartRow 2 -Values 10, 20
                 Set-OfficeExcelNamedRange -Name 'ManualRange' -Range 'A1:B3'
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -StartRow 5
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -Address A5
             }
         } | Out-Null
 
         $named = Get-OfficeExcelNamedRange -Path $path -Sheet 'Data' | Where-Object Name -eq 'ManualRange'
         $named | Should -Not -BeNullOrEmpty
 
-        $namedRangeType = Get-TestLoadedType -Name 'PSWriteOffice.Cmdlets.Excel.GetOfficeExcelNamedRangeCommand'
-        $normalizeRange = $namedRangeType.GetMethod('NormalizeRange', [System.Reflection.BindingFlags] 'NonPublic, Static')
-        $normalizeRange.Invoke($null, @("'Budget`$2026'!`$A`$1:`$B`$2")) | Should -Be "'Budget`$2026'!A1:B2"
+        $named.Range | Should -Be 'A1:B3'
+        $named.SheetName | Should -Be 'Data'
 
         $tables = Get-OfficeExcelTable -Path $path | Where-Object Name -eq 'Sales'
         $tables | Should -Not -BeNullOrEmpty
 
-        $namedRows = @($named | Import-OfficeExcel)
+        $namedRows = @(Import-OfficeExcel -LiteralPath $named.Path -Sheet $named.Sheet -Range $named.Range)
         $namedRows.Count | Should -Be 2
         $namedRows[0].Name | Should -Be 'Alpha'
         $namedRows[0].Value | Should -Be 10
 
-        $tableRows = @($tables | Import-OfficeExcel)
+        $tableRows = @(Import-OfficeExcel -LiteralPath $tables.Path -Table $tables.Name)
         $tableRows.Count | Should -Be 2
         $tableRows[1].Name | Should -Be 'Beta'
         $tableRows[1].Value | Should -Be 20
@@ -2024,19 +2024,19 @@ Describe 'Excel DSL surface' {
             $remoteRows.Count | Should -Be 2
             $remoteRows[1].Name | Should -Be 'Beta'
 
-            $remoteRange = @(Get-OfficeExcelRange -Uri $uri -AllowHttp -Sheet 'Data' -Range 'A1:B3')
+            $remoteRange = @(Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -Range 'A1:B3')
             $remoteRange.Count | Should -Be 2
             $remoteRange[0].Value | Should -Be 10
 
-            $remoteUsedRange = Get-OfficeExcelUsedRange -Uri $uri -AllowHttp -Sheet 'Data' -AsDataTable
+            $remoteUsedRange = Import-OfficeExcel -Uri $uri -AllowHttp -Sheet 'Data' -As DataTable
             $remoteUsedRange.Rows.Count | Should -Be 6
 
             $remoteTables = Get-OfficeExcelTable -Uri $uri -AllowHttp | Where-Object Name -eq 'Sales'
-            $remoteTableRows = @($remoteTables | Import-OfficeExcel -AllowHttp)
+            $remoteTableRows = @(Import-OfficeExcel -Uri $remoteTables.Uri -AllowHttp -Table $remoteTables.Name)
             $remoteTableRows.Count | Should -Be 2
 
             $remoteNamed = Get-OfficeExcelNamedRange -Uri $uri -AllowHttp -Sheet 'Data' | Where-Object Name -eq 'ManualRange'
-            $remoteNamedRows = @($remoteNamed | Import-OfficeExcel -AllowHttp)
+            $remoteNamedRows = @(Import-OfficeExcel -Uri $remoteNamed.Uri -AllowHttp -Sheet $remoteNamed.Sheet -Range $remoteNamed.Range)
             $remoteNamedRows.Count | Should -Be 2
 
             $remoteDoc = Open-OfficeExcel -Uri $uri -AllowHttp -ReadOnly
@@ -2060,7 +2060,7 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Set-OfficeExcelCell -Address A1 -Value 'Status' -GradientFrom '#FF0000' -GradientTo '#00FF00' -GradientDegree 45
+                Set-OfficeExcelCell -Address A1 -Value 'Status' -GradientFrom '#FF0000' -GradientTo '#00FF00' -GradientAngle 45
             }
         }
 
@@ -2083,8 +2083,8 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Set-OfficeExcelRow -Row 1 -Values 'Name', 'Notes' -Bold $true -WrapText $true -Height 28 -FirstColumn 1 -LastColumn 2
-                Set-OfficeExcelRow -Row 2 -Values 'Alpha', "Line 1`nLine 2" -AutoFit -Hidden $false
+                Set-OfficeExcelRow -Row 1 -Values 'Name', 'Notes' -Bold:$true -WrapText:$true -Height 28 -FirstColumn 1 -LastColumn 2
+                Set-OfficeExcelRow -Row 2 -Values 'Alpha', "Line 1`nLine 2" -AutoFit -Hidden:$false
             }
         }
 
@@ -2103,8 +2103,8 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelRow -Row 1 -Values 'Region', 'Q1', 'Q2', 'Total'
                 Set-OfficeExcelRow -Row 2 -Values 'NA', 10, 12, 22
                 Set-OfficeExcelRow -Row 3 -Values 'EMEA', 20, 30, 50
-                Set-OfficeExcelRowGroup -StartRow 2 -EndRow 3 -Collapsed -SummaryBelow $true
-                Set-OfficeExcelColumnGroup -StartColumn B -EndColumn C -Collapsed -SummaryRight $true
+                Set-OfficeExcelRowGroup -StartRow 2 -EndRow 3 -Collapsed -SummaryAbove:$true
+                Set-OfficeExcelColumnGroup -StartColumn B -EndColumn C -Collapsed -SummaryLeft:$true
             }
         }
 
@@ -2142,7 +2142,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelRow -Row 4 -Values 'EMEA', 200, 4
                 Set-OfficeExcelRow -Row 5 -Values 'EMEA', 50, 1
 
-                $script:subtotal = Add-OfficeExcelSubtotalSummary -GroupColumn Region -ValueColumn Sales, Units -DataEndRow 5 -SummaryStartRow 7 -PassThru
+                $script:subtotal = Add-OfficeExcelSubtotal -GroupColumn Region -ValueColumn Sales, Units -DataEndRow 5 -SummaryStartRow 7 -PassThru
             }
         }
 
@@ -2162,7 +2162,7 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelRow -Row 1 -Values 'ID', 'SKU', 'Amount'
                 Set-OfficeExcelRow -Row 2 -Values 'A', 10, 2
                 Set-OfficeExcelRow -Row 3 -Values 'A', 15, 3
-                Add-OfficeExcelSubtotalSummary -GroupColumn ID -ValueColumn SKU -DataEndRow 3 -SummaryStartRow 5
+                Add-OfficeExcelSubtotal -GroupColumn ID -ValueColumn SKU -DataEndRow 3 -SummaryStartRow 5
             }
         }
 
@@ -2314,11 +2314,11 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'Name', 'Amount', 'Formula'
                 Set-OfficeExcelRow -Row 2 -Values 'Alpha', '1,25', ''
-                Set-OfficeExcelFormula -Address 'C2' -Formula 'SUM(1,2)'
+                Set-OfficeExcelCell -Address 'C2' -Formula 'SUM(1,2)'
             }
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:C2' -FormulaMode FormulaText -CultureName 'pl-PL')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:C2' -FormulaMode FormulaText -Culture 'pl-PL')
         $rows[0].Amount | Should -Be '1,25'
         $rows[0].Formula | Should -Be 'SUM(1,2)'
     }
@@ -2330,11 +2330,11 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelRow -Row 1 -Values 'A', 'B', 'Total'
                 Set-OfficeExcelRow -Row 2 -Values 10, 15, ''
-                Set-OfficeExcelFormula -Address 'C2' -Formula 'SUM(A2:B2)'
+                Set-OfficeExcelCell -Address 'C2' -Formula 'SUM(A2:B2)'
             }
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:C2')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:C2')
         $rows[0].Total | Should -Be 25
     }
 
@@ -2371,7 +2371,7 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        Invoke-OfficeExcelTemplate -Path $path -Sheet Invoice -Value @{ Number = 'INV-001'; Total = 123.4 } -CultureName en-US -MissingValueBehavior EmptyString -PassThru | Should -Be 3
+        Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -Sheet Invoice -Value @{ Number = 'INV-001'; Total = 123.4 } -Culture en-US -MissingValueBehavior EmptyString -PassThru } | Should -Be 3
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'Invoice INV-001'
@@ -2390,7 +2390,7 @@ Describe 'Excel DSL surface' {
         }
 
         $before = [System.IO.File]::ReadAllBytes($path)
-        Invoke-OfficeExcelTemplate -Path $path -Sheet Invoice -Value @{ Number = 'INV-001' } -WhatIf
+        Open-OfficeExcel -Path $path -WhatIf { Invoke-OfficeExcelTemplate  -Sheet Invoice -Value @{ Number = 'INV-001' } }
         $after = [System.IO.File]::ReadAllBytes($path)
 
         [Convert]::ToBase64String($after) | Should -Be ([Convert]::ToBase64String($before))
@@ -2439,7 +2439,7 @@ Describe 'Excel DSL surface' {
         @(
             [pscustomobject]@{ Name = 'Consulting'; Amount = 1200 }
             [pscustomobject]@{ Name = 'Support'; Amount = 300 }
-        ) | Invoke-OfficeExcelTemplateRow -Path $path -Sheet Invoice -TemplateRow 2 -CultureName en-US -MissingValueBehavior Throw -PassThru | Should -Be 4
+        ) | Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -Sheet Invoice -TemplateRow 2 -Culture en-US -MissingValueBehavior Throw -PassThru } | Should -Be 4
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'Consulting'
@@ -2467,7 +2467,7 @@ Describe 'Excel DSL surface' {
         $first = [System.Collections.Generic.Dictionary[string,object]]::new()
         $first['Name'] = 'Consulting'
         $first['Amount'] = 1200
-        Invoke-OfficeExcelTemplateRow -Path $path -Sheet Invoice -TemplateRow 2 -InputObject $first -CultureName en-US -MissingValueBehavior Throw -PassThru | Should -Be 2
+        Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -Sheet Invoice -TemplateRow 2 -InputObject $first -Culture en-US -MissingValueBehavior Throw -PassThru } | Should -Be 2
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'Consulting'
@@ -2489,7 +2489,7 @@ Describe 'Excel DSL surface' {
         $backing['Amount'] = 300
         $readOnly = [System.Collections.ObjectModel.ReadOnlyDictionary[string,object]]::new($backing)
 
-        Invoke-OfficeExcelTemplateRow -Path $readOnlyPath -Sheet Invoice -TemplateRow 2 -Rows $readOnly -CultureName en-US -MissingValueBehavior Throw -PassThru | Should -Be 2
+        Open-OfficeExcel -Path $readOnlyPath { Invoke-OfficeExcelTemplate  -Sheet Invoice -TemplateRow 2 -InputObject $readOnly -Culture en-US -MissingValueBehavior Throw -PassThru } | Should -Be 2
 
         $worksheetXml = Read-XlsxEntryText -Path $readOnlyPath -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'Support'
@@ -2514,7 +2514,7 @@ Describe 'Excel DSL surface' {
             [pscustomobject]@{ Name = 'Support'; Amount = 300 }
         )
 
-        Invoke-OfficeExcelTemplateRow -Path $path -Sheet Invoice -TemplateRow 2 -Rows $items -MissingValueBehavior Throw -PassThru | Should -Be 4
+        Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -Sheet Invoice -TemplateRow 2 -InputObject $items -MissingValueBehavior Throw -PassThru } | Should -Be 4
 
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'Consulting'
@@ -2534,12 +2534,12 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        Invoke-OfficeExcelTemplateOptionalRow -Path $path -Sheet Invoice -FirstRow 2 -Value @{ Discount = '10%' } -MissingValueBehavior Throw -PassThru | Should -Be 1
+        Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -Sheet Invoice -OptionalRow 2 -Value @{ Discount = '10%' } -MissingValueBehavior Throw -PassThru } | Should -Be 1
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'Discount 10%'
         $worksheetXml | Should -Not -Match '\{\{'
 
-        Invoke-OfficeExcelTemplateOptionalRow -Path $path -Sheet Invoice -FirstRow 2 -RowCount 1 -Remove
+        Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -Sheet Invoice -OptionalRow 2 -RowCount 1 -Remove }
         $worksheetXml = Read-XlsxEntryText -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $worksheetXml | Should -Match 'ref="A1:A2"'
         $worksheetXml | Should -Match 'r="A2"'
@@ -2560,7 +2560,7 @@ Describe 'Excel DSL surface' {
         @(
             [pscustomobject]@{ Number = 'INV-001'; Customer = 'Contoso'; SheetName = 'Inv-001' }
             [pscustomobject]@{ Number = 'INV-002'; Customer = 'Fabrikam'; SheetName = 'Inv-002' }
-        ) | Invoke-OfficeExcelTemplateSheet -Path $path -TemplateSheet Template -SheetNameProperty SheetName -MissingValueBehavior Throw -PassThru | Should -Be 4
+        ) | Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -TemplateSheet Template -SheetNameProperty SheetName -MissingValueBehavior Throw -PassThru } | Should -Be 4
 
         $workbookXml = Read-XlsxEntryText -Path $path -Entry 'xl/workbook.xml'
         $workbookXml | Should -Match 'name="Inv-001"'
@@ -2591,7 +2591,7 @@ Describe 'Excel DSL surface' {
             [pscustomobject]@{ Number = 'INV-102'; Customer = 'Adventure Works'; SheetName = 'Inv-102' }
         )
 
-        Invoke-OfficeExcelTemplateSheet -Path $path -TemplateSheet Template -SheetNameProperty SheetName -Rows $invoices -MissingValueBehavior Throw -PassThru | Should -Be 4
+        Open-OfficeExcel -Path $path { Invoke-OfficeExcelTemplate  -TemplateSheet Template -SheetNameProperty SheetName -InputObject $invoices -MissingValueBehavior Throw -PassThru } | Should -Be 4
 
         $workbookXml = Read-XlsxEntryText -Path $path -Entry 'xl/workbook.xml'
         $workbookXml | Should -Match 'name="Inv-101"'
@@ -2620,7 +2620,7 @@ Describe 'Excel DSL surface' {
         $backing['SheetName'] = 'Inv-201'
         $readOnly = [System.Collections.ObjectModel.ReadOnlyDictionary[string,object]]::new($backing)
 
-        Invoke-OfficeExcelTemplateSheet -Path $readOnlyPath -TemplateSheet Template -SheetNameProperty SheetName -Rows $readOnly -MissingValueBehavior Throw -PassThru | Should -Be 2
+        Open-OfficeExcel -Path $readOnlyPath { Invoke-OfficeExcelTemplate  -TemplateSheet Template -SheetNameProperty SheetName -InputObject $readOnly -MissingValueBehavior Throw -PassThru } | Should -Be 2
 
         $workbookXml = Read-XlsxEntryText -Path $readOnlyPath -Entry 'xl/workbook.xml'
         $workbookXml | Should -Match 'name="Inv-201"'
@@ -2637,7 +2637,7 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 10
                 Set-OfficeExcelCell -Address 'B1' -Value 20
-                Set-OfficeExcelFormula -Address 'C1' -Formula 'SUM(A1:B1)'
+                Set-OfficeExcelCell -Address 'C1' -Formula 'SUM(A1:B1)'
                 Set-OfficeExcelNamedRange -Name 'Totals' -Range 'A1:C1'
                 ExcelHeader -Center 'Demo'
                 ExcelFooter -Right 'Page &P of &N'
@@ -2719,14 +2719,14 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
-                Add-OfficeExcelAutoFilter -Range 'A1:F4'
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+                Set-OfficeExcelAutoFilter -Range 'A1:F4'
                 Invoke-OfficeExcelSort -Header 'Region'
                 Set-OfficeExcelSheetView -FreezeRows 1
-                Add-OfficeExcelConditionalRule -Range 'B2:B4' -Operator GreaterThan -Formula1 '150'
-                Add-OfficeExcelConditionalDataBar -Range 'B2:B4' -Color '#FF4F81BD'
-                Add-OfficeExcelConditionalColorScale -Range 'C2:C4' -StartColor '#FE9' -EndColor '#6A84'
-                Add-OfficeExcelConditionalIconSet -Range 'C2:C4'
+                Add-OfficeExcelConditionalFormat -Range 'B2:B4' -Operator GreaterThan -Value '150'
+                Add-OfficeExcelConditionalFormat -DataBar -Range 'B2:B4' -Color '#FF4F81BD'
+                Add-OfficeExcelConditionalFormat -Range 'C2:C4' -StartColor '#FE9' -EndColor '#6A84'
+                Add-OfficeExcelConditionalFormat -Range 'C2:C4'
                 Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type ColumnClustered -Title 'Sales'
                 Add-OfficeExcelImage -Address 'I1' -Path $imagePath -Width 64px -Height 64px
                 Set-OfficeExcelHyperlink -Address 'A2' -Url 'https://example.org' -Display 'Example'
@@ -2766,18 +2766,18 @@ Describe 'Excel DSL surface' {
         $comments[0].Author | Should -Be 'Alice (AA)'
         $comments[0].Text | Should -Be 'Check sales'
 
-        Update-OfficeExcelComment -Path $path -Sheet Data -Address B2 -Text 'Should not save' -Author Nope -WhatIf
-        $whatIfComment = Get-OfficeExcelComment -Path $path -Sheet Data -Address B2
+        Open-OfficeExcel -Path $path -WhatIf { Update-OfficeExcelComment  -Sheet Data -Range B2 -Text 'Should not save' -Author Nope }
+        $whatIfComment = Get-OfficeExcelComment -Path $path -Sheet Data -Range B2
         $whatIfComment.Author | Should -Be 'Alice (AA)'
         $whatIfComment.Text | Should -Be 'Check sales'
 
-        Update-OfficeExcelComment -Path $path -Sheet Data -Address B2 -Text 'Reviewed sales' -Author Carol -Initials CC -PassThru | Should -Be 1
-        $updatedComment = Get-OfficeExcelComment -Path $path -Sheet Data -Address B2
+        Open-OfficeExcel -Path $path { Update-OfficeExcelComment  -Sheet Data -Range B2 -Text 'Reviewed sales' -Author Carol -Initials CC -PassThru } | Should -Be 1
+        $updatedComment = Get-OfficeExcelComment -Path $path -Sheet Data -Range B2
         $updatedComment.Author | Should -Be 'Carol (CC)'
         $updatedComment.Text | Should -Be 'Reviewed sales'
 
-        Clear-OfficeExcelComment -Path $path -Sheet Data -TextContains Reviewed -PassThru -Confirm:$false | Should -Be 1
-        @(Get-OfficeExcelComment -Path $path -Sheet Data -Address B2).Count | Should -Be 0
+        Open-OfficeExcel -Path $path { Remove-OfficeExcelComment  -Sheet Data -TextContains Reviewed -PassThru } | Should -Be 1
+        @(Get-OfficeExcelComment -Path $path -Sheet Data -Range B2).Count | Should -Be 0
     }
 
     It 'supports advanced Excel pivot, validation, and protection helpers' {
@@ -2811,14 +2811,14 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
-                Add-OfficeExcelPivotTable -SourceRange 'A1:F4' -DestinationCell 'J1' -RowField 'Region' -DataField 'Sales' -DataDisplayName 'Total Sales'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 1000 -AllowBlank:$false
-                Add-OfficeExcelValidationDecimal -Range 'C2:C4' -Operator Between -Formula1 0.0 -Formula2 1.0
-                Add-OfficeExcelValidationDate -Range 'D2:D4' -Operator GreaterThan -Formula1 ([datetime]'2024-01-01')
-                Add-OfficeExcelValidationTime -Range 'E2:E4' -Operator GreaterThan -Formula1 ([TimeSpan]'08:00:00')
-                Add-OfficeExcelValidationTextLength -Range 'F2:F4' -Operator Between -Formula1 1 -Formula2 20
-                Add-OfficeExcelValidationCustomFormula -Range 'G2:G4' -Formula 'LEN(A2)>0'
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+                Add-OfficeExcelPivotTable -Range 'A1:F4' -Address 'J1' -RowField 'Region' -DataField 'Sales' -DataDisplayName 'Total Sales'
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B4' -Operator Between -Value 1 -SecondValue 1000 -NoBlank:$false
+                Add-OfficeExcelValidation -Type Decimal -Range 'C2:C4' -Operator Between -Value 0.0 -SecondValue 1.0
+                Add-OfficeExcelValidation -Type Date -Range 'D2:D4' -Operator GreaterThan -Value ([datetime]'2024-01-01')
+                Add-OfficeExcelValidation -Type Time -Range 'E2:E4' -Operator GreaterThan -Value ([TimeSpan]'08:00:00')
+                Add-OfficeExcelValidation -Type TextLength -Range 'F2:F4' -Operator Between -Value 1 -SecondValue 20
+                Add-OfficeExcelValidation -Type Formula -Range 'G2:G4' -Formula 'LEN(A2)>0'
                 Protect-OfficeExcelSheet
                 Unprotect-OfficeExcelSheet
                 Protect-OfficeExcelSheet
@@ -2890,10 +2890,10 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelConditionalRule -Range 'B2:B4' -Operator GreaterThan -Formula1 '150'
-                Add-OfficeExcelConditionalColorScale -Range 'C2:C4' -StartColor '#FEE599' -EndColor '#6AA84F'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 1000 -AllowBlank:$false
-                Add-OfficeExcelValidationDecimal -Range 'C2:C4' -Operator Between -Formula1 0.0 -Formula2 1.0
+                Add-OfficeExcelConditionalFormat -Range 'B2:B4' -Operator GreaterThan -Value '150'
+                Add-OfficeExcelConditionalFormat -Range 'C2:C4' -StartColor '#FEE599' -EndColor '#6AA84F'
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B4' -Operator Between -Value 1 -SecondValue 1000 -NoBlank:$false
+                Add-OfficeExcelValidation -Type Decimal -Range 'C2:C4' -Operator Between -Value 0.0 -SecondValue 1.0
             }
         }
 
@@ -2911,8 +2911,8 @@ Describe 'Excel DSL surface' {
         ($validations | Where-Object Range -EQ 'B2:B4').Formula1 | Should -Be '1'
         ($validations | Where-Object Range -EQ 'B2:B4').Formula2 | Should -Be '1000'
 
-        Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Range 'B3' -Confirm:$false
-        Clear-OfficeExcelDataValidation -Path $path -Sheet Data -Range 'C3' -Confirm:$false
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data -Range 'B3' }
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data -Range 'C3' }
 
         @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Range 'B3').Count | Should -Be 0
         @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'C3').Count | Should -Be 0
@@ -2921,8 +2921,8 @@ Describe 'Excel DSL surface' {
         $worksheetXml | Should -Match 'sqref="B2 B4"'
         $worksheetXml | Should -Match 'sqref="C2 C4"'
 
-        Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -Confirm:$false
-        Clear-OfficeExcelDataValidation -Path $path -Sheet Data -Confirm:$false
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data }
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data }
 
         @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data).Count | Should -Be 0
         @(Get-OfficeExcelValidation -Path $path -Sheet Data).Count | Should -Be 0
@@ -2935,7 +2935,7 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 1
                 Set-OfficeExcelCell -Address 'A2' -Value 2
-                Add-OfficeExcelConditionalRule -Range 'A1:A2' -Operator GreaterThan -Formula1 '1'
+                Add-OfficeExcelConditionalFormat -Range 'A1:A2' -Operator GreaterThan -Value '1'
 
                 $rules = @(Get-OfficeExcelConditionalFormat -Range 'A2')
                 $rules.Count | Should -Be 1
@@ -2954,7 +2954,7 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelCell -Address 'B2' -Value 10
                 Set-OfficeExcelCell -Address 'B3' -Value 20
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 100
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B4' -Operator Between -Value 1 -SecondValue 100
 
                 $validations = @(Get-OfficeExcelValidation -Range 'B3')
                 $validations.Count | Should -Be 1
@@ -2980,16 +2980,16 @@ Describe 'Excel DSL surface' {
                 Set-OfficeExcelCell -Address 'C1' -Value ([datetime]'2026-06-22')
                 Set-OfficeExcelCell -Address 'C2' -Value ([datetime]'2026-06-21')
 
-                Add-OfficeExcelConditionalRule -Range 'A1:A3' -RuleType DuplicateValues
-                Add-OfficeExcelConditionalRule -Range 'A1:A3' -RuleType UniqueValues
-                Add-OfficeExcelConditionalRule -Range 'A1:A3' -RuleType ContainsText -Text Ready
-                Add-OfficeExcelConditionalRule -Range 'A1:A3' -RuleType BeginsWith -Text Blo
-                Add-OfficeExcelConditionalRule -Range 'B1:B3' -RuleType top10 -Rank 1
-                Add-OfficeExcelConditionalRule -Range 'B1:B3' -RuleType BelowAverage -EqualAverage -StandardDeviation 1
-                Add-OfficeExcelConditionalRule -Range 'D1:D3' -RuleType ContainsBlanks
-                Add-OfficeExcelConditionalRule -Range 'E1:E3' -RuleType NotContainsErrors
-                Add-OfficeExcelConditionalRule -Range 'C1:C3' -RuleType TimePeriod -TimePeriod Today
-                Add-OfficeExcelConditionalRule -Range 'B1:B3' -RuleType formula -Formula1 'B1>1' -StopIfTrue
+                Add-OfficeExcelConditionalFormat -Range 'A1:A3' -Rule DuplicateValues
+                Add-OfficeExcelConditionalFormat -Range 'A1:A3' -Rule UniqueValues
+                Add-OfficeExcelConditionalFormat -Range 'A1:A3' -Rule ContainsText -Text Ready
+                Add-OfficeExcelConditionalFormat -Range 'A1:A3' -Rule BeginsWith -Text Blo
+                Add-OfficeExcelConditionalFormat -Range 'B1:B3' -Rule top10 -Rank 1
+                Add-OfficeExcelConditionalFormat -Range 'B1:B3' -Rule BelowAverage -EqualAverage -StandardDeviation 1
+                Add-OfficeExcelConditionalFormat -Range 'D1:D3' -Rule ContainsBlanks
+                Add-OfficeExcelConditionalFormat -Range 'E1:E3' -Rule NotContainsErrors
+                Add-OfficeExcelConditionalFormat -Range 'C1:C3' -Rule TimePeriod -TimePeriod Today
+                Add-OfficeExcelConditionalFormat -Range 'B1:B3' -Rule formula -Value 'B1>1' -StopIfTrue
             }
         }
 
@@ -3017,7 +3017,7 @@ Describe 'Excel DSL surface' {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 'Region'
                 Set-OfficeExcelCell -Address 'A2' -Value 'EU'
-                $script:PowerQueryContextMetadata = Add-OfficeExcelPowerQueryMetadata -Name 'ContextQuery' -CommandText 'let Source = Excel.CurrentWorkbook() in Source' -PassThru
+                $script:PowerQueryContextMetadata = Add-OfficeExcelConnection -Name 'ContextQuery' -CommandText 'let Source = Excel.CurrentWorkbook() in Source' -PassThru
             }
         }
 
@@ -3040,9 +3040,9 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelConditionalRule -HeaderName Sales -TableName Sales -Operator GreaterThan -Formula1 '150' -PassThru | Should -Be 'B2:B4'
-                Add-OfficeExcelConditionalColorScale -ColumnName Sales -TableName Sales -StartColor '#FEE599' -EndColor '#6AA84F' -PassThru | Should -Be 'B2:B4'
-                Add-OfficeExcelValidationList -HeaderName Status -TableName Sales -Values 'New','Done' -PassThru | Should -Be 'C2:C4'
+                Add-OfficeExcelConditionalFormat -Header Sales -Table Sales -Operator GreaterThan -Value '150' -PassThru | Should -Be 'B2:B4'
+                Add-OfficeExcelConditionalFormat -Header Sales -Table Sales -StartColor '#FEE599' -EndColor '#6AA84F' -PassThru | Should -Be 'B2:B4'
+                Add-OfficeExcelValidation -Type List -Header Status -Table Sales -Values 'New','Done' -PassThru | Should -Be 'C2:C4'
             }
         }
 
@@ -3052,7 +3052,7 @@ Describe 'Excel DSL surface' {
         $validations = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Header Status -Table Sales)
         @($validations | Where-Object Range -EQ 'C2:C4').Count | Should -Be 1
 
-        $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -HeaderName Status -TableName Sales -PromptTitle Status -Prompt 'Pick a listed status' -ErrorTitle Invalid -ErrorMessage 'Use the list' -PassThru)
+        $updated = @(Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Header Status -Table Sales -PromptTitle Status -Prompt 'Pick a listed status' -ErrorTitle Invalid -ErrorMessage 'Use the list' -PassThru })
         $updated.Count | Should -Be 1
         $updated[0].Range | Should -Be 'C2:C4'
         $updated[0].PromptTitle | Should -Be 'Status'
@@ -3062,8 +3062,8 @@ Describe 'Excel DSL surface' {
         $worksheetXml | Should -Match 'sqref="C2:C4"'
         $worksheetXml | Should -Match 'promptTitle="Status"'
 
-        Clear-OfficeExcelConditionalFormatting -Path $path -Sheet Data -HeaderName Sales -TableName Sales -Confirm:$false
-        Clear-OfficeExcelDataValidation -Path $path -Sheet Data -ColumnName Status -TableName Sales -Confirm:$false
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data -Header Sales -Table Sales }
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data -Header Status -Table Sales }
 
         @(Get-OfficeExcelConditionalFormat -Path $path -Sheet Data -Header Sales -Table Sales).Count | Should -Be 0
         @(Get-OfficeExcelValidation -Path $path -Sheet Data -Header Status -Table Sales).Count | Should -Be 0
@@ -3080,11 +3080,11 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 1000
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B4' -Operator Between -Value 1 -SecondValue 1000
             }
         }
 
-        $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -PromptTitle 'Sales input' -Prompt 'Use 1-1000' -ErrorTitle 'Invalid sales' -ErrorMessage 'Use 1-1000' -PassThru)
+        $updated = @(Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B4' -PromptTitle 'Sales input' -Prompt 'Use 1-1000' -ErrorTitle 'Invalid sales' -ErrorMessage 'Use 1-1000' -PassThru })
         $updated.Count | Should -Be 1
         $updated[0].PromptTitle | Should -Be 'Sales input'
         $updated[0].Prompt | Should -Be 'Use 1-1000'
@@ -3105,7 +3105,7 @@ Describe 'Excel DSL surface' {
         $worksheetXml | Should -Match 'showInputMessage="(?:1|true)"'
         $worksheetXml | Should -Match 'showErrorMessage="(?:1|true)"'
 
-        $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -Prompt 'Use a whole number' -PassThru)
+        $updated = @(Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B4' -Prompt 'Use a whole number' -PassThru })
         $updated.Count | Should -Be 1
         $updated[0].PromptTitle | Should -Be 'Sales input'
         $updated[0].Prompt | Should -Be 'Use a whole number'
@@ -3123,7 +3123,7 @@ Describe 'Excel DSL surface' {
         $hiddenMessageXml = $worksheetXml -replace 'showInputMessage="(?:1|true)"', 'showInputMessage="0"' -replace 'showErrorMessage="(?:1|true)"', 'showErrorMessage="0"'
         Set-XlsxEntryTextLocal -Path $path -Entry 'xl/worksheets/sheet1.xml' -Text $hiddenMessageXml
 
-        $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -Prompt 'Keep prompt text hidden' -PassThru)
+        $updated = @(Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B4' -Prompt 'Keep prompt text hidden' -PassThru })
         $updated.Count | Should -Be 1
         $updated[0].PromptTitle | Should -Be 'Sales input'
         $updated[0].Prompt | Should -Be 'Keep prompt text hidden'
@@ -3150,15 +3150,15 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B3' -Operator Between -Formula1 1 -Formula2 1000
-                Add-OfficeExcelValidationWholeNumber -Range 'B4:B4' -Operator Between -Formula1 1 -Formula2 1000
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B3' -Operator Between -Value 1 -SecondValue 1000
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B4:B4' -Operator Between -Value 1 -SecondValue 1000
             }
         }
 
-        Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B3' -PromptTitle 'North sales' -Prompt 'Use north sales' -ErrorTitle 'North invalid' -ErrorMessage 'North error'
-        Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B4:B4' -PromptTitle 'South sales' -Prompt 'Use south sales' -ErrorTitle 'South invalid' -ErrorMessage 'South error'
+        Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B3' -PromptTitle 'North sales' -Prompt 'Use north sales' -ErrorTitle 'North invalid' -ErrorMessage 'North error' }
+        Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B4:B4' -PromptTitle 'South sales' -Prompt 'Use south sales' -ErrorTitle 'South invalid' -ErrorMessage 'South error' }
 
-        $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -Prompt 'Shared prompt' -PassThru)
+        $updated = @(Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B4' -Prompt 'Shared prompt' -PassThru })
         $updated.Count | Should -Be 2
 
         $firstRule = @(Get-OfficeExcelValidation -Path $path -Sheet Data -Range 'B2' | Where-Object Range -EQ 'B2:B3')[0]
@@ -3186,14 +3186,14 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B3' -Operator Between -Formula1 1 -Formula2 1000
-                Add-OfficeExcelValidationWholeNumber -Range 'B4:B4' -Operator Between -Formula1 1 -Formula2 1000
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B3' -Operator Between -Value 1 -SecondValue 1000
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B4:B4' -Operator Between -Value 1 -SecondValue 1000
             }
         }
 
-        Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B3' -PromptTitle 'Hidden sales' -Prompt 'Keep this hidden' -ShowInputMessage:$false
+        Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B3' -PromptTitle 'Hidden sales' -Prompt 'Keep this hidden' -ShowInputMessage:$false }
 
-        $updated = @(Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B2:B4' -Prompt 'Shared prompt' -PassThru)
+        $updated = @(Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B2:B4' -Prompt 'Shared prompt' -PassThru })
         $updated.Count | Should -Be 2
 
         $worksheet = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
@@ -3221,8 +3221,8 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B5' -Operator Between -Formula1 1 -Formula2 1000
-                Add-OfficeExcelValidationList -Range 'C5:D5' -Values 'New','Done'
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B5' -Operator Between -Value 1 -SecondValue 1000
+                Add-OfficeExcelValidation -Type List -Range 'C5:D5' -Values 'New','Done'
             }
         }
 
@@ -3231,8 +3231,8 @@ Describe 'Excel DSL surface' {
         $worksheetXml = $worksheetXml -replace 'sqref="C5:D5"', 'sqref="5:5"'
         Set-XlsxEntryTextLocal -Path $path -Entry 'xl/worksheets/sheet1.xml' -Text $worksheetXml
 
-        Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range 'B:B' -Prompt 'Whole column prompt'
-        Set-OfficeExcelDataValidationMessage -Path $path -Sheet Data -Range '5:5' -ErrorMessage 'Whole row error'
+        Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range 'B:B' -Prompt 'Whole column prompt' }
+        Open-OfficeExcel -Path $path { Set-OfficeExcelValidation  -Sheet Data -Range '5:5' -ErrorMessage 'Whole row error' }
 
         $worksheet = Get-ZipXmlDocumentLocal -Path $path -Entry 'xl/worksheets/sheet1.xml'
         $validations = @($worksheet.GetElementsByTagName('dataValidation', 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'))
@@ -3256,14 +3256,14 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelConditionalRule -Range 'B2:B4' -Operator GreaterThan -Formula1 '150'
-                Add-OfficeExcelValidationWholeNumber -Range 'B2:B4' -Operator Between -Formula1 1 -Formula2 1000
+                Add-OfficeExcelConditionalFormat -Range 'B2:B4' -Operator GreaterThan -Value '150'
+                Add-OfficeExcelValidation -Type WholeNumber -Range 'B2:B4' -Operator Between -Value 1 -SecondValue 1000
             }
         }
 
-        Clear-OfficeExcelRange -Path $path -Sheet Data -Range 'B2:B4' -Contents -DataValidations -ConditionalFormatting -Confirm:$false
+        Open-OfficeExcel -Path $path { Clear-OfficeExcelRange  -Sheet Data -Range 'B2:B4' -Include Values,Formulas,Comments,Hyperlinks,DataValidations,ConditionalFormatting }
 
-        $clearedRows = @(Get-OfficeExcelRange -Path $path -Sheet Data -Range 'A1:C4')
+        $clearedRows = @(Import-OfficeExcel -Path $path -Sheet Data -Range 'A1:C4')
         $clearedRows.Count | Should -Be 3
         foreach ($row in $clearedRows) {
             $row.Sales | Should -BeNullOrEmpty
@@ -3280,11 +3280,11 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             ExcelSheet -Name 'Summary' -Content {
-                ExcelRichText -Address A1 -Run @(
-                    ExcelTextRun 'Status: '
-                    ExcelTextRun 'Blocked' -Bold -Color Red -FontName 'Arial' -FontSize 14
-                    ExcelTextRun ' pending owner' -Italic -Underline
-                )
+                ExcelCell -Address A1 -Value {
+                    ExcelText 'Status: '
+                    ExcelText 'Blocked' -Bold -Color Red -Font 'Arial' -Size 14
+                    ExcelText ' pending review' -Italic -Underline Single
+                }
             }
         }
 
@@ -3293,16 +3293,16 @@ Describe 'Excel DSL surface' {
         $runs[0].Text | Should -Be 'Status: '
         $runs[1].Text | Should -Be 'Blocked'
         $runs[1].Bold | Should -BeTrue
-        $runs[1].FontColor | Should -Match 'FF0000'
-        $runs[1].FontName | Should -Be 'Arial'
-        $runs[1].FontSize | Should -Be 14
+        $runs[1].Color.ToString() | Should -Match 'FF0000'
+        $runs[1].FontFamily | Should -Be 'Arial'
+        $runs[1].FontSize.ToPoints() | Should -Be 14
         $runs[2].Italic | Should -BeTrue
         $runs[2].Underline | Should -BeTrue
 
         $roundTripPath = Join-Path $TestDrive 'DslExcelRichText.RoundTrip.xlsx'
         New-OfficeExcel -Path $roundTripPath {
             ExcelSheet -Name 'Summary' -Content {
-                ExcelRichText -Address A1 -Run $runs
+                ExcelCell -Address A1 -Value $runs
             }
         }
 
@@ -3313,10 +3313,10 @@ Describe 'Excel DSL surface' {
         $contextRuns = @()
         New-OfficeExcel -Path (Join-Path $TestDrive 'DslExcelRichText.Context.xlsx') {
             Add-OfficeExcelSheet -Name 'Summary' -Content {
-                Set-OfficeExcelRichText -Address A1 -Run @(
-                    'Context '
-                    @{ Text = 'read'; Bold = $true }
-                )
+                Set-OfficeExcelCell -Address A1 -Value {
+                    ExcelText 'Context '
+                    ExcelText 'read' -Bold
+                }
                 $contextRuns = @(Get-OfficeExcelRichText -Address A1)
                 $contextRuns.Count | Should -Be 2
                 $contextRuns[0].Text | Should -Be 'Context '
@@ -3398,7 +3398,7 @@ Describe 'Excel DSL surface' {
 
         $doc = Open-OfficeExcel -Path $path
         try {
-            ($doc | Rename-OfficeExcelNamedRange -Name 'Totals' -NewName 'GrandTotal' -Sheet 'Data' -Save -PassThru) | Should -BeTrue
+            ($doc | Rename-OfficeExcelNamedRange -Name 'Totals' -NewName 'GrandTotal' -Sheet 'Data'  -PassThru) | Should -BeTrue
             ($doc | Remove-OfficeExcelNamedRange -Name 'GrandTotal' -Sheet 'Data' -PassThru) | Should -BeTrue
         } finally {
             Close-OfficeExcel -Document $doc
@@ -3408,7 +3408,7 @@ Describe 'Excel DSL surface' {
 
         $doc = Open-OfficeExcel -Path $path
         try {
-            ($doc | Remove-OfficeExcelNamedRange -Name 'GrandTotal' -Sheet 'Data' -Save -PassThru) | Should -BeTrue
+            ($doc | Remove-OfficeExcelNamedRange -Name 'GrandTotal' -Sheet 'Data'  -PassThru) | Should -BeTrue
         } finally {
             Close-OfficeExcel -Document $doc
         }
@@ -3491,7 +3491,7 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelPivotTable -SourceRange 'A1:C4' -DestinationCell 'E1' -RowField 'Region' -PageField 'Product' -DataField 'Sales' -DataNumberFormat '#,##0' -GrandTotalCaption 'Overall' -FieldSort @{ Region = 'Ascending' } -FieldHiddenItems @{ Region = @('APAC') } -PageFieldSelection @{ Product = 'Standard' } -RefreshOnOpen -NoSaveSourceData -NoPreserveFormatting -DisableDrill
+                Add-OfficeExcelPivotTable -Range 'A1:C4' -Address 'E1' -RowField 'Region' -PageField 'Product' -DataField 'Sales' -DataNumberFormat '#,##0' -GrandTotalCaption 'Overall' -FieldSort @{ Region = 'Ascending' } -FieldHiddenItems @{ Region = @('APAC') } -PageFieldSelection @{ Product = 'Standard' } -RefreshOnOpen -SaveSourceData -PreserveFormatting -EnableDrill
             }
         }
 
@@ -3516,9 +3516,9 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelPivotTable -SourceRange 'A1:B4' -DestinationCell 'E1' -Name 'SalesPivot' -RowField 'Region' -DataField 'Sales' -NoRefreshOnOpen -SaveSourceData
-                Add-OfficeExcelPackageMetadata -Kind Connection -Xml $connectionXml
-                $result = Set-OfficeExcelRefreshOnOpen -NoSavePivotSourceData -PassThru
+                Add-OfficeExcelPivotTable -Range 'A1:B4' -Address 'E1' -Name 'SalesPivot' -RowField 'Region' -DataField 'Sales' -RefreshOnOpen -SaveSourceData
+                Add-OfficeExcelConnection -Kind Connection -Xml $connectionXml
+                $result = Set-OfficeExcelRefreshOnOpen -SavePivotSourceData -PassThru
                 $result.Enabled | Should -BeTrue
                 $result.PivotCacheCount | Should -Be 1
                 $result.ConnectionCount | Should -Be 1
@@ -3553,11 +3553,11 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelPivotTable -SourceRange 'A1:B4' -DestinationCell 'E1' -Name 'SalesPivot' -RowField 'Region' -DataField 'Sales'
-                Add-OfficeExcelConditionalRule -PivotTableName 'SalesPivot' -Operator GreaterThan -Formula1 '0' -PassThru | Should -Be 'F2:F2'
-                Add-OfficeExcelConditionalColorScale -PivotTableName 'SalesPivot' -StartColor '#FEE599' -EndColor '#6AA84F' -PassThru | Should -Be 'F2:F2'
-                Add-OfficeExcelConditionalDataBar -PivotTableName 'SalesPivot' -Color '#92D050' -PassThru | Should -Be 'F2:F2'
-                Add-OfficeExcelConditionalIconSet -PivotTableName 'SalesPivot' -PassThru | Should -Be 'F2:F2'
+                Add-OfficeExcelPivotTable -Range 'A1:B4' -Address 'E1' -Name 'SalesPivot' -RowField 'Region' -DataField 'Sales'
+                Add-OfficeExcelConditionalFormat -PivotTable 'SalesPivot' -Operator GreaterThan -Value '0' -PassThru | Should -Be 'F2:F2'
+                Add-OfficeExcelConditionalFormat -PivotTable 'SalesPivot' -StartColor '#FEE599' -EndColor '#6AA84F' -PassThru | Should -Be 'F2:F2'
+                Add-OfficeExcelConditionalFormat -DataBar -PivotTable 'SalesPivot' -Color '#92D050' -PassThru | Should -Be 'F2:F2'
+                Add-OfficeExcelConditionalFormat -PivotTable 'SalesPivot' -PassThru | Should -Be 'F2:F2'
             }
         }
 
@@ -3579,7 +3579,7 @@ Describe 'Excel DSL surface' {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
-                Add-OfficeExcelPivotTable -SourceRange 'A1:B4' -DestinationCell 'E1' -RowField 'Region' -DataField 'Sales'
+                Add-OfficeExcelPivotTable -Range 'A1:B4' -Address 'E1' -RowField 'Region' -DataField 'Sales'
                 Add-OfficeExcelSparkline -DataRange 'B2:B4' -LocationRange 'D2:D4' -Type Line
             }
         }
@@ -3617,10 +3617,10 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
                 Set-OfficeExcelPageSetup -FitToWidth 1 -FitToHeight 0
-                Set-OfficeExcelMargins -Preset Narrow
-                Set-OfficeExcelOrientation -Orientation Landscape
+                Set-OfficeExcelPageSetup -MarginPreset Narrow
+                Set-OfficeExcelPageSetup -Orientation Landscape
                 Set-OfficeExcelSheetView -NoGridlines
                 Set-OfficeExcelSheetView -FreezeRows 1 -FreezeColumns 1
                 Set-OfficeExcelSheet -Visibility Hidden
@@ -3694,8 +3694,8 @@ Describe 'Excel DSL surface' {
         }
         Copy-OfficeExcelSheet -Path $path -Source $sourcePath -Sheet External -Name ExternalCopy -CopyMode Package
         $join = Merge-OfficeExcelSheet -Path $path -Sheet 'Data' -SourceSheet 'More' -MatchColumnsByHeader
-        Set-OfficeExcelPrintArea -Path $path -Sheet 'Data' -Range 'A1:B4'
-        Set-OfficeExcelPrintTitles -Path $path -Sheet 'Data' -FirstRow 1 -LastRow 1
+        Open-OfficeExcel -Path $path { Set-OfficeExcelPageSetup  -Sheet 'Data' -PrintArea 'A1:B4' }
+        Open-OfficeExcel -Path $path { Set-OfficeExcelPageSetup  -Sheet 'Data' -RepeatRows '1:1' }
 
         $join.RowsCopied | Should -Be 1
         $join.TargetSheetName | Should -Be 'Data'
@@ -3704,15 +3704,15 @@ Describe 'Excel DSL surface' {
         $summary.Sheets[0].Name | Should -Be 'DataCopy'
         $summary.Sheets.Name | Should -Contain 'ExternalCopy'
 
-        $external = @(Import-OfficeExcel -Path $path -WorksheetName 'ExternalCopy' -Range 'A1:A2')
+        $external = @(Import-OfficeExcel -Path $path -Sheet 'ExternalCopy' -Range 'A1:A2')
         $external.Count | Should -Be 1
         $external[0].Name | Should -Be 'Imported'
 
-        $merged = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:B4')
+        $merged = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B4')
         $merged.Count | Should -Be 3
         $merged[2].Region | Should -Be 'APAC'
 
-        $differences = @(Compare-OfficeExcelRange -Path $path -LeftSheet 'Data' -RightSheet 'DataCopy')
+        $differences = @(Compare-OfficeExcelRange -ReferencePath $path -Sheet 'Data' -DifferenceSheet 'DataCopy')
         $differences.Count | Should -BeGreaterThan 0
 
         $names = @(Get-OfficeExcelNamedRange -Path $path -Sheet 'Data')
@@ -3749,8 +3749,8 @@ Describe 'Excel DSL surface' {
         $summary.Sheets.Name | Should -Contain 'MergedFirst'
         $summary.Sheets.Name | Should -Contain 'MergedSecond'
 
-        $first = @(Import-OfficeExcel -Path $targetPath -WorksheetName 'MergedFirst' -Range 'A1:A2')
-        $second = @(Import-OfficeExcel -Path $targetPath -WorksheetName 'MergedSecond' -Range 'A1:A2')
+        $first = @(Import-OfficeExcel -Path $targetPath -Sheet 'MergedFirst' -Range 'A1:A2')
+        $second = @(Import-OfficeExcel -Path $targetPath -Sheet 'MergedSecond' -Range 'A1:A2')
         $first[0].Name | Should -Be 'Alpha'
         $second[0].Name | Should -Be 'Beta'
     }
@@ -3768,13 +3768,13 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        @(Find-OfficeExcel -Path $path -Sheet 'Data' -Text 'Draft').Count | Should -Be 2
-        $numericMatch = @(Find-OfficeExcel -Path $path -Sheet 'Data' -Text '12' -Exact)
+        @(Find-OfficeExcel -Path $path -Sheet 'Data' -Pattern 'Draft').Count | Should -Be 2
+        $numericMatch = @(Find-OfficeExcel -Path $path -Sheet 'Data' -Pattern '12' -Exact)
         $numericMatch.Count | Should -Be 1
         $numericMatch[0].Value | Should -BeOfType ([double])
         $numericMatch[0].Value | Should -Be 12
-        Update-OfficeExcelText -Path $path -Sheet 'Data' -OldValue 'Draft' -NewValue 'Ready' -PassThru | Should -Be 2
-        Update-OfficeExcelText -Path $path -Sheet 'Data' -OldValue '12' -NewValue 'Twelve' -PassThru | Should -Be 0
+        Update-OfficeExcelText -Path $path -Sheet 'Data' -Pattern 'Draft' -Replacement 'Ready' -PassThru | Should -Be 2
+        Update-OfficeExcelText -Path $path -Sheet 'Data' -Pattern '12' -Replacement 'Twelve' -PassThru | Should -Be 0
         Edit-OfficeExcelRow -Path $path -Sheet 'Data' -ScriptBlock {
             param($row)
             if ($row.CellByHeader('Name').Value -eq 'Ada') {
@@ -3782,11 +3782,11 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $updated = @(Import-OfficeExcel -Path $path -WorksheetName 'Data' -Range 'A1:C3')
+        $updated = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:C3')
         $updated[0].Status | Should -Be 'Done'
         $updated[1].Status | Should -Be 'Ready'
         $updated[0].Score | Should -Be 12
-        @(Find-OfficeExcel -Path $path -Sheet 'Data' -Text '^Done$' -Regex).Count | Should -Be 1
+        @(Find-OfficeExcel -Path $path -Sheet 'Data' -Pattern '^Done$' -SimpleMatch).Count | Should -Be 1
     }
 
     It 'updates text in sparse worksheets without scanning the rectangular used range' {
@@ -3799,11 +3799,11 @@ Describe 'Excel DSL surface' {
             }
         }
 
-        $matches = @(Find-OfficeExcel -Path $path -Sheet 'Data' -Text 'Draft' -Exact)
+        $matches = @(Find-OfficeExcel -Path $path -Sheet 'Data' -Pattern 'Draft' -Exact)
         $matches.Count | Should -Be 2
         @($matches | ForEach-Object { $_.Address }) | Should -Contain 'A1'
         @($matches | ForEach-Object { $_.Address }) | Should -Contain 'XFD1048576'
-        Update-OfficeExcelText -Path $path -Sheet 'Data' -OldValue 'Draft' -NewValue 'Ready' -PassThru | Should -Be 2
+        Update-OfficeExcelText -Path $path -Sheet 'Data' -Pattern 'Draft' -Replacement 'Ready' -PassThru | Should -Be 2
     }
 
     It 'counts threaded comments in workbook summaries' {
@@ -3861,7 +3861,7 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
                 Set-OfficeExcelNamedRange -Name 'SalesData' -Range 'A1:B3'
             }
             Add-OfficeExcelSheet -Name 'Notes' -Content {
@@ -3870,25 +3870,25 @@ Describe 'Excel DSL surface' {
             }
         } | Out-Null
 
-        $usedRange = Get-OfficeExcelUsedRange -Path $path -Sheet 'Data' -AsDataTable
+        $usedRange = Import-OfficeExcel -Path $path -Sheet 'Data' -As DataTable
         $usedRange.Rows.Count | Should -Be 2
         $usedRange.Columns[0].ColumnName | Should -Be 'Region'
         $usedRange.Rows[0]['Region'] | Should -Be 'NA'
 
-        Add-OfficeExcelTableOfContents -Path $path -IncludeNamedRanges -AddBackLinks
+        Open-OfficeExcel -Path $path { Add-OfficeExcelTableOfContents  -IncludeNamedRanges -BackLink }
 
-        $tocRows = @(Get-OfficeExcelRange -Path $path -Sheet 'TOC' -Range 'A3:C5' -AsHashtable)
+        $tocRows = @(Import-OfficeExcel -Path $path -Sheet 'TOC' -Range 'A3:C5' -As Hashtable)
         $tocRows.Count | Should -Be 2
         $tocRows[0]['Sheet'] | Should -Be 'Data'
         $tocRows[0]['Named Ranges'] | Should -Match 'SalesData'
         $tocRows[1]['Sheet'] | Should -Be 'Notes'
 
-        $noteRows = @(Get-OfficeExcelRange -Path $path -Sheet 'Notes' -Range 'A1:B2')
+        $noteRows = @(Import-OfficeExcel -Path $path -Sheet 'Notes' -Range 'A1:B2')
         $noteRows.Count | Should -Be 1
         $noteRows[0].Label | Should -Be 'Generated'
         $noteRows[0].Value | Should -Be 'Yes'
 
-        $dataRows = @(Get-OfficeExcelRange -Path $path -Sheet 'Data' -Range 'A1:B3')
+        $dataRows = @(Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B3')
         $dataRows.Count | Should -Be 2
         $dataRows[0].Region | Should -Be 'NA'
 
@@ -4061,12 +4061,12 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
                 $chart = Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type Pie -Title 'Revenue Mix' -PassThru
                 $formattedChart = $chart |
                     Set-OfficeExcelChartLegend -Position Right -PassThru |
-                    Set-OfficeExcelChartDataLabels -ShowValue $true -ShowPercent $true -Position OutsideEnd -NumberFormat '0.0%' -SourceLinked:$false -PassThru |
-                    Set-OfficeExcelChartStyle -StyleId 251 -ColorStyleId 10 -PassThru
+                    Set-OfficeExcelChartDataLabel -ShowValue:$true -ShowPercent:$true -Position OutsideEnd -NumberFormat '0.0%' -SourceLinked:$false -PassThru |
+                    Set-OfficeExcelChart -Style 251 -ColorStyle 10 -PassThru
 
                 $formattedChart | Should -Not -BeNullOrEmpty
             }
@@ -4102,17 +4102,17 @@ Describe 'Excel DSL surface' {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
                 $chart = Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type Line -Title 'Revenue Trend' -PassThru
-                { $chart | Set-OfficeExcelChartSeries -SeriesIndex 0 -LineWidthPoints 1.5 -ErrorAction Stop } |
+                { $chart | Set-OfficeExcelChartSeries -Index 1 -LineWidth 1.5 -ErrorAction Stop } |
                     Should -Throw '*LineColor is required*'
-                { $chart | Set-OfficeExcelChartPoint -SeriesIndex 0 -PointIndex 1 -LineWidthPoints 1.5 -ErrorAction Stop } |
+                { $chart | Set-OfficeExcelChartSeries -Index 1 -Point 2 -LineWidth 1.5 -ErrorAction Stop } |
                     Should -Throw '*LineColor is required*'
                 $formattedChart = $chart |
-                    Set-OfficeExcelChartAxis -CategoryTitle 'Month' -ValueTitle 'Revenue' -ValueNumberFormat '$#,##0' -SourceLinked:$false -ValueMinimum 0 -ValueMajorUnit 100 -ShowValueMinorGridlines -ValueGridlineColor '#D9EAD3' -GridlineWidthPoints 0.75 -PassThru |
-                    Set-OfficeExcelChartSeries -SeriesIndex 0 -LineColor '#1F4E79' -LineWidthPoints 1.5 -MarkerStyle Circle -MarkerSize 6 -MarkerFillColor '#4472C4' -PassThru |
-                    Set-OfficeExcelChartPoint -SeriesName 'Revenue' -PointIndex 1 -FillColor '#70AD47' -LineColor '#7030A0' -LineWidthPoints 1.25 -PassThru |
-                    Set-OfficeExcelChartTrendline -SeriesIndex 0 -Type Linear -DisplayEquation -DisplayRSquared -LineColor '#C00000' -LineWidthPoints 1.25 -PassThru
+                    Set-OfficeExcelChartAxis -CategoryTitle 'Month' -ValueTitle 'Revenue' -ValueNumberFormat '$#,##0' -SourceLinked:$false -ValueMinimum 0 -ValueMajorUnit 100 -ShowValueMajorGridlines -ShowValueMinorGridlines -ValueGridlineColor '#D9EAD3' -GridlineWidth 0.75 -PassThru |
+                    Set-OfficeExcelChartSeries -Index 1 -LineColor '#1F4E79' -LineWidth 1.5 -MarkerStyle Circle -MarkerSize 6 -MarkerFillColor '#4472C4' -PassThru |
+                    Set-OfficeExcelChartSeries -Name 'Revenue' -Point 2 -FillColor '#70AD47' -LineColor '#7030A0' -LineWidth 1.25 -PassThru |
+                    Set-OfficeExcelChartTrendline -Index 1 -Type Linear -DisplayEquation -DisplayRSquared -LineColor '#C00000' -LineWidth 1.25 -PassThru
 
                 $formattedChart | Should -Not -BeNullOrEmpty
             }
@@ -4154,21 +4154,21 @@ Describe 'Excel DSL surface' {
             Tags = @('one', 'two')
         }
         $row | Add-Member -MemberType ScriptProperty -Name Broken -Value { throw 'boom' }
-        $row | Export-OfficeExcel -Path $path -WorksheetName 'Data' -TableName 'Rows'
+        $row | Export-OfficeExcel -Path $path -Sheet 'Data' -TableName 'Rows'
 
-        $imported = @(Import-OfficeExcel -Path $path -WorksheetName 'Data')
+        $imported = @(Import-OfficeExcel -Path $path -Sheet 'Data')
         $imported.Count | Should -Be 1
         $imported[0].Name | Should -Be 'Alpha'
         $imported[0].Tags | Should -Be 'one, two'
         $imported[0].PSObject.Properties.Name | Should -Not -Contain 'Broken'
 
         $strictPath = Join-Path $TestDrive 'ExportOfficeExcelPowerShellProjectionStrict.xlsx'
-        { $row | Export-OfficeExcel -Path $strictPath -PropertyConversionErrorAction Stop -ErrorAction Stop } |
+        { $row | Export-OfficeExcel -Path $strictPath -FlattenOptions @{ PropertyConversionErrorAction = 'Stop' } -ErrorAction Stop } |
             Should -Throw -ExpectedMessage "*Unable to read PowerShell property 'Broken'*"
 
         $placeholderPath = Join-Path $TestDrive 'ExportOfficeExcelPowerShellProjectionPlaceholder.xlsx'
-        $row | Export-OfficeExcel -Path $placeholderPath -IncludeUnexportableProperties
-        $placeholder = @(Import-OfficeExcel -Path $placeholderPath -WorksheetName 'Sheet1')
+        $row | Export-OfficeExcel -Path $placeholderPath -FlattenOptions @{ IncludeUnreadableProperties = $true }
+        $placeholder = @(Import-OfficeExcel -Path $placeholderPath -Sheet 'Sheet1')
         $placeholder[0].Broken | Should -BeLike 'Property export failed:*boom*'
 
         if (-not ('PSWriteOffice.Tests.ExcelClrProjectionRow' -as [type])) {
@@ -4187,19 +4187,19 @@ namespace PSWriteOffice.Tests {
 
         $clrRow = [PSWriteOffice.Tests.ExcelClrProjectionRow]::new()
         $clrPath = Join-Path $TestDrive 'ExportOfficeExcelClrProjection.xlsx'
-        $clrRow | Export-OfficeExcel -Path $clrPath -WorksheetName 'Data' -TableName 'Rows'
-        $clrImported = @(Import-OfficeExcel -Path $clrPath -WorksheetName 'Data')
+        $clrRow | Export-OfficeExcel -Path $clrPath -Sheet 'Data' -TableName 'Rows'
+        $clrImported = @(Import-OfficeExcel -Path $clrPath -Sheet 'Data')
         $clrImported[0].Name | Should -Be 'Alpha'
         $clrImported[0].Tags | Should -Be 'one, two'
         $clrImported[0].PSObject.Properties.Name | Should -Not -Contain 'Broken'
 
         $clrStrictPath = Join-Path $TestDrive 'ExportOfficeExcelClrProjectionStrict.xlsx'
-        { $clrRow | Export-OfficeExcel -Path $clrStrictPath -PropertyConversionErrorAction Stop -ErrorAction Stop } |
+        { $clrRow | Export-OfficeExcel -Path $clrStrictPath -FlattenOptions @{ PropertyConversionErrorAction = 'Stop' } -ErrorAction Stop } |
             Should -Throw -ExpectedMessage "*Unable to read CLR property 'Broken'*"
 
         $clrPlaceholderPath = Join-Path $TestDrive 'ExportOfficeExcelClrProjectionPlaceholder.xlsx'
-        $clrRow | Export-OfficeExcel -Path $clrPlaceholderPath -IncludeUnexportableProperties
-        $clrPlaceholder = @(Import-OfficeExcel -Path $clrPlaceholderPath -WorksheetName 'Sheet1')
+        $clrRow | Export-OfficeExcel -Path $clrPlaceholderPath -FlattenOptions @{ IncludeUnreadableProperties = $true }
+        $clrPlaceholder = @(Import-OfficeExcel -Path $clrPlaceholderPath -Sheet 'Sheet1')
         $clrPlaceholder[0].Broken | Should -BeLike 'Property export failed:*boom*'
     }
 
@@ -4209,7 +4209,7 @@ namespace PSWriteOffice.Tests {
         $second = [PSCustomObject]@{ Name = 'Beta' }
         $second | Add-Member -MemberType ScriptProperty -Name Broken -Value { throw 'later-only property was evaluated' }
 
-        { @($first, $second) | Export-OfficeExcel -Path $path -WorksheetName 'Data' -PropertyConversionErrorAction Stop -ErrorAction Stop } |
+        { @($first, $second) | Export-OfficeExcel -Path $path -Sheet 'Data' -FlattenOptions @{ PropertyConversionErrorAction = 'Stop' } -ErrorAction Stop } |
             Should -Throw -ExpectedMessage "*Unable to read PowerShell property 'Broken'*"
     }
 
@@ -4223,7 +4223,7 @@ namespace PSWriteOffice.Tests {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'Sales' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
                 $chart = Add-OfficeExcelChart -Table 'Sales' -Address A6 -Type Line -Title 'Revenue Trend' -PassThru
                 $chart |
                     Set-OfficeExcelChartAxis -CategoryNumberFormat 'yyyy-mm-dd' -CategoryMinimum 46000 -CategoryMaximum 46100 -CategoryMajorUnit 14 -CategoryMinorUnit 7 |
@@ -4256,15 +4256,15 @@ namespace PSWriteOffice.Tests {
             }
         } | Out-Null
 
-        $allRows = @(Import-OfficeExcel -Path $path -AllSheets)
+        $allRows = @(Import-OfficeExcel -Path $path -Sheet '*')
         $allRows.Count | Should -Be 2
         @($allRows | Select-Object -ExpandProperty WorksheetName | Sort-Object) | Should -Be @('Inventory', 'Sales')
         ($allRows | Where-Object WorksheetName -eq 'Sales').WorksheetNameValue | Should -Be 'SourceColumn'
 
-        $allRowsAsHashtable = @(Import-OfficeExcel -Path $path -AllSheets -AsHashtable)
+        $allRowsAsHashtable = @(Import-OfficeExcel -Path $path -Sheet '*' -As Hashtable)
         ($allRowsAsHashtable | Where-Object { $_['WorksheetName'] -eq 'Sales' })['WorksheetNameValue'] | Should -Be 'SourceColumn'
 
-        $columns = @(Import-OfficeExcel -Path $path -WorksheetName 'Sales' -ByColumn)
+        $columns = @(Import-OfficeExcel -Path $path -Sheet 'Sales' -As Column)
         $columns.Count | Should -Be 3
         $columns[0].ColumnName | Should -Be 'Name'
         $columns[0].ColumnIndex | Should -Be 1
@@ -4280,12 +4280,12 @@ namespace PSWriteOffice.Tests {
         $styles.Count | Should -BeGreaterThan 0
         ($styles | Where-Object Name -eq 'TableStyleMedium2').IsRecommended | Should -BeTrue
 
-        $currency = Get-OfficeExcelNumberFormatPreset -CultureName en-US -Decimals 2 |
+        $currency = Get-OfficeExcelNumberFormatPreset -Culture en-US -Decimals 2 |
             Where-Object Name -eq 'Currency' |
             Select-Object -First 1
         $currency.FormatCode | Should -Be '"$"#,##0.00'
 
-        $runtime = Get-OfficeExcelRuntimePreflight
+        $runtime = Import-OfficeExcel
         $runtime.FrameworkDescription | Should -Not -BeNullOrEmpty
         $runtime.PSObject.Properties.Name | Should -Contain 'Warnings'
         @($runtime.Warnings).Count | Should -BeGreaterOrEqual 0
@@ -4317,8 +4317,8 @@ namespace PSWriteOffice.Tests {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 'Reference'
                 Set-OfficeExcelCell -Address 'B1' -Value 'Host'
-                Set-OfficeExcelSmartHyperlink -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
-                Set-OfficeExcelHostHyperlink -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
+                Set-OfficeExcelHyperlink -DisplayMode Smart -Address 'A2' -Url 'https://datatracker.ietf.org/doc/html/rfc7208'
+                Set-OfficeExcelHyperlink -DisplayMode Host -Address 'B2' -Url 'https://learn.microsoft.com/office/open-xml/'
                 Add-OfficeExcelImage -Address 'D2' -Path $imagePath -Width 32px -Height 32px
                 Add-OfficeExcelImage -Address 'E2' -Path $imagePath -Width 24px -Height 24px
             }
@@ -4423,12 +4423,12 @@ namespace PSWriteOffice.Tests {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Summary' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'SummaryTable' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'SummaryTable'
                 Set-OfficeExcelCell -Address 'D1' -Value 'Sheet'
                 Set-OfficeExcelCell -Address 'D2' -Value 'Alpha'
                 Set-OfficeExcelCell -Address 'D3' -Value 'Beta'
-                Set-OfficeExcelInternalLinks -Range 'D2:D3'
-                Set-OfficeExcelInternalLinksByHeader -Header 'Sheet' -TableName 'SummaryTable' -DisplayScript { param($text) "Open $text" }
+                Set-OfficeExcelHyperlink -Internal -Range 'D2:D3'
+                Set-OfficeExcelHyperlink -Internal -Header 'Sheet' -Table 'SummaryTable' -DisplayScript { param($text) "Open $text" }
             }
             Add-OfficeExcelSheet -Name 'Alpha' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 'Alpha Home'
@@ -4473,13 +4473,13 @@ namespace PSWriteOffice.Tests {
 
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Summary' -Content {
-                Add-OfficeExcelTable -InputObject $rows -Name 'LinksTable' -AutoFit
+                Add-OfficeExcelTable -InputObject $rows -Name 'LinksTable'
                 Set-OfficeExcelCell -Address 'D1' -Value 'Spec'
                 Set-OfficeExcelCell -Address 'D2' -Value 'rfc5321'
                 Set-OfficeExcelCell -Address 'D3' -Value 'rfc1035'
 
-                Set-OfficeExcelUrlLinksByHeader -Header 'RFC' -TableName 'LinksTable' -UrlScript { param($text) "https://datatracker.ietf.org/doc/html/$text" } -TitleScript { param($text) "Open $text" }
-                Set-OfficeExcelUrlLinks -Range 'D2:D3' -UrlScript { param($text) "https://datatracker.ietf.org/doc/html/$text" }
+                Set-OfficeExcelHyperlink -Header 'RFC' -Table 'LinksTable' -UrlScript { param($text) "https://datatracker.ietf.org/doc/html/$text" } -DisplayScript { param($text) "Open $text" }
+                Set-OfficeExcelHyperlink -Range 'D2:D3' -UrlScript { param($text) "https://datatracker.ietf.org/doc/html/$text" }
             }
         } | Out-Null
 
@@ -4517,9 +4517,9 @@ namespace PSWriteOffice.Tests {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'ReportRows'
-                Set-OfficeExcelColumnStyleByHeader -Header Revenue -Style Currency -CultureName en-US -AutoFit
-                Set-OfficeExcelColumnStyleByHeader -Header Rate -Style Percent -Decimals 1
-                Set-OfficeExcelColumnStyleByHeader -Header Status -BackgroundByText @{ Ready = '#D4EDDA'; Blocked = '#F8D7DA' } -BoldByText Blocked
+                Set-OfficeExcelColumn -Header Revenue -Style Currency -Culture en-US -AutoFit
+                Set-OfficeExcelColumn -Header Rate -Style Percent -Decimals 1
+                Set-OfficeExcelColumn -Header Status -BackgroundByText @{ Ready = '#D4EDDA'; Blocked = '#F8D7DA' } -BoldByText Blocked
             }
         }
 
@@ -4546,7 +4546,7 @@ namespace PSWriteOffice.Tests {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelSheet -Name 'Data' -Content {
                 Add-OfficeExcelTable -InputObject $rows -Name 'ReportRows'
-                Set-OfficeExcelColumnStyleByHeader -Header Status -BackgroundByText $statusColors -CaseSensitive
+                Set-OfficeExcelColumn -Header Status -BackgroundByText $statusColors -CaseSensitive
             }
         }
 
@@ -4569,10 +4569,10 @@ namespace PSWriteOffice.Tests {
         New-OfficeExcel -Path $path {
             Add-OfficeExcelReportSheet -Name 'Summary' {
                 Add-OfficeExcelReportTitle -Title 'Operational Summary' -Subtitle 'Current view'
-                Add-OfficeExcelReportKpiRow -Data ([ordered] @{ Ready = 1; Blocked = 1 }) -PerRow 2
-                Add-OfficeExcelReportCallout -Kind Warning -Title 'Attention' -Body 'One item needs review.'
-                Add-OfficeExcelReportTable -Data $rows -Title 'Rows'
-                Add-OfficeExcelReportLegend -Title 'Legend' -Headers 'Status','Meaning' -Rows @(
+                Add-OfficeExcelReportKpi -InputObject ([ordered] @{ Ready = 1; Blocked = 1 }) -PerRow 2
+                Add-OfficeExcelReportCallout -Kind Warning -Title 'Attention' -Text 'One item needs review.'
+                Add-OfficeExcelReportTable -InputObject $rows -Title 'Rows'
+                Add-OfficeExcelReportLegend -Title 'Legend' -Header 'Status','Meaning' -InputObject @(
                     @('Ready', 'No action'),
                     @('Blocked', 'Needs owner')
                 ) -FirstColumnFillByValue @{ Ready = '#D4EDDA'; Blocked = '#F8D7DA' }
@@ -4699,7 +4699,7 @@ namespace PSWriteOffice.Tests {
             Add-OfficeExcelSheet -Name 'Data' {
                 Set-OfficeExcelCell -Address A1 -Value '{{CustomerName}}'
                 Set-OfficeExcelCell -Address B1 -Value 20
-                Set-OfficeExcelFormula -Address C1 -Formula 'SUM(A1:B1)+NOW()'
+                Set-OfficeExcelCell -Address C1 -Formula 'SUM(A1:B1)+NOW()'
                 Set-OfficeExcelNamedRange -Name 'Totals' -Range 'A1:C1'
                 Add-OfficeExcelComment -Address A1 -Text 'Needs binding review' -Author 'Reviewer'
             }
@@ -4709,7 +4709,7 @@ namespace PSWriteOffice.Tests {
             Add-OfficeExcelSheet -Name 'Data' {
                 Set-OfficeExcelCell -Address A1 -Value 11
                 Set-OfficeExcelCell -Address B1 -Value 20
-                Set-OfficeExcelFormula -Address C1 -Formula 'SUM(A1:B1)'
+                Set-OfficeExcelCell -Address C1 -Formula 'SUM(A1:B1)'
             }
         }
 
@@ -4735,31 +4735,31 @@ namespace PSWriteOffice.Tests {
         $diff.DifferenceCount | Should -BeGreaterThan 0
         $diff.Differences.Category | Should -Contain 'Comment'
 
-        $commentAudit = Get-OfficeExcelCommentAudit -Path $left -IncludeComments
+        $commentAudit = Get-OfficeExcelComment -Path $left
         $commentAudit.CommentCount | Should -Be 1
         $commentAudit.Comments[0].Author | Should -Be 'Reviewer'
 
-        $threaded = Add-OfficeExcelThreadedComment -Path $left -Sheet Data -Address A1 -Text 'Threaded review note' -Author 'Modern Reviewer' -PassThru
+        $threaded = Open-OfficeExcel -Path $left { Add-OfficeExcelComment -Threaded  -Sheet Data -Address A1 -Text 'Threaded review note' -Author 'Modern Reviewer' -PassThru }
         $threaded.CellReference | Should -Be 'A1'
         $threaded.Author | Should -Be 'Modern Reviewer'
-        $threadedReply = Add-OfficeExcelThreadedComment -Path $left -Sheet Data -Address A1 -Text 'Threaded reply' -Author 'Report Owner' -ParentId $threaded.Id -Done -PassThru
+        $threadedReply = Open-OfficeExcel -Path $left { Add-OfficeExcelComment -Threaded  -Sheet Data -Address A1 -Text 'Threaded reply' -Author 'Report Owner' -ParentId $threaded.Id -Done -PassThru }
         $threadedReply.IsReply | Should -BeTrue
         $threadedReply.Done | Should -BeTrue
-        $commentAuditAfterThreaded = Get-OfficeExcelCommentAudit -Path $left -IncludeComments
+        $commentAuditAfterThreaded = Get-OfficeExcelComment -Path $left
         $commentAuditAfterThreaded.ThreadedCommentCount | Should -Be 2
         $commentAuditAfterThreaded.ThreadedComments.Author | Should -Contain 'Modern Reviewer'
         $commentAuditAfterThreaded.ThreadedComments.SheetName | Should -Contain 'Data'
 
-        $template = Test-OfficeExcelTemplateBinding -Path $left -Binding @{ CustomerName = 'Northwind' }
+        $template = Test-OfficeExcelTemplate -Path $left -Value @{ CustomerName = 'Northwind' }
         $template.Passed | Should -BeTrue
-        (Test-OfficeExcelTemplateBinding -Path $left -Binding @{} -Quiet) | Should -BeFalse
+        (Test-OfficeExcelTemplate -Path $left -Value @{} -Quiet) | Should -BeFalse
 
-        $metadata = Add-OfficeExcelPowerQueryMetadata -Path $left -Name 'CustomerQuery' -WorksheetName 'Data' -CommandText 'let Source = Excel.CurrentWorkbook() in Source' -RefreshOnOpen -PassThru
+        $metadata = Open-OfficeExcel -Path $left { Add-OfficeExcelConnection  -Name 'CustomerQuery' -Sheet 'Data' -CommandText 'let Source = Excel.CurrentWorkbook() in Source' -RefreshOnOpen -PassThru }
         $metadata.AddedWorkbookConnection | Should -BeTrue
         $metadata.AddedWorksheetQueryTable | Should -BeTrue
         $metadata.ConnectionId | Should -Be 1
         $metadata.QueryTableName | Should -Be 'CustomerQueryTable'
-        $metadata2 = Add-OfficeExcelPowerQueryMetadata -Path $left -Name 'CustomerQuery2' -WorksheetName 'Data' -CommandText 'let Source = Excel.CurrentWorkbook() in Source' -PassThru
+        $metadata2 = Open-OfficeExcel -Path $left { Add-OfficeExcelConnection  -Name 'CustomerQuery2' -Sheet 'Data' -CommandText 'let Source = Excel.CurrentWorkbook() in Source' -PassThru }
         $metadata2.ConnectionId | Should -Be 2
         $dataModelAfterMetadata = Get-OfficeExcelDataModel -Path $left
         $dataModelAfterMetadata.HasDataModelOrQueries | Should -BeTrue
@@ -4786,12 +4786,10 @@ namespace PSWriteOffice.Tests {
             Add-OfficeExcelSheet -Name 'Seed'
         }
 
-        $result = Import-OfficeExcelDelimitedText -Path $path -SourcePath $csv -Delimiter ';' -SheetName 'Import' -PassThru
-        $result.SheetName | Should -Be 'Import'
-        $result.RowCount | Should -Be 2
-        $result.ColumnCount | Should -Be 2
+        $result = Import-OfficeCsv -Path $csv -Delimiter ';' | Export-OfficeExcel -Path $path -Sheet 'Import' -Append -PassThru
+        $result.FullName | Should -Be $path
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Import' -Range 'A1:B3')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Import' -Range 'A1:B3')
         $rows[0].Name | Should -Be 'Alpha'
         $rows[1].Amount | Should -Be 11.75
     }

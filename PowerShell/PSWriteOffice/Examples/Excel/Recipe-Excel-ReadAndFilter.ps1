@@ -7,10 +7,10 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Services' {
-        ExcelTable -Data $rows -Name 'ServiceHealth' -AutoFit
+        ExcelTable -InputObject $rows -Name 'ServiceHealth'
     }
 }
 
-Import-OfficeExcel -Path $path -WorksheetName 'Services' |
+Import-OfficeExcel -Path $path -Sheet 'Services' |
     Where-Object { $_.Status -eq 'Review' -or $_.Incidents -ge 3 } |
     Select-Object Service, Owner, Incidents, Status

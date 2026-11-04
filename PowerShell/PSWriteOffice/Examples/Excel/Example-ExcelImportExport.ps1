@@ -14,8 +14,8 @@ $rows = @(
 )
 
 $rows |
-    Export-OfficeExcel -Path $path -WorksheetName 'Revenue' -TableName 'Revenue' -Title 'Regional Revenue' -AutoFit -FreezeTopRow -BoldTopRow -PassThru |
+    Export-OfficeExcel -Path $path -Sheet 'Revenue' -TableName 'Revenue' -Title 'Regional Revenue'    -PassThru |
     Format-List FullName
 
-Import-OfficeExcel -Path $path -WorksheetName 'Revenue' -Range 'A2:C5' |
+Import-OfficeExcel -Path $path -Sheet 'Revenue' -Range 'A2:C5' |
     Format-Table -AutoSize

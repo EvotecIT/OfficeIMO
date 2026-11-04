@@ -11,36 +11,60 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// Set both frozen dimensions to zero to unfreeze the sheet.</para>
 /// <example><summary>Keep report headers and labels visible.</summary>
 /// <code>ExcelSheet 'Dashboard' { ExcelSheetView -FreezeRows 3 -FreezeColumns 1 -NoGridlines -Zoom 85 }</code></example>
+/// <example>
+/// <summary>Freeze the header row</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     ExcelSheet 'Orders' {
+///         ExcelSheetView -FreezeRows 1
+///     }
+/// }</code>
+/// <para>Keeps the first row visible while scrolling the Orders sheet.</para>
+/// </example>
+/// <example>
+/// <summary>Set up a dashboard view</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Operations.xlsx {
+///     ExcelSheet 'Dashboard' {
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Site-Kpis.csv) -Address A3
+///         ExcelSheetView -FreezeRows 3 -FreezeColumns 1 -NoGridlines -Zoom 85
+///     }
+/// }</code>
+/// <para>Hides gridlines, zooms out and freezes the title rows and the label column of the dashboard sheet.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelSheetView", DefaultParameterSetName = "Default")]
 [Alias("ExcelSheetView")]
 [OutputType(typeof(ExcelSheet))]
 public sealed class SetOfficeExcelSheetViewCommand : OfficeDocumentCmdlet<ExcelDocument> {
     /// <summary>Gets or sets a worksheet name, one-based position or native worksheet.</summary>
-    [Parameter(ParameterSetName = "Default"), OfficeSheetTransformation]
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
     public OfficeSheetSelector? Sheet { get; set; }
     /// <summary>Gets or sets the number of frozen top rows; omission preserves the current row count.</summary>
-    [Parameter, ValidateRange(0, 1048575)]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(0, 1048575)]
     public int? FreezeRows { get; set; }
     /// <summary>Gets or sets the number of frozen left columns; omission preserves the current column count.</summary>
-    [Parameter, ValidateRange(0, 16383)]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(0, 16383)]
     public int? FreezeColumns { get; set; }
     /// <summary>Gets or sets whether gridlines are hidden; explicitly false shows them.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter NoGridlines { get; set; }
     /// <summary>Gets or sets right-to-left layout; explicitly false restores left-to-right.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter RightToLeft { get; set; }
     /// <summary>Gets or sets the current zoom percentage from 10 to 400.</summary>
-    [Parameter, ValidateRange(10, 400)]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(10, 400)]
     public uint? Zoom { get; set; }
     /// <summary>Gets or sets the normal-view zoom percentage from 10 to 400.</summary>
-    [Parameter, ValidateRange(10, 400)]
+    [Parameter(ParameterSetName = "Default")]
+    [ValidateRange(10, 400)]
     public uint? ZoomNormal { get; set; }
     /// <summary>Gets or sets the worksheet view mode.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public ExcelWorksheetViewKind? View { get; set; }
     /// <summary>Gets or sets whether to emit the edited native worksheet.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

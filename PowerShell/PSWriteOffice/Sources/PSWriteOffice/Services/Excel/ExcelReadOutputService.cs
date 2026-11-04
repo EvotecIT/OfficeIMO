@@ -20,35 +20,6 @@ internal static class ExcelReadOutputService
         };
     }
 
-    public static void ConfigureSelection(
-        ExcelReaderOptions options,
-        string? sheetName,
-        int? sheetIndex,
-        string? a1Range,
-        bool headersInFirstRow)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-
-        if (!string.IsNullOrWhiteSpace(sheetName) && sheetIndex.HasValue)
-        {
-            throw new PSArgumentException("Specify either -Sheet or -SheetIndex, but not both.");
-        }
-
-        if (sheetIndex.HasValue)
-        {
-            if (sheetIndex.Value < 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(sheetIndex), "SheetIndex must be 0 or greater.");
-            }
-
-        }
-
-        options.SheetName = string.IsNullOrWhiteSpace(sheetName) ? null : sheetName;
-        options.SheetIndex = sheetIndex;
-        options.A1Range = string.IsNullOrWhiteSpace(a1Range) ? null : a1Range;
-        options.HasHeaderRow = headersInFirstRow;
-    }
-
     public static DataTable ReadCurrentResultAsDataTable(DbDataReader reader, string? tableName = null)
     {
         ArgumentNullException.ThrowIfNull(reader);

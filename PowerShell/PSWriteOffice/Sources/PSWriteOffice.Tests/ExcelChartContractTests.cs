@@ -1,4 +1,5 @@
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using System.Data;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
@@ -6,12 +7,52 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel;
 using PSWriteOffice.Cmdlets.Excel;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace PSWriteOffice.Tests;
 
 [Collection(PowerShellRunspaceCollection.Name)]
 public sealed class ExcelChartContractTests {
+    [Fact]
+    public void StylingChartTextPreservesUnboundGeometryAndFlagsAndHonorsExplicitFalse() {
+        using var book = ExcelDocument.Create();
+        var sheet = book.AddSheet("Sales");
+        var chart = sheet.AddChart(OfficeChartType.ColumnClustered,
+            new OfficeChartData(new[] { "North", "South" }, new[] { new OfficeSeries("Revenue", new[] { 100d, 150d }) }));
+        chart.SetLegend(OfficeChartLegendPosition.Bottom, overlay: true);
+        chart.SetDataLabels(false, true, true, true, true, OfficeChartDataLabelPosition.InsideBase, "0.00", true);
+        using var runspace = Open(book);
+        runspace.SessionStateProxy.SetVariable("chart", chart);
+        Assert.Empty(Invoke(runspace, "Set-OfficeExcelChartLegend -Chart $chart -Color Red; Set-OfficeExcelChartDataLabel -Chart $chart -Color Blue"));
+        using (var first = Save(book)) {
+            AssertFlags(first, overlay: true, category: true);
+        }
+        Assert.Empty(Invoke(runspace, "Set-OfficeExcelChartLegend -Chart $chart -Overlay:$false; Set-OfficeExcelChartDataLabel -Chart $chart -ShowCategoryName:$false"));
+        using var second = Save(book);
+        AssertFlags(second, overlay: false, category: false);
+
+        static void AssertFlags(Stream bytes, bool overlay, bool category) {
+            using var package = SpreadsheetDocument.Open(bytes, false);
+            var space = Assert.Single(package.WorkbookPart!.WorksheetParts.SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())).ChartSpace;
+            Assert.NotNull(space);
+            var legend = Assert.Single(space.Descendants<C.Legend>());
+            Assert.Equal(C.LegendPositionValues.Bottom, legend.GetFirstChild<C.LegendPosition>()!.Val!.Value);
+            Assert.Equal(overlay, legend.GetFirstChild<C.Overlay>()!.Val!.Value);
+            Assert.Contains(legend.Descendants<A.RgbColorModelHex>(), color => color.Val?.Value == "FF0000");
+            var labels = Assert.Single(space.Descendants<C.DataLabels>());
+            Assert.Contains(labels.Descendants<A.RgbColorModelHex>(), color => color.Val?.Value == "0000FF");
+            Assert.False(labels.GetFirstChild<C.ShowValue>()!.Val!.Value);
+            Assert.Equal(category, labels.GetFirstChild<C.ShowCategoryName>()!.Val!.Value);
+            Assert.True(labels.GetFirstChild<C.ShowSeriesName>()!.Val!.Value);
+            Assert.True(labels.GetFirstChild<C.ShowLegendKey>()!.Val!.Value);
+            Assert.True(labels.GetFirstChild<C.ShowPercent>()!.Val!.Value);
+            Assert.Equal(C.DataLabelPositionValues.InsideBase, labels.GetFirstChild<C.DataLabelPosition>()!.Val!.Value);
+            Assert.Equal("0.00", labels.GetFirstChild<C.NumberingFormat>()!.FormatCode!.Value);
+            Assert.True(labels.GetFirstChild<C.NumberingFormat>()!.SourceLinked!.Value);
+        }
+    }
+
     [Fact]
     public void SelectedFormattedNumericAndFormulaColumnsPersistInRequestedOrderAtTheRequestedAddress() {
         using var book = ExcelDocument.Create();
@@ -58,6 +99,7 @@ public sealed class ExcelChartContractTests {
         using var package = SpreadsheetDocument.Open(artifact, false);
         var chartXml = Assert.Single(package.WorkbookPart!.WorksheetParts
             .SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())).ChartSpace;
+        Assert.NotNull(chartXml);
         Assert.Empty(chartXml.Descendants<C.Legend>());
         Assert.Contains(chartXml.Descendants<C.ShowValue>(), flag => flag.Val?.Value == true);
     }
@@ -128,6 +170,7 @@ public sealed class ExcelChartContractTests {
         artifact.Position = 0;
         using var package = SpreadsheetDocument.Open(artifact, false);
         var chart = Assert.Single(package.WorkbookPart!.WorksheetParts.SelectMany(part => part.DrawingsPart?.ChartParts ?? Enumerable.Empty<ChartPart>())).ChartSpace;
+        Assert.NotNull(chart);
         Assert.Empty(chart.Descendants<C.NumberingCache>());
         Assert.Empty(chart.Descendants<C.CategoryAxisData>().SelectMany(category => category.Descendants<C.StringCache>()));
         Assert.Contains(chart.Descendants<C.Formula>(), formula => formula.Text.Contains("$B$2"));
@@ -287,6 +330,8 @@ public sealed class ExcelChartContractTests {
 
     private static Runspace Open(ExcelDocument book) {
         var state = InitialSessionState.CreateDefault();
+        state.Commands.Add(new SessionStateCmdletEntry("Set-OfficeExcelChartLegend", typeof(SetOfficeExcelChartLegendCommand), null));
+        state.Commands.Add(new SessionStateCmdletEntry("Set-OfficeExcelChartDataLabel", typeof(SetOfficeExcelChartDataLabelCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("Add-OfficeExcelChart", typeof(AddOfficeExcelChartCommand), null));
         state.Commands.Add(new SessionStateCmdletEntry("Add-OfficeExcelSheet", typeof(AddOfficeExcelSheetCommand), null));
         var runspace = RunspaceFactory.CreateRunspace(state);

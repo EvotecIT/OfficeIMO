@@ -12,22 +12,37 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Gets frozen panes, gridlines, direction, zoom and view mode for worksheets.</summary>
 /// <example><summary>Inspect report workbooks without editing them.</summary>
 /// <code>Get-ChildItem .\Reports -Filter *.xlsx | Get-OfficeExcelSheetView -Sheet Summary | Format-Table</code></example>
+/// <example>
+/// <summary>Show the view settings of every sheet</summary>
+/// <code>Get-OfficeExcelSheetView -Path .\Reports\Q3-Sales.xlsx</code>
+/// <para>Lists frozen panes, gridlines, zoom and view mode for each worksheet.</para>
+/// </example>
+/// <example>
+/// <summary>Check report workbooks before publishing</summary>
+/// <code>Get-ChildItem -Path .\Reports -Filter *.xlsx |
+///     Get-OfficeExcelSheetView -Sheet Summary |
+///     Format-Table</code>
+/// <para>Reads the Summary sheet view of each report in a folder to spot workbooks saved in page-break preview.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeExcelSheetView", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ExcelSheetViewInfo))]
 public sealed class GetOfficeExcelSheetViewCommand : OfficeCmdlet {
     /// <summary>Gets or sets workbook paths with filesystem wildcard expansion.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [SupportsWildcards, ValidateNotNullOrEmpty]
     public string[] Path { get; set; } = Array.Empty<string>();
     /// <summary>Gets or sets literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
-    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
-    [Alias("PSPath", "FullName"), ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    [ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
     /// <summary>Gets or sets a live workbook; omission uses the current worksheet or workbook scope.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    [ValidateNotNull]
     public ExcelDocument? Document { get; set; }
     /// <summary>Gets or sets worksheet names or wildcard patterns, one-based positions or native worksheet objects.</summary>
-    [Parameter, SupportsWildcards, OfficeSheetTransformation, ValidateNotNullOrEmpty]
+    [Parameter()]
+    [SupportsWildcards, OfficeSheetTransformation, ValidateNotNullOrEmpty]
     public OfficeSheetSelector[]? Sheet { get; set; }
 
     /// <inheritdoc />

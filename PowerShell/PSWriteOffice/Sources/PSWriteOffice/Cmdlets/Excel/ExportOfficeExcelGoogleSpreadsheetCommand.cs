@@ -23,23 +23,48 @@ public enum GoogleSheetsExportMode {
 /// <summary>Plans, compiles or exports Excel workbooks to Google Sheets.</summary>
 /// <example><summary>Inspect translation without signing in.</summary>
 /// <code>Export-OfficeExcelGoogleSpreadsheet -Path .\Report.xlsx -Mode Plan</code></example>
-[Cmdlet(VerbsData.Export, "OfficeExcelGoogleSpreadsheet", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
+/// <example>
+/// <summary>Preview a Google Sheets export</summary>
+/// <code>Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Mode Plan</code>
+/// <para>Returns the translation plan, including anything Google Sheets cannot represent, without contacting Google.</para>
+/// </example>
+/// <example>
+/// <summary>Publish a workbook to Google Sheets</summary>
+/// <code>$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting-sa.json -Scope Spreadsheets, DriveFile
+/// Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Session $googleSession -FailOnLoss</code>
+/// <para>Uploads the sales workbook through an authenticated Google Workspace session and stops if any content would be lost.</para>
+/// </example>
+/// <example>
+/// <summary>Build the request batch for your own client</summary>
+/// <code>$book = Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx -ReadOnly
+/// $batch = Export-OfficeExcelGoogleSpreadsheet -Document $book -Mode Batch
+/// Close-OfficeExcel -Document $book</code>
+/// <para>Returns the provider-neutral request batch for an open workbook, for an integration that sends the requests itself.</para>
+/// </example>
+/// <example>
+/// <summary>Replace an existing spreadsheet in a shared folder</summary>
+/// <code>$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting-sa.json -Scope Spreadsheets, DriveFile
+/// $google = New-OfficeExcelGoogleSheetsOptions -Title 'Q3 sales' -FolderId $folderId -SpreadsheetId $spreadsheetId -UnsupportedFormula UseCachedValue
+/// Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Session $googleSession -Options $google</code>
+/// <para>Exports the workbook over an existing Google spreadsheet with a fixed title and preserved unsupported formulas.</para>
+/// </example>
+[Cmdlet(VerbsData.Export, "OfficeExcelGoogleSpreadsheet", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(GoogleSheetsTranslationPlan), typeof(GoogleSheetsBatch), typeof(GoogleSpreadsheetReference))]
 public sealed class ExportOfficeExcelGoogleSpreadsheetCommand : GoogleExportCmdlet<ExcelDocument> {
     /// <summary>One native options object and property hashtables applied to an independent snapshot.</summary>
-    [Parameter]
+    [Parameter()]
     public object[]? Options { get; set; }
 
     /// <summary>Configured Google Workspace session, required for Export mode.</summary>
-    [Parameter]
+    [Parameter()]
     public GoogleWorkspaceSession? Session { get; set; }
 
     /// <summary>Export by default, or return an offline Plan or Batch.</summary>
-    [Parameter]
+    [Parameter()]
     public GoogleSheetsExportMode Mode { get; set; }
 
     /// <summary>Reject translation warnings or errors before returning a result or mutating Google.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter FailOnLoss { get; set; }
 
     /// <inheritdoc />

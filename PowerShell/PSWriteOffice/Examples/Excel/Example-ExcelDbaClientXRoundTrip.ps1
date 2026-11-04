@@ -73,17 +73,17 @@ try {
     $rows |
         Export-OfficeExcel `
             -Path $Path `
-            -WorksheetName $WorksheetName `
+            -Sheet $WorksheetName `
             -TableName 'DatabaseRows' `
-            -AutoFit `
-            -FreezeTopRow `
-            -BoldTopRow `
+             `
+             `
+             `
             -ErrorAction Stop
 
     $table = Import-OfficeExcel `
         -Path $Path `
-        -WorksheetName $WorksheetName `
-        -AsDataTable `
+        -Sheet $WorksheetName `
+        -As DataTable `
         -ErrorAction Stop
 
     $writeResult = $table |

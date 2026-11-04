@@ -1,130 +1,108 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Updates legacy worksheet comments (notes) that match a filter.</summary>
+/// <summary>Replaces the text or author of notes that match a filter.</summary>
 /// <example>
-///   <summary>Update a comment on one cell.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$updated = Update-OfficeExcelComment -Path .\Report.xlsx -Sheet Data -Address B2 -Text 'Reviewed' -Author Carol -Initials CC -PassThru
-/// Get-OfficeExcelComment -Path .\Report.xlsx -Sheet Data -Address B2 |
-///     Select-Object Address, Author, Text</code>
-///   <para>Replaces matching comment text and optionally changes the author.</para>
+/// <summary>Change the text of matching notes</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     Update-OfficeExcelComment -Sheet Assumptions -TextContains 'TBD' -Text 'Confirmed with the vendor on 24 October.'
+/// }</code>
+/// <para>Replaces the text of every note that says TBD on the Assumptions sheet.</para>
 /// </example>
-[Cmdlet(VerbsData.Update, "OfficeExcelComment", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Medium, DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelCommentUpdate")]
-[OutputType(typeof(int))]
+/// <example>
+/// <summary>Hand notes over to a new owner</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Helpdesk.xlsx {
+///     Update-OfficeExcelComment -MatchAuthor 'jnowak' -Author 'Service Desk' -Initials 'SD'
+///     Update-OfficeExcelComment -Sheet Tickets -Range F40 {
+///         ExcelText 'Escalated: ' -Bold -Color Danger
+///         ExcelText 'vendor case 88412 opened.'
+///     }
+/// }</code>
+/// <para>Moves every note written by a departing colleague to the team account and rewrites one escalation note with rich text.</para>
+/// </example>
+[Cmdlet(VerbsData.Update, "OfficeExcelComment", DefaultParameterSetName = "Text")]
 public sealed class UpdateOfficeExcelCommentCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name to update. Defaults to the current DSL sheet or all workbook sheets.</summary>
-    [Parameter]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index (0-based) to update. Defaults to the current DSL sheet or all workbook sheets.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>A1 cell address to match.</summary>
-    [Parameter]
-    public string? Address { get; set; }
-
-    /// <summary>A1 cell or range to match.</summary>
-    [Parameter]
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter()]
     public string? Range { get; set; }
 
     /// <summary>Existing comment author to match, ignoring case.</summary>
-    [Parameter]
+    [Parameter()]
     public string? MatchAuthor { get; set; }
 
     /// <summary>Existing text fragment to match, ignoring case.</summary>
-    [Parameter]
+    [Parameter()]
     public string? TextContains { get; set; }
 
-    /// <summary>Allow updating all comments on the selected worksheet(s) when no filter is supplied.</summary>
-    [Parameter]
+    /// <summary>Explicitly selects every item when no filter is supplied.</summary>
+    [Parameter()]
     public SwitchParameter All { get; set; }
 
-    /// <summary>Replacement plain text.</summary>
-    [Parameter]
-    public string? Text { get; set; }
-
-    /// <summary>Replacement rich text runs.</summary>
-    [Parameter]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
-
     /// <summary>Replacement author name.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Author { get; set; }
 
-    /// <summary>Replacement author initials.</summary>
-    [Parameter]
+    /// <summary>Author initials, supplied together with Author.</summary>
+    [Parameter()]
     public string? Initials { get; set; }
 
-    /// <summary>Returns the number of comments updated.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
     public SwitchParameter PassThru { get; set; }
+
+    /// <summary>Replacement plain text.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public string? Text { get; set; }
+
+    /// <summary>Excel child commands executed in the current content scope.</summary>
+    [Parameter(ParameterSetName = "RichText", Mandatory = true, Position = 0)]
+    public ScriptBlock Content { get; set; } = null!;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var filter = CreateRequiredFilter();
-        if (string.IsNullOrWhiteSpace(Text) == (Run == null || Run.Length == 0)) {
-            throw new PSArgumentException("Specify exactly one of -Text or -Run.");
-        }
-
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        var updated = 0;
-        foreach (var sheet in ExcelWorkbookCommandService.ResolveSheets(this, workbook.Document, ParameterSetName, Sheet, SheetIndex)) {
-            if (!ShouldProcess(sheet.Name, "Update Excel comments")) {
-                continue;
+        if (Range == null && MatchAuthor == null && TextContains == null && !All) throw new PSArgumentException("Provide a comment filter or -All.");
+        if (Initials != null && Author == null) throw new PSArgumentException("Initials requires Author.");
+        var document = ExcelCommandTargets.Document(Document);
+        var filter = new ExcelCommentFilter { A1Range = Range, Author = MatchAuthor, TextContains = TextContains };
+        int count = 0;
+        var runs = Content == null ? null : ExcelRichTextRunService.ReadContent(Content);
+        foreach (var sheet in ExcelSheetResolver.ResolveMany(document, Sheet, Document == null ? ExcelDslContext.Current?.CurrentSheet : null)) {
+            if (runs != null) count += sheet.UpdateCommentsRichText(filter, runs, Author, Initials);
+            else if (MyInvocation.BoundParameters.ContainsKey(nameof(Text))) count += sheet.UpdateComments(filter, Text!, Author, Initials);
+            else {
+                if (Author == null && Initials == null) throw new PSArgumentException("Supply Text, Content, Author or Initials to update comments.");
+                foreach (var comment in sheet.FindComments(filter)) {
+                    var single = new ExcelCommentFilter { A1Range = comment.CellReference };
+                    count += comment.RichTextRuns.Count > 0
+                        ? sheet.UpdateCommentsRichText(single, comment.RichTextRuns, Author, Initials)
+                        : sheet.UpdateComments(single, comment.Text, Author, Initials);
+                }
             }
-
-            updated += Run == null || Run.Length == 0
-                ? sheet.UpdateComments(filter, Text!, Author, Initials)
-                : sheet.UpdateCommentsRichText(filter, ExcelRichTextRunService.ToRuns(Run), Author, Initials);
         }
-
-        if (updated > 0) {
-            workbook.SaveIfOwned();
-        }
-
-        if (PassThru.IsPresent) {
-            WriteObject(updated);
-        }
+        if (PassThru) WriteObject(count);
     }
 
-    private ExcelCommentFilter CreateRequiredFilter() {
-        if (!string.IsNullOrWhiteSpace(Address) && !string.IsNullOrWhiteSpace(Range)) {
-            throw new PSArgumentException("Specify either -Address or -Range, not both.");
-        }
-
-        bool hasFilter = !string.IsNullOrWhiteSpace(Address)
-            || !string.IsNullOrWhiteSpace(Range)
-            || !string.IsNullOrWhiteSpace(MatchAuthor)
-            || !string.IsNullOrWhiteSpace(TextContains);
-        if (!hasFilter && !All.IsPresent) {
-            throw new PSArgumentException("Specify a comment filter or use -All.");
-        }
-
-        return new ExcelCommentFilter {
-            A1Range = !string.IsNullOrWhiteSpace(Address) ? Address : Range,
-            Author = MatchAuthor,
-            TextContains = TextContains
-        };
-    }
 }

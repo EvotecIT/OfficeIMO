@@ -19,40 +19,60 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <code>Copy-OfficeExcelSheet -Document $book -Sheet Template -Name October</code></example>
 /// <example><summary>Import regional sheets into an existing workbook.</summary>
 /// <code>Copy-OfficeExcelSheet -LiteralPath ./Combined.xlsx -Source ./Region.xlsx -Sheet 'Sales*' -NamePrefix 'Region '</code></example>
-[Cmdlet(VerbsCommon.Copy, "OfficeExcelSheet", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
+/// <example>
+/// <summary>Duplicate a sheet</summary>
+/// <code>Copy-OfficeExcelSheet -Path .\Reports\Timesheets.xlsx -Sheet October -Name November</code>
+/// <para>Copies the October sheet in the same workbook as a starting point for November.</para>
+/// </example>
+/// <example>
+/// <summary>Collect sheets from several workbooks</summary>
+/// <code>$pack = Open-OfficeExcel -Path .\Reports\Board-Pack.xlsx
+/// foreach ($file in Get-ChildItem -Path .\Regions -Filter *.xlsx) {
+///     Copy-OfficeExcelSheet -Document $pack -Source $file.FullName -Sheet Summary -Name "$($file.BaseName) summary"
+/// }
+/// Save-OfficeExcel -Document $pack -PassThru | Close-OfficeExcel</code>
+/// <para>Copies the Summary sheet of each regional workbook into the board pack, prefixed with the region name.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Copy, "OfficeExcelSheet", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(ExcelSheet))]
 public sealed class CopyOfficeExcelSheetCommand : OfficeCmdlet {
     /// <summary>Gets or sets target workbook paths with filesystem wildcard expansion.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [SupportsWildcards, ValidateNotNullOrEmpty]
     public string[] Path { get; set; } = Array.Empty<string>();
     /// <summary>Gets or sets literal target paths, including FileInfo.FullName and provider PSPath.</summary>
-    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
-    [Alias("PSPath", "FullName"), ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    [ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
     /// <summary>Gets or sets a live target workbook; omission uses the enclosing workbook scope.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    [ValidateNotNull]
     public ExcelDocument? Document { get; set; }
     /// <summary>Gets or sets source worksheet names or patterns, one-based positions or native worksheets.</summary>
-    [Parameter, OfficeSheetTransformation, SupportsWildcards, ValidateNotNullOrEmpty]
+    [Parameter(Position = 1)]
+    [OfficeSheetTransformation, SupportsWildcards, ValidateNotNullOrEmpty]
     public OfficeSheetSelector[]? Sheet { get; set; }
     /// <summary>Gets or sets a new name when copying exactly one worksheet.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter(Position = 2)]
+    [ValidateNotNullOrEmpty]
     public string? Name { get; set; }
     /// <summary>Gets or sets a prefix for each copied worksheet name.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter()]
+    [ValidateNotNullOrEmpty]
     public string? NamePrefix { get; set; }
     /// <summary>Gets or sets another workbook as a native ExcelDocument, path or literal FileInfo.</summary>
-    [Parameter, ValidateNotNull]
+    [Parameter()]
+    [ValidateNotNull]
     public object? Source { get; set; }
     /// <summary>Gets or sets how invalid or duplicate destination names are handled.</summary>
-    [Parameter]
+    [Parameter()]
     public ExcelSheetNameValidationMode ValidationMode { get; set; } = ExcelSheetNameValidationMode.Sanitize;
     /// <summary>Gets or sets native package copying or explicit value-only materialization.</summary>
-    [Parameter]
+    [Parameter()]
     public ExcelWorksheetCopyMode CopyMode { get; set; } = ExcelWorksheetCopyMode.Package;
     /// <summary>Gets or sets whether to return live copied worksheets; their workbook is caller-owned.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

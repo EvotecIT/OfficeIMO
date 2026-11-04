@@ -1,108 +1,101 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
-using System.Text.RegularExpressions;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
+using System.Text.RegularExpressions;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Replaces text in worksheet values.</summary>
+/// <summary>Replaces text in cell values across a workbook, sheet or range.</summary>
 /// <example>
-///   <summary>Replace status text and verify the update count.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$count = Update-OfficeExcelText -Path .\Report.xlsx -Sheet Summary -OldValue Draft -NewValue Ready -PassThru
-/// [pscustomobject]@{
-///     Path = '.\Report.xlsx'
-///     Replacements = $count
-/// }</code>
-///   <para>Updates matching text cells on a sheet, saves the workbook, and returns the replacement count.</para>
+/// <summary>Replace text across a workbook</summary>
+/// <code>Update-OfficeExcelText -Path .\Templates\Price-List.xlsx -Pattern 'Fabrikam Ltd' -Replacement 'Northwind Traders' -SimpleMatch</code>
+/// <para>Replaces the old company name in every cell of the workbook and saves it.</para>
 /// </example>
-[Cmdlet(VerbsData.Update, "OfficeExcelText", DefaultParameterSetName = ParameterSetPath, SupportsShouldProcess = true)]
-[Alias("Replace-OfficeExcelText")]
-[OutputType(typeof(int))]
-public sealed class UpdateOfficeExcelTextCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+/// <example>
+/// <summary>Rename hosts after a migration</summary>
+/// <code>$changed = Update-OfficeExcelText -Path .\Reports\Inventory.xlsx -Sheet Servers, Services -Pattern '^SRV-(\d+)$' -Replacement 'NW-APP-$1' -PassThru
+/// "Renamed $changed cells"</code>
+/// <para>Uses a regular expression to rename the old SRV hosts to the new naming scheme on the inventory sheets and reports how many cells changed.</para>
+/// </example>
+/// <example>
+/// <summary>Replace placeholders inside a block</summary>
+/// <code>Open-OfficeExcel -Path .\Templates\Quote.xlsx {
+///     Update-OfficeExcelText -Pattern '{{Customer}}' -Replacement 'Northwind Traders' -SimpleMatch
+///     Update-OfficeExcelText -Pattern '{{Date}}' -Replacement (Get-Date -Format 'yyyy-MM-dd') -SimpleMatch
+/// }</code>
+/// <para>Fills a template and replaces its placeholder text in the same Open-OfficeExcel block.</para>
+/// </example>
+[Cmdlet(VerbsData.Update, "OfficeExcelText", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
+public sealed class UpdateOfficeExcelTextCommand : PSCmdlet {
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Date or DateTime number format pattern.</summary>
+    [Parameter(Mandatory = true, Position = 1)]
+    public string Pattern { get; set; } = null!;
 
-    /// <summary>Workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Replacement text or regular-expression replacement pattern.</summary>
+    [Parameter(Mandatory = true, Position = 2)]
+    public string Replacement { get; set; } = null!;
 
-    /// <summary>Text or pattern to replace.</summary>
-    [Parameter(Mandatory = true)]
-    public string OldValue { get; set; } = string.Empty;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Replacement text.</summary>
-    [Parameter(Mandatory = true)]
-    public string NewValue { get; set; } = string.Empty;
-
-    /// <summary>Worksheet name. Defaults to all sheets for path/document use and current sheet inside an ExcelSheet block.</summary>
-    [Parameter]
-    [Alias("WorksheetName")]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index when using a workbook object or path.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>A1 range to update. Defaults to each selected worksheet's used range.</summary>
-    [Parameter]
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter()]
     public string? Range { get; set; }
 
-    /// <summary>Use case-sensitive matching.</summary>
-    [Parameter]
+    /// <summary>Uses literal text matching instead of regular expressions.</summary>
+    [Parameter()]
+    public SwitchParameter SimpleMatch { get; set; }
+
+    /// <summary>Matches names and text using ordinal case sensitivity. Omission ignores case.</summary>
+    [Parameter()]
     public SwitchParameter CaseSensitive { get; set; }
 
-    /// <summary>Treat -OldValue as a regular expression.</summary>
-    [Parameter]
-    public SwitchParameter Regex { get; set; }
+    /// <summary>Open the saved file in its registered application after a local block completes.</summary>
+    [Parameter()]
+    public SwitchParameter Show { get; set; }
 
-    /// <summary>Open the file after saving when using -Path.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
+    public SwitchParameter PassThru { get; set; }
+
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (ParameterSetName == ParameterSetPath) {
-            var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
-            if (!ShouldProcess(resolvedPath, "Update Excel workbook text")) {
-                return;
-            }
+        if (Pattern.Length == 0) throw new PSArgumentException("Pattern cannot be empty.");
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: false)) {
+            if (scope.OwnsDocument && !ShouldProcess(scope.Document.FilePath, "Replace Excel text")) continue;
+            int count = 0;
+            foreach (var sheet in ExcelSheetResolver.ResolveMany(scope.Document, Sheet, Document == null && !scope.OwnsDocument ? ExcelDslContext.Current?.CurrentSheet : null)) count += ReplaceInSheet(sheet);
+            scope.SaveIfOwned();
+            if (Show && scope.OwnsDocument) FileOpenService.Open(scope.Document.FilePath!);
+            if (PassThru) WriteObject(count);
         }
-
-        var replacements = 0;
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        var document = workbook.Document;
-        if (ParameterSetName != ParameterSetPath &&
-            !ExcelShouldProcessService.ShouldProcessWorkbook(this, document, null, "Update Excel workbook text")) {
-            return;
-        }
-
-        foreach (var sheet in ExcelWorkbookCommandService.ResolveSheets(this, document, ParameterSetName, Sheet, SheetIndex)) {
-            replacements += ReplaceInSheet(sheet);
-        }
-
-        workbook.SaveIfOwned();
-        var openPath = workbook.OwnsDocument && Open.IsPresent
-            ? document.FilePath ?? Path
-            : null;
-
-        if (!string.IsNullOrWhiteSpace(openPath)) {
-            workbook.Dispose();
-            FileOpenService.Open(openPath!);
-        }
-
-        WritePassThru(replacements);
     }
-
     private int ReplaceInSheet(ExcelSheet sheet) {
         var count = 0;
         var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRange.Address : Range!;
@@ -125,15 +118,15 @@ public sealed class UpdateOfficeExcelTextCommand : PSWriteOffice.Cmdlets.OfficeM
 
     private string ReplaceString(string value, out int replacements) {
         replacements = 0;
-        if (Regex.IsPresent) {
+        if (!SimpleMatch.IsPresent) {
             var options = CaseSensitive.IsPresent ? RegexOptions.None : RegexOptions.IgnoreCase;
             var count = 0;
             var updated = System.Text.RegularExpressions.Regex.Replace(
                 value,
-                OldValue,
+                Pattern,
                 match => {
                     count++;
-                    return NewValue;
+                    return Replacement;
                 },
                 options);
             replacements = count;
@@ -141,19 +134,20 @@ public sealed class UpdateOfficeExcelTextCommand : PSWriteOffice.Cmdlets.OfficeM
         }
 
         var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        var index = value.IndexOf(OldValue, comparison);
+        var index = value.IndexOf(Pattern, comparison);
         if (index < 0) {
             return value;
         }
 
         var result = value;
         while (index >= 0) {
-            result = result.Substring(0, index) + NewValue + result.Substring(index + OldValue.Length);
+            result = result.Substring(0, index) + Replacement + result.Substring(index + Pattern.Length);
             replacements++;
-            index = result.IndexOf(OldValue, index + NewValue.Length, comparison);
+            index = result.IndexOf(Pattern, index + Replacement.Length, comparison);
         }
 
         return result;
     }
+
 
 }

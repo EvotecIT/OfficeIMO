@@ -1,173 +1,86 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
-using PSWriteOffice.Services.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Table;
+using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Appends one or more data rows to an existing Excel table.</summary>
-/// <para>
-/// Use this command when a workbook already contains a named table and the script should extend that
-/// table without recreating the worksheet through the Excel DSL. The command accepts a workbook path,
-/// an open <see cref="ExcelDocument"/>, or an existing <see cref="ExcelTable"/> object. Objects,
-/// dictionaries, <c>DataTable</c>, <c>DataView</c>, <c>IDataReader</c>, and <c>DataRow</c> input are
-/// normalized through the same table input pipeline used by <c>Add-OfficeExcelTable</c>.
-/// </para>
-/// <para>
-/// When a path is supplied, PSWriteOffice opens the workbook, appends the rows, saves the workbook, and
-/// releases the document. When an open workbook or table is supplied, the caller controls the lifetime
-/// and should close or save the workbook after all edits are complete.
-/// </para>
+/// <summary>Appends rows to an existing Excel table.</summary>
 /// <example>
-///   <summary>Append a row to a named table in an open workbook.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$doc = Open-OfficeExcel -Path .\Report.xlsx
-/// $doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region='APAC'; Revenue=300 })
-/// $doc | Close-OfficeExcel -Save</code>
-///   <para>Uses the existing OfficeIMO Excel table append API and keeps the workbook open for further changes.</para>
-/// </example>
-/// <example>
-///   <summary>Append several service-readiness rows to an existing table.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$rows = @(
-///     [pscustomobject]@{ Service='Identity'; Status='Ready'; Owner='IAM' }
-///     [pscustomobject]@{ Service='Network'; Status='Investigating'; Owner='Platform' }
+/// <summary>Append rows to a table</summary>
+/// <code>$servers = @(
+///     [pscustomobject]@{ Name = 'NW-APP-07'; Role = 'Application'; Site = 'Warsaw' }
+///     [pscustomobject]@{ Name = 'NW-SQL-03'; Role = 'Database'; Site = 'Frankfurt' }
 /// )
-/// Add-OfficeExcelTableRow -Path .\Readiness.xlsx -Sheet Readiness -TableName ServiceReadiness -InputObject $rows</code>
-///   <para>Opens the workbook from disk, appends both objects to the named table, and saves the file.</para>
+/// Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+///     Add-OfficeExcelTableRow -Sheet Servers -Table Servers -InputObject $servers
+/// }</code>
+/// <para>Adds two new servers to the Servers table; the table range grows to include them.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelTableRow", DefaultParameterSetName = ParameterSetPath, SupportsShouldProcess = true)]
-[OutputType(typeof(ExcelTable))]
+/// <example>
+/// <summary>Log each deployment as it finishes</summary>
+/// <code>$book = Open-OfficeExcel -Path .\Reports\Deployments.xlsx
+/// foreach ($target in 'NW-APP-01', 'NW-APP-02', 'NW-APP-03') {
+///     $result = Invoke-Command -ComputerName $target { &amp; C:\Deploy\Install.ps1 -Release '2026.10.2' }
+///     [pscustomobject]@{ Server = $target; Release = '2026.10.2'; Finished = Get-Date; Status = $result.Status } |
+///         Add-OfficeExcelTableRow -Document $book -Sheet Log -Table Deployments
+/// }
+/// Save-OfficeExcel -Document $book -PassThru | Close-OfficeExcel</code>
+/// <para>Appends one row per completed deployment to the Deployments table of a workbook kept open for the whole run.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Add, "OfficeExcelTableRow", DefaultParameterSetName = "Default")]
 public sealed class AddOfficeExcelTableRowCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetTable = "Table";
-
-    private readonly List<object?> _items = new();
-
-    /// <summary>Workbook path to open, update, save, and close.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Open workbook to update. The caller remains responsible for saving and closing it.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
     public ExcelDocument? Document { get; set; }
 
-    /// <summary>Existing OfficeIMO Excel table wrapper to append to when the table has already been resolved.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetTable)]
-    public ExcelTable? Table { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Existing table name or display name, for example the name returned by <c>Get-OfficeExcelTable</c>.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetPath)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetDocument)]
-    [Alias("Name")]
-    public string TableName { get; set; } = string.Empty;
+    /// <summary>Native Excel table used to resolve the source range or header.</summary>
+    [Parameter(ParameterSetName = "Default", Mandatory = true)]
+    public object Table { get; set; } = null!;
 
-    /// <summary>Worksheet name that owns the table. Use this when table names might repeat across sheets.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Alias("WorksheetName")]
-    public string? Sheet { get; set; }
+    /// <summary>Objects, dictionaries or native tabular data supplied directly or through the pipeline.</summary>
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 1, ValueFromPipeline = true)]
+    public object InputObject { get; set; } = null!;
 
-    /// <summary>Zero-based worksheet index that owns the table.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>Rows to append. Accepts objects, dictionaries, DataTables, DataViews, IDataReaders, and DataRows.</summary>
-    [Parameter(Mandatory = true, Position = 1, ValueFromPipeline = true)]
-    [Alias("Data", "Values")]
-    public object? InputObject { get; set; }
-
-    /// <summary>
-    /// Emit the updated table wrapper for open document or table inputs. Path-owned workbooks are saved and closed by this command,
-    /// so they do not emit a live table wrapper.
-    /// </summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        if (string.Equals(ParameterSetName, ParameterSetPath, StringComparison.OrdinalIgnoreCase)) {
-            TableInputCollector.AddInput(_items, InputObject, preserveTabularInput: true);
-            return;
-        }
-
-        AppendRows(CreateDataTable(InputObject), saveOwnedWorkbook: false);
-    }
-
-    /// <inheritdoc />
-    protected override void EndProcessing() {
-        if (!string.Equals(ParameterSetName, ParameterSetPath, StringComparison.OrdinalIgnoreCase)) {
-            return;
-        }
-
-        AppendRows(ExcelTabularInputService.ToDataTable(_items, TableName), saveOwnedWorkbook: true);
-    }
-
-    private void AppendRows(System.Data.DataTable data, bool saveOwnedWorkbook) {
+        object? target = OfficeArgumentValue.Unwrap(Table);
         ExcelTable table;
-
-        if (ParameterSetName == ParameterSetTable) {
-            table = Table ?? throw new PSArgumentException("Provide an Excel table.", nameof(Table));
-            if (!ExcelShouldProcessService.ShouldProcessTarget(this, "Excel table", "Append Excel table rows")) {
-                return;
-            }
-
-            table.AppendDataTable(data);
+        if (target is ExcelTable native) {
+            if (Document != null && !ReferenceEquals(native.Sheet.Document, Document)) throw new PSArgumentException("The table does not belong to Document.");
+            table = native;
         } else {
-            using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-            if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, workbook.Document, Path, "Append Excel table rows")) {
-                return;
-            }
-
-            table = ResolveTable(workbook.Document);
-            table.AppendDataTable(data);
-            if (saveOwnedWorkbook) {
-                workbook.SaveIfOwned();
-            }
+            var document = ExcelCommandTargets.Document(Document);
+            string name = Convert.ToString(target)!;
+            var sheets = Sheet == null ? document.Sheets : new[] { Sheet.Resolve(document.Sheets, s => s.Name) };
+            var matches = sheets.Where(s => s.GetTableRange(name) != null).ToArray();
+            if (matches.Length != 1) throw new PSArgumentException("Table must identify one existing table; use Sheet to narrow it.");
+            table = matches[0].Table(name);
         }
-
-        if (PassThru.IsPresent) {
-            if (string.Equals(ParameterSetName, ParameterSetPath, StringComparison.OrdinalIgnoreCase)) {
-                WriteWarning("Path-owned workbooks are saved and closed by Add-OfficeExcelTableRow; no live ExcelTable is emitted. Open the workbook with Open-OfficeExcel when chaining table edits.");
-                return;
-            }
-
-            WriteObject(table);
-        }
+        var rows = new List<object?>();
+        TableInputCollector.AddInput(rows, InputObject, preserveTabularInput: true);
+        table.AppendDataTable(ExcelTabularInputService.ToDataTable(rows, table.NameOrRange));
+        if (PassThru) WriteObject(table);
     }
 
-    private System.Data.DataTable CreateDataTable(object? value) {
-        var items = new List<object?>();
-        TableInputCollector.AddInput(items, value, preserveTabularInput: true);
-        return ExcelTabularInputService.ToDataTable(items, TableName);
-    }
-
-    private ExcelTable ResolveTable(ExcelDocument document) {
-        if (!string.IsNullOrWhiteSpace(Sheet) || SheetIndex.HasValue) {
-            var sheet = ExcelWorkbookCommandService.ResolveSheet(this, document, ParameterSetName, Sheet, SheetIndex);
-            return sheet.Table(TableName);
-        }
-
-        var matches = document.Sheets
-            .Where(sheet => sheet.GetTableRange(TableName) != null)
-            .ToArray();
-
-        if (matches.Length == 0) {
-            throw new PSArgumentException($"Table '{TableName}' was not found in the workbook.", nameof(TableName));
-        }
-
-        if (matches.Length > 1) {
-            throw new PSArgumentException(
-                $"Table '{TableName}' exists on multiple worksheets. Specify -Sheet or -SheetIndex to select one.",
-                nameof(TableName));
-        }
-
-        return matches[0].Table(TableName);
-    }
 }

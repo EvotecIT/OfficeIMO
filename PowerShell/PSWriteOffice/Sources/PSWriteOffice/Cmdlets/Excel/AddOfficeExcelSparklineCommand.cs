@@ -2,6 +2,8 @@ using System;
 using System.Management.Automation;
 using DocumentFormat.OpenXml.Office2010.Excel;
 using OfficeIMO.Excel;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
@@ -9,112 +11,120 @@ namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Adds sparklines to a worksheet.</summary>
 /// <example>
-///   <summary>Add a line sparkline.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Add-OfficeExcelSparkline -DataRange 'B2:M2' -LocationRange 'N2' }</code>
-///   <para>Creates a line sparkline in N2 using B2:M2.</para>
+/// <summary>Add line sparklines</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+///     ExcelSheet 'Departments' {
+///         ExcelSparkline -DataRange B2:M20 -LocationRange N2:N20
+///     }
+/// }</code>
+/// <para>Draws a sparkline for each row of monthly figures in the column next to them.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelSparkline", DefaultParameterSetName = ParameterSetContext)]
+/// <example>
+/// <summary>Show weekly trends with high and low points</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Site-Incidents.xlsx {
+///     ExcelSheet 'Incidents' {
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Incidents-By-Week.csv) -Name Incidents
+///         ExcelSparkline -DataRange B2:M9 -LocationRange N2:N9 -Type Column -ShowHighLow
+///     }
+/// }</code>
+/// <para>Adds column sparklines with the highest and lowest weeks marked, so each site's pattern is visible at a glance.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Add, "OfficeExcelSparkline", DefaultParameterSetName = "Default")]
 [Alias("ExcelSparkline")]
 public sealed class AddOfficeExcelSparklineCommand : PSCmdlet
 {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
 
     /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
     public ExcelDocument Document { get; set; } = null!;
 
     /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>A1 range containing source data (e.g., "B2:M2").</summary>
-    [Parameter(Mandatory = true)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true)]
     public string DataRange { get; set; } = string.Empty;
 
     /// <summary>A1 range where the sparklines will be placed (e.g., "N2:N2").</summary>
-    [Parameter(Mandatory = true)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true)]
     public string LocationRange { get; set; } = string.Empty;
 
     /// <summary>Sparkline type (Line, Column, WinLoss).</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public ExcelSparklineType Type { get; set; } = ExcelSparklineType.Line;
 
     /// <summary>Show markers for each point.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowMarkers { get; set; }
 
     /// <summary>Show high/low points.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowHighLow { get; set; }
 
     /// <summary>Show first/last points.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowFirstLast { get; set; }
 
     /// <summary>Show negative points.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowNegative { get; set; }
 
     /// <summary>Show axis.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowAxis { get; set; }
 
     /// <summary>Series color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? SeriesColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? SeriesColor { get; set; }
 
     /// <summary>Axis color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? AxisColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? AxisColor { get; set; }
 
     /// <summary>Negative point color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? NegativeColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? NegativeColor { get; set; }
 
     /// <summary>Markers color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? MarkersColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? MarkerColor { get; set; }
 
     /// <summary>High point color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? HighColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? HighColor { get; set; }
 
     /// <summary>Low point color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? LowColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? LowColor { get; set; }
 
     /// <summary>First point color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? FirstColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? FirstColor { get; set; }
 
     /// <summary>Last point color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? LastColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? LastColor { get; set; }
 
     /// <summary>Emit the worksheet after adding sparklines.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
@@ -130,14 +140,14 @@ public sealed class AddOfficeExcelSparklineCommand : PSCmdlet
             displayFirstLast: ShowFirstLast.IsPresent,
             displayNegative: ShowNegative.IsPresent,
             displayAxis: ShowAxis.IsPresent,
-            seriesColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(SeriesColor, nameof(SeriesColor)),
-            axisColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(AxisColor, nameof(AxisColor)),
-            negativeColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(NegativeColor, nameof(NegativeColor)),
-            markersColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(MarkersColor, nameof(MarkersColor)),
-            highColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(HighColor, nameof(HighColor)),
-            lowColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(LowColor, nameof(LowColor)),
-            firstColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(FirstColor, nameof(FirstColor)),
-            lastColor: PSWriteOffice.Services.Text.OfficeColorUtilities.ToExcelColor(LastColor, nameof(LastColor)));
+            seriesColor: SeriesColor,
+            axisColor: AxisColor,
+            negativeColor: NegativeColor,
+            markersColor: MarkerColor,
+            highColor: HighColor,
+            lowColor: LowColor,
+            firstColor: FirstColor,
+            lastColor: LastColor);
 
         if (PassThru.IsPresent)
         {
@@ -145,19 +155,5 @@ public sealed class AddOfficeExcelSparklineCommand : PSCmdlet
         }
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
+    private ExcelSheet ResolveSheet() => ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
 }

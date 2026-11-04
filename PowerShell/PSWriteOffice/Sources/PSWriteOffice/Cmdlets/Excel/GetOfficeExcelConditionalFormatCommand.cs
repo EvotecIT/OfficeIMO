@@ -9,23 +9,34 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Gets native conditional formatting snapshots, with worksheet and source-path metadata.</summary>
 /// <example><summary>Inspect rules for a named table column.</summary>
 /// <code>Get-OfficeExcelConditionalFormat -Path .\Report.xlsx -Sheet Data -Table Sales -Header Status</code></example>
+/// <example>
+/// <summary>List conditional formats</summary>
+/// <code>Get-OfficeExcelConditionalFormat -Path .\Reports\Q3-Performance.xlsx</code>
+/// <para>Shows every conditional formatting rule in the workbook.</para>
+/// </example>
+/// <example>
+/// <summary>Review the rules on one column</summary>
+/// <code>Get-OfficeExcelConditionalFormat -Path .\Reports\Q3-Performance.xlsx -Sheet Performance -Header Attainment -Table Actuals</code>
+/// <para>Reads only the rules that apply to the Attainment column of the Actuals table.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeExcelConditionalFormat", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ExcelConditionalFormattingInfo))]
 public sealed class GetOfficeExcelConditionalFormatCommand : ExcelQueryCmdlet {
     /// <summary>A1 range filter; Header takes precedence when both are supplied.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Range { get; set; }
     /// <summary>Header or table column name used to resolve the range filter.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Header { get; set; }
     /// <summary>Table name for header-based range resolution.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Table { get; set; }
     /// <summary>Worksheet header row; zero uses the first row of the used range.</summary>
-    [Parameter, ValidateRange(0, 1048576)]
+    [Parameter()]
+    [ValidateRange(0, 1048576)]
     public int HeaderRow { get; set; }
     /// <summary>Include the header cell when resolving a named column.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter IncludeHeader { get; set; }
 
     /// <inheritdoc />

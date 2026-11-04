@@ -9,7 +9,6 @@ Describe 'Excel encrypted lifecycle and conversion' {
         $path = Join-Path $TestDrive 'EncryptedExcel.xlsx'
 
         New-OfficeExcel -Path $path -Password 'secret' -SaveOptions @{ Preflight = $true } {
-            Set-OfficeExcelExecutionPolicy -Mode Sequential -ParallelThreshold 5 -WorksheetValidation Always -Diagnostics
             Add-OfficeExcelSheet -Name 'Secure' -Content {
                 Set-OfficeExcelCell -Address 'A1' -Value 'Encrypted value'
             }

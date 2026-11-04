@@ -11,7 +11,7 @@ $path = Join-Path $documents 'Excel-TablesAndRanges.xlsx'
 New-OfficeExcel -Path $path {
     ExcelSheet 'Summary' {
         Set-OfficeExcelRow -Row 1 -Values 'Region', 'Revenue', 'Owner'
-        Add-OfficeExcelTable -Data $data -Name 'Sales' -TableStyle 'TableStyleMedium9' -AutoFit
+        Add-OfficeExcelTable -InputObject $data -Name 'Sales' -TableStyle 'TableStyleMedium9'
         Set-OfficeExcelNamedRange -Name 'Revenue' -Range 'B2:B4'
     }
     ExcelSheet 'Notes' {

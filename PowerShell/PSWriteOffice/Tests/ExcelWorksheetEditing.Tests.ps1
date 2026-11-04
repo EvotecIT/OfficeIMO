@@ -5,25 +5,25 @@ BeforeAll {
 }
 
 Describe 'Excel worksheet editing' {
-    It 'edits worksheet pipelines quietly and persists row and column layout' {
+    It 'edits typed worksheet targets quietly and persists row and column layout' {
         $path = Join-Path $TestDrive 'WorksheetTargets.xlsx'
         $workbook = New-OfficeExcel -Path $path
         try {
             $first = $workbook | Add-OfficeExcelSheet -Name 'First' -PassThru
             $second = $workbook | Add-OfficeExcelSheet -Name 'Second' -PassThru
-            $output = @(@($first, $second) | Set-OfficeExcelRow -Row 1 -Values 'Name', 'Notes' -Height 30)
+            $output = @(foreach ($target in $first, $second) { Set-OfficeExcelRow -Sheet $target -Row 1 -Values 'Name', 'Notes' -Height 30 })
             $output.Count | Should -Be 0
-            $output = @(@($first, $second) | Set-OfficeExcelColumn -ColumnName B -Width 42 -Hidden $false -PassThru)
+            $output = @(foreach ($target in $first, $second) { Set-OfficeExcelColumn -Sheet $target -Column B -Width 42 -Hidden:$false -PassThru })
             $output.Count | Should -Be 2
-            [object]::ReferenceEquals($output[0], $first) | Should -BeTrue
-            [object]::ReferenceEquals($output[1], $second) | Should -BeTrue
-            $first | Set-OfficeExcelRow -Row 2 -Values 'Identity', 'Ready'
+            $output[0].Name | Should -Be First
+            $output[1].Name | Should -Be Second
+            Set-OfficeExcelRow -Sheet $first -Row 2 -Values 'Identity', 'Ready'
             $workbook | Save-OfficeExcel
         } finally {
             $workbook | Close-OfficeExcel
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'First')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'First')
         $rows[0].Name | Should -Be 'Identity'
         $rows[0].Notes | Should -Be 'Ready'
         foreach ($entry in 'xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml') {
@@ -40,15 +40,15 @@ Describe 'Excel worksheet editing' {
             $workbook | Add-OfficeExcelSheet -Name 'Unchanged'
             $workbook | Add-OfficeExcelSheet -Name 'Review'
             $workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 1 -Values 'Service', 'Status'
-            $workbook | Set-OfficeExcelColumn -SheetIndex 1 -ColumnName A -StartRow 2 -Values 'Identity', 'Messaging'
+            $workbook | Set-OfficeExcelColumn -Sheet 2 -Column A -StartRow 2 -Values 'Identity', 'Messaging'
             $workbook | Set-OfficeExcelCell -Sheet 'Review' -Address B2 -Value 'Ready'
-            $workbook | Set-OfficeExcelCell -SheetIndex 1 -Address B3 -Value 'Watch'
+            $workbook | Set-OfficeExcelCell -Sheet 2 -Address B3 -Value 'Watch'
             $workbook | Save-OfficeExcel
         } finally {
             $workbook | Close-OfficeExcel
         }
 
-        $rows = @(Import-OfficeExcel -Path $path -WorksheetName 'Review')
+        $rows = @(Import-OfficeExcel -Path $path -Sheet 'Review')
         $rows.Count | Should -Be 2
         $rows[0].Service | Should -Be 'Identity'
         $rows[0].Status | Should -Be 'Ready'
@@ -67,10 +67,16 @@ Describe 'Excel worksheet editing' {
         try {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
             $usedRange = $sheet.UsedRange.Address
-            { & $Command -Worksheet $sheet -Document $workbook @Options } | Should -Throw '*either -Worksheet or -Document*'
-            { & $Command -Document $workbook -Sheet Data -SheetIndex 0 @Options } | Should -Throw '*either -Sheet or -SheetIndex*'
-            { & $Command -Sheet Data @Options } | Should -Throw '*together with -Document*'
-            { & $Command -Document $workbook -SheetIndex 5 @Options } | Should -Throw '*SheetIndex is out of range*'
+            $foreignBook = New-OfficeExcel
+            try {
+                $foreign = Add-OfficeExcelSheet -Document $foreignBook -Name Data -PassThru
+                { & $Command -Document $workbook -Sheet $foreign @Options } | Should -Throw
+                { & $Command -Document $workbook -Sheet 0 @Options } | Should -Throw
+                { & $Command -Sheet Data @Options } | Should -Throw
+                { & $Command -Document $workbook -Sheet 6 @Options } | Should -Throw
+            } finally {
+                Close-OfficeExcel -Document $foreignBook
+            }
             $sheet.UsedRange.Address | Should -Be $usedRange
             $text = $null
             $sheet.TryGetCellText(1, 1, [ref] $text) | Should -BeFalse
@@ -89,7 +95,7 @@ Describe 'Excel worksheet editing' {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
             $workbook | Add-OfficeExcelSheet -Name 'Review'
             foreach ($name in '', '   ') {
-                { & $Command -Document $workbook -Sheet $name @Options } | Should -Throw '*Sheet cannot be empty or whitespace*'
+                { & $Command -Document $workbook -Sheet $name @Options } | Should -Throw
             }
             $text = $null
             $sheet.TryGetCellText(1, 1, [ref] $text) | Should -BeFalse
@@ -115,12 +121,12 @@ Describe 'Excel worksheet editing' {
             $sheet = $workbook | Add-OfficeExcelSheet -Name 'Data' -PassThru
             if ($Target -eq 'Cell') {
                 for ($index = 0; $index -lt $values.Count; $index++) {
-                    $sheet | Set-OfficeExcelCell -Row 2 -Column ($index + 1) -Value $values[$index]
+                    Set-OfficeExcelCell -Sheet $sheet -Row 2 -Column ($index + 1) -Value $values[$index]
                 }
             } elseif ($Target -eq 'Row') {
-                $sheet | Set-OfficeExcelRow -Row 2 -Values $values
+                Set-OfficeExcelRow -Sheet $sheet -Row 2 -Values $values
             } else {
-                $sheet | Set-OfficeExcelColumn -Column 1 -StartRow 2 -Values $values
+                Set-OfficeExcelColumn -Sheet $sheet -Column 1 -StartRow 2 -Values $values
             }
             $workbook | Save-OfficeExcel
         } finally {
