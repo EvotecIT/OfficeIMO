@@ -1,0 +1,15 @@
+{
+  "schema": "officeimo.publisher.synthetic-compact-cluster-source.v1",
+  "license": "MIT",
+  "derivedFrom": "../TableClusterWide/native-tableclusterwide.pub",
+  "sourceSha256": "2bd50ff6efeb9f9604948a3d7ee2ff13268679b74a2f258de4f1f6429ae3b06b",
+  "reproduction": "dotnet <WriterProbe.dll> table-cluster-compact-source <TableClusterWide/native-tableclusterwide.pub> <output.pub>",
+  "operation": "Deliberately remove all table paint and utility/auxiliary allocation history for a compact initializer input; retain ordinary records, other global records and other logical streams. This is a synthetic comparison fixture, not a preserving user operation.",
+  "files": [
+    {
+      "name": "compact-twenty.pub",
+      "bytes": 174080,
+      "sha256": "f0eb66cc989d6b9a1dcb1c27366ffa047845b4781c6ccb2ecb16c7dc3c47f6fc"
+    }
+  ]
+}

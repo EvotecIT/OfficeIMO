@@ -1,7 +1,10 @@
 # Publisher support contract
 
-OfficeIMO.Publisher is a native read-and-convert library. Its public model owns
-publication pages, master definitions, styled source stories, native table grids, embedded assets
+OfficeIMO.Publisher reads native publications, supports bounded in-memory edits
+and converts the current model. Bounded native source saving supports exact copies
+and the documented edit profiles with operation-level fidelity reports. Its public model owns
+publication pages, master definitions, placed pictures, supported vector artwork,
+styled source stories, native table grids, embedded assets
 and a recovery report. Shared `OfficeDrawing` owns the reconstructed visual scene;
 the optional PDF package consumes that scene without another native decoder.
 
@@ -17,29 +20,147 @@ The generation signature does not establish qualification for every Publisher
 release or object type. Independent producer files exercise real native storage;
 they are not produced by an OfficeIMO writer.
 
+The exact combined writer specimen has a calibrated observation of selected native
+diagnostic paths: its three opens produce no GK diagnostic or consent/message
+request, while a signature-invalid native control produces a severity-4 rejection.
+The [qualification record](../Build/Publisher/WriterProbe/qualification.json)
+separates this result from repair-free acceptance, which still lacks a repair-positive
+control and complete recovery-path coverage.
+
+A later object-loading observation adds five sites to that trace. On both an
+independent native Text control and the exact generated specimen, every captured
+object parser and loader result succeeds across all three opens. No selected
+error-suppression or later retry branch is entered. Paired uninstrumented runs
+retain identical complete inventories and four 144 dpi PDF page comparisons.
+The `observations.laterLoadRecovery` record identifies the sites, results and
+coverage limits. This narrows the unobserved recovery paths; it does not supply
+a successfully repaired control or close native creation acceptance.
+
+A separate one-byte unsupported-field control reaches a severity-2 diagnostic
+and the observed `0x66C2` consent request with the strict-failure flag still zero.
+The dispatcher returns `2`; validation returns `0x80040052` and opening stops
+before object loading. The `observations.validationConsentControl` record
+qualifies that request/refusal observation. It does not establish that a dialog
+was displayed, that recovery was accepted or that a repaired file was saved.
+
+Malformed native character controls further bound that observation: Publisher
+opens and saves a zero font size with no selected diagnostic, while its PDF body
+paint is absent. An invalid primary font index also survives native save and
+renders through fallback. Neither is a repair-positive control. The
+`repairControlBoundaries` record separates these outcomes from a strict catalog
+kind rejection and from the validity of the exact generated specimen.
+
+The `currentRepairAttribution` record qualifies an alternate wrapper's ordinary
+load-interval attribution on Publisher `.20112` and a current-build strict
+rejection control. A malformed drawing-wide saved-shape count, changed from 17
+to 18, survives native save/reopen unchanged despite matching cell/grid/style
+inventories and native PDF exports. No selected diagnostic or consent request
+occurs. This is another retained-data boundary, not successful structural repair.
+Selected static object-state/materialization analysis resolves the main cold
+fragment's local state/E_FAIL handling. An original wrapper/caller flow establishes
+a same-context, same-item-index retry, while the dispatcher decision's meaning and
+the runtime connection from a particular materializer failure remain unqualified.
+These observations supply no recovery-positive control or repair-free acceptance.
+
+The `nativePopupRuntimeBinding` record resolves the selected popup's logical
+target in an owned Publisher process to the current MSO implementation. Its
+normal check-success epilogue preserves the numeric result, but one static path
+can select `1` without entering the decoded dialog dispatcher. Numeric results
+alone therefore do not establish button selection or accepted recovery.
+The `nativeResourceRegistryBinding` record resolves Publisher's resource key
+through the current registry to its Unicode-reading method. The key is not
+assumed to be an object pointer. The `currentResourceSafetyPrompt` record binds
+the observed payload base to type 234 / ID 1 / language 1033 in the exact mapped
+`PUB6INTL.DLL`. Reconstruction of key `0x67c40022` from that file and the observed
+object configuration yields a file-problem/source-trust safety prompt. It advises
+cancellation when the source or contents are uncertain and makes no repair or
+recovery assertion. This is a file reconstruction, not a directly observed
+runtime string or a native full-key call. Button meanings, actual internal
+recovery and repair-free acceptance remain unqualified; the safety prompt is
+not a repair-positive control.
+
+The `selectedNativeRetryObservation` record binds one kind-1 portrait input to an
+eleven-site first-open capture. The load returns zero after a zero severity reset,
+without the selected failure/continuation/same-index retry route. That capture
+ends at initial inventory. The instrumented Full subsequently fails during PDF
+export with a Windows fault in an unloaded Frida agent; its instrumentation
+lifecycle remains unqualified. A separate uninstrumented Full on the same bytes
+completes native text mutation, save/reopen and PDF exports. These results leave
+other recovery paths and the repair-positive control unqualified.
+
+The internal codec in `OfficeIMO.Publisher/Internal/NativeCreation` is qualified
+through the opt-in [native writer probe](../Build/Publisher/WriterProbe/README.md)
+for bounded source-free specimens. Its operation uses a `PublisherLoadOptions`
+snapshot and explicit cancellation token and complete compound-output byte limit.
+The public native save path still requires a loaded source and retains
+the `PUB_NATIVE_SOURCE_REQUIRED` gate. The two-image page profile
+retains distinct embedded PNGs and their page bindings through native resave;
+moving and resizing the second picture through the public source-save API leaves
+the first picture and image payloads unchanged. Public template-free native save,
+shared-image authoring and repair-free acceptance remain unavailable or unqualified.
+
+Two independent native controls qualify twelve whole-frame character-attribute
+combinations and all eighteen automation underline choices across five physical
+pages. Saved Quill underline values differ from the automation enum. Seven native
+kinds map directly to shared patterns; the remaining eleven retain an explicit
+approximation. The `characterReading` section of the
+[qualification record](../Build/Publisher/WriterProbe/qualification.json) identifies
+the fixtures, native values and reader source. Managed SVG/PDF inspection confirms
+that the recovered decorations reach output; it does not establish matching native
+decoration geometry, font availability or script metrics.
+Both controls exercise two chained Quill directories. Separate source-save
+qualification below covers character edits in these layouts.
+Source-built PSWriteOffice converts both controls through `ConvertTo-OfficeDocument`
+and the in-process `publisher-pdf` route on PowerShell 7. The five output pages
+reopen, and all eleven underline approximation locations survive in workflow
+evidence. This qualifies the conversion path, with packaging and native writing
+remaining separate boundaries.
+
 Inline OfficeArt picture data stays in the preserved source and reports omitted
 artwork; positioned reconstruction uses image-store references. Cleared picture
 references do not report missing images.
+Native resaving can retain zero-count image-store descriptors whose delayed
+offsets now point at another image. After collecting native BLIP references,
+the reader leaves an unreferenced zero-count truncated or UID-mismatched slot
+inert and reports `PUB_IMAGE_RETIRED_SLOT`; its identity remains reserved.
+Valid unused assets remain available. Referenced or positive-count truncated
+payloads still fail the read. UID comparison identifies retired slots; it is
+not an integrity check over every active payload. Inspected retired payloads
+still consume the image-processing byte budget.
 
 ## Reconstruction
 
 | Content | Current behavior | Limit |
 | --- | --- | --- |
-| Document pages | Native order, physical size and page clipping | Utility/reference definitions are excluded |
-| Master pages | Recovered definitions applied to referring pages | Missing references report omission; nested master inheritance is unassessed |
-| Text | UTF-16 stories, styled paragraphs, referenced native style values, reciprocal frame links and ordinals, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; style names and auxiliary inheritance metadata are not exposed as an editable style library |
-| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs | Numbering sequences, additional tab alignments/leaders and drop caps are unassessed; undeclared tab stops use the shared 36-point interval |
-| Tables | `PublisherPage.Tables` exposes native tracks, spans, styled paragraphs, text and placement; master tables remain on their owner | Unavailable frame geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`; individual cell borders, fills and padding are unassessed |
+| Document pages | Native order, physical size and page clipping, including empty physical pages | Master and utility roles follow the ordered native reference array and its role boundaries; malformed boundaries are rejected |
+| Master pages | Recovered definitions, stored display names and application to referring pages | Display names use native field `0x0F`, with the short `0x0E` code as fallback when absent; application-generated placeholder labels are not synthesized. Missing references report omission; nested master inheritance is unassessed |
+| Text | UTF-16 stories, styled paragraphs, referenced native style values, explicit reciprocal links or complete native story/frame catalog bindings, sequential columns, continuation and overflow reporting | Shared measurement approximates native frame breaks and column balancing; source style pairs and use ranges are retained internally, while names, builtin selectors and auxiliary inheritance metadata remain unassessed |
+| Character formatting | Native font names, size, referenced color, bold/italic, strikethrough, superscript/subscript, pair-kerning threshold metadata and none, single, words-only, double, dotted, dashed and wavy underlines | Explicit thresholds and qualified source-bound effective defaults control measurement and glyph output. Plain printable-ASCII native contexts span color, threshold and space boundaries, retaining glyph slices for raster/SVG/PDF; broader scripts, decorations and producer profiles remain unqualified. Native underline weight, long-dash, compound and unknown patterns use the closest shared pattern with `PUB_TEXT_UNDERLINE_APPROXIMATED`. Font availability, exact metrics and decoration geometry remain separate rendering limits |
+| Lists and tabs | Native Unicode bullet labels, qualified Symbol/Wingdings marker normalization, hanging indentation, text position and declared left tabs; complete tabbed lines follow recovered center/right paragraph alignment; undeclared stops use the qualified text-engine default or publication fallback | Numbering sequences, additional per-stop alignments/leaders and drop caps are unassessed. With no usable default-tab carrier, layout reports `PUB_DEFAULT_TAB_UNASSESSED` and uses the generic 36-point grid. Native device advances and broader tabbed-line placement remain separate rendering limits |
+| Tables | `PublisherPage.Tables` exposes current tracks, spans, styled paragraphs, solid cell fills, shared grid borders, text and placement; anchor-cell fills and shared-border ranges are editable; qualified text edits preserve complete story partitions, and bounds edits scale tracks proportionally; master tables remain on their master | Separate `CanEditCellText`/`CanEditBounds` identify those operations. Unavailable geometry retains the grid and mapped text with `HasPlacement = false`; unresolved text mappings use `HasTextMapping = false`. Native saving supports existing solid utilities, local color insertion, shared-edge allocation, first fill/border initialization, selective missing-cell initialization and [ordered cluster rollover](#ordered-table-utility-cluster-allocation) in qualified direct table profiles, including [bounded decorated merges](#decorated-merged-table-utilities). Existing invisible cell records retain their ownership. Cell-specific padding and other paint remain unqualified |
 | Shapes | Rectangles, rounded rectangles, ellipses, diamonds, triangles and lines; solid paints and basic shadows | Other geometries and unsupported fill types report approximation; compound and non-solid strokes remain unassessed |
 | Custom paths | Literal eight-byte signed and compact unsigned vertices in declared geometry space; bounded SG guide formulas and backward references; implicit open/closed line or cubic paths, explicit move/line/cubic/close/end commands, subpaths and no-fill/no-line controls | Device-pixel guide operands, limousine scaling, advanced commands and separate paint groups retain an explicit fallback; guide rounding, shared nonzero winding and native appearance remain unqualified |
 | Linear fills | Native color stops, fixed-point angles, focus ramps and foreground/background opacity for fill types 4 and 7 | Custom anchors, native shading corrections and unrepresentable alpha ratios report approximation; native Publisher rendering remains unqualified |
 | Line details | Native caps, joins, miter limits and dash order; triangle, stealth, diamond, oval and open-arrow ends on lines | Dash spacing and marker dimensions use stroke-relative approximations; unknown values report loss; marker shadows and decorations on unsupported open geometry are omitted with diagnostics |
 | Groups | Native child coordinate spaces, non-uniform scale after child rotation, nested rotation/reflection and hidden-descendant suppression | Missing anchors report unresolved transforms; comparison against native Publisher rendering remains unqualified |
-| Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions | Widest available interval per horizontal band; side selection, tight/through outlines and native font metrics can differ |
+| Text wrapping | Native frame exclusion references and object wrap distances; transformed rectangular exclusions; Top-aligned rectangular Both uses successive intervals on a shared baseline; Left, Right and Larger select the permitted side per column, with left selected on an equal-width Larger tie | Center/Bottom and unqualified outline modes retain the widest-band fallback; native line fitting, hyphenation, transformed-side behavior and additional producers need broader qualification. Side rendering does not qualify native wrap relationship editing |
 | Pictures | Embedded and delayed OfficeArt payload extraction, Publisher GIF envelopes, positioned images, source crop and supported custom-path masks | WMF/EMF use a supplied application codec or reported placeholder; native custom-mask appearance remains unqualified |
+| Placed-picture model | `PublisherPage.Pictures` separates page/master ownership, stable object IDs, asset references, page-point bounds, transforms and normalized crop from embedded bytes; unsupported placements expose an edit limitation | Unresolved image references can remain unresolved; inspection does not qualify native save-back or editable effects |
+| Picture creation | `AddImage` appends an uncropped rectangular placement from owned static PNG/JPEG bytes or an existing document image ID on a qualified document/master page, with explicit point bounds, no fill/outline/effects/transform or story/wrap references; shared object and separate image allocators, current exports | Non-normal EXIF orientation, animated PNG, other formats and invalid content reject creation. No automatic DPI sizing, effect authoring, external links or public native PUB creation; the crop API applies to eligible authored and imported placements |
+| Picture crop editing | `SetPictureCrop` sets normalized source-edge fractions through the shared `OfficeImageSourceCrop` type; updates current drawing/export scenes while preserving frame, image, identity, paint, other placements and old snapshots | Positive visible area is required. Native source save rounds to signed 16.16 values and reports approximation; rounded collapse refuses output. Outsets, custom masks, effects and transformed/grouped placements remain outside the crop-edit profile |
 | Picture controls | Source-RGB transparency keys, encoded-RGB brightness/contrast, preserve-grays tone handling, BT.709 grayscale and a 50-percent two-color threshold; original assets remain available | Color space, effect ordering and native Publisher pixels remain unqualified; recoloring and extended color controls are unassessed; invalid tone values or unresolved keys report omission |
 | Fields, links and active content | Cached story characters are retained; source active content stays inert | No field evaluation, hyperlink reconstruction, macro execution, link refresh or object activation |
-| Output | SVG per document page and multi-page PDF through shared engines | No native save-back or editable publication writer |
+| Editable vector artwork | `PublisherPage.Shapes` records owner, stable ID, point bounds and placement availability; bounds and solid-paint edits for supported basic geometry; shared text-frame placement and current wrap obstacles | Grouped, transformed, hidden, custom-path, gradient, effected and unresolved artwork is inspection-only; detached editable descriptors do not establish native writable support |
+| Primitive creation | Rectangle, rounded rectangle, ellipse and nondegenerate line descriptors append to qualified document/master pages; shared publication allocator and current SVG/PDF scenes | No native records; unsupported geometry/effects are rejected; new shapes have no story or wrap references |
+| In-memory edits | Document-owned replacement of complete non-table story paragraphs and mapped table-cell paragraphs, bounds changes for qualified frames/tables, and image replacement/bounds changes for supported rectangular PNG/JPEG picture placements; stable IDs and ownership, explicit object order, fresh scenes, text ranges and overflow | Picture and table bounds edits reject unsupported graphic placement. Cell edits reject conflicting grids, unsafe partitions and stories also used by ordinary frames; no imported table topology changes or arbitrary relinking. Native saving accepts only the separate source-edit profile; old references remain snapshots |
+| Object stacking | `PublisherPage.ObjectIds` exposes the mixed back-to-front order; `SetPageObjectOrder` changes an exact permutation on a document/master page, with fresh SVG/PDF scenes and qualified existing-source native saving | Existing IDs, ownership and story links remain fixed. Qualified rectangular wrap relationships regenerate during ordering and bounds edits. Groups, unqualified side/outline/master wrapping and split native sibling scopes remain unsupported; source-free native output remains unavailable |
+| Table creation | Grids on qualified document/master pages; opaque anchor-cell fills and shared horizontal/vertical border assignment/clearing; `MergeTableCells` joins complete authored cells into rectangular spans while retaining styled paragraphs, anchor fills and tracks; one complete story, shared identifier allocation and current SVG/PDF/Reader projection | Imported native topology and public native PUB creation remain unsupported. Shared borders split on range overwrite; merged-cell interiors and new merges in bordered tables are refused. Text/model/projection limits and transactional failure behavior apply |
+| Page/master authoring | Source-free `Create` with one empty physical page; appended same-size physical pages, centered single masters and atomic left/right master pairs; typed master-side metadata; explicit qualified direct assignment or clearing; existing-source assignment/clearing can save natively | No page resizing, deletion/reordering, cross-page object moves, automatic parity selection or master inheritance; unqualified background/registration/reference/display records reject assignment; new topology cannot save natively |
+| Ordinary text creation | `AddTextFrame` creates a complete independent styled story and resolved one-frame chain on a qualified document/master page; one column, zero gap/insets, top alignment, no paint/transform/wrap; existing continuation API handles document-page chains | Authored ordinary stories have no implicit final terminator; full overflow is retained. Frame/story IDs reserve atomically; master-owned stories cannot continue across physical pages; no native text records are authored |
+| Text-frame layout edits | `SetTextFrameLayout` replaces equal-width columns/full intercolumn gap, Core padding and Top/Center/Bottom alignment on qualified resolved document/master frames, including mixed text artwork. Imported frames can use the bounded native source-save profile; snapshots expose operation-specific eligibility | No table stories/aliases, grouped/transformed/unresolved placement, native balancing, distributed alignment or vertical writing. Unqualified native layout overrides remain read-only for this operation; bounds/read behavior stays separate. Native saving requires exact distances and safely editable local properties/chunk-directory records; fidelity remains Unassessed |
+| Continuation-frame creation | Append an ordinary untransformed text frame to a resolved non-table story's tail on an existing document page; one complete styled story, current links/ranges/overflow, copied columns/padding/alignment, no fill/outline, and shared SVG/PDF/Reader projection | The source chain must contain ordinary visible untransformed document-page frames; master chains, ambiguous links and non-tail insertion are rejected; this is in-memory model creation, not native PUB creation |
+| Native source saving | `ToBytes`, `Save` and `SaveAsync` with detached bytes, explicit `.pub` paths or caller-owned streams; exact unchanged source copies and bounded existing-source edits described below | Default strict loss policy blocks unassessed edits. Explicit `AllowLoss = true` does not enable refused profiles. No source-free writer, general image/table/page topology changes or earlier-generation output |
+| Rendered output | SVG per document page and multi-page PDF through shared engines | Reconstructed output carries source and rendering losses independently of native saving |
 
 `OfficeIMO.Workflows` uses the same native codec for its `publisher-pdf` route,
 file batches and document previews. Source recovery diagnostics survive output
@@ -63,17 +184,2255 @@ correlates table blocks and rows to avoid repeated text. Typography, page artwor
 and frame flow remain explicitly omitted from the semantic projection. The same
 adapter is included in `OfficeIMO.Reader.All`.
 
-Source object counts measure recovered descriptors and distinct projected
-objects. They do not measure pixel fidelity or prove that all content of an
-object survived. Complete source stories remain inspectable even when their
-visual placement is incomplete.
+`SourceObjectCount` measures the original native descriptors.
+`CurrentObjectCount` includes retained imported objects and authored
+tables, continuation frames and shapes; `ProjectedObjectCount` counts distinct current objects
+represented in document or master scenes. Repeated master use counts once.
+Authored tables, frames and shapes do not add native inspection records, and `SourceReadReport`
+retains the original decoding evidence. Counts do not measure pixel fidelity
+or prove that all content of an object survived. Complete stories remain
+inspectable even when their visual placement is incomplete.
+
+Every successful edit replaces the current projection and its `ReadReport`.
+`SourceReadReport` remains the immutable decode-only evidence from the initial
+load. Validation, cancellation and projection failures leave the current model
+unchanged. Native bytes and compound metadata are retained privately and remain
+inert. The import-time semantic baseline and exact source OfficeArt bindings
+support the native source-save path: unchanged content copies the
+original bytes; bounded existing anchor and solid-scalar edits replace the
+OfficeArt stream. Frame-layout edits can grow local property tables and Contents
+shape records while relocating dependent native offsets. Admitted ordinary-story profiles can
+replace text of different
+lengths and edit supported character attributes through retained per-run OPLs, Quill text, story lengths,
+formatting endpoints and page indexes. A single original run can split into
+styled runs, and matching run counts can be edited again. Each changed story has
+one existing frame or a complete resolved chain of ordinary, visible,
+untransformed document-page frames. Linked-story saving retains the native
+chain, frame identities, page ownership and geometry; it does not relink frames.
+Unresolved, unavailable, grouped, transformed and master-page chains refuse
+changed-story output. Story identities and order remain fixed. Known source layouts
+can have chained directory pages, with at most 20 descriptors per page and 65,535
+descriptors in total. Existing table stories use the fixed-cell profile below. Repeated
+byte-identical OPLs can share native page storage, with all story lengths, range
+endpoints, page indexes and later-page start headers remapped. The original
+single-story/one-page path retains its accepted encoding. In multi-paragraph stories, existing empty paragraphs can remain empty or
+gain text. Each paragraph's
+native definition and endpoint are retained independently; character ranges can
+cross paragraph boundaries. Empty paragraph typing follows the source CR or an
+explicit empty styled run, as described below. Unsupported nonempty run merges,
+unsupported formatting and unknown directory metadata refuse
+output. Edited output removes the optional [SummaryInformation thumbnail](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-oleps/f7933d28-2cc4-4b36-bc23-8861cbcd37c4) so it
+cannot retain that stale content preview. The shared OLE property-set editor
+retains the other raw property values and header; unrelated logical streams and
+directory metadata remain unchanged. An unchanged semantic model still copies
+the original native bytes exactly, including its preview. Malformed
+SummaryInformation property-set structure refuses edited output. Other cached-record semantics
+remain unassessed.
+Unsupported semantic changes refuse output. This path does not establish
+repair-free opening, general native edit acceptance or opaque semantic preservation.
+The [writer probe](../Build/Publisher/WriterProbe/README.md#loaded-source-candidates)
+records the independently qualified source-edit specimens.
+
+The `nativeOracleLifecycle` record adds native Publisher 16.0.20527.20112
+mutation/save/reopen evidence for an independent text control and a template-free
+text specimen. A three-page generated newsletter retains its complete stories,
+table observations and all three PDF page images across native save/reopen.
+OfficeIMO's public reader recovers the native text mutations and the newsletter's
+complete stories and cells from those resaved files. The comparison controller
+also provides a read-only inventory/PDF stage. The generated 96-cell grid retains
+all cell text and tracks through native save/reopen and public managed reading.
+Native COM operations use PowerShell 7; the controller also runs under Windows
+PowerShell 5.1. This is qualification tooling, not a product runtime requirement.
+Repair-free opening, public template-free creation and broader native edit/resave
+coverage remain unqualified. Recent scratch cohorts whose executable identity
+was not captured are labelled explicitly in their qualification records.
+
+Paragraph counts can increase or decrease from a uniform source: every source
+paragraph has one run, matching projected formatting, byte-identical native
+paragraph definitions and matching body/intermediate-CR definitions. Added
+paragraphs use those definitions as a base, with qualified character and paragraph
+edits applied independently; the final source CR definition is retained.
+New runs can change size, bold, italic, representable underlines, single
+strikethrough, baseline, font family and opaque RGB text color. Unchanged
+attributes retain their source tokens; explicitly changed attributes also reach
+the paragraph CR. None, single, words-only, double, dotted, dashed and wavy
+underlines are writable. Double strikethrough and nonopaque colors are refused.
+Font changes require a known uniform eight-script source selector or no direct
+selector; mixed-script source mappings are refused. Names must contain 1–32
+UTF-16 code units, with no control characters or malformed encoding. Existing
+FONT entries and suffixes remain byte-identical; new names append indexed entries
+with zero hints. Font availability and substitution remain native-environment limits.
+Color edits require an absent or ordinary paired solid-color representation.
+They update both color references and retain existing palette entries; ordinary
+RGB entries are reused or appended. Other fill, opacity or ambiguous source
+representations refuse output.
+
+Paragraph saves support left, center, right and justified alignment, spacing
+before/after paragraphs, left/right margins, first-line or hanging indentation,
+and explicit absolute or multiple line spacing. Point values must be exactly
+representable in the admitted native units. Use `lineHeightFactor: 1` for explicit
+single spacing; clearing both line-height settings does not establish a native
+default. Simultaneous nonzero first-line and continuation offsets are outside
+the canonical native indent profile.
+
+Ordinary explicit left tabs can be added, replaced or cleared. Preserve the
+imported `TabStops.DefaultInterval` when constructing replacement tab settings;
+the paragraph codec does not change the publication's default interval. The
+origin is `-paragraph.Margins.Left`. Native center
+and right paragraphs require `TabStops.AlignWithParagraph` to be true, using
+`WithParagraphAlignment()`; this includes paragraphs that currently contain no
+tabs so later text insertion retains the same behavior. Left and justified
+paragraphs use false. A fixed-grid center/right request is refused. Custom tab
+origins, repeating intervals, per-stop alignment and leader settings are outside
+this write profile. Existing unknown tab metadata is retained when only paragraph
+alignment changes. Native field widths and formatting-page capacity remain
+enforced.
+
+Unlabelled native paragraphs can also be retained, deleted, reordered or
+duplicated when source definitions differ. Their complete paragraph and visible
+character definitions remain byte-identical. Supply original paragraph snapshots
+to select their exact native definitions. Detached equal values are accepted only
+when all matching source definitions agree for the destination role; equal visible
+formatting alone does not resolve opaque language or other metadata. This path
+does not rewrite the retained text or formatting and requires one exact native
+paragraph range per source paragraph. A retained empty paragraph keeps its own
+complete CR definition in either an interior or final position, including when
+other paragraphs are newly authored within the uniform source-save profile.
+Equal copied empty paragraphs with different native CR definitions are refused.
+
+For nonempty retained paragraphs, the final destination keeps the original
+story's final CR typing definition. Moving the original final paragraph into the interior requires an observed
+intermediate CR definition that matches its last visible body definition.
+Text can change during nonuniform count changes when its complete editable
+paragraph/run formatting and ordered run count remain unchanged. Every run must
+remain nonempty. Exact retained
+snapshots and values resolve first. Other paragraphs match by formatting, and
+every matching native template must have a uniform native definition for each
+corresponding nonempty run and agree on complete paragraph/run definitions and
+the destination CR. Unsupported matching source definitions remain ambiguity
+barriers. Equal visible formatting does
+not choose between conflicting opaque native definitions. Count-changing
+edits preserving neither complete paragraph text nor complete formatting remain
+outside this profile; the [complete nonempty replacement profile](#complete-nonempty-replacement-during-paragraph-count-changes)
+provides the separate agreement-based path.
+A newly authored empty final paragraph is refused when its requested typing
+cannot be represented safely. A zero-paragraph public story uses the separately
+qualified [reported native empty-CR representation](#cleared-ordinary-stories-and-native-empty-paragraphs).
+
+The `sourceEditing.paragraphRetention` qualification record covers eight public
+saves from the seven-page `TextNonuniformParagraphs` native control. Six outputs
+have twelve initial/resaved PDF comparisons with independently authored final
+states, identical in pixels and text spans. Two outputs select between equal
+visible paragraphs with different native language definitions. Raw checks verify
+complete paragraph/body definitions, CR roles, neighboring stories and retained
+storage. These controls qualify ordinary-story retention; the separate table-cell
+controls are described below. Repair-free opening remains unassessed.
+
+The `sourceEditing.emptyParagraphRetention` record extends retention to empty
+paragraphs in ordinary stories and first/final table cells. It covers deletion,
+reordering, duplication, exact source selection, unambiguous copied values and
+retained empties mixed with newly authored text in uniform sources. Complete CR
+and paragraph definitions survive native save/reopen. Independent native controls
+also distinguish Western font size/emphasis from right-to-left font fields:
+complete style definitions default to Western 12-point regular when those
+Western fields are omitted; direct overrides inherit the selected style.
+This does not qualify mixed-script selection or rendering.
+
+The `sourceEditing.nonuniformTextReplacement` record covers twenty public saves
+from the fourteen-page `TextNonuniformTextReplacements` and
+`TableNonuniformTextReplacements` controls. They combine growth, shrinkage,
+deletion, reordering, duplication, sole first/final replacements, equivalent
+templates with different source text, retained empties and exact language
+selection alongside rewritten text. Forty initial/resaved selected-page
+comparisons match independent native final states in pixels and text spans;
+520 neighboring-page comparisons stay unchanged. Complete native definitions,
+storage, text, effective fonts/language and table partitions are checked
+separately. These fitting controls use Arial 12-point bodies with distinct
+paragraph formatting and language metadata. Broader producer/style profiles,
+general row reflow and repair-free opening remain unassessed.
+
+The `sourceEditing.mixedRunTextReplacement` record extends that mapping to
+multiple ordered runs per paragraph. Each source run maps to a complete uniform
+native definition; new run lengths remap endpoints without changing those
+definitions. Twenty public saves from the thirteen-page
+`TextMixedRunTextReplacements` and `TableMixedRunTextReplacements` controls cover
+three styled runs, growth/shrinkage, reorder/duplication, sole first/final
+paragraphs, equivalent templates with different run lengths, middle-run-only
+changes and exact language selection alongside rewritten text. Forty selected
+initial/resaved page comparisons match independent final states, and 480
+neighboring-page comparisons remain unchanged. Native resave checks effective
+formatting and language at every run and CR boundary. Empty, merged or split
+replacement runs and conflicting middle-run native definitions refuse output.
+
+The `sourceEditing.retainedTextFormatting` record qualifies character and
+paragraph formatting changes during nonuniform count changes when ordered run
+text is retained. Selection resolves exact references and complete values first,
+then retained text and fields outside the formatting codecs' editable contract,
+then unchanged complete formatting for text replacement. A found but ambiguous
+text match refuses output without trying a different paragraph's requested style.
+All matching native templates must agree on complete paragraph/run definitions
+and the qualified CR role. Existing character and paragraph codecs apply the
+requested fields; destination CR bytes remain unchanged by visible-run styling.
+
+Twenty-six native outputs cover emphasis, size, font family, RGB color, double
+underline, alignment, before/after spacing and indentation while deleting,
+reordering or duplicating paragraphs. Sixteen-page ordinary/table controls include
+opaque language collisions and equivalent source templates. Separate cases use
+the earlier mixed-run source without Consolas or green, proving font/color pool
+growth while preserving existing resource entries. Fifty-two selected-page and
+768 neighboring-page initial/resaved comparisons match independent native final
+states. These fitting controls do not qualify broader producer/style profiles,
+general table reflow, explicit nonempty-CR styling or repair-free opening.
+
+### Native table placement and fixed-track resizing
+
+`SetTableBounds` saves direct, editable rectangular table placement through the
+existing native source-save API. Movement retains native track records.
+Proportional resizing updates guarded OfficeArt anchors and existing Contents
+width, height, cumulative track endpoints and nominal sizes. It requires unique
+direct typed fields, complete positive tracks, matching nominal and laid-out
+sizes, track sums matching the native extents, and exact signed-EMU values.
+Repeated model resizes are compared through that native representation. Cells,
+story ownership, formatting, paint and unrelated source bytes remain retained.
+Fixed-size track patches compose with Contents record growth and relocation.
+
+The `sourceTableBounds` qualification record covers ten public saves on generated
+3×4 and 12×8 grids, an independently authored 2×2 table, a composed newsletter
+and an expanded-row source. Native read-only opening, object inspection and PDF
+export confirm 148 cell texts and the requested fixed-grid bounds/tracks within
+0.001 point across twelve PDF pages. Cases include repeated resizing, combined
+cell paragraph growth and caption alignment, and a table entering a caption's
+rectangular wrapping region. Returning the table to its original bounds restores
+the exact source-copy path. Native kind `0x10` with a recovered table grid
+qualifies OfficeArt type 201 as a rectangular wrap obstacle; this does not admit
+that type as unrelated editable artwork.
+
+The expanded-row move retains Contents exactly. Its untouched source and moved
+output both open to the same native track sizes and 97.498665-point height;
+their stored model height is 97.200551 points. This is opening-time native reflow,
+not a promise of fixed rendered dimensions. Resizing expanded rows, incomplete
+or ambiguous track fields, unsupported wrap relationships and nonrepresentable
+values refuse output. Successful edits remain `Unassessed`, report
+`PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED` and require explicit `AllowLoss = true`. Native editing,
+resave/reopen, repair-free opening and broader producer/reflow profiles remain
+unqualified.
+
+### Existing page object ordering
+
+`SetPageObjectOrder` accepts every current `PublisherPage.ObjectIds` identifier
+exactly once, in back-to-front order. It copies the supplied order and publishes a
+new scene only after validation and projection succeed. Duplicate, missing and
+foreign IDs refuse the edit; cancellation and failure retain the previous public
+state and immutable snapshots. Document and master pages use the same owner.
+Text-capable artwork has one identity across its shape and text-frame views;
+applied master objects remain listed on the master.
+
+Qualified source saving permutes complete existing OfficeArt sibling records
+without changing IDs, page ownership, stories or frame links. It resolves client
+IDs again after requested property/image-store edits, so earlier FOPT growth does
+not leave stale offsets. Pure ordering retains complete shape bytes, Quill,
+assets and unrelated streams; cached-preview invalidation follows the existing
+save contract. The operation reports `PUB_NATIVE_OBJECT_ORDER_UNQUALIFIED` as
+`Unassessed`, requiring explicit `AllowLoss = true`.
+
+Independent native controls use overlapping text, rectangles and shared pictures
+on the first and last of three pages, with a blank middle page. Nine public saved
+inputs cover selected/both-page ordering, reverse ordering, column/inset/alignment
+growth, text and selected-picture replacement, linked frames and master content.
+All complete native open/export/save/reopen; native inventories retain the
+requested object names/order and source content. The qualification record's
+`sourceEditing.objectOrdering` separates the 105 page comparisons by boundary:
+27 model/reload, 27 native initial/resave, 27 PowerShell/managed and 24 actual native
+output/independent native reference pairs at 144 dpi. Nine PSWriteOffice conversion
+workflows pass, and six direct PowerShell order/save cycles match .NET bytes.
+
+Grouped native artwork refuses the operation; rectangular wrap lists use the profile below.
+Native saving also refuses a page set split across sibling scopes. The group
+refusal test uses a controlled source group-flag mutation; it does not qualify
+group editing. Mid-work cancellation has no new direct control. Additional
+producers/generations, grouped ordering and wrap relationships remain open. Native image sampling, universal
+pixel equivalence and repair-free opening remain separate qualification gaps.
+
+### Native wrapping and object-order admission
+
+`SetPageObjectOrder` and existing frame, shape, picture and table bounds edits rebuild
+qualified rectangular frame-exclusion relationships in the canonical model.
+Participating foreground objects appear in stacking order; moving them behind the
+text or outside its frame removes their references. Returning them restores the
+references, including sources whose initial lists are empty. Complete stories,
+identifiers, ownership, frame chains, assets and prior snapshots remain retained.
+
+The native codec writes the corresponding count/list fields through the Contents
+chunk-directory owner. It merges these fields with supported layout and picture
+metadata edits, then orders complete OfficeArt records after property/image-store
+rewriting. Unchanged semantic state retains the exact-source copy path. Changed
+exclusions report `PUB_NATIVE_WRAP_REFERENCES_UNQUALIFIED` as `Unassessed` and
+require explicit `AllowLoss = true`.
+
+The profile covers resolved, untransformed document-page frames, square-wrapped
+rectangular pictures/shapes and ordinary rectangular native defaults, including
+plain rectangle/text-box through wrapping with a solid contour. Source distances
+remain retained, including qualified automatic defaults. Original exclusions
+must match the admitted source geometry before they can be regenerated. Native
+non-default side settings, custom/outline or negative-margin wrapping, groups,
+transforms and master wrapping need separate qualification. Broader recovered
+profiles retain their established projection limits; native preparation refuses
+geometry changes whose wrap relationships cannot be qualified.
+
+Independent native controls cover foreground/reversed/partial/swapped obstacles,
+disabled and default wrapping, nonintersecting placements, moved text frames,
+joint column/inset/alignment layout, and three non-default side settings. Eleven
+actual public outputs complete native open/export/save/reopen, with 33 exact
+native initial/resave/reference page pairs at 144 dpi; 11 model/reload SVG and
+PDF pages also agree. Eight pure ordering cases retain complete source shape
+records. The qualification record's `sourceEditing.wrapRelationshipEditing`
+separates these observations from the earlier admission-only profile.
+
+Reference regeneration and rendering are qualified separately. The
+[rectangular both-side flow](#native-rectangular-both-side-text-flow) below covers
+a bounded rendering profile, extended by [rectangular side selection](#native-rectangular-side-selection).
+General outline wrapping and native repair-free opening remain unqualified.
+
+### Native rectangular both-side text flow
+
+Top-aligned frames with recovered rectangular Both references place successive
+source fragments left to right through every free interval on a row. Fragments
+share a baseline; paragraph ends and hard breaks finish the row. Paragraph spacing
+and labels apply once, and tab stops retain their column-relative origin. The
+complete line extent excludes intersecting object rectangles, including larger
+fonts selected into later fragments. Source UTF-16 ranges, run formatting, complete
+stories and overflow remain distinct from painted text.
+
+The profile covers explicit square Both wrapping and the qualified ordinary
+rectangular defaults without tight outlines or negative distances. Center/Bottom
+frames and unqualified side/outline modes retain the established widest-interval
+path. The separately qualified [Left/Right/Larger profile](#native-rectangular-side-selection)
+uses the same row engine. Native fitting, hyphenation, transformed contours, column balancing and
+complex-script appearance remain approximation boundaries.
+
+Shared line measurement uses growing lookahead windows ending at complete words
+and tab fields, with the existing work budget charged for every measured window.
+The public story-replacement workflow retains a 99,000-character ordinary paragraph and
+reports unplaced text as overflow under the default budget. This does not remove
+the configured text/layout resource limits or qualify arbitrary long tab fields
+and unsplittable shaping contexts.
+
+Thirteen retained native controls separate both-side, default-distance, object
+order, outside-frame, column/alignment and non-default-side behavior. Unedited
+native save remains byte-exact for all thirteen. The main two-object control
+improves from 12 to 32 exact trimmed line-text matches out of 35 native lines;
+matched positions differ by at most 0.051 pt horizontally and 0.137 pt vertically
+with the recorded Arial font. Default-distance hyphenation and other native line
+assignments still differ. The qualification record separates these observations
+from pixel parity and native-writer acceptance.
+
+### Native rectangular side selection
+
+Top-aligned rectangular Left and Right wrap references restrict each affected
+row to the named side. Larger compares the free widths within the current text
+column and selects left when they are equal. The mask retains its vertical extent;
+objects wholly outside a column do not exclude that column. Selected lines use
+the same source-range, baseline, hard-break, spacing and work-budget handling as
+Both wrapping.
+
+The `rectangularSideTextFlow` qualification covers the retained native Left,
+Right and Larger controls and three independent controls for left-wider Larger,
+equal-width Larger and two-column Larger. With the recorded Arial font, Left
+improves from 11 to 20 exact trimmed line-text matches out of 27 native lines.
+Matched-line vertical differences are below 0.154 pt across these controls;
+two-column horizontal positions can differ by 0.411 pt. Hyphenation and line
+assignments remain approximate. The ten unaffected controls retain identical
+managed pixels at 144 dpi, and all sixteen unedited publications save byte-exactly.
+
+This rendering profile does not admit side-wrap relationship regeneration.
+Ordering changes with those relationships are rejected; semantic geometry edits
+remain available, but native save refuses their unqualified relationship changes,
+including with an allowing loss policy. Restoring the source geometry retains the
+exact-source save path. Center/Bottom, tight and through outlines, transformed-side
+selection, additional producers and native appearance parity remain unqualified.
+
+### Empty-paragraph refill with retained formatting
+
+The `sourceEditing.nonuniformEmptyRefill` record qualifies filling a single
+empty source run while deleting, reordering or duplicating nonuniform paragraphs.
+The empty paragraph's complete native CR definition supplies the new body typing
+and remains its terminator; complete paragraph definitions stay retained. All
+matching templates must agree, including opaque language metadata and qualified
+interior CR typing. Matching stays within each edited table cell.
+
+Fourteen native outputs cover interior/final fills, moving an interior empty
+paragraph to the final position, reordering, duplication and equivalent empty
+templates. Eleven-page ordinary/table controls include hidden-language ambiguity;
+28 selected-page initial/resaved comparisons match independent native final states,
+and 280 neighboring-page comparisons remain unchanged. The separate Unicode
+control records Publisher's Greek language auto-assignment around Omega and does
+not qualify mixed-script retained-language mapping. Refilling multiple source
+runs or changing the filled run's formatting, general reflow, broader producers
+and repair-free opening remain outside this refill profile.
+
+### Formatted empty-paragraph refill
+
+The `sourceEditing.formattedEmptyRefill` record extends native empty refill during
+paragraph-count changes to new character formatting and one or more body runs.
+The existing snapshot, text and formatting correspondences keep priority;
+ambiguous stronger matches still refuse saving. The fallback uses only genuine
+single-empty-run paragraphs in the edited story or cell. It prefers matching
+paragraph formatting when available, otherwise applies the qualified paragraph
+codec. All eligible templates must produce identical complete character ranges,
+CR typing and paragraph definitions after rewriting.
+
+The source has no separate body definition: its native CR supplies each requested
+run through the full visible-character codec, and the last requested run also
+supplies the new CR typing. Nullable language and kerning preserve their source
+fields when unspecified. Background, paragraph-indent overrides and links must
+match the source; labels and unsupported native carriers refuse output. Opaque
+differences remain barriers even when public visible styles match.
+
+Ten native outputs cover interior and final placement, duplicate fills,
+equivalent empty templates and a paragraph-alignment change in ordinary stories
+and first table cells. The alignment cases first remove the original final empty
+paragraph through the established save route, leaving one empty template among
+nonuniform nonempty paragraphs. All 110 initial/resaved native page pairs match
+at 144 dpi, and 100 untouched neighboring pages match the independent source
+PDFs. Twenty-four complete body/CR definition checks include the input and native
+resave. Ten source-built PSWriteOffice conversions preserve the requested text,
+formatting, language, kerning and paragraph alignment through the shared workflow.
+
+This qualifies the bounded native source-editing profile. General reflow,
+mixed-script and broader producer/style profiles, native/managed pixel and
+decoration parity, repair-free opening and native template-free product creation
+remain separate work.
+
+### Retained-text run segmentation
+
+The `sourceEditing.retainedTextRunSegmentation` record qualifies run splitting
+and merging with complete paragraph text and preserved fields retained at each
+position. Count-changing correspondence resolves exact references/values,
+ordered run text, complete paragraph text, then unchanged formatting. Ambiguous
+complete-text templates cannot fall back to a different paragraph's style. Their
+complete paragraph definitions and native body endpoints/bytes must agree, with
+qualified interior CR agreement. Each source/requested/native range intersection
+uses the existing character codec, retaining opaque fields at their positions
+and the destination's CR role. Same-count edits use their original ordinal
+bindings; established uniform-source topology and single-run paths retain their
+existing behavior.
+
+Thirty native outputs cover deletion, reorder, duplication, sole-final placement,
+merged and split visible styles, font/color changes, equivalent templates and
+hidden language boundaries in ordinary stories and first/final table cells.
+Twenty-page controls provide independent final states: 60 selected-page
+initial/resaved pixel/span comparisons match, and 1,140 neighboring-page
+comparisons remain unchanged. Complete initial native character records are
+compared at every position apart from the requested supported fields. Native
+resave retains effective styles and language throughout the body and CR.
+
+Native reload may expose different run boundaries with the same text and styling;
+public proof compares complete paragraph formatting and effective run formatting
+at each UTF-16 position. Requests changing complete text and formatting without
+correspondence, unsupported preserved-field changes, labels/list semantics,
+broader producer/mixed-script profiles, general reflow and repair-free opening
+remain outside this qualification.
+
+### Complete text and formatting replacement
+
+The `sourceEditing.completeTextFormattingReplacement` qualification covers
+same-count paragraph edits in ordinary stories and fixed table cells. An existing
+nonempty multi-run paragraph can change its complete text, supported visible
+formatting and run count. Each requested run rewrites every distinct native body
+definition through the character codec. Output is admitted only when those
+complete rewritten definitions are byte-identical. This provides correspondence
+without assigning new text arbitrarily to old character ranges.
+
+Visible font, size, color, emphasis, decoration and baseline settings are explicit
+replacement values. Nullable language and pair-kerning thresholds retain their
+source fields when unspecified; an explicit value can resolve a supported native
+difference. Unknown companions and other opaque fields still must agree. Public
+background, paragraph-indent overrides and links cannot change or vary across
+the replacement. Existing paragraph formatting uses its original paragraph
+definition; CR typing uses the existing last-source-run/last-requested-run edit
+rule rather than the complete body rewrite.
+
+Six native outputs replace three source runs with one, two or four runs in
+ordinary stories and first table cells. The one-run controls preserve common
+unspecified language/kerning fields. Native open, export, save and reopen retain
+requested text and supported formatting. All 120 initial/resaved native page
+pairs match at 144 dpi, and all 114 untouched neighboring pages match the
+independent source PDFs. Six source-built PSWriteOffice conversions also retain
+the replacement through the shared workflow. Managed rendering uses scoped exact
+font faces; native decoration weights and whole-page pixel parity remain outside
+this contract.
+
+Conflicting opaque definitions and unspecified language or kerning disagreements
+refuse saving, including with loss explicitly allowed. Labels, empty-body/typing
+reshapes, paragraph-count changes, alternate unsupported native carriers and
+broader producer/style profiles remain separate limits. Native repair status is
+unassessed; this source-editing qualification does not promote native creation.
+
+### Complete nonempty replacement during paragraph-count changes
+
+The `sourceEditing.completeNonemptyRetention` qualification extends complete
+text, visible formatting and run-boundary replacement to native paragraph-count
+changes. Exact snapshots/values, retained text/content, format-matched replacement
+and qualified empty-refill correspondence keep their priority. An ambiguous
+stronger match cannot fall through to a different source. Without an eligible
+empty source, the nonempty fallback prefers retained paragraph formatting and
+rewrites every contributing native body definition through the existing complete
+character codec. All selected templates must agree on complete rewritten body
+ranges, paragraph definitions and destination-role CR typing.
+
+Nonempty CR typing remains separate from visible body formatting. Interior
+destinations need each candidate's qualified interior terminator; moving a former
+final paragraph inside still needs an observed body-equivalent interior CR. A
+final destination uses the original segment's final CR. Only the existing
+explicit nullable language/kerning changes apply to those retained CRs. Candidate
+bodies that agree can therefore remain ambiguous for an interior destination
+while safely agreeing for a final destination.
+
+Sixteen native outputs cover deletion, growth, duplication, former-final source
+movement, equivalent templates and the final-CR ambiguity control in ordinary
+stories and first/final table cells. All 320 initial/resaved native page pairs
+match at 144 dpi, and 304 untouched neighboring pages match the independent
+source PDFs. Thirty-six source-to-output CR-role checks include native resaves
+and retain all source CR fields apart from requested language/kerning. Sixteen
+source-built PSWriteOffice conversions preserve the requested paragraph/run
+metadata. Managed comparisons use exact scoped Arial regular, italic and bold
+plus Times New Roman bold; decoration and position parity remain separate limits.
+
+Conflicting candidate language, opaque body fields or destination CRs refuse
+output. Empty replacement runs, unsupported preserved fields, labels, unavailable
+interior CR roles and broader producer/style carriers remain bounded by their
+existing refusal rules. General reflow, mixed scripts, repair-free opening and
+native template-free product creation remain separate work.
+
+When ranges no longer fit the original allocation, the codec can append aligned
+formatting pages and directory pages, relocate enlarged BTE indexes and resources,
+and retire unused pages. Superseded known pages/indexes and relocated resource
+payloads are cleared, while unrelated payloads and gap bytes remain retained.
+Directory growth uses wholly zero unused descriptor slots or appends a page;
+unknown padding is retained. The established single-directory allocation path
+still refuses nonzero unassigned header bytes, and unknown page-descriptor
+metadata is refused. Directory
+capacity, output-byte limits and cancellation remain enforced.
+
+The `sourceEditing.characterEditing` qualification record binds 24 public-save
+specimens to the writer source. They cover adding and clearing attributes,
+mixed runs, existing and new font/color entries, linked overflow, paragraph-count
+changes, chained source layouts, directory growth and retirement, and re-editing
+native-resaved output. Independent decoding verifies complete native-resaved text,
+body attributes and explicitly changed CR attributes. Existing resource entries,
+unrelated OPL tokens, logical streams and metadata remain byte-identical. Native
+PDF pixels and spans match across save/reopen over 58 physical page states.
+Eighteen earlier linked-story and paragraph/topology saves remain byte-identical.
+Source-built PSWriteOffice converts four edited publications through its existing
+in-process `publisher-pdf` route; all five output pages reopen. This qualifies
+these specimens and operations, with repair-free opening, general opaque semantics,
+packaged consumers and managed/native rendering parity still separate.
+
+The `sourceEditing.paragraphFormatting` qualification record covers 21 public
+save cases across 62 native physical page states. It includes per-paragraph
+values, clearing tabs, resetting a formatted chained source, linked overflow,
+uniform-source count changes, fractional point values, and 240 distinct paragraph
+formats that allocate formatting and directory pages. Independent decoding of
+style-pair inheritance and direct paragraph records verifies the native-resaved
+layout values, complete text and retained body/CR character attributes. Unrelated
+tokens, resources and storage remain unchanged; native PDF pixels and spans
+match before/after resave. Forty-two earlier saves remain byte-identical.
+Source-built PSWriteOffice converts four paragraph-edited publications through
+`publisher-pdf`, with eight reopened output pages.
+
+Frame-layout saving retains frame/story identities, links, page/master ownership,
+unrelated properties and complete text. Columns, full intercolumn gap and insets
+use the local OfficeArt property tables; vertical alignment uses the Contents
+shape record. Missing default fields can be added. Unrelated rows, complex-data
+tails, native separators and chunk payloads are retained, and enclosing lengths,
+chunk-directory offsets and mirrored header pointers are updated when records
+grow. Existing bounds and solid paint edits can be combined with layout edits.
+Changed distances must have exact nonnegative signed-EMU representations
+(12,700 EMUs per point). Publisher's automation
+[`ColumnSpacing`](https://learn.microsoft.com/en-us/office/vba/api/publisher.textframe.columnspacing)
+is half the full gap used by this API and the native OfficeArt property.
+If no local or inherited gap is present, the full native default is 7.2 points;
+explicit zero remains distinct and can be saved when adding columns. The
+`ImplicitColumnGap` fixture retains the omitted-property input and independent
+native inventory used to qualify this boundary. Ambiguous local overrides,
+flagged scalar targets, incomplete complex payloads and unqualified Contents
+relocation headers refuse output, including with `AllowLoss = true`.
+
+The `sourceEditing.frameLayout` qualification record covers eleven public-save
+specimens over 44 native physical page states. They include default-field growth,
+fractional insets/gap, multiple frames, linked overflow, master frames, mixed
+text artwork, reset and combined text/bounds/paint operations. Independent native
+getters and raw decoding verify layout after resave; complete native Quill text,
+unrelated records, streams and compound metadata remain retained. Native PDF
+pixels and spans match before/after resave. Sixty-three earlier saves remain
+byte-identical. Source-built PSWriteOffice converts five edited publications
+through `publisher-pdf`, with twelve reopened output pages. Native column
+balancing, managed/native rendering parity, repair-free opening and broader
+producer/profile coverage remain unqualified.
+
+The `sharedImageAuthoring` qualification record covers three placements using two
+model assets, with native FBSE reference counts derived from asset identity. The
+internal creation specimen and selected replacement of generated, native-resaved
+and independently native-authored sources match independent three-page controls
+before and after native resave. Equal bytes do not merge distinct model assets.
+Native normalization can remove both the local Contents filename reference and
+embedded marker; source save creates a fresh owned filename resource and retains
+existing orphan resources. Invalid or duplicate markers and ambiguous bindings
+remain rejected. Public template-free native creation and repair-free opening
+remain unqualified.
+
+The `mixedObjectOrderCreation` record qualifies eight overlapping objects on the
+first and last of three physical pages, with an empty middle page. Rectangle,
+picture and text placements retain their cross-kind append order; three pictures
+share one PNG and the two text frames own independent stories. Generated and
+source-edited files match independent native controls before and after resave.
+Controls explicitly disable text wrapping to match the public creation contract;
+native default wrapping can reflow text around objects added later.
+
+Text editing also admits the compact Quill profile used by the internal writer:
+two style libraries, ordered character/paragraph formatting-page groups,
+validated directory chains, zero story flags and empty per-story definitions.
+Existing descriptor, page, range and relocation checks remain active. Unavailable
+font/color resource growth refuses output; it does not drop requested formatting.
+Formatting and paragraph growth retain repeated editing after page and directory
+allocation, including two-directory files; complete overflow text remains stored.
+The full native auxiliary-library profile retains its separate admission checks.
+Generic native creation, grouped/transformed ordering, broader resource profiles
+and repair-free opening remain unqualified.
+
+The `masterContentCreation` record covers a single populated master applied to
+three physical pages. One rectangle, picture and text frame remain on the master;
+page-owned foreground retains separate ownership and draws above it. The shared
+image store counts the two logical placements, not the four rendered occurrences.
+Generated and source-edited master text, rectangle bounds/fill and image content
+match independent native controls before and after resave. Replacing the master
+image updates its applied appearances while retaining the page-owned placement's
+original asset. Master inheritance and generic public native creation remain
+unqualified.
+
+The `multipleMasterCreation` record covers two centered master definitions and a
+centered definition beside an authored left/right pair, each with three explicitly
+assigned physical pages. Native page-role counts, object owners, individual master
+geometry and side-aware anchors are generated from the public model. Each definition
+owns its marker once; physical pages retain their own text frames. Creation and
+master/physical text-frame bounds edits, with master text growth, match independent
+native controls on generated, native-resaved and independently authored sources
+before and after native resave. Repeated public source saves retain sides, direct
+assignments, story identities and unaffected streams. Managed PDF is pixel-stable
+across these saves and agrees with the source-built PowerShell route. Its measured
+text-origin differences from native output reach 0.07 pt horizontally and 1.38 pt
+vertically; native/managed pixel parity is not established. This closed profile does not
+qualify native page/master topology changes, inheritance, automatic side selection,
+repair-free opening or generic public native creation.
+
+The `masterAssignmentEditing` record covers existing physical-page assignment,
+clear and restore through `SetPageMaster` and the ordinary native source-save API.
+Native `IgnoreMaster` retains the selected reference in Contents `0x0D` and writes
+the false display token `0x07/type0x08`; omission is the qualified display default.
+The reader omits suppressed master paint while retaining definitions and complete
+stories. The source writer changes direct references or that display token through
+the existing chunk-directory relocation owner; unrelated tokens and streams remain
+unchanged. Explicit assignment enables formatting; clear retains the latent source
+reference. Zero/absent effective references normalize to no applied master, allowing
+byte-exact no-op clears. Unknown display/reference encodings report an unassessed
+relationship and reject assignment edits; duplicate references remain malformed input.
+New definitions/pages, inheritance, unsafe carriers and other topology remain refused.
+The native compound check also covers suppression together with frame alignment
+and picture-resource relocation; its native appearance is not independently qualified.
+Managed save/reload output is stable and agrees with the source PowerShell route.
+Final paragraph-after spacing remains in the editable story but is excluded from
+the region's alignment height. Native/managed text origins differ by up to 1.38 pt
+vertically in the assignment specimens and 1.06 pt in the compound bottom-aligned
+text specimen; native/managed pixel parity remains unqualified.
+
+The `verticalTextPlacement` record qualifies region-end paragraph spacing through
+22 independently authored native profiles over eight pages. Explicit after-spacing
+of 0, 6 and 12 pt remains between paragraphs and is omitted at the region boundary
+for top, center and bottom placement. The source paragraph margins, complete text,
+native terminal empty paragraphs and byte-exact no-op native save are preserved.
+An after-spacing gap that cannot fit ends the current region; it does not consume
+following text that must continue into another region or remain as overflow.
+The controls include 12 and 18 pt Arial and requested terminal paragraph marks;
+saved native text determines the actual empty-paragraph count. Matching selected
+fonts is required for the separately qualified baseline profile below; substitute
+fonts and broader native layout retain approximation reports.
+
+Publisher paragraphs use a shared Core font profile that separates selected design
+content height, line advance and the rendered baseline. With inherited or multiple
+spacing, a region's final line fits and aligns by its content height; its unused advance is omitted. The full advance
+and paragraph-after spacing still separate following text. Ordinary drawing
+paragraphs retain their existing layout defaults.
+
+`PublisherLoadOptions.Fonts` supplies scoped faces for story flow and retained page
+drawings. Options and drawing snapshots clone the collection; application font
+providers remain shared. The PDF adapter passes those faces through the existing
+PDF rendering profile, so its measurement and embedded glyphs use the same selected
+font. Without scoped faces, installed-font availability and configured PDF font
+substitution can still produce different results.
+
+The native PDF reference profile selects OS/2 typographic ascent, positive line gap
+and descent when the selected Latin default-language GSUB/GPOS features include a
+recognized non-kerning feature. Otherwise it retains Windows design metrics and
+samples the baseline from VDMX or scaled Windows ascent at the qualified 600 dpi
+reference. Sampling uses managed font-table arithmetic; it does not access a
+printer or operating-system graphics API. This reference does not change general
+Core, Word or CSS metric policies.
+
+The independently authored `TextFontMetrics`, `TextFallbackAlignment` and
+`TextVerticalPlacement` controls cover ten exact font binaries, 12/18 pt and
+fractional Courier sizes, inherited/single/1.19 spacing, terminal empty paragraphs
+and top/center/bottom placement. Fixture provenance records the font hashes.
+Across the 80 profiles on 28 producer pages, selected text origins agree within 0.001 pt horizontally and 0.16 pt in
+baseline position when the scoped font binaries match. The comparison also covers
+the two new controls after native resaving. Their 20 native pages retain identical
+producer/initial/resaved pixels at 144 dpi; this native-only stability check is
+separate from managed coordinate agreement. The `fontLineGeometry` section of the
+[qualification record](../Build/Publisher/WriterProbe/qualification.json) binds the
+source, fixtures and measured limits.
+Exact line spacing uses the complete declared line allocation for fitting and
+vertical alignment. The baseline uses the selected face's sampled device ascent
+and descent: expanded allocations retain the descent below the baseline, while
+compressed allocations divide the height in the sampled ascent/descent ratio.
+The baseline rounds to the nearest pixel of the same 600 dpi reference. Condensed
+lines retain their font size, so glyphs can overlap adjacent line allocations.
+
+An unobstructed ordinary text frame with positive content height can assign its
+first line even when the line allocation is taller than the frame. The assigned
+line retains its visible vertical overhang in drawing and PDF output; page clips
+still apply. Later lines must fit normally. The qualified labelled profile below
+uses the same first-line rule. Object-exclusion regions and table text retain
+strict fitting pending separate native controls.
+The `TextFrameBreaks` fixture covers 51 frames on 28 pages: Arial and Courier New
+at 12 pt, compressed and expanded exact spacing, first-line overhang, later-line
+thresholds, short-token wrapping and a three-frame linked story. All 51 assigned
+ranges match both the producer file and its native-resaved copy. Across 218 text
+origins, the maximum difference is below 0.001 pt horizontally and 0.16 pt in
+baseline position with matching scoped fonts. Its 56 native-only page comparisons
+are pixel-identical at 144 dpi. The `textFrameBreaks` qualification record binds
+these fixtures, source and measured limits.
+
+Other fonts, device resolutions, complex scripts, mixed-baseline native geometry,
+language-dependent wrapping and broader frame-break equivalence require separate
+qualification. Broader automatic-hyphenation dictionary and linked-frame profiles
+remain separate from the short-token controls.
+The `TextHyphenation` reference adds 15 US English frames, including narrow words
+and a linked story. It records the existing 18 pt hyphenation zone, 14 pt automatic
+pair-kerning threshold and zero manual kerning without changing application options.
+A separate source-derived disabled control retains its false story flag after
+native resaving; all four frame ranges match the current non-hyphenating managed
+layout. Core's versioned English patterns and Publisher choose different breaks
+for some words, including `creative` and `extraordinary`. The current shared
+breaker uses those versioned patterns; the `hyphenationReference` qualification
+record preserves the earlier native inputs and comparison limits. The current
+[hyphenation contract](#native-hyphenation-settings) separates implemented source
+transport from native dictionary equivalence.
+Complete stories and source styles survive overflow; byte-exact no-op native saving
+remains independent of rendering. Native/managed pixel fidelity and repair-free
+opening are not established by this font profile.
+
+### Native labelled first-line fitting
+
+An unobstructed ordinary frame can assign its first labelled line even when the
+frame is shorter than that line's allocation. The marker contributes to the
+first line's font geometry; exact line spacing retains its explicit allocation.
+Later lines must fit normally. Linked continuation retains the source paragraph
+without repeating its marker or first-line indentation. A marker consumes no
+story characters. Generic drawing and table/exclusion fitting are unchanged.
+
+The independently authored `TextLabelFitting` corpus contains 23 frames on eight
+pages: Arial 12 pt body text, explicit Arial `*` markers at 12 and 24 pt, exact
+18 pt and multiple 1.19 spacing, heights from 6 to 36 pt, and a three-frame chain
+whose physical placement differs from its reading order. All 23 managed source
+assignments match the original native inventory. All visible non-whitespace
+glyph text matches the native PDF; maximum origin differences are below 0.123 pt
+horizontally and 0.153 pt vertically with the recorded scoped font. Native
+initial/resaved page pairs are identical at 144 dpi. Managed glyph pixels and
+device quantization are not identical. Other marker fonts, numbering sequences,
+scripts, layout modes and repair-free native opening remain unqualified. The
+`labelledFirstLineFitting` qualification record binds the source and measurements.
+
+### Native hyphenation settings
+
+`PublisherTextStory.AutomaticHyphenation` recovers the Contents story-catalog
+flag: omitted or type `0x08` is enabled in the qualified profile, and type `0x00`
+is disabled. A missing catalog entry or an unassessed encoding produces null;
+an unknown encoding is reported and remains opaque. `SetStoryAutomaticHyphenation`
+changes an ordinary story without changing source characters or Quill formatting.
+Saving requires a qualified existing source entry. Table story flag edits remain
+unsupported. Existing text replacements retain the story setting.
+
+`OfficeRichTextParagraph.SuppressAutomaticHyphenation` and
+`WithAutomaticHyphenationSuppressed` read/edit the qualified Quill paragraph
+field `0x1C`, using true `0x0A` and false `0x02` through the paragraph-style codec.
+Selected style defaults and direct overrides use the existing style inheritance
+path. The shared property is null for an unassessed native setting, distinct from
+the ordinary false default. Unknown field encodings remain opaque and cannot be overwritten by a
+suppression edit. The source-derived suppressed [TextHyphenation control](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json)
+removes generated hyphens on 13 of its 15 native pages; all 15 initial/resaved
+page pairs are identical at 144 dpi. Native save retains true and normalizes
+false to omission. These flags do not insert hyphens into stored story text.
+
+The recorded 18 pt zone belongs to the observed native application option
+profile. Its getter reads application-wide state; a file carrier and
+cross-profile default are not established. No global option changes are required
+by reading or editing publications.
+
+Managed layout applies enabled story flags and qualified paragraph suppression
+through the shared Core rich-text breaker. Original-word opportunities come from
+the versioned US English and reformed German resources using run language IDs;
+unknown, unsupported or mixed word languages do not select a dictionary. A small
+remaining gap within the observed 18 pt zone moves the next word to a new line
+before hyphenation. Generic drawing defaults are unchanged. The approximation
+report identifies the language-pattern and application-zone boundary.
+
+Unspecified language in an imported text replacement retains the effective
+native direct or selected/global style language in scene copies as well as on
+save. Explicit run language wins; resolving the scene does not change the public
+replacement metadata. Supported language selection is independent of host culture
+data, including under .NET invariant globalization.
+
+Generated hyphens paint with the last prefix run and consume no source UTF-16
+characters. Region slices retain original-word opportunities rather than looking
+up a shortened suffix. Selected line ends, generated suffixes, fitting widths
+and tabs survive frame replay and drawing scale. The linked-boundary control in
+the [corpus provenance](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextHyphenation/provenance.json)
+ends one native frame on `order across publi-` and starts the next at `cation`.
+Native and managed display agree while the ending frame consumes 18 source
+characters. English/German resource differences can still change word and frame
+breaks: `creative` and `extraordinary` are retained counterexamples. Other zone
+profiles, dictionary equivalence, complex scripts and broader native layout
+remain unqualified. Native operation acceptance does not establish repair-free
+opening or general opaque preservation.
+
+The `linkedStoryCreation` record covers source-free creation of one story shared
+by three frames flowing through pages 1, 3 and 2, beside an independent story.
+Frame bindings, story reference counts and layout identifiers remain separate;
+the layout catalog contains generated slots. Explicit paragraph overrides use
+the existing paragraph codec. Complete text and terminal overflow survive native
+save/reopen and repeated public source saves on generated, native-normalized and
+independently authored files. The compact source profile preserves its opaque
+layout catalog; the normal native profile can omit an unused color palette.
+Five files complete 35 native operations, with 15 stable initial/resaved page
+pixel pairs. The edited independent control also matches its native overflow
+reference. Generated files differ from that reference in hyphenation and frame
+breaks; native language/CR defaults, general layout parity, repair-free opening
+and public template-free native creation remain unqualified.
+
+The internal `multi-paragraph`, `multi-paragraph-linked` and
+`multi-paragraph-linked-hyphenated` specimens qualify ordinary stories with
+multiple explicitly styled paragraphs. The bounded profile uses black Arial,
+language 1033, no labels, Letter pages and an empty applied centered master.
+Its three paragraphs have 22/20/18-point line heights; the empty middle paragraph
+has an explicit 14-point bold run, which supplies its CR typing. Each paragraph
+requires at least one explicit run; empty text is valid, while zero-run
+paragraphs and zero-paragraph stories remain refused. The existing graph, Quill
+and OfficeArt serializers retain the complete 1,359-character native story,
+including CRs at one-based positions 45, 46 and 1,359. The linked variants retain
+one story through frames on pages 1, 3 and 2, including terminal overflow.
+
+Independent `MultiParagraphCreation` and `MultiParagraphCreationLinked` controls
+inspect the complete native `Story.TextRange`, separately from visible frame
+slices. Fifty-five native point observations confirm the intended font, size,
+bold and language at run/CR boundaries, and the paragraph-format observations
+match. Native initial opening, PDF export, save-as and reopening complete with
+the full story, frame chain and intended styles retained. The one-page specimen
+matches both native stages at 100 dpi. The linked specimen with automatic
+hyphenation enabled matches all
+three pages at both stages, giving eight zero-pixel page comparisons across
+equivalent inputs. Explicitly disabling hyphenation retains complete content
+but changes page 2 against the enabled linked control by 21,063 pixels at that
+resolution; pages 1 and 3 match. Decoded flags and native PDF hyphens distinguish
+these inputs. These per-story settings leave application-wide options unchanged.
+
+The `LinkedStoryFirstCharacter` native validation target separately qualifies
+replacing the first character from `M` to `N` in the generated hyphenated specimen
+and the independent linked control. Both complete native edit, save-as and
+read-only reopen with unchanged source bytes. Before/after/reopened observations
+retain the complete story, frame identities, layout and page 1/3/2 chain, all
+eleven sampled run/CR styles and all three paragraph formats. The six native PDF
+page comparisons across the initial and resaved stages match at 100 dpi. This
+qualifies only first-character mutation in that exact three-frame profile.
+
+Public `ReplaceStoryParagraphs` restores the initial `M` in the native-edited
+generated story. Source saving with explicit `AllowLoss = true` and reload retain the three
+paragraphs and complete text matching the pristine independent linked control.
+The save reports `PUB_NATIVE_PREVIEW_INVALIDATED` and
+`PUB_NATIVE_QUILL_TEXT_UNQUALIFIED`; PSWriteOffice's `ConvertTo-OfficeDocument`
+produces the restored PDF. The saved PUB completes native opening, inventory,
+PDF export, save-as and reopening with unchanged source bytes. Its three pages
+match the pristine control at both native stages, giving six restoration page
+comparisons at 100 dpi. The equivalent-input creation, native edit and public
+restoration checks cover 20 initial/resaved native page pairs: eight, six and six
+respectively, all with zero changed pixels at that resolution.
+
+Public restoration retains the generated source's 36-point default-tab interval;
+the independent linked control uses 28.3 points. Both have zero origin, alignment
+disabled and no explicit stops. These stories contain no tab characters, so the
+20 native page comparisons do not qualify ordinary multi-paragraph creation
+containing tabs or establish matching default-tab metadata.
+
+Managed PDF output is readable and the disabled-hyphenation excerpt follows the
+native line wrapping, with a remaining font/baseline difference. This does not
+qualify general renderer parity. Broader native text editing, fonts/scripts/layouts
+and defaults, zero-run story creation, repair-free acceptance and public
+source-free native creation remain unqualified. Public native saving retains
+`PUB_NATIVE_SOURCE_REQUIRED` for source-free models; successful native opening and
+resaving do not supply a positive recovery control.
+
+### Native single-master page sizes
+
+The internal source-free projection derives common physical/master page dimensions
+from `PublisherDocument.Create(width, height)`. The single-master profile retains
+one centered definition, with one to sixteen physical pages. A page can apply that
+definition or clear its effective assignment through the qualified suppression
+profile below. Dimensions must have exact positive signed-EMU representations.
+All four object-anchor edges must also have exact signed-EMU representations
+relative to their actual page origin. Frame gaps/insets use nonnegative distances;
+table extents, individual tracks and cumulative endpoints use positive distances.
+Unrepresentable values are refused rather than truncated. Creation and source
+saving share the same point/EMU conversion rule.
+
+The `sized-composition` specimen authors the same two-page public model at A4
+portrait and 4×6-inch portrait/landscape sizes. A populated centered master combines
+with a two-frame linked story, an independent heading, a two-column frame, two
+pictures sharing one image asset and one borderless 2×2 table. Its ten semantic
+objects retain 3/4/3 ownership across the master and physical pages. The model has
+five stories; the independent native controls additionally carry two empty
+rectangle stories.
+
+Embedded picture placements use ordinary native shape kind `0x01` with its existing
+class registration and their own embedded-state token, bytes `03 08`, separately
+from the OfficeArt image binding. Native picture-format observations confirm that both pictures are
+populated and unlinked before and after native story editing, save-as and
+reopening. Complete managed model, asset, SVG and PDF comparisons retain the
+qualified content and appearance through this registration encoding.
+Eleven additional modern-generation image, mixed-content, master, newsletter and
+brochure profiles complete native opening, PDF export, save-as and reopening with
+populated, unlinked pictures at both stages. These runs qualify picture state and
+the listed file operations; six sized-story inputs supply native content-mutation
+proof below.
+
+| Publication size | Exact native width × height in EMU |
+| --- | --- |
+| A4 portrait, 210×297 mm | 7,560,000 × 10,692,000 |
+| 4×6-inch portrait | 3,657,600 × 5,486,400 |
+| 4×6-inch landscape | 5,486,400 × 3,657,600 |
+
+Native opening, inventory, PDF export, save-as and reopening retain these stored
+document/master dimensions, table tracks, complete text, intended run styles and
+None wrapping. Public `SetPictureBounds` moves the physical-page picture six points
+right on generated and independently authored sources at each size. Explicit
+`AllowLoss = true` saving and reload preserve ownership, story content, the shared image
+payload and other picture bounds; no-op source copies remain exact. Default strict
+saving still refuses only `PUB_NATIVE_FIXED_PATCH_UNQUALIFIED` as `Unassessed`.
+PSWriteOffice converts all six edited sources to PDF.
+
+The `SizedStoryFirstCharacter` target also qualifies an actual native first-letter
+edit from `N` to `M` in the complete linked story at each size, on generated and
+independently authored inputs. All six native edits save and reopen with both
+frames exposing the complete 148-character native range, the intended first/final
+CR typing and all ten mixed objects' invariants retained.
+
+Public `ReplaceStoryParagraphs` restores `M` to `N` on those six native-edited
+sources. Explicit `AllowLoss = true` saving preserves every story's complete text, the
+source's 1/146-character run split and final-CR formatting, its own tab profile,
+page/master and frame identities, picture bindings and shared image payload.
+Generated sources retain five stories and 36-point default tabs; native controls
+retain seven stories and 28.3-point tabs. Other logical streams and directory
+metadata remain preserved while the save rewrites Quill and invalidates the stale
+thumbnail. It reports `PUB_NATIVE_PREVIEW_INVALIDATED` and
+`PUB_NATIVE_QUILL_TEXT_UNQUALIFIED`. All six results retain exact no-op source
+copies, convert through PSWriteOffice, and complete native save/reopen. All 24
+initial/resaved page comparisons against each source's own pristine `N` state
+match at 100 dpi. The [retained portrait inputs](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedSizedComposition/provenance.json)
+protect the public restoration contract for both producer paths.
+
+The picture registration, native story editing and public restoration comparison
+covers 48 native PDF page pairs at 100 dpi. Forty match exactly. The eight
+portrait-postcard comparisons each differ by 351 pixels in one blue-bar edge band;
+every other page pixel matches. Visible glyph styling/positions, images, table content and other
+paint match. Disabling antialiasing in a diagnostic render removes that band;
+higher-resolution observations retain its edge-local behavior. These diagnostics
+do not replace the original comparison, whose eight differences remain recorded.
+The separate creation/picture comparison retains its 36-page record with the same
+edge boundary.
+
+Publication dimensions and print-sheet dimensions are separate. The recorded
+native PDF exports use 595.32×841.92-point sheets, approximately A4, for all three
+publication sizes. This observation identifies neither a printer/driver cause nor
+a general default-sheet contract. OfficeIMO's PDF uses the publication size: the
+serialized A4 MediaBox is 595.276×841.89 points, and both postcard orientations
+retain their exact point dimensions. Native PDF sheet bounds therefore do not establish the stored
+PUB size or postcard print setup. Actual Print dispatch remains unqualified.
+
+Metadata equivalence is also narrower than appearance. The controls use 10 mm
+master-guide insets while creation uses page-edge guides; their ordinary anchors
+and bar dimensions can differ by a few EMU after native point quantization.
+Generated default tabs remain 36 pt versus 28.3 pt in the controls; unused outline
+widths and style catalogs differ. These tab-free, outline-free inputs do not
+qualify those defaults. The `singleMasterPageSizes` record binds the measured
+geometry, lifecycle and appearance limits. Multiple-master dimensions beyond
+Letter, zero-master and absent-reference generation, null assignments with
+multiple/paired definitions, broader layout/effects, repair-free acceptance and
+public source-free native saving remain unqualified.
+
+### Unassigned pages with one retained master
+
+The single-master projection preserves a physical page's null `MasterPageId`.
+Native output retains the sole selected-master reference in Contents
+`0x0D/type0x68` and writes the zero-payload `0x07/type0x08` display token on a
+suppressed physical page. Applied pages omit that display token. Definition-owned
+content stays on its master and current asset bindings are retained; the suppressed
+page keeps its own content while omitting applied master paint. This encoding uses the existing
+`SetPageMaster(pageId, null)` meaning and the same clear representation as native
+source saving.
+
+The `unassigned-composition` specimen uses the 4×6-inch portrait mixed model with
+the master applied on page 1 and cleared on page 2. The independent
+`SizedCompositionUnassigned` control retains the same selected native master on
+both pages, with `IgnoreMaster` false/true after authoring and saving. Public
+readback exposes the definition/null as effective assignments. Actual native
+first-character `N`-to-`M` edits complete save-as and read-only reopening on both
+generated and independent inputs, retaining the complete two-frame story,
+first/final-CR typing, mixed-content ownership and populated, unlinked pictures.
+
+Public source saves also apply the master to both pages, reverse which page
+suppresses it, and restore the initial state on both producer paths. Public
+`ReplaceStoryParagraphs` restores `M` to `N` in the native-edited story while
+retaining each source's run partitions, tab profile, other stories, frame/layout
+state and assets. Assignment and story-restoration outputs complete native
+save/reopen and PSWriteOffice PDF conversion; effective and selected master states
+remain distinct throughout. Exact no-op source copies and detached earlier
+snapshots are preserved. These edits use explicit `AllowLoss = true`; default strict policy
+continues to refuse the unassessed master-assignment or Quill-text operation.
+
+The six public assignment transitions preserve unrelated Contents records and
+logical streams, directory identities, ordering and metadata. Only the native
+control's first assignment removes its proven stale SummaryInformation thumbnail
+property; the other assignment transitions change Contents only. Native SaveAs
+normalization is a separate operation from this public source-save preservation.
+
+Native PDF comparison covers 58 complete page pairs at 100 dpi without alignment,
+cropping or color normalization. Forty-four pairs are exact. Twelve retain the
+known 351-pixel portrait blue-bar edge band; two page-1 pairs intentionally measure
+the `N`-to-`M` glyph/reflow change, each with 2,565 changed pixels, while their
+page-2 pairs match. No other differences occur within the recorded comparisons;
+the overall result remains nonexact. Eight managed page comparisons match the
+actual native-edited `M` state to its own expected model and restored `N` state to
+its own pristine model, with zero changed pixels. These are separate managed
+checks and do not establish native/managed pixel parity.
+
+The `singleMasterUnassignedPages` record binds this retained-definition suppression
+profile and its operation evidence. Native/managed appearance parity, zero-master
+output, source-free absent-reference generation, null assignments with multiple
+masters and broader unassigned layouts remain unqualified. Repair-free acceptance
+and public source-free native saving retain their existing limits.
+
+### Mixed content with multiple masters
+
+The internal `ComposedContent` projection accepts one centered master, two
+centered masters, or a centered master followed by one named left/right pair.
+The single-centered-master profile uses the common dimensions described above;
+multiple-master profiles remain Letter size and require an explicit defined
+assignment on every physical page. The single-master path supports the qualified
+suppression profile above; all paths retain one to sixteen physical pages. Master
+text, rectangles and embedded pictures compose with ordinary linked stories,
+unlinked frame layouts and at most one physical-page table. Object order and
+ownership come from the same public page/master model used for rendering.
+
+The `paired-brochure` specimen has three physical pages with centered/left/right
+assignments. Its 21 semantic objects include twelve text frames, four rectangles,
+four pictures sharing one asset, and one borderless 2×2 table. A three-paragraph
+story flows through pages 1, 3 and 2; another frame uses two columns, an 18-point
+gap and asymmetric insets. The independent `PairedBrochure` control checks each
+master's actual three-shape collection after authoring and after saving. Native
+initial and resaved inventories retain all three masters' content on the intended
+definitions. The left-member picture is placed at x=72 pt, and the centered/right
+pictures at x=504 pt; placement across other native pair halves is unqualified.
+
+Public `SetPictureBounds` moves the left-master picture from x=72 to x=84 pt on
+both the generated file and the independent control. Explicit `AllowLoss = true` saving and
+reload preserve its master binding, all four picture references, the single
+shared image payload and every other picture's bounds. Default strict saving
+still refuses `PUB_NATIVE_FIXED_PATCH_UNQUALIFIED` as `Unassessed`; this profile
+does not weaken that policy. PSWriteOffice converts both saved files to PDF.
+Native opening, export, save-as and reopening complete for the generated original
+and both public edits with unchanged input bytes. Creation and edited output
+match their native controls across twelve initial/resaved page comparisons at
+100 dpi, with zero changed pixels.
+
+Creation explicitly disables wrapping for every text frame, rectangle, picture
+and table. Contents field 4 uses type `0x10` and value `0x100`; omitting the field
+means Square in the qualified native reader. Native `TextWrap.Type` reports None
+for all 21 brochure objects before and after resave. This preserves the public
+authoring model's wrap intent without changing imported-file defaults or
+relaxing guarded source edits.
+
+The `pairedMixedContentCreation` and `authoredNoWrapCreation` qualification records
+separate this composed profile from general native writing. Master tables,
+multiple physical-page tables, three centered masters, multiple-master null
+assignments, other multiple-master sizes, linked columns/insets, wrapping and broader effects remain
+outside the profile. Matching pages do not establish metadata equivalence: generated
+default tabs remain 36 pt while the native control uses 28.3 pt, and base-caption
+typing/defaults differ. These tab-free specimens do not qualify that metadata or
+general native/managed rendering parity. Repair-free acceptance and public
+source-free native creation remain unqualified.
+
+### Native table creation
+
+The `tableCreation` record covers source-free creation of a borderless, unmerged
+2×2 table with unequal column/row tracks, bold headers, an empty cell and an
+independent label. One complete table story owns the cell text; native cell
+endpoints, grid definitions and table story roles are generated separately.
+The edited specimen adds a paragraph in the first cell and refills the last.
+Public cell edits save on generated, native-normalized and independent native
+sources. Repeated growth/clearing retains neighboring cells, tracks, complete
+stories and opaque layout data. Five files complete 35 native operations and
+match independent controls across ten initial/resaved page pairs at 144 dpi;
+native row/column getters confirm the intended tracks.
+
+The `rectangularTableCreation` record extends the opt-in native writer specimen
+to 1×1, empty 1×2, 1×4, 4×1, 3×4 and 12×8 grids, plus a table-first edited 3×4
+variant. Native read-only opening, cell/track/bounds inspection and PDF export
+confirm all seven. A public source edit on the generated 96-cell file adds a
+third paragraph in the final cell while retaining the other cells and geometry;
+native inspection and PDF export confirm the result. The 12×8 creation and edit
+use multiple character and paragraph formatting pages. The specimen range is
+not a format maximum; the separate [dense-grid profile](#ordered-table-utility-cluster-allocation)
+qualifies a larger creation specimen. Those read-only operations do not qualify
+native editing or resave/reopen.
+Native styling beyond the rectangular solid utility profile below, dynamic row
+sizing, generic public native creation and repair-free opening remain unqualified.
+
+### Authored table merges
+
+`MergeTableCells` joins a rectangle of complete cells in an authored table,
+retaining their styled paragraphs in existing definition order in the new
+anchor. Grid tracks, other cells and old snapshots remain intact. Repeating a
+range already occupied by one complete cell makes no semantic change; ranges
+that split a span and changes to imported native topology are refused. The anchor
+fill is retained. New merges in tables with shared borders remain unsupported;
+requesting an already complete span still makes no change.
+
+The `mergedTableCreation` qualification record covers a source-free three-row,
+four-column borderless table with horizontal, vertical and 2×2 merged owners,
+unequal tracks and seven logical cells. The independent native control stores
+its block cell after another row's cell, qualifying ownership independently of
+row-major ordering. Initial native opening/PDF export, SaveAs and reopen retain
+all spans, cell text and tracks. Public source saves clear the horizontal cell
+and grow the vertical and block cells without changing their ownership. Initial
+and resaved native PDFs match independent native controls exactly at 100 dpi.
+The OfficeIMO PDF retains the content but has a baseline offset; native/managed
+pixel parity is not qualified. Table fills and borders have a separate bounded
+profile below. Dynamic row sizing, repair-free opening and public native creation
+remain unqualified.
+
+### Decorated merged table utilities
+
+The `decoratedMergedTableUtilities` record qualifies solid fills and shared borders
+on the three-row, four-column profile above. Its horizontal, vertical and 2×2
+merged owners form seven logical cell definitions covering twelve grid positions.
+Source saving and fresh encoding use those logical definitions, retaining native
+definition order independently of drawing traversal. Positive complete geometry,
+unambiguous ownership, solid paint and the existing allocation/default checks
+remain required; imported topology changes remain refused.
+
+Existing exact source border partitions remain preserved. A newly requested full
+merged-cell perimeter stays one utility span; other new ranges use unit cell
+edges. The edited workflow explicitly assigns the horizontal merged owner's whole
+bottom edge through `SetTableBorderStyle`. Adjacent matching source fragments are
+not implicitly coalesced. The independent baseline has nineteen edge ranges,
+including five longer spans; the explicitly edited state has eighteen ranges,
+including six longer spans.
+
+Six independently authored native controls cover the decorated baseline, final
+styles, cell text, composed styles/text, fills alone and borders alone. Eight
+public source workflows cover existing style/text edits, first decoration of the
+bare generated merged table and selective initialization of two missing merged
+anchor utilities. The internal `table-merged-decorated` specimen separately
+creates five fills and nineteen exact edge ranges without native seed bytes.
+All nine outputs complete native Full opening/export and SaveAs/reopen without
+changing their sources. Eighteen native PDF pairs match their independent controls
+with zero changed pixels at 100 dpi.
+
+The final-style, text, composed and partial-fill workflows match every native
+inventory key at both stages, giving eight exact comparisons. Other comparisons
+retain these explicit metadata limits:
+
+| Workflow | Native inventory difference |
+| --- | --- |
+| Existing fill/border edits | One new black shared edge reports explicit RGB color type 1 instead of the control's automatic color type 2; both render black. |
+| First combined styles, first borders and fresh decorated creation | The same black-edge color-type difference, plus caption whole-range font, size and language differences. |
+| First fills alone | Caption whole-range font, size and language differences only. |
+
+Affected captions report Arial/12 points/language 0, while the native controls'
+whole-range queries report an empty font name, mixed-size sentinel `-9999999` and
+language 1033. Generated object names also differ. All table fields match apart
+from the listed black-edge color type; caption text, bounds, layout and rendered
+appearance match. Native aggregate merged-cell side getters can expose mixed or
+partial observations, so exact raw utility anchors and native PDFs establish the
+qualified shared-edge result. The [caption typing profile](#authored-caption-cr-typing)
+explains the distinct CR policies; these historical caption metadata differences
+remain.
+
+Nine PSWriteOffice PDF conversions retain 612×792-point pages and normalized text.
+Cell-fill RGB values match; fill rectangles differ by at most 0.0011 point. All 279 unit-edge
+probes match shared-edge coverage and colors. Native stroke-width quantization,
+centerlines, joins and end clipping remain approximate, as do text baselines and
+font selection. These geometry and coverage comparisons do not establish
+native/managed pixel parity.
+
+The [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md) distinguishes
+independent controls from the bare generated source and the derived missing-cell
+input, which retains all logical definitions, surviving utilities and allocation
+history. Native horizontal-anchor editing has its own bounded profile below.
+Broader merge layouts, grouped/transformed tables, additional producers or
+generations, repair-free acceptance and public source-free native creation remain
+unqualified.
+
+### Native horizontal merged-cell editing
+
+The `nativeMergedCellMutation` record qualifies actual native text replacement in
+the top-left horizontal 1×2 owner of the decorated merged specimen. The native
+runner's `FirstMergedTableCell` target requires the sole table on one physical
+page, native anchor `(1,1)` and exactly one row/two columns. The original
+`FirstTableCell` target retains its separate unmerged 1×1 requirement.
+
+Both the fresh generated specimen and independent native control replace that
+anchor with `Native Horizontal`, then save and reopen. The covered native
+coordinate `(1,2)` exposes the same text and span; managed import retains all seven
+logical definitions. Public `ReplaceTableCellParagraphs` then restores `Horizontal`
+through zero-based anchor `(0,0)` in the native-edited fresh file. Managed save/reload,
+PSWriteOffice PDF conversion and native Full opening/export and SaveAs/reopen
+retain the other cell text, spans, paint and geometry. Source saving uses the
+existing explicit loss acceptance and retains `PUB_NATIVE_PREVIEW_INVALIDATED` and
+`PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` diagnostics.
+
+Four native PDF comparisons match at 100 dpi with zero changed pixels: the fresh
+and independent initial outputs, their native-edited resaves, and the restored
+initial/resaved output against the pristine independent control. Inventory
+differences remain limited to the decorated profile's caption font/size/language,
+generated object names and explicit-RGB versus automatic-black edge roles.
+Managed/native font and baseline parity remains unqualified. Other native merged-cell
+targets, general native formatting, additional merge layouts, repair-free
+acceptance and public source-free native creation remain unqualified.
+
+### Native cell fills and shared borders
+
+The `tableCellDecoration` record qualifies solid cell-background recovery and
+horizontal/vertical grid-border recovery in two independently produced native
+two-by-two tables. Utility drawing records bind a fill to the native cell
+definition index, or an edge to grid-boundary endpoints. Utility shapes remain
+separate from publication objects. `PublisherTableCell.FillColor` retains the
+solid color; `PublisherTable.BorderSegments` retains each shared edge once,
+using the existing `OfficeBorderSide` color and point-width contract.
+
+Qualified rectangular placement paints cell backgrounds and grid edges before
+text. Outer edges stay inside the table and horizontal edges paint after
+vertical edges. Native pixel hinting and the existing text-baseline differences
+remain approximate; exact managed/native PDF parity is not claimed. Unsupported
+ownership, coordinate ranges, gradients, transparency, shadows or paint types
+produce explicit omission diagnostics. Cell-specific padding and other native
+cell appearances remain unqualified.
+
+Public paragraph growth preserves the complete Escher stream and all other
+unaffected storage. Native opening, PDF export, separate SaveAs and reopen match
+an independent text-edited decorated control: cell text, tracks, fill/border
+observations and two native PDF page pairs at 100 dpi. This qualifies opaque
+decoration preservation during the listed text edit.
+
+`SetTableCellFillColor` edits an anchor cell's opaque solid background, including
+clearing it in the managed model. Authored merges keep the anchor fill.
+`SetTableBorderStyle` assigns a solid shared edge along an ordered grid range, or
+clears it with null. Overlapping collinear edges split around the requested range;
+unrelated and perpendicular edges remain intact. Ranges through merged-cell
+interiors are rejected. Both operations retain immutable snapshots and commit
+only after successful projection, with copied model and projection budgets.
+
+The `tableCellStyleEditing` qualification record covers native source recoloring
+of an existing visible fill and color/width changes to existing shared borders.
+Both directions match the complete Escher stream of independently produced
+controls. Other logical streams and directory metadata remain preserved, apart
+from explicit stale-preview invalidation. Restoring the original styles before
+saving copies the original publication bytes exactly. Microsoft Publisher opens,
+exports, separately saves and reopens both edited outputs: all four native cell
+inventories match their controls, and four PDF page pairs match at 100 dpi.
+This scalar profile requires unambiguous existing local color/width fields and
+exact signed-EMU widths. Shared-edge record allocation, first fill/border utility
+initialization and native first-cell mutation use the separate profiles below.
+Broader paint and repair-free opening remain unqualified.
+
+The internal `table-decorated` and `table-decorated-edited` specimens create a
+two-by-two fixed grid with three solid cell fills and six shared edges solely
+from the public authoring model. The `tableDecorationCreation` record qualifies
+fresh utility records in a separate drawing: calculated SPIDs, table/cell bindings,
+grid ranges, colors, widths, drawing-instance prefixes and allocation counts.
+The empty cell retains the independent control's invisible white fill default.
+No native publication supplies seed bytes. The blank, borderless-table and
+merged-table specimens retain their previous complete output bytes.
+
+Both creations and public scalar edits of generated and Publisher-resaved input
+complete native opening, PDF export, SaveAs and reopen. Eight native inventories
+match the independent controls' complete cell/style and grid observations; eight
+native PDF pairs match at 100 dpi. The direct scalar edit produces the same PUB
+bytes as creating the edited model. The four workflows cover three distinct
+candidate byte sequences. This record covers a bounded unmerged rectangular
+utility profile with one SPID cluster per drawing; ordered multi-cluster allocation
+is qualified separately below; decorated merges use the bounded profile above.
+Broader visibility/paint definitions, layouts and the
+general public native writer remain unqualified. Managed/native pixel parity,
+native cell editing beyond the separate first-cell profile below and repair-free
+acceptance remain open criteria.
+
+The `tableCellFillVisibility` record qualifies clearing and activating existing
+solid cell utilities, including insertion of a missing local RGB scalar. One
+local scalar must own the filled use-bit; unrelated boolean uses, secondary
+tables and latent colors remain preserved. Missing color insertion uses the
+existing property-table and enclosing-record length rewriter, without allocating
+utility records or changing drawing instances/counts. Unsupported paint,
+ambiguous owning fields and complex or BLIP-role local fill-boolean fields refuse
+output even with loss explicitly allowed. Edited output reports `PUB_NATIVE_TABLE_FILL_UNQUALIFIED`
+for broader native/producer uncertainty.
+
+Three independent controls cover hiding the first fill, activating the previously
+unfilled third cell, reversing their visible states with latent colors retained,
+and combined first-cell paragraph growth. Their complete Escher streams match
+public source output. Five public saves from independent, generated and native-
+resaved sources complete native opening, export, SaveAs and reopen: ten complete
+native cell/grid inventories and ten PDF pairs match the controls at 100 dpi.
+After the unsupported-boolean guard fix, all five emitted PUB byte sequences
+remain identical to the native-qualified inputs. Reverting the current semantic
+edits before saving returns the original bytes exactly. Visibility definitions
+without a qualified local owner, non-solid/transparent paint, fill utility
+record removal and broader producer/layout profiles remain unqualified. Utility
+allocation and native first-cell mutation use the separate profiles below;
+repair-free acceptance and public native creation remain open criteria.
+
+The `tableBorderTopology` record qualifies native source edge addition, clearing,
+range replacement and deletion/reload/re-add within one existing direct utility
+drawing and its current SPID cluster. Source-bound records and supported solid
+paint must be unambiguous. Active FDG/FDGG counts exclude native background shapes;
+their IDs remain allocated. Removed records reduce active counts without rolling
+back cursors or used slots. New records consume fresh slots, update counts and
+enclosing lengths, and retain unrelated records and drawing-instance separators.
+Outside the initialization profiles below, missing drawings, conflicting counts/cursors, overlapping
+ownership or unsupported paint refuse output, including when loss is explicitly allowed.
+
+Existing source ranges remain intact. Newly authored ranges use unit cell edges
+to reproduce Publisher's joins; reload can change segmentation and record order
+while retaining shared grid coverage. One regression also qualifies active cells
+without local RGB inheriting the utility drawing's automatic white default rather
+than the document theme accent. Border planning reuses retained artwork and source
+read options, preserving unrelated images loaded with higher supported limits.
+
+Four independent controls cover edge addition/replacement, all-edge removal,
+combined cell text/fill edits and the native white default. Seven public saves
+include independent, generated and native-resaved inputs plus deletion/reload/
+re-add. Fourteen complete native cell/grid/style inventories and fourteen exported
+PDF pairs match their controls at 100 dpi. Two unchanged final input sequences
+reuse their exact-byte native proof; five changed sequences are validated again.
+Other logical storage remains preserved, with explicit stale-preview invalidation.
+Output reports `PUB_NATIVE_TABLE_BORDER_TOPOLOGY_UNQUALIFIED`. Decoration beyond
+the populated two-table, ordered cluster and decorated merged profiles,
+broader paint/producer profiles and native mutations beyond the separate
+first-cell profile remain unqualified. Repair-free acceptance remains open.
+Public source-free native creation remains gated.
+
+The `tableUtilityInitialization` record qualifies first fills and shared borders
+in borderless unmerged rectangular tables. It covers compact sources with one
+ordinary drawing and native-normalized sources with empty utility scopes. The
+writer retains the original ordinary drawing bytes and existing auxiliary
+roots/background, initializes cell defaults and fresh utility records, and
+updates drawing counts, cluster entries and enclosing lengths. All identifiers,
+counts, table bindings, source history and inherited defaults must be unambiguous.
+New shared ranges use unit cell edges; hidden cells retain white latent colors.
+
+Four independent native controls isolate borders without fills, paragraph growth,
+fills without borders and border clearing. Ten public source workflows cover both
+source profiles, combined styles/text, range replacement, reload/fill activation,
+clear-all and re-addition with fresh identifiers. Initial native opening/export
+and SaveAs/reopen retain all twenty complete cell/grid/style inventories. Twenty
+native PDF pairs match their controls exactly at 100 dpi. All ten final public
+outputs retain the native-qualified bytes after the final guard changes. Eight
+PowerShell style edits reproduce those inputs; ten PDF conversion workflows
+retain the expected text and colored primitives. Native/managed pixel parity
+remains unqualified because text baselines differ.
+
+The shared utility encoder also retains both decorated authoring specimens'
+previous complete bytes. Native saving rejects unsupported inherited opacity,
+complex/BLIP-role defaults, inconsistent counts/history and borders wider than
+the final perpendicular table extent, including bounds-only resizing of existing
+styles. Output reports `PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED` for broader
+native uncertainty. Populated-drawing initialization is qualified separately
+below. Ordered cluster allocation has its own profile below. Merge layouts
+beyond the bounded profile above and additional producers remain unqualified.
+Native cell mutation beyond
+the separate first-cell profile, repair-free acceptance and public source-free
+native creation remain open criteria.
+
+The `populatedTableUtilityInitialization` record qualifies first opaque solid fills
+and shared borders for a bare unmerged rectangular table beside a decorated table
+in one direct populated utility drawing. The target table must own no cell or
+edge utility records. Allocation uses the current SPID cluster, advances its
+cursor and used slots for fresh identifiers, and preserves retired-ID history.
+Ordinary drawing bytes, unrelated logical storage and unchanged peer utility
+records remain preserved. One save can combine supported border topology/scalar
+edits on the decorated peer with new target-table styles and paragraph growth.
+
+Five independently authored `TableUtilityPair` controls provide bare, styled,
+border-only, fill-only and composed final states. The missing-utility source is
+an explicitly derived input described in the [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md).
+Eight public PowerShell save/PDF workflows cover those edits, later fill
+activation, border clearing, reload/re-add with fresh edge identifiers and a
+native-resaved follow-up. Native opening/export and SaveAs/reopen retain sixteen
+complete inventories of both tables and their labels. Sixteen native PDF pairs
+match the controls with zero changed pixels at 100 dpi. Managed PDF conversions
+retain the matching colored primitives; managed text baselines remain approximate.
+
+Allocation refuses unsupported inherited opacity/defaults
+and grouped or unqualified ownership. Fresh cells and edges require safe document
+defaults independently of local utility-default overrides. Selectively missing
+cells in a table that already owns utility records use the separate profile below.
+Ordered cluster allocation is qualified separately below. Broader merge layouts,
+transforms and producers remain unqualified. Output retains
+`PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED`. This record does not qualify actual
+native cell mutation; the separate first-cell profile below retains its own scope.
+Repair-free acceptance and public source-free native creation remain open criteria.
+
+The `partialTableCellUtilityInitialization` record qualifies selectively missing
+raw cell utility records in an unmerged rectangular table within one direct
+utility drawing and its current SPID cluster. A fill or border decoration change
+materializes the canonical final fill/no-fill state only for truly missing native
+cell-definition indices. Existing invisible records still own their cells and
+are never recreated. Text or bounds changes alone do not initialize missing
+utilities, and restoring the original semantic state copies the source exactly.
+Unchanged existing cell/edge records, ordinary drawing bytes and unrelated
+logical storage remain preserved. Missing cells can coexist with surviving target
+borders; initialization composes with supported same-table or peer border
+topology/scalar edits and cell-paragraph growth.
+
+The labelled first-cell, diagonal-cell and bordered first-cell derived inputs
+are documented in the [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md).
+Independent native controls include a single filled target cell and combined
+target border topology, three fills and first-cell paragraph growth. Sixteen
+public PowerShell save/PDF workflows cover those states, borders alone, three fills,
+peer edits, clear/re-add, later fill activation and native-resaved follow-up.
+Native Full opening/export and SaveAs/reopen retain thirty-two complete
+inventories of both tables and their labels. Thirty-two native PDF pairs match
+the controls with zero changed pixels at 100 dpi. All sixteen managed PDF
+colored-primitive comparisons match; managed text baselines remain approximate.
+
+This profile retains the direct ordinary placement, solid paint, exact-width,
+opaque preservation and default checks above. Duplicate or unknown raw ownership,
+unsafe inherited drawing-group properties or defaults and inconsistent allocation
+metadata refuse output. Ordered cluster allocation has its own profile below.
+Merge layouts beyond the bounded profile above and broader grids, transforms and producers remain
+unqualified. Output retains `PUB_NATIVE_TABLE_UTILITY_CREATION_UNQUALIFIED`.
+This record adds no actual native cell text mutation claim; the first-cell profile
+below is separate. Repair-free acceptance and public source-free native creation
+remain open criteria.
+
+### Ordered table utility cluster allocation
+
+The `tableUtilityClusterRollover` record qualifies allocation across SPID clusters
+for direct unmerged rectangular table utilities. Source saving and fresh encoding
+share one allocator. The ordered `IDCL` entries in FDGG determine each cluster's
+identity; entries are not renumbered or compacted. Allocation consumes the current
+cluster's remaining slots before appending a fresh entry at the end of the retained
+history. Retired identifiers and earlier entries remain consumed. Active counts,
+cursors, ownership and inherited defaults must agree before output is prepared.
+
+Independent native 18×18 and 20×20 controls retain substantial retired allocation
+history. The 18×18 utility drawing has thirteen free slots; the 20×20 drawing
+already spans nonadjacent clusters. A separate native edit adds a 2×4 table to the
+retained 18×18 publication, consumes those thirteen slots and appends a new cluster
+without changing the original table's complete inventory. This is native append
+evidence, separate from OfficeIMO's source edits and synthetic inputs.
+
+Five public source-save and PSWriteOffice PDF workflows cover first fill after
+twenty selectively missing hidden cell utilities, edge deletion/re-addition on
+that source and an existing multi-cluster source, first styles in a labelled
+synthetic compact 20×20 input, and fill clearing after native resave.
+Native Full opening/export and SaveAs/reopen
+produce ten observations and ten PDF pairs with zero changed pixels against
+independent controls at 100 dpi. Eight complete table-and-label inventories match
+exactly. In the two cleared-state observations, one hidden cell retains its
+previous green RGB rather than the control's inactive white; its fill is invisible
+and all other inventory fields match. All five managed colored-primitive
+comparisons match; managed text baselines remain approximate. The [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md)
+distinguishes the preserving missing-cell input from the compact input, which
+deliberately discards utility scopes and their allocation history.
+
+The internal source-free 20×20 specimen creates 400 cells, 840 shared edges and
+1,243 utility-drawing shapes across two clusters. Native opening, PDF export,
+SaveAs and reopen retain the table and label; both native PDF pairs match the
+independent wide control exactly at 100 dpi. All 400 cell inventories and all table
+fields match, as do caption text, bounds, frame layout and kerning. Generated
+shape names differ. The caption's whole-text-range font, size and language metadata
+also differ: the fresh output reports Arial, 12 points and language 0; the native
+control reports mixed font/size and language 1033 for the range including its native
+paragraph terminator. The [caption typing profile](#authored-caption-cr-typing)
+qualifies those distinct CR policies without changing these historical metadata
+observations. Six earlier complete PUB specimens retain their bytes.
+
+The fresh 20×20 specimen and independent wide control also qualify native text
+replacement in their first unmerged cell, from `0101` to `N101`, followed by native
+save/reopen. The same table, caption text/layout and kerning comparisons pass;
+initial/resaved native PDFs match exactly at 100 dpi, with the caption metadata
+differences above retained.
+Public `ReplaceTableCellParagraphs` then restores the native-edited fresh file
+from `N101` to `0101`. Managed save/reload and native Full opening/export and
+SaveAs/reopen retain those matched fields and the same caption metadata limits;
+both restored PDF pairs match the independent wide control exactly at 100 dpi.
+PSWriteOffice conversions
+of the original and restored fresh files match the expected colored primitives;
+managed text baselines remain approximate. The [generated fixture](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/GeneratedTableCluster/provenance.json)
+retains the fresh, native-normalized and native-edited files with their independent
+native-edited control.
+
+This profile retains the solid-paint, direct ownership, exact-width, preservation
+and default checks above. Decorated merges have their own bounded profile above.
+Grouped or transformed tables,
+arbitrary larger-grid composition, additional producers or generations, arbitrary
+native cell selection and broader native text/formatting edits remain unqualified.
+Repair-free acceptance and public source-free native creation remain open criteria.
+
+### Native first-cell text mutation
+
+The `tableNativeCellMutation` record qualifies actual first-cell text replacement
+in four unmerged table outputs: fresh borderless and decorated authoring, plus
+compact and native-normalized first-utility saves. Three independent native
+controls undergo the same edit. Initial opening/export and native text change,
+SaveAs/reopen retain complete cell styles/spans, geometry and unrelated objects.
+Eight candidate PDF pairs match the controls exactly at 100 dpi. The fresh edited
+borderless specimen adds two independent native PDF pairs. Four native-edited
+files support a further public managed cell edit/save/reload and PowerShell PDF
+conversion while retaining styles and other cells. This is a whole-range COM
+text edit in the isolated validation copy; broader native editing stays unqualified.
+Clearing the first decorated cell adds two matched native PDF pairs and four
+complete inventories; its styles and other cells remain intact, and public
+reload exposes the native-cleared cell as empty.
+
+Earlier utility-free borderless authoring exposes unavailable fill observations;
+native validation/edit/save can activate white fills. Fresh unmerged authoring
+now emits hidden white cell utilities even when every cell has no fill and there
+are no borders. Decorated and merged specimen bytes remain unchanged. The same
+fix keeps composed newsletter fills hidden through native Full validation. Its
+glyph text/positions remain identical to the preceding writer, with a localized
+table-region raster change as automatic white backgrounds disappear; independent
+newsletter appearance parity remains unqualified. The older compact fixtures
+remain source-preservation inputs and do not establish native style stability.
+The [horizontal merged-anchor profile](#native-horizontal-merged-cell-editing)
+qualifies a separate native cell target. Additional native mutations, repair-free
+acceptance and public source-free native creation remain open criteria.
+
+The internal `frame-layout` and `frame-layout-edited` creation specimens carry
+six frames on two pages from public `SetTextFrameLayout` snapshots into the
+native shape properties and alignment records. They cover one, two and three
+columns, explicit full gaps of 0/12/18/12.1 points, asymmetric and fractional
+insets, and Top/Center/Bottom alignment. The `frameLayoutCreation` qualification
+record covers five files and 35 native operations, including public layout edits
+of generated, native-normalized and independent sources. Ten reloads preserve
+all six complete stories and the 60 observed native frame layouts. Eighteen of
+20 initial/resaved page comparisons match independent controls at 144 dpi;
+the two baseline page-one comparisons retain a native hyphenation and column-break
+difference. Every edited output matches its independent control. Native column
+balancing, general layout parity, repair-free opening and generic public native
+creation remain unqualified.
+
+### Authored caption CR typing
+
+The `captionTypingDefaults` record qualifies the internal native writer's existing
+ordinary-caption policy: the generated paragraph CR uses the final visible run's
+character formatting. `WithLanguageId(1033)` explicitly carries that language
+through the body and CR; an unspecified language remains unspecified. Imported
+source CR typing remains governed by the separate preservation/edit contracts.
+
+Independent native controls distinguish Arial 12-point visible text with a
+Calibri 10-point CR from a full-range Arial 12-point caption. Their observed
+language is 1033. Native clear/refill retains each control's CR font and size.
+Three public source clear/save/reload/refill workflows preserve those distinct
+font, size and language values; all six initial/resaved native inventory
+comparisons match every key. These source saves use explicit loss acceptance and retain
+the existing empty-paragraph, preview-invalidation and unqualified-Quill diagnostics.
+
+Four fresh specimens cover unspecified and explicit language before and after
+refill. Font/size observations match the full-range native controls; explicit 1033
+matches their language, while unspecified output deliberately reports language 0.
+All four retain an inactive one-column spacing difference: generated 0 versus
+native approximately 2.834646 points. Generated object names also differ, so these
+are bounded typing comparisons rather than complete inventory equivalence.
+All seven source/fresh candidates complete native Full validation with unchanged
+inputs; fourteen initial/resaved native PDF pairs match at 100 dpi with zero
+changed pixels. Seven PSWriteOffice PDF workflows retain normalized text and page
+geometry; managed/native font faces and text baselines still differ.
+
+The [fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md) identifies the
+independent controls and retained fresh/native-normalized specimens. Broader CR
+defaults, languages, styles and layout profiles, repair-free acceptance and public
+source-free native creation remain unqualified.
+
+### Native pair-kerning metadata
+
+`OfficeRichTextRun.AutomaticPairKerningThreshold` exposes a recovered native
+threshold in points. `WithAutomaticPairKerningThreshold(double?)` returns an
+independent run for explicit source edits. Zero disables native pair kerning;
+null leaves the selected native definition unchanged when saving. A missing
+stored threshold remains null rather than being replaced with an assumed
+application default. A selected STSH character snapshot supplies its own omitted
+defaults instead of inheriting explicit values from the global snapshot.
+The [selected-style controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/StyleKerningDefaults/provenance.json)
+qualify this distinction for kerning, strikethrough, underline and baseline:
+the selected snapshot's omissions retain null threshold metadata, no strike or
+underline, and a normal baseline despite explicit global values. Both controls
+retain byte-exact unmodified native saves.
+
+For the qualified modern producer, native getters and the native character-format
+initializer establish a 14-point effective default when the threshold is omitted.
+Public metadata remains null. Qualified Quill profiles resolve effective scene
+and flow settings through retained direct definitions and selected STSH snapshots.
+The same source-format planner used by native save maps unspecified replacements,
+merged native ranges and supported paragraph changes, including table cells and
+typing CRs. For example, an unspecified replacement over a retained 8-point source
+still paints with 8 rather than the omitted 14-point default. Public stories and
+cell snapshots retain the requested nullable metadata; source-free runs retain
+generic renderer defaults. Unknown profiles, ambiguous correspondence and opaque
+tokens report `PUB_TEXT_KERNING_SOURCE_UNASSESSED` and retain generic defaults for
+unspecified runs. Broader producer profiles remain unqualified.
+
+The scalar writer accepts finite values from 0 through 999.5 points that are
+exactly representable in 1/12700-point units. It preserves other OPL fields,
+complete stories, neighboring stories and compound streams. The same explicit
+request handling covers retained body runs and typing CRs in the qualified
+ordinary-story and table-cell edit profiles. Duplicate tokens, unrecognized
+source token types and out-of-range source values remain opaque, report
+`PUB_TEXT_KERNING_UNASSESSED`, and refuse explicit threshold rewriting even when
+loss is allowed. An unspecified replacement preserves them.
+
+The [TextPairKerning controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextPairKerning/provenance.json)
+are source-derived edits of the independent hyphenation specimen, followed by
+native save/reopen. With Arial 12 pt, native thresholds 8 and 12 produce the same
+pages; thresholds 0 and 14 produce the same pages. The groups differ on six of
+15 pages. These controls establish inclusive activation at font size equal to
+the threshold, with zero disabled. Native save removes the 14-point field in
+this observed default profile. Six public source edits additionally retain
+native getters at 0, 8, 8.2, 12.5, 14 and 999.5 points at native Single precision.
+The 8.2-point case also retains the requested font size through native save and
+reopen. All 67 native initial/resaved page pairs agree at 144 dpi across eleven
+Full validation runs of these ten inputs.
+
+Shared font-aware drawing layout applies an explicit threshold through wrapping,
+tabs, trimming, justification and shrink-to-fit. Raster ink measurement and glyph
+painting, SVG CSS font features and PDF glyph output use the same run setting.
+Zero disables kerning; a positive threshold activates at or above the base run
+size, before superscript/subscript reduction. Drawing scale transforms both
+sizes; font fitting changes the font size while retaining the threshold. Null
+keeps generic drawing feature defaults; qualified imported Publisher scenes carry
+their resolved effective value. Existing caller-supplied width callbacks
+retain control of their measurements.
+
+A 15-input source-edit control compares Arial 12/14 pt, thresholds 0/8/12/14/18,
+both mixed-run directions and 12 pt superscript/subscript. Native save/reopen
+retains the settings, and all 15 initial/resaved native PDF pages agree at
+144 dpi. Script controls activate at threshold 8 despite their 7.8 pt glyph size,
+confirming the base-size decision. Uniform normal-text controls differ from
+managed glyph origins by at most 0.525 pt horizontally and 0.069 pt vertically;
+native device-quantized advances remain distinct from managed design advances.
+Superscript baselines differ by up to 1.929 pt and subscript baselines by up to
+5.39 pt in these controls.
+
+Qualified native contexts use the first effective threshold across a same-font
+visual line, including color, threshold and space boundaries. A new visual line,
+tab, font size, face or language starts another context. Layout shapes complete
+candidate lines, retains the original colors and threshold annotations, and
+carries glyph slices into raster paint, SVG paths with logical accessibility
+labels, and searchable embedded PDF text. Ordinary authored drawing paragraphs
+retain their existing per-run policy.
+
+This coordinated path covers printable ASCII in a normal baseline without
+underline, strike or background paint, when the selected font/provider result
+can be sliced at each source and word/space boundary. Unsupported contexts keep
+the per-run route. PDF additionally requires one selected static TrueType
+program with matching font bytes and units; composite fallback requests remain
+outside this native-context profile. Raster exports retain the context at unit,
+doubled and fractional output scales. Complex scripts, unsplittable clusters,
+decorations, mixed baselines and broader native source profiles remain open.
+
+Seven public-caller controls cover omitted defaults at 12 and 14 points, retained
+0/8 settings, and merged 8/18 source ranges in ordinary stories and table cells.
+Their native PUB bytes match the prior implementation, and every managed preview
+agrees with its native-save/reload preview at 144 dpi. The seven existing native
+initial/resaved PDF page pairs also agree. The five ordinary controls differ
+from native glyph origins by at most 0.109 pt horizontally and 0.089 pt vertically.
+The merged same-font control previously differed by 5.044 pt horizontally; its
+current maximum is 0.109 pt. Physical origins of imposed native table labels
+remain outside this comparison.
+
+Color, space, paragraph, soft-line, size and face controls establish the context
+boundaries in both setting directions. Their current horizontal differences
+reach 0.320 pt and baseline differences reach 0.103 pt. Tab controls retain the
+expected activation reset. The default-tab carrier qualification below resolves
+the previously observed 7.656-point origin difference. Two additional 15.5-point
+frames split a colored `A` / `VAV` word as
+`AV` / `A` / `V` and `A` / `VA` / `V`, matching the native line assignments within
+0.111 pt horizontally and 0.103 pt vertically. All four new native tight-frame
+initial/resaved page pairs agree at 144 dpi. The [native font-context corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFontContext/provenance.json)
+retains the tight-frame publications, their native PDF references and the merged
+8/18 control. The tight-word fitting qualification below extends the matching
+line assignments to narrower frames and linked continuation. Exact device advances, broader tab placement,
+automatic hyphenation and repair-free opening remain unqualified. These finite
+controls do not establish universal native glyph or pixel parity.
+
+### Native default-tab interval
+
+For the qualified modern profile, field `0` of Quill `SGP ` supplies the
+effective default-tab interval. An empty section inherits document field `0x15`
+from the Contents document descriptor. Both store points in units of 1/12700.
+The ordinary native control declares 28.3 points; this is a stored value rather
+than a universal locale or metric default. Unknown, ambiguous or unavailable
+carriers remain unassessed. The generic drawing default stays 36 points.
+
+The [default-tab corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextDefaultTabs/provenance.json)
+distinguishes a 72-point text-engine override above a 28.3-point document value,
+matching 36-point carriers, and a 72-point document fallback with empty `SGP `.
+Native cold-open and saved/reopened getters agree at 72, 36 and 72 points.
+Four managed controls, including the original 28.3-point source, differ from
+native glyph origins by at most 0.153 pt horizontally and 0.026 pt vertically.
+Every managed paragraph-edit/save/reload preview pair agrees at 144 dpi. All
+three edited carrier controls also pass native open, export, save and reopen;
+their native initial/resaved previews agree at 144 dpi. Paragraph edits retain
+the imported interval; changing it through paragraph formatting refuses output.
+These source-derived controls do not establish independent native creation or
+repair-free opening.
+
+### Native tight-word fitting and continuation
+
+For the qualified plain native font context, broken-word admission includes
+the pair adjustment against the following source glyph. The visible line is
+then shaped independently, removing that final lookahead pair from its painted
+advance. Native center/right placement uses the admission advance. A fixed
+width allowance would not reproduce these decisions.
+
+The [native fitting corpus](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison/TextFitting/provenance.json)
+distinguishes the cases at 14.5 points: `AVAV` and `AVAA` place `AV` on the first
+line, while standalone `AV` and `AVV` split after `A`. Eighteen public-caller
+controls cover frame widths from 14.5 through 15.5 points, both kerning-setting
+orders, center/right placement and two-page linked continuation. Every line
+assignment matches the native export; glyph-origin differences reach 0.112 pt
+horizontally and 0.103 pt vertically. The linked control assigns `AV` to the
+first frame and `A` / `V` to the second without adding or dropping source text.
+All five additional native open/export/save/reopen controls preserve their
+inputs; their six initial/resaved page pairs agree at 144 dpi.
+
+Selected native regions retain their visual line boundaries, admission advances
+and tab placements for raster, SVG and PDF. This prevents a shortened final word
+from moving onto the preceding line and preserves aligned-tab fields and
+leaders across soft wraps. Visible overhang survives native-frame PDF clipping
+and isolated raster effects. Reusing the selected paragraphs with a new frame
+width, different tab settings, font fitting or disabled wrapping uses fresh
+layout for that request. Source UTF-16 endpoints and the publication's original
+text remain separate from these rendering choices.
+
+The evidence uses the recorded Arial binary, plain printable-ASCII text and the
+qualified native source profiles. Other fonts, providers, scripts, decorated or
+mixed-baseline contexts, labelled fitting, column balancing and automatic
+hyphenation remain separate qualification work. These source-derived controls
+do not establish independent native creation, repair-free opening or universal
+glyph/pixel parity.
+
+The `nativeLanguageFeasibility` record isolates the language-dependent native
+layout gap. Scratch variants adding character property `0x12` with language ID
+1033 match every initial/resaved page of the independent two-page column and
+three-page linked-story controls. Adding only property `0x3E` retains the
+baseline differences; its semantic role remains opaque. Existing native French
+controls write `0x12=1036`, including ranges without `0x3E`. The experiment uses
+ordered native character fields and changes no process-global hyphenation
+option. The shared run model exposes this value through
+`LanguageId` and `WithLanguageId(uint?)`; native style inheritance fills recovered
+run values, and an explicit source edit rewrites only the qualified primary
+scalar. An unspecified replacement retains imported language tokens. Unknown
+scalar encodings remain opaque and explicit edits refuse them. The opaque
+companion field is preserved. Shared copies, tint/scale, flow and measured
+segments retain the annotation. The bounded managed hyphenation contract is
+described above.
+
+The `runLanguageLifecycle` record qualifies public English/French set, reset and
+unspecified saves on generated, normalized and independent ordinary-frame
+sources. Twelve files complete 84 native operations; all 52 initial/resaved page
+pairs match independent references at 144 dpi, and 136 native getters retain
+the intended language. Three source-free public-model specimens cover columns,
+linked frames and terminal overflow. Existing unspecified-language creation
+profiles retain their byte identity. Six additional files qualify nonuniform
+paragraph retention/text replacement and retained empty typing in ordinary and
+cell stories: 42 native operations, 12 public reloads and 36 stable native resave
+page pairs. These cases preserve visual-template correspondence and raw-source
+ambiguity checks while applying the explicit language to copied bodies and CRs.
+Native clearing of imported overrides,
+broader languages/scripts, paragraph-terminator defaults, dictionary equivalence,
+column balancing and repair-free opening require separate qualification.
+
+Crop source saving can set or clear all four edge fractions, including local
+zero overrides, and combine them with image replacement and bounds changes.
+`PUB_NATIVE_PICTURE_CROP_UNQUALIFIED` keeps native acceptance conservative for
+each operation; `PUB_NATIVE_PICTURE_CROP_QUANTIZED` reports nonexact rounding.
+The `pictureCropEditing` qualification record covers PNG set/clear, combined
+replacement/resizing, existing JPEG crop, and the internal source-free cropped
+image specimen. Five files match independent native references across 24
+initial/resaved page pairs at 144 dpi. Public reloads preserve the exact encoded
+fractions and active image bytes; other placements and native records remain
+retained. Source fractions are independent of automation crop points, which
+depend on encoded DPI and native rounding. A native edge at or beyond one is
+inspection-only even if managed display can clamp it. This does not establish
+general managed/native image sampling or crop-layout parity, repair-free opening
+or public template-free native saving.
+
+Existing editable rectangular picture placements can save a replacement PNG or
+JPEG through `ReplacePictureImage`. The native writer retains original image
+payloads, changes only the selected placement's BLIP binding and filename, and
+appends owned image slots and filename resources. Shared source assets, other
+placements, master ownership, crop values and bounds remain retained; bounds
+and qualified frame-layout changes can be combined with replacement. Repeated
+edits can leave gaps in document-scoped asset IDs; saving maps new assets to
+native slots and reports renumbering with `PUB_NATIVE_IMAGE_BINDINGS_RENUMBERED`.
+An unresolved source reference cannot be satisfied accidentally by a newly
+appended slot. Ambiguous picture properties, filename ownership, allocation
+counters, image stores or reference-count underflow refuse output even with
+`AllowLoss = true`.
+
+Native resave can remove the local filename reference from an ordinary embedded
+picture while retaining older filename resources. For a picture chunk of kind
+`0x20`, replacement can append a fresh
+owned filename resource and directory slot. It preserves orphaned resources
+without guessing which one to reuse. Existing references must still have the
+qualified type, resource shape and descriptor; malformed or ambiguous references
+refuse output. The `namedImageReplacement` qualification record covers PNG
+replacement, a subsequent PNG-to-JPEG replacement, and replacement after native
+normalization, with 24 independent native page comparisons and eight public
+reloads. Native resave can retire unused image slots; active payloads and bindings
+are qualified separately from retention of unused assets in managed save output.
+
+The `sourceEditing.imageReplacement` qualification record binds eight public
+saves over 30 native physical page states: PNG/JPEG, one/all shared placements,
+master ownership, repeated edits, combined frame/bounds edits, cropped pictures
+and re-editing a Publisher-resaved file with retired image slots. Independent
+decoding verifies image pixels, filenames, reference counts, retained source
+payloads and crop fields; native getters verify physical bounds. Native PDF
+pixels and spans match before/after resave. Seventy-four earlier saves remain
+byte-identical. Source-built PSWriteOffice exercises the same edited files
+through `publisher-pdf`. Independent native qualification covers the delayed
+image stream; the embedded-BLIP append branch without that stream remains
+unqualified. Cropped raster-matrix rounding has a measured residual of about
+0.0074 points against the continuous model, so exact managed/native crop
+rendering parity remains unqualified. Repair-free opening and broader producer
+coverage also remain unassessed; changed native image output reports
+`PUB_NATIVE_IMAGE_REPLACEMENT_UNQUALIFIED`.
+
+Imported table tracks use differences between saved cumulative endpoints, with
+separate origins for columns and rows. Nominal sizes can remain unchanged when
+text expands a row, so they do not establish laid-out cell positions. Incomplete
+endpoints on an axis retain nominal sizes with
+`PUB_TABLE_TRACK_POSITIONS_UNASSESSED`; nonincreasing or excessive endpoints
+reject input. Native source bytes, including nominal track metadata, remain
+retained. This is stored geometry recovery, without native reflow.
+
+The `sourceEditing.tableTrackGeometry` qualification record binds independent
+short/wrapped label controls, native row-height/column-width observations and
+public cell geometry. The wrapped control stores a 777247-EMU first-row endpoint
+(61.2005511811 points) while its nominal size remains 36 points. Corrected managed
+rendering moves the lower row by about 25.201 points, retaining its text; the short
+control's rendering remains unchanged. Cell padding, fills and text metrics
+remain separately unqualified.
+
+The independent wrapped control also reproduces the open/resave height change
+seen in the managed output: 97.4986649 points on initial open and 97.2005539 after
+resave. Corresponding native and managed outputs have identical PDF pixels and
+spans at each stage, including growth and shrinkage edits from the new sources.
+Twelve exact stage comparisons distinguish that native behavior from writer
+effects and confirm that the added geometry getters do not alter those outputs.
+These observations do not establish general reflow or fixed rendered heights.
+
+Native table-cell text saving retains existing tables, tracks, merged ownership,
+cell order, stored bounds and paint. Each cell retains its final terminator
+convention. Paragraph counts can change when projected and raw source definitions
+are uniform within that cell; neighboring cells may have different styles.
+Nonempty, unlabelled source paragraphs with different definitions can also be
+retained, deleted, reordered or duplicated within the edited cell without changing
+their text or formatting. Source correspondence and final/intermediate CR roles
+are resolved independently inside each cell; definitions from another cell do not
+disambiguate copied values.
+Supported run/paragraph formatting uses the same Quill
+writer as ordinary stories; cell partitions use separately validated `TCD `
+records. Their descriptor uses flag 1 and secondary kind `PLC `; the payload
+has the fixed cell count, retained header and story-relative UTF-16 endpoints.
+Nonfinal endpoints include their terminating character; the final endpoint is
+exclusive. Source endpoints must exactly match the recovered cell partitions.
+After editing, endpoints, complete story lengths, formatting pages and directory
+locations are rewritten together. Ordinary stories in table-bearing documents
+can also change length without changing relative cell ownership.
+
+Unknown partition headers/descriptors, unresolved or conflicting ownership,
+table stories also used by ordinary frames and arbitrary count-changing rewrites
+from nonuniform definitions within the edited cell
+refuse edited output. New table creation, imported grid/topology changes and cell
+merges remain outside native source saving. Qualified [table bounds](#native-table-placement-and-fixed-track-resizing)
+and [solid styles](#native-cell-fills-and-shared-borders) use their separate profiles.
+These limits apply with `AllowLoss = true`; unchanged content still returns an exact copy.
+
+The `sourceEditing.cellParagraphRetention` record covers ten public saves from
+the seven-page `TableNonuniformParagraphs` control. First/final cells contain
+independently formatted paragraphs and two neighboring cells stay unchanged.
+Twelve full-page initial/resaved comparisons and eight row-region comparisons
+match independent native final states in pixels and text spans. Two additional
+outputs select between equal visible paragraphs with different native language
+definitions. Raw checks preserve complete paragraph/body definitions, per-cell
+CR roles, TCD ownership, tracks, neighboring stories and unrelated storage.
+These fitting controls do not qualify general row reflow, count-changing
+text/formatting rewrites from nonuniform sources or repair-free opening.
+
+The `sourceEditing.tableText` qualification record covers six public saves over
+twelve native document-page states: first/final/all cell replacements, bold/italic
+retention, a preceding title-story length change, combined image replacement and
+re-editing a native-resaved table. Independent decoding verifies complete stories,
+cell endpoints and direct formatting; native PDF text occupies the original cell
+positions. Native table bounds and before/after PDF pixels/spans remain equal.
+The TableLabel control retains Publisher's multiple-label print layout in its
+native PDF; its document page and table geometry are recorded separately. Native
+PDF cell sizes retain the source's 9.984-point spans for nominal ten-point text;
+exact managed/native font metrics and rendering parity remain unqualified.
+Broader table profiles and repair-free opening remain unassessed. Changed Quill
+output reports `PUB_NATIVE_QUILL_TEXT_UNQUALIFIED` and is blocked by default.
+
+Empty existing paragraphs and fixed cells can save without requiring byte-equal
+body/CR definitions. A paragraph with no runs leaves typing unspecified: the
+native CR definition is retained byte-for-byte. A supplied empty styled run
+requests its font, size, color and supported decorations. The canonical Quill
+reader resolves the actual CR inheritance and original palette in an
+operation-local context before applying those changes. Unrelated CR fields remain
+retained; no meaning is guessed for body-only metadata removed with its text.
+Native reload represents an empty CR as one styled empty run, including when the
+input paragraph supplied no runs.
+
+Clearing a cell with an empty paragraph collection keeps one empty paragraph and
+the final paragraph's alignment, spacing, margins, indents and tabs. Other cells
+and the final terminator convention remain retained. Supported uniform-source
+paragraph-count changes can also end in an empty paragraph. Cleared ordinary
+stories use the [reported native empty-CR representation](#cleared-ordinary-stories-and-native-empty-paragraphs), while table grid changes still
+have no native save profile. Unsupported CR encodings remain
+refused when an explicit typing change would require rewriting them.
+
+The `sourceEditing.emptyTyping` qualification record covers fifteen public saves
+over forty native document-page states: first/final/all cell clearing, explicit
+and unspecified typing, sources whose body and CR have different inherited
+styles, single/multiple/trailing empty paragraphs and visible refill after native
+resave. Independent STSH/formatting/resource decoding verifies effective typing,
+exact retained CR and paragraph bytes, complete stories, cell endpoints and
+frame bounds. Native refill text confirms font, bold/italic and color in the
+target region; native initial/resaved PDFs have identical pixels and spans.
+Eighty-eight earlier saves remain byte-identical. Seventeen native control
+profiles separately establish early-range and fresh whole-cell behavior. Their
+language setter changes field `0x12`; the exact role of body-only `0x3E` remains
+unassessed. Source-built PSWriteOffice converts all fifteen specimens through
+`publisher-pdf` with Unicode fallback settings. Repair-free opening, broader
+producer coverage and exact managed/native rendering parity remain unqualified.
+
+The `sourceEditing.cellParagraphs` qualification record covers eleven public
+saves over twenty-two native document-page states: first/final/all-cell growth,
+native multi-paragraph shrinkage, balanced count changes, a paragraph moved
+between cells without changing the complete styled story, empty typing and
+visible refill, preceding-story edits and re-editing a native resave. Each cell's
+formatting is planned from its own source ranges, including its final CR.
+Independent decoding verifies cell endpoints, paragraph definitions, effective
+typing and unrelated storage. The fitting specimens retain native geometry and
+have identical initial/resaved PDF pixels and spans; 103 earlier saves remain
+byte-identical. Four independently authored native table profiles supply the
+multi-paragraph controls.
+Source-built PSWriteOffice converts all eleven specimens through `publisher-pdf`
+with Unicode fallback settings and recovers each nonempty cell paragraph.
+These results do not qualify arbitrary text fitting:
+Publisher can expand rows when new text wraps or exceeds a cell, even though the
+stored grid is retained. A separate wrapped-text cohort records changed native
+heights and resave rendering; fixed rendered heights and overflow layout remain
+unqualified.
+
+Clearing a native whole-frame `TextRange.Text` to an empty string saves one CR,
+with the story and frame retained. This control does not establish a zero-length
+or zero-paragraph native story encoding. Zero-paragraph public clearing uses the
+explicitly reported mapping below.
+
+### Cleared ordinary stories and native empty paragraphs
+
+The `sourceEditing.zeroParagraphClearing` record qualifies clearing eligible
+imported ordinary stories through an empty public paragraph collection. Native
+Publisher clear controls save one empty CR paragraph. A Left/Center/Right source
+control retains the final Right paragraph definition and complete final CR
+typing, rather than taking formatting from the removed first body.
+
+Preparation creates that native representation in a save-only publication
+snapshot. The edited document keeps zero paragraphs and empty text, with the same
+public frame snapshots and original source baseline. Native reload exposes one
+styled empty paragraph. The operation report adds
+`PUB_NATIVE_EMPTY_STORY_PARAGRAPH` as `Approximation`; explicit `AllowLoss = true` is required,
+including when the source is already natively empty and output bytes are an exact
+source copy. `Block` refuses before destination publication. Refilling the
+reloaded paragraph uses the existing native character/paragraph codecs without a
+stale clearing diagnostic.
+
+Six ordinary clear/refill cycles cover single and multiple nonuniform paragraphs,
+all three stories in one publication, a three-page linked chain, an already-empty
+native source and the independent paragraph-format control. An additional table
+cycle clears and refills both first and final nonuniform cells. Table clearing
+already retains one empty paragraph in its public model and has no zero-to-one
+mapping diagnostic. Forty PP/CR checks cover input and native-resaved definitions;
+clear operations copy final source definitions, and refill operations retain PP
+and verify final body/CR typing. All 94 initial/resaved native page pairs and 94
+managed model/reload pairs match at 144 dpi. Seventy-six neighboring pages and an
+independent label on the linked-story page remain unchanged. Both one-page native
+clear controls match the saved candidates' rendered output. Fourteen source-built
+PSWriteOffice workflows preserve the native typed output; six ordinary PowerShell
+clear operations also verify exact copying, the specific report and model state.
+
+Labelled stories and unsupported native source carriers remain outside this
+mapping. Native placeholder characters count toward the configured text limit;
+the added threshold guard has static review but no separate threshold control.
+These producer controls do not establish a genuinely zero-length native story,
+universal producer/generation coverage, repair-free opening or native template-free
+product creation.
+
+Two independent reading controls cover 17 whole-frame profiles over five pages,
+including indexed arrays with two tabs and left/center/right tabbed lines. The
+reader accepts canonical ordinal tab entries and retains the older repeated-zero
+profile. Native/managed inspection verifies the recovered alignment behavior;
+the controlled horizontal word-start measurements retain a maximum 0.148-point
+residual with native ArialMT and managed Helvetica. That measurement does not
+qualify exact font metrics, vertical positions or general rendering parity.
+
+Public native saving prepares and bounds the complete candidate before destination
+publication. `PublisherSaveOptions` defaults to a 64 MiB ceiling, `Block` loss
+policy and `FailIfExists` file conflicts. `Block` also rejects unassessed fidelity;
+`AllowLoss = true` permits the documented candidate profiles but never bypasses preparation
+refusal. `PublisherSaveReport` separates save diagnostics from its original
+`SourceReadReport`, reports prepared byte count and identifies exact source copies.
+Saving neither changes the semantic model nor rebinds its original source baseline.
+
+Path saves require `.pub` and use shared strict atomic publication, including
+explicit `Replace`. Existing destinations survive preparation, limit, policy and
+pre-publication cancellation failures. Streams remain caller-owned; seekable
+streams are replaced/truncated/rewound, while non-seekable streams receive bytes
+at their current position. Preparation failure preserves bytes and position;
+publication-time stream I/O or cancellation can leave partial output. Async saves
+prepare synchronously before asynchronous destination I/O. Source-free models and
+unsupported changes fail with a save report and no prepared bytes. Byte limits
+and cancellation raise their own exceptions. Exact copies preserve source content
+inertly and do not newly qualify active content, signatures or protected storage;
+edited output refuses unsafe carriers.
+
+Two specimens saved through a compiled public consumer qualify rectangle bounds
+and different-length single-story text with 18-point bold formatting. Byte,
+sync/async file and sync/async stream routes produce identical candidates. Both
+pass native open, PDF export, save-as and reopen; native inventories retain the
+requested content, and native PDF pixels match across resave. Independent compound
+inspection preserves unrelated logical streams, directory metadata and other raw
+SummaryInformation values. The `publicSaving` section of the
+[qualification record](../Build/Publisher/WriterProbe/qualification.json) identifies
+the exact source, codec and artifact hashes. This evidence does not establish
+repair-free opening or broader native editing.
+
+Eight multiple-story/page specimens qualify separate first, middle and last story
+edits, simultaneous edits, 96-paragraph growth/shrinkage across two paragraph-formatting
+pages, and re-editing after native resave. All pass native open, PDF export,
+save-as and reopen. Complete stories, including overflow, survive in Publisher's
+resaved Quill storage; native frame inventories expose the visible prefix.
+Native PDF pixels match across resave, and independent checks retain paragraph
+OPLs, other character tokens, unrelated Quill payloads, logical streams and
+directory metadata. The `multipleStoryEditing` qualification record identifies
+these exact specimens and their scope.
+
+Seven linked-story specimens from the native two-page newsletter qualify
+same-count growth/shrinkage, paragraph-count increases/decreases, formatting-page
+allocation/retirement, size/bold changes, a neighboring title edit and re-editing
+after native resave. Complete stories and body size/bold values survive in
+Publisher's resaved Quill storage, including overflow. Native inventories retain
+the two-frame chain, physical-page ownership and geometry; visible frame text is
+checked in chain order. When the complete story fits the first frame, Publisher
+reports a lone paragraph CR for the empty trailing frame. Native PDF pixels and
+text spans match before and after resave across 28 physical page states.
+Independent storage comparison retains native Contents, artwork, unrelated
+logical streams and Quill payloads, directory metadata and other SummaryInformation
+values. The `linkedStoryEditing` qualification record binds these exact specimens
+to their source and codec hashes. Other producers and chain profiles, repair-free
+opening and general opaque semantics remain unassessed.
+
+Native client anchors can omit zero-valued coordinates. The independently
+produced ZeroAnchors control qualifies all four coordinate positions: the reader
+recovers all four text frames with their native point bounds. This does not create
+missing physical slots for native bounds patching; that operation still requires
+the complete original slot set.
+
+Eleven paragraph/allocation specimens qualify paragraph append/removal, 240-paragraph
+growth and retirement to one paragraph, neighboring-story preservation, distinct
+character styles, shared styled paragraphs, simultaneous character/paragraph index
+growth, and two re-edits after native resave. Native-resaved files retain complete
+text and body size/bold values; native pixels and text spans match across resave.
+The `paragraphTopology` qualification record separates these public operations
+from the three preceding page-relocation experiments. Repair-free opening and
+general opaque semantic preservation remain unassessed.
+
+Six exact single-paragraph specimens of this profile have native
+read-only open, PDF export, save-as and read-only reopen evidence in Microsoft
+Publisher 16.0.20527.20088. They include OfficeIMO re-editing a native-resaved
+styled file. Native text, frame bounds and size/bold states match the requests
+within the recorded 0.1-point font-size tolerance; native PDF pixels match before
+and after resave. These observations do not establish repair-free opening,
+native text mutation, other profiles or opaque-record semantics. The
+[qualification record](../Build/Publisher/WriterProbe/qualification.json)
+keeps source provenance, exact file hashes and operation boundaries.
+
+Five multi-paragraph specimens also pass native open, PDF export, save-as and
+reopen checks: growth, shrink, filling an empty paragraph, size/bold changes
+including a styled empty paragraph, and OfficeIMO re-editing after Publisher
+resaves. Native text, frame bounds and visible size/bold states match the requests
+within 0.1 point, with identical native PDF pixels across resave. These observations
+qualify the listed specimens, not general paragraph editing, layout or repair-free
+opening.
+
+Four thumbnail-free edited specimens cover text sizing, rectangle bounds/fill,
+master-picture placement and multi-paragraph formatting. All pass native open,
+PDF export, save-as and reopen checks. Native inventories and rendered pixels
+match the earlier content-qualified specimens across ten physical page states.
+Publisher recreates a thumbnail on native resave in these cases; its appearance
+is not decoded or qualified by the raw-property comparison. OfficeIMO invalidates
+the old thumbnail without generating a replacement.
+
+Nine additional placement/paint specimens cover a rectangle's bounds and solid
+fill, a physical text frame, default and paired-master frames, and physical/master
+picture bounds. Native inventories and PDFs retain the requested values across
+19 physical pages before and after native save/reopen; unaffected object geometry,
+text and shared image pixels remain unchanged. The two picture edits retain the
+original Contents AA/AB extent fields; their general semantics remain unassessed.
+
+A separate native object-model check replaces the whole text range of the styled
+specimen's sole unlinked text box. The exact text survives native save/reopen and
+PDF export, while frame/master state and original source bytes remain unchanged.
+This qualifies one controlled text replacement, not character-level editing,
+manual UI editing, general formatting changes or repair-free opening.
+
+Empty paragraphs use the character formatting on their native paragraph CR,
+including its font family and size, rather than the publication's global defaults.
+The native TextParagraphs control qualifies this distinction with an Arial
+12-point empty paragraph between two text paragraphs.
+
+One retained Quill style catalog supplies the existing formatting resolver.
+It keeps native character/paragraph pair ordinals, nullable decoded values,
+whole indexed STSH entries and their inner definition spans, including when
+the publication has no TEXT descriptor. Original story keys and ordinals bind
+FDPP selections and direct FDPC spans in native UTF-16 coordinates, with CR and
+NUL retained in that coordinate domain. Public story text normalizes CR to LF
+and removes NUL. An absent FDPP selector stays absent even when the resolver
+uses pair zero. In-memory edits retain these original bindings; changed-story
+preparation reports identify their source dependencies. Unsupported changes
+return no candidate bytes.
+STSH0/2 entries and STSH1 prefixes/suffixes remain opaque. This catalog does not
+expose an editable named-style library or qualify native Quill writing.
+
+`PublisherPage.CreateDrawing()` returns a detached scene for callers
+that need render-only annotations. Document SVG/PDF exports use the canonical
+publication state, and the Reader extension projects its current stories,
+tables, physical pages and assets without serializing or reopening it.
+
+Page/master dimensions, registration and object ownership, picture placement,
+complete text stories, table grids/placement, frame definitions/chains, supported shape geometry/paint and embedded asset state are
+retained independently of the derived drawing.
+Source-free publications start directly from that semantic state. One optional
+read-only import-residue owner retains native graphics, bindings and original
+storage for loaded documents; creation does not manufacture empty native
+Contents, Quill or OfficeArt objects. `HasNativeSource` describes document byte
+provenance and `PublisherPage.HasNativeOrigin` describes each definition.
+Imported definitions keep their provenance after editing; appended definitions
+are authored. Source-free source counts and inspected native records are zero.
+Pages and masters share the object/story allocator, but do not inflate
+`CurrentObjectCount` or `ProjectedObjectCount`; their counts come from the page
+collections. `MaxPages` applies to document and master pages together.
+All supported pages have one publication size. Topology changes preserve the
+exact imported registration and coordinate edit envelopes; new loaded-document
+pages use the physical page's centered envelope. Source-free geometry requires
+finite point coordinates and extents and has no native-generation storage range
+claim. Frame/story creation preserves table-story references and shares the
+existing semantic text validation, complete-story owner and Core layout.
+Modern native bindings and coordinate interpretation are mapped at import;
+supported picture edits and rendering consume the typed placement directly.
+Text-frame story bindings, link/catalog order, columns, spacing, padding,
+alignment and geometry are imported into semantic state once. Bounds edits and
+new continuation frames do not synthesize native drawing or text records.
+Layout edits replace only semantic frame settings; the existing Core flow
+recomputes assigned ranges and complete overflow. A frame's graphics, transform,
+owner, story, links and wrap references remain unchanged. Continuations copy the
+current tail layout. Padding and gaps must leave a positive finite content area;
+an already collapsed area does not prevent correcting the layout. Column count
+shares the imported ceiling of 256 and the configured item limit; all existing
+measurement and projection budgets remain active.
+The imported layout edit family admits the absent defaults and exact ordinary
+forms present in the current native controls: `WrapText` value 1 and the
+`TextBooleanProperties` word `0x00020000`, with no explicit OfficeArt anchor or
+text-flow override. Contents vertical alignment admits an absent field or the
+observed four-byte scalar with values 0, 1 or 2. Other text-property forms and
+unknown vertical-alignment encodings/values keep their existing render fallback but expose
+`LayoutEditLimitation` and `PUB_TEXT_FRAME_LAYOUT_EDIT_UNSUPPORTED`. This is managed
+layout qualification; the controls do not establish native column balancing or
+exact Center/Bottom metrics. Internal native preparation compares all current
+layout values and refuses changed layouts instead of returning unchanged source
+bytes as a successful edit.
+The one publication object allocator reserves imported identities and dangling
+references; failed mutations do not consume an identity.
+Vector artwork uses the shared `OfficeShape` descriptor, copied at its public
+boundaries. Supported native geometry and paint are mapped by the same adapter
+used for retained native artwork; supported projection consumes the current
+descriptor directly. Text-capable artwork takes current placement from its
+frame owner, including after `SetTextFrameBounds`. Other artwork retains its
+private native projection and feature-level losses. Unsupported shape edits add
+`PUB_SHAPE_EDIT_UNSUPPORTED` with no additional loss classification.
+Horizontal and vertical lines retain zero logical extents independently of the
+positive canvas used for rendering. Basic solid paint validates finite widths
+and opacities; creation rejects clipping, transforms, effects, dashes, markers
+and unsupported geometry. Shape and continuation creation share the same object
+and projection limits and leave the allocator unchanged on failure.
+Tables import their placement, tracks, cell ownership and frame padding once.
+Qualified rectangular frame paint uses the existing shared shape mapper.
+The TableLabel, Sample and Sample_2010 controls qualify OfficeArt host type 201
+as a rectangular frame only when paired with a recovered native table grid.
+This does not admit type 201 as independently editable vector artwork, and
+custom paths, effects and unsupported paint still reject table bounds edits.
+Unsupported graphics retain the private native projection adapter and reject
+bounds edits. Tables remain excluded from independent shape editing. Current
+table placement also supplies existing wrap exclusions.
+Quill cell endpoints become ordered normalized semantic story segments before
+their native offsets are discarded. Every segment retains its terminator
+convention, and cell snapshots derive paragraphs from that shared partition.
+An edit rebuilds the complete story and all compatible table occurrences
+atomically; other cell content and merged ownership remain intact. Conflicting
+table grids and stories also used by ordinary frames remain inspection-only
+for cell text. Creating a table reserves both its object and story identity
+through the publication allocator; its story is counted once and its page
+object is counted once. No native records are synthesized.
+Other object features retain their bounded imported representation while the
+editable model develops. This is not a complete authoring or generation-neutral
+native codec contract. Replacing one picture leaves shared-asset siblings
+unchanged. Original native assets stay available, while superseded edit-owned
+assets are released when no current picture references them. Replacement uses
+the shared bounded PNG/JPEG decoder, and projection retains byte, element and
+pixel-work limits. Unsupported picture edits report
+`PUB_PICTURE_EDIT_UNSUPPORTED` without changing the existing reading or
+rendering loss classification.
 
 `PublisherPage.TextFrames` records recovered frame geometry and links. Assigned
 UTF-16 ranges refer to normalized `PublisherTextStory.Text`; they are derived
 from managed measurement, not claimed as native cached break positions. Later
-empty frames have zero-length ranges. Native chains are checked for reciprocal
-links, matching story ownership, consecutive ordinals, cycles and disconnected
-frames. Ambiguous unlinked roots report omission instead of guessed ordering.
+empty frames have zero-length ranges. Explicit native chains are checked for
+reciprocal links, matching story ownership, consecutive ordinals, cycles and
+disconnected frames. When explicit links are absent, complete native catalog
+bindings can establish a chain only when their declared frame count, object
+identities and consecutive ordinals agree with the source frames. Contradictory
+catalog evidence is rejected. Without complete catalog evidence, ambiguous
+unlinked roots report omission instead of guessed ordering.
 A missing printable frame stops subsequent assignment for that story. Frame
 `X`, `Y`, `Width` and `Height` describe its unrotated rectangle; `PageTransform`
 maps frame-local points into page-local points after object and ancestor-group
@@ -86,8 +2445,11 @@ do not paint or exclude printable text.
 ## Qualification and limits
 
 [Fixture provenance](../OfficeIMO.Publisher.Tests/Fixtures/provenance.json)
-records source revision and SHA-256 hashes. The corpus is distributed under the
-Apache POI license and notice included beside the fixtures. Format descriptions
+records the imported Apache POI samples' source revision and SHA-256 hashes.
+Those samples use the Apache POI license and notice included beside the fixtures.
+The separately authored native controls record their producer, MIT license and
+file hashes in their own contracts, described in the
+[fixture guide](../OfficeIMO.Publisher.Tests/Fixtures/README.md). Format descriptions
 include [Apache POI's Publisher notes](https://poi.apache.org/components/hpbf/file-format.html)
 and Microsoft's [Office Drawing binary specification](https://learn.microsoft.com/en-us/openspecs/office_file_formats/ms-odraw/).
 
@@ -180,6 +2542,11 @@ inspected GIF frames and repeated references; cumulative encoded-byte checks
 reject repeated large-payload decoding, and codec cancellation aborts the read. These are managed
 record and artifact checks; the supported producer fixtures contain no enabled
 visible picture controls, so native Publisher pixel equivalence remains open.
+The uncropped `ObjectPages` controls separately retain exact PNG bytes and frame
+geometry through native resave. Managed PDF image resources enable interpolation,
+while these native references disable it; enlarged image edges therefore use
+different smoothing. Image-byte fidelity and native file appearance do not imply
+managed/native image-rendering parity.
 The brochure and newsletter also verify referenced style defaults, direct
 formatting precedence, native bullet labels and tab-array positions. Those
 checks compare decoded values with the native records, not Publisher-rendered
@@ -197,6 +2564,35 @@ do not establish pixel fidelity. A Publisher-authored fixture and reference PDF
 also qualify modern page geometry, story recovery and borderless text/table
 frames. The opt-in producer script and fixture hashes are retained with the
 tests. No external program is required by normal builds or runtime conversions.
+
+Twelve additional [native comparison controls](../OfficeIMO.Publisher.Tests/Fixtures/NativeComparison)
+cover blank and mixed-content pages, changed-length text, a rectangle, embedded
+pictures, a linked two-page newsletter, a custom-size multilingual table/label,
+a two-sided landscape brochure and distinct single-page and paired masters.
+Each retains a Publisher-authored PUB, native reference PDF and hashed contract
+with physical page IDs, master relationships and authored expectations. These
+controls qualify physical-page order including empty pages, selected geometry,
+complete stories, native catalog-backed chains, table cells, image pixels,
+brochure panel geometry and PDF page sizes/counts. Master controls qualify the
+distinct definitions and assignments, definition-local frame geometry, and
+applied marker origins measured from native PDF text spans. Those selected
+origins agree within 0.1 point horizontally and 1 point in baseline position;
+the baseline allowance accounts for the qualified difference in font metrics.
+Each native and OfficeIMO PDF page contains only its assigned master's markers.
+These controls do not qualify native frame breaks or broad pixel fidelity.
+The TableLabel PUB has one 288-by-216-point publication page and a 2-by-2 table
+at (18, 66), sized 180 by 72 points, with 90-point columns and 36-point rows.
+Its native reference PDF is an imposed 595.32-by-841.92-point label sheet with
+six copies in two columns and three rows. TableLabel qualification uses the PUB
+inventory and an individual copy's content and geometry; it does not claim
+whole-sheet page or rendering equivalence. The managed publication retains its
+single label-sized page rather than reproducing the native print imposition.
+The multilingual PDF check uses explicit Unicode font configuration; default
+standard-font output is a separate contract. Native page enumeration also has
+instruction and decompiler evidence for the qualified Publisher build. Its
+serialized role-boundary interpretation is corroborated by these controls and
+the original corpus; other producer builds and nested master inheritance remain
+unassessed.
 
 The default resource limits are 64 MiB input, 4 million source/projected text
 characters, 1 million inspected records, 250,000 source/projected items,

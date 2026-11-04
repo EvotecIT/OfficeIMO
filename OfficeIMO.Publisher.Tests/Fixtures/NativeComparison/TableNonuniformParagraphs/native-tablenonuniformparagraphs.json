@@ -1,0 +1,1113 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TableNonuniformParagraphs",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 7,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "First native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "First native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph",
+      "Second native paragraph\rThird native paragraph\rFinal native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "Second native paragraph\rThird native paragraph\rFinal native paragraph",
+      "First native paragraph\rThird native paragraph\rFinal native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "First native paragraph\rThird native paragraph\rFinal native paragraph",
+      "First native paragraph\rSecond native paragraph\rThird native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "First native paragraph\rSecond native paragraph\rThird native paragraph",
+      "Final native paragraph\rFirst native paragraph\rThird native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "Final native paragraph\rFirst native paragraph\rThird native paragraph",
+      "First native paragraph\rSecond native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "First native paragraph\rSecond native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph",
+      "First native paragraph\rFirst native paragraph\rFinal native paragraph",
+      "Neighbor one",
+      "Neighbor two",
+      "First native paragraph\rFirst native paragraph\rFinal native paragraph"
+    ],
+    "shapes": [
+      {
+        "name": "Baseline",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "First native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              0,
+              1,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "DropFirst",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Second native paragraph\rThird native paragraph\rFinal native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "Second native paragraph\rThird native paragraph\rFinal native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              1,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              1,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "DropMiddle",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First native paragraph\rThird native paragraph\rFinal native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "First native paragraph\rThird native paragraph\rFinal native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              0,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              0,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "DropFinal",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First native paragraph\rSecond native paragraph\rThird native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "First native paragraph\rSecond native paragraph\rThird native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              0,
+              1,
+              2
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              0,
+              1,
+              2
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Reorder",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Final native paragraph\rFirst native paragraph\rThird native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "Final native paragraph\rFirst native paragraph\rThird native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              3,
+              0,
+              2
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              3,
+              0,
+              2
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Duplicate",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First native paragraph\rSecond native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "First native paragraph\rSecond native paragraph\rSecond native paragraph\rThird native paragraph\rFinal native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              0,
+              1,
+              1,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              0,
+              1,
+              1,
+              2,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 1,
+                "text": "Second native paragraph\r",
+                "alignment": 1,
+                "spaceBefore": 2.0,
+                "spaceAfter": 6.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 2,
+                "text": "Third native paragraph\r",
+                "alignment": 2,
+                "spaceBefore": 5.0,
+                "spaceAfter": 2.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "AmbiguousLanguage",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "First native paragraph\rFirst native paragraph\rFinal native paragraph",
+          "Neighbor one",
+          "Neighbor two",
+          "First native paragraph\rFirst native paragraph\rFinal native paragraph"
+        ],
+        "left": 72,
+        "top": 72,
+        "width": 468,
+        "height": 432,
+        "paragraphTopology": [
+          {
+            "cell": 0,
+            "order": [
+              0,
+              0,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          },
+          {
+            "cell": 3,
+            "order": [
+              0,
+              0,
+              3
+            ],
+            "observed": [
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1033
+              },
+              {
+                "sourceOrdinal": 0,
+                "text": "First native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 0.0,
+                "spaceAfter": 3.0,
+                "leftIndent": 0.0,
+                "firstLineIndent": 0.0,
+                "languageId": 1036
+              },
+              {
+                "sourceOrdinal": 3,
+                "text": "Final native paragraph\r",
+                "alignment": 0,
+                "spaceBefore": 7.0,
+                "spaceAfter": 4.0,
+                "leftIndent": 18.0,
+                "firstLineIndent": 6.0,
+                "languageId": 1033
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Baseline",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554728,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "DropFirst",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554734,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "DropMiddle",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554740,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "DropFinal",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "pageId": 33554746,
+      "pageIndex": 5,
+      "pageNumber": "5",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Reorder",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "pageId": 33554752,
+      "pageIndex": 6,
+      "pageNumber": "6",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Duplicate",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "pageId": 33554758,
+      "pageIndex": 7,
+      "pageNumber": "7",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "AmbiguousLanguage",
+          "type": 18,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 432.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null,
+          "tableGeometry": {
+            "rowHeightsPoints": [
+              216.0,
+              216.0
+            ],
+            "columnWidthsPoints": [
+              234.0,
+              234.0
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-tablenonuniformparagraphs.pub",
+      "sha256": "b8809522f70e26508b6c5129bcef1fd26caed92aef697bc5d2e2711b99d6aefe"
+    },
+    "reference": {
+      "name": "native-tablenonuniformparagraphs.pdf",
+      "sha256": "72b3ba66e8d3a69937ab8c37b5e70758963c10519aba3ed214ffe8ac2d2694df"
+    }
+  }
+}

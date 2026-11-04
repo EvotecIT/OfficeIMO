@@ -1,0 +1,920 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TableCellTyping",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 2,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Baseline",
+      "Item",
+      "Count",
+      "Alpha",
+      "2",
+      "ClearFirst",
+      "Count",
+      "Alpha",
+      "2",
+      "ClearFinal",
+      "Item",
+      "Count",
+      "Alpha",
+      "ClearStyledFirst",
+      "Count",
+      "Alpha",
+      "2",
+      "FrenchFirst",
+      "Item",
+      "Count",
+      "Alpha",
+      "2",
+      "ClearFrenchFirst",
+      "Count",
+      "Alpha",
+      "2",
+      "RefillFrenchStyledFirst",
+      "Refilled",
+      "Count",
+      "Alpha",
+      "2",
+      "ClearAll"
+    ],
+    "shapes": [
+      {
+        "name": "Caption-Baseline",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 42.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "Baseline",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Item",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 64,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Name": "Baseline"
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "Item",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "2",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-ClearFirst",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 218.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "ClearFirst",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 240,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Name": "ClearFirst",
+            "Clear": [
+              0
+            ]
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "2",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-ClearFinal",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 394.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "ClearFinal",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Item",
+          "Count",
+          "Alpha",
+          ""
+        ],
+        "left": 72,
+        "top": 416,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Name": "ClearFinal",
+            "Clear": [
+              3
+            ]
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "Item",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-ClearStyledFirst",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 570.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "ClearStyledFirst",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 592,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Styled": true,
+            "Name": "ClearStyledFirst",
+            "Clear": [
+              0
+            ]
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "2",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-FrenchFirst",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 42.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "FrenchFirst",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Item",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 64,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Language": 1036,
+            "Name": "FrenchFirst"
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "Item",
+              "beforeLanguageId": 1036,
+              "afterLanguageId": 1036
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "2",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-ClearFrenchFirst",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 218.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "ClearFrenchFirst",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 240,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Name": "ClearFrenchFirst",
+            "Clear": [
+              0
+            ],
+            "Language": 1036
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "",
+              "beforeLanguageId": 1036,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "2",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-RefillFrenchStyledFirst",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 394.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "RefillFrenchStyledFirst",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "Refilled",
+          "Count",
+          "Alpha",
+          "2"
+        ],
+        "left": 72,
+        "top": 416,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Styled": true,
+            "Name": "RefillFrenchStyledFirst",
+            "Clear": [
+              0
+            ],
+            "Refill": true,
+            "Language": 1036
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "Refilled",
+              "beforeLanguageId": 1036,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "Count",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "Alpha",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "2",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      },
+      {
+        "name": "Caption-ClearAll",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 570.0,
+        "width": 432.0,
+        "height": 20.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "ClearAll",
+        "kind": "Table",
+        "rows": 2,
+        "columns": 2,
+        "cells": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "left": 72,
+        "top": 592,
+        "width": 360,
+        "height": 104,
+        "cellTyping": {
+          "profile": {
+            "Name": "ClearAll",
+            "Clear": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "observed": [
+            {
+              "cell": 0,
+              "beforeText": "Item",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 1,
+              "beforeText": "Count",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 2,
+              "beforeText": "Alpha",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            },
+            {
+              "cell": 3,
+              "beforeText": "2",
+              "afterText": "",
+              "beforeLanguageId": 1033,
+              "afterLanguageId": 1033
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Caption-Baseline",
+          "type": 17,
+          "left": 72.0,
+          "top": 42.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "Baseline\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "Baseline",
+          "type": 18,
+          "left": 72.0,
+          "top": 64.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-ClearFirst",
+          "type": 17,
+          "left": 72.0,
+          "top": 218.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "ClearFirst\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "ClearFirst",
+          "type": 18,
+          "left": 72.0,
+          "top": 240.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-ClearFinal",
+          "type": 17,
+          "left": 72.0,
+          "top": 394.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "ClearFinal\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "ClearFinal",
+          "type": 18,
+          "left": 72.0,
+          "top": 416.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-ClearStyledFirst",
+          "type": 17,
+          "left": 72.0,
+          "top": 570.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "ClearStyledFirst\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "ClearStyledFirst",
+          "type": 18,
+          "left": 72.0,
+          "top": 592.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554741,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Caption-FrenchFirst",
+          "type": 17,
+          "left": 72.0,
+          "top": 42.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "FrenchFirst\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "FrenchFirst",
+          "type": 18,
+          "left": 72.0,
+          "top": 64.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-ClearFrenchFirst",
+          "type": 17,
+          "left": 72.0,
+          "top": 218.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "ClearFrenchFirst\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "ClearFrenchFirst",
+          "type": 18,
+          "left": 72.0,
+          "top": 240.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-RefillFrenchStyledFirst",
+          "type": 17,
+          "left": 72.0,
+          "top": 394.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "RefillFrenchStyledFirst\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "RefillFrenchStyledFirst",
+          "type": 18,
+          "left": 72.0,
+          "top": 416.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        },
+        {
+          "name": "Caption-ClearAll",
+          "type": 17,
+          "left": 72.0,
+          "top": 570.0,
+          "width": 432.0,
+          "height": 20.0,
+          "text": "ClearAll\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null
+        },
+        {
+          "name": "ClearAll",
+          "type": 18,
+          "left": 72.0,
+          "top": 592.0,
+          "width": 360.0,
+          "height": 104.0,
+          "text": null,
+          "font": null,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": null,
+          "picture": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-tablecelltyping.pub",
+      "sha256": "f6fd2c15de8af25f79efbf96dd7c0f9affa3270cc618e413f781d36d968c048f"
+    },
+    "reference": {
+      "name": "native-tablecelltyping.pdf",
+      "sha256": "3cf894f09905c255bd238c6e608f8dd017dee0f5edd5ff0f48a91d237db41c10"
+    }
+  }
+}

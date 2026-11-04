@@ -1,0 +1,681 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextUniformEmptyParagraphs",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 5,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "\r",
+      "First authored paragraph\rSecond authored paragraph\r",
+      "\rFirst authored paragraph\rSecond authored paragraph"
+    ],
+    "shapes": [
+      {
+        "name": "UniformEmptyLanguage",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            1,
+            1
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 1,
+              "text": "\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1036,
+              "textStyle": "Retained empty Arial size12"
+            }
+          ],
+          "typingStyles": [
+            {
+              "name": "Retained empty Arial size10",
+              "requestedSize": 10,
+              "observedSize": 10.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size12",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size14",
+              "requestedSize": 14,
+              "observedSize": 14.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": -1,
+              "observedRtlItalic": -1
+            },
+            {
+              "name": "Retained empty Arial size12bi9",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 9.0,
+              "observedBold": -1,
+              "observedItalic": -1,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "UniformRetainedEnglish",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            1
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 1,
+              "text": "\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            }
+          ],
+          "typingStyles": [
+            {
+              "name": "Retained empty Arial size10",
+              "requestedSize": 10,
+              "observedSize": 10.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size12",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size14",
+              "requestedSize": 14,
+              "observedSize": 14.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": -1,
+              "observedRtlItalic": -1
+            },
+            {
+              "name": "Retained empty Arial size12bi9",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 9.0,
+              "observedBold": -1,
+              "observedItalic": -1,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "UniformRetainedFrench",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            1
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 1,
+              "text": "\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1036,
+              "textStyle": "Retained empty Arial size12"
+            }
+          ],
+          "typingStyles": [
+            {
+              "name": "Retained empty Arial size10",
+              "requestedSize": 10,
+              "observedSize": 10.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size12",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size14",
+              "requestedSize": 14,
+              "observedSize": 14.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": -1,
+              "observedRtlItalic": -1
+            },
+            {
+              "name": "Retained empty Arial size12bi9",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 9.0,
+              "observedBold": -1,
+              "observedItalic": -1,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "UniformMixedEnglishFinal",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            1,
+            1,
+            1
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 1,
+              "text": "First authored paragraph\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "Second authored paragraph\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            }
+          ],
+          "typingStyles": [
+            {
+              "name": "Retained empty Arial size10",
+              "requestedSize": 10,
+              "observedSize": 10.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size12",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size14",
+              "requestedSize": 14,
+              "observedSize": 14.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": -1,
+              "observedRtlItalic": -1
+            },
+            {
+              "name": "Retained empty Arial size12bi9",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 9.0,
+              "observedBold": -1,
+              "observedItalic": -1,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            }
+          ]
+        }
+      },
+      {
+        "name": "UniformMixedFrenchInterior",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 468.0,
+        "height": 216.0,
+        "font": "Arial",
+        "size": 12.0,
+        "paragraphTopology": {
+          "order": [
+            1,
+            1,
+            1
+          ],
+          "observed": [
+            {
+              "sourceOrdinal": 1,
+              "text": "\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1036,
+              "textStyle": "Retained empty Arial size12"
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "First authored paragraph\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            },
+            {
+              "sourceOrdinal": 1,
+              "text": "Second authored paragraph\r",
+              "alignment": 1,
+              "spaceBefore": 2.0,
+              "spaceAfter": 6.0,
+              "leftIndent": 0.0,
+              "firstLineIndent": 0.0,
+              "languageId": 1033,
+              "textStyle": "Retained empty Arial size12"
+            }
+          ],
+          "typingStyles": [
+            {
+              "name": "Retained empty Arial size10",
+              "requestedSize": 10,
+              "observedSize": 10.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size12",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            },
+            {
+              "name": "Retained empty Arial size14",
+              "requestedSize": 14,
+              "observedSize": 14.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 10.0,
+              "observedBold": 0,
+              "observedItalic": 0,
+              "observedRtlBold": -1,
+              "observedRtlItalic": -1
+            },
+            {
+              "name": "Retained empty Arial size12bi9",
+              "requestedSize": 12,
+              "observedSize": 12.0,
+              "observedFamily": "Arial",
+              "observedRtlSize": 9.0,
+              "observedBold": -1,
+              "observedItalic": -1,
+              "observedRtlBold": 0,
+              "observedRtlItalic": 0
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformEmptyLanguage",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "\r\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554726,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformRetainedEnglish",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554730,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformRetainedFrench",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554734,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformMixedEnglishFinal",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "First authored paragraph\rSecond authored paragraph\r\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "pageId": 33554738,
+      "pageIndex": 5,
+      "pageNumber": "5",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "UniformMixedFrenchInterior",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 468.0,
+          "height": 216.0,
+          "text": "\rFirst authored paragraph\rSecond authored paragraph\r",
+          "font": "Arial",
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textuniformemptyparagraphs.pub",
+      "sha256": "2ee5731ff64e6fcbc7cb5b6066c96068f62fa1a4af272e528199c8c51a56f4d9"
+    },
+    "reference": {
+      "name": "native-textuniformemptyparagraphs.pdf",
+      "sha256": "4c856e892d7b8c88967e83d613dc366b580ad867858ce583b7d18c42f37e11d2"
+    }
+  }
+}

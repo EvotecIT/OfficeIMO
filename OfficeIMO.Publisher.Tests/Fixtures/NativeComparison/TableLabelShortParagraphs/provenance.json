@@ -1,0 +1,34 @@
+{
+  "schema": "officeimo.publisher.native-label-layout-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableLabelShortParagraphs",
+  "scope": "Independent synthetic native label production. Requested table tracks are90/90 columns and36/36 nominal rows; native observed laid-out row heights are recorded separately. File identities include native timestamps.",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "sha256": "5efe73aa70f9ccc543b4cbe327401c4834c56c8d2657789e5971f4913aa8e89c",
+      "name": "native-tablelabelshortparagraphs.json"
+    },
+    {
+      "sha256": "31422a47fa31a7f703705d91a42c73c5d267eea2ca8e3b77fd809a84df568a56",
+      "name": "native-tablelabelshortparagraphs.pdf"
+    },
+    {
+      "sha256": "34e887e65e4c28bc6fe4f3b93baff2c4e14d4c28ec9037882118a5288adeb926",
+      "name": "native-tablelabelshortparagraphs.pub"
+    }
+  ]
+}

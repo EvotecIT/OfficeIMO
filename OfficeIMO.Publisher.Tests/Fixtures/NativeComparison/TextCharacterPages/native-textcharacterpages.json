@@ -1,0 +1,161 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextCharacterPages",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 1,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "Character page font twelve",
+      "Character page font fourteen",
+      "Character page font sixteen",
+      "Character page font eighteen"
+    ],
+    "shapes": [
+      {
+        "name": "Character12",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 72.0,
+        "width": 360.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 12.0
+      },
+      {
+        "name": "Character14",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 216.0,
+        "width": 360.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 14.0
+      },
+      {
+        "name": "Character16",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 396.0,
+        "width": 360.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 16.0
+      },
+      {
+        "name": "Character18",
+        "kind": "TextFrame",
+        "left": 72.0,
+        "top": 576.0,
+        "width": 360.0,
+        "height": 72.0,
+        "font": "Arial",
+        "size": 18.0
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "shapes": [
+        {
+          "name": "Character12",
+          "type": 17,
+          "left": 72.0,
+          "top": 72.0,
+          "width": 360.0,
+          "height": 72.0,
+          "text": "Character page font twelve\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Character14",
+          "type": 17,
+          "left": 72.0,
+          "top": 216.0,
+          "width": 360.0,
+          "height": 72.0,
+          "text": "Character page font fourteen\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Character16",
+          "type": 17,
+          "left": 72.0,
+          "top": 396.0,
+          "width": 360.0,
+          "height": 72.0,
+          "text": "Character page font sixteen\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        },
+        {
+          "name": "Character18",
+          "type": 17,
+          "left": 72.0,
+          "top": 576.0,
+          "width": 360.0,
+          "height": 72.0,
+          "text": "Character page font eighteen\r",
+          "font": "",
+          "nextLink": false,
+          "previousLink": false
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textcharacterpages.pub",
+      "sha256": "f9591e64ba2e32a3fb74f7a658604764f0d38286cb084b946b5f82b70deea6b3"
+    },
+    "reference": {
+      "name": "native-textcharacterpages.pdf",
+      "sha256": "e9727215b88e8f141aaa84e5a967530809ce89b15e9a5ba5c9dc5b8544643f6f"
+    }
+  }
+}

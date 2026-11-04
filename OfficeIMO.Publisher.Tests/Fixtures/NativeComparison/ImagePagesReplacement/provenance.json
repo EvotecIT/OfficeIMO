@@ -1,0 +1,41 @@
+{
+  "schema": "officeimo.publisher.native-image-replacement-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case ImagePagesReplacement",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-imagepagesreplacement.pub",
+      "sha256": "8ccb8f43458897a448bee38abc2b47fb8a92fecaecb0278c323c750414f47606"
+    },
+    {
+      "name": "native-imagepagesreplacement.pdf",
+      "sha256": "1205860a62f4efcae95bff18d48ea58240c3e09b8f127406870ad4902fb7f333"
+    },
+    {
+      "name": "native-imagepagesreplacement.json",
+      "sha256": "3ebd5303b4e3242cee1001f669cb5034fce0c3314dc33d4f160875e859f76ac9"
+    },
+    {
+      "name": "native-imagepagesreplacement.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    {
+      "name": "native-imagepagesreplacement-replacement.png",
+      "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+    }
+  ],
+  "limits": "Independent final-state native picture-replacement control; numeric asset identities may differ from generated-file save and native retirement. Repair-free acceptance remains unassessed."
+}

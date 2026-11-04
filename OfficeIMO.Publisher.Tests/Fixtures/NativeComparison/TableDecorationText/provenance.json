@@ -1,0 +1,39 @@
+{
+  "schema": "officeimo.publisher.native-cell-decoration-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableDecorationText",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tabledecorationtext.json",
+      "bytes": 10028,
+      "sha256": "b1dee8e3cf175bf597477623af4fdef8fa6864909dd89cef247bce1be775245d"
+    },
+    {
+      "name": "native-tabledecorationtext.pdf",
+      "bytes": 113440,
+      "sha256": "edda02282d676889702eaaec3ffb832c04731aca7f4862a0013a08c4cec64467"
+    },
+    {
+      "name": "native-tabledecorationtext.pub",
+      "bytes": 93696,
+      "sha256": "7a778aa8d8011726340d7acd40f8833c096105224e3e6f11767847950b3f3df8"
+    }
+  ],
+  "observed": "Unequal2x2 fixed tracks; three solid fills, six shared borders, unchanged independent label. Edited changes fill/edge values; Text grows the first cell without changing decoration.",
+  "limits": "Modern native comparison control; no repair-free, style mutation or decorated template-free authoring qualification."
+}

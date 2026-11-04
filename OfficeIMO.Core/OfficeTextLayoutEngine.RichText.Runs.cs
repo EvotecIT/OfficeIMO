@@ -38,7 +38,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
+                run.ParagraphIndent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
             remainingCharacters -= Math.Min(remainingCharacters, run.Text?.Length ?? 0);
             processedRuns = i + 1;
         }
@@ -70,7 +70,7 @@ public static partial class OfficeTextLayoutEngine {
                 run.UnderlineStyle,
                 run.StrikethroughStyle,
                 run.Baseline,
-                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
+                factor > 0D ? run.ParagraphIndent?.Scale(factor) : null) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName });
         }
 
         return scaled;
@@ -78,7 +78,7 @@ public static partial class OfficeTextLayoutEngine {
 
     private static double MeasureMaxUnwrappedRichTextWidth(
         IReadOnlyList<OfficeRichTextRun> runs,
-        Func<string?, double, string?, OfficeFontStyle, double> measure,
+        OfficeRichTextMeasurement measure,
         OfficeTextParagraphIndent paragraphIndent,
         CancellationToken cancellationToken) {
         OfficeTextParagraphIndent currentParagraphIndent = runs.Count > 0
@@ -235,25 +235,40 @@ public static partial class OfficeTextLayoutEngine {
         internal int SourceStart { get; }
         internal int SourceEnd { get; }
         internal bool IsTab => Text == "\t";
+        internal bool GeneratedHyphen { get; private init; }
+        internal IReadOnlyList<RichTextToken>? Parts { get; private init; }
+
+        internal static RichTextToken CreateWord(IReadOnlyList<RichTextToken> parts) {
+            var text = new StringBuilder();
+            foreach (var part in parts) text.Append(part.Text);
+            return new RichTextToken(parts[0].Run, text.ToString(), false, false, parts[0].SourceStart,
+                parts[parts.Count - 1].SourceEnd) { Parts = parts };
+        }
 
         internal static RichTextToken CreateText(OfficeRichTextRun run, string text, bool isWhitespace, int sourceStart, int sourceEnd) =>
             new RichTextToken(run, text, false, isWhitespace, sourceStart, sourceEnd);
+
+        internal static RichTextToken CreateGeneratedHyphen(OfficeRichTextRun run, int sourceEnd) =>
+            new RichTextToken(run, "-", false, false, sourceEnd, sourceEnd) { GeneratedHyphen = true };
 
         internal static RichTextToken CreateHardBreak(OfficeRichTextRun run, int sourceEnd) =>
             new RichTextToken(run, string.Empty, true, false, sourceEnd - 1, sourceEnd);
     }
 
-    private sealed class RichTextLineBuilder {
-        private readonly Func<string?, double, string?, OfficeFontStyle, double> _measure;
+    private sealed partial class RichTextLineBuilder {
+        private readonly OfficeRichTextMeasurement _measure;
         private readonly List<OfficeRichTextSegment> _segments = new List<OfficeRichTextSegment>();
 
-        internal RichTextLineBuilder(Func<string?, double, string?, OfficeFontStyle, double> measure) {
+        internal RichTextLineBuilder(OfficeRichTextMeasurement measure) {
             _measure = measure;
         }
 
         internal bool IsEmpty => _segments.Count == 0;
 
         internal double Width { get; private set; }
+        private double? _fittingWidth;
+        private List<OfficeTextTabPlacement>? _nativeTabs;
+        private bool _generatedHyphen;
 
         internal double OffsetX { get; private set; }
         internal int SourceTextEnd { get; set; }
@@ -265,23 +280,32 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         internal double MeasureWidthAfter(OfficeRichTextRun run, string text) {
+            if (_measure.UsesPublisherContext) return ContextCandidate(run, text).Width;
             if (_segments.Count > 0 && CanMerge(_segments[_segments.Count - 1], run)) {
                 OfficeRichTextSegment previous = _segments[_segments.Count - 1];
-                return Width - previous.Width + Measure(previous.Text + text, run.EffectiveFontSize, run.FontFamily, run.FontStyle, _measure);
+                return Width - previous.Width + _measure.Measure(previous.Text + text, run);
             }
-            return Width + Measure(text, run.EffectiveFontSize, run.FontFamily, run.FontStyle, _measure);
+            return Width + _measure.Measure(text, run);
         }
 
         internal void Add(OfficeRichTextRun run, string text) {
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
+            _fittingWidth = null;
 
-            double measured = Measure(text, run.EffectiveFontSize, run.FontFamily, run.FontStyle, _measure);
+            if (_measure.UsesPublisherContext) {
+                var candidate = ContextCandidate(run, text);
+                _segments.Clear(); _segments.AddRange(candidate.Segments);
+                Width = candidate.Width; _pendingContext = null;
+                return;
+            }
+
+            double measured = _measure.Measure(text, run);
             if (_segments.Count > 0 && CanMerge(_segments[_segments.Count - 1], run)) {
                 OfficeRichTextSegment previous = _segments[_segments.Count - 1];
                 string mergedText = previous.Text + text;
-                double mergedWidth = Measure(mergedText, run.EffectiveFontSize, run.FontFamily, run.FontStyle, _measure);
+                double mergedWidth = _measure.Measure(mergedText, run);
                 measured = mergedWidth - previous.Width;
                 _segments[_segments.Count - 1] = CreateSegment(run, mergedText, mergedWidth);
             } else {
@@ -292,10 +316,12 @@ public static partial class OfficeTextLayoutEngine {
         }
 
         internal void AddAdvance(OfficeRichTextRun run, double width) {
+            _fittingWidth = null;
+            _pendingContext = null;
             // A separate empty segment advances every renderer without painting a tab glyph,
             // and prevents kerning or run merging across the tab boundary.
             _segments.Add(new OfficeRichTextSegment(string.Empty, width, run.FontSize, run.Color, false, false, false,
-                run.FontFamily, baseline: run.Baseline));
+                run.FontFamily, baseline: run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId });
             Width += width;
         }
 
@@ -303,7 +329,7 @@ public static partial class OfficeTextLayoutEngine {
             string? leaderText = stop?.LeaderText;
             OfficeRichTextRun? leaderRun = stop?.LeaderStyle?.Resolve(run, leaderText ?? string.Empty) ?? (stop?.LeaderStyle == null ? run : null);
             OfficeTextTabLeaderLayout.Paint paint = leaderText == null ? default : OfficeTextTabLeaderLayout.Create(leaderText, width, budget.Remaining,
-                text => leaderRun == null ? double.NaN : Measure(text, leaderRun.EffectiveFontSize, leaderRun.FontFamily, leaderRun.FontStyle, _measure), cancellationToken);
+                text => leaderRun == null ? double.NaN : _measure.Measure(text, leaderRun), cancellationToken);
             if (!string.IsNullOrEmpty(paint.Text)) {
                 _segments.Add(CreateSegment(leaderRun!, paint.Text!, paint.Width));
                 Width += paint.Width; budget.Remaining -= paint.Text!.Length;
@@ -316,10 +342,28 @@ public static partial class OfficeTextLayoutEngine {
             return paint.Limited || lineLimited;
         }
 
-        internal OfficeRichTextLine ToLine() =>
-            new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) { SourceTextEnd = SourceTextEnd };
+        internal void AddGeneratedHyphen(OfficeRichTextRun run) { Add(run, "-"); _generatedHyphen = true; }
+
+        internal void RetainNativeTab(int sourceEnd, double advance, int stopIndex) {
+            if (_measure.UsesPublisherContext) (_nativeTabs ??= new List<OfficeTextTabPlacement>())
+                .Add(new OfficeTextTabPlacement(sourceEnd, advance, stopIndex));
+        }
+
+        internal OfficeRichTextLine ToLine() {
+            var line = new OfficeRichTextLine(new List<OfficeRichTextSegment>(_segments), offsetX: OffsetX) {
+                SourceTextEnd = SourceTextEnd, EndsWithGeneratedHyphen = _generatedHyphen
+            };
+            if (_fittingWidth.HasValue) line.FittingBounds = (OffsetX, OffsetX + _fittingWidth.Value);
+            if (_nativeTabs != null) line.NativeTabs = new List<OfficeTextTabPlacement>(_nativeTabs).AsReadOnly();
+            if (_measure.UsesPublisherContext) line.RenderTokens = OfficeTextBlockRenderer.CreateRichTextRenderTokens(line, _measure);
+            return line;
+        }
 
         internal void Clear() {
+            _fittingWidth = null;
+            _generatedHyphen = false;
+            _nativeTabs?.Clear();
+            _pendingContext = null;
             _segments.Clear();
             Width = 0D;
         }
@@ -327,6 +371,8 @@ public static partial class OfficeTextLayoutEngine {
         internal static bool CanMerge(OfficeRichTextSegment segment, OfficeRichTextRun run) =>
             segment.Text.Length > 0 && segment.LinkUri == run.LinkUri &&
             segment.LinkDestinationName == run.LinkDestinationName &&
+            segment.LanguageId == run.LanguageId &&
+            segment.AutomaticPairKerningThreshold == run.AutomaticPairKerningThreshold &&
             segment.FontSize == run.FontSize &&
             segment.Color.Equals(run.Color) &&
             segment.Bold == run.Bold &&
@@ -340,6 +386,6 @@ public static partial class OfficeTextLayoutEngine {
             string.Equals(segment.FontFamily, run.FontFamily, StringComparison.Ordinal);
 
         internal static OfficeRichTextSegment CreateSegment(OfficeRichTextRun run, string text, double width) =>
-            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
+            new OfficeRichTextSegment(text, width, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily, run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle, run.Baseline) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
     }
 }

@@ -1,0 +1,47 @@
+{
+  "schema": "officeimo.publisher.native-picture-crop-fixture.v1",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case ImagePagesCropped",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-imagepagescropped.pub",
+      "sha256": "f3589a9c8b2a95ed454207b61a0332d59de54d2766dcd6c746291aa498386867"
+    },
+    {
+      "name": "native-imagepagescropped.pdf",
+      "sha256": "0b67ae483a9c2d4ec563d60184c5fdd588a61164270b83e9da63fadb8f567c90"
+    },
+    {
+      "name": "native-imagepagescropped.json",
+      "sha256": "d015402817f067f294b52122aa958e82a6c9e0b32f28e214de3ee620d336d1b7"
+    },
+    {
+      "name": "native-imagepagescropped.png",
+      "sha256": "388c204760ec98527b69a5cbc6b06f87f336c2dcb24f4c91bd288be9121a9483"
+    },
+    {
+      "name": "native-imagepagescropped-replacement.png",
+      "sha256": "98e64eb0771135ce8a3672978263e86118439752c2625a7cdb64f3347d1e58d8"
+    }
+  ],
+  "sourceCropFractions": {
+    "left": 0.25,
+    "top": 0.125,
+    "right": 0.0625,
+    "bottom": 0.1875
+  },
+  "limits": "Independent native control for visible untransformed rectangular PNG/JPEG source crop. Point setters use source dimensions/encoded DPI; saved16.16 fractions and native pixels require separate checks. Repair-free opening remains unassessed."
+}

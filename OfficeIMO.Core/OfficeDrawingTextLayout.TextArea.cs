@@ -8,19 +8,20 @@ internal static partial class OfficeDrawingTextLayout {
     // Intrinsic sizing precedes vertical clipping: hidden wider paragraphs still anchor the whole area.
     // Retained measurements keep the authored frame's wrapping, tab advances and font-fit result stable.
     private static OfficeRichTextBlockLayout CreateIntrinsicParagraphs(IReadOnlyList<OfficeRichTextParagraph> paragraphs,
-        double width, double height, Func<string?, double, string?, OfficeFontStyle, double> measure,
+        double width, double height, OfficeRichTextMeasurement measure,
         bool wrap, double scale, double fontScale,
         Func<string?, double, string?, OfficeFontStyle, OfficeTextPaintBounds>? measurePaint,
         CancellationToken cancellationToken, bool reportLeaderPaintClipping, OfficeTextAreaAlignment areaAlignment,
-        bool reportUnwrappedWidthOverflow) {
+        bool reportUnwrappedWidthOverflow,
+        Func<string?, double, string?, OfficeFontStyle, OfficePublisherFontMetrics?>? measurePublisherFont, bool allowFirstLineOverflow) {
         var measuredParagraphs = new List<(OfficeRichTextParagraph Paragraph, MeasuredParagraph Measured)>(paragraphs.Count);
         var leaderBudget = new OfficeTextTabLeaderLayout.Budget(reportLeaderPaintClipping);
         double areaWidth = 0D;
-        bool clipped = false;
+        bool clipped = false, hasText = false;
         foreach (OfficeRichTextParagraph paragraph in paragraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             MeasuredParagraph? measured = MeasureParagraph(paragraph, width, measure, wrap, scale, fontScale,
-                measurePaint, cancellationToken, leaderBudget, ref clipped, reportUnwrappedWidthOverflow);
+                measurePaint, cancellationToken, leaderBudget, ref clipped, reportUnwrappedWidthOverflow, measurePublisherFont);
             if (measured == null) continue;
             measuredParagraphs.Add((paragraph, measured));
             for (int i = 0; i < measured.LineCount; i++) {
@@ -34,7 +35,7 @@ internal static partial class OfficeDrawingTextLayout {
         double areaLeft = (width - areaWidth) * (areaAlignment == OfficeTextAreaAlignment.Center ? .5D :
             areaAlignment == OfficeTextAreaAlignment.Right ? 1D : 0D);
         var lines = new List<OfficeRichTextLine>();
-        double usedHeight = 0D, maximumLineHeight = 1D;
+        double usedHeight = 0D, maximumLineHeight = 1D, terminalAdvance = 0D;
         foreach (var entry in measuredParagraphs) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRichTextParagraph paragraph = entry.Paragraph;
@@ -46,20 +47,23 @@ internal static partial class OfficeDrawingTextLayout {
                 OfficeRichTextLine line = measured.Line(i);
                 double lineHeight = paragraph.LineHeight * scale ??
                     OfficeTextBlockRenderer.ResolveRichTextRenderLineHeight(line, measured.Layout.LineHeight);
-                if (i == 0 && measured.Label != null && !paragraph.LineHeight.HasValue)
+                if (i == 0 && measured.Label != null && !line.ContentHeight.HasValue && !paragraph.LineHeight.HasValue)
                     lineHeight = Math.Max(lineHeight, measured.Label.Height);
-                if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines || usedHeight + lineHeight > height + .000001D) {
+                if (lines.Count >= OfficeTextLayoutEngine.MaximumLayoutLines ||
+                    usedHeight + (line.ContentHeight ?? lineHeight) > height + .000001D &&
+                    !(allowFirstLineOverflow && !hasText && (paragraph.Label == null || measured.Label != null))) {
                     clipped = true; paragraphTruncated = true; break;
                 }
                 OfficeRichTextLine placed = PlaceParagraphLine(paragraph, measured, line, i, lineHeight, areaWidth,
                     wrap, paragraph.Alignment, measure);
-                lines.Add(new OfficeRichTextLine(placed.Segments, lineHeight, placed.OffsetX + areaLeft));
-                usedHeight += lineHeight;
+                lines.Add(placed.WithPlacement(placed.Segments, lineHeight, placed.OffsetX + areaLeft));
+                usedHeight += lineHeight; hasText = true;
+                terminalAdvance = lineHeight - (line.ContentHeight ?? lineHeight);
                 maximumLineHeight = Math.Max(maximumLineHeight, lineHeight);
             }
             if (paragraphTruncated || !AddGap(measured.Margins.Bottom)) { clipped = true; break; }
         }
-        return new OfficeRichTextBlockLayout(lines, maximumLineHeight, areaLeft + areaWidth, usedHeight, clipped);
+        return new OfficeRichTextBlockLayout(lines, maximumLineHeight, areaLeft + areaWidth, Math.Max(0D, usedHeight - terminalAdvance), clipped);
 
         bool AddGap(double gap) {
             if (gap == 0D) return true;

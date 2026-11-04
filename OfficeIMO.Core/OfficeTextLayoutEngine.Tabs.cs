@@ -10,7 +10,7 @@ public static partial class OfficeTextLayoutEngine {
     // split across run boundaries. Each tab starts a new kerning/measurement context.
     private static double ResolveTabAdvance(OfficeTextTabStops tabs, double current,
         IReadOnlyList<RichTextToken> tokens, int tabIndex,
-        Func<string?, double, string?, OfficeFontStyle, double> measure, CancellationToken cancellationToken, out OfficeTextTabStop? selectedStop) {
+        OfficeRichTextMeasurement measure, CancellationToken cancellationToken, out OfficeTextTabStop? selectedStop) {
         selectedStop = null;
         foreach (OfficeTextTabStop stop in tabs.Stops) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -37,7 +37,25 @@ public static partial class OfficeTextLayoutEngine {
     }
 
     private static double MeasureTabField(IReadOnlyList<RichTextToken> tokens, int tabIndex, string? character,
-        Func<string?, double, string?, OfficeFontStyle, double> measure, CancellationToken cancellationToken) {
+        OfficeRichTextMeasurement measure, CancellationToken cancellationToken) {
+        if (measure.UsesPublisherContext) {
+            var field = new RichTextLineBuilder(measure);
+            int offset = 0;
+            int? prefix = null;
+            for (int i = tabIndex + 1; i < tokens.Count; i++) {
+                cancellationToken.ThrowIfCancellationRequested();
+                RichTextToken token = tokens[i];
+                if (token.IsTab || token.HardBreak) break;
+                if (character != null && !prefix.HasValue) {
+                    int delimiter = token.Text.IndexOf(character, StringComparison.Ordinal);
+                    if (delimiter >= 0) prefix = offset + delimiter;
+                }
+                // Keep the full field: the last prefix glyph can kern into the delimiter.
+                field.Add(token);
+                offset += token.Text.Length;
+            }
+            return prefix.HasValue ? field.MeasurePrefix(prefix.Value) : field.Width;
+        }
         var text = new StringBuilder();
         OfficeRichTextSegment? context = null;
         double width = 0;
@@ -63,7 +81,7 @@ public static partial class OfficeTextLayoutEngine {
 
         double MeasureContext() {
             cancellationToken.ThrowIfCancellationRequested();
-            return context == null ? 0 : Measure(text.ToString(), EffectiveFontSize(context), context.FontFamily, context.FontStyle, measure);
+            return context == null ? 0 : measure.Measure(text.ToString(), context);
         }
     }
 }

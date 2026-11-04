@@ -1,0 +1,86 @@
+{
+  "schema": "officeimo.publisher.native-font-reference-fixture.v1",
+  "reproduction": "New-NativeComparisonCorpus -Case TextFontMetrics -OutputDirectory <empty-directory>",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "fonts": [
+    {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    {
+      "family": "Calibri",
+      "file": "calibri.ttf",
+      "sha256": "57e93ff143572bcc092c1f56202d43ddc07bb119aa104c6d7af163470fb551f6"
+    },
+    {
+      "family": "Times New Roman",
+      "file": "times.ttf",
+      "sha256": "931c5de5c70401d9324d5014c123802b4fb753000360ceb2f56c589403cd58c5"
+    },
+    {
+      "family": "Courier New",
+      "file": "cour.ttf",
+      "sha256": "e4a66a0259718d0c8f4b6e14319b4803ced45afbddf3abba8b8c3e2006856206"
+    },
+    {
+      "family": "Lucida Console",
+      "file": "lucon.ttf",
+      "sha256": "2ca2cfde263fa420e8d39420f075ee9ac80bc0794272c53ac4571a88f8a075a6"
+    },
+    {
+      "family": "Comic Sans MS",
+      "file": "comic.ttf",
+      "sha256": "fc7fbc3fb456a363f1f719b0ec62ae093c78124bb6da046006ae7e217a6b8575"
+    },
+    {
+      "family": "Segoe UI",
+      "file": "segoeui.ttf",
+      "sha256": "704eada12961a27fd271f7d3b09e2066520e758390c1776744eff430fee30f6e"
+    },
+    {
+      "family": "Tahoma",
+      "file": "tahoma.ttf",
+      "sha256": "9af03d4ad44a3b413d92f7de48b94aa7cc8a1471a75d498406eae837f62ee1d1"
+    },
+    {
+      "family": "Consolas",
+      "file": "consola.ttf",
+      "sha256": "cf00b507b3286870cc5064ebd0633c303f70b491a4af25eec2d32df413db0179"
+    },
+    {
+      "family": "Lucida Sans Unicode",
+      "file": "l_10646.ttf",
+      "sha256": "97226e81f19eff8c8fb191745748bab920472c005d3ec4e23d9a50a12c471d92"
+    }
+  ],
+  "files": [
+    {
+      "name": "native-textfontmetrics.json",
+      "sha256": "9812321703eb259d5c6408cb17830078bd7d2492f3752656468a4f84d961266a"
+    },
+    {
+      "name": "native-textfontmetrics.pdf",
+      "sha256": "cd2e3bd640892f4d5f1e524bac56df6b07fdec83ca24c8de7ab6047c29e78b33"
+    },
+    {
+      "name": "native-textfontmetrics.pub",
+      "sha256": "a178081c386acd1e8dcd7b8d26621f276d89c078e77f1d40d6fdac683de535c6"
+    }
+  ],
+  "observed": "46 Latin font-metric profiles over16pages: ten families,12/18pt, fractional Courier and inherited/single/1.19 spacing.",
+  "limits": "Exact font binaries and default native PDF reference profile only. Native save/reopen stability and managed coordinate comparison are separate qualification. No repair-free or pixel-parity claim."
+}

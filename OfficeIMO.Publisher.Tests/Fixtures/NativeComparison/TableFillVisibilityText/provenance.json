@@ -1,0 +1,39 @@
+{
+  "schema": "officeimo.publisher.native-cell-fill-visibility-fixture.v1",
+  "license": "MIT",
+  "reproduction": "pwsh -NoProfile -File Build/Publisher/New-NativeComparisonCorpus.ps1 -OutputDirectory <empty-directory> -Case TableFillVisibilityText",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20112",
+    "executableSha256": "b04a903bea8fcb2bb7313d5ba91b0cfd1ed232b924f567d0c56980a3a8926e7a",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "files": [
+    {
+      "name": "native-tablefillvisibilitytext.pub",
+      "bytes": 93696,
+      "sha256": "61501273662dad616836309002b444335bcd2cd0c6d1b6b961d93e6cda639db7"
+    },
+    {
+      "name": "native-tablefillvisibilitytext.pdf",
+      "bytes": 113438,
+      "sha256": "08f385443c3deb5e07f4e1065aa20cdcff75bc2e0717849ce98243820eb47a9b"
+    },
+    {
+      "name": "native-tablefillvisibilitytext.json",
+      "bytes": 10040,
+      "sha256": "61313b8e18057bbe565f89324f2fb49fa092d719be01546cce5e8a5bfe1a174a"
+    }
+  ],
+  "observed": "Fixed 2x2 decorated control; first fill hidden, third activated as lavender; restored variant reverts visible states retaining latent colors. Text variant additionally grows the first cell to two paragraphs.",
+  "limits": "Independent modern producer control; native repair-free acceptance and broader styles/generations remain unqualified."
+}

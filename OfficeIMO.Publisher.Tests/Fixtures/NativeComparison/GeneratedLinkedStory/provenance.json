@@ -1,0 +1,19 @@
+{
+  "schema": "officeimo.publisher.generated-linked-story-fixture.v1",
+  "reproduction": "WriterProbe create linked-story <output.pub>; Invoke-NativePublisherOperation -Operation Validate -Stage Full -InputPath <output.pub>",
+  "sourcePublication": null,
+  "files": [
+    {
+      "name": "generated-linkedstory.pub",
+      "sha256": "7fd1e7f1e86a4f3507fbdbdf4d13cc71352337f6e7088041a3d79dfe8f74e2cf"
+    },
+    {
+      "name": "native-normalized.pub",
+      "sha256": "1bf6e60aa07685a7d243e830ffe3d8d100090752aa046a0465fa8b5447f02a10"
+    }
+  ],
+  "nativeProducer": "Microsoft Publisher 16.0.20527.20088",
+  "qualifiedOperations": 7,
+  "independentReference": "../LinkedStory",
+  "limits": "Closed linked-story feasibility specimen. Native hyphenation and CR defaults differ from the independent control. Generic public native creation and repair-free opening remain unqualified."
+}

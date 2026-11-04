@@ -8,6 +8,14 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeRichTextParagraph {
     // A native flow slice ending at a soft region boundary still justifies its last line.
     internal bool ContinuesInNextRegion { get; set; }
+    // Native Publisher PDF reference metrics are opt-in; ordinary drawing keeps its defaults.
+    internal bool UsesPublisherFontMetrics { get; set; }
+    // Native source layout uses the first setting in each qualified font/line context.
+    internal bool UsesPublisherKerningContext { get; set; }
+    // A native region has already selected these exclusive source endpoints.
+    // Reflowing its shortened last word could change that selection.
+    internal OfficeRichTextFlowPlan? NativeFlowPlan { get; set; }
+    internal OfficeRichTextHyphenation? Hyphenation { get; set; }
     /// <summary>Creates a paragraph with independent alignment, line spacing, margins and indentation.</summary>
     /// <param name="runs">Styled inline content. The collection and runs are copied.</param>
     /// <param name="alignment">Horizontal alignment within the paragraph's margins.</param>
@@ -71,18 +79,33 @@ public sealed class OfficeRichTextParagraph {
 
     /// <summary>Optional measured tab settings. Null retains the legacy space-expansion behavior.</summary>
     public OfficeTextTabStops? TabStops { get; private set; }
+    /// <summary>Whether an adapter's automatic word hyphenation is suppressed for this paragraph. False is the default; null means a native adapter encountered an unassessed setting. Ordinary drawing does not enable automatic hyphenation implicitly.</summary>
+    public bool? SuppressAutomaticHyphenation { get; internal set; } = false;
+
+    /// <summary>Returns an independent paragraph with automatic word hyphenation suppressed or allowed.</summary>
+    public OfficeRichTextParagraph WithAutomaticHyphenationSuppressed(bool suppressed) {
+        var copy = WithTabStops(TabStops);
+        copy.SuppressAutomaticHyphenation = suppressed;
+        if (suppressed != SuppressAutomaticHyphenation) copy.NativeFlowPlan = null;
+        return copy;
+    }
 
     /// <summary>Returns an independent paragraph with these tab settings; null restores legacy tab expansion.</summary>
     public OfficeRichTextParagraph WithTabStops(OfficeTextTabStops? tabStops) {
         var copy = Label == null ? new OfficeRichTextParagraph(Runs, Alignment, LineHeight, Margins, Indent, LineHeightFactor) :
             new OfficeRichTextParagraph(Runs, Label, Alignment, LineHeight, Margins, Indent, LineHeightFactor);
         copy.TabStops = tabStops;
+        copy.SuppressAutomaticHyphenation = SuppressAutomaticHyphenation;
+        copy.Hyphenation = Hyphenation;
         copy.ContinuesInNextRegion = ContinuesInNextRegion;
+        copy.UsesPublisherFontMetrics = UsesPublisherFontMetrics;
+        copy.UsesPublisherKerningContext = UsesPublisherKerningContext;
+        copy.NativeFlowPlan = ReferenceEquals(tabStops, TabStops) ? NativeFlowPlan : null;
         return copy;
     }
 
     internal static OfficeRichTextRun CopyRun(OfficeRichTextRun run) => new OfficeRichTextRun(
         run.Text, run.FontSize, run.Color, run.Bold, run.Italic, run.Underline, run.FontFamily,
         run.Strikethrough, run.BackgroundColor, run.UnderlineStyle, run.StrikethroughStyle,
-        run.Baseline, run.ParagraphIndent) { LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
+        run.Baseline, run.ParagraphIndent) { AutomaticPairKerningThreshold = run.AutomaticPairKerningThreshold, LanguageId = run.LanguageId, LinkUri = run.LinkUri, LinkDestinationName = run.LinkDestinationName };
 }

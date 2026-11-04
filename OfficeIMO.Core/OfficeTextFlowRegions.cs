@@ -7,6 +7,49 @@ namespace OfficeIMO.Drawing;
 /// <summary>Shared conservative rectangular exclusion for native text-flow adapters.</summary>
 internal static class OfficeTextFlowRegions {
     /// <summary>
+    /// Extends a rectangular mask across the disallowed side of one text column.
+    /// Larger compares the column's two free widths and selects left on a tie.
+    /// Off-column masks remain inactive when rows are constructed.
+    /// </summary>
+    internal static OfficeTextFlowRegion RestrictSide(OfficeTextFlowRegion area,
+        OfficeTextFlowRegion exclusion, OfficeTextWrapSide side) {
+        if (side == OfficeTextWrapSide.Both || exclusion.Width <= 0 || exclusion.Height <= 0
+            || exclusion.Right <= area.X || exclusion.X >= area.Right) return exclusion;
+        double left = Math.Max(area.X, exclusion.X), right = Math.Min(area.Right, exclusion.Right);
+        if (side == OfficeTextWrapSide.Larger)
+            side = left - area.X >= area.Right - right ? OfficeTextWrapSide.Left : OfficeTextWrapSide.Right;
+        return side == OfficeTextWrapSide.Left
+            ? new OfficeTextFlowRegion(left, exclusion.Y, area.Right - left, exclusion.Height)
+            : new OfficeTextFlowRegion(area.X, exclusion.Y, right - area.X, exclusion.Height);
+    }
+
+    /// <summary>
+    /// Returns every free interval, left to right, across the complete height of
+    /// a proposed text row. Intersecting masks are unioned before placing text.
+    /// </summary>
+    internal static IReadOnlyList<OfficeTextFlowRegion> Row(OfficeTextFlowRegion area,
+        double top, double height, IReadOnlyList<OfficeTextFlowRegion> exclusions,
+        Action accountInspection, CancellationToken cancellationToken) {
+        var obstacles = new List<OfficeTextFlowRegion>();
+        foreach (OfficeTextFlowRegion exclusion in exclusions) {
+            cancellationToken.ThrowIfCancellationRequested(); accountInspection();
+            if (exclusion.Width > 0 && exclusion.Height > 0 && (height == 0 ? exclusion.Y <= top : exclusion.Y < top + height) && exclusion.Bottom > top
+                && exclusion.Right > area.X && exclusion.X < area.Right) obstacles.Add(exclusion);
+        }
+        obstacles.Sort((left, right) => left.X.CompareTo(right.X));
+        var result = new List<OfficeTextFlowRegion>();
+        double cursor = area.X;
+        foreach (OfficeTextFlowRegion obstacle in obstacles) {
+            cancellationToken.ThrowIfCancellationRequested(); accountInspection();
+            double left = Math.Max(area.X, obstacle.X);
+            if (left > cursor) result.Add(new OfficeTextFlowRegion(cursor, top, left - cursor, height));
+            cursor = Math.Max(cursor, Math.Min(area.Right, obstacle.Right));
+        }
+        if (cursor < area.Right) result.Add(new OfficeTextFlowRegion(cursor, top, area.Right - cursor, height));
+        return result;
+    }
+
+    /// <summary>
     /// Selects the widest free horizontal interval in each vertical band, using
     /// the left interval to break ties. Adjacent equal intervals are coalesced.
     /// Inspection is charged to the caller's work budget before each operation.
@@ -53,6 +96,9 @@ internal static class OfficeTextFlowRegions {
         return result;
     }
 }
+
+/// <summary>The permitted text side of a rectangular exclusion.</summary>
+internal enum OfficeTextWrapSide { Both, Left, Right, Larger }
 
 /// <summary>A finite rectangle in an adapter's text coordinate space, including off-frame exclusions.</summary>
 internal readonly struct OfficeTextFlowRegion {

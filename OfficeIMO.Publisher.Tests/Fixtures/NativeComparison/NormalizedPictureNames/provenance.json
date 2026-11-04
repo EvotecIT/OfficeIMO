@@ -1,0 +1,18 @@
+{
+  "schema": "officeimo.publisher.native-normalized-picture-names.v1",
+  "source": "Internal named-image-pages generated publication, public last-picture PNG replacement, then Microsoft Publisher native Full save/reopen.",
+  "inputSha256": "e344442ed0c52de924e4966a89b5000f882d325e33bc89c1628f18ffc6b50468",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "automationSecurity": 3
+  },
+  "file": {
+    "name": "native-normalized-picture-names.pub",
+    "sha256": "cbebd11a6e584e367431e8c26894992c26c3287302471f721dc5a624c79e3187"
+  },
+  "observed": "Ordinary picture266 retains embedded marker3/type8 and complete active image3/FOPT basename but has no local Contents0x3A. Picture-owned filename resources273/274/275 remain opaque source chunks. Image slot2 is retired by native resave.",
+  "reproduction": "Create named-image-pages from the retained ImagePages PNGs; ReplacePictureImage on last picture with first PNG; save explicit Allow; invoke isolated native Validate/Full and retain native-resaved.pub.",
+  "limits": "Native resave fixture, not an independently native-authored publication or repair-free certificate."
+}

@@ -1,0 +1,2257 @@
+{
+  "schema": "officeimo.publisher.native-case.v1",
+  "case": "TextFontMetrics",
+  "status": "Produced",
+  "license": "MIT",
+  "producer": {
+    "name": "Microsoft Publisher",
+    "version": "16.0",
+    "executableVersion": "16.0.20527.20088",
+    "powershell": "7.6.9",
+    "culture": "pl-PL",
+    "textFont": {
+      "family": "Arial",
+      "file": "arial.ttf",
+      "sha256": "b3658eadae55e682b5f69eb64c439c1ecc8f196c0bb8d4756d145d13bc86476a"
+    },
+    "appearance": "Explicit frame fonts, margins and object colors; untouched native publication defaults.",
+    "automationSecurity": 3
+  },
+  "expected": {
+    "pages": 16,
+    "widthPoints": 612,
+    "heightPoints": 792,
+    "text": [
+      "FM0-12-Inherited gyjp\rSecond line gyjp",
+      "FM1-12-Single gyjp\rSecond line gyjp",
+      "FM2-12-Multiple gyjp\rSecond line gyjp",
+      "FM3-18-Inherited gyjp\rSecond line gyjp",
+      "FM4-18-Single gyjp\rSecond line gyjp",
+      "FM5-18-Multiple gyjp\rSecond line gyjp",
+      "FM6-12-Inherited gyjp\rSecond line gyjp",
+      "FM7-12-Single gyjp\rSecond line gyjp",
+      "FM8-12-Multiple gyjp\rSecond line gyjp",
+      "FM9-18-Inherited gyjp\rSecond line gyjp",
+      "FM10-18-Single gyjp\rSecond line gyjp",
+      "FM11-18-Multiple gyjp\rSecond line gyjp",
+      "FM12-12-Inherited gyjp\rSecond line gyjp",
+      "FM13-12-Single gyjp\rSecond line gyjp",
+      "FM14-12-Multiple gyjp\rSecond line gyjp",
+      "FM15-18-Inherited gyjp\rSecond line gyjp",
+      "FM16-18-Single gyjp\rSecond line gyjp",
+      "FM17-18-Multiple gyjp\rSecond line gyjp",
+      "FM18-12-Single gyjp\rSecond line gyjp",
+      "FM19-12-Multiple gyjp\rSecond line gyjp",
+      "FM20-18-Single gyjp\rSecond line gyjp",
+      "FM21-18-Multiple gyjp\rSecond line gyjp",
+      "FM22-12-Single gyjp\rSecond line gyjp",
+      "FM23-12-Multiple gyjp\rSecond line gyjp",
+      "FM24-18-Single gyjp\rSecond line gyjp",
+      "FM25-18-Multiple gyjp\rSecond line gyjp",
+      "FM26-12-Single gyjp\rSecond line gyjp",
+      "FM27-12-Multiple gyjp\rSecond line gyjp",
+      "FM28-18-Single gyjp\rSecond line gyjp",
+      "FM29-18-Multiple gyjp\rSecond line gyjp",
+      "FM30-12-Single gyjp\rSecond line gyjp",
+      "FM31-18-Single gyjp\rSecond line gyjp",
+      "FM32-12.5-Single gyjp\rSecond line gyjp",
+      "FM33-18.25-Single gyjp\rSecond line gyjp",
+      "FM34-12-Single gyjp\rSecond line gyjp",
+      "FM35-12-Multiple gyjp\rSecond line gyjp",
+      "FM36-18-Single gyjp\rSecond line gyjp",
+      "FM37-18-Multiple gyjp\rSecond line gyjp",
+      "FM38-12-Single gyjp\rSecond line gyjp",
+      "FM39-12-Multiple gyjp\rSecond line gyjp",
+      "FM40-18-Single gyjp\rSecond line gyjp",
+      "FM41-18-Multiple gyjp\rSecond line gyjp",
+      "FM42-12-Single gyjp\rSecond line gyjp",
+      "FM43-12-Multiple gyjp\rSecond line gyjp",
+      "FM44-18-Single gyjp\rSecond line gyjp",
+      "FM45-18-Multiple gyjp\rSecond line gyjp"
+    ],
+    "shapes": [
+      {
+        "name": "FM0-12-Inherited",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Arial",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM0-12-Inherited gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM1-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Arial",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM1-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM2-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Arial",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM2-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM3-18-Inherited",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Arial",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM3-18-Inherited gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM4-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Arial",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM4-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM5-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Arial",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM5-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM6-12-Inherited",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Calibri",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM6-12-Inherited gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM7-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Calibri",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM7-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM8-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Calibri",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM8-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM9-18-Inherited",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Calibri",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM9-18-Inherited gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM10-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Calibri",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM10-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM11-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Calibri",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM11-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM12-12-Inherited",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Times New Roman",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM12-12-Inherited gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM13-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Times New Roman",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM13-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM14-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Times New Roman",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM14-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM15-18-Inherited",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Times New Roman",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM15-18-Inherited gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM16-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Times New Roman",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM16-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM17-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Times New Roman",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM17-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM18-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Comic Sans MS",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM18-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM19-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Comic Sans MS",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM19-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM20-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Comic Sans MS",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM20-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM21-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Comic Sans MS",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM21-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM22-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Segoe UI",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM22-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM23-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Segoe UI",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM23-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM24-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Segoe UI",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM24-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM25-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Segoe UI",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM25-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM26-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Console",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM26-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM27-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Console",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM27-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM28-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Console",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM28-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM29-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Console",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM29-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM30-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Courier New",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM30-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM31-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Courier New",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM31-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM32-12.5-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.5,
+        "fontMetricsProfile": {
+          "family": "Courier New",
+          "size": 12.5,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM32-12.5-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM33-18.25-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.25,
+        "fontMetricsProfile": {
+          "family": "Courier New",
+          "size": 18.25,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM33-18.25-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM34-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Consolas",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM34-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM35-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Consolas",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM35-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM36-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Consolas",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM36-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM37-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Consolas",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM37-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM38-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Tahoma",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM38-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM39-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Tahoma",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM39-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM40-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Tahoma",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM40-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM41-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Tahoma",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM41-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM42-12-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Sans Unicode",
+          "size": 12.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM42-12-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM43-12-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 282.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 12.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Sans Unicode",
+          "size": 12.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM43-12-Multiple gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM44-18-Single",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 510.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Sans Unicode",
+          "size": 18.0,
+          "rule": 0,
+          "spacing": 1.0,
+          "text": "FM44-18-Single gyjp\rSecond line gyjp\r"
+        }
+      },
+      {
+        "name": "FM45-18-Multiple",
+        "kind": "TextFrame",
+        "left": 54.0,
+        "top": 54.0,
+        "width": 504.0,
+        "height": 180.0,
+        "font": "Arial",
+        "size": 18.0,
+        "fontMetricsProfile": {
+          "family": "Lucida Sans Unicode",
+          "size": 18.0,
+          "rule": 5,
+          "spacing": 1.190000057220459,
+          "text": "FM45-18-Multiple gyjp\rSecond line gyjp\r"
+        }
+      }
+    ]
+  },
+  "nativePages": [
+    {
+      "index": 1,
+      "pageId": 33554698,
+      "pageIndex": 1,
+      "pageNumber": "1",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM0-12-Inherited",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM0-12-Inherited gyjp\rSecond line gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM1-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM1-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM2-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM2-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "pageId": 33554728,
+      "pageIndex": 2,
+      "pageNumber": "2",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM3-18-Inherited",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM3-18-Inherited gyjp\rSecond line gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM4-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM4-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM5-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM5-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Arial",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "pageId": 33554734,
+      "pageIndex": 3,
+      "pageNumber": "3",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM6-12-Inherited",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM6-12-Inherited gyjp\rSecond line gyjp\r",
+          "font": "Calibri",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM7-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM7-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Calibri",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM8-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM8-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Calibri",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "pageId": 33554740,
+      "pageIndex": 4,
+      "pageNumber": "4",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM9-18-Inherited",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM9-18-Inherited gyjp\rSecond line gyjp\r",
+          "font": "Calibri",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM10-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM10-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Calibri",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM11-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM11-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Calibri",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "pageId": 33554746,
+      "pageIndex": 5,
+      "pageNumber": "5",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM12-12-Inherited",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM12-12-Inherited gyjp\rSecond line gyjp\r",
+          "font": "Times New Roman",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM13-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM13-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Times New Roman",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM14-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM14-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Times New Roman",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "pageId": 33554752,
+      "pageIndex": 6,
+      "pageNumber": "6",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM15-18-Inherited",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM15-18-Inherited gyjp\rSecond line gyjp\r",
+          "font": "Times New Roman",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM16-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM16-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Times New Roman",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM17-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM17-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Times New Roman",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "pageId": 33554758,
+      "pageIndex": 7,
+      "pageNumber": "7",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM18-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM18-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Comic Sans MS",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM19-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM19-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Comic Sans MS",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM20-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM20-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Comic Sans MS",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "pageId": 33554764,
+      "pageIndex": 8,
+      "pageNumber": "8",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM21-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM21-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Comic Sans MS",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM22-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM22-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Segoe UI",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM23-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM23-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Segoe UI",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "pageId": 33554770,
+      "pageIndex": 9,
+      "pageNumber": "9",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM24-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM24-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Segoe UI",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM25-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM25-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Segoe UI",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM26-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM26-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Lucida Console",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "pageId": 33554776,
+      "pageIndex": 10,
+      "pageNumber": "10",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM27-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM27-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Lucida Console",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM28-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM28-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Lucida Console",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM29-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM29-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Lucida Console",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "pageId": 33554782,
+      "pageIndex": 11,
+      "pageNumber": "11",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM30-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM30-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM31-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM31-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM32-12.5-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM32-12.5-Single gyjp\rSecond line gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "pageId": 33554788,
+      "pageIndex": 12,
+      "pageNumber": "12",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM33-18.25-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM33-18.25-Single gyjp\rSecond line gyjp\r",
+          "font": "Courier New",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM34-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM34-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Consolas",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM35-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM35-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Consolas",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "pageId": 33554794,
+      "pageIndex": 13,
+      "pageNumber": "13",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM36-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM36-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Consolas",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM37-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM37-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Consolas",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM38-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM38-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Tahoma",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "pageId": 33554800,
+      "pageIndex": 14,
+      "pageNumber": "14",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM39-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM39-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Tahoma",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM40-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM40-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Tahoma",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM41-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM41-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Tahoma",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "pageId": 33554806,
+      "pageIndex": 15,
+      "pageNumber": "15",
+      "pageType": 2,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM42-12-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM42-12-Single gyjp\rSecond line gyjp\r",
+          "font": "Lucida Sans Unicode",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM43-12-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 282.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM43-12-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Lucida Sans Unicode",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        },
+        {
+          "name": "FM44-18-Single",
+          "type": 17,
+          "left": 54.0,
+          "top": 510.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM44-18-Single gyjp\rSecond line gyjp\r",
+          "font": "Lucida Sans Unicode",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "pageId": 33554812,
+      "pageIndex": 16,
+      "pageNumber": "16",
+      "pageType": 1,
+      "name": "Page Title",
+      "masterStatus": "Observed",
+      "master": {
+        "pageId": 33554695,
+        "name": "Master Page A"
+      },
+      "masterErrorHResult": null,
+      "ignoreMaster": false,
+      "shapes": [
+        {
+          "name": "FM45-18-Multiple",
+          "type": 17,
+          "left": 54.0,
+          "top": 54.0,
+          "width": 504.0,
+          "height": 180.0,
+          "text": "FM45-18-Multiple gyjp\rSecond line gyjp\r",
+          "font": "Lucida Sans Unicode",
+          "languageId": 1033,
+          "nextLink": false,
+          "previousLink": false,
+          "frameLayout": {
+            "columns": 1,
+            "columnSpacing": 2.8346457481384277,
+            "left": 0.0,
+            "top": 0.0,
+            "right": 0.0,
+            "bottom": 0.0,
+            "verticalAlignment": 0
+          },
+          "picture": null,
+          "tableGeometry": null
+        }
+      ]
+    }
+  ],
+  "nativeMasterPages": [
+    {
+      "index": 1,
+      "pageId": 33554695,
+      "pageIndex": 1,
+      "pageType": 4,
+      "name": "Master Page A",
+      "isTwoPageMaster": false,
+      "shapeCount": 0,
+      "shapes": []
+    }
+  ],
+  "files": {
+    "publication": {
+      "name": "native-textfontmetrics.pub",
+      "sha256": "a178081c386acd1e8dcd7b8d26621f276d89c078e77f1d40d6fdac683de535c6"
+    },
+    "reference": {
+      "name": "native-textfontmetrics.pdf",
+      "sha256": "cd2e3bd640892f4d5f1e524bac56df6b07fdec83ca24c8de7ab6047c29e78b33"
+    }
+  }
+}
