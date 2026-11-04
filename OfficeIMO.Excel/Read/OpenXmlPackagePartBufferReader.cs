@@ -179,6 +179,21 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        /// <summary>
+        /// Transfers one already-read part to the next buffered read. Snapshot qualification
+        /// and indexing keep their own validation, but need not inflate the same bytes twice.
+        /// The existing single prefetch slot bounds retention and owns disposal after transfer.
+        /// </summary>
+        internal bool TryRetainReadBuffer(string partName, byte[] buffer, int length) {
+            string normalizedPartName = NormalizePartName(partName);
+            lock (_prefetchSync) {
+                if (_disposed || _prefetchTask != null) return false;
+                _prefetchPartName = normalizedPartName;
+                _prefetchTask = Task.FromResult<PrefetchedPartBuffer?>(new PrefetchedPartBuffer(buffer, length));
+                return true;
+            }
+        }
+
         private static PrefetchedPartBuffer? ReadPart(
             ZipArchiveEntry entry,
             string normalizedPartName,

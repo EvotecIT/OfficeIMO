@@ -216,9 +216,12 @@ namespace OfficeIMO.Tests {
             Assert.Throws<OfficeIMO.OfficeInspectionResourceLimitException>(() => ReadFirstRow(loaded.Sheets[0], options));
         }
 
-        [Fact]
-        public void SheetWiderThanOneMaximumChunkStaysOnTheReadOnlyRoute() {
-            byte[] package = CreatePackage(string.Concat(Enumerable.Range(1, 30).Select(row =>
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1_048_576)]
+        public void SheetWiderThanOneMaximumChunkStaysOnTheReadOnlyRoute(int padding) {
+            string prefix = padding == 0 ? string.Empty : "<!--" + new string(' ', padding) + "-->";
+            byte[] package = CreatePackage(prefix + string.Concat(Enumerable.Range(1, 30).Select(row =>
                 $"<row r=\"{row}\">{string.Concat("ABCDE".Select(column => $"<c r=\"{column}{row}\"><v>{row}</v></c>"))}</row>")));
             var options = new ExcelReaderOptions {
                 HasHeaderRow = false, MaxDataReaderBufferedCells = 50, MaxDataReaderChunkRows = 8, SchemaSampleRows = 1, MaxDataReaderSchemaSampleRows = 20
@@ -226,10 +229,16 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Load(new MemoryStream(package));
 
             int cells = 0;
+            int rowIndex = 0;
             using (var reader = document.Sheets[0].CreateDataReader(options)) {
-                while (reader.Read()) cells += reader.FieldCount;
+                while (reader.Read()) {
+                    rowIndex++;
+                    for (int column = 0; column < reader.FieldCount; column++) Assert.Equal(rowIndex, reader.GetInt32(column));
+                    cells += reader.FieldCount;
+                }
             }
 
+            Assert.Equal(30, rowIndex);
             Assert.Equal(150, cells);
             Assert.False(document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().IsRootElementLoaded);
         }
