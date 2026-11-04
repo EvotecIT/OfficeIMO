@@ -1,5 +1,3 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
 using System.Threading.Tasks;
@@ -12,13 +10,7 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Verifies custom and built‑in document property handling.
 /// </summary>
-public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class CustomAndBuiltinPropertiesTests {
     [Fact]
     public async Task ValidateDocument() {
         using var document = WordDocument.Create();
@@ -29,9 +21,7 @@ public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
         document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
         document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 
     [Fact]
@@ -45,8 +35,6 @@ public class CustomAndBuiltinPropertiesTests : VerifyTestBase {
         paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
         paragraph.Color = Color.Red;
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument);
+        await Verifier.Verify(document);
     }
 }

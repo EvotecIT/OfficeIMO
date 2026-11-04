@@ -1,11 +1,8 @@
-using DocumentFormat.OpenXml.Packaging;
-using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using System;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Assert = OfficeIMO.VerifyTests.TestAssert;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.VerifyTests.Word;
@@ -13,13 +10,7 @@ namespace OfficeIMO.VerifyTests.Word;
 /// <summary>
 /// Exercises advanced document features such as sections and headers.
 /// </summary>
-public class AdvancedDocumentTests : VerifyTestBase {
-
-    private static async Task DoTest(WordprocessingDocument document) {
-        var result = await ToVerifyResult(document);
-        await Verifier.Verify(result, GetSettings());
-    }
-
+public class AdvancedDocumentTests {
     [Fact]
     public async Task AdvancedWordCreate() {
         using var document = WordDocument.Create();
@@ -113,8 +104,6 @@ public class AdvancedDocumentTests : VerifyTestBase {
         // add watermark
         document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");
 
-        _ = document.ToBytes();
-
-        await DoTest(document._wordprocessingDocument!);
+        await Verifier.Verify(document);
     }
 }
