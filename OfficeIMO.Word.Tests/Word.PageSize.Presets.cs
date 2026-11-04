@@ -83,14 +83,23 @@ public partial class Word {
     }
 
     [Theory]
-    [InlineData(WordPageSize.Envelope10, 297D, 684D)]
-    [InlineData(WordPageSize.B5, 515.9D, 728.5D)]
-    public void SaveAsPdf_DefaultPaperPresetUsesTheWordDimensionCatalog(WordPageSize preset, double width, double height) {
+    [InlineData(297D, 684D, "missing")]
+    [InlineData(515.9D, 728.5D, "missing")]
+    [InlineData(123D, 456D, "missing")]
+    [InlineData(700D, 400D, "missing")]
+    [InlineData(123D, 456D, "empty")]
+    [InlineData(123D, 456D, "zero")]
+    public void SaveAsPdf_FallbackPageSizeUsesPhysicalDimensions(double width, double height, string sourceGeometry) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0]._sectionProperties.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!.Remove();
+        var section = document.Sections[0]._sectionProperties;
+        section.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.PageSize>()!.Remove();
+        if (sourceGeometry == "empty") section.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.PageSize());
+        if (sourceGeometry == "zero") section.AppendChild(new DocumentFormat.OpenXml.Wordprocessing.PageSize { Width = 0U, Height = 1000U });
         document.AddParagraph("Default preset");
         PdfCore.PdfPageInfo page = Assert.Single(PdfCore.PdfInspector.Inspect(document.ToPdf(new WordPdfExportOptions {
-            IncludePageNumbers = false, DefaultPageSize = preset
+            IncludePageNumbers = false,
+            FallbackPageSize = new PdfCore.PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)),
+            Margins = new PdfCore.PdfPageMargins(OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(10))
         }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })).Pages);
         Assert.Equal(width, page.Width, 3);
         Assert.Equal(height, page.Height, 3);

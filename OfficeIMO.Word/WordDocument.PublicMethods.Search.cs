@@ -446,12 +446,12 @@ namespace OfficeIMO.Word {
 
             var headers = (section ?? this.Sections[0]).Headers;
             var footers = (section ?? this.Sections[0]).Footers;
-            VisitHeaderFooter(headers.Default, result?.MutableDefaultHeaderParagraphs);
-            VisitHeaderFooter(headers.Even, result?.MutableEvenPageHeaderParagraphs);
-            VisitHeaderFooter(headers.First, result?.MutableFirstPageHeaderParagraphs);
-            VisitHeaderFooter(footers.Default, result?.MutableDefaultFooterParagraphs);
-            VisitHeaderFooter(footers.Even, result?.MutableEvenPageFooterParagraphs);
-            VisitHeaderFooter(footers.First, result?.MutableFirstPageFooterParagraphs);
+            VisitHeaderFooter(section == null ? headers.Default : section.ResolveDefaultHeader(), result?.MutableDefaultHeaderParagraphs);
+            VisitHeaderFooter(section == null ? headers.Even : section.ResolveEvenHeader(), result?.MutableEvenPageHeaderParagraphs);
+            VisitHeaderFooter(section == null ? headers.First : section.ResolveFirstHeader(), result?.MutableFirstPageHeaderParagraphs);
+            VisitHeaderFooter(section == null ? footers.Default : section.ResolveDefaultFooter(), result?.MutableDefaultFooterParagraphs);
+            VisitHeaderFooter(section == null ? footers.Even : section.ResolveEvenFooter(), result?.MutableEvenPageFooterParagraphs);
+            VisitHeaderFooter(section == null ? footers.First : section.ResolveFirstFooter(), result?.MutableFirstPageFooterParagraphs);
 
             void VisitHeaderFooter(WordHeaderFooter? part, List<WordParagraph>? destination) {
                 if (part == null) return;
