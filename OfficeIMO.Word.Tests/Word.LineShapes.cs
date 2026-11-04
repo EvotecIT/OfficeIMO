@@ -33,9 +33,7 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Paragraph with line");
                 var line = paragraph.AddLine(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(0), Color.Blue, OfficeIMO.OfficeLength.Points(2));
 
-                Assert.Equal(Color.Blue.ToRgbHex(), line.ColorHex.Replace("#", ""));
-
-                Assert.Equal(line.ColorHex.Replace("#", ""), line.ColorHex.Replace("#", "").ToUpperInvariant());
+                Assert.Equal(Color.Blue, line.Color);
 
                 document.Save();
             }

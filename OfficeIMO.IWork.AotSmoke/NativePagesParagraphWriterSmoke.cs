@@ -42,8 +42,7 @@ internal static class NativePagesParagraphWriterSmoke {
             && paragraphs[4].Style.TextStyle.FontSizePoints == 18 && paragraphs[5].Style.LineSpacingMultiplier == 1.25
             && paragraphs[6].Style.LineSpacingMultiplier == 1 && paragraphs[6].Style.TabStops!.Count == 0,
             "Native Pages spacing, tabs or paragraph resets differ.");
-        using var converted = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = WordDocument.Load(output);
@@ -56,7 +55,7 @@ internal static class NativePagesParagraphWriterSmoke {
             "Saved/reopened Pages DOCX lost relative line spacing.");
         using var destination = new MemoryStream(); destination.WriteByte(9);
         try {
-            document.Save(destination, new() { MaximumTabStops = 3 });
+            document.Save(destination, new() { MaxTabStops = 3 });
             throw new InvalidOperationException("Pages custom-tab limit was not enforced.");
         } catch (InvalidDataException) {
             Require(destination.ToArray().SequenceEqual(new byte[] { 9 }), "Pages tab-limit rejection changed its destination.");

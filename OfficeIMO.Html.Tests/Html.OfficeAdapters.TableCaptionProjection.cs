@@ -25,10 +25,10 @@ public partial class HtmlOfficeAdapters {
     public void EditableTableCaptionSurvivesOneNotePowerPointAndMarkdownRoundTrips() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(RegulatoryTableHtml);
 
-        HtmlToOneNoteSectionResult oneNoteResult = source.ToOneNoteSectionResult();
+        HtmlToOneNoteSectionResult oneNoteResult = source.ConvertToOneNoteSectionWithEvidence();
         OneNoteSection reopenedOneNote = OneNoteSectionReader.Read(
             new MemoryStream(OneNoteSectionWriter.Write(oneNoteResult.RequireValue())));
-        Assert.Contains(RegulatoryTableCaption, reopenedOneNote.ToHtmlDocument(), StringComparison.Ordinal);
+        Assert.Contains(RegulatoryTableCaption, reopenedOneNote.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
         Assert.Single(reopenedOneNote.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
         Assert.Contains(reopenedOneNote.Pages.SelectMany(page => page.Outlines)
@@ -39,8 +39,8 @@ public partial class HtmlOfficeAdapters {
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
 
-        HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        HtmlToPowerPointResult powerPointResult = source.ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using (PowerPointDocument presentation = powerPointResult.RequireValue()) {
             using var artifact = new MemoryStream();
             presentation.Save(artifact);
@@ -72,24 +72,24 @@ public partial class HtmlOfficeAdapters {
 
     [Fact]
     public void ExcelRetainsFullLinkedCaptionAfterNativeTableCells() {
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(RegulatoryTableHtml).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(RegulatoryTableHtml).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.RequireValue();
         using var artifact = new MemoryStream();
         workbook.Save(artifact);
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
 
         ExcelSheet table = Assert.Single(reopened.Sheets);
-        Assert.Equal("Contaminant", table.CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Fluoride", table.CellAt(2, 1).GetValue<string>());
-        Assert.Equal(RegulatoryTableCaption, table.CellAt(4, 1).GetValue<string>());
+        Assert.Equal("Contaminant", table.Cell(1, 1).GetValue<string>());
+        Assert.Equal("Fluoride", table.Cell(2, 1).GetValue<string>());
+        Assert.Equal(RegulatoryTableCaption, table.Cell(4, 1).GetValue<string>());
         Assert.Equal(RegulatoryTableLink, table.GetHyperlinks()["A4"].Target);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation
             && diagnostic.Detail?.Contains("originalLength=" + RegulatoryTableCaption.Length,
                 StringComparison.Ordinal) == true);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentOmitted
             && diagnostic.Message.Contains("caption", StringComparison.OrdinalIgnoreCase));
     }
@@ -106,7 +106,7 @@ public partial class HtmlOfficeAdapters {
         Assert.Contains(RegulatoryTableCaption, wordHtml, StringComparison.Ordinal);
         Assert.Contains(RegulatoryTableLink, wordHtml, StringComparison.Ordinal);
 
-        HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = source.ConvertToRtfWithEvidence();
         RtfDocument reopenedRtf = RtfDocument.Load(rtfResult.RequireValue().ToBytes());
         string rtfHtml = reopenedRtf.ToHtml();
         Assert.Contains(RegulatoryTableCaption, rtfHtml, StringComparison.Ordinal);
@@ -120,28 +120,28 @@ public partial class HtmlOfficeAdapters {
         string html = "<main><h1>Drinking water</h1><table><caption>"
             + RegulatoryTableCaption + "</caption>" + rows + "</table></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointSlide captionSlide = Assert.Single(presentation.Slides,
             slide => slide.TextBoxes.Any(box => box.Text == RegulatoryTableCaption));
         PowerPointTable firstTable = Assert.Single(captionSlide.Tables);
         Assert.Equal("Row 1", firstTable.GetCell(0, 0).Text);
         Assert.Equal("Standard 1", firstTable.GetCell(0, 1).Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
     }
 
     [Fact]
     public void PowerPointCaptionMetadataLimitDoesNotOmitTheTable() {
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 12;
         const string html = "<main><h1>Water</h1><table><caption>Caption exceeds metadata limit</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.DoesNotContain(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -157,8 +157,8 @@ public partial class HtmlOfficeAdapters {
             + "<caption>" + RegulatoryTableCaption + "</caption>"
             + "<tr><th>Term</th><th>Value</th></tr><tr><td>pH</td><td>7</td></tr></table></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),

@@ -88,7 +88,7 @@ public sealed partial class PdfRotationNormalizationTests {
     [Theory]
     [InlineData(false, 1)] [InlineData(true, 1)] [InlineData(false, 3)]
     public void UnsignedSignaturePlaceholdersRetainFieldsAndExplicitAppendOnlyRestrictions(bool invisible, int signatureFlags) {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Sign later")).Forms.Edit(edit => edit.Create(
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Sign later")).Forms.Edit(edit => edit.Create(
             new PdfFormFieldCreateOptions { Name = "Approval", Kind = PdfFormFieldCreationKind.Signature,
                 PageNumber = 1, X = 100, Y = 400, Width = 160, Height = 40 })).ToBytes();
         var read = PdfReadDocument.Open(source);
@@ -203,7 +203,7 @@ public sealed partial class PdfRotationNormalizationTests {
 
     [Fact]
     public void UnsupportedVisibleAppearanceFailsWithoutChangingInput() {
-        PdfDocument source = PdfDocument.Create().Paragraph(p => p.Text("Keep original"));
+        PdfDocument source = PdfDocument.Create().Paragraph(p => p.AddText("Keep original"));
         source = source.Annotations.Add(new PdfAnnotationCreateOptions { PageNumber = 1, Subtype = "Text", Name = "note",
             Rectangle = new[] { 100D, 400D, 160D, 460D }, GenerateAppearance = false }).ToDocument().Pages.RotateBy(90);
         byte[] bytes = source.ToBytes();
@@ -216,8 +216,8 @@ public sealed partial class PdfRotationNormalizationTests {
     [Fact]
     public void SharedTagClassesKeepUnselectedBoundsAndCancellationLeavesInputUnchanged() {
         byte[] source = PdfDocument.Create().TaggedPdfCatalogMarkers()
-            .Paragraph(paragraph => paragraph.Text("Tagged first")).PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Tagged second")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Tagged first")).PageBreak()
+            .Paragraph(paragraph => paragraph.AddText("Tagged second")).ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(source);
         var (objects, trailer) = PdfSyntax.ParseObjects(source);
         int first = read.Pages[0].ObjectNumber, second = read.Pages[1].ObjectNumber;
@@ -314,7 +314,7 @@ public sealed partial class PdfRotationNormalizationTests {
 
     private static byte[] CreateGeometrySource(int rotation) {
         PdfDocument document = PdfDocument.Create(compose => {
-            for (int i = 0; i < 2; i++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.Text("Page geometry")));
+            for (int i = 0; i < 2; i++) compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(800)).Content(content => content.AddParagraph("Page geometry")));
         });
         document = document.Annotations.Add(new PdfAnnotationCreateOptions { PageNumber = 1, Subtype = "Square", Name = "rectangle",
             Rectangle = new[] { 100D, 400D, 160D, 460D }, GenerateAppearance = true }).ToDocument();

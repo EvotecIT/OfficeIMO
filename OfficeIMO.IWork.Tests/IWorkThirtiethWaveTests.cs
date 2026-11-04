@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Pages_owner_preserves_cross_type_drawable_stacking(bool imageFirst) {
         using MemoryStream package = CreatePagesPackageWithRestackedImageAndTextBox(imageFirst);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkPagesDrawable[] drawables = result.Projection.Drawables.ToArray();
         WordTextBox textBox = Assert.Single(result.Value.TextBoxes);
         WordImage image = Assert.Single(result.Value.Images);
@@ -43,15 +43,15 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackage(includeBody: false, textBox: null,
             includePreview: true, documentLayoutFields: layout);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         WordSection section = Assert.Single(result.Value.Sections);
         WordImage preview = Assert.Single(result.Value.Images);
 
         Assert.True(result.IsVisualFallback);
-        Assert.Equal(16840U, checked((uint?)(section.PageSettings.Width?.ToTwips())).GetValueOrDefault());
-        Assert.Equal(11900U, checked((uint?)(section.PageSettings.Height?.ToTwips())).GetValueOrDefault());
-        Assert.Equal(1080U, checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())));
-        Assert.Equal(1080U, checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())));
+        Assert.Equal(16840U, checked((uint?)(section.PageSetup.Size.Width?.ToTwips())).GetValueOrDefault());
+        Assert.Equal(11900U, checked((uint?)(section.PageSetup.Size.Height?.ToTwips())).GetValueOrDefault());
+        Assert.Equal(1080U, checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())));
+        Assert.Equal(1080U, checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
         Assert.InRange((preview.Width?.ToPixels()).GetValueOrDefault(), 1d, 734d);
         Assert.InRange((preview.Height?.ToPixels()).GetValueOrDefault(), 1d, 523d);
 
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
         result.Value.Save(saved);
         saved.Position = 0;
         using WordDocument reopened = WordDocument.Load(saved);
-        Assert.Equal(OfficeIMO.OfficeLength.Points(842), Assert.Single(reopened.Sections).PageSettings.Width);
+        Assert.Equal(OfficeIMO.OfficeLength.Points(842), Assert.Single(reopened.Sections).PageSetup.Size.Width);
         // The one-pixel preview uses a one-point minimum frame, expressed as pixels by WordImage.
         WordImage savedPreview = Assert.Single(reopened.Images);
         Assert.Equal(96d / 72d, (savedPreview.Width?.ToPixels())!.Value, precision: 8);
@@ -71,8 +71,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             rotation: float.MaxValue, slideWidth: 720f, slideHeight: 360f);
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
-        PowerPointPicture preview = Assert.Single(Assert.Single(result.Value.Slides).Pictures);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        PowerPointImage preview = Assert.Single(Assert.Single(result.Value.Slides).Images);
 
         Assert.True(result.IsVisualFallback);
         Assert.Equal(720d, result.Value.SlideSize.Width.ToPoints(), 3);

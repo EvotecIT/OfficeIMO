@@ -8,7 +8,7 @@ using OfficeIMO.Internal;
 namespace OfficeIMO;
 
 internal static partial class OfficeBatchExecutor {
-    private const string Schema = "officeimo.conversion.batch.v2";
+    private const string Schema = "officeimo.conversion.batch.v3";
     private const int MaximumStateBytes = 64 * 1024;
 
     private static string Hash(string text) => OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(Encoding.UTF8.GetBytes(text)));

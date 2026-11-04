@@ -96,7 +96,7 @@ string html = """
 """;
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(WebUtility.HtmlDecode(html));
-using var document = source.ToWordDocument();
+using var document = source.ToWord();
 document.Save("from-html.docx");
 ```
 
@@ -104,8 +104,8 @@ document.Save("from-html.docx");
 
 ```csharp
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-var options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
-using var document = await source.ToWordDocumentAsync(options);
+var options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
+using var document = (await source.ToWordAsync(options)).Value;
 document.Save("from-html.docx");
 ```
 
@@ -114,14 +114,14 @@ document.Save("from-html.docx");
 ```csharp
 using OfficeIMO.Word.Html;
 
-var options = new WordHtmlImportOptions {
+var options = new HtmlWordExportOptions {
     FontFamily = "Calibri",
     IncludeListStyles = true,
     BasePath = AppContext.BaseDirectory
 };
 
 HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-using var document = source.ToWordDocument(options);
+using var document = source.ToWord(options);
 ```
 
 ## Adding HTML to an Existing Document
@@ -142,8 +142,7 @@ document.Save();
 ### Add HTML to Headers
 
 ```csharp
-document.AddHeadersAndFooters();
-document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml(
+document.Sections.Last().PageSetup.Header.AddHtml(
     OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='text-align: center;'>Company Header</p>"),
     section: document.Sections.Last()
 );
@@ -152,7 +151,7 @@ document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtml
 ### Add HTML to Footers
 
 ```csharp
-document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtml(
+document.Sections.Last().PageSetup.Footer.AddHtml(
     OfficeIMO.Html.HtmlConversionDocument.Parse("<p style='font-size: 8pt; color: gray;'>Confidential</p>"),
     section: document.Sections.Last()
 );
@@ -164,9 +163,9 @@ All `AddHtml*` methods have async counterparts:
 
 ```csharp
 await document.AddHtmlAsync("<p>Async HTML content</p>");
-await document.Sections.Last().GetOrCreateHeader(WordHeaderFooterType.Default).AddHtmlAsync(
+await document.Sections.Last().PageSetup.Header.AddHtmlAsync(
     OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header from HTML</p>"), section: document.Sections.Last());
-await document.Sections.Last().GetOrCreateFooter(WordHeaderFooterType.Default).AddHtmlAsync(
+await document.Sections.Last().PageSetup.Footer.AddHtmlAsync(
     OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer from HTML</p>"), section: document.Sections.Last());
 ```
 

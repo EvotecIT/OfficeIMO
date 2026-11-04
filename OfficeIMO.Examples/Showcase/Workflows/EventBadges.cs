@@ -26,16 +26,18 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
                 content.PageBreak();
                 Badge("Leon Brooks", "Participant", "Operations");
                 void Badge(string name, string role, string team) {
-                    content.Paragraph(p => p.FontSize(OfficeLength.Points(8.5)).Text("Northwind · Community workshop"), defaultColor: muted)
+                    content.AddParagraph(p => p.AddText("Northwind · Community workshop").SetFontSize(OfficeLength.Points(8.5)), color: muted)
                         .HR(OfficeLength.Points(2), accent, OfficeLength.Points(8), OfficeLength.Points(14))
                         .Title(name)
-                        .Paragraph(p => p.FontSize(OfficeLength.Points(13)).Bold(role, accent))
-                        .Paragraph(p => p.Text(team), defaultColor: muted)
-                        .PanelParagraph(p => p.Text("14 October 2026 · Copenhagen"));
+                        .AddParagraph(p => p.AddText(role).SetBold().SetColor(accent).SetFontSize(OfficeLength.Points(13)))
+                        .AddParagraph(p => p.AddText(team), color: muted)
+                        .AddPanelParagraph(p => p.AddText("14 October 2026 · Copenhagen"));
                 }
             }), new PdfCreateOptions {
-                PageWidth = OfficeLength.Points(sheetWidth), PageHeight = OfficeLength.Points(sheetHeight),
-                MarginLeft = OfficeLength.Points(slug + 24), MarginRight = OfficeLength.Points(slug + 24), MarginTop = OfficeLength.Points(slug + 24), MarginBottom = OfficeLength.Points(slug + 24), DefaultFontSize = OfficeLength.Points(10),
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeLength.Points(sheetWidth), OfficeLength.Points(sheetHeight)),
+                    Margins = { Left = OfficeLength.Points(slug + 24), Right = OfficeLength.Points(slug + 24), Top = OfficeLength.Points(slug + 24), Bottom = OfficeLength.Points(slug + 24) }
+                }, DefaultFontSize = OfficeLength.Points(10),
                 PrintProductionPageBoxes = new PdfPrintProductionPageBoxes(PdfPageMargins.Uniform(OfficeLength.Points(slug)), PdfPageMargins.Uniform(OfficeLength.Points(slug - bleed))),
                 PageBackgroundShapes = cropMarks
             })

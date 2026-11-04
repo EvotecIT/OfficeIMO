@@ -85,12 +85,13 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Pdf;
 
 PdfDocument document = PdfDocument.Create(pdf => pdf.Content(content => content
-    .Paragraph(paragraph => paragraph
-        .Underlined("double", OfficeTextDecorationStyle.Double)
-        .Text(" H")
-        .Subscript("2")
-        .Text("O ")
-        .Strikethrough("retired", OfficeTextDecorationStyle.Wavy))));
+    .AddParagraph(paragraph => {
+        paragraph.AddText("double").SetUnderline(OfficeTextDecorationStyle.Double);
+        paragraph.AddText(" H");
+        paragraph.AddText("2").SetSubscript();
+        paragraph.AddText("O ");
+        paragraph.AddText("retired").SetStrikethrough(OfficeTextDecorationStyle.Wavy);
+    })));
 ```
 
 Visio maps the supported subset to native ShapeSheet Character cells:

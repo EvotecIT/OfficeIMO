@@ -23,7 +23,7 @@ public sealed class EpubFallbackImageExportContracts {
         });
         package = EditPackage(package, root => root.Descendants(Opf + "item").Single(item => (string?)item.Attribute("id") == "foreign")
             .SetAttributeValue("fallback", cycle ? "foreign" : "missing"));
-        EpubDocument read = EpubDocument.Load(new MemoryStream(package), new EpubReadOptions { IncludeRawHtml = true });
+        EpubDocument read = EpubDocument.Load(new MemoryStream(package), new EpubLoadOptions { IncludeRawHtml = true });
         Assert.False(read.ReadSummary.IsComplete);
         var options = new EpubImageExportOptions { Policy = new OfficeImageExportPolicy { RequireNoOmissions = true } };
         int accepted = 0;

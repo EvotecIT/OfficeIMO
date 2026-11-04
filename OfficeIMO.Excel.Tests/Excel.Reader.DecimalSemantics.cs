@@ -14,11 +14,11 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Amount");
-                sheet.CellValue(1, 2, "TextAmount");
-                sheet.CellValue(2, 1, 1d);
-                sheet.CellValue(2, 2, storedNumber);
-                sheet.CellValue(4098, 1, 1d);
+                sheet.Cell(1, 1).SetValue("Amount");
+                sheet.Cell(1, 2).SetValue("TextAmount");
+                sheet.Cell(2, 1).SetValue(1d);
+                sheet.Cell(2, 2).SetValue(storedNumber);
+                sheet.Cell(4098, 1).SetValue(1d);
                 document.Save();
             }
 

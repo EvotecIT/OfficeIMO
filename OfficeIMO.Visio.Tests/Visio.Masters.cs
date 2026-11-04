@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
 
-            VisioShape shape1 = new("1", 1, 1, 2, 1, "A");
-            VisioShape shape2 = new("2", 4, 1, 2, 1, "B");
+            VisioShape shape1 = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "A");
+            VisioShape shape2 = new("2", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "B");
 
             VisioMaster master1 = new("2", "Rectangle", shape1);
             VisioMaster master2 = new("3", "Rectangle", shape2);
@@ -31,10 +31,10 @@ namespace OfficeIMO.Tests {
             VisioDocument loaded = VisioDocument.Load(filePath);
             Assert.NotNull(loaded.Pages[0].Shapes[0].Master);
             Assert.Equal("Rectangle", loaded.Pages[0].Shapes[0].Master?.NameU);
-            Assert.Equal(2, loaded.Pages[0].Shapes[0].Width, 5);
-            Assert.Equal(1, loaded.Pages[0].Shapes[0].Height, 5);
-            Assert.Equal(2, loaded.Pages[0].Shapes[1].Width, 5);
-            Assert.Equal(1, loaded.Pages[0].Shapes[1].Height, 5);
+            Assert.Equal(2, loaded.Pages[0].Shapes[0].Width.ToInches(), 5);
+            Assert.Equal(1, loaded.Pages[0].Shapes[0].Height.ToInches(), 5);
+            Assert.Equal(2, loaded.Pages[0].Shapes[1].Width.ToInches(), 5);
+            Assert.Equal(1, loaded.Pages[0].Shapes[1].Height.ToInches(), 5);
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
                 Assert.True(package.PartExists(new Uri("/visio/masters/masters.xml", UriKind.Relative)));

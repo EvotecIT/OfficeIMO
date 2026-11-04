@@ -51,7 +51,7 @@ internal sealed class OfficeLiveDocumentSource {
             OdfDocument odf => new(OdfExtension(odf.Kind), odf.FilePath, _ => odf.ToBytes()),
             EpubPublication epub => new(".epub", null, token => {
                 var result = epub.Write(cancellationToken: token);
-                result.Report.RequireNoLoss();
+                result.Report.ThrowIfLoss();
                 return result.Bytes;
             }),
             _ => throw new PSArgumentException("Document requires a live Word, Excel, PowerPoint, PDF, Markdown, HTML, Visio, RTF, OpenDocument or EPUB document.", nameof(value))

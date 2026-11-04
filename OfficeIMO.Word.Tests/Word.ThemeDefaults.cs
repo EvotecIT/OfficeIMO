@@ -104,12 +104,12 @@ public partial class Word {
     [InlineData("after")]
     public void NewTableOwnersSaveTheSharedModernStyle(string owner) {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordTable table = owner switch {
             "body" => document.AddTable(2, 2),
             "section" => document.Sections[0].AddTable(2, 2),
-            "header" => document.Header.Default!.AddTable(2, 2),
-            "footer" => document.Footer.Default!.AddTable(2, 2),
+            "header" => document.PageSetup.Header.AddTable(2, 2),
+            "footer" => document.PageSetup.Footer.AddTable(2, 2),
             "cell" => document.AddTable(1, 1).Rows[0].Cells[0].AddTable(2, 2),
             "before" => document.AddParagraph("Anchor").AddTableBefore(2, 2),
             "after" => document.AddParagraph("Anchor").AddTableAfter(2, 2),

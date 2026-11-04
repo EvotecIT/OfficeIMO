@@ -76,7 +76,7 @@ Describe 'CSV and Excel mutation contracts' {
         $workbook = New-OfficeExcel -Path $target
         try {
             $sheet = $workbook.AddSheet('Data')
-            $sheet.Cell(1, 1, 'Ready')
+            $sheet.Cell(1, 1).SetValue('Ready')
             Save-OfficeExcel -Document $workbook -Path $target
         } finally {
             $workbook.Dispose()

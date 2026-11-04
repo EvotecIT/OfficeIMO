@@ -45,6 +45,6 @@ public sealed partial class HtmlRenderingTests {
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation));
         Assert.Contains(text, static run => run.Color == OfficeColor.FromRgb(255, 0, 0));
         Assert.Contains(text, static run => run.Color == OfficeColor.FromRgb(0, 0, 255));
-        if (!expectedShapingLoss) rendered.RequireNoLoss();
+        if (!expectedShapingLoss) rendered.ThrowIfLoss();
     }
 }

@@ -13,7 +13,7 @@ public sealed class MarkdownHtmlInlineConversionContext {
     private readonly IElement _nativeElement;
     private HtmlElement? _element;
 
-    internal MarkdownHtmlInlineConversionContext(IElement element, MarkdownHtmlImportOptions options, HtmlToMarkdownConverter.ConversionContext? conversionContext) {
+    internal MarkdownHtmlInlineConversionContext(IElement element, HtmlMarkdownExportOptions options, HtmlToMarkdownConverter.ConversionContext? conversionContext) {
         _nativeElement = element ?? throw new ArgumentNullException(nameof(element));
         Options = options ?? throw new ArgumentNullException(nameof(options));
         _conversionContext = conversionContext;
@@ -27,7 +27,7 @@ public sealed class MarkdownHtmlInlineConversionContext {
     /// <summary>
     /// Active HTML-to-markdown options.
     /// </summary>
-    public MarkdownHtmlImportOptions Options { get; }
+    public HtmlMarkdownExportOptions Options { get; }
 
     /// <summary>
     /// Converts the supplied HTML nodes into an inline markdown sequence using the current conversion profile.

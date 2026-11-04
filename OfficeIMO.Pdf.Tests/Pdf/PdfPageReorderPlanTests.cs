@@ -12,7 +12,7 @@ public sealed class PdfPageReorderPlanTests {
         var document = OfficeIMO.Pdf.PdfDocument.Create(compose => {
             for (int page = 1; page <= 5; page++) {
                 int number = page;
-                compose.Page(builder => builder.Content(content => content.Item(item => item.Text("Page " + number))));
+                compose.Page(builder => builder.Content(content => content.Item(item => item.AddParagraph("Page " + number))));
             }
         });
         var plan = PdfPageReorderPlan.Move(5, before, selected);

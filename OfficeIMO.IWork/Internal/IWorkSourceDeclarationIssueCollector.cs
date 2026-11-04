@@ -12,8 +12,8 @@ internal sealed class IWorkSourceDeclarationIssueCollector(IWorkSourceDocument s
         source.CancellationToken.ThrowIfCancellationRequested();
         var key = (owner.Identifier, path);
         if (_recorded.Contains(key)) return;
-        if (_issues.Count >= source.Options.MaximumSourceDeclarationIssues)
-            throw new InvalidDataException($"iWork source declaration issues exceed the configured limit of {source.Options.MaximumSourceDeclarationIssues}.");
+        if (_issues.Count >= source.Options.MaxSourceDeclarationIssues)
+            throw new InvalidDataException($"iWork source declaration issues exceed the configured limit of {source.Options.MaxSourceDeclarationIssues}.");
         _recorded.Add(key);
         _issues.Add(new IWorkSourceDeclarationIssue(new IWorkObjectIdentity(owner), path,
             declaredValueCount, kind));

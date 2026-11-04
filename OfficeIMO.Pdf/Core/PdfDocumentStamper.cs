@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -13,10 +14,14 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Creates a new PDF with text stamped above existing content unless options request otherwise.
     /// </summary>
-    public PdfDocument Text(string text, PdfTextStampOptions? options = null) => Text(text, options, _document.ReadOptions);
+    public PdfDocument Text(string text, PdfTextStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Text(text, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Creates a new PDF with text stamped above existing content using explicit target read options.</summary>
-    public PdfDocument Text(string text, PdfTextStampOptions? options, PdfLoadOptions? readOptions) {
+    public PdfDocument Text(string text, PdfTextStampOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return _document.ApplyMutation(input => PdfStamper.StampText(input, text, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
@@ -30,10 +35,14 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Creates a new PDF with text watermarked behind existing content.
     /// </summary>
-    public PdfDocument TextWatermark(string text, PdfTextStampOptions? options = null) => TextWatermark(text, options, _document.ReadOptions);
+    public PdfDocument TextWatermark(string text, PdfTextStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return TextWatermark(text, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Creates a text watermark behind existing content using explicit target read options.</summary>
-    public PdfDocument TextWatermark(string text, PdfTextStampOptions? options, PdfLoadOptions? readOptions) {
+    public PdfDocument TextWatermark(string text, PdfTextStampOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return _document.ApplyMutation(input => PdfStamper.WatermarkText(input, text, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
@@ -47,10 +56,14 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Creates a new PDF with an image stamped above existing content unless options request otherwise.
     /// </summary>
-    public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options = null) => Image(imageBytes, options, _document.ReadOptions);
+    public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Image(imageBytes, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Creates a new PDF with an image stamped above existing content using explicit target read options.</summary>
-    public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
+    public PdfDocument Image(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
         return _document.ApplyMutation(input => PdfStamper.StampImage(input, imageBytes, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
@@ -67,11 +80,15 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Creates a new PDF with an image stamped from a readable image stream.
     /// </summary>
-    public PdfDocument Image(Stream imageStream, PdfImageStampOptions? options = null) => Image(imageStream, options, _document.ReadOptions);
+    public PdfDocument Image(Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Image(imageStream, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Creates a new PDF with an image stream stamped using explicit target read options.</summary>
-    public PdfDocument Image(Stream imageStream, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
-        return Image(PdfImageInput.ReadRemainingStream(imageStream, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes, options?.CancellationToken ?? default), options, readOptions);
+    public PdfDocument Image(Stream imageStream, PdfImageStampOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Image(PdfImageInput.ReadRemainingStream(imageStream, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes, options?.CancellationToken ?? default), options, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -85,10 +102,14 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Creates a new PDF with an image watermarked behind existing content.
     /// </summary>
-    public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options = null) => ImageWatermark(imageBytes, options, _document.ReadOptions);
+    public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return ImageWatermark(imageBytes, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Creates an image watermark behind existing content using explicit target read options.</summary>
-    public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
+    public PdfDocument ImageWatermark(byte[] imageBytes, PdfImageStampOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(imageBytes, nameof(imageBytes));
         PdfImageInput.EnsureWithinLimit(imageBytes.LongLength, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes);
         return _document.ApplyMutation(input => PdfStamper.WatermarkImage(input, imageBytes, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
@@ -105,11 +126,15 @@ public sealed partial class PdfDocumentStamper {
     /// <summary>
     /// Creates a new PDF with an image watermark from a readable image stream.
     /// </summary>
-    public PdfDocument ImageWatermark(Stream imageStream, PdfImageStampOptions? options = null) => ImageWatermark(imageStream, options, _document.ReadOptions);
+    public PdfDocument ImageWatermark(Stream imageStream, PdfImageStampOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return ImageWatermark(imageStream, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Creates an image-stream watermark using explicit target read options.</summary>
-    public PdfDocument ImageWatermark(Stream imageStream, PdfImageStampOptions? options, PdfLoadOptions? readOptions) {
-        return ImageWatermark(PdfImageInput.ReadRemainingStream(imageStream, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes, options?.CancellationToken ?? default), options, readOptions);
+    public PdfDocument ImageWatermark(Stream imageStream, PdfImageStampOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return ImageWatermark(PdfImageInput.ReadRemainingStream(imageStream, (options ?? new PdfImageStampOptions()).MaximumEncodedImageBytes, options?.CancellationToken ?? default), options, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -121,34 +146,42 @@ public sealed partial class PdfDocumentStamper {
     }
 
     /// <summary>Imports one page from another PDF above selected pages.</summary>
-    public PdfDocument OverlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options = null) => OverlayPage(sourcePdf, options, _document.ReadOptions);
+    public PdfDocument OverlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return OverlayPage(sourcePdf, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Imports one page from another PDF above selected pages using explicit target read options.</summary>
-    public PdfDocument OverlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
+    public PdfDocument OverlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         return _document.ApplyMutation(input => PdfStamper.OverlayPage(input, sourcePdf, options, targetReadOptions ?? _document.ReadOptions), targetReadOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>Imports one page from a readable PDF stream above selected pages.</summary>
-    public PdfDocument OverlayPage(Stream sourceStream, PdfPageOverlayOptions? options = null) {
-        return OverlayPage(sourceStream, options, _document.ReadOptions);
+    public PdfDocument OverlayPage(Stream sourceStream, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return OverlayPage(sourceStream, options, _document.ReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one page from a readable PDF stream using explicit target read options.</summary>
-    public PdfDocument OverlayPage(Stream sourceStream, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
+    public PdfDocument OverlayPage(Stream sourceStream, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        return OverlayPage(PdfDocumentSource.FromRemainingStream(sourceStream, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions);
+        return OverlayPage(PdfDocumentSource.FromRemainingStream(sourceStream, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one page from a PDF file above selected pages.</summary>
-    public PdfDocument OverlayPage(string sourcePath, PdfPageOverlayOptions? options = null) {
-        return OverlayPage(sourcePath, options, _document.ReadOptions);
+    public PdfDocument OverlayPage(string sourcePath, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return OverlayPage(sourcePath, options, _document.ReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one page from a PDF file using explicit target read options.</summary>
-    public PdfDocument OverlayPage(string sourcePath, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
+    public PdfDocument OverlayPage(string sourcePath, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return OverlayPage(PdfDocumentSource.FromPath(sourcePath, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions);
+        return OverlayPage(PdfDocumentSource.FromPath(sourcePath, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Attempts to import one page from another PDF above selected pages.</summary>
@@ -170,34 +203,42 @@ public sealed partial class PdfDocumentStamper {
     }
 
     /// <summary>Imports one page from another PDF below selected pages.</summary>
-    public PdfDocument UnderlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options = null) => UnderlayPage(sourcePdf, options, _document.ReadOptions);
+    public PdfDocument UnderlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UnderlayPage(sourcePdf, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Imports one page from another PDF below selected pages using explicit target read options.</summary>
-    public PdfDocument UnderlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
+    public PdfDocument UnderlayPage(byte[] sourcePdf, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourcePdf, nameof(sourcePdf));
         return _document.ApplyMutation(input => PdfStamper.UnderlayPage(input, sourcePdf, options, targetReadOptions ?? _document.ReadOptions), targetReadOptions, cancellationToken: options?.CancellationToken ?? default);
     }
 
     /// <summary>Imports one page from a readable PDF stream below selected pages.</summary>
-    public PdfDocument UnderlayPage(Stream sourceStream, PdfPageOverlayOptions? options = null) {
-        return UnderlayPage(sourceStream, options, _document.ReadOptions);
+    public PdfDocument UnderlayPage(Stream sourceStream, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UnderlayPage(sourceStream, options, _document.ReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one page from a readable PDF stream below selected pages using explicit target read options.</summary>
-    public PdfDocument UnderlayPage(Stream sourceStream, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
+    public PdfDocument UnderlayPage(Stream sourceStream, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceStream, nameof(sourceStream));
-        return UnderlayPage(PdfDocumentSource.FromRemainingStream(sourceStream, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions);
+        return UnderlayPage(PdfDocumentSource.FromRemainingStream(sourceStream, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one page from a PDF file below selected pages.</summary>
-    public PdfDocument UnderlayPage(string sourcePath, PdfPageOverlayOptions? options = null) {
-        return UnderlayPage(sourcePath, options, _document.ReadOptions);
+    public PdfDocument UnderlayPage(string sourcePath, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return UnderlayPage(sourcePath, options, _document.ReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one page from a PDF file below selected pages using explicit target read options.</summary>
-    public PdfDocument UnderlayPage(string sourcePath, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions) {
+    public PdfDocument UnderlayPage(string sourcePath, PdfPageOverlayOptions? options, PdfLoadOptions? targetReadOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return UnderlayPage(PdfDocumentSource.FromPath(sourcePath, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions);
+        return UnderlayPage(PdfDocumentSource.FromPath(sourcePath, options?.SourceReadOptions, options?.CancellationToken ?? default).Bytes, options, targetReadOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Attempts to import one page from another PDF below selected pages.</summary>

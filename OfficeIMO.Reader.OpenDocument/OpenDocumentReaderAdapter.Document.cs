@@ -35,9 +35,9 @@ internal static partial class OpenDocumentReaderAdapter {
         ReaderChunk[] chunks = ReadDocument(document, path, options, formatOptions, token).ToArray();
         var result = DocumentReaderEngine.CreateDocumentResult(chunks, ReaderInputKind.OpenDocument,
             capabilities: new[] { "officeimo.reader.opendocument.native-rich-v1" });
-        result.Source.Title = document.Metadata.Title;
-        result.Source.Author = document.Metadata.Creator;
-        result.Source.Subject = document.Metadata.Subject;
+        result.Source.Title = document.Properties.Title;
+        result.Source.Author = document.Properties.Creator;
+        result.Source.Subject = document.Properties.Subject;
         result.Diagnostics = result.Diagnostics.Concat(document.Diagnostics.Select(diagnostic => new OfficeDocumentDiagnostic {
             Code = diagnostic.Id, Message = diagnostic.Message, Source = "officeimo.opendocument",
             Category = OfficeDocumentDiagnosticCategory.Parsing,

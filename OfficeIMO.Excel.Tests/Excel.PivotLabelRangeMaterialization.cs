@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     ("Alpha", 10d),
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 ExcelPivotFilter filter = kind switch
@@ -148,12 +148,12 @@ namespace OfficeIMO.Tests
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(cultureName);
                 using var document = ExcelDocument.Create();
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "Region");
-                source.CellValue(1, 2, "Sales");
-                source.CellValue(2, 1, "Ch");
-                source.CellValue(2, 2, 10d);
-                source.CellValue(3, 1, "Echo");
-                source.CellValue(3, 2, 20d);
+                source.Cell(1, 1).SetValue("Region");
+                source.Cell(1, 2).SetValue("Sales");
+                source.Cell(2, 1).SetValue("Ch");
+                source.Cell(2, 2).SetValue(10d);
+                source.Cell(3, 1).SetValue("Echo");
+                source.Cell(3, 2).SetValue(20d);
                 {
                     var pivotOptions2 = new ExcelPivotTableOptions();
                     pivotOptions2.RowFields.Add("Region");

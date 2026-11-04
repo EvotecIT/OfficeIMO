@@ -11,7 +11,7 @@ Gets or extracts image resources from a PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePdfImage [-Path] <string> [-PageRange <string>] [-OutputDirectory <string>] [-BaseName <string>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfImage [-Path] <string> [-PageRange <string>] [-OutputDirectory <string>] [-BaseName <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -100,7 +100,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

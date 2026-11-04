@@ -114,17 +114,17 @@ namespace OfficeIMO.Tests {
                 sheet.InsertDataReaderWithResult(reader, createTable: false, autoFit: false, ct: cancellation.Token));
 
             Assert.Equal(cancellation.Token, error.CancellationToken);
-            Assert.True(string.IsNullOrEmpty(sheet.CellAt(2, 2).GetValue<string>()));
-            Assert.True(string.IsNullOrEmpty(sheet.CellAt(3, 1).GetValue<string>()));
+            Assert.True(string.IsNullOrEmpty(sheet.Cell(2, 2).GetValue<string>()));
+            Assert.True(string.IsNullOrEmpty(sheet.Cell(3, 1).GetValue<string>()));
             Assert.NotEmpty(convertedDates);
             Assert.All(convertedDates, value => Assert.Equal(Date(0), value));
             document.DateTimeOffsetWriteStrategy = value => value.UtcDateTime;
             using var saved = new MemoryStream();
             document.Save(saved);
             using var reopened = ExcelDocument.Load(saved);
-            Assert.Equal(Date(0).UtcDateTime.ToOADate(), reopened.Sheets[0].CellAt(2, 1).GetValue<double>());
-            Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].CellAt(2, 2).GetValue<string>()));
-            Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].CellAt(3, 1).GetValue<string>()));
+            Assert.Equal(Date(0).UtcDateTime.ToOADate(), reopened.Sheets[0].Cell(2, 1).GetValue<double>());
+            Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].Cell(2, 2).GetValue<string>()));
+            Assert.True(string.IsNullOrEmpty(reopened.Sheets[0].Cell(3, 1).GetValue<string>()));
         }
 
         private static DataTable Dates() {
@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("First", sheet.Name);
             Assert.Single(reopened.GetTables());
             for (int day = 0; day < 3; day++) {
-                Assert.Equal(Date(day).UtcDateTime.ToOADate(), sheet.CellAt(day + 2, 1).GetValue<double>());
+                Assert.Equal(Date(day).UtcDateTime.ToOADate(), sheet.Cell(day + 2, 1).GetValue<double>());
             }
         }
     }

@@ -18,7 +18,7 @@ public sealed class PdfPermissionsOnlySecurityTests {
         Assert.Throws<ArgumentException>(() => PdfStandardEncryptionOptions.ForPermissions("", PdfStandardPermissions.Print));
 
         using var document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }.SetEncryption(copy))
-            .Paragraph(paragraph => paragraph.Text("Permissions-only proof"));
+            .Paragraph(paragraph => paragraph.AddText("Permissions-only proof"));
         byte[] bytes = document.ToBytes();
         var reader = PdfInspector.Inspect(bytes);
         Assert.True(reader.Security.HasEncryption);
@@ -44,7 +44,7 @@ public sealed class PdfPermissionsOnlySecurityTests {
         var options = new PdfStandardEncryptionOptions(user) { OwnerPassword = owner, Algorithm = algorithm };
         Assert.Equal(distinct, options.HasDistinctOwnerPassword);
         using var document = PdfDocument.Create(new PdfCreateOptions { EmbedDefaultFonts = false }.SetEncryption(options));
-        document.Content.Paragraph(paragraph => paragraph.Text("Password equivalence proof"));
+        document.Content.AddParagraph(paragraph => paragraph.AddText("Password equivalence proof"));
         var opened = PdfInspector.Inspect(document.ToBytes(), new PdfLoadOptions { Password = user });
         Assert.Equal(distinct ? PdfPasswordAuthenticationRole.User : PdfPasswordAuthenticationRole.Owner,
             opened.Security.PasswordAuthenticationRole);

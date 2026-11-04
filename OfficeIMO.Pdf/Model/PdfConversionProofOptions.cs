@@ -538,11 +538,6 @@ public sealed class PdfConversionProofOptions {
         return this;
     }
 
-    /// <summary>Requires every source and PDF conversion stage to report no possible content loss.</summary>
-    public PdfConversionProofOptions RequireNoLoss() {
-        RequireLosslessConversion = true;
-        return this;
-    }
 
     private static void AddValues(List<string> target, string[] values) {
         Guard.NotNull(values, nameof(values));

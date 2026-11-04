@@ -66,7 +66,7 @@ public sealed class VisioPdfWorkflowTests {
             Assert.Equal(extension[1..].ToUpperInvariant(), evidence.Facts["sourceFormat"]);
             Assert.Contains(result.Diagnostics, d => d.Code == "conversion-output-reopened");
             if (extension != ".vsdx")
-                Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VDX_MODEL_PROFILE" && d.LossKind == OfficeConversionLossKind.Approximation);
+                Assert.Contains(evidence.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE" && d.LossKind == OfficeConversionLossKind.Approximation);
             Assert.Equal(before, File.ReadAllBytes(input));
         } finally { Directory.Delete(root, true); }
     }
@@ -96,7 +96,7 @@ public sealed class VisioPdfWorkflowTests {
                     RegisteredSettings = new OfficeWorkflowRouteSettings {
                         Visio = new() {
                             Mode = VisioPdfProjectionMode.DiagramPages,
-                            DrawingOptions = new() { RequireNoLoss = sourceStrict }
+                            DrawingOptions = new() { FailOnLoss = sourceStrict }
                         }
                     }
                 }
@@ -104,8 +104,8 @@ public sealed class VisioPdfWorkflowTests {
             Assert.False(result.Succeeded);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.True(evidence.HasLoss);
-            Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VISIO_DRAWING_METADATA" && d.Location!.StartsWith("page:1:First:shape:"));
-            if (extension != ".vsdx") Assert.Contains(evidence.FidelityDiagnostics, d => d.Code == "VDX_MODEL_PROFILE");
+            Assert.Contains(evidence.Diagnostics, d => d.Code == "VISIO_DRAWING_METADATA" && d.Location!.StartsWith("page:1:First:shape:"));
+            if (extension != ".vsdx") Assert.Contains(evidence.Diagnostics, d => d.Code == "VDX_MODEL_PROFILE");
             Assert.Equal(before, File.ReadAllBytes(input));
             Assert.Equal(sentinel, File.ReadAllBytes(output));
             Assert.Empty(Directory.GetFiles(root, ".*.tmp"));
@@ -247,10 +247,10 @@ public sealed class VisioPdfWorkflowTests {
 
     private static void WriteSource(string path, bool hyperlink = false) {
         VisioDocument source = VisioDocument.Create(Path.GetExtension(path) == ".vtx" ? VisioPackageType.Template : VisioPackageType.Drawing);
-        VisioPage first = source.AddPage("First"); first.Width = 5; first.Height = 3;
-        VisioShape shape = first.AddRectangle(1, 1, 2, 1, "WorkflowCaption");
+        VisioPage first = source.AddPage("First"); first.Width = OfficeLength.Inches(5); first.Height = OfficeLength.Inches(3);
+        VisioShape shape = first.AddRectangle(OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "WorkflowCaption");
         if (hyperlink) shape.AddHyperlink("https://example.com");
-        VisioPage second = source.AddPage("Blank"); second.Width = 2; second.Height = 1.5;
+        VisioPage second = source.AddPage("Blank"); second.Width = OfficeLength.Inches(2); second.Height = OfficeLength.Inches(1.5);
         if (Path.GetExtension(path) == ".vsdx") source.Save(path);
         else {
             // Generated modern PageSheet/theme cells have no legacy XML mapping.

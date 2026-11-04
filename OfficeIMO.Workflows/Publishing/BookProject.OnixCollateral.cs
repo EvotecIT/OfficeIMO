@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 using OfficeIMO.Internal;
 using System.Globalization;
 using System.Text;
@@ -53,8 +50,8 @@ public sealed partial class BookProject {
             }
             content.Add(BuildOnixUsageConstraints(item.UsageConstraints, cancellationToken));
             content.Add(BuildOnixLicenses(item.Licenses, ref textBudget, cancellationToken));
-            if (item.UsableFrom > item.UsableUntil) throw new ArgumentException("Collateral usage dates are reversed.", nameof(item));
-            void AddDate(string role, DateOnly? date) {
+            if (item.UsableFrom?.Date > item.UsableUntil?.Date) throw new ArgumentException("Collateral usage dates are reversed.", nameof(item));
+            void AddDate(string role, DateTime? date) {
                 if (date == null) return;
                 content.Add(new XElement(ns + "ContentDate", new XElement(ns + "ContentDateRole", role),
                     new XElement(ns + "Date", new XAttribute("dateformat", "00"), FormatOnixDate(date.Value))));

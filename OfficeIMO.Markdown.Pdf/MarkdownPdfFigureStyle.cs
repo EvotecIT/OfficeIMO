@@ -12,7 +12,7 @@ public sealed class MarkdownPdfFigureStyle {
     private global::OfficeIMO.OfficeColor? _captionColor;
     private global::OfficeIMO.OfficeColor? _placeholderColor;
     private global::OfficeIMO.OfficeLength? _captionFontSize;
-    private PdfCore.PdfAlign _captionAlign = PdfCore.PdfAlign.Center;
+    private global::OfficeIMO.OfficeAlignment _captionAlign = global::OfficeIMO.OfficeAlignment.Center;
 
     /// <summary>Optional panel chrome used for unresolved visual placeholders. Media figures render directly in document flow.</summary>
     public PdfCore.PdfPanelStyle? PdfPanelStyle {
@@ -45,10 +45,10 @@ public sealed class MarkdownPdfFigureStyle {
     }
 
     /// <summary>Caption paragraph alignment.</summary>
-    public PdfCore.PdfAlign CaptionAlign {
+    public global::OfficeIMO.OfficeAlignment CaptionAlign {
         get => _captionAlign;
         set {
-            if (value != PdfCore.PdfAlign.Left && value != PdfCore.PdfAlign.Center && value != PdfCore.PdfAlign.Right) {
+            if (value != global::OfficeIMO.OfficeAlignment.Left && value != global::OfficeIMO.OfficeAlignment.Center && value != global::OfficeIMO.OfficeAlignment.Right) {
                 throw new ArgumentOutOfRangeException(nameof(value), "Markdown PDF figure captions support Left, Center, or Right alignment.");
             }
 
@@ -78,7 +78,7 @@ public sealed class MarkdownPdfFigureStyle {
     internal PdfCore.PdfDrawingStyle DrawingStyleSnapshot => (_drawingStyle ?? CreateDefaultDrawingStyle()).Clone();
     internal global::OfficeIMO.OfficeColor CaptionColorSnapshot => _captionColor ?? global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105);
     internal global::OfficeIMO.OfficeLength CaptionFontSizeSnapshot => _captionFontSize ?? global::OfficeIMO.OfficeLength.Points(9D);
-    internal PdfCore.PdfAlign CaptionAlignSnapshot => _captionAlign;
+    internal global::OfficeIMO.OfficeAlignment CaptionAlignSnapshot => _captionAlign;
     internal global::OfficeIMO.OfficeColor PlaceholderColorSnapshot => _placeholderColor ?? global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139);
 
     internal static MarkdownPdfFigureStyle Plain() => new MarkdownPdfFigureStyle {
@@ -87,7 +87,7 @@ public sealed class MarkdownPdfFigureStyle {
         CaptionColor = global::OfficeIMO.OfficeColor.FromRgb(71, 85, 105),
         PlaceholderColor = global::OfficeIMO.OfficeColor.FromRgb(100, 116, 139),
         CaptionFontSize = global::OfficeIMO.OfficeLength.Points(9D),
-        CaptionAlign = PdfCore.PdfAlign.Center
+        CaptionAlign = global::OfficeIMO.OfficeAlignment.Center
     };
 
     internal static MarkdownPdfFigureStyle Framed(
@@ -111,11 +111,11 @@ public sealed class MarkdownPdfFigureStyle {
             CaptionColor = caption,
             PlaceholderColor = placeholder,
             CaptionFontSize = global::OfficeIMO.OfficeLength.Points(9D),
-            CaptionAlign = PdfCore.PdfAlign.Center
+            CaptionAlign = global::OfficeIMO.OfficeAlignment.Center
         };
 
     private static PdfCore.PdfImageStyle CreateDefaultImageStyle() => new PdfCore.PdfImageStyle {
-        Align = PdfCore.PdfAlign.Center,
+        Align = global::OfficeIMO.OfficeAlignment.Center,
         SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
         SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
         ScaleDownToFit = true,
@@ -123,7 +123,7 @@ public sealed class MarkdownPdfFigureStyle {
     };
 
     private static PdfCore.PdfDrawingStyle CreateDefaultDrawingStyle() => new PdfCore.PdfDrawingStyle {
-        Align = PdfCore.PdfAlign.Center,
+        Align = global::OfficeIMO.OfficeAlignment.Center,
         SpacingBefore = global::OfficeIMO.OfficeLength.Points(2),
         SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
         KeepWithNext = true

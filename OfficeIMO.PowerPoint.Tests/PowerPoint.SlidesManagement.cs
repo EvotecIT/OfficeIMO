@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, presentation.Slides.Count);
                 Assert.Equal("Source slide", duplicate.TextBoxes.First().Text);
-                Assert.Single(duplicate.Pictures);
+                Assert.Single(duplicate.Images);
                 Assert.True(duplicate.Hidden);
                 Assert.Equal("Speaker notes", duplicate.Notes.Text);
 
@@ -182,6 +182,43 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
+        }
+
+        [Fact]
+        public void DuplicatingAnUntouchedLoadedSlideSharesMediaAndKeepsItWhenTheSourceIsRemoved() {
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", "BackgroundImage.png");
+            byte[] imageBytes = File.ReadAllBytes(imagePath);
+            byte[] deck;
+            using (PowerPointDocument presentation = PowerPointDocument.Create()) {
+                PowerPointSlide source = presentation.AddSlide();
+                source.AddTextBox("Source slide");
+                source.AddImage(imagePath);
+                source.Hidden = true;
+                deck = presentation.ToBytes();
+            }
+
+            byte[] saved;
+            using (var input = new MemoryStream(deck, writable: false))
+            using (PowerPointDocument presentation = PowerPointDocument.Load(input)) {
+                PowerPointSlide duplicate = presentation.DuplicateSlide(0);
+                Assert.True(duplicate.Hidden);
+                ImagePart sourceImage = presentation.Slides[0].SlidePart.ImageParts.Single();
+                Assert.Same(sourceImage, duplicate.SlidePart.ImageParts.Single());
+
+                presentation.RemoveSlide(0);
+                saved = presentation.ToBytes();
+            }
+
+            using var output = new MemoryStream(saved, writable: false);
+            using PresentationDocument package = PresentationDocument.Open(output, false);
+            SlidePart remaining = package.PresentationPart!.SlideParts.Single();
+            Assert.Equal("Source slide", remaining.Slide!.Descendants<A.Text>().First().Text);
+            Assert.False(remaining.Slide.Show?.Value ?? true);
+            using Stream image = remaining.ImageParts.Single().GetStream();
+            using var copy = new MemoryStream();
+            image.CopyTo(copy);
+            Assert.Equal(imageBytes, copy.ToArray());
+            Assert.Empty(new OpenXmlValidator().Validate(package));
         }
 
         [Fact]
@@ -229,7 +266,7 @@ namespace OfficeIMO.Tests {
 
                     Assert.Single(target.Slides);
                     Assert.Equal("Imported slide", imported.TextBoxes.First().Text);
-                    Assert.Single(imported.Pictures);
+                    Assert.Single(imported.Images);
                     Assert.True(imported.Hidden);
                     Assert.Equal("Imported notes", imported.Notes.Text);
 
@@ -241,7 +278,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument target = PowerPointDocument.Load(targetPath)) {
                 Assert.Single(target.Slides);
                 Assert.Equal("Imported slide", target.Slides[0].TextBoxes.First().Text);
-                Assert.Single(target.Slides[0].Pictures);
+                Assert.Single(target.Slides[0].Images);
                 Assert.True(target.Slides[0].Hidden);
                 Assert.Equal("Imported notes", target.Slides[0].Notes.Text);
             }

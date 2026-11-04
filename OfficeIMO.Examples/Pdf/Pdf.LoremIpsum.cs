@@ -17,21 +17,21 @@ namespace OfficeIMO.Examples.Pdf {
 
             // 1) Plain paragraph
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lorem Ipsum — Plain Paragraph", PdfAlign.Center)
-                .Paragraph(p => p.Text(longText))))
+                .H1("Lorem Ipsum — Plain Paragraph", OfficeAlignment.Center)
+                .AddParagraph(p => p.AddText(longText))))
                 .Save(path1);
 
             // 2) Inside panel
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Lorem Ipsum — Panel Paragraph", PdfAlign.Center)
-                .PanelParagraph(p => p.Text(longText), new PdfPanelStyle {
+                .H1("Lorem Ipsum — Panel Paragraph", OfficeAlignment.Center)
+                .AddPanelParagraph(p => p.AddText(longText), new PdfPanelStyle {
                     Background = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.96, 0.96, 0.98),
                     BorderColor = global::OfficeIMO.OfficeColor.FromRgb(210, 210, 210),
                     BorderWidth = global::OfficeIMO.OfficeLength.Points(0.5),
                     PaddingX = global::OfficeIMO.OfficeLength.Points(8),
                     PaddingY = global::OfficeIMO.OfficeLength.Points(6),
                     MaxWidth = global::OfficeIMO.OfficeLength.Points(380),
-                    Align = PdfAlign.Center
+                    Align = OfficeAlignment.Center
                 })))
                 .Save(path2);
 
@@ -44,8 +44,8 @@ namespace OfficeIMO.Examples.Pdf {
                     p.Content(c => c
                         .Column(col => col.Item().H1("Lorem Ipsum — Two Columns"))
                         .Row(row => {
-                            row.PercentColumn(50, col => col.Paragraph(pr => pr.Text(longText)));
-                            row.PercentColumn(50, col => col.Paragraph(pr => pr.Text(longText)));
+                            row.PercentColumn(50, col => col.AddParagraph(pr => pr.AddText(longText)));
+                            row.PercentColumn(50, col => col.AddParagraph(pr => pr.AddText(longText)));
                         })
                     );
                 });

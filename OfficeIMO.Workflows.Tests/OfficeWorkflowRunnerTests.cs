@@ -42,10 +42,30 @@ public sealed class OfficeWorkflowRunnerTests {
     }
 
     [Fact]
+    public async Task PdfToHtmlPublishesOutputLargerThanHtmlIngestionNodeBudget() {
+        using var scope = new TestDirectory();
+        string input = System.IO.Path.Combine(scope.Path, "large.pdf"), output = System.IO.Path.Combine(scope.Path, "large.html");
+        File.WriteAllBytes(input, PdfDocument.Create(compose => compose.Page(page => {
+            page.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(1600));
+            page.Content(content => {
+                for (int line = 0; line < 62_000; line++) content.AddParagraph(paragraph => paragraph.AddText("line"));
+            });
+        })).ToBytes());
+
+        OfficeWorkflowResult result = await new OfficeWorkflowRunner().RunAsync(new OfficeWorkflowRequest {
+            Operation = OfficeWorkflowOperation.Convert, InputPath = input, OutputPath = output, ConversionRouteId = "pdf-html"
+        });
+
+        Assert.True(result.Status == OfficeWorkflowStatus.Completed, result.Summary);
+        var published = HtmlConversionDocument.Parse(File.ReadAllText(output), HtmlConversionDocumentOptions.CreateTrustedProfile()).Document;
+        Assert.True(published.QuerySelectorAll("p").Count > 40_000);
+    }
+
+    [Fact]
     public void CatalogProjectsCanonicalRoutesAndSupportedExecutionContracts() {
         Assert.Equal(OfficeConversionCapabilityCatalog.All.Count, OfficeWorkflowCatalog.Routes.Count);
         Assert.Equal(
-            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
+            ["book-project-epub", "chm-epub", "chm-markdown", "chm-pdf", "djvu-pdf", "doc-pdf", "docx-pdf", "heic-pdf", "html-pdf", "markdown-pdf", "odg-pdf", "pdf-docx", "pdf-html", "pdf-pptx", "pdf-xlsx", "pptx-pdf", "publisher-pdf", "rtf-pdf", "txt-pdf", "visio-pdf", "xlsx-pdf", "xps-pdf"],
             OfficeWorkflowCatalog.ExecutableRoutes.Select(route => route.Id).OrderBy(id => id, StringComparer.Ordinal));
         Assert.All(OfficeWorkflowCatalog.Routes, route => Assert.True(route.Engine == "OfficeIMO" || route.Engine.StartsWith("OfficeIMO.", StringComparison.Ordinal)));
         Assert.All(OfficeWorkflowCatalog.Routes, route => {
@@ -872,7 +892,7 @@ public sealed class OfficeWorkflowRunnerTests {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "encrypted.pdf");
         byte[] encrypted = PdfDocument.Create(
-            compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Protected local content"))))),
+            compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Protected local content"))))),
             new PdfCreateOptions().SetEncryption("open", "owner"))
             .ToBytes();
         await File.WriteAllBytesAsync(path, encrypted);
@@ -901,7 +921,7 @@ public sealed class OfficeWorkflowRunnerTests {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "tagged.pdf");
         byte[] tagged = PdfDocument.Create(
-            compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Tagged document"))))),
+            compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Tagged document"))))),
             new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-US"))
             .ToBytes();
         await File.WriteAllBytesAsync(path, tagged);
@@ -919,7 +939,7 @@ public sealed class OfficeWorkflowRunnerTests {
     public async Task SignedRewriteFailureLeavesExistingDestinationUntouched() {
         using var scope = new TestDirectory();
         string path = System.IO.Path.Combine(scope.Path, "signed.pdf");
-        byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Signed source")))))).ToBytes();
+        byte[] unsigned = PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Signed source")))))).ToBytes();
         PdfExternalSignaturePreparation preparation = PdfDocument.Load(unsigned).Security.PrepareExternalSignature(
             new PdfExternalSignatureOptions { FieldName = "Approval", ReservedSignatureContentsBytes = 512 });
         byte[] signed = preparation.Complete([0x30, 0x01, 0x00]).ToBytes();
@@ -1007,13 +1027,13 @@ public sealed class OfficeWorkflowRunnerTests {
         await File.WriteAllBytesAsync(
             left,
             PdfDocument.Create(
-                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Comparable content"))))),
                 new PdfCreateOptions().SetEncryption("left-open", "left-owner"))
                 .ToBytes());
         await File.WriteAllBytesAsync(
             right,
             PdfDocument.Create(
-                compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Comparable content"))))),
+                compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Comparable content"))))),
                 new PdfCreateOptions().SetEncryption("right-open", "right-owner"))
                 .ToBytes());
 
@@ -1081,7 +1101,7 @@ public sealed class OfficeWorkflowRunnerTests {
             case "xlsx-pdf": {
                 string path = System.IO.Path.Combine(root, "source.xlsx");
                 using ExcelDocument document = ExcelDocument.Create(path);
-                document.AddSheet("Data").Cell(1, 1, "OfficeIMO workflow Excel source");
+                document.AddSheet("Data").Cell(1, 1).SetValue("OfficeIMO workflow Excel source");
                 document.Save();
                 return path;
             }
@@ -1104,7 +1124,7 @@ public sealed class OfficeWorkflowRunnerTests {
 
     private static string CreatePdf(string root, string fileName, string text = "OfficeIMO workflow PDF source") {
         string path = System.IO.Path.Combine(root, fileName);
-        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text)))))).Save(path);
+        PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text)))))).Save(path);
         return path;
     }
 

@@ -27,7 +27,7 @@ public class PdfStandardsIdentificationTests {
     public void UseHelpersEnableStrictGateAndValidateBothClaims() {
         PdfCreateOptions options = FontOptions().UsePdfA(PdfComplianceProfile.PdfA2B).UsePdfUa();
         Assert.Equal(PdfComplianceProfile.PdfA2B, options.ComplianceProfile);
-        Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("No UA title")).ToBytes());
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Create(options).Paragraph(p => p.AddText("No UA title")).ToBytes());
         Assert.NotEmpty(Document(options).ToBytes());
         PdfCreateOptions groundwork = FontOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA2B).ConfigurePdfUaGroundwork();
         Assert.Equal(PdfComplianceProfile.None, groundwork.ComplianceProfile);
@@ -52,7 +52,7 @@ public class PdfStandardsIdentificationTests {
     private static PdfCreateOptions FontOptions() => new PdfCreateOptions().UseFontFamily("Carlito", PdfComplianceTestFonts.FindBundledTrueTypeFont()!);
     private static PdfDocument Document(PdfCreateOptions options) => PdfDocument.Create(options)
         .Meta(title: "Standards sample", author: "OfficeIMO")
-        .Paragraph(p => p.Text("Accessible archival text: café, Zażółć."));
+        .Paragraph(p => p.AddText("Accessible archival text: café, Zażółć."));
     private static int Find(byte[] data, byte[] marker) {
         for (int i = 0; i <= data.Length - marker.Length; i++) {
             int j = 0;

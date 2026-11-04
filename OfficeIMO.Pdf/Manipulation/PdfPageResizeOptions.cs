@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Configures page size normalization for existing PDF pages.
 /// </summary>
-public sealed class PdfPageResizeOptions {
+public sealed class PdfPageResizeOptions : IPdfOperationCancellation {
     /// <summary>
     /// Creates resize options for the supplied target page size.
     /// </summary>
@@ -16,8 +16,12 @@ public sealed class PdfPageResizeOptions {
         PageSize = pageSize;
     }
 
-    /// <summary>Observes cancellation during parsing, page transforms, and rewriting.</summary>
-    public CancellationToken CancellationToken { get; set; }
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Target page size in PDF points.</summary>
     public PdfPageSize PageSize { get; set; }

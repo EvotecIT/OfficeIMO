@@ -120,14 +120,14 @@ internal static partial class PdfWriter {
         double x,
         PdfCreateOptions options,
         double? lineBoxWidth,
-        PdfAlign align) {
+        OfficeAlignment align) {
         for (int lineIndex = 0; lineIndex < lines.Count; lineIndex++) {
             System.Collections.Generic.IReadOnlyList<PdfTextRun> line = lines[lineIndex];
             double lineWidth = MeasurePageTextLineRuns(line, baseFont, defaultFontSize, options);
             double dx = lineBoxWidth.HasValue
-                ? align == PdfAlign.Center
+                ? align == OfficeAlignment.Center
                     ? Math.Max(0D, (lineBoxWidth.Value - lineWidth) / 2D)
-                    : align == PdfAlign.Right
+                    : align == OfficeAlignment.Right
                         ? Math.Max(0D, lineBoxWidth.Value - lineWidth)
                         : 0D
                 : 0D;

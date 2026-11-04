@@ -11,17 +11,17 @@ Previews explicit or text-matched PDF redaction areas before content is removed.
 ## SYNTAX
 ### Rectangle (Default)
 ```powershell
-Get-OfficePdfRedactionPlan [-Path] <string> -PageNumber <int> -X <double> -Y <double> -Width <double> -Height <double> [-Label <string>] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfRedactionPlan [-Path] <string> -PageNumber <int> -X <double> -Y <double> -Width <double> -Height <double> [-Label <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ### Area
 ```powershell
-Get-OfficePdfRedactionPlan [-Path] <string> -Area <PdfRedactionArea[]> [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfRedactionPlan [-Path] <string> -Area <PdfRedactionArea[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Get-OfficePdfRedactionPlan [-Path] <string> -Text <string[]> [-MatchCase] [-Password <string>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfRedactionPlan [-Path] <string> -Text <string[]> [-MatchCase] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -145,7 +145,7 @@ Accept wildcard characters: False
 Password used to read a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Rectangle, Area, Text
 Aliases: None
 Possible values:

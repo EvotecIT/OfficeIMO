@@ -10,10 +10,10 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_OrdinaryRunningStoryAdmissionPreservesCollapsedSpacingAndHiddenMarks(bool hiddenMarks) {
         using WordDocument document = CreateJoinedParagraphDocument();
-        document.Sections[0].PageSettings.PageSize = WordPageSize.Letter;
-        document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        document.Sections[0].PageSetup.Size.PageSize = WordPageSize.Letter;
+        document.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
         document.AddParagraph("BODY");
-        WordHeaderFooter story = document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = document.PageSetup.Header;
         int count = hiddenMarks ? 100 : 4;
         for (int index = 0; index < count; index++) {
             WordParagraph paragraph = story.AddParagraph("ALPHA ");
@@ -22,7 +22,7 @@ public partial class Word {
             if (hiddenMarks && index + 1 < count) HideJoinMark(paragraph, true);
         }
         using var near = OpenJoinedParagraphPdf(document);
-        document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(54D);
+        document.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(54D);
         using var far = OpenJoinedParagraphPdf(document);
         Assert.Equal(1, near.NumberOfPages);
         Assert.Equal(1, far.NumberOfPages);
@@ -61,11 +61,11 @@ public partial class Word {
         using WordDocument source = CreateJoinedParagraphDocument();
         W.PageSize size = source.Sections[0]._sectionProperties.GetFirstChild<W.PageSize>()!;
         size.Width = 5200U; size.Height = 6000U;
-        source.Sections[0].Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
-        source.Sections[0].Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
-        source.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
-        source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
-        foreach (WordHeaderFooter story in new WordHeaderFooter[] { source.HeaderDefaultOrCreate, source.FooterDefaultOrCreate })
+        source.Sections[0].PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points(72D);
+        source.Sections[0].PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(72D);
+        source.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        foreach (WordHeaderFooter story in new WordHeaderFooter[] { source.PageSetup.Header, source.PageSetup.Footer })
             for (int index = 0; index < 3; index++)
                 story.AddParagraph("STORY")._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                     Before = "0", After = "0", Line = "640", LineRule = W.LineSpacingRuleValues.Exact });
@@ -98,17 +98,17 @@ public partial class Word {
     public void SaveAsPdf_OrdinaryRunningStoriesPreserveSourceDistanceAndExactParagraphSpacing(bool footer, bool nativeDoc) {
         using WordDocument source = CreateJoinedParagraphDocument();
         source.AddParagraph("BODY");
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         foreach (string text in new[] { "ALPHA", "BETA" })
             story.AddParagraph(text)._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
                 Before = "120", After = "60", Line = "400", LineRule = W.LineSpacingRuleValues.Exact });
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
-        document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
-        document.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
-        string before = (footer ? document.Footer.Default : (WordHeaderFooter)document.Header.Default).ChildElements.First().Parent!.OuterXml;
+        document.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        document.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(18D);
+        string before = (footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : (WordHeaderFooter)document.PageSetup.GetHeader(WordHeaderFooterType.Default)).ChildElements.First().Parent!.OuterXml;
         using var near = OpenJoinedParagraphPdf(document);
-        document.Sections[0].Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(54D);
-        document.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(54D);
+        document.Sections[0].PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points(54D);
+        document.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(54D);
         using var far = OpenJoinedParagraphPdf(document);
         foreach (var pdf in new[] { near, far }) {
             Assert.Equal(1, pdf.NumberOfPages);
@@ -120,7 +120,7 @@ public partial class Word {
         double nearY = near.GetPage(1).GetWords().Single(word => word.Text == "ALPHA").Letters[0].StartBaseLine.Y;
         double farY = far.GetPage(1).GetWords().Single(word => word.Text == "ALPHA").Letters[0].StartBaseLine.Y;
         Assert.InRange(farY - nearY, footer ? 35.999D : -36.001D, footer ? 36.001D : -35.999D);
-        Assert.Equal(before, (footer ? document.Footer.Default : (WordHeaderFooter)document.Header.Default).ChildElements.First().Parent!.OuterXml);
+        Assert.Equal(before, (footer ? document.PageSetup.GetFooter(WordHeaderFooterType.Default) : (WordHeaderFooter)document.PageSetup.GetHeader(WordHeaderFooterType.Default)).ChildElements.First().Parent!.OuterXml);
     }
 
     [Theory]
@@ -129,7 +129,7 @@ public partial class Word {
     public void SaveAsPdf_OrdinaryRunningStoryRetainsInitialBeforeSpacing(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.AddParagraph("BODY");
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph paragraph = story.AddParagraph("ALPHA");
         paragraph._paragraph.ParagraphProperties = new W.ParagraphProperties(new W.SpacingBetweenLines {
             Before = "0", After = "0", Line = "400", LineRule = W.LineSpacingRuleValues.Exact });
@@ -147,11 +147,11 @@ public partial class Word {
     public void SaveAsPdf_OrdinaryRunningStoryVariantsUseExplicitCenterAndRightTabs(bool footer) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.Sections[0]._sectionProperties.GetFirstChild<W.PageSize>()!.Width = 12240U;
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
-        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D);
+        document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         WordHeaderFooter[] stories = footer
-            ? new WordHeaderFooter[] { document.FooterFirstOrCreate, document.FooterEvenOrCreate, document.FooterDefaultOrCreate }
-            : new WordHeaderFooter[] { document.HeaderFirstOrCreate, document.HeaderEvenOrCreate, document.HeaderDefaultOrCreate };
+            ? new WordHeaderFooter[] { document.PageSetup.FirstPageFooter, document.PageSetup.EvenPageFooter, document.PageSetup.Footer }
+            : new WordHeaderFooter[] { document.PageSetup.FirstPageHeader, document.PageSetup.EvenPageHeader, document.PageSetup.Header };
         string[] labels = { "First", "Even", "Default" };
         for (int index = 0; index < stories.Length; index++) {
             WordParagraph paragraph = stories[index].AddParagraph(labels[index]);

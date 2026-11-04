@@ -32,7 +32,7 @@ public sealed class AddOfficePdfParagraphCommand : PSCmdlet
 
     /// <summary>Paragraph alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Optional text color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
@@ -48,7 +48,7 @@ public sealed class AddOfficePdfParagraphCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument,
-            content => content.Paragraph(p => p.Text(Text), Align, PdfCommandUtilities.ParseColor(Color)));
+            content => content.AddParagraph(p => p.AddText(Text), Align, PdfCommandUtilities.ParseColor(Color)));
         if (PassThru.IsPresent && document != null)
         {
             WriteObject(document);

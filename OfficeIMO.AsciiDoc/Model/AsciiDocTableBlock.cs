@@ -40,7 +40,7 @@ public sealed class AsciiDocTableBlock : AsciiDocDelimitedBlock {
             if (string.Equals(Content, replacement, StringComparison.Ordinal)) return;
             AsciiDocParser.ValidateOptions(replacement, _tableOptions);
             var factory = new AsciiDocSyntaxFactory(new AsciiDocSourceText(replacement), default, _tableOptions);
-            var configuration = AsciiDocTableConfiguration.Create(Delimiter, AttributeLists, _tableOptions.MaximumTableColumnCount);
+            var configuration = AsciiDocTableConfiguration.Create(Delimiter, AttributeLists, _tableOptions.MaxTableColumnCount);
             AsciiDocTable parsed = AsciiDocTableParser.Parse(factory, 0, replacement.Length, configuration).Table;
             foreach (AsciiDocTableCell cell in parsed.Cells) cell.SetBodyOptions(_tableOptions);
             base.Content = replacement;

@@ -19,10 +19,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
                 sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
@@ -74,12 +74,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.NumericHeaders.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Product");
-                sheet.CellValue(1, 2, 2024d);
-                sheet.CellValue(1, 3, 2025d);
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 100d);
-                sheet.CellValue(2, 3, 120d);
+                sheet.Cell(1, 1).SetValue("Product");
+                sheet.Cell(1, 2).SetValue(2024d);
+                sheet.Cell(1, 3).SetValue(2025d);
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(100d);
+                sheet.Cell(2, 3).SetValue(120d);
                 sheet.AddTable("A1:C2", true, "RevenueTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
@@ -108,10 +108,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.NoHeader.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Product");
-                sheet.CellValue(1, 2, 2024d);
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 100d);
+                sheet.Cell(1, 1).SetValue("Product");
+                sheet.Cell(1, 2).SetValue(2024d);
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(100d);
                 sheet.AddTable("A1:B2", false, "RevenueTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
@@ -133,8 +133,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.MissingCells.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
                 sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }
@@ -154,12 +154,12 @@ namespace OfficeIMO.Tests {
                 var sheet = document.AddSheet("Data");
                 for (int i = 0; i < 5; i++) {
                     int rowStart = 1 + i * 3;
-                    sheet.CellValue(rowStart, 1, "Name");
-                    sheet.CellValue(rowStart, 2, "Value");
-                    sheet.CellValue(rowStart + 1, 1, "A");
-                    sheet.CellValue(rowStart + 1, 2, 1d);
-                    sheet.CellValue(rowStart + 2, 1, "B");
-                    sheet.CellValue(rowStart + 2, 2, 2d);
+                    sheet.Cell(rowStart, 1).SetValue("Name");
+                    sheet.Cell(rowStart, 2).SetValue("Value");
+                    sheet.Cell(rowStart + 1, 1).SetValue("A");
+                    sheet.Cell(rowStart + 1, 2).SetValue(1d);
+                    sheet.Cell(rowStart + 2, 1).SetValue("B");
+                    sheet.Cell(rowStart + 2, 2).SetValue(2d);
                 }
 
                 var start = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -188,12 +188,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Overlap.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 1d);
-                sheet.CellValue(3, 1, "B");
-                sheet.CellValue(3, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(1d);
+                sheet.Cell(3, 1).SetValue("B");
+                sheet.Cell(3, 2).SetValue(2d);
                 sheet.AddTable("A1:B3", true, "Table1", ExcelTableStyle.TableStyleMedium9);
 
                 Assert.Throws<InvalidOperationException>(() =>
@@ -228,10 +228,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsCaseInsensitive.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(2d);
                 sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 sheet.SetTableTotals("A1:B2", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["name"] = ExcelTableTotalsFunction.Count,
@@ -258,12 +258,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsMixedCase.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "nAmE");
-                sheet.CellValue(1, 2, "AMOUNT");
-                sheet.CellValue(1, 3, "balance");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 2d);
-                sheet.CellValue(2, 3, 3d);
+                sheet.Cell(1, 1).SetValue("nAmE");
+                sheet.Cell(1, 2).SetValue("AMOUNT");
+                sheet.Cell(1, 3).SetValue("balance");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(2d);
+                sheet.Cell(2, 3).SetValue(3d);
                 sheet.AddTable("A1:C2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 sheet.SetTableTotals("A1:C2", new Dictionary<string, ExcelTableTotalsFunction> {
                     ["NAME"] = ExcelTableTotalsFunction.Count,
@@ -292,10 +292,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsByName.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(2d);
                 sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
 
                 sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
@@ -323,10 +323,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.TotalsRestore.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(2d);
                 sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
 
                 sheet.SetTableTotalsByName("SalesTable", new Dictionary<string, ExcelTableTotalsFunction> {
@@ -358,10 +358,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.StyleByName.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(2d);
                 sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
 
                 sheet.SetTableStyle(
@@ -392,10 +392,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.StyleBeforeExtensionList.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "A");
-                sheet.CellValue(2, 2, 2d);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("A");
+                sheet.Cell(2, 2).SetValue(2d);
                 sheet.AddTable("A1:B2", true, "SalesTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();
             }

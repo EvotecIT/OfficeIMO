@@ -21,11 +21,11 @@ public partial class Word {
         using var bytes = new MemoryStream(document.ToBytes());
         using WordDocument reopened = WordDocument.Load(bytes);
         Assert.Equal(new[] { "UPDATED LABEL", "Edited title", "Edited subtitle" }, reopened.Paragraphs.Select(p => p.Text));
-        Assert.Contains(reopened.HeaderDefaultOrCreate.Paragraphs, p => p.Text == "Default running title");
-        Assert.Contains(reopened.HeaderEvenOrCreate.Paragraphs, p => p.Text == "Even running title");
-        Assert.Contains(reopened.FooterDefaultOrCreate.Paragraphs, p => p.Text.Contains("Default footer suffix"));
-        Assert.Contains(reopened.FooterEvenOrCreate.Paragraphs, p => p.Text.Contains("Even footer suffix"));
-        Assert.True(reopened.DifferentOddAndEvenPages);
+        Assert.Contains(reopened.PageSetup.Header.Paragraphs, p => p.Text == "Default running title");
+        Assert.Contains(reopened.PageSetup.EvenPageHeader.Paragraphs, p => p.Text == "Even running title");
+        Assert.Contains(reopened.PageSetup.Footer.Paragraphs, p => p.Text.Contains("Default footer suffix"));
+        Assert.Contains(reopened.PageSetup.EvenPageFooter.Paragraphs, p => p.Text.Contains("Even footer suffix"));
+        Assert.True(reopened.PageSetup.DifferentOddAndEvenPages);
         Assert.Empty(reopened.ValidateDocument());
     }
 }

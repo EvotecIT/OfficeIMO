@@ -154,40 +154,25 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
-    /// Gets or sets the color of the numbering symbols.
+    /// Gets or sets the color of the numbering symbols. Setting <see langword="null"/> removes the color.
     /// </summary>
     public OfficeIMO.OfficeColor? Color {
         get {
-            return OfficeIMO.OfficeColor.TryParse(ColorHex, out var color) ? color : null;
-        }
-        set {
-            if (value != null) {
-                this.ColorHex = value.Value.ToRgbHex();
-            } else {
-                this.ColorHex = "";
-            }
-        }
-    }
-
-    /// <summary>
-    /// Gets or sets the hexadecimal color value of the numbering symbols.
-    /// </summary>
-    public string ColorHex {
-        get {
-            return (GetNumberingProperty<string>(props => {
+            string value = (GetNumberingProperty<string>(props => {
                 var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
                 return color?.Val ?? string.Empty;
             }, string.Empty)) ?? string.Empty;
+            return OfficeIMO.OfficeColor.TryParse(value, out var parsed) ? parsed : null;
         }
         set {
             SetNumberingProperty(props => {
                 props.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.Color>();
-                if (!string.IsNullOrEmpty(value)) {
+                if (value.HasValue) {
                     props.Append(new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        Val = value.Replace("#", "").ToUpperInvariant()
+                        Val = value.Value.ToRgbHex()
                     });
                 }
-            }, !string.IsNullOrEmpty(value));
+            }, value.HasValue);
         }
     }
 
@@ -247,11 +232,14 @@ public partial class WordList : WordElement {
     }
 
     /// <summary>
-    /// Gets or sets the font name of the numbering symbols.
+    /// Gets or sets the font family of the numbering symbols; <see langword="null"/> when none is set.
     /// </summary>
-    public string FontName {
-        get => (GetNumberingProperty<string>(props =>
-            props.Elements<RunFonts>().FirstOrDefault()?.Ascii, string.Empty)) ?? string.Empty;
+    public string? FontFamily {
+        get {
+            string? value = GetNumberingProperty<string>(props =>
+                props.Elements<RunFonts>().FirstOrDefault()?.Ascii, string.Empty);
+            return string.IsNullOrEmpty(value) ? null : value;
+        }
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<RunFonts>();
             if (!string.IsNullOrEmpty(value)) {

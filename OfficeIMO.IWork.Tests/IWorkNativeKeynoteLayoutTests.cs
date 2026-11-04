@@ -11,8 +11,7 @@ public sealed class IWorkNativeKeynoteLayoutTests {
 
     [Fact]
     public void Native_uuid_and_next_slide_links_survive_default_editable_conversion_and_save_reopen() {
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(
-            Corpus("native-exports/keynote-slide-links-v15.4.key"));
+        using var result = IWorkSourceDocument.Open(Corpus("native-exports/keynote-slide-links-v15.4.key"), IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(3, result.Value.Slides.Count);
         IWorkTextBox[] sourceBoxes = result.Projection.Slides[0].TextBoxes.ToArray();
@@ -38,7 +37,7 @@ public sealed class IWorkNativeKeynoteLayoutTests {
         SlidePart referenceSlide = apple.PresentationPart!.SlideParts.Single(part =>
             part.Slide!.InnerText.Contains("hello keynote"));
         var referenceShapes = referenceSlide.Slide!.CommonSlideData!.ShapeTree!.Elements<P.Shape>().ToArray();
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Corpus("nim-iwork/simple.key"));
+        using var result = IWorkSourceDocument.Open(Corpus("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.Report.RequireCompleteEditableReconstruction();
         var sourceSlide = result.Projection.Slides[0];
         Assert.NotNull(sourceSlide.TitleBox!.Geometry);

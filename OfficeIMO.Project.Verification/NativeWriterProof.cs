@@ -33,7 +33,7 @@ internal static class NativeWriterProof {
             var exception = calendar.Exceptions.Add(); exception.Name = "Maintenance"; exception.FromDate = new DateTime(2026, 10, 12); exception.ToDate = exception.FromDate; exception.IsWorking = false;
             var week = calendar.WorkWeeks.Add(); week.Name = "Four day week"; week.FromDate = new DateTime(2026, 10, 19); week.ToDate = new DateTime(2026, 10, 23); week.SetWorkingDay(DayOfWeek.Friday);
         }
-        var options = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, AllowLoss = true };
         foreach (var diagnostic in document.AssessSave(output, options).Diagnostics) Console.WriteLine(diagnostic.Code + " " + diagnostic.Location + " " + diagnostic.Message);
         document.Save(output, options);
         using var read = ProjectDocument.Load(output);

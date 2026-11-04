@@ -12,12 +12,12 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Hello World");
                 document.AddParagraph("hello world");
 
-                var replacedCount = document.FindAndReplace("Hello World", "Bye", StringComparison.Ordinal);
+                var replacedCount = document.ReplaceAll("Hello World", "Bye", new OfficeTextSearchOptions { MatchCase = true });
                 Assert.Equal(1, replacedCount);
                 Assert.Equal("Bye", document.Paragraphs[0].Text);
                 Assert.Equal("hello world", document.Paragraphs[1].Text);
 
-                replacedCount = document.FindAndReplace("hello world", "Bye", StringComparison.OrdinalIgnoreCase);
+                replacedCount = document.ReplaceAll("hello world", "Bye");
                 Assert.Equal(1, replacedCount);
 
                 Assert.Equal("Bye", document.Paragraphs[1].Text);

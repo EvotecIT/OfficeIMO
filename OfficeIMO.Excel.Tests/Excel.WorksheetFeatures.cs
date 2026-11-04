@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Comments");
-                sheet.CellValue(1, 1, "Header");
+                sheet.Cell(1, 1).SetValue("Header");
                 sheet.SetComment(1, 1, "First comment", author: "Tester", initials: "TT");
                 Assert.True(sheet.HasComment(1, 1));
                 document.Save();
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Comments");
-                sheet.CellValue(1, 1, "Header");
+                sheet.Cell(1, 1).SetValue("Header");
                 sheet.SetComment(1, 1, "Line 1\nLine 2", author: "Tester", initials: "TT");
                 document.Save();
             }
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Threaded");
-                sheet.CellValue(1, 1, "Revenue");
+                sheet.Cell(1, 1).SetValue("Revenue");
                 document.Save();
             }
 
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Sparklines");
                 for (int i = 0; i < 6; i++)
                 {
-                    sheet.CellValue(2, 2 + i, (double)(i + 1));
+                    sheet.Cell(2, 2 + i).SetValue((double)(i + 1));
                 }
 
                 sheet.AddSparklines("B2:G2", "H2:H2", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Sparklines");
                 for (int i = 0; i < 6; i++)
                 {
-                    sheet.CellValue(2, 2 + i, (double)(i + 1));
+                    sheet.Cell(2, 2 + i).SetValue((double)(i + 1));
                 }
 
                 sheet.AddSparklines("B2:G2", "H2:H2", ExcelSparklineType.Column, displayMarkers: true, displayHighLow: true, displayAxis: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("4472C4"));
@@ -418,8 +418,8 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Sparklines");
                 for (int row = 2; row <= 4; row++)
                 {
-                    sheet.CellValue(row, 3, (double)row);
-                    sheet.CellValue(row, 4, (double)(row + 10));
+                    sheet.Cell(row, 3).SetValue((double)row);
+                    sheet.Cell(row, 4).SetValue((double)(row + 10));
                 }
 
                 sheet.AddSparklines("C2:D4", "E2:E4", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
@@ -453,8 +453,8 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Sparklines");
                 for (int row = 2; row <= 4; row++)
                 {
-                    sheet.CellValue(row, 3, (double)row);
-                    sheet.CellValue(row, 4, (double)(row + 10));
+                    sheet.Cell(row, 3).SetValue((double)row);
+                    sheet.Cell(row, 4).SetValue((double)(row + 10));
                 }
 
                 sheet.AddSparklines("C2:D4", "C5:D5", displayMarkers: true, seriesColor: OfficeIMO.OfficeColor.ParseHex("#FF0000"));
@@ -497,8 +497,8 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Gridlines");
-                sheet.CellValue(1, 1, "Header");
-                sheet.SetGridlinesVisible(false);
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.View.ShowGridlines = false;
                 document.Save();
             }
 
@@ -513,7 +513,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                sheet.SetGridlinesVisible(true);
+                sheet.View.ShowGridlines = true;
                 document.Save();
             }
 
@@ -533,9 +533,9 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("RTL");
-                sheet.CellValue(1, 1, "RTL");
-                sheet.SetRightToLeft(true);
-                Assert.True(sheet.RightToLeft);
+                sheet.Cell(1, 1).SetValue("RTL");
+                sheet.View.RightToLeft = true;
+                Assert.True(sheet.View.RightToLeft);
                 document.Save();
             }
 
@@ -551,9 +551,9 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First();
-                Assert.True(sheet.RightToLeft);
-                sheet.SetRightToLeft(false);
-                Assert.False(sheet.RightToLeft);
+                Assert.True(sheet.View.RightToLeft);
+                sheet.View.RightToLeft = false;
+                Assert.False(sheet.View.RightToLeft);
                 document.Save();
             }
 
@@ -574,7 +574,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Rows");
-                sheet.CellValue(1, 1, "Default height");
+                sheet.Cell(1, 1).SetValue("Default height");
                 sheet.SetDefaultRowHeight(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)));
                 sheet.SetDefaultColumnWidth(ExcelColumnWidth.Characters(12.25d));
                 Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), sheet.DefaultRowHeight);
@@ -628,7 +628,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Outlines");
-                sheet.CellValue(1, 1, "Grouped");
+                sheet.Cell(1, 1).SetValue("Grouped");
                 sheet.SetRowOutline(3, 2, collapsed: true);
                 sheet.SetColumnOutline(2, 1, collapsed: true);
                 document.Save();
@@ -673,7 +673,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Colored");
-                sheet.CellValue(1, 1, "Header");
+                sheet.Cell(1, 1).SetValue("Header");
                 sheet.SetTabColor("#336699");
                 document.Save();
             }
@@ -707,7 +707,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Internal");
-                sheet.CellValue(1, 1, "Hidden");
+                sheet.Cell(1, 1).SetValue("Hidden");
                 sheet.SetVeryHidden(true);
                 Assert.True(sheet.Hidden);
                 Assert.True(sheet.VeryHidden);
@@ -745,15 +745,15 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("View");
-                sheet.CellValue(1, 1, "Header");
-                sheet.Freeze(2, 1);
-                sheet.SetGridlinesVisible(false);
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.View.Freeze(2, 1);
+                sheet.View.ShowGridlines = false;
                 document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets.First();
-                ExcelWorksheetViewInfo view = sheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = sheet.View.Inspect();
 
                 Assert.True(view.HasPane);
                 Assert.Equal("frozen", view.PaneState);
@@ -774,8 +774,12 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("View");
-                sheet.CellValue(1, 1, "Header");
-                sheet.SetViewOptions(showGridlines: false, rightToLeft: true, zoomScale: 125, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.View.ShowGridlines = false;
+                sheet.View.RightToLeft = true;
+                sheet.View.ZoomScale = 125;
+                sheet.View.ZoomScaleNormal = 100;
+                sheet.View.Kind = ExcelWorksheetViewKind.PageLayout;
                 document.Save();
             }
 
@@ -791,7 +795,7 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 var sheet = document.Sheets.First();
-                ExcelWorksheetViewInfo view = sheet.GetViewInfo();
+                ExcelWorksheetViewInfo view = sheet.View.Inspect();
                 Assert.False(view.ShowGridlines);
                 Assert.True(view.RightToLeft);
                 Assert.Equal(125U, view.ZoomScale);
@@ -814,8 +818,9 @@ namespace OfficeIMO.Tests
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             })) {
                 var sheet = document.AddSheet("View");
-                sheet.CellValue(1, 1, "Header");
-                sheet.SetViewOptions(showGridlines: false, rightToLeft: true);
+                sheet.Cell(1, 1).SetValue("Header");
+                sheet.View.ShowGridlines = false;
+                sheet.View.RightToLeft = true;
             }
 
             stream.Position = 0;
@@ -832,11 +837,11 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var summary = document.AddSheet("Summary");
-                summary.CellValue(1, 1, "Summary");
+                summary.Cell(1, 1).SetValue("Summary");
                 var details = document.AddSheet("Details");
-                details.CellValue(1, 1, "Details");
+                details.Cell(1, 1).SetValue("Details");
                 var archive = document.AddSheet("Archive");
-                archive.CellValue(1, 1, "Archive");
+                archive.Cell(1, 1).SetValue("Archive");
                 Assert.Equal(0, document.ActiveWorksheetIndex);
                 Assert.Equal("Summary", document.ActiveWorksheet!.Name);
                 document.SetActiveWorksheet(details);
@@ -884,9 +889,9 @@ namespace OfficeIMO.Tests
         public void Test_WorkbookActiveWorksheetReadsStoredActiveTab(uint? activeTab, int expectedIndex, string expectedName) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                document.AddSheet("First").CellValue(1, 1, "First");
-                document.AddSheet("Second").CellValue(1, 1, "Second");
-                document.AddSheet("Third").CellValue(1, 1, "Third");
+                document.AddSheet("First").Cell(1, 1).SetValue("First");
+                document.AddSheet("Second").Cell(1, 1).SetValue("Second");
+                document.AddSheet("Third").Cell(1, 1).SetValue("Third");
                 document.Save(stream);
             }
 
@@ -925,9 +930,9 @@ namespace OfficeIMO.Tests
         public void Test_WorkbookActiveWorksheetResolvesMixedWorkbookTabs(bool cacheSheets, uint? activeTab, int expectedIndex, string? expectedName) {
             using var stream = new MemoryStream();
             using (var document = ExcelDocument.Create()) {
-                document.AddSheet("First").CellValue(1, 1, "First value");
-                document.AddSheet("Second").CellValue(1, 1, "Second value");
-                document.AddSheet("Third").CellValue(1, 1, "Third value");
+                document.AddSheet("First").Cell(1, 1).SetValue("First value");
+                document.AddSheet("Second").Cell(1, 1).SetValue("Second value");
+                document.AddSheet("Third").Cell(1, 1).SetValue("Third value");
                 document.Save(stream);
             }
 
@@ -967,13 +972,13 @@ namespace OfficeIMO.Tests
             Assert.Equal(expectedIndex, loaded.ActiveWorksheetIndex);
             Assert.Equal(expectedName, loaded.ActiveWorksheet?.Name);
             if (expectedName != null) {
-                Assert.Equal(expectedName + " value", loaded.ActiveWorksheet!.CellAt(1, 1).GetValue<string>());
+                Assert.Equal(expectedName + " value", loaded.ActiveWorksheet!.Cell(1, 1).GetValue<string>());
             }
 
             loaded.SetActiveWorksheet("Second");
             Assert.Equal(1, loaded.ActiveWorksheetIndex);
             Assert.Equal("Second", loaded.ActiveWorksheet!.Name);
-            Assert.Equal("Second value", loaded.ActiveWorksheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Second value", loaded.ActiveWorksheet.Cell(1, 1).GetValue<string>());
             using var saved = new MemoryStream();
             loaded.Save(saved);
             saved.Position = 0;
@@ -981,7 +986,7 @@ namespace OfficeIMO.Tests
             Assert.Empty(reloaded.ValidateOpenXml());
             Assert.Equal(1, reloaded.ActiveWorksheetIndex);
             Assert.Equal("Second", reloaded.ActiveWorksheet!.Name);
-            Assert.Equal("Second value", reloaded.ActiveWorksheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Second value", reloaded.ActiveWorksheet.Cell(1, 1).GetValue<string>());
             Assert.Single(reloaded.OpenXmlDocument.WorkbookPart!.ChartsheetParts);
             Assert.Equal(2U, reloaded.OpenXmlDocument.WorkbookPart.Workbook
                 .GetFirstChild<BookViews>()!.GetFirstChild<WorkbookView>()!.ActiveTab!.Value);
@@ -993,11 +998,11 @@ namespace OfficeIMO.Tests
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Outline");
-                sheet.CellValue(1, 1, "Region");
-                sheet.CellValue(2, 1, "North");
-                sheet.CellValue(3, 1, "South");
-                sheet.CellValue(1, 2, "Q1");
-                sheet.CellValue(1, 3, "Q2");
+                sheet.Cell(1, 1).SetValue("Region");
+                sheet.Cell(2, 1).SetValue("North");
+                sheet.Cell(3, 1).SetValue("South");
+                sheet.Cell(1, 2).SetValue("Q1");
+                sheet.Cell(1, 3).SetValue("Q2");
 
                 sheet.SetOutlineSummary(summaryBelow: true, summaryRight: true);
                 sheet.GroupRows(2, 3, outlineLevel: 1, collapsed: true);

@@ -15,8 +15,8 @@ public class AdvancedDocumentTests {
     public async Task AdvancedWordCreate() {
         using var document = WordDocument.Create();
         // lets add some properties to the document
-        document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-        document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+        document.Properties.Title = "Cover Page Templates";
+        document.Properties.Subject = "How to use Cover Pages with TOC";
         document.ApplicationProperties.Company = "Evotec Services";
 
         // we force document to update fields on open, this will be used by TOC
@@ -80,35 +80,26 @@ public class AdvancedDocumentTests {
         listNumbered.AddItem("Different list number 4", 1);
 
         var section = document.AddSection();
-        section.PageOrientation = OfficePageOrientation.Landscape;
-        section.PageSettings.PageSize = WordPageSize.A4;
+        section.PageSetup.Orientation = OfficePageOrientation.Landscape;
+        section.PageSetup.Size.PageSize = WordPageSize.A4;
 
         wordListToc.AddItem("Adding headers / footers");
 
-        // lets add headers and footers
-        document.AddHeadersAndFooters();
-
         // adding text to default header
-        var headers = document.Header;
-        Assert.NotNull(headers);
-        var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
-        defaultHeader.AddParagraph("Text added to header - Default");
+        document.PageSetup.Header.AddParagraph("Text added to header - Default");
 
         var section1 = document.AddSection();
-        section1.PageOrientation = OfficePageOrientation.Portrait;
-        section1.PageSettings.PageSize = WordPageSize.A5;
+        section1.PageSetup.Orientation = OfficePageOrientation.Portrait;
+        section1.PageSetup.Size.PageSize = WordPageSize.A5;
 
         wordListToc.AddItem("Adding custom properties and page numbers to document");
 
-        document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-        document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-        document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+        document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+        document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
+        document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
         // add page numbers
-        var footers = document.Footer;
-        Assert.NotNull(footers);
-        var defaultFooter = Assert.IsType<WordFooter>(footers.Default);
-        defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
+        document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
         // add watermark
         document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");

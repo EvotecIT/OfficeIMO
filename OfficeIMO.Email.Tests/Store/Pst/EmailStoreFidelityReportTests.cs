@@ -35,13 +35,13 @@ public sealed class EmailStoreFidelityReportTests {
             entries: Array.Empty<EmailStoreExportEntry>(),
             diagnostics: Array.Empty<EmailStoreDiagnostic>());
 
-        IOfficeConversionReport[] reports = { directory, mbox, recovery };
-        IReadOnlyList<OfficeConversionFidelityDiagnostic> flattened =
+        OfficeConversionReport[] reports = { directory, mbox, recovery };
+        IReadOnlyList<OfficeDiagnostic> flattened =
             OfficeConversionFidelityDiagnostics.Flatten(reports);
 
         Assert.All(reports, report => {
             Assert.True(report.HasLoss);
-            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
         });
         Assert.Contains(flattened, diagnostic =>
             diagnostic.Code == "EMAIL_STORE_TEST_EXPORT_SKIPPED" &&
@@ -80,10 +80,10 @@ public sealed class EmailStoreFidelityReportTests {
             entries: Array.Empty<EmailStoreExportEntry>(),
             diagnostics: Array.Empty<EmailStoreDiagnostic>());
 
-        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] { directory, mbox, recovery }) {
+        foreach (OfficeConversionReport report in new OfficeConversionReport[] { directory, mbox, recovery }) {
             Assert.False(report.HasLoss);
-            Assert.Empty(report.FidelityDiagnostics);
-            report.RequireNoLoss();
+            Assert.Empty(report.Diagnostics);
+            report.ThrowIfLoss();
         }
     }
 
@@ -105,11 +105,11 @@ public sealed class EmailStoreFidelityReportTests {
         var report = new EmailStorePstWriteReport(
             "destination.pst", 1, 1, 128, new[] { omitted });
 
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(report.FidelityDiagnostics);
+        OfficeDiagnostic diagnostic = Assert.Single(report.Diagnostics);
 
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
     }
 
     [Fact]
@@ -135,17 +135,17 @@ public sealed class EmailStoreFidelityReportTests {
         var report = new EmailStorePstWriteReport(
             "destination.pst", 1, 0, 0, new[] { skipped, failed });
 
-        IOfficeConversionReport common = report;
+        OfficeConversionReport common = report;
 
         Assert.True(report.HasDataLoss);
         Assert.True(common.HasLoss);
         Assert.Equal(OfficeConversionLossKind.Omission,
-            Assert.Single(common.FidelityDiagnostics,
+            Assert.Single(common.Diagnostics,
                 diagnostic => diagnostic.Code == "EMAIL_STORE_TEST_SKIPPED").LossKind);
         Assert.Equal(OfficeConversionLossKind.Failure,
-            Assert.Single(common.FidelityDiagnostics,
+            Assert.Single(common.Diagnostics,
                 diagnostic => diagnostic.Code == "EMAIL_STORE_TEST_FAILED").LossKind);
-        Assert.Throws<InvalidDataException>(common.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(common.ThrowIfLoss);
     }
 
     [Fact]
@@ -224,16 +224,16 @@ public sealed class EmailStoreFidelityReportTests {
             diagnostics: new[] { retained },
             diagnosticsTruncated: true);
 
-        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] {
+        foreach (OfficeConversionReport report in new OfficeConversionReport[] {
             write, conversion, mutation, split, merge
         }) {
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                report.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                report.Diagnostics,
                 item => item.Code == "EMAIL_STORE_PST_WRITE_DIAGNOSTICS_TRUNCATED");
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.Equal("destination.pst", diagnostic.Location);
             Assert.True(report.HasLoss);
-            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
         }
     }
 
@@ -254,14 +254,14 @@ public sealed class EmailStoreFidelityReportTests {
             sourceIdentity: identity,
             wasResumed: false);
 
-        IOfficeConversionReport common = report;
-        OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(common.FidelityDiagnostics);
+        OfficeConversionReport common = report;
+        OfficeDiagnostic diagnostic = Assert.Single(common.Diagnostics);
 
         Assert.Equal(EmailStoreMigrationDisposition.CompletedWithAcceptedLoss, report.Disposition);
         Assert.True(report.HasDataLoss);
         Assert.Equal("EMAIL_STORE_ITEMS_SKIPPED", diagnostic.Code);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
-        Assert.Throws<InvalidDataException>(common.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(common.ThrowIfLoss);
     }
 
     [Fact]
@@ -343,11 +343,11 @@ public sealed class EmailStoreFidelityReportTests {
             operationResults: Array.Empty<EmailStorePstMutationOperationResult>(),
             diagnostics: Array.Empty<EmailStoreDiagnostic>());
 
-        foreach (IOfficeConversionReport report in new IOfficeConversionReport[] { conversion, compaction, mutation }) {
+        foreach (OfficeConversionReport report in new OfficeConversionReport[] { conversion, compaction, mutation }) {
             Assert.True(report.HasLoss);
-            Assert.Contains(report.FidelityDiagnostics,
+            Assert.Contains(report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
-            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
         }
     }
 }

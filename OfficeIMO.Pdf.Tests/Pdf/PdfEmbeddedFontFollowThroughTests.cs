@@ -16,7 +16,7 @@ public class PdfEmbeddedFontFollowThroughTests {
     public void FilledValuesReuseTheInstalledFontBehindTheEmbeddedFormFont() {
         if (!DefaultBodyFontInstalled()) return;
         PdfDocument template = PdfDocument.Create(pdf => pdf.Content(content => {
-            content.Paragraph(p => p.Text("Inspector"));
+            content.AddParagraph(p => p.AddText("Inspector"));
             content.TextField("asset", width: OfficeLength.Points(200), value: "NW-42");
             content.TextField("inspector", width: OfficeLength.Points(200));
         }), new PdfCreateOptions { EmbedDefaultFonts = true });
@@ -50,22 +50,22 @@ public class PdfEmbeddedFontFollowThroughTests {
     }
 
     [Theory]
-    [InlineData(PdfAlign.Left)]
-    [InlineData(PdfAlign.Center)]
-    [InlineData(PdfAlign.Right)]
-    public void StampAlignmentAnchorsTheTextAtX(PdfAlign align) {
-        PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("Body"))));
+    [InlineData(OfficeAlignment.Left)]
+    [InlineData(OfficeAlignment.Center)]
+    [InlineData(OfficeAlignment.Right)]
+    public void StampAlignmentAnchorsTheTextAtX(OfficeAlignment align) {
+        PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.AddParagraph(p => p.AddText("Body"))));
         byte[] bytes = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(300), Y = OfficeLength.Points(36), Align = align, EmbedFont = false }).ToBytes();
 
         PdfTextSpan span = PdfReadDocument.Open(bytes).Pages[0].GetTextSpans().First(item => item.Text.Contains("Page"));
-        double expected = align == PdfAlign.Left ? span.X : align == PdfAlign.Center ? span.X + span.Advance / 2 : span.X + span.Advance;
+        double expected = align == OfficeAlignment.Left ? span.X : align == OfficeAlignment.Center ? span.X + span.Advance / 2 : span.X + span.Advance;
         Assert.InRange(expected, 299, 301);
     }
 
     [Fact]
     public void StampTextEmbedsTheDefaultBodyFontWhenRequested() {
         if (!DefaultBodyFontInstalled()) return;
-        PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("Body"))));
+        PdfDocument source = PdfDocument.Create(pdf => pdf.Content(content => content.AddParagraph(p => p.AddText("Body"))));
 
         byte[] embedded = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(72), Y = OfficeLength.Points(36), EmbedFont = true, Font = PdfStandardFont.Helvetica }).ToBytes();
         byte[] standard = source.Stamp.Text("Page 1 of 1", new PdfTextStampOptions { X = OfficeLength.Points(72), Y = OfficeLength.Points(36), EmbedFont = false, Font = PdfStandardFont.Helvetica }).ToBytes();

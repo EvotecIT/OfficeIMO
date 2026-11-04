@@ -53,11 +53,11 @@ internal static partial class PdfWriter {
                 : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.MarginLeft.ToPoints() : currentOpts.MarginLeft.ToPoints();
             double available = position.HorizontalAnchor == PdfTableAnchor.Page ? PageAnchorOptions.PageWidth.ToPoints()
                 : position.HorizontalAnchor == PdfTableAnchor.Margin ? PageAnchorOptions.PageWidth.ToPoints() - PageAnchorOptions.MarginLeft.ToPoints() - PageAnchorOptions.MarginRight.ToPoints() : width;
-            PdfAlign horizontal = position.HorizontalAlignment;
+            OfficeAlignment horizontal = position.HorizontalAlignment;
             if (position.MirrorHorizontalOnEvenPages && (pages.Count + 1) % 2 == 0)
-                horizontal = horizontal == PdfAlign.Left ? PdfAlign.Right : horizontal == PdfAlign.Right ? PdfAlign.Left : horizontal;
-            double alignment = horizontal == PdfAlign.Right ? available - tableWidth
-                : horizontal == PdfAlign.Center ? (available - tableWidth) / 2 : 0;
+                horizontal = horizontal == OfficeAlignment.Left ? OfficeAlignment.Right : horizontal == OfficeAlignment.Right ? OfficeAlignment.Left : horizontal;
+            double alignment = horizontal == OfficeAlignment.Right ? available - tableWidth
+                : horizontal == OfficeAlignment.Center ? (available - tableWidth) / 2 : 0;
             return left + alignment + position.HorizontalOffset.ToPoints();
         }
 

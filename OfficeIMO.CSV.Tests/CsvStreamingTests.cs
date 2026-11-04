@@ -84,17 +84,15 @@ public class CsvStreamingTests
         try
         {
             File.WriteAllText(path, "Id,Name\n1,Alice\n", Encoding.UTF8);
-            var options = new CsvLoadOptions { MaxInputBytes = 8 };
+            var options = new CsvReaderOptions { MaxInputBytes = 8 };
 
-            Assert.Throws<InvalidDataException>(() => CsvDocument.Load(path, options));
+            Assert.Throws<InvalidDataException>(() => CsvDocument.Load(path, new CsvLoadOptions { MaxInputBytes = 8 }));
             Assert.Throws<InvalidDataException>(() =>
                 CsvDocument.ReadRows(path, (_, _) => { }, options));
             Assert.Throws<InvalidDataException>(() =>
             {
-                using var reader = CsvDocument.OpenDataReader(
-                    path,
-                    options,
-                    new CsvDataReaderOptions { InferSchema = true });
+                options.InferSchema = true;
+                using var reader = CsvDocument.OpenReader(path, options);
                 reader.Read();
             });
 #if NET8_0_OR_GREATER
@@ -104,13 +102,11 @@ public class CsvStreamingTests
                 CsvDocument.ReadRowFieldSpans(path, ref visitor, options);
             });
 #endif
-            await Assert.ThrowsAsync<InvalidDataException>(() => CsvDocument.LoadAsync(path, options));
+            await Assert.ThrowsAsync<InvalidDataException>(() => CsvDocument.LoadAsync(path, new CsvLoadOptions { MaxInputBytes = 8 }));
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                CsvDocument.OpenDataReader(
-                    path,
-                    new CsvLoadOptions { Mode = CsvLoadMode.Stream, MaxInputBytes = 0 },
-                    new CsvDataReaderOptions { InferSchema = true }));
+                CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { Mode = CsvLoadMode.Stream, MaxInputBytes = 0, InferSchema = true }));
         }
         finally
         {
@@ -182,17 +178,17 @@ public class CsvStreamingTests
     public void LoadOptionsClone_PreservesCallerErrorSinkWithoutMutatingMissingSink()
     {
         var originalError = new CsvParseError(1, "original", new FormatException("original"));
-        var options = new CsvLoadOptions {
+        var options = new CsvReaderOptions {
             CollectParseErrors = true,
             ParseErrors = new List<CsvParseError> { originalError }
         };
 
-        CsvLoadOptions clone = options.Clone();
+        CsvReaderOptions clone = options.Clone();
         Assert.Same(options.ParseErrors, clone.ParseErrors);
         Assert.Same(originalError, Assert.Single(options.ParseErrors!));
 
-        var withoutErrorCollection = new CsvLoadOptions { CollectParseErrors = true };
-        CsvLoadOptions emptyClone = withoutErrorCollection.Clone();
+        var withoutErrorCollection = new CsvReaderOptions { CollectParseErrors = true };
+        CsvReaderOptions emptyClone = withoutErrorCollection.Clone();
 
         Assert.Null(withoutErrorCollection.ParseErrors);
         Assert.Empty(emptyClone.ParseErrors!);
@@ -314,7 +310,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowsReusable(
             reader,
             (_, values) => rows.Add(values.ToArray()),
-            new CsvLoadOptions { Delimiter = '\u00FF' });
+            new CsvReaderOptions { Delimiter = '\u00FF' });
 
         var row = Assert.Single(rows);
         Assert.Equal(new[] { value, "1" }, row);
@@ -330,19 +326,18 @@ public class CsvStreamingTests
         CsvDocument.ReadRowsReusable(
             reader,
             (_, values) => rows.Add(values.ToArray()),
-            new CsvLoadOptions { Delimiter = '\0' });
+            new CsvReaderOptions { Delimiter = '\0' });
 
         var row = Assert.Single(rows);
         Assert.Equal(new[] { value, "1" }, row);
     }
 
     [Fact]
-    public void OpenTextDataReader_DoesNotTreatCharactersAboveByteRangeAsByteMaxDelimiter()
+    public void OpenReader_Text_DoesNotTreatCharactersAboveByteRangeAsByteMaxDelimiter()
     {
         string value = new string('A', 16) + '\u0100' + new string('B', 16);
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Name\u00FFValue\n" + value + "\u00FF1\n",
-            new CsvLoadOptions { Delimiter = '\u00FF' });
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Name\u00FFValue\n" + value + "\u00FF1\n"),
+            options: new CsvReaderOptions { Delimiter = '\u00FF' });
 
         Assert.True(reader.Read());
         Assert.Equal(value, reader.GetString(0));
@@ -359,7 +354,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowsReusable(
             reader,
             (_, values) => rows.Add(values.ToArray()),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         var row = Assert.Single(rows);
         Assert.Equal(new[] { "Alpha", "1" }, row);
@@ -379,7 +374,7 @@ public class CsvStreamingTests
                 headers.Add(header.ToArray());
                 rows.Add(values.ToArray());
             },
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -404,7 +399,7 @@ public class CsvStreamingTests
                 headers.Add(header.ToArray());
                 rows.Add(values.ToArray());
             },
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -424,7 +419,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRecordsReusable(
             reader,
             values => records.Add(values.ToArray()),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(2, records.Count);
         Assert.Equal(new[] { "Name", "Value" }, records[0]);
@@ -542,7 +537,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 StaticColumns = new Dictionary<string, object?> {
                     ["SourceFile"] = "input.csv"
                 }
@@ -641,7 +636,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowFieldSpansFromText(
             "#note\nmetadata,with,commas\nName;Value\nAlpha;1\n",
             ref visitor,
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -666,7 +661,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowFieldSpansFromText(
             "Alpha;1\n",
             ref visitor,
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 Delimiter = ';',
                 Header = new[] { "Name", "Value" }
             });
@@ -692,7 +687,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -718,7 +713,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions { Delimiter = ' ' });
+            new CsvReaderOptions { Delimiter = ' ' });
 
         Assert.Equal(
             new[]
@@ -742,7 +737,7 @@ public class CsvStreamingTests
         CsvDocument.ReadRowFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions { HasHeaderRow = false });
+            new CsvReaderOptions { HasHeaderRow = false });
 
         Assert.Equal(
             new[]
@@ -769,7 +764,7 @@ public class CsvStreamingTests
         Assert.Throws<CsvException>(() => CsvDocument.ReadRowFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
+            new CsvReaderOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
     }
 
     [Fact]
@@ -801,7 +796,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(
             new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
@@ -819,7 +814,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(
             values.Select((value, index) => $"0:{index}:{value}").ToArray(),
@@ -854,7 +849,7 @@ public class CsvStreamingTests
 
                 fieldCount++;
             },
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(rowCount * 2, fieldCount);
     }
@@ -871,7 +866,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             text,
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(
             Enumerable.Range(0, rowCount).Select(index => $"{index}:39:\u012C\u010A\u010D-{index}"),
@@ -896,7 +891,7 @@ public class CsvStreamingTests
                         cancellation.Cancel();
                     }
                 },
-                new CsvLoadOptions {
+                new CsvReaderOptions {
                     SkipInitialRecords = 1,
                     CancellationToken = cancellation.Token
                 }));
@@ -979,7 +974,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "\u2003Alpha\u2003,\u00a0\" inside \"\u00a0\n",
             (recordIndex, fieldIndex, value) => fields.Add(value.ToString()),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 HasHeaderRow = false,
                 TrimWhitespace = true
             });
@@ -995,7 +990,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "\"\"\"\"\"\",\"a\"\"b\"\"c\",\"\"\"start\",\"end\"\"\"\n",
             (recordIndex, fieldIndex, value) => fields.Add(value.ToString()),
-            new CsvLoadOptions { HasHeaderRow = false });
+            new CsvReaderOptions { HasHeaderRow = false });
 
         Assert.Equal(new[] { "\"\"", "a\"b\"c", "\"start", "end\"" }, fields);
     }
@@ -1008,7 +1003,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "one,two\nthree,four\n",
             (recordIndex, fieldIndex, value) => fields.Add(value.ToString()),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 HasHeaderRow = false,
                 ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
             });
@@ -1033,7 +1028,7 @@ public class CsvStreamingTests
                         cancellation.Cancel();
                     }
                 },
-                new CsvLoadOptions {
+                new CsvReaderOptions {
                     HasHeaderRow = false,
                     CancellationToken = cancellation.Token
                 }));
@@ -1057,7 +1052,7 @@ public class CsvStreamingTests
                 text.ToString(),
                 (recordIndex, fieldIndex, value) =>
                     visitedFields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-                new CsvLoadOptions {
+                new CsvReaderOptions {
                     HasHeaderRow = false,
                     QuoteParsingMode = CsvQuoteParsingMode.Strict
                 }));
@@ -1077,7 +1072,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:one\ntwo" }, fields);
     }
@@ -1091,7 +1086,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:one \"quoted\" value" }, fields);
     }
@@ -1105,7 +1100,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:1" }, fields);
     }
@@ -1119,7 +1114,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 SkipInitialRecords = 1,
                 TrimWhitespace = true
             });
@@ -1136,7 +1131,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 Delimiter = '\t',
                 SkipInitialRecords = 1,
                 TrimWhitespace = true
@@ -1156,7 +1151,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -1174,7 +1169,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "metadata\nName,Value\nAlpha,1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(
             new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
@@ -1189,7 +1184,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "# generated \"by tool\nName,Value\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipCommentRows = true });
+            new CsvReaderOptions { SkipCommentRows = true });
 
         Assert.Equal(new[] { "0:0:Name", "0:1:Value" }, fields);
     }
@@ -1202,7 +1197,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Note\nAlpha,\"one\n\"\"two\"\"\"\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:one\n\"two\"" }, fields);
     }
@@ -1215,7 +1210,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Note,Value\nA,b\"c\nd\",E\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:A", "0:1:bc\nd", "0:2:E" }, fields);
     }
@@ -1229,7 +1224,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:A", "0:1:bc\nd", "0:2:E" }, fields);
     }
@@ -1243,7 +1238,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:A", "0:1:b\ncx", "0:2:D" }, fields);
     }
@@ -1256,7 +1251,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Note\nAlpha,\"one\"two\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:onetwo" }, fields);
     }
@@ -1270,7 +1265,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Note\nAlpha,\"one \"\"quoted\"\" value\"\n",
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(
             new[] { "field:0:0:Alpha", "escaped:0:1:one \"\"quoted\"\" value:18" },
@@ -1285,7 +1280,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Value\n\n   \t  \nAlpha,1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 SkipInitialRecords = 1,
                 TrimWhitespace = true
             });
@@ -1301,7 +1296,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "metadata,with,commas\nName;Value\nAlpha;1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 DetectDelimiter = true,
                 SkipInitialRecords = 1
             });
@@ -1319,7 +1314,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Note,Value\nAlpha,\"one\"  ,1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 SkipInitialRecords = 1,
                 TrimWhitespace = true
             });
@@ -1336,7 +1331,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "  Alpha  ,  \"  inside  \"  ,\"quote \"\"one\"\"\"\n",
             ref visitor,
-            new CsvLoadOptions {
+            new CsvReaderOptions {
                 HasHeaderRow = false,
                 TrimWhitespace = true
             });
@@ -1358,7 +1353,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Id,Name,Department,Region,Note,Empty,Value\n1,Alpha,Ops,EU,\"one\",,1\n",
             (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(
             new[] { "0:0:1", "0:1:Alpha", "0:2:Ops", "0:3:EU", "0:4:one", "0:5:", "0:6:1" },
@@ -1372,7 +1367,7 @@ public class CsvStreamingTests
             CsvDocument.ReadFieldSpansFromText(
                 "Id,Name,Department,Region,Note,Value\n1,Alpha,Ops,EU,\"one\"x,1\n",
                 static (_, _, _) => { },
-                new CsvLoadOptions {
+                new CsvReaderOptions {
                     SkipInitialRecords = 1,
                     QuoteParsingMode = CsvQuoteParsingMode.Strict
                 }));
@@ -1388,7 +1383,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpans(
             reader,
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "1:0:Beta" }, fields);
     }
@@ -1402,7 +1397,7 @@ public class CsvStreamingTests
         CsvDocument.ReadFieldSpansFromText(
             "Name,Note,Value\nAlpha,\"one \"\"quoted\"\" value\",1\nBeta,two,2\n",
             ref visitor,
-            new CsvLoadOptions { SkipInitialRecords = 1 });
+            new CsvReaderOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:2:1", "1:2:2" }, fields);
     }

@@ -87,7 +87,7 @@ public sealed partial class MainWindowViewModel {
 
     // Keeps document facts, property drafts and the attachment list in step with the current revision.
     private void RefreshDocumentStructure() {
-        PdfMetadata? metadata = _workspace?.Metadata;
+        PdfDocumentProperties? metadata = _workspace?.Metadata;
         var current = (metadata?.Title ?? string.Empty, metadata?.Author ?? string.Empty, metadata?.Subject ?? string.Empty, metadata?.Keywords ?? string.Empty);
         // A pending draft survives unrelated edits to the same document, never a document switch.
         bool keepDraft = HasPropertyChanges && _workspace is not null && ReferenceEquals(_propertiesWorkspace, _workspace);

@@ -16,7 +16,7 @@ public sealed class PdfAssemblyFailureEvidenceTests {
             string input = Path.Combine(root, "source" + extension), output = Path.Combine(root, "result.pdf");
             const string text = "مرحبا";
             if (extension == ".docx") { using var word = WordDocument.Create(input); word.AddParagraph(text); word.Save(); }
-            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").CellValue(1, 1, text); excel.Save(); }
+            else if (extension == ".xlsx") { using var excel = ExcelDocument.Create(input); excel.AddSheet("Unicode").Cell(1, 1).SetValue(text); excel.Save(); }
             else if (extension == ".pptx") { using var ppt = PowerPointDocument.Create(input); ppt.AddSlide().AddTextBox(text); ppt.Save(); }
             else File.WriteAllText(input, "<html><body><p>" + text + "</p></body></html>");
             byte[] source = File.ReadAllBytes(input), destination = { 1, 2, 3 };
@@ -37,10 +37,10 @@ public sealed class PdfAssemblyFailureEvidenceTests {
             Assert.Equal(conversion.FailureKind, assembly.FailureKind);
             Assert.Equal(expected.Details["exceptionType"], Assert.Single(assembly.Diagnostics, d => d.Code == "PdfAssemblyFailed").Details["exceptionType"]);
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(conversion.ConversionEvidence);
-            Assert.NotEmpty(evidence.FidelityDiagnostics);
-            foreach (var finding in evidence.FidelityDiagnostics) {
+            Assert.NotEmpty(evidence.Diagnostics);
+            foreach (var finding in evidence.Diagnostics) {
                 Assert.Contains(assembly.Diagnostics, d => d.Code == finding.Code && d.Message == finding.Message
-                    && d.Details.TryGetValue("source", out string? sourceName) && sourceName == finding.Source);
+                    && d.Details.TryGetValue("source", out string? sourceName) && sourceName == finding.Format);
             }
             Assert.Equal(source, File.ReadAllBytes(input));
             Assert.Equal(destination, File.ReadAllBytes(output));

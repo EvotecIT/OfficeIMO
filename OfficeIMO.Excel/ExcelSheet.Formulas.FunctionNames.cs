@@ -1,12 +1,13 @@
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private static string NormalizeSupportedFunctionPrefix(string formula) {
-            if (!ExcelFormulaExpressionParser.TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? call)) {
+            const string futurePrefix = "_xlfn.";
+            if (formula.IndexOf(futurePrefix, StringComparison.OrdinalIgnoreCase) < 0
+                || !ExcelFormulaExpressionParser.TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? call)) {
                 return formula;
             }
 
             string storedName = call!.Name;
-            const string futurePrefix = "_xlfn.";
             if (!storedName.StartsWith(futurePrefix, StringComparison.OrdinalIgnoreCase)) {
                 return formula;
             }

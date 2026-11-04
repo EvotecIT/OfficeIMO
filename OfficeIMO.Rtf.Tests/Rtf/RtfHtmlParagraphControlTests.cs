@@ -19,13 +19,13 @@ public class RtfHtmlParagraphControlTests {
         paragraph.AddTabStop(2880, RtfTabAlignment.Right, RtfTabLeader.Dots);
         paragraph.AddTabStop(4320, RtfTabAlignment.Decimal, RtfTabLeader.MiddleDots);
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, NewLine = "\n" });
 
         Assert.Contains("data-officeimo-rtf-paragraph-controls=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         RtfParagraph roundTripParagraph = Assert.Single(roundTrip.Paragraphs);
         Assert.True(roundTripParagraph.KeepWithNext);
         Assert.True(roundTripParagraph.KeepLinesTogether);
@@ -54,7 +54,7 @@ public class RtfHtmlParagraphControlTests {
                 Assert.Equal(RtfTabLeader.MiddleDots, tabStop.Leader);
             });
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\keepn", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\keep", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\noline", rtf, StringComparison.Ordinal);

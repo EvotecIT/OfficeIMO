@@ -74,7 +74,7 @@ public sealed class PdfElementBuilder {
     }
 
     /// <summary>Aligns a constrained element within the available content width.</summary>
-    public PdfElementBuilder Align(PdfAlign align) {
+    public PdfElementBuilder Align(OfficeAlignment align) {
         _style.Align = align;
         _hasLayoutDecoration = true;
         return this;

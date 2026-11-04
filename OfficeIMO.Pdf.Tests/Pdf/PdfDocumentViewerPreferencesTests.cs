@@ -36,11 +36,11 @@ public partial class PdfDocumentVisualQualityTests {
                 preferences.ViewClip = PdfPageBoundaryBox.BleedBox;
                 preferences.PrintClip = PdfPageBoundaryBox.ArtBox;
             })
-            .Paragraph(p => p.Text("Viewer preferences proof."))
+            .Paragraph(p => p.AddText("Viewer preferences proof."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second print page."))
+            .Paragraph(p => p.AddText("Second print page."))
             .PageBreak()
-            .Paragraph(p => p.Text("Third print page."))
+            .Paragraph(p => p.AddText("Third print page."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -130,7 +130,7 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Only one generated page."))
+            .Paragraph(p => p.AddText("Only one generated page."))
             .ToBytes());
     }
 }

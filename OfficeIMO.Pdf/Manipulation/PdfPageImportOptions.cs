@@ -3,9 +3,13 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Configures optional behavior for first-party PDF page import operations.
 /// </summary>
-public sealed class PdfPageImportOptions {
-    /// <summary>Cancellation observed during source admission, selection, preparation, import and output adoption.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfPageImportOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>
     /// Gets or sets read options used for the imported source PDF, including its password and permission policy.

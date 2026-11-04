@@ -21,26 +21,26 @@ public static partial class ExcelIWorkConverter {
         for (int row = 1; row <= table.RowCount; row++) {
             token.ThrowIfCancellationRequested();
             for (int column = 1; column <= table.ColumnCount; column++) {
-                if (table.GetFill(row, column)?.Color is { } fill) sheet.CellAt(row, column).SetFillColor(fill.RgbHex);
+                if (table.GetFill(row, column)?.Color is { } fill) sheet.Cell(row, column).SetFillColor(fill.RgbHex);
                 var borders = table.GetBorders(row, column);
                 if (borders.Left.HasValue || borders.Top.HasValue || borders.Right.HasValue || borders.Bottom.HasValue)
-                    ApplyTableBorders(sheet.CellAt(row, column), borders);
-                if (table.GetVerticalAlignment(row, column) is { } vertical) sheet.CellVerticalAlign(row, column, vertical switch {
+                    ApplyTableBorders(sheet.Cell(row, column), borders);
+                if (table.GetVerticalAlignment(row, column) is { } vertical) sheet.Cell(row, column).SetVerticalAlignment(vertical switch {
                     IWorkCellVerticalAlignment.Top => ExcelVerticalAlignment.Top,
                     IWorkCellVerticalAlignment.Middle => ExcelVerticalAlignment.Center,
                     _ => ExcelVerticalAlignment.Bottom
                 });
                 if (table.GetParagraphStyle(row, column) is not { } style) continue;
-                ExcelCell cell = sheet.CellAt(row, column);
+                ExcelCell cell = sheet.Cell(row, column);
                 IWorkTextStyle text = style.TextStyle;
                 if (text.Bold.HasValue) cell.SetBold(text.Bold.Value);
-                if (text.Italic.HasValue) sheet.CellItalic(row, column, text.Italic.Value);
-                if (text.Underline.HasValue) sheet.CellUnderline(row, column, text.Underline.Value);
-                if (text.Strikethrough.HasValue) sheet.CellStrikethrough(row, column, text.Strikethrough.Value);
+                if (text.Italic.HasValue) sheet.Cell(row, column).SetItalic(text.Italic.Value);
+                if (text.Underline.HasValue) sheet.Cell(row, column).SetUnderline(text.Underline.Value);
+                if (text.Strikethrough.HasValue) sheet.Cell(row, column).SetStrikethrough(text.Strikethrough.Value);
                 if (text.FontSizePoints.HasValue) cell.SetFontSize(global::OfficeIMO.OfficeLength.Points(text.FontSizePoints.Value));
                 if (!string.IsNullOrWhiteSpace(text.FontName)) cell.SetFontName(text.FontName!);
                 if (text.Color != null) cell.SetFontColor(text.Color.RgbHex);
-                if (style.Alignment is { } alignment) sheet.CellAlign(row, column, alignment switch {
+                if (style.Alignment is { } alignment) sheet.Cell(row, column).SetHorizontalAlignment(alignment switch {
                     IWorkTextAlignment.Center => ExcelHorizontalAlignment.Center,
                     IWorkTextAlignment.Right => ExcelHorizontalAlignment.Right,
                     IWorkTextAlignment.Justified => ExcelHorizontalAlignment.Justify,

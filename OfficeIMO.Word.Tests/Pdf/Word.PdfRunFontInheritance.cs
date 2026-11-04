@@ -32,8 +32,8 @@ public sealed class WordPdfRunFontInheritanceTests {
         document.Settings.FontFamily = layer == "document" ? family : "Courier New";
         WordTable? table = story == "table" ? document.AddTable(1, 1, WordTableStyle.TableGrid) : null;
         WordParagraph paragraph = story switch {
-            "header" => document.HeaderDefaultOrCreate.AddParagraph("LEADING"),
-            "footer" => document.FooterDefaultOrCreate.AddParagraph("LEADING"),
+            "header" => document.PageSetup.Header.AddParagraph("LEADING"),
+            "footer" => document.PageSetup.Footer.AddParagraph("LEADING"),
             "table" => table!.Rows[0].Cells[0].Paragraphs[0],
             _ => document.AddParagraph("LEADING")
         };

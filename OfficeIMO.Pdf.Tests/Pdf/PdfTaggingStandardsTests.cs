@@ -15,7 +15,7 @@ public sealed class PdfTaggingStandardsTests {
             ObjectSerializationMode = mode
         }.UseFontFamily("Carlito", PdfComplianceTestFonts.FindBundledTrueTypeFont()!)
             .UsePdfUa(PdfComplianceProfile.PdfUa2)).Meta(title: "Tagged standards")
-            .Paragraph(paragraph => paragraph.Text("Accessible document")).ToBytes();
+            .Paragraph(paragraph => paragraph.AddText("Accessible document")).ToBytes();
         var raw = PdfReadDocument.Open(bytes).RawStructure();
         var root = ObjectOfType(raw, "StructTreeRoot");
         var document = Assert.Single(Elements(raw), item => item.Value.Entries["S"].Text == "Document");

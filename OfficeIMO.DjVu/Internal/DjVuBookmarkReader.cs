@@ -21,14 +21,14 @@ internal static class DjVuBookmarkReader {
             byte[] data = BzzDecoder.Decode(chunk.Source, chunk.Offset, chunk.Length, budget);
             if (data.Length < 2) throw new InvalidDataException("Truncated DjVu outline.");
             int count = DjVuBinary.U16(data, 0), position = 2, remaining = count, characters = 0;
-            if (count > budget.Options.MaxBookmarks) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxBookmarks));
+            if (count > budget.Options.MaxBookmarks) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxBookmarks));
             while (remaining != 0) result.Add(Entry(1));
             if (position != data.Length) throw new InvalidDataException("Trailing DjVu outline records.");
             return result.AsReadOnly();
 
             DjVuBookmark Entry(int depth) {
                 budget.Cancellation.ThrowIfCancellationRequested();
-                if (depth > budget.Options.MaxBookmarkDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxBookmarkDepth));
+                if (depth > budget.Options.MaxBookmarkDepth) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxBookmarkDepth));
                 if (remaining-- <= 0 || position >= data.Length) throw new InvalidDataException("Invalid DjVu outline child count.");
                 int childCount = data[position++];
                 string title = String(), target = String();
@@ -43,7 +43,7 @@ internal static class DjVuBookmarkReader {
                 if (size > data.Length - position) throw new InvalidDataException("DjVu outline string exceeds the chunk.");
                 int characterCount = DjVuBinary.Utf8.GetCharCount(data, position, size);
                 if (characterCount > budget.Options.MaxBookmarkCharacters - characters)
-                    throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxBookmarkCharacters));
+                    throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxBookmarkCharacters));
                 characters += characterCount;
                 string value = DjVuBinary.Utf8.GetString(data, position, size); position += size;
                 return value;

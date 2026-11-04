@@ -41,7 +41,7 @@ public sealed class AsciiDocEditedContentContractTests {
         Assert.Contains("First paragraph.", markdown, StringComparison.Ordinal);
         Assert.Contains("Second paragraph.", markdown, StringComparison.Ordinal);
         Assert.Contains("List item", markdown, StringComparison.Ordinal);
-        Assert.Equal(AsciiDocMarkdownConversionOutcome.Simplified, Assert.Single(result.Report.Diagnostics).Outcome);
+        Assert.Equal(AsciiDocMarkdownConversionOutcome.Simplified, Assert.Single(result.Report.NativeDiagnostics).Outcome);
     }
 
     [Fact]
@@ -66,7 +66,7 @@ public sealed class AsciiDocEditedContentContractTests {
     [Fact]
     public void CompoundFallbackDiagnosticsUseOriginalSourceLines() {
         AsciiDocDocument document = AsciiDocDocument.Parse("= Title\n\n====\ncustom:value[]\n====\n");
-        AsciiDocMarkdownConversionDiagnostic inline = Assert.Single(document.ToMarkdownDocumentResult().Report.Diagnostics, diagnostic => diagnostic.Code == "ADOCMD102");
+        AsciiDocMarkdownConversionDiagnostic inline = Assert.Single(document.ToMarkdownDocumentResult().Report.NativeDiagnostics, diagnostic => diagnostic.Code == "ADOCMD102");
         Assert.Equal(4, inline.SourceSpan.Start.Line);
     }
 }

@@ -44,7 +44,7 @@ public class PdfPageImporterTests {
                 CompressContentStreams = false
             })
             .Meta(title: "Target", author: "OfficeIMO")
-            .Paragraph(p => p.Text("Target page"))
+            .Paragraph(p => p.AddText("Target page"))
             .TextAnnotation("Target note")
             .ToBytes();
         byte[] source = BuildAnnotatedPdf("Source", "Annotated source page");
@@ -519,7 +519,7 @@ public class PdfPageImporterTests {
     private static byte[] BuildPdf(string title, params string[] pages) {
         var doc = PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text(pages[0]));
+            .Paragraph(p => p.AddText(pages[0]));
 
         if (pages.Length > 1) {
             doc.Compose(compose => {
@@ -528,7 +528,7 @@ public class PdfPageImporterTests {
                     compose.Page(page =>
                         page.Content(content =>
                             content.Column(column =>
-                                column.Item().Paragraph(p => p.Text(text)))));
+                                column.Item().AddParagraph(p => p.AddText(text)))));
                 }
             });
         }
@@ -541,7 +541,7 @@ public class PdfPageImporterTests {
                 CompressContentStreams = false
             })
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text(pageText))
+            .Paragraph(p => p.AddText(pageText))
             .FreeTextAnnotation(
                 "Import review note",
                 width: 150,

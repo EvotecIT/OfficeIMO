@@ -19,19 +19,19 @@ public partial class Excel
             using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" }))
             {
                 ExcelSheet sheet = document.Sheets[0];
-                sheet.Cell(1, 1, "{{ReportTitle}}");
-                sheet.Cell(2, 1, "Region");
-                sheet.Cell(2, 2, "Revenue");
-                sheet.Cell(2, 3, "Cost");
-                sheet.Cell(2, 4, "Margin");
-                sheet.Cell(3, 1, "East");
-                sheet.Cell(3, 2, 120);
-                sheet.Cell(3, 3, 50);
-                sheet.CellFormula(3, 4, "B3-C3");
-                sheet.Cell(4, 1, "West");
-                sheet.Cell(4, 2, 90);
-                sheet.Cell(4, 3, 40);
-                sheet.CellFormula(4, 4, "B4-C4");
+                sheet.Cell(1, 1).SetValue("{{ReportTitle}}");
+                sheet.Cell(2, 1).SetValue("Region");
+                sheet.Cell(2, 2).SetValue("Revenue");
+                sheet.Cell(2, 3).SetValue("Cost");
+                sheet.Cell(2, 4).SetValue("Margin");
+                sheet.Cell(3, 1).SetValue("East");
+                sheet.Cell(3, 2).SetValue(120);
+                sheet.Cell(3, 3).SetValue(50);
+                sheet.Cell(3, 4).SetFormula("B3-C3");
+                sheet.Cell(4, 1).SetValue("West");
+                sheet.Cell(4, 2).SetValue(90);
+                sheet.Cell(4, 3).SetValue(40);
+                sheet.Cell(4, 4).SetFormula("B4-C4");
                 int replacements = document.ApplyTemplate(new Dictionary<string, object?> { ["ReportTitle"] = "Executive revenue report" });
                 Assert.Equal(1, replacements);
                 Assert.Equal(2, document.RecalculateSupportedFormulas());

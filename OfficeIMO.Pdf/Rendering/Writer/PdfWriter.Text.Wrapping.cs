@@ -609,7 +609,7 @@ internal static partial class PdfWriter {
             currentRunDecorationTextRise = TextRiseForBaseline((run.FontSize?.ToPoints()) ?? fontSize, baseline);
             var tabLeader = run.TabLeader;
             var tabAlignment = run.TabAlignment;
-            var runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
+            var runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
             var fontForRun = (bold && italic) ? ChooseBoldItalic(runBaseFont) : bold ? ChooseBold(runBaseFont) : italic ? ChooseItalic(runBaseFont) : runBaseFont;
             currentRunNamedFont = options != null &&
                                   options.TryResolveNamedFontFace(run.FontFamily, bold, italic, out PdfNamedFontFace resolvedNamedFont)

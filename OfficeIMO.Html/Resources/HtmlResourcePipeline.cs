@@ -22,7 +22,7 @@ public static partial class HtmlResourcePipeline {
     /// </summary>
     public static HtmlResourceManifest BuildManifest(string html, HtmlResourcePipelineOptions? options = null) {
         HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();
-        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.UntrustedDefaults;
         limits.Validate();
         IHtmlDocument document = HtmlConversionDocument.ParseSourceDocumentForAnalysis(html, limits);
         return BuildManifest(document, resolved);
@@ -33,7 +33,7 @@ public static partial class HtmlResourcePipeline {
     /// </summary>
     public static HtmlResourceManifest BuildManifest(Dom.HtmlDocument document, HtmlResourcePipelineOptions? options = null) {
         HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();
-        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.UntrustedDefaults;
         Dom.HtmlDocument snapshot = HtmlConversionInputGuard.CaptureOwnedTree(document, limits, CancellationToken.None);
         return BuildManifest(NativeDomBridge.GetNativeDocument(snapshot), resolved);
     }
@@ -44,7 +44,7 @@ public static partial class HtmlResourcePipeline {
         }
 
         options = options ?? new HtmlResourcePipelineOptions();
-        HtmlConversionLimits limits = options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = options.Limits ?? HtmlConversionLimits.UntrustedDefaults;
         limits.Validate();
         HtmlConversionInputGuard.ValidateDocument(document, limits);
         HtmlCssRuleBlockScanner.ValidateDocument(document, limits);

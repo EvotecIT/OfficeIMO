@@ -3,7 +3,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        internal static void ValidateDocumentLimits(IDocument document, WordHtmlImportOptions options) {
+        internal static void ValidateDocumentLimits(IDocument document, HtmlWordExportOptions options) {
             try {
                 HtmlConversionInputGuard.ValidateDocument(document, options.Limits);
             } catch (HtmlDomLimitException exception) {
@@ -56,7 +56,7 @@ namespace OfficeIMO.Word.Html {
             return (limit, limitedByTotalBudget);
         }
 
-        private void ValidateTableLimit(WordHtmlImportOptions options, int rows, long columns) {
+        private void ValidateTableLimit(HtmlWordExportOptions options, int rows, long columns) {
             if (!options.MaxTableCells.HasValue) {
                 return;
             }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        internal static void ThrowLimitExceeded(WordHtmlImportOptions options, string code, string message, string source, long actual, long limit) {
+        internal static void ThrowLimitExceeded(HtmlWordExportOptions options, string code, string message, string source, long actual, long limit) {
             var detail = $"Actual={actual}; Limit={limit}";
             AddDiagnostic(options, code, message, source, new HtmlConversionLimitException(code, message, source, actual, limit, detail), HtmlDiagnosticSeverity.Error);
             throw new HtmlConversionLimitException(code, message, source, actual, limit, detail);

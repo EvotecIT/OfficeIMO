@@ -1,6 +1,8 @@
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
@@ -41,7 +43,8 @@ public sealed class ProtectOfficeExcelWorkbookCommand : PSCmdlet {
 
     /// <summary>Optional workbook protection password. This is UI protection, not package encryption.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Optional precomputed legacy workbook protection hash to write as-is.</summary>
     [Parameter]
@@ -75,7 +78,7 @@ public sealed class ProtectOfficeExcelWorkbookCommand : PSCmdlet {
         document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
             ProtectStructure = protectStructure,
             ProtectWindows = ProtectWindows.IsPresent,
-            Password = Password,
+            Password = Password.ToPlainText(),
             LegacyPasswordHash = LegacyPasswordHash
         });
 

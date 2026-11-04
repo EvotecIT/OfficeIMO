@@ -8,7 +8,7 @@ namespace PSWriteOffice.Services.Ocr;
 /// <summary>Output location, recognition evidence and format projection report from an image export.</summary>
 public sealed class OfficeImageConversionResult
 {
-    internal OfficeImageConversionResult(string path, PdfSearchableOcrReview review, IOfficeConversionReport? report, PdfTableExtractionScopeReport? tableScope = null)
+    internal OfficeImageConversionResult(string path, PdfSearchableOcrReview review, OfficeConversionReport? report, PdfTableExtractionScopeReport? tableScope = null)
     {
         File = new FileInfo(path);
         Review = review;
@@ -21,7 +21,7 @@ public sealed class OfficeImageConversionResult
     /// <summary>Recognition evidence and captured source, reusable for additional exports without another OCR call.</summary>
     public PdfSearchableOcrReview Review { get; }
     /// <summary>Format-specific projection and loss report, when the adapter supplies one.</summary>
-    public IOfficeConversionReport? ConversionReport { get; }
+    public OfficeConversionReport? ConversionReport { get; }
     /// <summary>Content retained and omitted by Excel or CSV table-only projection.</summary>
     public PdfTableExtractionScopeReport? TableScope { get; }
 }

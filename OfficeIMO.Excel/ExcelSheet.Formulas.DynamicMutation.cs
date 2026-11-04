@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private Dictionary<WorksheetPart, DynamicSpillOwnership> CaptureDynamicSpillMutationState(WorkbookPart workbook) {
+        private Dictionary<Uri, DynamicSpillOwnership> CaptureDynamicSpillMutationState(WorkbookPart workbook) {
             // Qualify untouched package caches before structural edits invalidate their baseline.
             // Reference rewrites can also affect arrays on other worksheets.
             foreach (ExcelSheet sheet in EnumerateDynamicSpillMutationSheets()) {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
                     && original.OriginalFingerprint != null && !original.OriginalScanAttempted)
                     sheet.TryCaptureOriginalDynamicSpillCaches(sheet.BuildFixedArraySheetIndex());
             }
-            var state = new Dictionary<WorksheetPart, DynamicSpillOwnership>();
+            var state = new Dictionary<Uri, DynamicSpillOwnership>();
             foreach (WorksheetPart part in workbook.WorksheetParts) {
                 if (!DynamicSpillOwnerships.TryGetValue(part, out DynamicSpillOwnership? ownership)) continue;
                 var copy = new DynamicSpillOwnership {
@@ -58,16 +58,16 @@ namespace OfficeIMO.Excel {
                         Type = item.Value.Type, Value = item.Value.Value, ValueMetaIndex = item.Value.ValueMetaIndex
                     });
                 foreach (long key in ownership.WrittenOwners) copy.WrittenOwners.Add(key);
-                state.Add(part, copy);
+                state.Add(part.Uri, copy);
             }
             return state;
         }
 
         private static void RestoreDynamicSpillMutationState(WorkbookPart workbook,
-            Dictionary<WorksheetPart, DynamicSpillOwnership> state) {
+            Dictionary<Uri, DynamicSpillOwnership> state) {
             foreach (WorksheetPart part in workbook.WorksheetParts) {
                 DynamicSpillOwnerships.Remove(part);
-                if (!state.TryGetValue(part, out DynamicSpillOwnership? ownership)) continue;
+                if (!state.TryGetValue(part.Uri, out DynamicSpillOwnership? ownership)) continue;
                 foreach (Cell cell in part.Worksheet?.Descendants<Cell>() ?? Enumerable.Empty<Cell>()) {
                     if (cell.CellReference?.Value is string reference
                         && ExcelA1.TryParseCellReferenceFast(reference, out int row, out int column)

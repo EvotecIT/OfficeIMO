@@ -1273,7 +1273,7 @@ public sealed class PdfPrintProductionInspectorRegressionTests {
     public void MetadataInspectorResolvesIndirectInfoValues() {
         byte[] pdf = BuildIndirectInfoPdf();
 
-        PdfMetadata metadata = PdfReadDocument.Open(pdf).Metadata;
+        PdfDocumentProperties metadata = PdfReadDocument.Open(pdf).Metadata;
 
         Assert.Equal("Indirect title", metadata.Title);
         Assert.Equal("Indirect author", metadata.Author);

@@ -9,9 +9,7 @@ internal static class OfficeConversionFailures {
     internal static OfficeConversionException Output(OfficeConversionReport report, Exception error) {
         var diagnostics = report.Diagnostics.AsEnumerable();
         if (error is OfficeConversionException conversion && !ReferenceEquals(conversion.Report, report)) {
-            diagnostics = diagnostics.Concat(conversion.Report is OfficeConversionReport shared ? shared.Diagnostics
-                : conversion.Report.FidelityDiagnostics.Select(d => new OfficeDiagnostic(d.Code,
-                    OfficeDiagnosticSeverity.Warning, d.Message, d.Location, d.Source, d.LossKind)));
+            diagnostics = diagnostics.Concat(conversion.Report.Diagnostics);
         }
         var failed = new OfficeConversionReport(report.Source, report.Target, itemsWritten: report.ItemsWritten,
             elapsed: report.Elapsed, diagnostics: diagnostics.Concat(new[] {

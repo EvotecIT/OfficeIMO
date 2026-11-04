@@ -21,14 +21,14 @@ namespace OfficeIMO.ChartForgeX.Tests
             };
 
             var result = project(new OfficeVisioVisualOptions());
-            var warning = Assert.Single(result.Report.Diagnostics, item =>
+            var warning = Assert.Single(result.Report.NativeDiagnostics, item =>
                 item.Code == OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
             Assert.Equal(artifact.Id, warning.EntityId);
             Assert.Contains("SVG or PNG", warning.Message);
             var strict = new OfficeVisioVisualOptions();
             strict.RejectedDiagnostics.Add(OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
             var error = Assert.Throws<OfficeVisioVisualFidelityException>(() => project(strict));
-            Assert.Contains(error.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
+            Assert.Contains(error.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.WatermarkNotProjected);
         }
     }
 }

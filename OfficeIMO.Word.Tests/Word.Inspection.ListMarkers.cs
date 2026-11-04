@@ -60,15 +60,15 @@ public partial class Word {
     [Fact]
     public void InspectionListMarkersFollowBodyTableOrderAndKeepHeaderCountersSeparate() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         list.Numbering.Levels[0].StartNumberingValue = 12;
         Attach(document.AddParagraph("Body first"));
         Attach(document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0]);
         Attach(document.AddParagraph("Body last"));
-        Attach(document.Header.Default.AddParagraph("Header first"));
-        Attach(document.Header.Default.AddParagraph("Header second"));
+        Attach(document.PageSetup.Header.AddParagraph("Header first"));
+        Attach(document.PageSetup.Header.AddParagraph("Header second"));
 
         WordSectionInfo section = Assert.Single(document.Inspect().Sections);
         Assert.Equal(new[] { "12.", "14." }, section.Elements.OfType<WordParagraphInfo>().Select(paragraph => paragraph.ListMarker));

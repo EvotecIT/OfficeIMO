@@ -51,8 +51,8 @@ namespace OfficeIMO.Tests
             host.Release();
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => refresh);
-            Assert.Equal("Value", data.CellAt(1, 1).GetValue<string>());
-            Assert.Null(data.CellAt(2, 1).GetValue<string>());
+            Assert.Equal("Value", data.Cell(1, 1).GetValue<string>());
+            Assert.Null(data.Cell(2, 1).GetValue<string>());
             Assert.Equal(replacement.ConnectionId, document.GetQueryBackedTables()
                 .Single(item => item.TableName == replacement.TableName).ConnectionId);
         }
@@ -62,10 +62,10 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
-            data.CellValue(1, 1, "Region");
-            data.CellValue(1, 2, "Sales");
-            data.CellValue(2, 1, "East");
-            data.CellValue(2, 2, 10d);
+            data.Cell(1, 1).SetValue("Region");
+            data.Cell(1, 2).SetValue("Sales");
+            data.Cell(2, 1).SetValue("East");
+            data.Cell(2, 2).SetValue(10d);
             data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             using var start = new ManualResetEventSlim(false);
             int successes = 0;
@@ -103,7 +103,7 @@ namespace OfficeIMO.Tests
             ExcelChartDataRange range = chart.DataRange!;
             ExcelSheet backingSheet = document[range.SheetName];
             double originalValue = backingSheet
-                .CellAt(range.SeriesStartRow, range.SeriesStartColumn)
+                .Cell(range.SeriesStartRow, range.SeriesStartColumn)
                 .GetValue<double>();
             ExtendedChartPart part = Assert.Single(sheet.WorksheetPart.DrawingsPart!.ExtendedChartParts);
             part.ChartSpace!.Descendants<Cx.PlotArea>().Single().Remove();
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests
                 new[] { new ExcelChartSeries("Value", new[] { 9d }) })));
 
             Assert.Equal(originalValue, backingSheet
-                .CellAt(range.SeriesStartRow, range.SeriesStartColumn)
+                .Cell(range.SeriesStartRow, range.SeriesStartColumn)
                 .GetValue<double>());
         }
 
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests
         public async Task Test_GetNamedStyles_WaitsForWorkbookWriter() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetBold();
+            sheet.Cell(1, 1).SetBold();
             sheet.DefineNamedStyle("LockedStyle", 1, 1);
             ReaderWriterLockSlim workbookLock = document.EnsureLock();
             workbookLock.EnterWriteLock();

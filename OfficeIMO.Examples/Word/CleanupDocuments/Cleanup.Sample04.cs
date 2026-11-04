@@ -16,14 +16,14 @@ internal static partial class CleanupDocuments {
     public static void CleanupDocuments_Sample04(string folderPath, bool openWord) {
         string filePath = System.IO.Path.Combine(folderPath, "CleanupHeadersFooters.docx");
         using (WordDocument document = WordDocument.Create(filePath)) {
-            var defaultHeader = document.HeaderDefaultOrCreate;
+            var defaultHeader = document.PageSetup.Header;
 
             var headerParagraph = defaultHeader.AddParagraph("Header ");
             headerParagraph.AddText("clutter ");
             headerParagraph.AddText("text");
             defaultHeader.AddParagraph();
 
-            var defaultFooter = document.FooterDefaultOrCreate;
+            var defaultFooter = document.PageSetup.Footer;
 
             var footerParagraph = defaultFooter.AddParagraph("Footer ");
             footerParagraph.AddText("clutter ");

@@ -10,27 +10,27 @@ public sealed class TypographyReviewClosureTests {
     [Fact]
     public void OdsTextCaseMaterializationUsesDocumentLanguage() {
         OdsDocument source = OdsDocument.Create();
-        source.Metadata.Language = "tr-TR";
+        source.Properties.Language = "tr-TR";
         OdsCell cell = source.AddSheet("Text").Cell(0, 0);
         cell.SetString("i");
         cell.TextTransform = OdfTextTransform.Uppercase;
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
 
-        Assert.Equal("İ", target.Sheets.Single().CellAt(1, 1).GetValue().Value);
+        Assert.Equal("İ", target.Sheets.Single().Cell(1, 1).GetValue().Value);
     }
 
     [Fact]
     public void OdsTextCaseMaterializationFallsBackToInvariantCulture() {
         OdsDocument source = OdsDocument.Create();
-        source.Metadata.Language = "not-a-culture";
+        source.Properties.Language = "not-a-culture";
         OdsCell cell = source.AddSheet("Text").Cell(0, 0);
         cell.SetString("i");
         cell.TextTransform = OdfTextTransform.Uppercase;
 
-        using ExcelDocument target = source.ToExcelDocumentResult().Value;
+        using ExcelDocument target = source.ConvertToExcelWithEvidence().Value;
 
-        Assert.Equal("I", target.Sheets.Single().CellAt(1, 1).GetValue().Value);
+        Assert.Equal("I", target.Sheets.Single().Cell(1, 1).GetValue().Value);
     }
 
     [Fact]
@@ -41,9 +41,9 @@ public sealed class TypographyReviewClosureTests {
         cell.SetString("MiXeD");
         cell.TextTransform = OdfTextTransform.Uppercase;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> conversion = source.ConvertToExcelWithEvidence();
         using ExcelDocument target = conversion.Value;
-        ExcelCellData converted = target.Sheets.Single().CellAt(1, 1).GetValue();
+        ExcelCellData converted = target.Sheets.Single().Cell(1, 1).GetValue();
 
         Assert.True(converted.HasFormula);
         Assert.Equal("IF(1=1,\"MiXeD\",\"other\")", converted.Formula);

@@ -62,6 +62,6 @@ public sealed class HtmlComputedStyleReuseTests {
     private static (AngleSharp.Html.Dom.IHtmlDocument Document, HtmlComputedStyleSet Styles) Compute(string html) {
         var document = HtmlConversionDocument.Parse(html).CreateDocumentForRendering();
         return (document, HtmlComputedStyleEngine.ComputeForRendering(document, new HtmlRenderOptions(),
-            HtmlConversionLimits.CreateUntrustedProfile()));
+            HtmlConversionLimits.UntrustedDefaults));
     }
 }

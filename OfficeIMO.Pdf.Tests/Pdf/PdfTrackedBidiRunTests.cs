@@ -55,11 +55,11 @@ public sealed class PdfTrackedBidiRunTests {
         }.UseFontFamily(new PdfEmbeddedFontFamily("RtlIsolation", font));
         PdfDocument document = PdfDocument.Create(options);
         if (richRuns) {
-            document.Paragraph(paragraph => paragraph.Runs(new[] {
+            document.Paragraph(paragraph => paragraph.AddRuns(new[] {
                 new PdfTextRun("A "), new PdfTextRun("\u05D0\u05D1\u05D2")
             }));
         } else {
-            document.Paragraph(paragraph => paragraph.Text(Text));
+            document.Paragraph(paragraph => paragraph.AddText(Text));
         }
         return document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }

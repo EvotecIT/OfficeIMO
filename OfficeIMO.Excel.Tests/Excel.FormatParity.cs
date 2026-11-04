@@ -12,10 +12,10 @@ namespace OfficeIMO.Tests {
             byte[] bytes;
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Depth");
-                sheet.CellValue(4, 1, 1d);
-                sheet.CellFormula(3, 1, "A4+1");
-                sheet.CellFormula(2, 1, "A3+1");
-                sheet.CellFormula(1, 1, "A2+1");
+                sheet.Cell(4, 1).SetValue(1d);
+                sheet.Cell(3, 1).SetFormula("A4+1");
+                sheet.Cell(2, 1).SetFormula("A3+1");
+                sheet.Cell(1, 1).SetFormula("A2+1");
 
                 Assert.Equal(3, document.Calculate());
                 Assert.Equal(3, document.InspectFormulas().DependencyGraph.MaximumDependencyDepth);

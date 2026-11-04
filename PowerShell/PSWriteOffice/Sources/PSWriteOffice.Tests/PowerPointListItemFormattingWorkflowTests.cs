@@ -23,9 +23,9 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         var run = Assert.Single(paragraph.Runs);
         Assert.True(run.Bold); Assert.True(run.Italic); Assert.True(run.Strikethrough);
         Assert.Equal(PowerPointUnderlineStyle.Double, run.UnderlineStyle);
-        Assert.Equal(saved.GetThemeColor(PowerPointThemeColor.Accent2), run.Color);
-        Assert.Equal("FEF3C7", run.HighlightColor);
-        Assert.Equal("Aptos", run.FontName);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse(saved.GetThemeColor(PowerPointThemeColor.Accent2)!), run.Color);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse("FEF3C7"), run.BackgroundColor);
+        Assert.Equal("Aptos", run.FontFamily);
         Assert.Equal(18D, run.FontSize?.ToPoints());
     }
 

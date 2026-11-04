@@ -10,11 +10,11 @@ public sealed class BibliographyReviewWave58RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("<extra>", permissive.Content, StringComparison.Ordinal);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "extra");
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "extra");
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "extra");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "extra");
     }
 
     [Theory]
@@ -30,7 +30,7 @@ public sealed class BibliographyReviewWave58RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.DoesNotContain("custom=\"kept\"", permissive.Content, StringComparison.Ordinal);
         Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == diagnosticCode);
@@ -46,15 +46,15 @@ public sealed class BibliographyReviewWave58RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyNativeField reopened = Assert.Single(BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document.Items[0].NativeFields,
             candidate => candidate.Name == "expected");
 
         Assert.Equal("new", reopened.Value);
         Assert.Contains("<expected>new</expected>", permissive.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("<other", permissive.Content, StringComparison.Ordinal);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV247" && diagnostic.Field == "native.expected");
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV247" && diagnostic.Field == "native.expected");
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV247" && diagnostic.Field == "native.expected");
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV247" && diagnostic.Field == "native.expected");
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class BibliographyReviewWave58RegressionTests {
         field.Value = "new";
         document.Items[0].NativeFields.Add(field);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains("<m:expected", written.Content, StringComparison.Ordinal);
         Assert.Contains("custom=\"retained\"", written.Content, StringComparison.Ordinal);

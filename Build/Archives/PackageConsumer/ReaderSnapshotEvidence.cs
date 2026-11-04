@@ -28,8 +28,8 @@ namespace OfficeIMO.Archives.Qualification {
                     }).AddZipHandler();
                     var reader = builder.Build();
                     try {
-                        var chunks = streamInput ? reader.EnumerateChunks(source, "input.zip", new() { ComputeHashes = false }, cancellation.Token)
-                            : reader.EnumerateChunks(input, new() { ComputeHashes = false }, cancellation.Token);
+                        var chunks = streamInput ? reader.Enumerate(source, "input.zip", new() { ComputeHashes = false }, cancellation.Token)
+                            : reader.Enumerate(input, new() { ComputeHashes = false }, cancellation.Token);
                         using var iterator = chunks.GetEnumerator();
                         while (iterator.MoveNext()) { }
                         if (outcome == "cancel") throw new InvalidDataException("Cancellation did not propagate.");

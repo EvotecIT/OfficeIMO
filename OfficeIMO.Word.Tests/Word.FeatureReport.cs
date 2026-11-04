@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
             File.Delete(filePath);
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.Properties.Creator = "Ada Lovelace";
                 document.SetDocumentVariable("ClientName", "Evotec");
                 document.AddParagraph("Target heading").AddBookmark("TargetBookmark");
                 AddFeatureReportComplexField(document.AddParagraph("Reference: ")._paragraph, " REF ", " \"TargetBookmark\" \\h ", "Target heading", dirty: true, locked: true);
@@ -337,7 +337,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Linked logo")
-                    .AddImage(new Uri("https://example.com/assets/logo.png"), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { Description = "Linked logo" });
+                    .AddImage(new Uri("https://example.com/assets/logo.png"), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(32), options: new OfficeIMO.Word.WordImageOptions { AltText = "Linked logo" });
                 document.Save();
             }
 

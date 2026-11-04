@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.DjVu",
+  "changes": [
+    {
+      "old": "OfficeIMO.DjVu.DjVuReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.DjVu.DjVuLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

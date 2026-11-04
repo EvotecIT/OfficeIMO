@@ -87,6 +87,31 @@ public sealed class DocumentPdfCmdletTests {
     }
 
     [Fact]
+    public void FileExportReplacesAnExistingPdfUnlessNoClobberIsGiven() {
+        string root = Path.Combine(AppContext.BaseDirectory, "pswriteoffice-pdf-force-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        try {
+            string input = Path.Combine(root, "source.txt"), output = Path.Combine(root, "output.pdf");
+            File.WriteAllText(input, "Replacement export");
+            byte[] existing = { 1, 2, 3 };
+            File.WriteAllBytes(output, existing);
+            var state = InitialSessionState.CreateDefault();
+            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
+            using (var refusing = PowerShell.Create()) {
+                refusing.Runspace = runspace;
+                refusing.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output).AddParameter("NoClobber");
+                Assert.IsType<IOException>(Assert.Throws<CmdletInvocationException>(() => refusing.Invoke()).InnerException);
+                Assert.Equal(existing, File.ReadAllBytes(output));
+            }
+            using var replacing = PowerShell.Create(); replacing.Runspace = runspace;
+            replacing.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output);
+            replacing.Invoke(); Assert.False(replacing.HadErrors, string.Join("\n", replacing.Streams.Error));
+            Assert.Single(PdfDocument.Load(output).Read().Pages);
+        } finally { Directory.Delete(root, true); }
+    }
+
+    [Fact]
     public void DirectoryBatchResumesAndWhatIfCreatesNoState() {
         string root = Path.Combine(AppContext.BaseDirectory, "pswriteoffice-archive-" + Guid.NewGuid().ToString("N"));
         string input = Path.Combine(root, "source"), output = Path.Combine(root, "output"), checkpoint = Path.Combine(root, "checkpoint");
@@ -193,7 +218,7 @@ public sealed class DocumentPdfCmdletTests {
             runspace.SessionStateProxy.SetVariable("source", root);
             runspace.SessionStateProxy.SetVariable("destination", Path.Combine(root, "output"));
             runspace.SessionStateProxy.SetVariable("textSettings", new PdfTextImportOptions {
-                PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(240), PageHeight = global::OfficeIMO.OfficeLength.Points(180), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) }
+                PdfOptions = new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) }
             });
             shell.AddScript("$htmlSettings = New-OfficeHtmlPdfOptions -Margin 12 -InteractiveFormControls $false; Get-ChildItem -LiteralPath $source -File | Export-OfficeDocumentPdf -OutputDirectory $destination -TextOptions $textSettings -HtmlOptions $htmlSettings -ItemResults -SummaryVariable summary");
             var results = shell.Invoke();

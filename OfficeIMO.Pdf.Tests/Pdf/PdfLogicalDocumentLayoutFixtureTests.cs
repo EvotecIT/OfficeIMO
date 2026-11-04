@@ -43,15 +43,13 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_GroupsWrappedTextLinesIntoParagraphs() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(260),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(260), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
+            .Paragraph(p => p.AddText("This logical paragraph should wrap across multiple nearby PDF text lines so wrappers can start from paragraph-like objects."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "P-100", "Paragraph table text", "2" }
@@ -74,7 +72,7 @@ public partial class PdfDocumentReadResultTests {
     [Fact]
     public void Load_ReadsCompleteSeekableStreamAndRestoresPosition() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Logical stream marker."))
+            .Paragraph(p => p.AddText("Logical stream marker."))
             .ToBytes();
         using var stream = new MemoryStream(source);
         stream.Position = source.Length / 2;

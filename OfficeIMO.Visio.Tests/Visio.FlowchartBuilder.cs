@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal(6, page.Shapes.Count);
-            Assert.True(page.Shapes[0].PinX < page.Shapes[3].PinX);
-            Assert.True(page.Shapes[1].PinX < page.Shapes[4].PinX);
+            Assert.True(page.Shapes[0].PinX.ToInches() < page.Shapes[3].PinX.ToInches());
+            Assert.True(page.Shapes[1].PinX.ToInches() < page.Shapes[4].PinX.ToInches());
             Assert.Equal("Off-page reference", page.Shapes[2].NameU);
             Assert.Equal("Circle", page.Shapes[3].NameU);
             VisioStencilProfile profile = document.CreateStencilProfile();
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
             VisioShape start = Assert.Single(page.Shapes, shape => shape.Id == "start");
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Property buying Flowchart", title.Text);
-            Assert.True(title.PinY > start.PinY);
+            Assert.True(title.PinY.ToInches() > start.PinY.ToInches());
             Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false,
                 CheckConnectorLabels = false
@@ -148,8 +148,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Escalate if rejected", callout.Text);
             Assert.Equal(target.Id, callout.CalloutTargetId);
             Assert.Contains("Annotations", callout.LayerNames);
-            Assert.Equal(2.35, callout.Width);
-            Assert.Equal(0.7, callout.Height);
+            Assert.Equal(2.35, callout.Width.ToInches());
+            Assert.Equal(0.7, callout.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
             Assert.Same(target, leader.To);
@@ -182,11 +182,11 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "agreement-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "review-callout");
 
-            Assert.True(explicitCallout.PinX > target.PinX);
-            Assert.Equal(target.PinY, explicitCallout.PinY, 6);
+            Assert.True(explicitCallout.PinX.ToInches() > target.PinX.ToInches());
+            Assert.Equal(target.PinY.ToInches(), explicitCallout.PinY.ToInches(), 6);
             Assert.Equal(target.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.35, explicitCallout.Width);
-            Assert.True(generatedCallout.PinX < page.FindShapeById("review")!.PinX);
+            Assert.Equal(2.35, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinX.ToInches() < page.FindShapeById("review")!.PinX.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
             Assert.Same(target, leader.To);
@@ -211,9 +211,9 @@ namespace OfficeIMO.Tests {
             VisioPage page = Assert.Single(document.Pages);
             VisioShape callout = Assert.Single(page.Callouts());
 
-            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
-            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
-            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX.ToInches(), 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY.ToInches(), 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width.ToInches(), 6);
         }
 
         [Fact]

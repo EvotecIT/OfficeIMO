@@ -34,7 +34,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             return arguments[0];
         });
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellFormula(1, 1, "ECHOFINITE(1E309)");
+        sheet.Cell(1, 1).SetFormula("ECHOFINITE(1E309)");
 
         Exception? exception = Record.Exception(() => document.Calculate());
 
@@ -50,8 +50,8 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
         try {
             using ExcelDocument document = ExcelDocument.Create(workbookPath);
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "body");
-            sheet.SetHeaderFooter(headerLeft: "Path &[Path] &Z");
+            sheet.Cell(1, 1).SetValue("body");
+            sheet.PageSetup.Header.Left.Text = "Path &[Path] &Z";
 
             string defaultSvg = Encoding.UTF8.GetString(Assert.Single(sheet.ExportImages(
                 OfficeImageExportFormat.Svg,
@@ -80,7 +80,7 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 document.SetCustomDocumentProperty("Valid", "retained");
-                document.AddSheet("Data").CellValue(1, 1, "body");
+                document.AddSheet("Data").Cell(1, 1).SetValue("body");
                 document.Save();
             }
 
@@ -95,8 +95,8 @@ public sealed class ExcelAllSeverityBatch14SecurityTests {
             }
 
             using ExcelDocument loaded = ExcelDocument.Load(path);
-            Assert.Equal("retained", loaded.CustomDocumentProperties["Valid"].Text);
-            Assert.False(loaded.CustomDocumentProperties.ContainsKey("Malformed"));
+            Assert.Equal("retained", loaded.CustomProperties["Valid"].Text);
+            Assert.False(loaded.CustomProperties.ContainsKey("Malformed"));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

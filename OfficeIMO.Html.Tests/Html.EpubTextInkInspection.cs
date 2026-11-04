@@ -34,7 +34,7 @@ public sealed class EpubTextInkInspectionTests {
             "@font-face{font-family:Ink;src:url('ink.ttf')}#frame{font-family:Ink;font-size:20px;line-height:20px;" + style + "}"));
         book.SetContentXml("page", xml);
         var source = EpubDocument.Load(new MemoryStream(book.Write().Bytes),
-            new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+            new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
         var report = source.InspectFixedLayoutPage(0);
         Assert.NotEmpty(report.Rendering.Fonts.Faces);
         Assert.Equal(overflow, report.HasTextInkOverflow);

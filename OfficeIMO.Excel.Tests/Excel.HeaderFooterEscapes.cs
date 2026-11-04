@@ -19,13 +19,13 @@ public partial class Excel {
         var sheet = document.AddSheet("Report");
         byte[] image = HeaderFooterEscapesTestImage();
         if (header) {
-            sheet.SetHeader(left: left);
-            sheet.SetHeader(center: "Title");
-            sheet.SetHeaderImage(ExcelHeaderFooterPosition.Right, image, width: OfficeLength.Points(12), height: OfficeLength.Points(6));
+            sheet.PageSetup.Header.Left.Text = left;
+            sheet.PageSetup.Header.Center.Text = "Title";
+            sheet.PageSetup.Header.Right.SetImage(image, width: OfficeLength.Points(12), height: OfficeLength.Points(6));
         } else {
-            sheet.SetFooter(left: left);
-            sheet.SetFooter(center: "Title");
-            sheet.SetFooterImage(ExcelHeaderFooterPosition.Right, image, width: OfficeLength.Points(12), height: OfficeLength.Points(6));
+            sheet.PageSetup.Footer.Left.Text = left;
+            sheet.PageSetup.Footer.Center.Text = "Title";
+            sheet.PageSetup.Footer.Right.SetImage(image, width: OfficeLength.Points(12), height: OfficeLength.Points(6));
         }
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         XElement value = ReadSavedHeaderFooter(document);
@@ -36,14 +36,14 @@ public partial class Excel {
     public void HeaderFooterPictureMarkersDistinguishLiteralAmpersandsAndReleaseRemovedImages() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Report");
-        sheet.SetHeader(left: "R&&G");
+        sheet.PageSetup.Header.Left.Text = "R&&G";
         Assert.False(sheet.GetHeaderFooter().HeaderHasPicturePlaceholder);
         byte[] image = HeaderFooterEscapesTestImage();
-        sheet.SetHeaderImage(ExcelHeaderFooterPosition.Left, image, width: OfficeLength.Points(12), height: OfficeLength.Points(6));
+        sheet.PageSetup.Header.Left.SetImage(image, width: OfficeLength.Points(12), height: OfficeLength.Points(6));
         XNamespace ns = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
         Assert.Equal("&L&GR&&G", ReadSavedHeaderFooter(document).Element(ns + "oddHeader")!.Value);
         Assert.Equal(image, sheet.GetHeaderFooter().HeaderLeftImage!.Bytes);
-        sheet.SetHeader(left: "R&&G");
+        sheet.PageSetup.Header.Left.Text = "R&&G";
         var info = sheet.GetHeaderFooter();
         Assert.False(info.HeaderHasPicturePlaceholder);
         Assert.Null(info.HeaderLeftImage);

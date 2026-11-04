@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.CellAt(3, 1).SetValue("{{Name}}");
+                sheet.Cell(3, 1).SetValue("{{Name}}");
                 sheet.AddImage("A2:B5", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveOnlyTemplateRange", Placement = ExcelImagePlacement.MoveOnly });
 
                 sheet.ApplyTemplateRows(3, new[] {
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.CellAt(2, 1).SetValue("Remove");
+                sheet.Cell(2, 1).SetValue("Remove");
                 sheet.AddImage("A2:B5", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveAndSizePartialDelete", Placement = ExcelImagePlacement.MoveAndSize });
 
                 sheet.RemoveTemplateOptionalRows(2, 1);
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.CellAt(5, 1).SetValue("{{Name}}");
+                sheet.Cell(5, 1).SetValue("{{Name}}");
                 sheet.AddImage("A2:B5", imagePath, new OfficeIMO.Excel.ExcelImageOptions { Name = "MoveAndSizeInsertBelow", Placement = ExcelImagePlacement.MoveAndSize });
 
                 sheet.ApplyTemplateRows(5, new[] {

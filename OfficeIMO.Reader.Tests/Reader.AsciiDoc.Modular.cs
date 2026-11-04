@@ -39,7 +39,7 @@ public sealed class ReaderAsciiDocModularTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAsciiDocHandler().Build();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("= Registry\n\nContent\n"), writable: false);
 
-        ReaderChunk[] chunks = reader.Read(stream, "registry.adoc").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(stream, "registry.adoc").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Equal(ReaderInputKind.AsciiDoc, reader.DetectKind("registry.adoc"));
@@ -133,7 +133,7 @@ public sealed class ReaderAsciiDocModularTests {
     [Fact]
     public void StreamReaderHonorsTheNativeCharacterLimitAndRestoresCallerPosition() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Text longer than eight characters."), writable: false);
-        var options = new ReaderAsciiDocOptions(); options.ParseOptions.MaximumInputLength = 8;
+        var options = new ReaderAsciiDocOptions(); options.ParseOptions.MaxInputLength = 8;
         Assert.Throws<InvalidDataException>(() => AsciiDocReaderAdapter.Read(stream, "limit.adoc", asciiDocOptions: options).ToArray());
         Assert.True(stream.CanRead);
         Assert.Equal(0, stream.Position);

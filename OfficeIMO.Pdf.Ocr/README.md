@@ -35,9 +35,9 @@ PdfOcrMergeResult recognized = review.Ocr.RequireAcceptedOcrContent();
 
 // Inspect recognized.Document.Tables and recognized.Pages before confirming the header row.
 recognized.SaveAsExcel("ledger.xlsx",
-    new ExcelPdfImportOptions { UseFirstRowAsHeader = true });
+    new PdfExcelExportOptions { UseFirstRowAsHeader = true });
 recognized.SaveAsWord("ledger.docx",
-    new WordPdfImportOptions { ImportImages = false, IncludeImagePlaceholders = false });
+    new PdfWordExportOptions { ImportImages = false, IncludeImagePlaceholders = false });
 review.ApplyAll().Document.Save("ledger-searchable.pdf");
 string json = recognized.Document.ExportStructured(PdfStructuredExportFormat.Json);
 ```

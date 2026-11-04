@@ -235,7 +235,7 @@ namespace OfficeIMO.Word.Pdf {
                 : color;
 
         private static string? GetNativeEffectiveParagraphShadingFill(WordParagraph paragraph) =>
-            NormalizeNativeShadingFill(paragraph.ShadingFillColorHex) ?? GetNativeParagraphStyleDefaults(paragraph).ShadingFillColorHex;
+            NormalizeNativeShadingFill(paragraph.ShadingFillValue) ?? GetNativeParagraphStyleDefaults(paragraph).ShadingFillColorHex;
 
         private static NativeParagraphBorders GetNativeEffectiveParagraphBorders(WordParagraph paragraph) =>
             MergeNativeParagraphBorders(GetNativeParagraphStyleDefaults(paragraph).Borders, GetNativeDirectParagraphBorders(paragraph));

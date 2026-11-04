@@ -10,12 +10,10 @@ namespace OfficeIMO.Tests.Pdf;
 
 public class PdfThemeCompositionDefaultsTests {
     private static PdfCreateOptions SmallPage() => new PdfCreateOptions {
-        PageWidth = OfficeLength.Points(420),
-        PageHeight = OfficeLength.Points(600),
-        MarginLeft = OfficeLength.Points(40),
-        MarginRight = OfficeLength.Points(40),
-        MarginTop = OfficeLength.Points(40),
-        MarginBottom = OfficeLength.Points(40)
+        PageSetup = {
+            Size = new PdfPageSize(OfficeLength.Points(420), OfficeLength.Points(600)),
+            Margins = { Left = OfficeLength.Points(40), Right = OfficeLength.Points(40), Top = OfficeLength.Points(40), Bottom = OfficeLength.Points(40) }
+        }
     };
 
     private static Letter[] Letters(byte[] bytes, int page = 1) {
@@ -76,10 +74,10 @@ public class PdfThemeCompositionDefaultsTests {
 
     [Fact]
     public void PageNumbers_DefaultToPageNOfM() {
-        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { ShowPageNumbers = true })
-            .Paragraph(p => p.Text("Body"))
+        byte[] bytes = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Footer = { Show = true } } })
+            .Paragraph(p => p.AddText("Body"))
             .PageBreak()
-            .Paragraph(p => p.Text("Second"))
+            .Paragraph(p => p.AddText("Second"))
             .ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -90,7 +88,7 @@ public class PdfThemeCompositionDefaultsTests {
     [Fact]
     public void Title_SitsAboveHeadingsAndStaysOutOfTheOutline() {
         var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
-        document.Content.Title("Handbook").Section("Before", section => section.Paragraph(p => p.Text("Body")));
+        document.Content.Title("Handbook").Section("Before", section => section.AddParagraph(p => p.AddText("Body")));
         byte[] bytes = document.ToBytes();
 
         Letter[] letters = Letters(bytes);
@@ -102,9 +100,12 @@ public class PdfThemeCompositionDefaultsTests {
     [Fact]
     public void HyphenatedIdentifier_MovesToTheNextLineWhole() {
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = OfficeLength.Points(300), PageHeight = OfficeLength.Points(300), MarginLeft = OfficeLength.Points(20), MarginRight = OfficeLength.Points(20), MarginTop = OfficeLength.Points(20), MarginBottom = OfficeLength.Points(20)
+                PageSetup = {
+                    Size = new PdfPageSize(OfficeLength.Points(300), OfficeLength.Points(300)),
+                    Margins = { Left = OfficeLength.Points(20), Right = OfficeLength.Points(20), Top = OfficeLength.Points(20), Bottom = OfficeLength.Points(20) }
+                }
             })
-            .Paragraph(p => p.FontSize(OfficeLength.Points(18)).Bold("Invoice EVO-DEMO-2026-0917"))
+            .Paragraph(p => p.AddText("Invoice EVO-DEMO-2026-0917").SetBold().SetFontSize(OfficeLength.Points(18)))
             .ToBytes();
 
         Letter[] letters = Letters(bytes);
@@ -120,8 +121,8 @@ public class PdfThemeCompositionDefaultsTests {
         PdfDocument document = PdfDocument.Create(options);
         document.Content
             .Spacer(OfficeLength.Points(150))
-            .Table(rows, style: new PdfTableStyle { KeepWithNext = true, CellPaddingY = OfficeLength.Points(2) })
-            .PanelParagraph(p => p.Text("Summary line one\nSummary line two\nSummary line three\nSummary line four\nSummary line five\nSummary line six\nSummary line seven"));
+            .AddTable(rows, style: new PdfTableStyle { KeepWithNext = true, CellPaddingY = OfficeLength.Points(2) })
+            .AddPanelParagraph(p => p.AddText("Summary line one\nSummary line two\nSummary line three\nSummary line four\nSummary line five\nSummary line six\nSummary line seven"));
         byte[] bytes = document.ToBytes();
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
@@ -147,14 +148,14 @@ public class PdfThemeCompositionDefaultsTests {
     public void PanelParagraph_DropsTrailingParagraphSpacingInsideThePanel() {
         var style = new PdfPanelStyle { PaddingX = OfficeLength.Points(10), PaddingY = OfficeLength.Points(10), SpacingAfter = OfficeLength.Points(0) };
         byte[] collapsed = PdfDocument.Create(SmallPage())
-            .PanelParagraph(p => p.Text("Inside"), style)
-            .Paragraph(p => p.Text("After"))
+            .PanelParagraph(p => p.AddText("Inside"), style)
+            .Paragraph(p => p.AddText("After"))
             .ToBytes();
         var paragraphStyle = SmallPage().DefaultParagraphStyle!;
         paragraphStyle.SpacingAfter = OfficeLength.Zero;
         byte[] explicitZero = PdfDocument.Create(SmallPage())
-            .Panel(panel => panel.Paragraph(p => p.Text("Inside"), style: paragraphStyle), style)
-            .Paragraph(p => p.Text("After"))
+            .Panel(panel => panel.AddParagraph(p => p.AddText("Inside"), style: paragraphStyle), style)
+            .Paragraph(p => p.AddText("After"))
             .ToBytes();
 
         double collapsedAfter = Word(Letters(collapsed), "After")[0].StartBaseLine.Y;

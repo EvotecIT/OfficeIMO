@@ -11,7 +11,7 @@ Converts PDF logical text readback to Markdown.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfMarkdown [-Path] <string> [-PageRange <string>] [-Password <string>] [-IgnorePermissionRestrictions] [-OutputPath <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfMarkdown [-Path] <string> [-PageRange <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [-OutputPath <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -82,7 +82,7 @@ Accept wildcard characters: False
 Password used to read a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

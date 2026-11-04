@@ -11,7 +11,7 @@ internal static partial class EpubReader {
     /// <summary>
     /// Reads an EPUB document from disk.
     /// </summary>
-    public static EpubDocument Read(string epubPath, EpubReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static EpubDocument Read(string epubPath, EpubLoadOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         if (epubPath == null) throw new ArgumentNullException(nameof(epubPath));
         if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
@@ -24,11 +24,11 @@ internal static partial class EpubReader {
     /// <summary>
     /// Reads an EPUB document from a stream.
     /// </summary>
-    public static EpubDocument Read(Stream epubStream, EpubReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static EpubDocument Read(Stream epubStream, EpubLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
         if (!epubStream.CanRead) throw new IOException("EPUB stream must be readable.");
 
-        EpubReadOptions effective = Normalize(options);
+        EpubLoadOptions effective = Normalize(options);
         try {
             return ReadBytes(OfficeStreamReader.ReadAllBytes(epubStream, cancellationToken, effective.MaxPackageBytes), effective, cancellationToken);
         } catch (EpubReadException) {
@@ -44,12 +44,12 @@ internal static partial class EpubReader {
 
     internal static async Task<EpubDocument> ReadAsync(
         Stream epubStream,
-        EpubReadOptions? options,
+        EpubLoadOptions? options,
         CancellationToken cancellationToken) {
         if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
         if (!epubStream.CanRead) throw new IOException("EPUB stream must be readable.");
 
-        EpubReadOptions effective = Normalize(options);
+        EpubLoadOptions effective = Normalize(options);
         try {
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(
                 epubStream,
@@ -70,11 +70,11 @@ internal static partial class EpubReader {
 
     internal static EpubDocument ReadBytes(
         byte[] bytes,
-        EpubReadOptions? options = null,
+        EpubLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
         cancellationToken.ThrowIfCancellationRequested();
-        EpubReadOptions effective = Normalize(options);
+        EpubLoadOptions effective = Normalize(options);
         if (bytes.LongLength > effective.MaxPackageBytes) {
             throw CreateFatalReadException(
                 "epub.package.size-limit",
@@ -96,7 +96,7 @@ internal static partial class EpubReader {
 
     private static EpubDocument ReadArchive(
         byte[] bytes,
-        EpubReadOptions effective,
+        EpubLoadOptions effective,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var epubStream = new MemoryStream(bytes, writable: false);
@@ -248,7 +248,7 @@ internal static partial class EpubReader {
         IReadOnlyDictionary<string, ZipArchiveEntry> entryIndex,
         EpubPackage? package,
         IReadOnlyDictionary<string, EpubEncryptionInfo> encryptionByPath,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         if (package == null || package.Manifest.Count == 0) return Array.Empty<EpubResource>();

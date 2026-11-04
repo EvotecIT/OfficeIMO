@@ -20,7 +20,7 @@ public sealed class ExcelTableRecordReadingTests {
             table.SetTotals(new Dictionary<string, ExcelTableTotalsFunction> {
                 [nameof(Order.Total)] = ExcelTableTotalsFunction.Sum
             });
-            sheet.CellValue(10, 1, "Outside the table");
+            sheet.Cell(10, 1).SetValue("Outside the table");
             Assert.Equal(expected, table.RowsAs<Order>().ToArray());
             document.Save(stream);
         }
@@ -72,7 +72,7 @@ public sealed class ExcelTableRecordReadingTests {
         Assert.ThrowsAny<OperationCanceledException>(() => table.RowsAs<Order>(
             new ExcelReaderOptions { CancellationToken = cancellation.Token }).ToArray());
         Assert.Single(table.RowsAs<Order>());
-        table.Sheet.CellValue(5, 1, "Workbook remains editable");
+        table.Sheet.Cell(5, 1).SetValue("Workbook remains editable");
     }
 
     [Fact]

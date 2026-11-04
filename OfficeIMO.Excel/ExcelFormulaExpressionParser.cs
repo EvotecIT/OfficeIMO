@@ -47,14 +47,28 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
+        [ThreadStatic]
+        private static string? _lastSupportedCallText;
+        [ThreadStatic]
+        private static ExcelFormulaFunctionCallSyntax? _lastSupportedCall;
+
+        /// <summary>
+        /// Parses a built-in function call. The evaluator asks this twice for each call it evaluates, once to classify
+        /// an operand and once to evaluate it, with the same text instance, so the last answer is kept per thread.
+        /// The text alone determines the answer, so an edited formula, being new text, is parsed afresh.
+        /// </summary>
         internal static bool TryParseSupportedFunctionCall(string formula, out ExcelFormulaFunctionCallSyntax? call) {
-            if (TryParseFunctionCall(formula, out ExcelFormulaFunctionCallSyntax? parsed)
-                && ExcelFormulaCapabilities.IsBuiltInFunction(parsed!.Name)) {
-                call = parsed;
-                return true;
+            if (formula != null && ReferenceEquals(formula, _lastSupportedCallText)) {
+                call = _lastSupportedCall;
+                return call != null;
             }
-            call = null;
-            return false;
+            call = TryParseFunctionCall(formula!, out ExcelFormulaFunctionCallSyntax? parsed)
+                && ExcelFormulaCapabilities.IsBuiltInFunction(parsed!.Name)
+                    ? parsed
+                    : null;
+            _lastSupportedCallText = formula;
+            _lastSupportedCall = call;
+            return call != null;
         }
 
         internal static bool TryParseFunctionCall(string formula, out ExcelFormulaFunctionCallSyntax? call) {

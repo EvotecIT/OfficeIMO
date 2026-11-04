@@ -293,7 +293,7 @@ public sealed class RtfPdfNamedFontTests {
         return options;
     }
 
-    private static RtfToPdfOptions ConvertOptions(PdfCore.PdfCreateOptions options) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions ConvertOptions(PdfCore.PdfCreateOptions options) => new RtfPdfExportOptions {
         PdfOptions = options,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

@@ -11,7 +11,7 @@ namespace OfficeIMO.Access.Verification {
             foreach (string file in new[] { "Application/objects-jet4.mdb", "Application/objects-ace12.accdb", "Designer/designer-jet4.mdb", "Designer/designer-ace12.accdb" }) {
                 string source = Path.Combine(corpusDirectory, file); string target = Path.Combine(root, Path.GetFileName(file));
                 using AccessDocument document = AccessDocument.Load(source);
-                document.AssessSave(target).RequireNoLoss(); document.Save(target);
+                document.AssessSave(target).ThrowIfLoss(); document.Save(target);
                 byte[] original = File.ReadAllBytes(source), copy = File.ReadAllBytes(target);
                 if (!original.SequenceEqual(copy)) throw new InvalidDataException("No-op native output differs from its source snapshot.");
                 records.Add(new { file = Path.GetFileName(file), source = file, sha256 = Convert.ToHexString(SHA256.HashData(copy)).ToLowerInvariant(),

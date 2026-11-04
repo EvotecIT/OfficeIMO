@@ -288,9 +288,8 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("Package: ")
                 .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"PackageTitle\"" });
             document.AddParagraph("This workflow proves template markers in headers and footers through the same preflight and binding APIs used for body content.");
-            document.AddHeadersAndFooters();
 
-            WordHeader header = document.Header?.Default
+            WordHeader header = document.PageSetup.GetHeader(WordHeaderFooterType.Default)
                 ?? throw new InvalidOperationException("The default header was not created.");
             header.AddParagraph("{{#ShowConfidentialHeader}}");
             header.AddParagraph("Client: ")
@@ -299,7 +298,7 @@ namespace OfficeIMO.Examples.Word {
                 .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"PreparedDate\"" });
             header.AddParagraph("{{/ShowConfidentialHeader}}");
 
-            WordFooter footer = document.Footer?.Default
+            WordFooter footer = document.PageSetup.GetFooter(WordHeaderFooterType.Default)
                 ?? throw new InvalidOperationException("The default footer was not created.");
             footer.AddParagraph("{{#each Signers}}");
             footer.AddParagraph("Signer: ")

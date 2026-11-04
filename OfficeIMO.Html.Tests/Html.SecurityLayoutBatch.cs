@@ -287,7 +287,7 @@ public sealed class HtmlSecurityLayoutBatchTests {
             string.Concat(Enumerable.Repeat("<p>x</p>", 100));
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item =>
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && item.Detail.StartsWith("quotes=", StringComparison.Ordinal));
         Assert.True(diagnostic.Detail.Length <= 263);
@@ -306,7 +306,7 @@ public sealed class HtmlSecurityLayoutBatchTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html.ToString());
         Assert.Contains("1024", rendered.Text, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics, item =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported
             && item.Detail.StartsWith("quotes=", StringComparison.Ordinal));
     }

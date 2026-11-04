@@ -64,8 +64,8 @@ namespace OfficeIMO.Word {
         }
 
         private static int GetSectionTextWidth(WordSection section) =>
-            Math.Max(0, (int)(checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
-                - (int)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())));
+            Math.Max(0, (int)(checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.A4.Width.ToTwips())))
+                - (int)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) - (int)checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())));
 
         private int? GetUnscopedStoryGridWidth() {
             if (!_table.Ancestors<Header>().Any() && !_table.Ancestors<Footer>().Any()) return null;

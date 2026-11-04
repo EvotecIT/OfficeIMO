@@ -10,7 +10,7 @@ public partial class Word {
     public void HeaderFieldsRejectAggregateNestedResultScans() {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.AddParagraph("BODY");
-        WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph();
+        WordParagraph paragraph = document.PageSetup.Header.AddParagraph();
         for (int index = 0; index < 230; index++) {
             paragraph._paragraph.Append(new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
                 new W.Run(new W.FieldCode(" PAGE ")),
@@ -34,7 +34,7 @@ public partial class Word {
         document.AddParagraph("BODY");
         document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
             new W.Style(new W.StyleRunProperties(new W.Vanish())) { Type = W.StyleValues.Character, StyleId = "HiddenSplitResult" });
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph start = story.AddParagraph("VISIBLE");
         start._paragraph.Append(new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Begin }),
             new W.Run(new W.FieldCode(" PAGE ")), new W.Run(new W.FieldChar { FieldCharType = W.FieldCharValues.Separate }));
@@ -77,7 +77,7 @@ public partial class Word {
         styles.Append(new W.Style(new W.StyleRunProperties(new W.Vanish())) {
             Type = hiddenSource == "paragraph" ? W.StyleValues.Paragraph : W.StyleValues.Character, StyleId = "HiddenFieldText"
         });
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph paragraph = story.AddParagraph();
         if (hiddenSource == "paragraph") paragraph.SetStyleId("HiddenFieldText");
         W.Run Visible(string text) => new(new W.RunProperties(new W.Vanish { Val = false }), new W.Text(text));
@@ -118,7 +118,7 @@ public partial class Word {
     public void HeaderFieldWithoutCachedTextUsesItsEffectiveVisibility(bool complex, bool hiddenParagraph) {
         using WordDocument document = CreateJoinedParagraphDocument();
         document.AddParagraph("BODY");
-        WordParagraph paragraph = document.HeaderDefaultOrCreate.AddParagraph("VISIBLE");
+        WordParagraph paragraph = document.PageSetup.Header.AddParagraph("VISIBLE");
         if (hiddenParagraph) {
             document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(
                 new W.Style(new W.StyleRunProperties(new W.Vanish())) { Type = W.StyleValues.Paragraph, StyleId = "HiddenUncachedField" });

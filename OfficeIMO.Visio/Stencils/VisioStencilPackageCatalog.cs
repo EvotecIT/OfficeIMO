@@ -125,7 +125,7 @@ namespace OfficeIMO.Visio.Stencils {
 
         /// <summary>
         /// Loads multiple Visio packages into one catalog. Each shape retains its source package path so
-        /// <see cref="VisioStencilPageExtensions.AddStencilShape(VisioPage, VisioStencilShape, string, double, double, string?)"/>
+        /// <see cref="VisioStencilPageExtensions.AddStencilShape(VisioPage, VisioStencilShape, string, OfficeLength, OfficeLength, string?)"/>
         /// can import the real master automatically.
         /// </summary>
         /// <param name="packagePaths">Package paths to load.</param>

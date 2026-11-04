@@ -43,7 +43,7 @@ public sealed class OfficeConverterReaderTests {
     [Fact]
     public void VisioConversion_ProducesSearchableSemanticFallbackWithEvidence() {
         VisioDocument source = VisioDocument.Create();
-        VisioPage page = source.AddPage("Topology", 8, 5);
+        VisioPage page = source.AddPage("Topology", OfficeLength.Inches(8), OfficeLength.Inches(5));
         page.Shapes.Add(new VisioShape("gateway") { Text = "Gateway service" });
         using var stream = new MemoryStream(source.ToBytes());
 

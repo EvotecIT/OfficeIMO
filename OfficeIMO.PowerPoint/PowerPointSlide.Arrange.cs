@@ -159,7 +159,7 @@ namespace OfficeIMO.PowerPoint {
                     return "Title";
                 case PowerPointTextBox:
                     return "TextBox";
-                case PowerPointPicture:
+                case PowerPointImage:
                     return "Picture";
                 case PowerPointTable:
                     return "Table";
@@ -289,9 +289,9 @@ namespace OfficeIMO.PowerPoint {
                     if (ownerPart is SlidePart slidePart) {
                         return PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
                             ? new PowerPointMedia(p, slidePart, kind)
-                            : new PowerPointPicture(p, slidePart);
+                            : new PowerPointImage(p, slidePart);
                     }
-                    return new PowerPointPicture(p, ownerPart);
+                    return new PowerPointImage(p, ownerPart);
                 case GroupShape g:
                     return new PowerPointGroupShape(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:

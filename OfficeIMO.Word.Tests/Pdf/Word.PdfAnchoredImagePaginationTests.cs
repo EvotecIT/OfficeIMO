@@ -23,7 +23,7 @@ public sealed class PdfAnchoredImagePaginationTests {
                 new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png));
             using WordDocument word = WordDocument.Create();
             var section = word.Sections[0];
-            section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+            section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D); section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
             if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
             var anchor = word.AddParagraph();
             var control = anchor.AddPictureControl(path, OfficeLength.Pixels(24), OfficeLength.Pixels(24));
@@ -34,14 +34,14 @@ public sealed class PdfAnchoredImagePaginationTests {
             image.HorizontalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700); image.VerticalPositionOffset = OfficeIMO.OfficeLength.Emus(10 * 12700);
             if (decoration == "top") {
                 anchor.Borders.TopStyle = WordBorderStyle.Single;
-                anchor.Borders.TopColorHex = "FF0000";
+                anchor.Borders.TopColor = OfficeColor.Parse("FF0000");
                 anchor.Borders.TopSize = OfficeLength.Points(2);
             } else {
                 anchor.Borders.BottomStyle = WordBorderStyle.Single;
-                anchor.Borders.BottomColorHex = "FF0000";
+                anchor.Borders.BottomColor = OfficeColor.Parse("FF0000");
                 anchor.Borders.BottomSize = OfficeLength.Points(2);
             }
-            if (decoration == "panel") anchor.ShadingFillColorHex = "E6F2FF";
+            if (decoration == "panel") anchor.ShadingFillColor = OfficeColor.Parse("E6F2FF");
             if (decoration == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);
             var pdf = PdfCore.PdfDocument.Load(word.ToPdf().ToBytes());
             var placement = Assert.Single(pdf.Images.Placements());
@@ -75,8 +75,8 @@ public sealed class PdfAnchoredImagePaginationTests {
     public void ForegroundImageFollowsAnchorParagraphToItsFirstPage(bool columns, string kind) {
         using WordDocument word = WordDocument.Create();
         var section = word.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(300D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
         if (columns) { section.ColumnCount = 2; section.ColumnsSpace = global::OfficeIMO.OfficeLength.Points(6); }
         for (int index = 0; index < 16; index++) {
             var filler = word.AddParagraph("Filler " + index);
@@ -89,7 +89,7 @@ public sealed class PdfAnchoredImagePaginationTests {
         if (kind != "split") anchor._paragraph.ParagraphProperties.KeepLines = new KeepLines();
         if (kind == "keepnext") anchor._paragraph.ParagraphProperties.KeepNext = new KeepNext();
         if (kind == "heading") anchor.SetStyle(WordParagraphStyles.Heading1);
-        if (kind == "panel") anchor.ShadingFillColorHex = "E6F2FF";
+        if (kind == "panel") anchor.ShadingFillColor = OfficeColor.Parse("E6F2FF");
         byte[] bytes = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(
             new OfficeIMO.Drawing.OfficeRasterImage(20, 20, OfficeIMO.OfficeColor.Black), OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using var stream = new MemoryStream(bytes);

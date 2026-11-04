@@ -10,7 +10,7 @@ internal static class OfficeMarkupMermaidRenderer {
 
     public static bool TryRenderPng(
         OfficeMarkupDiagramBlock diagram,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         out string outputPath) {
         outputPath = string.Empty;
         if (diagram == null || options == null || !options.RenderMermaidDiagrams || !diagram.RenderAsImage) {
@@ -61,7 +61,7 @@ internal static class OfficeMarkupMermaidRenderer {
         string renderer,
         string arguments,
         string outputPath,
-        MarkupToPowerPointOptions options) {
+        MarkupPowerPointExportOptions options) {
         var processStartInfo = CreateRendererStartInfo(renderer, arguments);
 
         using var process = Process.Start(processStartInfo);
@@ -108,7 +108,7 @@ internal static class OfficeMarkupMermaidRenderer {
 }
 """;
 
-    private static string? ResolveRendererPath(MarkupToPowerPointOptions options) {
+    private static string? ResolveRendererPath(MarkupPowerPointExportOptions options) {
         if (!string.IsNullOrWhiteSpace(options.MermaidRendererPath)) {
             return options.MermaidRendererPath;
         }
@@ -150,7 +150,7 @@ internal static class OfficeMarkupMermaidRenderer {
         && (path.EndsWith(".cmd", StringComparison.OrdinalIgnoreCase)
             || path.EndsWith(".bat", StringComparison.OrdinalIgnoreCase));
 
-    private static string ResolveTemporaryDirectory(MarkupToPowerPointOptions options) {
+    private static string ResolveTemporaryDirectory(MarkupPowerPointExportOptions options) {
         if (!string.IsNullOrWhiteSpace(options.TemporaryDirectory)) {
             return options.TemporaryDirectory!;
         }

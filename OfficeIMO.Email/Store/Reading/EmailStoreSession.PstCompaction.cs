@@ -90,7 +90,7 @@ public sealed partial class EmailStoreSession {
             "EMAIL_STORE_PST_COMPACT_SEARCH_ITEMS_EXCLUDED",
             string.Concat(excludedSearch.ToString(CultureInfo.InvariantCulture),
                 " search-folder item(s) are intentionally excluded by the compaction policy."),
-            effective.FailOnDataLoss
+            effective.FailOnLoss
                 ? EmailStoreDiagnosticSeverity.Error
                 : EmailStoreDiagnosticSeverity.Warning,
             destination));
@@ -114,7 +114,7 @@ public sealed partial class EmailStoreSession {
         EmailStorePstCompactionOptions effective = plan.Options;
         var conversionOptions = new EmailStorePstConversionOptions(
             overwriteExisting: effective.OverwriteExisting,
-            failOnDataLoss: effective.FailOnDataLoss,
+            failOnLoss: effective.FailOnLoss,
             continueOnItemError: effective.ContinueOnItemError,
             includeAssociatedItems: effective.IncludeAssociatedItems,
             includeOrphanedItems: effective.IncludeOrphanedItems,

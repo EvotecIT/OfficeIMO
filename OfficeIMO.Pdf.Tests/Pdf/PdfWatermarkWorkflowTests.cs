@@ -455,8 +455,8 @@ public sealed class PdfWatermarkWorkflowTests {
     };
 
     private static byte[] Source(PdfCreateOptions? options = null) => PdfDocument.Create(document => {
-        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Original first page")));
-        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.Text("Original second page")));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Original first page")));
+        document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(500)).Content(content => content.AddParagraph("Original second page")));
     }, options).ToBytes();
 
     private static byte[] CreateSolidBmp(int width, int height) {

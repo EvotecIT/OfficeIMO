@@ -33,9 +33,9 @@ public sealed class WordAllSeverityBatch14SecurityTests {
     [Fact]
     public void NativePdfClampsUntrustedHeaderExpansionToThePage() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         for (int index = 0; index < 100; index++) {
-            document.Header.Default!.AddParagraph("large header " + index);
+            document.PageSetup.Header.AddParagraph("large header " + index);
         }
         document.AddParagraph("body remains renderable");
         using var output = new MemoryStream();

@@ -10,12 +10,13 @@ OfficeIMO.Visio renders diagram pages without launching Microsoft Visio. Use ima
 ## Export SVG and PNG
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Visio;
 
 var document = VisioDocument.Create("pipeline.vsdx");
-var page = document.AddPage("Pipeline").Size(8, 4);
-var build = page.AddProcess(1.5, 2, 1.4, 0.7, "Build");
-var ship = page.AddProcess(5.5, 2, 1.4, 0.7, "Ship");
+var page = document.AddPage("Pipeline").Size(OfficeLength.Inches(8), OfficeLength.Inches(4));
+var build = page.AddProcess(OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Build");
+var ship = page.AddProcess(OfficeLength.Inches(5.5), OfficeLength.Inches(2), OfficeLength.Inches(1.4), OfficeLength.Inches(0.7), "Ship");
 
 page.AddConnector(
     build,

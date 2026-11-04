@@ -81,14 +81,14 @@ public partial class Word {
     }
 
     private static W.Paragraph[] CreateFieldFormattingStories(WordDocument source) {
-        source.AddHeadersAndFooters();
+        _ = source.PageSetup.Header;
         WordParagraph notes = source.AddParagraph("References");
         W.Paragraph footnote = notes.AddFootNote("Placeholder").Paragraph.FootNote!.Paragraphs![1]._paragraph;
         W.Paragraph endnote = notes.AddEndNote("Placeholder").Paragraph.EndNote!.Paragraphs![1]._paragraph;
         return new[] {
             source.AddParagraph()._paragraph, source.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0]._paragraph,
-            source.Sections[0].Header.Default!.AddParagraph()._paragraph,
-            source.Sections[0].Footer.Default!.AddParagraph()._paragraph, footnote, endnote
+            source.Sections[0].PageSetup.Header.AddParagraph()._paragraph,
+            source.Sections[0].PageSetup.Footer.AddParagraph()._paragraph, footnote, endnote
         };
     }
 

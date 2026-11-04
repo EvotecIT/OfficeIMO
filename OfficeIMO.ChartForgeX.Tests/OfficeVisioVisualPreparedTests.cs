@@ -30,19 +30,19 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         Assert.NotNull(edge.ResolvedLabelBounds);
         var options = new OfficeVisioVisualOptions { PixelsPerInch = 144, LayoutMode = OfficeVisioVisualLayoutMode.Preserve };
         var result = jsonIngress ? artifact.ToInterchangeUtf8Json().ToOfficeVisio(options) : artifact.ToOfficeVisio(options);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed ||
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed ||
             item.Feature == "computedRoute" || item.Feature == "selfRoute");
 
         void Check(VisioPage page) {
             double ppi = options.PixelsPerInch;
-            Assert.Equal(envelope.Width!.Value / ppi, page.Width, 6);
-            Assert.Equal(envelope.Height!.Value / ppi, page.Height, 6);
+            Assert.Equal(envelope.Width!.Value / ppi, page.Width.ToInches(), 6);
+            Assert.Equal(envelope.Height!.Value / ppi, page.Height.ToInches(), 6);
             foreach (var source in envelope.Nodes) {
                 var shape = page.Shapes.Single(item => item.Id == source.Id);
-                Assert.Equal((source.X!.Value + source.Width!.Value / 2) / ppi, shape.PinX, 6);
-                Assert.Equal((envelope.Height.Value - source.Y!.Value - source.Height!.Value / 2) / ppi, shape.PinY, 6);
-                Assert.Equal(source.Width.Value / ppi, shape.Width, 6);
-                Assert.Equal(source.Height.Value / ppi, shape.Height, 6);
+                Assert.Equal((source.X!.Value + source.Width!.Value / 2) / ppi, shape.PinX.ToInches(), 6);
+                Assert.Equal((envelope.Height.Value - source.Y!.Value - source.Height!.Value / 2) / ppi, shape.PinY.ToInches(), 6);
+                Assert.Equal(source.Width.Value / ppi, shape.Width.ToInches(), 6);
+                Assert.Equal(source.Height.Value / ppi, shape.Height.ToInches(), 6);
             }
             var connector = Assert.Single(page.Connectors);
             Assert.NotNull(connector.From);
@@ -50,21 +50,21 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             Assert.Equal(VisioConnectorRerouteBehavior.Never, connector.RerouteBehavior);
             Assert.Equal(edge.ResolvedRoute.Count - 2, connector.Waypoints.Count);
             var first = edge.ResolvedRoute[0];
-            Assert.Equal(first.X / ppi - connector.From.PinX + connector.From.Width / 2, connector.FromConnectionPoint!.X, 6);
-            Assert.Equal((envelope.Height.Value - first.Y) / ppi - connector.From.PinY + connector.From.Height / 2, connector.FromConnectionPoint.Y, 6);
+            Assert.Equal(first.X / ppi - connector.From.PinX.ToInches() + connector.From.Width.ToInches() / 2, connector.FromConnectionPoint!.X, 6);
+            Assert.Equal((envelope.Height.Value - first.Y) / ppi - connector.From.PinY.ToInches() + connector.From.Height.ToInches() / 2, connector.FromConnectionPoint.Y, 6);
             var last = edge.ResolvedRoute[edge.ResolvedRoute.Count - 1];
-            Assert.Equal(last.X / ppi - connector.To.PinX + connector.To.Width / 2, connector.ToConnectionPoint!.X, 6);
-            Assert.Equal((envelope.Height.Value - last.Y) / ppi - connector.To.PinY + connector.To.Height / 2, connector.ToConnectionPoint.Y, 6);
+            Assert.Equal(last.X / ppi - connector.To.PinX.ToInches() + connector.To.Width.ToInches() / 2, connector.ToConnectionPoint!.X, 6);
+            Assert.Equal((envelope.Height.Value - last.Y) / ppi - connector.To.PinY.ToInches() + connector.To.Height.ToInches() / 2, connector.ToConnectionPoint.Y, 6);
             for (int index = 0; index < connector.Waypoints.Count; index++) {
                 Assert.Equal(edge.ResolvedRoute[index + 1].X / ppi, connector.Waypoints[index].X, 6);
                 Assert.Equal((envelope.Height.Value - edge.ResolvedRoute[index + 1].Y) / ppi, connector.Waypoints[index].Y, 6);
             }
             var label = edge.ResolvedLabelBounds!.Value;
             var bounds = connector.GetLabelBounds();
-            Assert.Equal(label.X / ppi, bounds.Left, 6);
-            Assert.Equal((envelope.Height.Value - label.Y - label.Height) / ppi, bounds.Bottom, 6);
-            Assert.Equal((label.X + label.Width) / ppi, bounds.Right, 6);
-            Assert.Equal((envelope.Height.Value - label.Y) / ppi, bounds.Top, 6);
+            Assert.Equal(OfficeLength.Inches(label.X / ppi), bounds.Left);
+            Assert.Equal(OfficeLength.Inches((envelope.Height.Value - label.Y - label.Height) / ppi), bounds.Bottom);
+            Assert.Equal(OfficeLength.Inches((label.X + label.Width) / ppi), bounds.Right);
+            Assert.Equal(OfficeLength.Inches((envelope.Height.Value - label.Y) / ppi), bounds.Top);
         }
 
         Check(result.Page);
@@ -97,7 +97,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             sequence ? VisualArtifactKind.Sequence : VisualArtifactKind.Flow);
         var result = artifact.ToInterchangeUtf8Json().ToOfficeVisio(new OfficeVisioVisualOptions { UseNaturalPageSize = true });
         Assert.True(result.Report.AllProjectedObjectsEditable);
-        Assert.Contains(result.Report.Diagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
+        Assert.Contains(result.Report.NativeDiagnostics, item => item.Code == OfficeVisioVisualDiagnosticCode.LayoutRecomputed);
         Assert.Throws<NotSupportedException>(() => artifact.ToOfficeVisio(new OfficeVisioVisualOptions { LayoutMode = OfficeVisioVisualLayoutMode.Preserve }));
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
         try {

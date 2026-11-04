@@ -14,7 +14,7 @@ public class PdfAIdentificationMetadataTests {
         var options = new PdfCreateOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
             .ConfigurePdfUaGroundwork();
         if (invoiceMetadata) options.SetElectronicInvoiceMetadata(PdfElectronicInvoiceMetadata.FacturX("BASIC"));
-        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Metadata contract")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddText("Metadata contract")).ToBytes();
         var xml = System.Xml.Linq.XDocument.Parse(PdfInspector.Inspect(bytes).XmpMetadata!.RawXml!);
         System.Xml.Linq.XNamespace extension = "http://www.aiim.org/pdfa/ns/extension/";
         System.Xml.Linq.XNamespace schema = "http://www.aiim.org/pdfa/ns/schema#";
@@ -37,7 +37,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create(options)
             .PdfAIdentification(3, "B")
             .Meta(title: "PDF/A identification primitive", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/A identification metadata is groundwork, not certification."))
+            .Paragraph(p => p.AddText("PDF/A identification metadata is groundwork, not certification."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -61,7 +61,7 @@ public class PdfAIdentificationMetadataTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("PDF/A identification property proof."))
+            .Paragraph(p => p.AddText("PDF/A identification property proof."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -95,7 +95,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3A, "en-GB")
             .Meta(title: "PDF/A groundwork bundle", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/A groundwork bundle keeps formal profile generation disabled."))
+            .Paragraph(p => p.AddText("PDF/A groundwork bundle keeps formal profile generation disabled."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -157,7 +157,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4, "en-US")
             .Meta(title: "PDF/A-4 groundwork bundle", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/A-4 groundwork bundle keeps formal profile generation disabled."))
+            .Paragraph(p => p.AddText("PDF/A-4 groundwork bundle keeps formal profile generation disabled."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -185,7 +185,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create(options)
             .ElectronicInvoiceMetadata("BASIC")
             .Meta(title: "E-invoice XMP primitive", author: "OfficeIMO")
-            .Paragraph(p => p.Text("E-invoice metadata is groundwork, not certification."))
+            .Paragraph(p => p.AddText("E-invoice metadata is groundwork, not certification."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -214,7 +214,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create()
             .AttachFacturXInvoiceXml(invoiceXml, "EN 16931", relationship: PdfAssociatedFileRelationship.Data)
             .Meta(title: "E-invoice attachment primitive", author: "OfficeIMO")
-            .Paragraph(p => p.Text("Factur-X/ZUGFeRD attachment metadata is groundwork, not certification."))
+            .Paragraph(p => p.AddText("Factur-X/ZUGFeRD attachment metadata is groundwork, not certification."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -253,7 +253,7 @@ public class PdfAIdentificationMetadataTests {
             byte[] bytes = PdfDocument.Create()
                 .AttachFacturXInvoiceXmlFile(invoicePath, "EN 16931")
                 .Meta(title: "E-invoice file attachment primitive", author: "OfficeIMO")
-                .Paragraph(p => p.Text("Factur-X/ZUGFeRD attachment metadata can be configured from a source XML file."))
+                .Paragraph(p => p.AddText("Factur-X/ZUGFeRD attachment metadata can be configured from a source XML file."))
                 .ToBytes();
 
             PdfExtractedAttachment attachment = Assert.Single(PdfAttachmentExtractor.ExtractAttachments(bytes));
@@ -311,7 +311,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create()
             .ConfigureFacturXGroundwork(invoiceXml, "EN 16931")
             .Meta(title: "E-invoice groundwork bundle", author: "OfficeIMO")
-            .Paragraph(p => p.Text("Factur-X/ZUGFeRD groundwork bundle keeps formal profile generation disabled."))
+            .Paragraph(p => p.AddText("Factur-X/ZUGFeRD groundwork bundle keeps formal profile generation disabled."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -399,7 +399,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create(options)
             .PdfUaIdentification()
             .Meta(title: "PDF/UA identification primitive", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/UA identification metadata is groundwork, not certification."))
+            .Paragraph(p => p.AddText("PDF/UA identification metadata is groundwork, not certification."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -422,7 +422,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create(options)
             .PdfUaIdentification(2)
             .Meta(title: "PDF/UA-2 identification primitive", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/UA-2 identification metadata is groundwork, not certification."))
+            .Paragraph(p => p.AddText("PDF/UA-2 identification metadata is groundwork, not certification."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -445,7 +445,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create()
             .ConfigurePdfUaGroundwork("en-GB")
             .Meta(title: "PDF/UA groundwork bundle", author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF/UA groundwork bundle keeps formal profile generation disabled."))
+            .Paragraph(p => p.AddText("PDF/UA groundwork bundle keeps formal profile generation disabled."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -498,7 +498,7 @@ public class PdfAIdentificationMetadataTests {
             .ConfigurePdfUaGroundwork(PdfComplianceProfile.PdfUa2, "en-US")
             .Meta(title: "PDF/UA-2 groundwork bundle", author: "OfficeIMO")
             .H1("PDF/UA-2 groundwork")
-            .Paragraph(p => p.Text("PDF/UA-2 groundwork bundle keeps formal profile generation disabled."))
+            .Paragraph(p => p.AddText("PDF/UA-2 groundwork bundle keeps formal profile generation disabled."))
             .ToBytes();
 
         string raw = Encoding.UTF8.GetString(bytes);
@@ -535,7 +535,7 @@ public class PdfAIdentificationMetadataTests {
         byte[] bytes = PdfDocument.Create(options)
             .TaggedStructure(PdfTaggedStructureMode.CatalogMarkers)
             .Meta(title: "Tagged PDF marker primitive", author: "OfficeIMO")
-            .Paragraph(p => p.Text("Tagged catalog markers are groundwork, not certification."))
+            .Paragraph(p => p.AddText("Tagged catalog markers are groundwork, not certification."))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -589,7 +589,7 @@ public class PdfAIdentificationMetadataTests {
             PdfDocument.Create(new PdfCreateOptions()
                     .SetPdfAIdentification(3, "B")
                     .RequireCompliance(PdfComplianceProfile.PdfA3B))
-                .Paragraph(p => p.Text("Identification alone is not PDF/A-3b support."))
+                .Paragraph(p => p.AddText("Identification alone is not PDF/A-3b support."))
                 .ToBytes());
 
         Assert.Contains("PDF/A-3b", exception.Message, StringComparison.Ordinal);

@@ -116,7 +116,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             edge.SourceId != edge.TargetId && edge.Topology.Routing != TopologyEdgeRouting.Straight).Select(edge => edge.Id), StringComparer.Ordinal);
         foreach (var connector in page.Connectors.Where(connector => computed.Contains(connector.Id))) {
             connector.RouteOrthogonalAroundShapes(page.Shapes, new VisioConnectorRoutingOptions { IncludeDiagramAdornments = true });
-            if (connector.Waypoints.Any(point => point.X < 0 || point.Y < 0 || point.X > page.Width || point.Y > page.Height))
+            if (connector.Waypoints.Any(point => point.X < 0 || point.Y < 0 || point.X > page.Width.ToInches() || point.Y > page.Height.ToInches()))
                 report.Warn(OfficeVisioVisualDiagnosticCode.GeometryOutsidePage, OfficeVisioVisualEntityKind.Edge, connector.Id, "route",
                     "The normalized obstacle route extends beyond the declared page.");
         }
@@ -130,13 +130,13 @@ public static partial class OfficeVisioVisualConversionExtensions {
             var contentIds = new HashSet<string>(envelope.Nodes.Select(node => node.Id)
                 .Concat(envelope.Groups.Select(group => group.Id)), StringComparer.Ordinal);
             double contentTop = page.Shapes.Where(shape => contentIds.Contains(shape.Id))
-                .Select(shape => shape.GetShapeBounds().Top)
+                .Select(shape => shape.GetShapeBounds().Top.ToInches())
                 .Concat(page.Connectors.Select(connector => connector.GetConnectorContentBounds())
-                    .Where(bounds => !bounds.IsEmpty).Select(bounds => bounds.Top))
+                    .Where(bounds => !bounds.IsEmpty).Select(bounds => bounds.Top.ToInches()))
                 .DefaultIfEmpty(0).Max();
             var titleBounds = title.GetShapeBounds();
-            if (titleBounds.Left < 0 || titleBounds.Bottom < 0 || titleBounds.Right > page.Width || titleBounds.Top > page.Height ||
-                contentTop > titleBounds.Bottom - 0.08) {
+            if (titleBounds.Left.ToInches() < 0 || titleBounds.Bottom.ToInches() < 0 || titleBounds.Right.ToInches() > page.Width.ToInches() || titleBounds.Top.ToInches() > page.Height.ToInches() ||
+                contentTop > titleBounds.Bottom.ToInches() - 0.08) {
                 page.Shapes.Remove(title);
                 report.Warn(OfficeVisioVisualDiagnosticCode.TitleNotProjected, OfficeVisioVisualEntityKind.Artifact, envelope.Id, "title",
                     "The measured native title does not fit the preserved page's clear header space. The title remains in the source envelope and document metadata.");
@@ -145,7 +145,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         foreach (var connector in page.Connectors) {
             var bounds = connector.GetLabelBounds();
             if (bounds.IsEmpty) continue;
-            if (bounds.Left < 0 || bounds.Bottom < 0 || bounds.Right > page.Width || bounds.Top > page.Height)
+            if (bounds.Left.ToInches() < 0 || bounds.Bottom.ToInches() < 0 || bounds.Right.ToInches() > page.Width.ToInches() || bounds.Top.ToInches() > page.Height.ToInches())
                 report.Warn(OfficeVisioVisualDiagnosticCode.GeometryOutsidePage, OfficeVisioVisualEntityKind.Edge, connector.Id, "labelBounds",
                     "The native connector label extends beyond the declared page.");
         }
@@ -187,7 +187,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
     }
 
     private static void EnforceFidelity(OfficeVisioVisualConversionReport report, OfficeVisioVisualOptions options) {
-        if (report.Diagnostics.Any(item => options.RejectedDiagnostics.Contains(item.Code) ||
+        if (report.NativeDiagnostics.Any(item => options.RejectedDiagnostics.Contains(item.Code) ||
             options.RequireLossless && item.Severity == OfficeVisioVisualDiagnosticSeverity.Warning)) {
             throw new OfficeVisioVisualFidelityException(report);
         }

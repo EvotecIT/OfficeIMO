@@ -21,9 +21,9 @@ internal static class OfficeImoPdfGenerator {
                 content.H1(scenario.PageTitle(page));
                 for (int paragraph = 0; paragraph < scenario.ParagraphsPerPage; paragraph++) {
                     string narrative = scenario.Narrative(page, paragraph);
-                    content.Paragraph(builder => builder.Text(narrative));
+                    content.AddParagraph(builder => builder.AddText(narrative));
                 }
-                content.Table(scenario.TableRows(page));
+                content.AddTable(scenario.TableRows(page));
                 if (page < scenario.PageCount) {
                     content.PageBreak();
                 }
@@ -35,7 +35,7 @@ internal static class OfficeImoPdfGenerator {
 
     internal static byte[] GenerateHtml(string html, PdfEmbeddedFontFamily? fontFamily = null) {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-        using PdfDocument document = source.ToPdf(new HtmlToPdfOptions { FontFamily = fontFamily });
+        using PdfDocument document = source.ToPdf(new HtmlPdfExportOptions { FontFamily = fontFamily });
         return document.ToBytes();
     }
 }

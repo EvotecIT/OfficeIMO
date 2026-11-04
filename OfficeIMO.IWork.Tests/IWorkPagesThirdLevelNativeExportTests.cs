@@ -41,7 +41,7 @@ public sealed class IWorkPagesThirdLevelNativeExportTests {
         foreach (var item in items)
             Assert.Equal(new string(' ', item.ListLevel * 2) + item.ListNumber + ". " + item.Text,
                 IWorkReadProjection.RichTextMarkdown(item));
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray()))) {

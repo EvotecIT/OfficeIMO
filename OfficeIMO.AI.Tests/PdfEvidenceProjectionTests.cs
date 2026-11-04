@@ -96,10 +96,10 @@ public sealed class PdfEvidenceProjectionTests {
     [InlineData(false)]
     public void TextAroundTablesRemainsSeparateCitableEvidence(bool perPage) {
         byte[] source = PdfDocument.Create(builder => builder.Content(content => {
-            content.Text("Inventory introduction.");
-            content.Table(new[] { new[] { "Code", "Count" }, new[] { "A-100", "42" }, new[] { "B-200", "7" } },
+            content.AddParagraph("Inventory introduction.");
+            content.AddTable(new[] { new[] { "Code", "Count" }, new[] { "A-100", "42" }, new[] { "B-200", "7" } },
                 style: new PdfTableStyle { HeaderRowCount = 1 });
-            content.Text("Inventory conclusion.");
+            content.AddParagraph("Inventory conclusion.");
         })).ToBytes();
         var reader = new OfficeDocumentReaderBuilder().AddPdfHandler(new() { ChunkByPage = perPage }).Build();
         var document = OfficeAiDocument.FromReadResult(source, reader.ReadDocument(source, "inventory.pdf"));
@@ -109,7 +109,7 @@ public sealed class PdfEvidenceProjectionTests {
         Assert.Single(document.Evidence, item => item.Text.Contains("B-200"));
     }
 
-    private static byte[] TablePdf() => PdfDocument.Create(builder => builder.Content(content => content.Table(new[] {
+    private static byte[] TablePdf() => PdfDocument.Create(builder => builder.Content(content => content.AddTable(new[] {
         new[] { "Code", "Name", "Qty" }, new[] { "A-100", "Alpha", "2" }, new[] { "B-200", "Beta", "14" }
     }, style: new PdfTableStyle { HeaderRowCount = 1 }))).ToBytes();
 }

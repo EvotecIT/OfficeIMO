@@ -26,7 +26,7 @@ This document was authored as OfficeIMO Markup.
 Generated as an editable Word document.
 """);
 
-result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
+result.Document.SaveAsWord("status-brief.docx", new MarkupWordExportOptions {
 });
 ```
 

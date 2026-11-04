@@ -5670,7 +5670,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates PowerPoint-to-HTML settings for Convert-OfficeDocument -To Html -Options.",
-      "outputType": "PowerPointHtmlSaveOptions",
+      "outputType": "PowerPointHtmlExportOptions",
       "parameterSets": [
         {
           "name": "Default",

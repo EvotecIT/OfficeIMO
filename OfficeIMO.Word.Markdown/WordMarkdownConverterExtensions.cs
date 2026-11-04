@@ -140,9 +140,9 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         internal static MarkdownToWordResult ConvertToWordWithEvidence(
             this MarkdownDocument markdown,
-            WordMarkdownImportOptions? options = null,
+            MarkdownWordExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            WordMarkdownImportOptions effectiveOptions = CopyOptions(options ?? new WordMarkdownImportOptions());
+            MarkdownWordExportOptions effectiveOptions = CopyOptions(options ?? new MarkdownWordExportOptions());
             if (effectiveOptions.SourceDirectory == null && !string.IsNullOrWhiteSpace(markdown.FilePath)) {
                 effectiveOptions.SourceDirectory = Path.GetDirectoryName(markdown.FilePath);
             }
@@ -169,8 +169,8 @@ namespace OfficeIMO.Word.Markdown {
 
 
 
-        internal static WordMarkdownImportOptions CopyOptions(WordMarkdownImportOptions source) {
-            var copy = new WordMarkdownImportOptions {
+        internal static MarkdownWordExportOptions CopyOptions(MarkdownWordExportOptions source) {
+            var copy = new MarkdownWordExportOptions {
                 Template = source.Template,
                 ContentControlTag = source.ContentControlTag,
                 ContentControlAlias = source.ContentControlAlias,

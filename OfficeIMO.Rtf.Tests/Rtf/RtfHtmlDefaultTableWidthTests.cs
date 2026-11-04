@@ -11,8 +11,8 @@ public class RtfHtmlDefaultTableWidthTests {
     [InlineData(5, 8640)]
     public void OrdinaryHtmlDefaultColumnsFitThePageAfterSaveAndReopen(int columns, int expectedRightEdge) {
         string cells = string.Concat(Enumerable.Range(1, columns).Select(i => "<td>Column " + i + "</td>"));
-        RtfDocument document = HtmlConversionDocument.Parse("<table><tr>" + cells + "</tr></table>").ToRtfDocument();
-        RtfDocument reopened = RtfDocument.Read(document.ToRtf()).Document;
+        RtfDocument document = HtmlConversionDocument.Parse("<table><tr>" + cells + "</tr></table>").ToRtf();
+        RtfDocument reopened = RtfDocument.ParseResult(document.ToRtf()).Document;
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(reopened.Blocks));
         Assert.Equal(expectedRightEdge, table.Rows[0].Cells.Last().RightBoundaryTwips);
         Assert.Equal(columns, table.Rows[0].Cells.Count);
@@ -22,7 +22,7 @@ public class RtfHtmlDefaultTableWidthTests {
     [Fact]
     public void OrdinaryNestedTableUsesTheFittedHostCell() {
         string cells = string.Concat(Enumerable.Range(1, 5).Select(i => "<td>Column " + i + "</td>"));
-        RtfDocument document = HtmlConversionDocument.Parse("<table><tr><td>Outer</td><td><table><tr>" + cells + "</tr></table></td></tr></table>").ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse("<table><tr><td>Outer</td><td><table><tr>" + cells + "</tr></table></td></tr></table>").ToRtf();
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         RtfTable inner = Assert.IsType<RtfTable>(Assert.Single(outer.Rows[0].Cells[1].Blocks));
         Assert.InRange(inner.Rows[0].Cells.Last().RightBoundaryTwips!.Value, 1, 2400);
@@ -33,15 +33,15 @@ public class RtfHtmlDefaultTableWidthTests {
         RtfDocument original = RtfDocument.Create();
         RtfTable table = original.AddTable(1, 5);
         for (int i = 0; i < 5; i++) table.Rows[0].Cells[i].AddParagraph("Column " + i);
-        string html = original.ToHtml(new RtfToHtmlOptions { IncludeRoundTripMetadata = true });
-        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        string html = original.ToHtml(new RtfHtmlExportOptions { IncludeRoundTripMetadata = true });
+        RtfDocument reopened = HtmlConversionDocument.Parse(html).ToRtf();
         RtfTable restored = Assert.IsType<RtfTable>(Assert.Single(reopened.Blocks));
         Assert.Equal(12000, restored.Rows[0].Cells.Last().RightBoundaryTwips);
     }
     [Fact]
     public void SparseRowWithTrailingRowspanFitsLogicalColumnBoundaries() {
         string html = "<table><tr><td>A</td><td>B</td><td>C</td><td>D</td><td rowspan='2'>E</td></tr><tr><td>F</td></tr></table>";
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         Assert.Equal(8640, table.Rows[0].Cells.Last().RightBoundaryTwips);
         Assert.Equal(8640, table.Rows[1].Cells.Last().RightBoundaryTwips);
@@ -56,8 +56,8 @@ public class RtfHtmlDefaultTableWidthTests {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(120, 60, OfficeColor.Red));
         string image = "<img " + attributes + " src='data:image/png;base64," + Convert.ToBase64String(png) + "'>";
         string html = "<table><tr><td>A</td><td>B</td><td>C</td><td>D</td><td>" + image + "</td></tr></table>";
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
-        RtfDocument reopened = RtfDocument.Read(result.RequireValue().ToRtf()).Document;
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
+        RtfDocument reopened = RtfDocument.ParseResult(result.RequireValue().ToRtf()).Document;
         RtfTable table = Assert.IsType<RtfTable>(Assert.Single(reopened.Blocks));
         RtfImage photo = Assert.Single(table.Rows[0].Cells[4].Paragraphs.SelectMany(p => p.Inlines).OfType<RtfImage>());
         Assert.Equal(png, photo.Data);

@@ -300,7 +300,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.Excel.ExcelPdfImportOptions`
+- `OfficeIMO.Pdf.Excel.PdfExcelExportOptions`
 
 ## RELATED LINKS
 

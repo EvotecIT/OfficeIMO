@@ -106,21 +106,21 @@ internal static partial class PdfMerger {
         PdfMergeStructureMode mode,
         List<PdfMergeDecision> decisions,
         PdfLoadOptions readOptions, CancellationToken cancellationToken) {
-        PdfMetadata primary = sources[primarySourceIndex].Metadata;
+        PdfDocumentProperties primary = sources[primarySourceIndex].Metadata;
         switch (mode) {
             case PdfMergeStructureMode.KeepPrimary:
                 decisions.Add(new PdfMergeDecision("Metadata", mode, "Kept primary metadata."));
                 return merged;
             case PdfMergeStructureMode.Drop:
                 decisions.Add(new PdfMergeDecision("Metadata", mode, "Removed document information and synchronized XMP metadata."));
-                return PdfMetadataEditor.ReplaceMetadata(merged, new PdfMetadata(), readOptions, cancellationToken);
+                return PdfMetadataEditor.ReplaceMetadata(merged, new PdfDocumentProperties(), readOptions, cancellationToken);
             case PdfMergeStructureMode.RejectIncoming:
                 int conflicts = sources.Where((source, index) => index != primarySourceIndex && HasMetadata(source.Metadata)).Count();
                 if (conflicts > 0) throw new InvalidOperationException("PDF merge policy rejected incoming metadata from " + conflicts + " source(s).");
                 decisions.Add(new PdfMergeDecision("Metadata", mode, "No incoming metadata was present."));
                 return merged;
             case PdfMergeStructureMode.Combine:
-                PdfMetadata combined = CombineMetadata(primary, sources, primarySourceIndex);
+                PdfDocumentProperties combined = CombineMetadata(primary, sources, primarySourceIndex);
                 int supplied = sources.Where((source, index) => index != primarySourceIndex && HasMetadata(source.Metadata)).Count();
                 decisions.Add(new PdfMergeDecision("Metadata", mode, "Filled empty primary metadata values from later sources.", supplied));
                 return PdfMetadataEditor.ReplaceMetadata(merged, combined, readOptions, cancellationToken);
@@ -288,20 +288,20 @@ internal static partial class PdfMerger {
         foreach (PdfBookmarkNode root in session.Roots.ToArray()) session.Remove(root.Id);
     }
 
-    private static PdfMetadata CombineMetadata(PdfMetadata primary, IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
+    private static PdfDocumentProperties CombineMetadata(PdfDocumentProperties primary, IReadOnlyList<ImportedSource> sources, int primarySourceIndex) {
         string? title = primary.Title; string? author = primary.Author; string? subject = primary.Subject; string? keywords = primary.Keywords;
         for (int i = 0; i < sources.Count; i++) {
             if (i == primarySourceIndex) continue;
-            PdfMetadata incoming = sources[i].Metadata;
+            PdfDocumentProperties incoming = sources[i].Metadata;
             if (string.IsNullOrEmpty(title)) title = incoming.Title;
             if (string.IsNullOrEmpty(author)) author = incoming.Author;
             if (string.IsNullOrEmpty(subject)) subject = incoming.Subject;
             if (string.IsNullOrEmpty(keywords)) keywords = incoming.Keywords;
         }
-        return new PdfMetadata { Title = title, Author = author, Subject = subject, Keywords = keywords };
+        return new PdfDocumentProperties { Title = title, Author = author, Subject = subject, Keywords = keywords };
     }
 
-    private static bool HasMetadata(PdfMetadata metadata) =>
+    private static bool HasMetadata(PdfDocumentProperties metadata) =>
         !string.IsNullOrEmpty(metadata.Title) || !string.IsNullOrEmpty(metadata.Author) ||
         !string.IsNullOrEmpty(metadata.Subject) || !string.IsNullOrEmpty(metadata.Keywords);
 

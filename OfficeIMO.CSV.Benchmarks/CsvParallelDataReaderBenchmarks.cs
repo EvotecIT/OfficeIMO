@@ -113,18 +113,16 @@ public class CsvParallelDataReaderBenchmarks
     [Benchmark(Description = "OfficeIMO-Sequential")]
     public CsvReaderChecksum OfficeIMOSequential()
     {
-        using var reader = CsvDocument.OpenDataReader(
-            _path,
-            readerOptions: new CsvDataReaderOptions { Schema = _officeSchema });
+        using var reader = CsvDocument.OpenReader(_path,
+            options: new CsvReaderOptions { Schema = _officeSchema });
         return Consume(reader);
     }
 
     [Benchmark(Description = "OfficeIMO-Parallel")]
     public CsvReaderChecksum OfficeIMOParallel()
     {
-        using var reader = CsvDocument.OpenDataReader(
-            _path,
-            readerOptions: new CsvDataReaderOptions
+        using var reader = CsvDocument.OpenReader(_path,
+            options: new CsvReaderOptions
             {
                 Schema = _officeSchema,
                 ParallelProcessing = new CsvDataReaderParallelOptions

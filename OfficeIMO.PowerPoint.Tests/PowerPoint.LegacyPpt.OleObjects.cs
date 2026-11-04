@@ -711,11 +711,11 @@ namespace OfficeIMO.Tests {
                 && diagnostic.Message.Contains("OLE object",
                     StringComparison.OrdinalIgnoreCase));
             Assert.True(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(slide));
+                .HasExpectedVisibleContent(presentation, slide));
 
             ole.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(slide));
+                .HasExpectedVisibleContent(presentation, slide));
         }
 
         private static byte[] CreateOleTestStorage(string contents) {

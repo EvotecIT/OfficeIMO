@@ -9,12 +9,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO Excel and native OpenDocument spreadsheet models.</summary>
 public static partial class ExcelOpenDocumentConversionExtensions {
-    /// <summary>Converts an Excel workbook to an in-memory ODS document.</summary>
-    public static OdsDocument ToOpenDocument(this ExcelDocument source,
-        ExcelOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
-
-    /// <summary>Converts an Excel workbook to an in-memory ODS document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdsDocument> ToOpenDocumentResult(this ExcelDocument source,
+    internal static OdfConversionResult<OdsDocument> ConvertToOpenDocumentWithEvidence(this ExcelDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
@@ -22,9 +17,9 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         ExcelWorkbookInfo snapshot = source.Inspect();
         OdsDocument target = OdsDocument.Create();
         var report = new OdfConversionReport(source.SourceFormat.ToString().ToUpperInvariant(), "ODS");
-        target.Metadata.Title = snapshot.Title;
-        target.Metadata.Creator = snapshot.Author;
-        target.Metadata.Subject = snapshot.Subject;
+        target.Properties.Title = snapshot.Title;
+        target.Properties.Creator = snapshot.Author;
+        target.Properties.Subject = snapshot.Subject;
         ExportWorkbookDefaultFont(source, target);
         NamedRangeConversionPlan namedRangePlan = BuildNamedRangeConversionPlan(snapshot.NamedRanges);
 
@@ -398,21 +393,16 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         return new OdfConversionResult<OdsDocument>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
-    /// <summary>Converts an ODS document to an in-memory Excel workbook.</summary>
-    public static ExcelDocument ToExcelDocument(this OdsDocument source,
-        ExcelOpenDocumentConversionOptions? options = null) => source.ToExcelDocumentResult(options).Value;
-
-    /// <summary>Converts an ODS document to an in-memory Excel workbook and reports every lossy mapping.</summary>
-    public static OdfConversionResult<ExcelDocument> ToExcelDocumentResult(this OdsDocument source,
+    internal static OdfConversionResult<ExcelDocument> ConvertToExcelWithEvidence(this OdsDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
         ExcelDocument target = ExcelDocument.Create(new MemoryStream());
         var report = new OdfConversionReport("ODS", "XLSX");
-        target.BuiltinDocumentProperties.Title = source.Metadata.Title;
-        target.BuiltinDocumentProperties.Creator = source.Metadata.Creator;
-        target.BuiltinDocumentProperties.Subject = source.Metadata.Subject;
+        target.Properties.Title = source.Properties.Title;
+        target.Properties.Creator = source.Properties.Creator;
+        target.Properties.Subject = source.Properties.Subject;
         ImportWorkbookDefaultFont(source, target);
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
@@ -422,7 +412,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         var sheetTargets = source.Sheets.Select(ods => (Source: ods, Target: target.AddSheet(ods.Name))).ToList();
         var sheetNameMap = sheetTargets.ToDictionary(pair => pair.Source.Name, pair => pair.Target.Name, StringComparer.Ordinal);
         OdsNamedRangeConversionPlan namedRangePlan = BuildOdsNamedRangeConversionPlan(source.NamedRanges, sheetNameMap);
-        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Properties.Language);
 
         long expandedCells = 0;
         int cells = 0, formulas = 0, formulaTranslationFailures = 0, styles = 0, hyperlinks = 0, externalHyperlinks = 0, comments = 0, combinedComments = 0, metadataTranscriptComments = 0, merges = 0, rowLayouts = 0, columnLayouts = 0;
@@ -614,7 +604,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                 ? cellRun.WithInheritedStyle(OdsSheet.GetDefaultCellStyleName(rowRun, column, columnRuns))
                                 : cellRun;
                             int excelColumn = checked((int)column + 1);
-                            ExcelCell converted = sheet.CellAt(excelRow, excelColumn);
+                            ExcelCell converted = sheet.Cell(excelRow, excelColumn);
                             ExcelValueProjectionStatus valueStatus = SetExcelValue(converted, cellRun.Value);
                             if (valueStatus == ExcelValueProjectionStatus.Invalid) invalidValues++;
                             else if (valueStatus == ExcelValueProjectionStatus.TimeZoneNormalized) normalizedDateTimeOffsets++;
@@ -705,7 +695,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
                                     string start = SpreadsheetAddressConverter.ToA1(excelRow, excelColumn);
                                     string end = SpreadsheetAddressConverter.ToA1(
                                         checked((int)mergeLastRow), checked((int)mergeLastColumn));
-                                    sheet.MergeRange(start + ":" + end);
+                                    sheet.Range(start + ":" + end).Merge();
                                     merges++;
                                 } else truncated = true;
                             }

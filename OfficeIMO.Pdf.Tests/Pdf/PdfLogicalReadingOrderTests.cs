@@ -146,13 +146,13 @@ public sealed class PdfLogicalReadingOrderTests {
             "1 0 0 1 230 150 Tm (Right bottom) Tj ET");
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
 
-        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = true })).Value) {
+        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new PdfWordExportOptions { UseSharedPageReadingOrder = true })).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertInOrder(wordText, "Left top", "Left bottom", "Right top", "Right bottom");
         }
 
-        string html = logical.ToHtml(new PdfToHtmlOptions {
+        string html = logical.ToHtml(new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.Semantic,
             UseSharedPageReadingOrder = true
         });
@@ -162,13 +162,13 @@ public sealed class PdfLogicalReadingOrderTests {
     [Fact]
     public void ArtifactConverters_UsePageContentOrderForClassifiedHeadersAndFooters() {
         byte[] pdf = PdfDocument.Create()
-            .Header(header => header.AlignLeft().Text("Artifact header {page}/{pages}"))
-            .Footer(footer => footer.AlignLeft().Text("Artifact footer {page}/{pages}"))
-            .Paragraph(paragraph => paragraph.Text("First page body marker."))
+            .Header(header => header.Alignment(OfficeAlignment.Left).Text("Artifact header {page}/{pages}"))
+            .Footer(footer => footer.Alignment(OfficeAlignment.Left).Text("Artifact footer {page}/{pages}"))
+            .Paragraph(paragraph => paragraph.AddText("First page body marker."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second page body marker."))
+            .Paragraph(paragraph => paragraph.AddText("Second page body marker."))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Third page body marker."))
+            .Paragraph(paragraph => paragraph.AddText("Third page body marker."))
             .ToBytes();
         PdfDocumentReadResult logical = PdfDocumentReadResult.Load(pdf);
         PdfLogicalPage firstPage = logical.Pages[0];
@@ -184,13 +184,13 @@ public sealed class PdfLogicalReadingOrderTests {
             item => item.Kind == PdfLogicalReadingOrderKind.TextBlock &&
                 firstPage.TextBlocks[item.SourceIndex].Kind == PdfLogicalElementKind.Header);
 
-        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new WordPdfImportOptions { UseSharedPageReadingOrder = true })).Value) {
+        using (OfficeIMO.Word.WordDocument word = (logical.ConvertToWordWithEvidence(new PdfWordExportOptions { UseSharedPageReadingOrder = true })).Value) {
             using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(word.ToBytes()), false);
             string wordText = string.Join(" ", package.MainDocumentPart!.Document!.Body!.Descendants<Text>().Select(static text => text.Text));
             AssertArtifactSequence(wordText, header, "First page body marker.", footer);
         }
 
-        string html = logical.ToHtml(new PdfToHtmlOptions {
+        string html = logical.ToHtml(new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.Semantic,
             UseSharedPageReadingOrder = true
         });
@@ -198,7 +198,7 @@ public sealed class PdfLogicalReadingOrderTests {
         Assert.Contains("<header class=\"pdf-header\">" + header + "</header>", html, StringComparison.Ordinal);
         Assert.Contains("<footer class=\"pdf-footer\">" + footer + "</footer>", html, StringComparison.Ordinal);
 
-        byte[] odt = logical.ToOdtDocument().ToBytes();
+        byte[] odt = logical.ToOdt().ToBytes();
         AssertArtifactSequence(ReadOpenDocumentText(odt), header, "First page body marker.", footer);
     }
 
@@ -207,7 +207,7 @@ public sealed class PdfLogicalReadingOrderTests {
         byte[] pdf = PdfDocument.Create()
             .BackgroundImage(PdfPngTestImages.CreateRgbPng(1, 1), OfficeIMO.Drawing.OfficeImageFit.Stretch, opacity: 0.2)
             .H1("Readable heading")
-            .Paragraph(paragraph => paragraph.Text("Readable body text."))
+            .Paragraph(paragraph => paragraph.AddText("Readable body text."))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read();
@@ -247,9 +247,9 @@ public sealed class PdfLogicalReadingOrderTests {
                 [(1, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.86D, 0.92D, 0.99D),
                 [(3, 0)] = global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.99D, 0.95D, 0.78D)
             },
-            CellAlignments = new Dictionary<(int Row, int Column), PdfColumnAlign> {
-                [(1, 0)] = PdfColumnAlign.Center,
-                [(3, 0)] = PdfColumnAlign.Center
+            CellAlignments = new Dictionary<(int Row, int Column), OfficeAlignment> {
+                [(1, 0)] = OfficeAlignment.Center,
+                [(3, 0)] = OfficeAlignment.Center
             },
             CellVerticalAlignments = new Dictionary<(int Row, int Column), PdfCellVerticalAlign> {
                 [(1, 0)] = PdfCellVerticalAlign.Middle
@@ -264,7 +264,7 @@ public sealed class PdfLogicalReadingOrderTests {
         };
         byte[] pdf = PdfDocument.Create()
             .Table(rows, style: style)
-            .Paragraph(paragraph => paragraph.Text("Content below the table"))
+            .Paragraph(paragraph => paragraph.AddText("Content below the table"))
             .ToBytes();
 
         PdfDocumentReadResult logical = PdfDocument.Load(new System.IO.MemoryStream(pdf)).Read();

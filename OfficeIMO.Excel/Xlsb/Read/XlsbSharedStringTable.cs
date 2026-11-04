@@ -1,7 +1,6 @@
 using OfficeIMO.Excel.Xlsb.Package;
 using System.Buffers;
 using System.Collections;
-using System.Text;
 using System.Threading;
 
 namespace OfficeIMO.Excel.Xlsb.Read {
@@ -48,7 +47,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 string? value = page[pageOffset];
                 if (value == null) {
                     TextEntry entry = entries[index];
-                    value = Encoding.Unicode.GetString(_part!.Buffer, entry.Offset, entry.ByteCount);
+                    value = XlsbWideText.Decode(_part!.Buffer, entry.Offset, entry.ByteCount);
                     page[pageOffset] = value;
                 }
                 return value;

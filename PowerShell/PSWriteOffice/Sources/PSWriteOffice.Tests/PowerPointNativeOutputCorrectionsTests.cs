@@ -231,7 +231,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         AssertBacked(deck, Get<PowerPointParagraph>(runspace, "paragraph"));
         Assert.Same(Node(Get<PowerPointTextRun>(runspace, "run")), Node(Get<PowerPointParagraph>(runspace, "paragraph").Runs[0]));
         using var saved = PowerPointDocument.Load(Save(deck, "long-words.pptx"));
-        var bodies = saved.Slides.SelectMany(s => s.TextBoxes).Where(b => b.Paragraphs.Any(p => p.Runs.Any(r => r.FontName == "Verdana"))).ToList();
+        var bodies = saved.Slides.SelectMany(s => s.TextBoxes).Where(b => b.Paragraphs.Any(p => p.Runs.Any(r => r.FontFamily == "Verdana"))).ToList();
         Assert.Equal(text + " small tail", string.Concat(bodies.SelectMany(b => b.Paragraphs).Select(p => p.Text)));
         foreach (var paragraph in bodies.SelectMany(b => b.Paragraphs)) {
             double maximum = paragraph.Runs.Max(r => r.FontSize?.ToPoints() ?? 0);
@@ -260,7 +260,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
                         foreach ($index in 1..9) {
                             $item = PowerPointListItem -PassThru {
                                 $run = PowerPointText "Large item $index" -Size $size -Font Verdana -Bold -PassThru
-                                if ($nativeEdits) { $run.FontSize = [OfficeIMO.OfficeLength]::Points(72); $run.FontName = 'Verdana' }
+                                if ($nativeEdits) { $run.FontSize = [OfficeIMO.OfficeLength]::Points(72); $run.FontFamily = 'Verdana' }
                             }
                             $item.SpaceBefore = [OfficeIMO.OfficeLength]::Points(14)
                             $item.SpaceAfter = [OfficeIMO.OfficeLength]::Points(18)
@@ -271,7 +271,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
                     $script:paragraph = PowerPointParagraph -PassThru {
                         $script:large = PowerPointText ('Large styled sentence. ' * 9).TrimEnd() -Size $size -Font Verdana -Bold -PassThru
                     }
-                    if ($nativeEdits) { $large.FontSize = [OfficeIMO.OfficeLength]::Points(72); $large.FontName = 'Verdana' }
+                    if ($nativeEdits) { $large.FontSize = [OfficeIMO.OfficeLength]::Points(72); $large.FontFamily = 'Verdana' }
                     $paragraph.SpaceBefore = [OfficeIMO.OfficeLength]::Points(14)
                     $paragraph.SpaceAfter = [OfficeIMO.OfficeLength]::Points(18)
                     $paragraph.LineSpacingMultiplier = 1.3
@@ -284,7 +284,7 @@ public sealed partial class PowerPointNativeOutputWorkflowTests {
         var frames = saved.Slides.SelectMany(s => s.TextBoxes).Where(b => b.Paragraphs.Any(p => p.Runs.Any(r => r.FontSize?.ToPoints() == 72))).ToList();
         var paragraphs = frames.SelectMany(b => b.Paragraphs).ToList();
         foreach (var paragraph in paragraphs) {
-            Assert.All(paragraph.Runs, r => { Assert.Equal(72, r.FontSize?.ToPoints()); Assert.Equal("Verdana", r.FontName); Assert.True(r.Bold); });
+            Assert.All(paragraph.Runs, r => { Assert.Equal(72, r.FontSize?.ToPoints()); Assert.Equal("Verdana", r.FontFamily); Assert.True(r.Bold); });
             Assert.Equal(14, paragraph.SpaceBefore?.ToPoints());
             Assert.Equal(18, paragraph.SpaceAfter?.ToPoints());
             Assert.Equal(1.3, paragraph.LineSpacingMultiplier);

@@ -113,7 +113,7 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Encrypted");
-                sheet.CellValue(1, 1, "Encrypted Excel content");
+                sheet.Cell(1, 1).SetValue("Encrypted Excel content");
                 document.Save(path, new ExcelSaveOptions { Password = Password });
             }
 
@@ -132,7 +132,7 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("EncryptedStream");
-                sheet.CellValue(1, 1, "Encrypted Excel stream content");
+                sheet.Cell(1, 1).SetValue("Encrypted Excel stream content");
                 document.Save(encrypted, new ExcelSaveOptions { Password = Password });
             }
 
@@ -148,14 +148,14 @@ namespace OfficeIMO.Shared.Tests {
         [Fact]
         public void Excel_PasswordLoadRetainsTheAssociatedPathAndEncryptsSubsequentSaves() {
             string file = CreateTempPath(".xlsx");
-            using (var document = ExcelDocument.Create()) { document.AddSheet("Data").CellValue(1, 1, "Original"); document.Save(file, new ExcelSaveOptions { Password = Password }); }
+            using (var document = ExcelDocument.Create()) { document.AddSheet("Data").Cell(1, 1).SetValue("Original"); document.Save(file, new ExcelSaveOptions { Password = Password }); }
             using (var document = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password })) {
                 Assert.Equal(file, document.FilePath);
-                document.Sheets[0].CellValue(2, 1, "Explicit encrypted edit");
+                document.Sheets[0].Cell(2, 1).SetValue("Explicit encrypted edit");
                 document.Save();
             }
             using (var document = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password, PersistenceMode = DocumentPersistenceMode.SaveOnDispose }))
-                document.Sheets[0].CellValue(3, 1, "Automatic encrypted edit");
+                document.Sheets[0].Cell(3, 1).SetValue("Automatic encrypted edit");
             AssertEncryptedContainer(file);
             using var reopened = ExcelDocument.Load(file, new ExcelLoadOptions { Password = Password });
             Assert.True(reopened.Sheets[0].TryGetCellText(2, 1, out string explicitText));
@@ -216,7 +216,7 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
                 var sheet = document.AddSheet("Encrypted");
-                sheet.CellValue(1, 1, "Tamper target");
+                sheet.Cell(1, 1).SetValue("Tamper target");
                 document.Save(path, new ExcelSaveOptions { Password = Password });
             }
 

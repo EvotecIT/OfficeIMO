@@ -27,12 +27,12 @@ public sealed class PdfNoteStructureTests {
         var cells = new[] { new[] { PdfTableCell.RichTextCell(new[] {
             PdfTextRun.Normal("Before "),
             PdfTextRun.Inline(new PdfInlineBox(global::OfficeIMO.OfficeLength.Points(12), global::OfficeIMO.OfficeLength.Points(10), background: global::OfficeIMO.OfficeColor.Black,
-                alternativeText: described ? "Status" : null)),
+                altText: described ? "Status" : null)),
             PdfTextRun.Normal(" after")
         }, linkUri: "https://example.test/cell") } };
         var document = PdfDocument.Create().TaggedPdfCatalogMarkers();
         if (column) document.Compose(compose => compose.Page(page => page.Content(content => content.Row(row =>
-            row.PercentColumn(100, nested => nested.Table(cells))))));
+            row.PercentColumn(100, nested => nested.AddTable(cells))))));
         else document.Table(cells);
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
         var link = Assert.Single(tagged.StructureElements, element => element.StructureType == "Link");
@@ -97,8 +97,8 @@ public sealed class PdfNoteStructureTests {
     [Fact]
     public void SameTargetLinksInAdjacentColumnsRetainTheirOwnParagraphParents() {
         var document = PdfDocument.Create().TaggedPdfCatalogMarkers().Row(row => row.Gap(global::OfficeIMO.OfficeLength.Points(0))
-            .FixedColumn(global::OfficeIMO.OfficeLength.Points(12), column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description") })))
-            .FixedColumn(global::OfficeIMO.OfficeLength.Points(12), column => column.Paragraph(paragraph => paragraph.Runs(new[] { PdfTextRun.Link("B", "https://example.test", contents: "Shared description") }))));
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(12), column => column.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Link("A", "https://example.test", contents: "Shared description") })))
+            .FixedColumn(global::OfficeIMO.OfficeLength.Points(12), column => column.AddParagraph(paragraph => paragraph.AddRuns(new[] { PdfTextRun.Link("B", "https://example.test", contents: "Shared description") }))));
         var tagged = Assert.IsType<PdfTaggedContentInfo>(PdfInspector.Inspect(document.ToBytes()).TaggedContent);
         var links = tagged.StructureElements.Where(element => element.StructureType == "Link").ToArray();
         Assert.Equal(2, links.Length);

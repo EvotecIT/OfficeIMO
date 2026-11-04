@@ -7,8 +7,8 @@ internal static class BrowserBusinessSample {
     internal static void Create(string outputDirectory) {
         Directory.CreateDirectory(outputDirectory);
         using WordDocument document = WordDocument.Create(Path.Combine(outputDirectory, "business-summary.docx"));
-        document.BuiltinDocumentProperties.Title = "Monthly operations brief";
-        document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+        document.Properties.Title = "Monthly operations brief";
+        document.Properties.Creator = "OfficeIMO";
         document.Settings.FontFamily = "Carlito";
         document.Settings.FontFamilyHighAnsi = "Carlito";
         document.Settings.FontSize = global::OfficeIMO.OfficeLength.Points(11);
@@ -64,7 +64,7 @@ internal static class BrowserBusinessSample {
                     table.Rows[row].Cells[column].MarginTop = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
                     table.Rows[row].Cells[column].MarginBottom = global::OfficeIMO.OfficeLength.Centimeters(0.08D);
                     if (row == 0) {
-                        table.Rows[row].Cells[column].ShadingFillColorHex = "E8EEF8";
+                        table.Rows[row].Cells[column].ShadingFillColor = OfficeColor.Parse("E8EEF8");
                     }
                 }
             }

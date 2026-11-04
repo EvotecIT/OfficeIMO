@@ -175,7 +175,7 @@ namespace OfficeIMO.Excel.Tests {
             string path = CreateCompactFastPathWorkbook();
             using var document = ExcelDocument.Load(path);
             document.DateSystem = date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred;
-            if (multipleSheets) document.AddSheet("Other").CellValue(1, 1, "Other sheet");
+            if (multipleSheets) document.AddSheet("Other").Cell(1, 1).SetValue("Other sheet");
             document.Save();
             return path;
         }

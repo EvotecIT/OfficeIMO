@@ -4,13 +4,6 @@ namespace OfficeIMO.Word {
     // Provides access to section property settings.
     public partial class WordSection {
         /// <summary>
-        /// Gets or sets the page orientation of the section.
-        /// </summary>
-        public OfficePageOrientation PageOrientation {
-            get => WordPageSizes.GetOrientation(_sectionProperties).ToOfficeEnum();
-            set => WordPageSizes.SetOrientation(_sectionProperties, value.ToOpenXml());
-        }
-        /// <summary>
         /// Gets or sets the equal-width column gap as a physical length.
         /// Null omits the stored gap; layout uses its existing 36-point default.
         /// Storage rounds to whole signed 32-bit twips. Native DOC saving accepts

@@ -40,7 +40,7 @@ public partial class Html {
             "<div role='row'><div role='cell'>C</div><div role='cell'>D</div></div></div>";
 
         var exception = Assert.Throws<HtmlConversionLimitException>(() =>
-            HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { MaxTableCells = 3 }));
+            HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { MaxTableCells = 3 }));
 
         Assert.Equal("table-size-limit-exceeded", exception.Code);
         Assert.Equal(4, exception.Actual);
@@ -54,7 +54,7 @@ public partial class Html {
         HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence();
         using WordDocument document = result.RequireValue();
 
-        Assert.Equal("00FF00", Assert.Single(document.Tables).Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("00FF00"), Assert.Single(document.Tables).Rows[0].Cells[0].ShadingFillColor);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public partial class Html {
 
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
 
-        Assert.Equal("00FF00", Assert.Single(document.Tables).Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("00FF00"), Assert.Single(document.Tables).Rows[0].Cells[0].ShadingFillColor);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public partial class Html {
         const string html = "<div role='table'><div role='row'><div role='cell'></div></div></div>";
 
         using WordDocument document = HtmlConversionDocument.Parse(html)
-            .ToWord(new WordHtmlImportOptions { MaxHtmlDepth = 5 });
+            .ToWord(new HtmlWordExportOptions { MaxHtmlDepth = 5 });
 
         Assert.Single(document.Tables);
     }
@@ -116,7 +116,7 @@ public partial class Html {
         using WordDocument document = result.RequireValue();
 
         Assert.Empty(document.Tables);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated &&
             diagnostic.Source == "role=table");
     }
@@ -126,6 +126,6 @@ public partial class Html {
             + "<div role='table'><div role='row'><div role='cell'>A</div></div></div><p>After</p>";
         using var document = HtmlConversionDocument.Parse(html).ToWord();
         var paragraph = Assert.Single(document.Paragraphs, p => p.Text == "After");
-        Assert.Equal("FF0000", paragraph.GetRuns().First().ColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), paragraph.GetRuns().First().Color);
     }
 }

@@ -12,9 +12,12 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static A.Paragraph CreateParagraph(string text = "") {
-            return new A.Paragraph(
-                CreateRun(text),
-                new A.EndParagraphRunProperties { Language = Language });
+            var paragraph = string.IsNullOrEmpty(text)
+                ? new A.Paragraph(CreateRun(string.Empty))
+                : new A.Paragraph(PowerPointTextContent.CreateInlineContent(
+                    text, new A.RunProperties { Language = Language }));
+            paragraph.Append(new A.EndParagraphRunProperties { Language = Language });
+            return paragraph;
         }
 
         internal static A.Run CreateRun(string text) {

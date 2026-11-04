@@ -123,7 +123,7 @@ public sealed class VisioNativeCellMetadataImportMergingTests {
             WithPackage(source, path => master = destination.ImportStencilMastersAndGet(path, new[] { "Multiple roots" }).Single());
         } else master = route == "same" ? source.GetMaster("Multiple roots") : destination.RegisterMaster(source.GetMaster("Multiple roots"));
         // The canonical ID owner must continue reserving all preserved raw root identities.
-        master.Shape.Children.Add(new VisioShape("2", 0, 0, 1, 1, "inserted"));
+        master.Shape.Children.Add(new VisioShape("2", OfficeLength.Inches(0), OfficeLength.Inches(0), OfficeLength.Inches(1), OfficeLength.Inches(1), "inserted"));
         foreach (var candidate in new[] { destination, Reopen(destination) }) {
             XDocument xml = Export(candidate);
             XElement definition = xml.Descendants(Legacy + "Master").Single(m => (string?)m.Attribute("NameU") == "Multiple roots");

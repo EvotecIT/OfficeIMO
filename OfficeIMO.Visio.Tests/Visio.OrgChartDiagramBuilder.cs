@@ -70,10 +70,10 @@ namespace OfficeIMO.Tests {
             VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
             double highestChartTop = page.Shapes
                 .Where(shape => shape.Id != "title")
-                .Max(shape => shape.PinY + shape.Height / 2D);
+                .Max(shape => shape.PinY.ToInches() + shape.Height.ToInches() / 2D);
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Leadership", title.Text);
-            Assert.True(title.PinY - title.Height / 2D > highestChartTop);
+            Assert.True(title.PinY.ToInches() - title.Height.ToInches() / 2D > highestChartTop);
             Assert.Contains(page.Connectors, connector => connector.From?.Id == "ceo" && connector.To?.Id == "ea");
             Assert.Contains(page.Shapes, shape => shape.Id == "org-band-engineering");
             Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
@@ -108,8 +108,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Owns platform and security roadmap", callout.Text);
             Assert.Equal(target.Id, callout.CalloutTargetId);
             Assert.Contains("Annotations", callout.LayerNames);
-            Assert.Equal(2.65, callout.Width);
-            Assert.Equal(0.72, callout.Height);
+            Assert.Equal(2.65, callout.Width.ToInches());
+            Assert.Equal(0.72, callout.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
             Assert.Same(target, leader.To);
@@ -145,11 +145,11 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "cto-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "platform-callout");
 
-            Assert.True(explicitCallout.PinX > cto.PinX);
-            Assert.Equal(cto.PinY, explicitCallout.PinY, 6);
+            Assert.True(explicitCallout.PinX.ToInches() > cto.PinX.ToInches());
+            Assert.Equal(cto.PinY.ToInches(), explicitCallout.PinY.ToInches(), 6);
             Assert.Equal(cto.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.65, explicitCallout.Width);
-            Assert.True(generatedCallout.PinY < platform.PinY);
+            Assert.Equal(2.65, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinY.ToInches() < platform.PinY.ToInches());
             Assert.Equal(platform.Id, generatedCallout.CalloutTargetId);
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));

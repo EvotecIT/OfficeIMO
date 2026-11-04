@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
                 set.Tables.Add(data);
                 document.InsertDataSet(set, createTables: false, includeAutoFilter: false);
             } else {
-                document.AddSheet("Data").CellValue(1, 1, "Europe");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Europe");
             }
 
             using var stream = new MemoryStream(document.ToBytes());

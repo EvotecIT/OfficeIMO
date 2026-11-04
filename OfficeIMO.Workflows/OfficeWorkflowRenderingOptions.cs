@@ -30,27 +30,27 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
     /// <summary>Existing presentation renderer settings for PPTX input.</summary>
     public PowerPointPdfExportOptions? PowerPoint { get; set; }
     /// <summary>Existing HTML renderer settings for HTML and CHM topics. Workflow resource access remains scoped to the source.</summary>
-    public HtmlToPdfOptions? Html { get; set; }
+    public HtmlPdfExportOptions? Html { get; set; }
     /// <summary>CHM topic selection and aggregate conversion budgets.</summary>
     public ChmConversionOptions? Chm { get; set; }
     /// <summary>Existing Markdown renderer settings.</summary>
     public MarkdownPdfExportOptions? Markdown { get; set; }
     /// <summary>Existing RTF renderer settings.</summary>
-    public RtfToPdfOptions? Rtf { get; set; }
+    public RtfPdfExportOptions? Rtf { get; set; }
     /// <summary>Draw page projection and PDF settings for ODG/FODG input.</summary>
-    public OdgToPdfOptions? Draw { get; set; }
+    public OdgPdfExportOptions? Draw { get; set; }
     /// <summary>Cached diagram-page projection and PDF settings for VSDX, VDX and VTX input. Explicit settings require DiagramPages mode.</summary>
-    public VisioToPdfOptions? Visio { get; set; }
+    public VisioPdfExportOptions? Visio { get; set; }
     /// <summary>Native Publisher decoding and projection limits, valid only for PUB-to-PDF conversion.</summary>
-    public PublisherReadOptions? PublisherRead { get; set; }
+    public PublisherLoadOptions? PublisherRead { get; set; }
     /// <summary>Shared PDF output settings for recovered Publisher pages.</summary>
     public PdfCreateOptions? PublisherPdf { get; set; }
     /// <summary>Rejects source or PDF-stage conversion losses for drawing, publication and DjVu PDF routes before publication.</summary>
-    public bool RequireNoLoss { get; set; }
+    public bool FailOnLoss { get; set; }
     /// <summary>Native XPS/OpenXPS semantic preservation and PDF output settings.</summary>
-    public XpsToPdfOptions? Xps { get; set; }
+    public XpsPdfExportOptions? Xps { get; set; }
     /// <summary>Scanned-page PDF and stored-text settings. Workflow OCR uses separate explicit OCR operations.</summary>
-    public DjVuToPdfOptions? DjVu { get; set; }
+    public DjVuPdfExportOptions? DjVu { get; set; }
     /// <summary>Literal-text settings, valid only for the TXT-to-PDF route.</summary>
     public PdfTextImportOptions? PlainText { get; set; }
     /// <summary>Known legacy DOC import loss blocks output unless explicitly accepted.</summary>
@@ -81,12 +81,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         copy.Markdown = Markdown?.Clone();
         copy.Rtf = Rtf?.Clone();
         copy.Draw = Draw?.Clone();
-        if (Visio != null) copy.Visio = new VisioToPdfOptions {
-            Mode = Visio.Mode, SourceName = Visio.SourceName,
-            DrawingOptions = Visio.DrawingOptions?.Clone(), PdfOptions = Visio.PdfOptions?.Clone(),
-            // Semantic settings are rejected by workflow validation; preserve them for that check.
-            VisioOptions = Visio.VisioOptions, ProjectionOptions = Visio.ProjectionOptions
-        };
+        copy.Visio = Visio?.Clone();
         copy.Xps = Xps?.Clone();
         copy.Chm = Chm?.Clone();
         copy.DjVu = DjVu?.Clone();
@@ -117,7 +112,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
         if (routeId != "odg-pdf") copy.Draw = null;
         if (routeId != "visio-pdf") copy.Visio = null;
         if (routeId != "publisher-pdf") { copy.PublisherRead = null; copy.PublisherPdf = null; }
-        if (routeId is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf") copy.RequireNoLoss = false;
+        if (routeId is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf") copy.FailOnLoss = false;
         if (routeId != "djvu-pdf") copy.DjVu = null;
         if (routeId != "xps-pdf") copy.Xps = null;
         if (routeId != "txt-pdf") copy.PlainText = null;
@@ -152,7 +147,7 @@ internal sealed partial class OfficeWorkflowRenderingOptions {
             throw new ArgumentException("Visio workflow conversion requires DiagramPages settings.");
         if (copy.Html?.ResourceResolver != null)
             throw new ArgumentException("Workflow HTML resources use the scoped source resolver. Use the native HTML adapter for runtime custom resolvers.");
-        if (copy.RequireNoLoss && route.Id is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf")
+        if (copy.FailOnLoss && route.Id is not "odg-pdf" and not "visio-pdf" and not "djvu-pdf" and not "publisher-pdf")
             throw new ArgumentException("Lossless acceptance requires a drawing, publication or DjVu PDF route.");
         if (copy.PlainText != null && route.Id != "txt-pdf") throw new ArgumentException("Plain-text settings require TXT-to-PDF conversion.");
         if (copy.LegacyDocLossPolicy is not OfficeConversionLossPolicy.Block and not OfficeConversionLossPolicy.Allow ||

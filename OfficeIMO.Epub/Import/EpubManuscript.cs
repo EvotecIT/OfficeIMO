@@ -37,7 +37,7 @@ public static partial class EpubManuscript {
             string? value = source.QuerySelector("meta[name='" + name + "']")?.GetAttribute("content");
             if (!string.IsNullOrWhiteSpace(value)) publication.AddDublinCoreMetadata(name, value!);
         }
-        var diagnostics = new List<OfficeConversionFidelityDiagnostic>();
+        var diagnostics = new List<OfficeDiagnostic>();
         XElement body = ConvertElement(source.Body!, diagnostics, manuscript, cancellationToken)!;
         PreserveLegacyNamedAnchors(body, diagnostics, cancellationToken);
         var chapters = SplitChapters(body, options.ChapterHeadingLevel, title, diagnostics, cancellationToken);
@@ -83,10 +83,10 @@ public static partial class EpubManuscript {
         return new EpubManuscriptResult(publication, diagnostics);
     }
 
-    private static void AddDiagnostic(List<OfficeConversionFidelityDiagnostic> diagnostics, string code, string message,
+    private static void AddDiagnostic(List<OfficeDiagnostic> diagnostics, string code, string message,
         string? location, OfficeConversionLossKind loss = OfficeConversionLossKind.Omission) {
         if (diagnostics.Count >= EpubManuscriptReport.MaximumDiagnostics) return;
         diagnostics.Add(diagnostics.Count == EpubManuscriptReport.MaximumDiagnostics - 1 ? EpubManuscriptReport.LimitDiagnostic() :
-            new OfficeConversionFidelityDiagnostic(code, message, loss, "OfficeIMO.Epub.Import", location));
+            new global::OfficeIMO.OfficeDiagnostic(code, loss == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, message, location, "OfficeIMO.Epub.Import", loss));
     }
 }

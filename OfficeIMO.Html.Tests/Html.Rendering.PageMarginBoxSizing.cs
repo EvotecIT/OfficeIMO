@@ -27,7 +27,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains(box.Visuals.OfType<HtmlRenderShape>(), shape =>
                 shape.Shape.StrokeColor == OfficeColor.Red && shape.Shape.StrokeWidth == 2D);
         }
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -45,7 +45,7 @@ public sealed partial class HtmlRenderingTests {
         AssertPageMarginDimensionFrames(rendered, 60D - expectedHeight, 240D, expectedHeight);
         Assert.Equal(expectedWidth, PageMarginGeometryBox(page, "top-center").Width, 6);
         Assert.Equal(expectedWidth, PageMarginGeometryBox(page, "bottom-center").Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -68,7 +68,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(box.X + 12D, text.X, 6);
         Assert.Equal(expectedLines, MarginSizingPaintedText(page, text).Length);
         Assert.Equal("ALPHA BETA", text.Text);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(expectedWidth, box.Width, 6);
         Assert.Equal(expectedHeight, box.Height, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(110D, right.X, 6);
         Assert.Equal(210D, right.Width, 6);
         Assert.Equal(320D, right.X + right.Width, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(56D, background.Width, 6);
         Assert.Equal(20D, background.Height, 6);
         Assert.Contains(PageMarginTypographyDrawingText(page.CreateDrawing()), text => text.Text == "A");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -132,8 +132,8 @@ public sealed partial class HtmlRenderingTests {
             + "width:80px;height:30px;padding:5px 10px;border:2px solid red}",
             body: "<p style='position:running(heading);height:20px;background:blue'>A</p><p>BODY</p>");
 
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Source == "@page @top-center element(heading)"
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Source == "@page @top-center element(heading)"
             && diagnostic.Detail == "margin-height" && diagnostic.LossKind == OfficeConversionLossKind.Omission);
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 }

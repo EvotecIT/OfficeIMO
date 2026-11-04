@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingLifecycle.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                for (int row = 1; row <= 3; row++) sheet.CellAt(row, 1).SetValue(row - 2);
+                for (int row = 1; row <= 3; row++) sheet.Cell(row, 1).SetValue(row - 2);
 
                 ExcelConditionalFormattingInfo extension = sheet.AddConditionalFormattingRule(
                     new ExcelConditionalFormattingInfo {
@@ -214,7 +214,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ConditionalFormattingLifecycle_LegacyXlsRejectsOfficeExtensionRulesInsteadOfDroppingThem() {
             AssertNativeXlsSaveNotSupported("Office 2010 conditional formatting extension rules", (_, sheet) => {
-                sheet.CellAt(1, 1).SetValue(1);
+                sheet.Cell(1, 1).SetValue(1);
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Source = ExcelConditionalFormattingSource.Office2010Extension,
                     Range = "A1",
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingExtensionVisuals.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Visuals");
-                for (int row = 1; row <= 4; row++) sheet.CellAt(row, 1).SetValue(row);
+                for (int row = 1; row <= 4; row++) sheet.Cell(row, 1).SetValue(row);
 
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Source = ExcelConditionalFormattingSource.Office2010Extension,
@@ -352,7 +352,7 @@ namespace OfficeIMO.Tests {
             string path = Path.Combine(_directoryWithFiles, "ConditionalFormattingDifferentialStyles.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Styles");
-                sheet.CellAt(1, 1).SetValue(1);
+                sheet.Cell(1, 1).SetValue(1);
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Range = "A1",
                     Type = "Expression",
@@ -397,7 +397,7 @@ namespace OfficeIMO.Tests {
                 officeExtension ? "ConditionalFontOffExtension.xlsx" : "ConditionalFontOffStandard.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Styles");
-                sheet.CellAt(1, 1).SetValue(1);
+                sheet.Cell(1, 1).SetValue(1);
                 ExcelConditionalFormattingInfo authored = sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Source = officeExtension
                         ? ExcelConditionalFormattingSource.Office2010Extension
@@ -462,7 +462,7 @@ namespace OfficeIMO.Tests {
                 officeExtension ? "ConditionalStrikeExtension.xlsx" : "ConditionalStrikeStandard.xlsx");
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Styles");
-                sheet.CellAt(1, 1).SetValue(1);
+                sheet.Cell(1, 1).SetValue(1);
                 sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
                     Source = officeExtension
                         ? ExcelConditionalFormattingSource.Office2010Extension

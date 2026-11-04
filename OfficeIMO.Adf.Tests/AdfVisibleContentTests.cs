@@ -54,7 +54,7 @@ public sealed class AdfVisibleContentTests {
         Assert.Contains("![Image](https://example.test/image.png)", result.Value);
         Assert.Contains("Inside table", result.Value);
         Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_TABLE_CELL_BLOCKS_FLATTENED");
-        Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_NODE_PROPERTIES_DROPPED" && issue.Path == "$.content[2].content[0]");
+        Assert.Contains(result.Report.NativeDiagnostics, issue => issue.Code == "ADF_NODE_PROPERTIES_DROPPED" && issue.Path == "$.content[2].content[0]");
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public sealed class AdfVisibleContentTests {
         var result = AdfConverter.ToMarkdown(document, options);
         Assert.Contains("Before *Resolved* after", result.Value);
         Assert.Equal(1, calls);
-        Assert.Contains(result.Report.Diagnostics, issue => issue.Code == "ADF_EXTENSION_RESOLVED" && issue.Path == "$.content[0].content[1]");
+        Assert.Contains(result.Report.NativeDiagnostics, issue => issue.Code == "ADF_EXTENSION_RESOLVED" && issue.Path == "$.content[0].content[1]");
         options.ExtensionResolver = _ => MarkdownDocument.Parse("# Block");
         Assert.Throws<InvalidOperationException>(() => AdfConverter.ToMarkdown(document, options));
     }

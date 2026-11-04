@@ -119,10 +119,10 @@ public sealed class OpmlDocumentTests {
     public void LimitsAndDtdPolicyRejectHostileInputs() {
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
             "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/></body></opml>",
-            new OpmlReadOptions { MaxOutlines = 1 }));
+            new OpmlLoadOptions { MaxOutlines = 1 }));
         Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(
             "<opml version=\"2.0\"><head/><body><extension/></body></opml>",
-            new OpmlReadOptions { MaxElements = 3 }));
+            new OpmlLoadOptions { MaxElements = 3 }));
         Assert.ThrowsAny<Exception>(() => OpmlDocument.Parse(
             "<!DOCTYPE opml [<!ENTITY x \"boom\">]><opml version=\"2.0\"><head/><body><outline text=\"&x;\"/></body></opml>"));
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
@@ -135,14 +135,14 @@ public sealed class OpmlDocumentTests {
             string.Concat(Enumerable.Repeat("<!--padding-->", 32)) + "<body/></opml>";
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            OpmlDocument.Parse(source, new OpmlReadOptions { MaxElements = 3 }));
+            OpmlDocument.Parse(source, new OpmlLoadOptions { MaxElements = 3 }));
         Assert.Contains("MaxMaterializedNodes", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void MaxOutlinesStopsParsingBeforeTheRemainingXmlIsMaterialized() {
         const string source = "<opml version=\"2.0\"><head/><body><outline text=\"a\"/><outline text=\"b\"/><";
-        var options = new OpmlReadOptions { MaxOutlines = 1 };
+        var options = new OpmlLoadOptions { MaxOutlines = 1 };
 
         InvalidDataException textException = Assert.Throws<InvalidDataException>(() => OpmlDocument.Parse(source, options));
         Assert.Contains("MaxOutlines", textException.Message, StringComparison.Ordinal);
@@ -159,7 +159,7 @@ public sealed class OpmlDocumentTests {
         OpmlDocument document = await OpmlDocument.LoadAsync(input);
         Assert.Equal(5, input.Position);
         using var output = new MemoryStream(new byte[512], writable: true);
-        await document.WriteAsync(output);
+        await document.SaveAsync(output);
         Assert.Equal(0, output.Position);
         Assert.Equal("A", OpmlDocument.Load(output).Outlines.Single().Text);
     }
@@ -171,13 +171,13 @@ public sealed class OpmlDocumentTests {
         OpmlDocument loaded = OpmlDocument.Load(new MemoryStream(latinBytes));
         Assert.Equal(latinSource, loaded.ToOpml());
         using var exact = new MemoryStream();
-        loaded.Write(exact);
+        loaded.Save(exact);
         Assert.Equal(latinBytes, exact.ToArray());
 
         const string utf16Declaration = "<?xml version=\"1.0\" encoding=\"utf-16\"?><opml version=\"2.0\"><head/><body/></opml>";
         OpmlDocument parsed = OpmlDocument.Parse(utf16Declaration);
         using var output = new MemoryStream();
-        parsed.Write(output);
+        parsed.Save(output);
         string serialized = Encoding.UTF8.GetString(output.ToArray());
         Assert.Contains("encoding=\"utf-8\"", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(OpmlVersion.Opml20, OpmlDocument.Load(new MemoryStream(output.ToArray())).Version);
@@ -374,8 +374,8 @@ public sealed class OpmlDocumentTests {
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML205");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML206");
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML207");
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML208" && diagnostic.Path == "/opml/head");
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "OPML209" && diagnostic.Path == "/opml/body");
+        Assert.Contains(result.NativeDiagnostics, diagnostic => diagnostic.Code == "OPML208" && diagnostic.Path == "/opml/head");
+        Assert.Contains(result.NativeDiagnostics, diagnostic => diagnostic.Code == "OPML209" && diagnostic.Path == "/opml/body");
     }
 
     [Fact]
@@ -567,7 +567,7 @@ public sealed class OpmlDocumentTests {
         Assert.True(structuredResult.HasLoss);
         Assert.Equal(2, structuredResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
         Assert.Equal(2, flatResult.Diagnostics.Count(diagnostic => diagnostic.Code == "OPML108"));
-        Assert.All(structuredResult.FidelityDiagnostics.Where(diagnostic => diagnostic.Code == "OPML108"),
+        Assert.All(structuredResult.Diagnostics.Where(diagnostic => diagnostic.Code == "OPML108"),
             diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
     }
 
@@ -722,7 +722,7 @@ public sealed class OpmlDocumentTests {
         OpmlConversionResult<OpmlDocument> converted = OpmlDocument.FromOfficeDocumentModel(model);
 
         Assert.True(converted.HasLoss);
-        Assert.Contains(converted.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
+        Assert.Contains(converted.NativeDiagnostics, diagnostic => diagnostic.Code == code && diagnostic.Severity == OpmlDiagnosticSeverity.Error);
     }
 
     [Fact]

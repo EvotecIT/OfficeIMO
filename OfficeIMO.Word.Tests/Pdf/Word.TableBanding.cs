@@ -42,8 +42,8 @@ public partial class Word {
             table.Rows[r].Cells[c].Paragraphs[0].Text = $"R{r}C{c}";
         }
         // Direct formatting still wins over either band.
-        table.Rows[4].Cells[4].ShadingFillColorHex = "00FF00";
-        table.Rows[4].Cells[4].Paragraphs[0].ColorHex = "008000";
+        table.Rows[4].Cells[4].ShadingFillColor = OfficeColor.Parse("00FF00");
+        table.Rows[4].Cells[4].Paragraphs[0].Color = OfficeColor.Parse("008000");
         table.Rows[4].Cells[4].Paragraphs[0].Bold = false;
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes()));
         using var model = document.ToPdf(new WordPdfExportOptions { IncludePageNumbers = false });

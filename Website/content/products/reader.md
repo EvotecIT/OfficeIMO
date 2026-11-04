@@ -64,7 +64,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddWordHandler()
     .Build();
 
-var chunks = reader.Read("report.docx", new ReaderOptions {
+var chunks = reader.Enumerate("report.docx", new ReaderOptions {
     MaxChars = 4_000,
     ComputeHashes = true
 }).ToList();
@@ -77,7 +77,7 @@ foreach (var chunk in chunks)
     Console.WriteLine();
 }
 
-var documents = reader.ReadFolderDocuments(
+var documents = reader.EnumerateFolderDocuments(
     folderPath: "./documents",
     folderOptions: new ReaderFolderOptions
     {

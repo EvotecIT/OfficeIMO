@@ -8,10 +8,11 @@ using OfficeIMO.Word.OpenDocument;
 using OfficeIMO.OpenDocument;
 
 using WordDocument word = WordDocument.Load("input.docx");
-OdfConversionResult<OdtDocument> result = word.ToOpenDocumentResult();
-result.Value.Save("output.odt");
+using OdtDocument odt = word.ToOpenDocument(null, out OfficeConversionReport report);
+odt.Save("output.odt");
 
-foreach (OdfConversionMapping mapping in result.Report.Mappings) {
+// The report is an OdfConversionReport with per-feature mappings.
+foreach (OdfConversionMapping mapping in ((OdfConversionReport)report).Mappings) {
     Console.WriteLine($"{mapping.Feature}: {mapping.Status} ({mapping.Count})");
 }
 ```

@@ -61,9 +61,9 @@ public class WordImageWorkflowTests {
             } else {
                 Assert.Single(OfficeIMO.Pdf.PdfImageExtractor.ExtractImages(File.ReadAllBytes(output)));
                 var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
-                foreach (var finding in evidence.FidelityDiagnostics)
+                foreach (var finding in evidence.Diagnostics)
                     Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == finding.Code && diagnostic.Message == finding.Message
-                        && diagnostic.Details["source"] == finding.Source
+                        && diagnostic.Details["source"] == finding.Format
                         && diagnostic.Details["lossKind"] == finding.LossKind.ToString());
             }
         });

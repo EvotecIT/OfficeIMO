@@ -204,12 +204,10 @@ public sealed class PdfConversionTypographyTests {
         new PdfCore.PdfCreateOptions {
                 CompressContentStreams = false,
                 CompressEmbeddedFonts = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(520),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(420),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(520), global::OfficeIMO.OfficeLength.Points(420)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             }
             .UseFontFamily(FamilyName, fontPath);
@@ -251,14 +249,14 @@ public sealed class PdfConversionTypographyTests {
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
             ExcelSheet sheet = document.Sheets[0];
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
-            sheet.Cell(1, 1, "Converter typography report");
-            sheet.Cell(2, 1, "Zażółć gęślą jaźń");
-            sheet.Cell(3, 1, "Ελλάδα");
-            sheet.Cell(4, 1, "Київ");
+            sheet.Cell(1, 1).SetValue("Converter typography report");
+            sheet.Cell(2, 1).SetValue("Zażółć gęślą jaźń");
+            sheet.Cell(3, 1).SetValue("Ελλάδα");
+            sheet.Cell(4, 1).SetValue("Київ");
             // This fixture tests font embedding and mapping, independently of default-row clipping.
             for (int row = 1; row <= 4; row++) {
                 sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-                sheet.CellVerticalAlign(row, 1, ExcelVerticalAlignment.Top);
+                sheet.Cell(row, 1).SetVerticalAlignment(ExcelVerticalAlignment.Top);
             }
             document.Save();
 
@@ -301,7 +299,7 @@ Zażółć gęślą jaźń
     }
 
     private static byte[] CreateHtmlPdf(string fontPath) {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             FontFamily = PdfCore.PdfEmbeddedFontFamily.FromFiles(FamilyName, fontPath)
         };
 
@@ -328,10 +326,10 @@ Zażółć gęślą jaźń
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointSlide slide = presentation.AddSlide();
         PowerPointTextBox title = slide.AddTextBox("Converter typography report",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(26),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(28));
-        title.FontName = FamilyName;
+        title.FontFamily = FamilyName;
         title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         PowerPointTextBox polish = slide.AddTextBox("Zażółć gęślą jaźń",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(70),global::OfficeIMO.OfficeLength.Points(250),global::OfficeIMO.OfficeLength.Points(28));
-        polish.FontName = FamilyName;
+        polish.FontFamily = FamilyName;
         polish.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         PowerPointTable table = slide.AddTable(3,2,global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(118),global::OfficeIMO.OfficeLength.Points(280),global::OfficeIMO.OfficeLength.Points(98));
         table.GetCell(0, 0).Text = "Region";
@@ -341,7 +339,7 @@ Zażółć gęślą jaźń
         table.GetCell(2, 0).Text = "Україна";
         table.GetCell(2, 1).Text = "Київ";
         for (int row = 0; row < table.Rows; row++)
-            for (int column = 0; column < table.Columns; column++) table.GetCell(row, column).FontName = FamilyName;
+            for (int column = 0; column < table.Columns; column++) table.GetCell(row, column).FontFamily = FamilyName;
 
         var options = new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
@@ -387,8 +385,8 @@ Zażółć gęślą jaźń
         try {
             string workbookPath = Path.Combine(directory, "opentype.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
-            document.Sheets[0].Cell(1, 1, "office cafe\u0301");
-            document.Sheets[0].CellAt(1, 1).SetFontName(FamilyName);
+            document.Sheets[0].Cell(1, 1).SetValue("office cafe\u0301");
+            document.Sheets[0].Cell(1, 1).SetFontName(FamilyName);
             document.Save();
 
             var options = new ExcelPdfExportOptions {
@@ -419,9 +417,9 @@ Zażółć gęślą jaźń
         using PowerPointDocument presentation = PowerPointDocument.Create(stream);
         presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(520),OfficeIMO.OfficeLength.Points(320));
         PowerPointTextBox textBox = presentation.AddSlide().AddTextBox("office cafe\u0301",global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(32),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(32));
-        textBox.FontName = FamilyName;
+        textBox.FontFamily = FamilyName;
         textBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-        textBox.FontName = FamilyName;
+        textBox.FontFamily = FamilyName;
 
         var options = new PowerPointPdfExportOptions {
             PdfOptions = CreateOpenTypePdfOptions(fontPath, scalar)
@@ -471,7 +469,7 @@ Zażółć gęślą jaźń
         try {
             string workbookPath = Path.Combine(directory, "complex-script.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
-            document.Sheets[0].Cell(1, 1, text);
+            document.Sheets[0].Cell(1, 1).SetValue(text);
             document.Save();
 
             var options = new ExcelPdfExportOptions {

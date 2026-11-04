@@ -105,7 +105,7 @@ internal static class PowerPointShapeReader
                 info.RowCount = table.Rows;
                 info.ColumnCount = table.Columns;
                 break;
-            case PowerPointPicture picture:
+            case PowerPointImage picture:
                 info.MimeType = picture.MimeType;
                 break;
             case PowerPointAutoShape autoShape:
@@ -121,7 +121,7 @@ internal static class PowerPointShapeReader
         return shape switch
         {
             PowerPointTextBox => "TextBox",
-            PowerPointPicture => "Picture",
+            PowerPointImage => "Picture",
             PowerPointTable => "Table",
             PowerPointChart => "Chart",
             PowerPointAutoShape => "AutoShape",

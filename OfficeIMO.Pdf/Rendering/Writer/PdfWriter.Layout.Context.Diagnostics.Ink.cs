@@ -27,7 +27,7 @@ internal static partial class PdfWriter {
             List<List<RichSeg>> lines, IReadOnlyList<double> heights, double firstBaseline,
             double fontSize, double leading, double textX, double textWidth,
             TableCellContentFrame frame, bool clipsToFrame = true,
-            IReadOnlyList<PdfAlign?>? alignments = null, IReadOnlyList<double>? offsets = null,
+            IReadOnlyList<OfficeAlignment?>? alignments = null, IReadOnlyList<double>? offsets = null,
             IReadOnlyList<double>? widths = null, PdfStandardFont? baselineFont = null,
             OfficeTransform? localTransform = null, TableCellContentFrame? secondClip = null,
             double? firstLineX = null, double? firstLineWidth = null, List<double>? topGaps = null,
@@ -69,15 +69,15 @@ internal static partial class PdfWriter {
                     double lineY = AdjustRichLineBaseline(baseline - (topGaps?[index] ?? 0D), line, currentOpts, fontSize, baselineFont);
                     double available = ResolveRichLineWidth(textWidth, firstLineWidth, widths, index);
                     double origin = ResolveRichLineXOrigin(textX, firstLineX, offsets, index);
-                    PdfAlign alignment = ResolveRichLineAlignment(block.Align, alignments, index);
+                    OfficeAlignment alignment = ResolveRichLineAlignment(block.Align, alignments, index);
                     RichLineJustification justification = PlanRichLineJustification(line, alignment,
                         block.Style ?? currentOpts.DefaultParagraphStyleSnapshot, available,
                         index == lines.Count - 1 && !hasFollowingParagraphLines, currentOpts);
                     line = justification.Segments;
                     double advance = justification.Width;
                     double wordSpacing = justification.WordSpacing;
-                    double dx = alignment == PdfAlign.Center ? Math.Max(0D, (available - advance) / 2D)
-                        : alignment == PdfAlign.Right ? Math.Max(0D, available - advance) : 0D;
+                    double dx = alignment == OfficeAlignment.Center ? Math.Max(0D, (available - advance) / 2D)
+                        : alignment == OfficeAlignment.Right ? Math.Max(0D, available - advance) : 0D;
                     BidiLineLayout? bidi = bidiLevel.HasValue ? CreateBidiLineLayout(line, bidiLevel.Value, wordSpacing) : null;
                     double cursor = dx;
                     // Paragraph frames may differ on the first line or alongside floats.
@@ -170,7 +170,8 @@ internal static partial class PdfWriter {
                         foreach (var contour in contours) for (int p = 0; p < contour.Count; p++) contour[p] = transform.TransformPoint(contour[p]);
                         // Containment of actual contour points proves that no filled ink can
                         // be removed. All other cases retain the winding-aware inspection.
-                        if (imageClips == null && DiagnosticPaintContained(contours, sourceClips, targetClips,
+                        DiagnosticPaintBounds paintBounds = MeasureDiagnosticPaintBounds(contours);
+                        if (imageClips == null && DiagnosticPaintContained(paintBounds, sourceClips, targetClips,
                             frameClip, pageClip, secondClip, transform)) return;
                         var intrinsic = new List<OfficeTextInkClip>();
                         if (imageClips != null) foreach (var imageClip in imageClips) intrinsic.Add(DiagnosticMapClip(imageClip, transform));
@@ -183,14 +184,20 @@ internal static partial class PdfWriter {
                         admittedClips.AddRange(targetClips);
                         var admitted = OfficeRasterCanvas.MeasureNominalFilledContourBounds(contours, OfficeFillRule.NonZero, admittedClips, cancellationToken);
                         RequireMeasured(admitted.IsMeasured);
-                        if (targetClips.Count > 0) outerClipped |= Loss(sourcePaintClips, admittedClips);
+                        if (targetClips.Count > 0 && !DiagnosticClipsContain(targetClips, paintBounds))
+                            outerClipped |= Loss(sourcePaintClips, admittedClips);
                         if (!admitted.HasInk) return;
                         var withFrame = new List<OfficeTextInkClip>(admittedClips) { frameClip };
-                        if (secondClip.HasValue) withFrame.Add(DiagnosticRectangleClip(secondClip.Value, transform));
-                        if (clipsToFrame) clipped |= Loss(admittedClips, withFrame);
-                        else overflow |= Loss(admittedClips, withFrame);
+                        OfficeTextInkClip? secondInkClip = secondClip.HasValue ? DiagnosticRectangleClip(secondClip.Value, transform) : null;
+                        if (secondInkClip.HasValue) withFrame.Add(secondInkClip.Value);
+                        if (!DiagnosticClipContains(frameClip, paintBounds)
+                            || secondInkClip.HasValue && !DiagnosticClipContains(secondInkClip.Value, paintBounds)) {
+                            if (clipsToFrame) clipped |= Loss(admittedClips, withFrame);
+                            else overflow |= Loss(admittedClips, withFrame);
+                        }
                         var paintClips = clipsToFrame ? withFrame : admittedClips;
-                        outsidePage |= Loss(paintClips, new List<OfficeTextInkClip>(paintClips) { pageClip });
+                        if (!DiagnosticClipContains(pageClip, paintBounds))
+                            outsidePage |= Loss(paintClips, new List<OfficeTextInkClip>(paintClips) { pageClip });
 
                         bool Loss(List<OfficeTextInkClip> before, List<OfficeTextInkClip> after) {
                             if (!HasAdditionalLoss(contours, before, after)) return false;

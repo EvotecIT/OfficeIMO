@@ -19,8 +19,8 @@ namespace OfficeIMO.Examples.Word {
             WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocument.docx"), new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
 
             Console.WriteLine("This document has " + document.Paragraphs.Count + " paragraphs. Cool right?");
-            Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
-            Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
+            Console.WriteLine("+ Document Title: " + document.Properties.Title);
+            Console.WriteLine("+ Document Author: " + document.Properties.Creator);
             Console.WriteLine("+ FileOpen: " + document.FileOpenAccess);
 
             document.Dispose();

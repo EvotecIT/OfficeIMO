@@ -1,8 +1,8 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Aggregate result of an item-by-item store export.</summary>
-public sealed class EmailStoreExportReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class EmailStoreExportReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal EmailStoreExportReport(string destinationDirectory, bool wasTruncated,
         string? manifestPath, IReadOnlyList<EmailStoreExportEntry> entries,
@@ -11,7 +11,7 @@ public sealed class EmailStoreExportReport : IOfficeConversionReport {
         WasTruncated = wasTruncated;
         ManifestPath = manifestPath;
         Entries = entries;
-        Diagnostics = diagnostics;
+        NativeDiagnostics = diagnostics;
         int failedCount = entries.Count(static entry => !entry.Succeeded);
         _fidelityDiagnostics = EmailStoreFidelityProjection.ProjectExport(
             diagnostics,
@@ -38,7 +38,7 @@ public sealed class EmailStoreExportReport : IOfficeConversionReport {
     public IReadOnlyList<EmailStoreExportEntry> Entries { get; }
 
     /// <summary>Session-level and manifest diagnostics.</summary>
-    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<EmailStoreDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>Number of successfully written artifacts.</summary>
     public int SucceededCount => Entries.Count(item => item.Succeeded);
@@ -50,16 +50,15 @@ public sealed class EmailStoreExportReport : IOfficeConversionReport {
     public long BytesWritten => Entries.Sum(item => item.BytesWritten);
 
     /// <summary>Whether any session, manifest, or item error was reported.</summary>
-    public bool HasErrors => Diagnostics.Any(item => item.Severity == EmailStoreDiagnosticSeverity.Error) ||
+    public bool HasErrors => NativeDiagnostics.Any(item => item.Severity == EmailStoreDiagnosticSeverity.Error) ||
         Entries.Any(item => !item.Succeeded);
 
     /// <summary>Category-preserving session, item, truncation, and publication diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <summary>Whether the export approximated, omitted, or failed to preserve selected source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
-    /// <summary>Throws when the export reported possible content loss.</summary>
-    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

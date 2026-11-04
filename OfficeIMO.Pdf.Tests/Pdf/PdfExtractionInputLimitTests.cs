@@ -76,7 +76,7 @@ public class PdfExtractionInputLimitTests {
     [Fact]
     public void TextExtractionUsesCurrentStreamPositionAcrossReadModels() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Current position marker"))
+            .Paragraph(paragraph => paragraph.AddText("Current position marker"))
             .ToBytes();
         byte[] prefixed = new byte[pdf.Length + 5];
         Buffer.BlockCopy(pdf, 0, prefixed, 5, pdf.Length);

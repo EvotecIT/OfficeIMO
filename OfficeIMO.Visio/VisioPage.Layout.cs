@@ -222,8 +222,8 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="margin">Margin value.</param>
         /// <param name="unit">Measurement unit for the provided value.</param>
-        public VisioPage SetMargins(double margin, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            return SetMargins(margin, margin, margin, margin, unit);
+        internal VisioPage SetMarginsInches(double margin, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            return SetMarginsInches(margin, margin, margin, margin, unit);
         }
 
         /// <summary>
@@ -232,8 +232,8 @@ namespace OfficeIMO.Visio {
         /// <param name="horizontal">Left and right margin value.</param>
         /// <param name="vertical">Top and bottom margin value.</param>
         /// <param name="unit">Measurement unit for the provided values.</param>
-        public VisioPage SetMargins(double horizontal, double vertical, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
-            return SetMargins(horizontal, horizontal, vertical, vertical, unit);
+        internal VisioPage SetMarginsInches(double horizontal, double vertical, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+            return SetMarginsInches(horizontal, horizontal, vertical, vertical, unit);
         }
 
         /// <summary>
@@ -244,7 +244,7 @@ namespace OfficeIMO.Visio {
         /// <param name="top">Top margin.</param>
         /// <param name="bottom">Bottom margin.</param>
         /// <param name="unit">Measurement unit for the provided values.</param>
-        public VisioPage SetMargins(double left, double right, double top, double bottom, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
+        internal VisioPage SetMarginsInches(double left, double right, double top, double bottom, VisioMeasurementUnit unit = VisioMeasurementUnit.Inches) {
             if (left < 0 || right < 0 || top < 0 || bottom < 0) {
                 throw new ArgumentOutOfRangeException(nameof(left), "Margins must be zero or greater.");
             }

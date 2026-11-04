@@ -92,12 +92,10 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120D),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(0D),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                }
             }
             .ReportDiagnosticsTo(report, "HarfBuzz vertical PDF")
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(evidence.Family, fontData))
@@ -114,9 +112,9 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         Assert.Contains(evidence.Text, extracted, StringComparison.Ordinal);
         Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
         Assert.True(raw.Split(new[] { " Tm" }, StringSplitOptions.None).Length > evidence.Text.Length);
-        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+        Assert.DoesNotContain(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
@@ -144,8 +142,10 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions {
                 CompressContentStreams = false,
-                PageWidth = global::OfficeIMO.OfficeLength.Points(120D), PageHeight = global::OfficeIMO.OfficeLength.Points(180D),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(120D), global::OfficeIMO.OfficeLength.Points(180D)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+                }
             }
             .RegisterNamedFontFamily(new PdfEmbeddedFontFamily(family, fontData))
             .SetLanguage("ja")
@@ -185,9 +185,9 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
         Assert.Contains("/Identity-H", raw, StringComparison.Ordinal);
         Assert.Contains("/ActualText", raw, StringComparison.Ordinal);
         Assert.Equal(value, PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Trim());
-        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+        Assert.DoesNotContain(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
@@ -212,9 +212,9 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
             document => document.Content(content => content.Drawing(drawing)), options).ToBytes();
 
         Assert.Equal(evidence.Text, PdfDocument.Load(new System.IO.MemoryStream(pdf)).ExtractText().Trim());
-        Assert.DoesNotContain(report.FidelityDiagnostics, diagnostic =>
+        Assert.DoesNotContain(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback");
-        report.RequireNoLoss();
+        report.ThrowIfLoss();
     }
 
     [Fact]
@@ -240,10 +240,10 @@ public sealed class OfficeHarfBuzzTextShapingProviderTests {
             .ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Contains("/Figure << /Alt", System.Text.Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.Single(report.FidelityDiagnostics, diagnostic =>
+        Assert.Single(report.Diagnostics, diagnostic =>
             diagnostic.Code == "vertical-text-stacked-fallback" &&
             diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]

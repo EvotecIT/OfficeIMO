@@ -4,14 +4,17 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationEditor {
     /// <summary>Adds a visual Stamp annotation to an existing page using the shared full-rewrite or append-only planner.</summary>
-    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options = null) =>
-        AddStampAnnotation(pdf, options, readOptions: null);
+    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return AddStampAnnotation(pdf, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Adds a visual Stamp annotation using explicit read limits or credentials.</summary>
-    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult AddStampAnnotation(byte[] pdf, PdfStampAnnotationOptions? options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(pdf, nameof(pdf));
         PdfStampAnnotationOptions effective = options ?? new PdfStampAnnotationOptions();
-        var cancellationToken = effective.CancellationToken;
+        cancellationToken = effective.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         ValidateStampOptions(effective);
         byte[]? imageBytes = effective.GetImageBytes();

@@ -25,7 +25,7 @@ public sealed class ProjectSchedulingTests {
         else if (bound == "late") summary.ConstraintType = ProjectConstraintType.AsLateAsPossible;
         else { summary.ConstraintType = ProjectConstraintType.MustStartOn; summary.ConstraintDate = Monday.AddDays(1); }
         var result = document.CalculateSchedule();
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_SUMMARY_BOUND_PROFILE"
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_SUMMARY_BOUND_PROFILE"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error && diagnostic.Location == "/Task[UID=" + summary.Uid + "]");
         Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
     }
@@ -176,7 +176,7 @@ public sealed class ProjectSchedulingTests {
         var link = document.Dependencies.Add(predecessor, successor);
         link.CrossProject = true;
         var report = document.Validate();
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PROJECT_CROSS_PROJECT_REFERENCE" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_CROSS_PROJECT_REFERENCE" && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
         using var output = new MemoryStream();
         Assert.Throws<InvalidDataException>(() => document.Save(output));
         Assert.Empty(output.ToArray());
@@ -246,9 +246,9 @@ public sealed class ProjectSchedulingTests {
         var derived = document.Calendars.Add("Resource calendar", document.Calendar!); derived.IsBaseCalendar = null;
         var task = document.Tasks.Add("Task"); task.Calendar = derived;
         document.Resources.AddWork("Engineer").Calendar = derived;
-        Assert.Contains(document.Validate().Diagnostics, diagnostic => diagnostic.Code == "PROJECT_TASK_CALENDAR_KIND"
+        Assert.Contains(document.Validate().NativeDiagnostics, diagnostic => diagnostic.Code == "PROJECT_TASK_CALENDAR_KIND"
             && diagnostic.Severity == ProjectDiagnosticSeverity.Error);
-        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, AllowLoss = true };
         Assert.Contains(document.AssessSave(options).Diagnostics, diagnostic => diagnostic.Code == "PROJECT_TASK_CALENDAR_KIND");
         Assert.Throws<InvalidDataException>(() => document.Save(new MemoryStream(), options));
     }

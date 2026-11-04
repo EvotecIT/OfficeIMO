@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MapsAnchoredFormulaTargetsIndependentlyFromRuleAnchors() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue(1);
-            sheet.CellAt(3, 1).SetValue(3);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(3);
 
             var stationaryRule = new DataValidation(new Formula1("A3>0")) {
                 SequenceOfReferences = new ListValue<StringValue> { InnerText = "B1" }
@@ -42,8 +42,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("数据");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellAt(3, 1).SetValue(3);
-            summary.CellFormula(1, 1, "数据!A3");
+            data.Cell(3, 1).SetValue(3);
+            summary.Cell(1, 1).SetFormula("数据!A3");
 
             data.InsertRows(3);
 
@@ -55,8 +55,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            data.CellAt(5, 1).SetValue(5);
-            data.CellAt(6, 1).SetValue(6);
+            data.Cell(5, 1).SetValue(5);
+            data.Cell(6, 1).SetValue(6);
 
             var internalSource = new DataReference {
                 Sheet = "Data",
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_ShiftsAndRemovesCellWatches() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(5, 1).SetValue(5);
+            sheet.Cell(5, 1).SetValue(5);
             var watch = new CellWatch { CellReference = "A5" };
             sheet.WorksheetPart.Worksheet.Append(new CellWatches(watch));
 

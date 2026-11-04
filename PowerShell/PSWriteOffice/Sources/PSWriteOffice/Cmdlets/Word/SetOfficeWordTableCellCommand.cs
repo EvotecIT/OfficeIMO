@@ -130,7 +130,7 @@ public sealed class SetOfficeWordTableCellCommand : PSCmdlet
         if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginBottomCentimeters))) Cell.MarginBottom= ((MarginBottomCentimeters) is { } wordLength6165 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6165) : (global::OfficeIMO.OfficeLength?)null);
         if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginLeftCentimeters))) Cell.MarginLeft= ((MarginLeftCentimeters) is { } wordLength6304 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6304) : (global::OfficeIMO.OfficeLength?)null);
         if (MyInvocation.BoundParameters.ContainsKey(nameof(MarginRightCentimeters))) Cell.MarginRight= ((MarginRightCentimeters) is { } wordLength6443 ? global::OfficeIMO.OfficeLength.Centimeters(wordLength6443) : (global::OfficeIMO.OfficeLength?)null);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingFillColor))) Cell.ShadingFillColorHex = ShadingFillColor ?? string.Empty;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingFillColor))) Cell.ShadingFillValue = ShadingFillColor ?? string.Empty;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ShadingPattern))) Cell.ShadingPattern = ShadingPattern;
         bool hasWidth = MyInvocation.BoundParameters.ContainsKey(nameof(Width));
         bool hasWidthType = MyInvocation.BoundParameters.ContainsKey(nameof(WidthType));

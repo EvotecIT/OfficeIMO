@@ -19,7 +19,7 @@ public sealed class AppleSourceLossTests {
             using (var session = EmailStoreSession.Open(accepted))
                 Assert.Equal(document.Subject, session.ReadSummary(Assert.Single(session.EnumerateItems())).Subject);
             string blocked = Path.Combine(root, "blocked.pst");
-            using (var writer = EmailStorePstWriter.Create(blocked, new EmailStorePstWriterOptions(failOnDataLoss: true))) {
+            using (var writer = EmailStorePstWriter.Create(blocked, new EmailStorePstWriterOptions(failOnLoss: true))) {
                 writer.AddItem(writer.AddFolder("Inbox"), document);
                 Assert.Throws<InvalidOperationException>(() => writer.Complete());
                 Assert.False(File.Exists(blocked));
@@ -39,6 +39,6 @@ public sealed class AppleSourceLossTests {
         Assert.True(item.ContentAvailability.IndeterminateParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
         Assert.False(item.ContentAvailability.AvailableParts.HasFlag(EmailStoreItemReadParts.AttachmentContent));
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(document, EmailFileFormat.Eml);
-        Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_EMLX_PARTIAL_CONTENT" && diagnostic.DataLossRisk == EmailDataLossRisk.Possible);
+        Assert.Contains(report.NativeDiagnostics, diagnostic => diagnostic.Code == "EMAIL_EMLX_PARTIAL_CONTENT" && diagnostic.DataLossRisk == EmailDataLossRisk.Possible);
     }
 }

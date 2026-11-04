@@ -22,7 +22,8 @@ internal static class PackedSiteBundleContract {
             throw new InvalidOperationException("Packed site-bundle input ownership failed.");
 
         HtmlRenderRequest svgRequest = bundle.CreateRenderRequest(HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg));
+            HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg,
+            HtmlPdfExportOptions.ForImageExport(new HtmlRenderOptions())));
         foreach (HtmlRenderResult result in new[] {
             HtmlRenderEngine.Execute(bundle.HtmlDocument, svgRequest),
             HtmlRenderEngine.ExecuteAsync(bundle.HtmlDocument, svgRequest).GetAwaiter().GetResult()
@@ -38,7 +39,7 @@ internal static class PackedSiteBundleContract {
         }
 
         HtmlRenderRequest pdfRequest = HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged,
-            HtmlRenderEncoder.Pdf, new HtmlToPdfOptions {
+            HtmlRenderEncoder.Pdf, new HtmlPdfExportOptions {
                 ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic()
             });
         foreach (HtmlPdfRenderRequestResult result in new[] {

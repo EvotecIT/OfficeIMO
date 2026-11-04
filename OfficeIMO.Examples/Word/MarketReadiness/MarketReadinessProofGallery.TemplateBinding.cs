@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Word {
                     "EvotecLogo.png",
                     width: global::OfficeIMO.OfficeLength.Pixels(96),
                     height: global::OfficeIMO.OfficeLength.Pixels(32),
-                    description: "Evotec logo")
+                    altText: "Evotec logo")
             };
 
             WordTemplateResult result = WordTemplate.Apply(generated, values).EnsureComplete();

@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "OrderDate");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("OrderDate");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     (new DateTime(2025, 1, 15), 10d),
@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 {
@@ -110,8 +110,8 @@ namespace OfficeIMO.Tests
             using (var document = ExcelDocument.Create())
             {
                 var source = document.AddSheet("Source");
-                source.CellValue(1, 1, "OrderDate");
-                source.CellValue(1, 2, "Sales");
+                source.Cell(1, 1).SetValue("OrderDate");
+                source.Cell(1, 2).SetValue("Sales");
                 var entries = new[]
                 {
                     (new DateTime(2024, 12, 15), 10d),
@@ -122,8 +122,8 @@ namespace OfficeIMO.Tests
                 };
                 for (int index = 0; index < entries.Length; index++)
                 {
-                    source.CellValue(index + 2, 1, entries[index].Item1);
-                    source.CellValue(index + 2, 2, entries[index].Item2);
+                    source.Cell(index + 2, 1).SetValue(entries[index].Item1);
+                    source.Cell(index + 2, 2).SetValue(entries[index].Item2);
                 }
 
                 source.AddPivotTable("A1:B6", "F4", options: new ExcelPivotTableOptions { SaveSourceData = true, Name = "BoundedDate", RowFields = new[] { "OrderDate" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum, "Metric") }, Layout = ExcelPivotLayout.Tabular, Groupings = new[] { ExcelPivotGrouping.DateHierarchy("OrderDate", new[] { ExcelPivotGroupBy.Years, ExcelPivotGroupBy.Quarters, ExcelPivotGroupBy.Months }, new DateTime(2025, 1, 1), new DateTime(2026, 8, 1)) } });

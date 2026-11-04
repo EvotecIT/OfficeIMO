@@ -71,7 +71,7 @@ public sealed class PdfDeclaredComplianceClaimsTests {
 
     [Fact]
     public void DeclaredClaims_ReturnEmptyReportForOrdinaryPdf() {
-        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Ordinary PDF.")).ToBytes();
+        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Ordinary PDF.")).ToBytes();
 
         PdfDeclaredComplianceClaimsReport report = PdfDocument.Load(bytes).AssessDeclaredComplianceClaims();
 

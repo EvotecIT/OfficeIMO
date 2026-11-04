@@ -81,7 +81,7 @@ public sealed class IWorkPagesDecimalTextEditingTests {
 
     internal static void CheckWord(IWorkSourceDocument source) {
         var paragraphs = source.ReadPages().Body.Paragraphs;
-        using var converted = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes);
         using (var saved = WordDocument.Load(new MemoryStream(bytes.ToArray()))) {

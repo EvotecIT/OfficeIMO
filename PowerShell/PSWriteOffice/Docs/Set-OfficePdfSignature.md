@@ -11,7 +11,7 @@ Injects externally produced CMS, CAdES, or timestamp signature bytes into a prep
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Set-OfficePdfSignature [-Path] <string> [-SignaturePath] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficePdfSignature [-Path] <string> [-SignaturePath] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThruReport] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -97,7 +97,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted prepared PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

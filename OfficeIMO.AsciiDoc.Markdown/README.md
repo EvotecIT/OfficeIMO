@@ -37,7 +37,7 @@ AsciiDocReferenceCatalog references = AsciiDocReferenceCatalog.Create(source);
 AsciiDocBlockContext context = source.GetBlockContexts().First();
 AsciiDocToMarkdownResult chunk = context.Block.ToMarkdownDocumentResult(
     context.Attributes,
-    new AsciiDocToMarkdownOptions { References = references });
+    new AsciiDocMarkdownExportOptions { References = references });
 ```
 
 Create a new catalog after editing titles, anchors, attributes, footnotes, or document order. Conversion emits only the footnote definitions used by the selected block. Callout lists retain their numbers visibly when Markdown cannot express the numbering directly; inspect `Report.Diagnostics` for those presentation approximations and other lossy mappings.

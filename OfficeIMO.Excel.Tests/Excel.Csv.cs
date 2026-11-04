@@ -15,8 +15,8 @@ public class ExcelCsvExtensionsTests {
     public void CsvImportChecksMethodCancellationBeforeCreatingReaders() {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        var loadOptions = new CsvLoadOptions();
-        var options = new ExcelCsvImportOptions { LoadOptions = loadOptions };
+        var loadOptions = new CsvReaderOptions();
+        var options = new ExcelCsvImportOptions { ReaderOptions = loadOptions };
         CsvDocument csv = CsvDocument.Parse("Name\r\nAlpha");
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
@@ -43,15 +43,14 @@ public class ExcelCsvExtensionsTests {
         Assert.Equal("Empty", result.SheetName);
         Assert.Null(result.TableName);
         Assert.Equal(string.Empty, result.Range);
-        Assert.Equal("A1:A1", document["Empty"].UsedRangeA1);
+        Assert.Equal("A1:A1", document["Empty"].UsedRange.Address);
     }
 
     [Fact]
     public void CsvTextImportPreservesUnicodeRegardlessOfFileEncodingOption() {
         var options = new ExcelCsvImportOptions {
             SheetName = "Imported",
-            LoadOptions = new CsvLoadOptions { Encoding = Encoding.ASCII },
-            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+            ReaderOptions = new CsvReaderOptions { Encoding = Encoding.ASCII, InferSchema = false }
         };
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
@@ -70,8 +69,7 @@ public class ExcelCsvExtensionsTests {
     public void CsvTextImportReportsTheEffectiveDelimiterTextCharacter() {
         var options = new ExcelCsvImportOptions {
             SheetName = "Imported",
-            LoadOptions = new CsvLoadOptions { DelimiterText = "||" },
-            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+            ReaderOptions = new CsvReaderOptions { DelimiterText = "||", InferSchema = false }
         };
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
@@ -97,7 +95,7 @@ public class ExcelCsvExtensionsTests {
     public void CsvTextImportEnforcesMaxInputBytesBeforeCreatingOrMutatingSheets() {
         var options = new ExcelCsvImportOptions {
             SheetName = "Rejected",
-            LoadOptions = new CsvLoadOptions { MaxInputBytes = 8 }
+            ReaderOptions = new CsvReaderOptions { MaxInputBytes = 8 }
         };
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
@@ -109,7 +107,7 @@ public class ExcelCsvExtensionsTests {
             existing.ImportCsvText("Name\r\nAlpha", options));
 
         Assert.DoesNotContain(document.Sheets, sheet => sheet.Name == "Rejected");
-        Assert.Equal("A1:A1", existing.UsedRangeA1);
+        Assert.Equal("A1:A1", existing.UsedRange.Address);
     }
 
     [Fact]
@@ -130,8 +128,8 @@ public class ExcelCsvExtensionsTests {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(2, 1, "Alpha");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Alpha");
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         var readOptions = new ExcelReaderOptions { CancellationToken = cancellation.Token };
@@ -150,7 +148,7 @@ public class ExcelCsvExtensionsTests {
         ExcelSheet sheet = document.AddSheet("Data");
 
         ExcelCsvImportResult imported = sheet.ImportCsvText(csv, new ExcelCsvImportOptions {
-            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+            ReaderOptions = new CsvReaderOptions { InferSchema = false }
         });
         using DataTable table = sheet.ToDataTable("A1:C3");
         string exported = sheet.ToCsv("A1:C3");
@@ -167,10 +165,10 @@ public class ExcelCsvExtensionsTests {
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Alpha");
-        sheet.CellValue(1, 2, 10);
-        sheet.CellValue(2, 1, "Beta");
-        sheet.CellValue(2, 2, 20);
+        sheet.Cell(1, 1).SetValue("Alpha");
+        sheet.Cell(1, 2).SetValue(10);
+        sheet.Cell(2, 1).SetValue("Beta");
+        sheet.Cell(2, 2).SetValue(20);
         var saveOptions = new CsvSaveOptions { IncludeHeader = true, NewLine = "\n" };
 
         string exported = sheet.ToCsv("A1:B2", headersInFirstRow: false, csvOptions: saveOptions);
@@ -192,7 +190,7 @@ public class ExcelCsvExtensionsTests {
         ExcelSheet sheet = document.AddSheet("Data");
 
         ExcelCsvImportResult imported = sheet.ImportCsvText(csv, new ExcelCsvImportOptions {
-            ReaderOptions = new CsvDataReaderOptions { InferSchema = false }
+            ReaderOptions = new CsvReaderOptions { InferSchema = false }
         });
         using DataTable table = sheet.ToDataTable("A1:B3");
 
@@ -209,7 +207,7 @@ public class ExcelCsvExtensionsTests {
         ExcelCsvImportResult result = document.ImportCsvText(
             "Name;Amount\r\nAlpha;10.5\r\nBeta;11.75",
             new ExcelCsvImportOptions {
-                LoadOptions = new CsvLoadOptions {
+                ReaderOptions = new CsvReaderOptions {
                     DetectDelimiter = true,
                     Culture = CultureInfo.InvariantCulture
                 },
@@ -280,7 +278,7 @@ public class ExcelCsvExtensionsTests {
             "\"generated\r\nstill,has,commas\"\r\nName;Amount\r\nAlpha;10.5",
             new ExcelCsvImportOptions {
                 SheetName = "Import",
-                LoadOptions = new CsvLoadOptions {
+                ReaderOptions = new CsvReaderOptions {
                     DetectDelimiter = true,
                     SkipInitialRecords = 1
                 }
@@ -330,7 +328,7 @@ public class ExcelCsvExtensionsTests {
 
             ExcelCsvImportResult result = document.ImportCsvFile(path, new ExcelCsvImportOptions {
                 SheetName = "Import",
-                LoadOptions = new CsvLoadOptions {
+                ReaderOptions = new CsvReaderOptions {
                     DetectDelimiter = true,
                     Culture = CultureInfo.InvariantCulture
                 }

@@ -44,18 +44,18 @@ public sealed class Markdown_CurrentHead_Review_Tests {
               Continuation
             """;
 
-        var document = MarkdownDocument.Parse(markdown).ToRtfDocument();
+        var document = MarkdownDocument.Parse(markdown).ToRtf();
 
         Assert.Equal(1, document.Paragraphs.Count(paragraph => paragraph.ToPlainText() == "Continuation"));
     }
 
     [Fact]
     public void MarkdownToRtf_Applies_Superscript_And_Subscript_Sequence_Styles() {
-        var options = new MarkdownToRtfOptions {
+        var options = new MarkdownRtfExportOptions {
             ReaderOptions = MarkdownLoadOptions.CreateOfficeIMOProfile()
         };
 
-        var document = MarkdownDocument.Parse("Formula ^2^ and H~2~O", options.ReaderOptions).ToRtfDocument(options);
+        var document = MarkdownDocument.Parse("Formula ^2^ and H~2~O", options.ReaderOptions).ToRtf(options);
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Superscript);
@@ -64,11 +64,11 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
     [Fact]
     public void MarkdownToRtf_Applies_Inserted_Sequence_Style() {
-        var options = new MarkdownToRtfOptions {
+        var options = new MarkdownRtfExportOptions {
             ReaderOptions = MarkdownLoadOptions.CreateOfficeIMOProfile()
         };
 
-        var document = MarkdownDocument.Parse("Before ++new++ after", options.ReaderOptions).ToRtfDocument(options);
+        var document = MarkdownDocument.Parse("Before ++new++ after", options.ReaderOptions).ToRtf(options);
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);
@@ -84,7 +84,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             .Superscript("2")
             .Subscript("n")));
 
-        var document = markdown.ToRtfDocument();
+        var document = markdown.ToRtf();
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);
@@ -99,7 +99,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         readerOptions.Superscript = true;
         readerOptions.Subscript = true;
 
-        var options = new WordMarkdownImportOptions { ReaderOptions = readerOptions };
+        var options = new MarkdownWordExportOptions { ReaderOptions = readerOptions };
         MarkdownDocument source = OfficeIMO.Markdown.MarkdownDocument.Parse("Before ++new++ and ^up^ plus H~down~O", options.CreateReaderOptions());
         using var document = source.ToWord(options);
 
@@ -130,7 +130,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var readerOptions = MarkdownLoadOptions.CreateOfficeIMOProfile();
         readerOptions.Abbreviations = true;
 
-        var options = new WordMarkdownImportOptions { ReaderOptions = readerOptions };
+        var options = new MarkdownWordExportOptions { ReaderOptions = readerOptions };
         MarkdownDocument source = OfficeIMO.Markdown.MarkdownDocument.Parse("*[HTML]: Hyper Text Markup Language\n\nHTML and A &amp; B", options.CreateReaderOptions());
         using var parsed = source.ToWord(options);
 

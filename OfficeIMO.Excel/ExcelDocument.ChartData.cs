@@ -292,7 +292,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int CalculateInitialChartDataRow(ExcelSheet sheet) {
-            string used = sheet.UsedRangeA1;
+            string used = sheet.GetUsedRangeA1();
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(used);
             if (r2 <= 1 && c2 <= 1) {
                 if (!sheet.TryGetCellText(1, 1, out var text) || string.IsNullOrEmpty(text)) {

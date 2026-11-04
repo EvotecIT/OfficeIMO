@@ -61,8 +61,8 @@ public partial class Word {
     public void SaveAsPdf_AutomaticMergedMinimumFitsAConstrainedFrame(
         int leftPreference, int rightPreference, int bodyWidth, double firstWidth) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         int[] preferences = { leftPreference, rightPreference };
         WordTable table = CreateAutomaticWidthControl(document, preferences.Select(value => value * 20).ToArray());
         for (int column = 0; column < 2; column++) table.Rows[0].Cells[column].Paragraphs[0].Text = "Span" + column;
@@ -85,8 +85,8 @@ public partial class Word {
     public void SaveAsPdf_AutomaticThreeColumnSpanRespectsPreferencesAndPadding(
         int gridShape, int bodyWidth, double firstWidth, double secondWidth) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        document.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         int[] preferences = gridShape == 0 ? new[] { 40, 80, 120 }
             : gridShape == 1 ? new[] { 120, 80, 40 } : new[] { 80, 80, 80 };
         WordTable table = CreateAutomaticWidthControl(document, preferences.Select(value => value * 20).ToArray());
@@ -135,8 +135,8 @@ public partial class Word {
         int cachedGridTwips, int bodyWidth, int spacingTwips, int automaticColumn, double expectedAdvance) {
         using WordDocument document = WordDocument.Create();
         var section = document.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); section.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(((uint)((bodyWidth + 144) * 20)) / 20D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(72D); section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(72D);
         WordTable table = document.AddTable(1, 2, WordTableStyle.TableGrid);
         table.Width = WordTableWidth.Auto;
         table._tableProperties.TableLayout?.Remove();

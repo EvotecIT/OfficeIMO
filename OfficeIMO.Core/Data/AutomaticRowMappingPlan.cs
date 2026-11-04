@@ -167,30 +167,22 @@ internal sealed partial class AutomaticRowMappingPlan<
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
         Func<object, Type, CultureInfo, (bool ok, object? value)>? typeConverter = null,
-        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include) {
+        DataMappingErrorValuePolicy errorValuePolicy = DataMappingErrorValuePolicy.Include,
+        DbDataReader? rowReader = null) {
+        // The row reader is the one that owns the current row; qualification and typed
+        // getters run on it directly, while the conversion fallback keeps the outer reader.
+        DbDataReader fastReader = rowReader ?? reader;
         if (typeConverter is null &&
             _fastReaderMap is not null &&
-            reader is IDataReaderFastMappingValues &&
-            !HasIncompatibleReaderValue(reader)) {
+            fastReader is IDataReaderFastMappingValues &&
+            !HasIncompatibleReaderValue(fastReader)) {
             try {
-                return _fastReaderMap(reader);
+                return _fastReaderMap(fastReader);
             } catch (TypedReaderValueException) {
             }
         }
 
-        T instance = _constructor is null ? Activator.CreateInstance<T>()
-            : _constructor.Create(binding => DataReaderMappingValue.Read(reader, binding.ColumnIndex, binding.Property.ValueType),
-                culture, dateTimeFormats, typeConverter, errorValuePolicy);
-        foreach (MappingBinding binding in _assignmentBindings) {
-            instance = binding.ApplyReader(
-                instance,
-                reader,
-                culture,
-                dateTimeFormats,
-                typeConverter,
-                errorValuePolicy);
-        }
-        return instance;
+        return MapReaderRowSlow(reader, culture, dateTimeFormats, typeConverter, errorValuePolicy);
     }
 
     internal Func<DbDataReader, T>? GetFastReaderMap(

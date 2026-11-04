@@ -15,21 +15,21 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(stream);
             document.SheetCachingEnabled = sheetCaching;
             ExcelSheet sheet = document.AddSheet("Report");
-            sheet.CellValue(1, 1, "Notes");
-            sheet.Cell(2, 1, 123.45, numberFormat: "0.00");
-            sheet.CellBold(2, 1);
-            sheet.CellAlign(2, 1, ExcelHorizontalAlignment.Right);
+            sheet.Cell(1, 1).SetValue("Notes");
+            sheet.Cell(2, 1).SetValue(123.45).SetNumberFormat("0.00");
+            sheet.Cell(2, 1).SetBold();
+            sheet.Cell(2, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
             var options = new ExcelSaveOptions { DisableFastPackageWriter = standardWriter, ValidateOpenXml = true };
             document.Save(stream, options);
 
             // Keep the original handle and another alias alive across another package replacement.
             ExcelSheet alias = document.Sheets[0];
-            sheet.CellWrapText(2, 1);
-            alias.CellValue(3, 1, "Added after save");
+            sheet.Cell(2, 1).SetWrapText();
+            alias.Cell(3, 1).SetValue("Added after save");
             alias.SetColumnWidth(1, ExcelColumnWidth.Characters(32));
             document.Save(stream, options);
-            Assert.True(sheet.CellAt(2, 1).GetStyle().WrapText);
-            Assert.Equal("Added after save", sheet.CellAt(3, 1).GetValue<string>());
+            Assert.True(sheet.Cell(2, 1).GetStyle().WrapText);
+            Assert.Equal("Added after save", sheet.Cell(3, 1).GetValue<string>());
             using (var saved = SpreadsheetDocument.Open(stream, false)) {
                 Cell savedCell = saved.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>()
                     .Single(cell => cell.CellReference == "A2");
@@ -38,8 +38,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(savedStyle.Alignment!.WrapText!.Value);
             }
 
-            sheet.CellWrapText(2, 1, false);
-            sheet.CellValue(4, 1, new DateTime(2026, 10, 16));
+            sheet.Cell(2, 1).SetWrapText(false);
+            sheet.Cell(4, 1).SetValue(new DateTime(2026, 10, 16));
             document.Save(stream, options);
             using var package = SpreadsheetDocument.Open(stream, false);
             Worksheet worksheet = package.WorkbookPart!.WorksheetParts.Single().Worksheet;
@@ -64,14 +64,14 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Report");
-                    sheet.CellValue(1, 1, "Before");
+                    sheet.Cell(1, 1).SetValue("Before");
                     document.Save();
-                    sheet.CellValue(1, 1, "After");
-                    sheet.CellWrapText(1, 1);
+                    sheet.Cell(1, 1).SetValue("After");
+                    sheet.Cell(1, 1).SetWrapText();
                     document.Save();
                     using var readback = ExcelDocument.Load(path);
-                    Assert.Equal("After", readback.Sheets[0].CellAt(1, 1).GetValue<string>());
-                    Assert.True(readback.Sheets[0].CellAt(1, 1).GetStyle().WrapText);
+                    Assert.Equal("After", readback.Sheets[0].Cell(1, 1).GetValue<string>());
+                    Assert.True(readback.Sheets[0].Cell(1, 1).GetStyle().WrapText);
                 }
             } finally {
                 if (File.Exists(path)) File.Delete(path);
@@ -85,10 +85,10 @@ namespace OfficeIMO.Tests {
             document.SheetCachingEnabled = false;
             document.AddSheet("Keep");
             ExcelSheet original = document.AddSheet("Original");
-            original.CellValue(1, 1, "Original");
+            original.Cell(1, 1).SetValue("Original");
             using var cancellation = new System.Threading.CancellationTokenSource();
             Assert.ThrowsAny<OperationCanceledException>(() => original.ApplyTransactionalMutation(token => {
-                original.CellValue(2, 1, "Interrupted");
+                original.Cell(2, 1).SetValue("Interrupted");
                 cancellation.Cancel();
                 token.ThrowIfCancellationRequested();
                 return 1;
@@ -96,14 +96,14 @@ namespace OfficeIMO.Tests {
             uint originalId = original.SheetElement.SheetId!.Value;
             document.RemoveWorksheet("Original");
             ExcelSheet replacement = document.AddSheet("Replacement");
-            replacement.CellValue(1, 1, "Replacement");
+            replacement.Cell(1, 1).SetValue("Replacement");
             Assert.Equal(originalId, replacement.SheetElement.SheetId!.Value);
             document.Save(stream);
 
             Assert.Throws<InvalidOperationException>(() => original.GetTables());
             Assert.NotSame(original.DeferredMetadataWorksheetPart, replacement.DeferredMetadataWorksheetPart);
             using var saved = ExcelDocument.Load(stream);
-            Assert.Equal("Replacement", saved["Replacement"].CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Replacement", saved["Replacement"].Cell(1, 1).GetValue<string>());
         }
     }
 }

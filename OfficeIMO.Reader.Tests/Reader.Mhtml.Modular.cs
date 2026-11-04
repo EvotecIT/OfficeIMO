@@ -49,7 +49,7 @@ public sealed class ReaderMhtmlModularTests {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddMhtmlHandler().Build();
         using var chunkStream = new MemoryStream(archive, writable: false);
 
-        ReaderChunk[] chunks = reader.Read(chunkStream, "saved.mhtml").ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(chunkStream, "saved.mhtml").ToArray();
 
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Saved archive", StringComparison.Ordinal));
 

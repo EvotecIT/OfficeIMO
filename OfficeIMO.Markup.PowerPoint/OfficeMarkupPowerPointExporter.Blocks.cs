@@ -7,7 +7,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static void ExportBlock(
         PowerPointSlide slide,
         OfficeMarkupBlock block,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
@@ -57,7 +57,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     private static void ExportExtension(
         PowerPointSlide slide,
         OfficeMarkupExtensionBlock extension,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
@@ -141,7 +141,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static void AddList(PowerPointSlide slide, OfficeMarkupListBlock list, LayoutCursor cursor,
-        MarkupToPowerPointOptions options, SlideCanvasMetrics metrics, OfficeMarkupStyleResolver styleResolver) {
+        MarkupPowerPointExportOptions options, SlideCanvasMetrics metrics, OfficeMarkupStyleResolver styleResolver) {
         if (!OfficeMarkupListTraversal.IsTextOnly(list)) {
             for (int index = 0; index < list.Items.Count; index++) {
                 var item = list.Items[index];
@@ -177,7 +177,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupDiagramBlock diagram,
         LayoutCursor cursor,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         SlideCanvasMetrics metrics,
         OfficeMarkupStyleResolver styleResolver) {
         var box = ResolveBox(diagram.Placement, diagram.Attributes, cursor, Math.Min(2.4, cursor.RemainingHeight), metrics);

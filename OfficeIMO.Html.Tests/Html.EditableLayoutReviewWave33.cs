@@ -74,7 +74,7 @@ public sealed class HtmlEditableLayoutReviewWave33Tests {
             + "<span style='visibility:hidden'><img style='visibility:visible' alt='RTF override' src='" + image + "'></span>"
             + "</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
 
         RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item => item.Inlines.OfType<RtfImage>().Any());
         Assert.Single(paragraph.Inlines.OfType<RtfImage>());

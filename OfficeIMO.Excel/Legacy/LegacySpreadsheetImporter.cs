@@ -93,9 +93,9 @@ public static class LegacySpreadsheetImporter {
                         target.CellValue(cell.Row, cell.Column, cell.Value);
                         target.CellFormula(cell.Row, cell.Column, cell.Formula!);
                     } else if (cell.Value != null) target.CellValue(cell.Row, cell.Column, cell.Value);
-                    else target.CellAt(cell.Row, cell.Column);
+                    else target.Cell(cell.Row, cell.Column);
                     if (cell.Alignment.HasValue) target.CellAlign(cell.Row, cell.Column, cell.Alignment.Value);
-                    if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.CellAt(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
+                    if (!string.IsNullOrWhiteSpace(cell.NumberFormat)) target.Cell(cell.Row, cell.Column).SetNumberFormat(cell.NumberFormat!);
                     if (!string.IsNullOrWhiteSpace(cell.Comment)) comments.Add((cell.Row, cell.Column, cell.Comment!));
                 }
                 cancellationToken.ThrowIfCancellationRequested();

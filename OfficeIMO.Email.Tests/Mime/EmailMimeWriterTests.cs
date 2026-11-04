@@ -28,7 +28,7 @@ public sealed class EmailMimeWriterTests {
         EmailDocumentWriter writer = new EmailDocumentWriter();
         byte[] first = writer.ToBytes(document);
         byte[] second = writer.ToBytes(document);
-        EmailReadResult parsed = new EmailDocumentReader().Read(first);
+        EmailReadResult parsed = new EmailDocumentReader().ReadDocument(first);
 
         Assert.Equal(first, second);
         Assert.Equal(document.Subject, parsed.Document.Subject);
@@ -43,7 +43,7 @@ public sealed class EmailMimeWriterTests {
     public void PreservedSourceWritingIsExplicitAndVerbatim() {
         byte[] source = Encoding.ASCII.GetBytes("Subject: raw\n\nbody\n");
         EmailReaderOptions readerOptions = new EmailReaderOptions(preserveRawSource: true);
-        EmailDocument document = new EmailDocumentReader(readerOptions).Read(source).Document;
+        EmailDocument document = new EmailDocumentReader(readerOptions).ReadDocument(source).Document;
         EmailDocumentWriter writer = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true));
 
         byte[] result = writer.ToBytes(document);
@@ -55,7 +55,7 @@ public sealed class EmailMimeWriterTests {
     public void PreservedSourceWritingRegeneratesAfterModelEdits() {
         byte[] source = Encoding.ASCII.GetBytes("Subject: original\r\n\r\noriginal body\r\n");
         EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(preserveRawSource: true))
-            .Read(source).Document;
+            .ReadDocument(source).Document;
         document.Subject = "edited";
         document.Body.Text = "edited body";
         document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
@@ -69,7 +69,7 @@ public sealed class EmailMimeWriterTests {
         var writer = new EmailDocumentWriter(new EmailWriterOptions(usePreservedRawSource: true));
 
         byte[] result = writer.ToBytes(document, EmailFileFormat.Eml, out EmailWriteResult writeResult);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(result).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(result).Document;
 
         Assert.False(writeResult.UsedPreservedSource);
         Assert.Contains(writeResult.Diagnostics,
@@ -92,7 +92,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string eml = Encoding.UTF8.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Contains("From: josé@example.com", eml, StringComparison.Ordinal);
         Assert.Contains("To: δοκιμή@example.com", eml, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public sealed class EmailMimeWriterTests {
         });
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(parent);
-        EmailDocument parsed = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument parsed = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Contains("Content-Type: message/rfc822;", Encoding.ASCII.GetString(bytes), StringComparison.Ordinal);
         Assert.Equal("Child", Assert.Single(parsed.Attachments).EmbeddedDocument!.Subject);
@@ -151,7 +151,7 @@ public sealed class EmailMimeWriterTests {
         int encodingHeader = Array.LastIndexOf(lines, "Content-Transfer-Encoding: base64");
         string[] payloadLines = lines.Skip(encodingHeader + 2).TakeWhile(line => !line.StartsWith("--", StringComparison.Ordinal))
             .Where(line => line.Length > 0).ToArray();
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.NotEmpty(payloadLines);
         Assert.All(payloadLines, line => Assert.InRange(line.Length, 1, 76));
@@ -178,7 +178,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Contains("From: \"Doe, John\" <john@example.com>\r\n", eml, StringComparison.Ordinal);
         Assert.Contains("To: \"Doe, Jane\" <jane@example.com>\r\n", eml, StringComparison.Ordinal);
@@ -198,7 +198,7 @@ public sealed class EmailMimeWriterTests {
         string eml = Encoding.ASCII.GetString(bytes);
         MatchCollection words = Regex.Matches(eml, @"=\?utf-8\?B\?[^?]*\?=",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
-        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes);
 
         Assert.True(words.Count > 1);
         Assert.All(words.Cast<Match>(), word => Assert.InRange(word.Value.Length, 1, 75));
@@ -214,7 +214,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.All(eml.Split(new[] { "\r\n" }, StringSplitOptions.None),
             line => Assert.InRange(line.Length, 0, 998));
@@ -233,7 +233,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter(new EmailWriterOptions(OfficeSignatureMutationPolicy.PreserveSignatureMarkup)).ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.DoesNotContain("Received: =?utf-8?", eml, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("DKIM-Signature: =?utf-8?", eml, StringComparison.OrdinalIgnoreCase);
@@ -254,7 +254,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.All(eml.Split(new[] { "\r\n" }, StringSplitOptions.None),
             line => Assert.InRange(line.Length, 0, 998));
@@ -278,7 +278,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Contains("filename*0*=utf-8''", eml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("filename*1*=", eml, StringComparison.OrdinalIgnoreCase);
@@ -294,11 +294,11 @@ public sealed class EmailMimeWriterTests {
         source.MessageMetadata.InternetReferences = "<root@example.test> <parent@example.test>";
         source.MessageMetadata.InReplyToId = "<parent@example.test>";
         byte[] msg = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailDocument retained = new EmailDocumentReader().Read(msg).Document;
+        EmailDocument retained = new EmailDocumentReader().ReadDocument(msg).Document;
 
         byte[] emlBytes = new EmailDocumentWriter(new EmailWriterOptions(conversionLossPolicy: EmailConversionLossPolicy.Warn)).ToBytes(retained, EmailFileFormat.Eml);
         string eml = Encoding.ASCII.GetString(emlBytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(emlBytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(emlBytes).Document;
 
         Assert.Contains("References: <root@example.test> <parent@example.test>\r\n", eml,
             StringComparison.Ordinal);
@@ -328,7 +328,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(document);
         string eml = Encoding.ASCII.GetString(bytes);
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
 
         Assert.Contains("Content-Type: multipart/mixed", eml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("Content-Type: multipart/related", eml, StringComparison.OrdinalIgnoreCase);
@@ -408,7 +408,7 @@ public sealed class EmailMimeWriterTests {
 
         Assert.InRange(referenced, relatedHeader, relatedEnd);
         Assert.True(unreferenced > relatedEnd);
-        EmailAttachment roundTrip = new EmailDocumentReader().Read(bytes).Document.Attachments
+        EmailAttachment roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document.Attachments
             .Single(attachment => attachment.ContentLocation == "image001.png");
         Assert.True(roundTrip.IsInline);
     }
@@ -421,7 +421,7 @@ public sealed class EmailMimeWriterTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(
             document, EmailFileFormat.Eml, out EmailWriteResult writeResult);
-        EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
+        EmailReadResult readResult = new EmailDocumentReader().ReadDocument(bytes);
 
         Assert.Contains("Content-Type: text/rtf; charset=iso-8859-1\r\n", Encoding.ASCII.GetString(bytes),
             StringComparison.Ordinal);
@@ -450,7 +450,7 @@ public sealed class EmailMimeWriterTests {
         };
         document.Body.Text = "body";
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document)).Document;
 
         Assert.Equal(displayName, roundTrip.From!.DisplayName);
@@ -461,7 +461,7 @@ public sealed class EmailMimeWriterTests {
     [InlineData("Sender", "Broken <")]
     public void RetainsUnparsedScalarAddressHeaders(string name, string value) {
         byte[] source = Encoding.ASCII.GetBytes(name + ": " + value + "\r\nSubject: retained\r\n\r\nbody\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(source).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(source).Document;
 
         byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
         string eml = Encoding.ASCII.GetString(rewritten);
@@ -473,7 +473,7 @@ public sealed class EmailMimeWriterTests {
     public void RetainsEachUnparsedRecipientHeaderIndependently() {
         byte[] source = Encoding.ASCII.GetBytes(
             "To: (undisclosed)\r\nCc: Valid <valid@example.com>\r\nSubject: retained\r\n\r\nbody\r\n");
-        EmailDocument document = new EmailDocumentReader().Read(source).Document;
+        EmailDocument document = new EmailDocumentReader().ReadDocument(source).Document;
 
         string eml = Encoding.ASCII.GetString(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
@@ -490,7 +490,7 @@ public sealed class EmailMimeWriterTests {
         document.Recipients.Add(new EmailRecipient(EmailRecipientKind.Cc,
             new EmailAddress("cc@example.com", "Structured")));
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
 
         Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&

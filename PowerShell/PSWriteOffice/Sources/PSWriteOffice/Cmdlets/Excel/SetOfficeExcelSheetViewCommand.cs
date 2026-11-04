@@ -51,12 +51,14 @@ public sealed class SetOfficeExcelSheetViewCommand : OfficeDocumentCmdlet<ExcelD
             ExcelSheet sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
             bool? hidden = BoundSwitch(nameof(NoGridlines));
             bool? rightToLeft = BoundSwitch(nameof(RightToLeft));
-            if (hidden.HasValue || rightToLeft.HasValue || Zoom.HasValue || ZoomNormal.HasValue || View.HasValue)
-                sheet.SetViewOptions(showGridlines: hidden.HasValue ? !hidden.Value : null,
-                    rightToLeft: rightToLeft, zoomScale: Zoom, zoomScaleNormal: ZoomNormal, view: View);
+            ExcelSheetView view = sheet.View;
+            if (hidden.HasValue) view.ShowGridlines = !hidden.Value;
+            if (rightToLeft.HasValue) view.RightToLeft = rightToLeft.Value;
+            if (Zoom.HasValue) view.ZoomScale = Zoom;
+            if (ZoomNormal.HasValue) view.ZoomScaleNormal = ZoomNormal;
+            if (View.HasValue) view.Kind = View.Value;
             if (FreezeRows.HasValue || FreezeColumns.HasValue) {
-                ExcelWorksheetViewInfo current = sheet.GetViewInfo();
-                sheet.Freeze(FreezeRows ?? current.FrozenRowCount, FreezeColumns ?? current.FrozenColumnCount);
+                view.Freeze(FreezeRows ?? view.FrozenRows, FreezeColumns ?? view.FrozenColumns);
             }
             if (PassThru) WriteObject(sheet);
         } catch (ArgumentException error) { InvalidArgument(error, Document); }

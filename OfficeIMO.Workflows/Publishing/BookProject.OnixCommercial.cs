@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 using System.Globalization;
 using System.Xml.Linq;
 
@@ -15,7 +12,7 @@ public sealed partial class BookProject {
     private sealed record OnixCommercialParts(XElement? Status, XElement[] Rights, XElement[] Supplies);
 
     private static OnixCommercialParts BuildOnixCommercial(BookOnixCommercialMetadata? commercial,
-        DateOnly? publicationDate, CancellationToken token) {
+        DateTime? publicationDate, CancellationToken token) {
         if (commercial == null) return new(null, [], []);
         if (commercial.SalesRights == null) throw new ArgumentNullException("commercial.SalesRights");
         if (commercial.Supplies == null) throw new ArgumentNullException("commercial.Supplies");
@@ -120,7 +117,7 @@ public sealed partial class BookProject {
         if (price.Amount <= 0) throw new ArgumentOutOfRangeException(nameof(price.Amount), "Prices must be positive; use Unpriced = Free for free supply.");
         if (price.CurrencyCode == null || price.CurrencyCode.Length != 3 || price.CurrencyCode.Any(c => c < 'A' || c > 'Z'))
             throw new ArgumentException("Supply an uppercase three-letter ONIX list 96 currency code.", nameof(price.CurrencyCode));
-        if (price.ValidFrom > price.ValidUntil) throw new ArgumentException("Price dates cannot run backwards.", nameof(price));
+        if (price.ValidFrom?.Date > price.ValidUntil?.Date) throw new ArgumentException("Price dates cannot run backwards.", nameof(price));
         OnixTerritory territory = price.Territory == null ? market : ReadOnixTerritory(price.Territory);
         if (!market.Covers(territory)) throw new ArgumentException("A price territory cannot extend outside its supply market.", nameof(price));
         var result = new XElement(ns + "Price", new XElement(ns + "PriceType", type),
@@ -134,7 +131,7 @@ public sealed partial class BookProject {
         return result;
     }
 
-    private static XElement OnixCommercialDate(string composite, string roleElement, string role, DateOnly date) {
+    private static XElement OnixCommercialDate(string composite, string roleElement, string role, DateTime date) {
         XNamespace ns = OnixNamespace;
         return new XElement(ns + composite, new XElement(ns + roleElement, role),
             new XElement(ns + "Date", new XAttribute("dateformat", "00"), FormatOnixDate(date)));

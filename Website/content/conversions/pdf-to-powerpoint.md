@@ -33,15 +33,14 @@ A PDF contains final page presentation, not the PowerPoint theme, slide master, 
 
 ```csharp
 using OfficeIMO.Pdf;
-using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Pdf.PowerPoint;
 
 PdfDocument pdf = PdfDocument.Load("briefing.pdf");
-PdfPowerPointConversionResult result = pdf.ToPowerPointDocumentResult();
-using var presentation = result.Value;
+using var presentation = pdf.ToPowerPoint(null, out OfficeConversionReport report);
 
 File.WriteAllBytes("briefing.pptx", presentation.ToBytes());
-foreach (PdfConversionWarning warning in result.Warnings) {
-    Console.WriteLine($"{warning.Code}: {warning.Message}");
+foreach (OfficeDiagnostic diagnostic in report.Diagnostics) {
+    Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 }
 ```
 

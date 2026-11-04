@@ -57,18 +57,18 @@ public partial class Excel {
         byte[] disabledBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Category");
-            sheet.Cell(1, 2, "Actual");
-            sheet.Cell(1, 3, "Target");
-            sheet.Cell(2, 1, "Jan");
-            sheet.Cell(2, 2, 12);
-            sheet.Cell(2, 3, 10);
-            sheet.Cell(3, 1, "Feb");
-            sheet.Cell(3, 2, 18);
-            sheet.Cell(3, 3, 16);
-            sheet.Cell(4, 1, "Mar");
-            sheet.Cell(4, 2, 24);
-            sheet.Cell(4, 3, 20);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(1, 3).SetValue("Target");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(12);
+            sheet.Cell(2, 3).SetValue(10);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(18);
+            sheet.Cell(3, 3).SetValue(16);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(24);
+            sheet.Cell(4, 3).SetValue(20);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Revenue Chart" });
 
             ExcelChart chart = Assert.Single(sheet.Charts);
@@ -122,18 +122,18 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Category");
-            sheet.Cell(1, 2, "Actual");
-            sheet.Cell(1, 3, "Target");
-            sheet.Cell(2, 1, "Jan");
-            sheet.Cell(2, 2, 12);
-            sheet.Cell(2, 3, 10);
-            sheet.Cell(3, 1, "Feb");
-            sheet.Cell(3, 2, 18);
-            sheet.Cell(3, 3, 16);
-            sheet.Cell(4, 1, "Mar");
-            sheet.Cell(4, 2, 24);
-            sheet.Cell(4, 3, 20);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Actual");
+            sheet.Cell(1, 3).SetValue("Target");
+            sheet.Cell(2, 1).SetValue("Jan");
+            sheet.Cell(2, 2).SetValue(12);
+            sheet.Cell(2, 3).SetValue(10);
+            sheet.Cell(3, 1).SetValue("Feb");
+            sheet.Cell(3, 2).SetValue(18);
+            sheet.Cell(3, 3).SetValue(16);
+            sheet.Cell(4, 1).SetValue("Mar");
+            sheet.Cell(4, 2).SetValue(24);
+            sheet.Cell(4, 3).SetValue(20);
             sheet.AddChart(OfficeChartType.ColumnClustered, "A1:C4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Styled Excel Chart" });
 
             document.Save();
@@ -181,11 +181,11 @@ public partial class Excel {
 
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Month");
-            sheet.Cell(1, 2, "Actual");
+            sheet.Cell(1, 1).SetValue("Month");
+            sheet.Cell(1, 2).SetValue("Actual");
             for (int row = 2; row <= 13; row++) {
-                sheet.Cell(row, 1, "M" + (row - 1).ToString("00", CultureInfo.InvariantCulture));
-                sheet.Cell(row, 2, row * 3);
+                sheet.Cell(row, 1).SetValue("M" + (row - 1).ToString("00", CultureInfo.InvariantCulture));
+                sheet.Cell(row, 2).SetValue(row * 3);
             }
 
             sheet.AddChart(OfficeChartType.Line, "A1:B13", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(300), Height = OfficeLength.Pixels(180), Title = "Dense Month Chart" });
@@ -234,16 +234,16 @@ public partial class Excel {
         OfficeColor[] sliceColors;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Category");
-            sheet.Cell(1, 2, "Control Share");
-            sheet.Cell(2, 1, "Compliant");
-            sheet.Cell(2, 2, 62);
-            sheet.Cell(3, 1, "Partial");
-            sheet.Cell(3, 2, 21);
-            sheet.Cell(4, 1, "Non-compliant");
-            sheet.Cell(4, 2, 11);
-            sheet.Cell(5, 1, "Not assessed");
-            sheet.Cell(5, 2, 6);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Control Share");
+            sheet.Cell(2, 1).SetValue("Compliant");
+            sheet.Cell(2, 2).SetValue(62);
+            sheet.Cell(3, 1).SetValue("Partial");
+            sheet.Cell(3, 2).SetValue(21);
+            sheet.Cell(4, 1).SetValue("Non-compliant");
+            sheet.Cell(4, 2).SetValue(11);
+            sheet.Cell(5, 1).SetValue("Not assessed");
+            sheet.Cell(5, 2).SetValue(6);
             sheet.AddChart(OfficeChartType.Pie, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Control Status Pie" });
             sheet.AddChart(OfficeChartType.Doughnut, "A1:B5", new OfficeIMO.Excel.ExcelChartOptions { Row = 12, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Control Status Doughnut" });
 
@@ -287,21 +287,21 @@ public partial class Excel {
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Charts" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Quarter");
-            sheet.Cell(1, 2, "Services");
-            sheet.Cell(1, 3, "Licenses");
-            sheet.Cell(2, 1, "Q1");
-            sheet.Cell(2, 2, 36);
-            sheet.Cell(2, 3, 19);
-            sheet.Cell(3, 1, "Q2");
-            sheet.Cell(3, 2, 44);
-            sheet.Cell(3, 3, 25);
-            sheet.Cell(4, 1, "Q3");
-            sheet.Cell(4, 2, 50);
-            sheet.Cell(4, 3, 31);
-            sheet.Cell(5, 1, "Q4");
-            sheet.Cell(5, 2, 54);
-            sheet.Cell(5, 3, 34);
+            sheet.Cell(1, 1).SetValue("Quarter");
+            sheet.Cell(1, 2).SetValue("Services");
+            sheet.Cell(1, 3).SetValue("Licenses");
+            sheet.Cell(2, 1).SetValue("Q1");
+            sheet.Cell(2, 2).SetValue(36);
+            sheet.Cell(2, 3).SetValue(19);
+            sheet.Cell(3, 1).SetValue("Q2");
+            sheet.Cell(3, 2).SetValue(44);
+            sheet.Cell(3, 3).SetValue(25);
+            sheet.Cell(4, 1).SetValue("Q3");
+            sheet.Cell(4, 2).SetValue(50);
+            sheet.Cell(4, 3).SetValue(31);
+            sheet.Cell(5, 1).SetValue("Q4");
+            sheet.Cell(5, 2).SetValue(54);
+            sheet.Cell(5, 3).SetValue(34);
             sheet.AddChart(OfficeChartType.Area, "A1:C5", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Revenue Area" });
             sheet.AddChart(OfficeChartType.AreaStacked100, "A1:C5", new OfficeIMO.Excel.ExcelChartOptions { Row = 14, Column = 5, Width = OfficeLength.Pixels(360), Height = OfficeLength.Pixels(220), Title = "Revenue Mix Area" });
 

@@ -101,8 +101,8 @@ public partial class Word {
 
     private static WordParagraph AddDocumentHiddenDefaultParagraph(WordDocument document, string location) {
         WordParagraph paragraph = location switch {
-            "header" => document.HeaderDefaultOrCreate.AddParagraph(),
-            "footer" => document.FooterDefaultOrCreate.AddParagraph(),
+            "header" => document.PageSetup.Header.AddParagraph(),
+            "footer" => document.PageSetup.Footer.AddParagraph(),
             "table" => document.AddTable(1, 1).Rows[0].Cells[0].AddParagraph(removeExistingParagraphs: true),
             _ => document.AddParagraph()
         };

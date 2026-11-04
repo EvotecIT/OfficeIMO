@@ -16,10 +16,10 @@ namespace OfficeIMO.Tests {
         public void PageHelpersCreateGeometricShapeNames() {
             VisioPage page = new("Shapes");
 
-            VisioShape parallelogram = page.AddParallelogram(1, 1, 2, 1, "Parallelogram");
-            VisioShape hexagon = page.AddHexagon(4, 1, 2, 1, "Hexagon");
-            VisioShape trapezoid = page.AddTrapezoid(7, 1, 2, 1, "Trapezoid");
-            VisioShape pentagon = page.AddPentagon(10, 1, 2, 2, "Pentagon");
+            VisioShape parallelogram = page.AddParallelogram(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Parallelogram");
+            VisioShape hexagon = page.AddHexagon(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Hexagon");
+            VisioShape trapezoid = page.AddTrapezoid(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Trapezoid");
+            VisioShape pentagon = page.AddPentagon(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Pentagon");
 
             Assert.Equal("Parallelogram", parallelogram.NameU);
             Assert.Equal("Hexagon", hexagon.NameU);
@@ -34,10 +34,10 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Shapes");
-            page.AddParallelogram(1, 1, 2, 1, "Parallelogram");
-            page.AddHexagon(4, 1, 2, 1, "Hexagon");
-            page.AddTrapezoid(7, 1, 2, 1, "Trapezoid");
-            page.AddPentagon(10, 1, 2, 2, "Pentagon");
+            page.AddParallelogram(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Parallelogram");
+            page.AddHexagon(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Hexagon");
+            page.AddTrapezoid(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "Trapezoid");
+            page.AddPentagon(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Pentagon");
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -84,10 +84,10 @@ namespace OfficeIMO.Tests {
                 imported.Select(master => master.NameU).OrderBy(name => name));
 
             VisioPage page = document.AddPage("Imported");
-            page.AddShape("shape-1", "Parallelogram", 1, 1, 2, 1, "P");
-            page.AddShape("shape-2", "Hexagon", 4, 1, 2, 1, "H");
-            page.AddShape("shape-3", "Trapezoid", 7, 1, 2, 1, "T");
-            page.AddShape("shape-4", "Pentagon", 10, 1, 2, 2, "Pg");
+            page.AddShape("shape-1", "Parallelogram", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "P");
+            page.AddShape("shape-2", "Hexagon", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(4, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "H");
+            page.AddShape("shape-3", "Trapezoid", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(7, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), "T");
+            page.AddShape("shape-4", "Pentagon", OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(10, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), "Pg");
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
@@ -101,11 +101,11 @@ namespace OfficeIMO.Tests {
             document.UseMastersByDefault = true;
 
             document.AsFluent()
-                .Page("Shapes", p => p
-                    .Parallelogram("para", 1, 1, 2, 1, "Parallelogram")
-                    .Hexagon("hex", 4, 1, 2, 1, "Hexagon")
-                    .Trapezoid("trap", 7, 1, 2, 1, "Trapezoid")
-                    .Pentagon("pent", 10, 1, 2, 2, "Pentagon"))
+                .AddPage("Shapes", p => p
+                    .AddParallelogram("para", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Parallelogram")
+                    .AddHexagon("hex", OfficeLength.Inches(4), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Hexagon")
+                    .AddTrapezoid("trap", OfficeLength.Inches(7), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Trapezoid")
+                    .AddPentagon("pent", OfficeLength.Inches(10), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(2), "Pentagon"))
                 .End()
                 .Save();
 

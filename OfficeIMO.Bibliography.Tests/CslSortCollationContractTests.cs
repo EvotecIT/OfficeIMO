@@ -96,7 +96,7 @@ public sealed class CslSortCollationContractTests {
         string tail = string.Concat(Enumerable.Repeat(unit, 32768));
         string json = JsonSerializer.Serialize(new[] { new { id = "a", type = "book", title = "A" + tail }, new { id = "b", type = "book", title = "B" + tail } });
         CslStyle style = CslStyle.Parse("<style xmlns=\"http://purl.org/net/xbiblio/csl\" version=\"1.0\" class=\"in-text\"><citation><layout><text value=\"Cite\"/></layout></citation><bibliography><sort><key variable=\"title\"/></sort><layout><text value=\"Entry\"/></layout></bibliography></style>");
-        var processor = new CslProcessor(BibliographyDocument.Parse(json, BibliographyFormat.CslJson).Document, style, new CslRenderOptions { MaximumRenderingOperations = 100 });
+        var processor = new CslProcessor(BibliographyDocument.Parse(json, BibliographyFormat.CslJson).Document, style, new CslRenderOptions { MaxRenderingOperations = 100 });
         Assert.Throws<InvalidDataException>(() => processor.Render(Array.Empty<CslCitation>(), includeUncitedItems: true));
     }
 

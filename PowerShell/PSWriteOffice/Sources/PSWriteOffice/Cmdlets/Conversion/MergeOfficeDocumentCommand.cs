@@ -56,11 +56,12 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [ValidateNotNullOrEmpty]
     public string? OutputPath { get; set; }
 
-    /// <summary>One source password reused for all files, or one password per resolved file in order.</summary>
+    /// <summary>One source password reused for all files, or one password per resolved file in order; use $null for an unencrypted file in a per-file list.</summary>
     [Parameter]
     [AllowNull]
     [AllowEmptyCollection]
-    public SecureString[]? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString?[]? Password { get; set; }
 
     /// <summary>Native merge settings, New-OfficeExcelMergeOptions results, or property hashtables for the selected format.</summary>
     [Parameter]

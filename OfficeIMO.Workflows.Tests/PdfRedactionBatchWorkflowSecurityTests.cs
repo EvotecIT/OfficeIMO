@@ -10,7 +10,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string inputRoot = scope.PathFor("input");
         Directory.CreateDirectory(inputRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(Path.Combine(inputRoot, "one.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(Path.Combine(inputRoot, "one.pdf"));
 
         await Assert.ThrowsAsync<ArgumentException>(() => new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
             Mode = PdfRedactionWorkflowMode.PlanOnly,
@@ -29,7 +29,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         Directory.CreateDirectory(inputRoot);
         Directory.CreateDirectory(outsideRoot);
         string outsidePdf = Path.Combine(outsideRoot, "outside.pdf");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(outsidePdf);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(outsidePdf);
         string link = Path.Combine(inputRoot, "linked.pdf");
         try {
             File.CreateSymbolicLink(link, outsidePdf);
@@ -54,8 +54,8 @@ public sealed partial class PdfRedactionWorkflowTests {
         Directory.CreateDirectory(inputRoot);
         string input = Path.Combine(inputRoot, "one.pdf");
         string outside = scope.PathFor("outside.pdf");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(input);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("outside secret")).Save(outside);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("outside secret")).Save(outside);
         string probe = Path.Combine(inputRoot, "probe.pdf");
         try {
             File.CreateSymbolicLink(probe, outside);
@@ -98,7 +98,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         Directory.CreateDirectory(evidenceChild);
         Directory.CreateDirectory(manifestRoot);
         Directory.CreateDirectory(outsideRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret"))
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret"))
             .Save(Path.Combine(inputRoot, "nested", "one.pdf"));
 
         string target = replaceManifestDirectory ? manifestRoot : evidenceChild;
@@ -141,7 +141,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string evidenceRoot = scope.PathFor("evidence");
         Directory.CreateDirectory(inputRoot);
         Directory.CreateDirectory(evidenceRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret"))
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret"))
             .Save(Path.Combine(inputRoot, "one.pdf"));
         string evidence = Path.Combine(evidenceRoot, "one.redaction.json");
         string manifest = scope.PathFor("batch.json");
@@ -174,7 +174,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         string outsideRoot = scope.PathFor("outside");
         Directory.CreateDirectory(inputRoot);
         Directory.CreateDirectory(outsideRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(Path.Combine(outsideRoot, "outside.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(Path.Combine(outsideRoot, "outside.pdf"));
         try {
             Directory.CreateSymbolicLink(Path.Combine(inputRoot, "linked"), outsideRoot);
         } catch (Exception exception) when (exception is UnauthorizedAccessException or PlatformNotSupportedException or IOException) {
@@ -198,8 +198,8 @@ public sealed partial class PdfRedactionWorkflowTests {
         using var scope = new RedactionTestDirectory();
         string inputRoot = scope.PathFor("input");
         Directory.CreateDirectory(inputRoot);
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(Path.Combine(inputRoot, "one.pdf"));
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(Path.Combine(inputRoot, "two.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(Path.Combine(inputRoot, "one.pdf"));
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(Path.Combine(inputRoot, "two.pdf"));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => new OfficeWorkflowRunner().RunRedactionBatchAsync(new PdfRedactionBatchRequest {
             Mode = PdfRedactionWorkflowMode.PlanOnly,
@@ -221,7 +221,7 @@ public sealed partial class PdfRedactionWorkflowTests {
         Directory.CreateDirectory(inputRoot);
         Directory.CreateDirectory(decisionsRoot);
         string input = Path.Combine(inputRoot, "one.pdf");
-        PdfDocument.Create().Paragraph(paragraph => paragraph.Text("secret")).Save(input);
+        PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("secret")).Save(input);
         PdfRedactionRecipe recipe = CreateRecipe("secret");
         PdfRedactionWorkflowResult planned = await new OfficeWorkflowRunner().RunRedactionAsync(new PdfRedactionWorkflowRequest {
             Mode = PdfRedactionWorkflowMode.PlanOnly,

@@ -9,7 +9,7 @@ public sealed class BibliographyReviewWave51RegressionTests {
         item.Title = "After";
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBBIB011" && diagnostic.Field == "author");
         Assert.Equal("Last, Jr, First, Extra", Assert.Single(item.NativeFields, field => field.Name == "author").Value);
@@ -24,7 +24,7 @@ public sealed class BibliographyReviewWave51RegressionTests {
         string source = "[" + value + "," + value + "]";
 
         BibliographyReadResult read = BibliographyDocument.Parse(source, BibliographyFormat.CslJson, new BibliographyReadOptions {
-            MaximumValueCount = 1
+            MaxValueCount = 1
         });
 
         Assert.Contains(read.Diagnostics, diagnostic => diagnostic.Code == "BIBLIM001");
@@ -73,8 +73,8 @@ public sealed class BibliographyReviewWave51RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV122" && diagnostic.Field == tag);
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV122" && diagnostic.Field == tag);
     }
 }

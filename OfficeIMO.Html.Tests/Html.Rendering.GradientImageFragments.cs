@@ -37,8 +37,8 @@ public sealed partial class HtmlRenderingTests {
                 }
             }
         }
-        paged.RequireNoLoss();
-        continuous.RequireNoLoss();
+        paged.ThrowIfLoss();
+        continuous.ThrowIfLoss();
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed partial class HtmlRenderingTests {
             OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
             Assert.NotEqual(OfficeColor.White, raster.GetPixel(80, 35));
         });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Blue, second.GetPixel(20, 85));
         Assert.Equal(OfficeColor.White, second.GetPixel(55, 85));
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static string GradientImageFragmentSource(string content, string rules) =>

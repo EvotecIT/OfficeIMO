@@ -10,20 +10,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Dates");
-            sheet.CellValue(1, 1, new DateTime(2026, 6, 24));
-            sheet.CellValue(2, 1, new DateTime(2026, 6, 23));
-            sheet.CellValue(3, 1, new DateTime(2026, 6, 25));
-            sheet.CellValue(1, 2, new DateTime(2026, 6, 24));
-            sheet.CellValue(2, 2, new DateTime(2026, 6, 18));
-            sheet.CellValue(3, 2, new DateTime(2026, 6, 17));
-            sheet.Range("A1:B3").DateTime("yyyy-mm-dd");
+            sheet.Cell(1, 1).SetValue(new DateTime(2026, 6, 24));
+            sheet.Cell(2, 1).SetValue(new DateTime(2026, 6, 23));
+            sheet.Cell(3, 1).SetValue(new DateTime(2026, 6, 25));
+            sheet.Cell(1, 2).SetValue(new DateTime(2026, 6, 24));
+            sheet.Cell(2, 2).SetValue(new DateTime(2026, 6, 18));
+            sheet.Cell(3, 2).SetValue(new DateTime(2026, 6, 17));
+            sheet.Range("A1:B3").SetNumberFormat("yyyy-mm-dd");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(12));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.SetRowHeight(2, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             sheet.SetRowHeight(3, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
-            sheet.AddConditionalTimePeriodRule("A1:A3", ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
-            sheet.AddConditionalTimePeriodRule("B1:B3", ExcelConditionalTimePeriod.Last7Days, fillColor: "DBEAFE");
+            sheet.Range("A1:A3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Today, fillColor: "C6EFCE");
+            sheet.Range("B1:B3").ConditionalFormat().TimePeriod(ExcelConditionalTimePeriod.Last7Days, fillColor: "DBEAFE");
 
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false,

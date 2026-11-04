@@ -63,10 +63,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set left table cell border color using hex color codes
-        /// </summary>
-        public string? LeftColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? LeftColorValue {
             get {
                 return BordersOrNull?.LeftBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -79,12 +77,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set left table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor LeftColor {
-            get {
-                var hex = LeftColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("LeftColorHex is null"));
-            }
-            set { this.LeftColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? LeftColor {
+            get => Helpers.ParseNativeColor(LeftColorValue);
+            set => LeftColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the left cell border spacing.</summary>
@@ -127,10 +122,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set right table cell border color using hex color codes
-        /// </summary>
-        public string? RightColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? RightColorValue {
             get {
                 return BordersOrNull?.RightBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -143,12 +136,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set right table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor RightColor {
-            get {
-                var hex = RightColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("RightColorHex is null"));
-            }
-            set { this.RightColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? RightColor {
+            get => Helpers.ParseNativeColor(RightColorValue);
+            set => RightColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the right cell border spacing.</summary>
@@ -193,10 +183,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set top table cell border color using hex color codes
-        /// </summary>
-        public string? TopColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopColorValue {
             get {
                 return BordersOrNull?.TopBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -209,12 +197,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor TopColor {
-            get {
-                var hex = TopColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopColorHex is null"));
-            }
-            set { this.TopColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? TopColor {
+            get => Helpers.ParseNativeColor(TopColorValue);
+            set => TopColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the top cell border spacing.</summary>
@@ -262,10 +247,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set bottom table cell border color using hex color codes
-        /// </summary>
-        public string? BottomColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? BottomColorValue {
             get {
                 return BordersOrNull?.BottomBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -278,12 +261,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set bottom table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor BottomColor {
-            get {
-                var hex = BottomColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("BottomColorHex is null"));
-            }
-            set { this.BottomColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? BottomColor {
+            get => Helpers.ParseNativeColor(BottomColorValue);
+            set => BottomColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the bottom cell border spacing.</summary>
@@ -333,10 +313,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set inside horizontal table cell border color using hex color codes
-        /// </summary>
-        public string? InsideHorizontalColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? InsideHorizontalColorValue {
             get {
                 return BordersOrNull?.InsideHorizontalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -349,12 +327,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside horizontal table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor InsideHorizontalColor {
-            get {
-                var hex = InsideHorizontalColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideHorizontalColorHex is null"));
-            }
-            set { this.InsideHorizontalColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? InsideHorizontalColor {
+            get => Helpers.ParseNativeColor(InsideHorizontalColorValue);
+            set => InsideHorizontalColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the inside horizontal cell border spacing.</summary>
@@ -404,10 +379,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set inside vertical table cell border color using hex color codes
-        /// </summary>
-        public string? InsideVerticalColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? InsideVerticalColorValue {
             get {
                 return BordersOrNull?.InsideVerticalBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -420,12 +393,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set inside vertical table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor InsideVerticalColor {
-            get {
-                var hex = InsideVerticalColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("InsideVerticalColorHex is null"));
-            }
-            set { this.InsideVerticalColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? InsideVerticalColor {
+            get => Helpers.ParseNativeColor(InsideVerticalColorValue);
+            set => InsideVerticalColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the inside vertical cell border spacing.</summary>
@@ -472,10 +442,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set start table cell border color using hex color codes
-        /// </summary>
-        public string? StartColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? StartColorValue {
             get {
                 return BordersOrNull?.StartBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -488,12 +456,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set start table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor StartColor {
-            get {
-                var hex = StartColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("StartColorHex is null"));
-            }
-            set { this.StartColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? StartColor {
+            get => Helpers.ParseNativeColor(StartColorValue);
+            set => StartColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the start cell border spacing.</summary>
@@ -540,10 +505,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set end table cell border color using hex color codes
-        /// </summary>
-        public string? EndColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? EndColorValue {
             get {
                 return BordersOrNull?.EndBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -556,12 +519,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set end table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor EndColor {
-            get {
-                var hex = EndColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("EndColorHex is null"));
-            }
-            set { this.EndColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? EndColor {
+            get => Helpers.ParseNativeColor(EndColorValue);
+            set => EndColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the end cell border spacing.</summary>
@@ -615,10 +575,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set top left to bottom right table cell border color using hex color codes
-        /// </summary>
-        public string? TopLeftToBottomRightColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopLeftToBottomRightColorValue {
             get {
                 return BordersOrNull?.TopLeftToBottomRightCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -631,12 +589,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top left to bottom right table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor TopLeftToBottomRightColor {
-            get {
-                var hex = TopLeftToBottomRightColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopLeftToBottomRightColorHex is null"));
-            }
-            set { this.TopLeftToBottomRightColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? TopLeftToBottomRightColor {
+            get => Helpers.ParseNativeColor(TopLeftToBottomRightColorValue);
+            set => TopLeftToBottomRightColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the top-left to bottom-right cell border spacing.</summary>
@@ -681,10 +636,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        /// <summary>
-        /// Get or set top right to bottom left table cell border color using hex color codes
-        /// </summary>
-        public string? TopRightToBottomLeftColorHex {
+        /// <summary>Native border colour value (hexadecimal or <c>auto</c>).</summary>
+        internal string? TopRightToBottomLeftColorValue {
             get {
                 return BordersOrNull?.TopRightToBottomLeftCellBorder?.Color?.Value is string color ? Helpers.NormalizeOpenXmlColor(color) : null;
             }
@@ -697,12 +650,9 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Get or set top right to bottom left table cell border color using named colors
         /// </summary>
-        public OfficeIMO.OfficeColor TopRightToBottomLeftColor {
-            get {
-                var hex = TopRightToBottomLeftColorHex;
-                return Helpers.ParseColor(hex ?? throw new InvalidOperationException("TopRightToBottomLeftColorHex is null"));
-            }
-            set { this.TopRightToBottomLeftColorHex = value.ToRgbHex(); }
+        public OfficeIMO.OfficeColor? TopRightToBottomLeftColor {
+            get => Helpers.ParseNativeColor(TopRightToBottomLeftColorValue);
+            set => TopRightToBottomLeftColorValue = value?.ToRgbHex();
         }
 
         /// <summary>Gets or sets the top-right to bottom-left cell border spacing.</summary>

@@ -15,12 +15,12 @@ public static partial class WordHtmlConverterExtensions {
     public static IReadOnlyList<WordElement> AddHtml(
         this WordHeader header,
         HtmlConversionDocument htmlDocument,
-        WordHtmlImportOptions? options = null,
+        HtmlWordExportOptions? options = null,
         WordSection? section = null) {
         if (header == null) throw new ArgumentNullException(nameof(header));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
         WordSection target = ResolveHtmlStorySection(header, section);
-        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         EnsureOfflineSynchronousImport(htmlDocument, resolved);
         return header.AddHtmlAsync(htmlDocument, resolved, target).GetAwaiter().GetResult();
@@ -36,14 +36,14 @@ public static partial class WordHtmlConverterExtensions {
     public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(
         this WordHeader header,
         HtmlConversionDocument htmlDocument,
-        WordHtmlImportOptions? options = null,
+        HtmlWordExportOptions? options = null,
         WordSection? section = null,
         CancellationToken cancellationToken = default) {
         if (header == null) throw new ArgumentNullException(nameof(header));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
         cancellationToken.ThrowIfCancellationRequested();
         WordSection target = ResolveHtmlStorySection(header, section);
-        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         var converter = new HtmlToWordConverter();
         IReadOnlyList<WordElement> elements = await converter.AddHtmlToHeaderAsync(
@@ -62,12 +62,12 @@ public static partial class WordHtmlConverterExtensions {
     public static IReadOnlyList<WordElement> AddHtml(
         this WordFooter footer,
         HtmlConversionDocument htmlDocument,
-        WordHtmlImportOptions? options = null,
+        HtmlWordExportOptions? options = null,
         WordSection? section = null) {
         if (footer == null) throw new ArgumentNullException(nameof(footer));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
         WordSection target = ResolveHtmlStorySection(footer, section);
-        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         EnsureOfflineSynchronousImport(htmlDocument, resolved);
         return footer.AddHtmlAsync(htmlDocument, resolved, target).GetAwaiter().GetResult();
@@ -83,14 +83,14 @@ public static partial class WordHtmlConverterExtensions {
     public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(
         this WordFooter footer,
         HtmlConversionDocument htmlDocument,
-        WordHtmlImportOptions? options = null,
+        HtmlWordExportOptions? options = null,
         WordSection? section = null,
         CancellationToken cancellationToken = default) {
         if (footer == null) throw new ArgumentNullException(nameof(footer));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
         cancellationToken.ThrowIfCancellationRequested();
         WordSection target = ResolveHtmlStorySection(footer, section);
-        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         var converter = new HtmlToWordConverter();
         IReadOnlyList<WordElement> elements = await converter.AddHtmlToFooterAsync(

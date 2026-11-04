@@ -21,7 +21,7 @@ public sealed class RedactionReviewVisualTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-                item.Paragraph(text => text.Text("Before private account after")))))).Save(source);
+                item.AddParagraph(text => text.AddText("Before private account after")))))).Save(source);
             using var app = TestAppBuilder.StartSession();
             await app.Dispatch(async () => {
                 var services = ((App)Application.Current!).Services;
@@ -92,8 +92,8 @@ public sealed class RedactionReviewVisualTests {
         try {
             string source = Path.Combine(root, "source.pdf");
             PdfDocument document = PdfDocument.Create(compose => {
-                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Before Private account 123 after")))));
-                compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(text => text.Text("Before Private account 456 after")))));
+                compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Before Private account 123 after")))));
+                compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Before Private account 456 after")))));
             });
             if (rotation != 0) document = document.Pages.Rotate(rotation, 1);
             document.Save(source);

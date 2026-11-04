@@ -36,6 +36,10 @@
     "OfficeIMO.TestAssets/**"
   ],
   "suites": {
+    "platform-image-codecs": [
+      "OfficeIMO.Drawing.ImageIO.Tests",
+      "HeicSmoke"
+    ],
     "archives-contracts": [
       "OfficeIMO.Archives.Tests"
     ],
@@ -78,6 +82,7 @@
       "OfficeIMO.Html.AngleSharp",
       "OfficeIMO.Html.Core",
       "OfficeIMO.Html.Pdf",
+      "OfficeIMO.Html.Pdf.Workbench.Tests",
       "OfficeIMO.Html.Rtf",
       "OfficeIMO.Word.Pdf",
       "OfficeIMO.PowerPoint.Pdf"
@@ -235,6 +240,7 @@
       "OfficeIMO.MarkdownRenderer.Wpf.Tests",
       "OfficeIMO.Markup.Tests",
       "OfficeIMO.OneNote.Tests",
+      "OfficeIMO.Opml.Tests",
       "OfficeIMO.OpenDocument.Converters.Tests",
       "OfficeIMO.OpenDocument.Tests",
       "OfficeIMO.PowerPoint.Tests",

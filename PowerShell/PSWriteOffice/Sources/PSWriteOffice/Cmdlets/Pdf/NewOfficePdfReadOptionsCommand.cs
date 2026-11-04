@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Ocr;
@@ -53,7 +52,7 @@ public sealed class NewOfficePdfReadOptionsCommand : OfficeCmdlet {
         if (Page != null) overrides[nameof(PdfLoadOptions.PageSelection)] = Page.Selection;
         if (LayoutOptions != null) overrides[nameof(PdfLoadOptions.LayoutOptions)] = LayoutOptions;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Password)))
-            overrides[nameof(PdfLoadOptions.Password)] = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+            overrides[nameof(PdfLoadOptions.Password)] = Password.ToPlainText();
         if (BoundSwitch(nameof(IgnorePermissionRestrictions)) is bool ignore)
             overrides[nameof(PdfLoadOptions.PermissionPolicy)] = ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce;
         var engine = (EngineIntrinsics)SessionState.PSVariable.GetValue("ExecutionContext");

@@ -13,14 +13,14 @@ public class PdfEncryptedWriteTests {
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-                .Paragraph(paragraph => paragraph.Text("Bounded password"))
+                .Paragraph(paragraph => paragraph.AddText("Bounded password"))
                 .ToBytes());
     }
 
     [Fact]
     public void GeneratedEncryptionDefaultsToAes256Revision6() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("AES default source"))
+            .Paragraph(paragraph => paragraph.AddText("AES default source"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf);
 
@@ -42,7 +42,7 @@ public class PdfEncryptedWriteTests {
         };
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("AES-128 interoperability source"))
+            .Paragraph(paragraph => paragraph.AddText("AES-128 interoperability source"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf);
 
@@ -63,7 +63,7 @@ public class PdfEncryptedWriteTests {
         };
 
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(encryption))
-            .Paragraph(paragraph => paragraph.Text("Legacy RC4 source"))
+            .Paragraph(paragraph => paragraph.AddText("Legacy RC4 source"))
             .ToBytes();
         string raw = PdfEncoding.Latin1GetString(pdf);
 
@@ -86,7 +86,7 @@ public class PdfEncryptedWriteTests {
                 IncludeXmpMetadata = true
             }.SetEncryption(encryption))
             .Meta(title: "Visible XMP policy")
-            .Paragraph(paragraph => paragraph.Text("Permission source"))
+            .Paragraph(paragraph => paragraph.AddText("Permission source"))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(pdf, new PdfLoadOptions { Password = "open" });
@@ -103,7 +103,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void GeneratedEncryptedPdfRequiresValidPassword() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Generated Secret PDF Text"))
+            .Paragraph(paragraph => paragraph.AddText("Generated Secret PDF Text"))
             .ToBytes();
 
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf);
@@ -118,7 +118,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void GeneratedEncryptedPdfReadsTextWithUserPassword() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Generated Secret PDF Text"))
+            .Paragraph(paragraph => paragraph.AddText("Generated Secret PDF Text"))
             .ToBytes();
 
         var readOptions = new PdfLoadOptions { Password = "open" };
@@ -167,7 +167,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void GeneratedEncryptedPdfReadsTextWithOwnerPasswordWhenUserPasswordUsesUtf8Fallback() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open \ud83d\udd12", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Generated UTF8 Password Secret"))
+            .Paragraph(paragraph => paragraph.AddText("Generated UTF8 Password Secret"))
             .ToBytes();
 
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "owner" });
@@ -180,7 +180,7 @@ public class PdfEncryptedWriteTests {
         const string composed = "café";
         const string decomposed = "cafe\u0301";
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(composed, "owner"))
-            .Paragraph(paragraph => paragraph.Text("Normalized Unicode password"))
+            .Paragraph(paragraph => paragraph.AddText("Normalized Unicode password"))
             .ToBytes();
 
         string text = PdfTextExtractor.ExtractAllText(
@@ -195,7 +195,7 @@ public class PdfEncryptedWriteTests {
     public void Aes256PasswordsApplyTheStandard127ByteLimit() {
         string sharedPrefix = new('a', 127);
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(sharedPrefix + "first", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Truncated Unicode password"))
+            .Paragraph(paragraph => paragraph.AddText("Truncated Unicode password"))
             .ToBytes();
 
         string text = PdfTextExtractor.ExtractAllText(
@@ -210,7 +210,7 @@ public class PdfEncryptedWriteTests {
     public void GeneratedEncryptedPdfCanBeConfiguredThroughDocumentFluentApi() {
         byte[] pdf = PdfDocument.Create()
             .Encryption("open", "owner")
-            .Paragraph(paragraph => paragraph.Text("Fluent Encryption Secret"))
+            .Paragraph(paragraph => paragraph.AddText("Fluent Encryption Secret"))
             .ToBytes();
 
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "open" });
@@ -221,7 +221,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void GeneratedEncryptedPdfReadsTextWithOwnerPasswordForWinAnsiUserPassword() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("€", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Owner Password Secret"))
+            .Paragraph(paragraph => paragraph.AddText("Owner Password Secret"))
             .ToBytes();
 
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, new PdfLoadOptions { Password = "owner" });
@@ -232,7 +232,7 @@ public class PdfEncryptedWriteTests {
     [Fact]
     public void GeneratedEncryptedPdfReadsWhenEncryptReferenceHasNonZeroGeneration() {
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Generation Encryption Secret"))
+            .Paragraph(paragraph => paragraph.AddText("Generation Encryption Secret"))
             .ToBytes();
         string text = PdfEncoding.Latin1GetString(pdf);
         Match match = Regex.Match(text, @"/Encrypt\s+(\d+)\s+0\s+R");

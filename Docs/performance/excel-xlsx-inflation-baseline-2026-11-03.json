@@ -1,0 +1,244 @@
+{
+  "measuredOn": "2026-11-03",
+  "sourceCommit": "28881d6e68b71374d5ae40a81e9f365b76cf2e5c",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.403",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "measurement": {
+    "tool": "BenchmarkDotNet 0.15.8",
+    "inProcess": true,
+    "warmupCount": 8,
+    "iterationCount": 12,
+    "invocationCount": 32,
+    "unrollFactor": 1,
+    "outliers": "DontRemove",
+    "lock": "shared heavy-run lock",
+    "buildWorkers": 2,
+    "affinity": "none; OS schedules across four performance and six efficiency cores",
+    "priority": "normal; elevated priority unavailable"
+  },
+  "inputs": {
+    "producer": "3cc5e134b9",
+    "rows": 50000,
+    "files": [
+      {
+        "file": "generated-four-columns-50000.xlsx",
+        "bytes": 926935,
+        "sha256": "8FFA84C5DDF6A282B861C5A2BDAAF13C0A0D411CAE5F3B178A6DCD2EAEE60B44"
+      },
+      {
+        "file": "generated-four-columns-50000.xlsb",
+        "bytes": 846930,
+        "sha256": "870DF6BA8ED20131D0811E5BBAF16A00967BD581DA7AD962CB75FE9CFC628E5A"
+      },
+      {
+        "file": "generated-four-columns-50000.xls",
+        "bytes": 5203456,
+        "sha256": "57A4D6F06964444B8E35AB1830BC3E0F1C3AC9A1FCDAD003E74AFE3D9A3BAAE2"
+      }
+    ]
+  },
+  "assemblySha256": {
+    "OfficeIMO.Excel.Benchmarks.dll": "b88b5cf7b5be063c5f26cb7f829e9228fa7f24b45a5a27a6e5eb30aa5547e00b",
+    "OfficeIMO.Data.Arrow.dll": "868620e8598639a2722854c7edb3c2aff865af58df24a8cb190a8c761185ce4c",
+    "OfficeIMO.Core.dll": "d926a22a6e283801de7bb8660490597f7f57742efed742ace966bd48b89d27ef",
+    "OfficeIMO.Excel.dll": "7442c4030a0722f68cb4411ae79dfa9fa45e8931562378e4aefe3ef068c9024f"
+  },
+  "lanes": [
+    {
+      "method": "OfficeIMO_Parse",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "medianMs": 10.514097,
+      "meanMs": 10.66432290625,
+      "allocatedBytes": 4784084,
+      "samplesNs": [
+        10481651.671875,
+        10585970.703125,
+        12406076.140625,
+        10541926.421875,
+        10547921.203125,
+        10477960.296875,
+        10517676.421875,
+        10520013.671875,
+        10510517.578125,
+        10472775.359375,
+        10447802.734375,
+        10461582.671875
+      ]
+    },
+    {
+      "method": "ExcelReaderNet_Parse",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "medianMs": 8.1046614375,
+      "meanMs": 8.090685744791667,
+      "allocatedBytes": 4724714,
+      "samplesNs": [
+        8168070.281250001,
+        8033122.375,
+        7962855.4375,
+        8042427.0625,
+        7952002.593750001,
+        7986858.0625,
+        8026075.500000001,
+        8169589.84375,
+        8186444,
+        8215545.562499999,
+        8178342.406249999,
+        8166895.8125
+      ]
+    },
+    {
+      "method": "OfficeIMO_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "medianMs": 9.9663476875,
+      "meanMs": 9.923412236979166,
+      "allocatedBytes": 2383949,
+      "samplesNs": [
+        9987437.5,
+        10054500.03125,
+        10041156.28125,
+        9960332.0625,
+        9972363.3125,
+        9994647.15625,
+        9807833.34375,
+        9840777.375,
+        9707319,
+        10027824.25,
+        9874272.15625,
+        9812484.375
+      ]
+    },
+    {
+      "method": "Sylvan_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "medianMs": 28.953783203125,
+      "meanMs": 29.1277534765625,
+      "allocatedBytes": 2669234,
+      "samplesNs": [
+        28967916.015625,
+        29179619.140625,
+        28939650.390625,
+        28991653.015625,
+        28877345.703125,
+        28849077.484375,
+        28895289.734375,
+        28978496.734375,
+        28977195.953125,
+        28879253.265625,
+        28921326.171875,
+        31076218.109375
+      ]
+    },
+    {
+      "method": "ExcelDataReader_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "medianMs": 62.88221353125,
+      "meanMs": 63.165720921875,
+      "allocatedBytes": 35526140,
+      "samplesNs": [
+        62597022.15625001,
+        62670813.81249999,
+        62809816.40625,
+        62547416.65625,
+        62795790.375,
+        63892669.28125,
+        63437902.34374999,
+        63355098.96875,
+        65095414.0625,
+        63165523.4375,
+        62666572.90625,
+        62954610.65625
+      ]
+    },
+    {
+      "method": "ExcelReaderNet_Read",
+      "parameters": "Format=Xlsx&RowCount=50000",
+      "medianMs": 6.78240821875,
+      "meanMs": 6.813336049479167,
+      "allocatedBytes": 2324170,
+      "samplesNs": [
+        6651635.40625,
+        6696126.3125,
+        6865863.28125,
+        6651384.125,
+        6795826.84375,
+        6901013.03125,
+        7255894.53125,
+        6757385.40625,
+        6768989.59375,
+        6903389.3125,
+        6715571.625,
+        6796953.125
+      ]
+    }
+  ],
+  "profile": {
+    "description": "dotnet-trace 10.0.750501 sampled-thread-time; two warmups, four measurements, 512 invocations per measurement. Native inflater stacks are inclusive samples, not isolated throughput measurements. Profiling timings are not comparison results.",
+    "lanes": {
+      "OfficeIMO_Parse()": {
+        "sampledTimeUnits": 53499.11670513651,
+        "selectedInclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.OpenXmlPackagePartBufferReader.ReadPartContents(class System.IO.Stream,unsigned int8[],int32,class System.String,value class System.Threading.CancellationToken,int32)": 24.483289127883324,
+          "System.IO.Compression!System.IO.Compression.Inflater.Inflate(value class FlushCode)": 22.80833341941364,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 16.817915840101474,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.IsCanonicalWorksheetXmlFullyValidated(value class System.Threading.CancellationToken)": 5.093463184561287,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 4.8465484024587795
+        }
+      },
+      "OfficeIMO_Read()": {
+        "sampledTimeUnits": 36846.923209812136,
+        "selectedInclusivePercent": {
+          "OfficeIMO.Excel!OfficeIMO.Excel.OpenXmlPackagePartBufferReader.ReadPartContents(class System.IO.Stream,unsigned int8[],int32,class System.String,value class System.Threading.CancellationToken,int32)": 27.532427554183336,
+          "System.IO.Compression!System.IO.Compression.Inflater.Inflate(value class FlushCode)": 26.305305467065633,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryIndexCanonicalImplicitDenseRow(int32&,int32,int32,value class System.Threading.CancellationToken)": 18.200940500502043,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.IsCanonicalWorksheetXmlFullyValidated(value class System.Threading.CancellationToken)": 5.682428735881021,
+          "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheetReader+ExcelUtf8RangeRowSource.TryInferUndeclaredRange(value class System.Threading.CancellationToken,int32&,int32&,int32&,int32&)": 5.177775856413885
+        }
+      }
+    }
+  },
+  "validation": "Every library validates every header and typed value in setup, then consumes complete row counts and checksums in timed operations. Six comparison lanes complete; no runtime changes are measured in this cohort.",
+  "xlBench": {
+    "repositoryCommit": "c9b94c5bf41fdb0013a66f4df32a84fd6eb79365",
+    "resultsUrl": "https://jafin.github.io/XLBench/results.html",
+    "publishedOfficeImoVersion": "3.5.3",
+    "publishedHost": "Windows 11, AMD Ryzen 9 5950X, .NET 10.0.14, SDK 10.0.403",
+    "earlierLocalEvidence": "excel-tabular-compatible-2026-11-03.json",
+    "limitations": [
+      "The current cohort measures XLSX tabular reading only.",
+      "The earlier local nine-scenario shape results compare OfficeIMO and Open XML SDK only, with deterministic stand-ins for stock data.",
+      "Earlier read-all and sheets-20 shapes check consumption/counts but lack full-value preflight qualification; they cannot establish a validated ranking against the complete upstream field.",
+      "Editable-model read/write and forward-only tabular APIs have different contracts.",
+      "Sylvan/MiniExcel upstream writers emit precomputed totals; formula-capable writers emit a SUM formula.",
+      "Upstream IronXL results are an older snapshot, not a current measured participant.",
+      "No CSV timing scenario is present in the inspected XLBench results.",
+      "No new local measurements of ClosedXML, XLibur, NPOI, EPPlus, MiniExcel, Telerik or IronXL are claimed here."
+    ]
+  },
+  "packages": {
+    "ExcelReader.NET": "7.3.4",
+    "Sylvan.Data.Excel": "0.5.8",
+    "ExcelDataReader": "3.9.0"
+  },
+  "harnessSourcesSha256": {
+    "OfficeIMO.Excel.Benchmarks/ExcelReaderGeneratedBenchmarks.Reader.cs": "d54e2a5963fc8d5af43ed02631bf40ad0b75e174ec28a2b849c21511cd5a9b75",
+    "OfficeIMO.Excel.Benchmarks/ExcelReaderGeneratedBenchmarks.Writer.cs": "d6572df2cd82b339ccd9afb0b64e349214909ff9456e13fb30265f5571a4d19a",
+    "OfficeIMO.Excel.Benchmarks/ExcelReaderGeneratedBenchmarks.cs": "1f4d7fdfa1575ab94e706e14685d5d2c18a1c1e1b87d3f5a0a81c683b9dd7d87"
+  }
+}

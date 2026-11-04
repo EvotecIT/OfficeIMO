@@ -27,7 +27,7 @@ public sealed class LatexRecoveryTests {
 
     [Fact]
     public void NestingLimit_IsEnforced() {
-        var options = new LatexParseOptions { MaximumNestingDepth = 3 };
+        var options = new LatexParseOptions { MaxNestingDepth = 3 };
 
         Assert.Throws<InvalidDataException>(() => LatexDocument.ParseResult("{{{{x}}}}", options));
     }

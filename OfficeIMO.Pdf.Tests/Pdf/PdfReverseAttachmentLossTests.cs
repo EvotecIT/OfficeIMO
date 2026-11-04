@@ -17,9 +17,9 @@ public sealed class PdfReverseAttachmentLossTests {
         byte[] source = PdfDocument.Create(new PdfCreateOptions {
                 TaggedStructureMode = PdfTaggedStructureMode.CatalogMarkers
             })
-            .Paragraph(paragraph => paragraph.Text("First invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("First invoice page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("Second invoice page"))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult selected = opened.Read(new PdfLoadOptions {
@@ -27,7 +27,7 @@ public sealed class PdfReverseAttachmentLossTests {
         });
         Assert.Null(selected.TaggedContent);
 
-        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new PdfWordExportOptions {
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
         });
         using (word.Value) {
@@ -37,14 +37,14 @@ public sealed class PdfReverseAttachmentLossTests {
                 int.Parse(warning.Details["StructureElementCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
         }
 
-        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PdfTaggedStructureOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
 
-        WordPdfImportOptions visualWordOptions = WordPdfImportOptions.CreateVisualPages();
+        PdfWordExportOptions visualWordOptions = PdfWordExportOptions.CreateVisualPages();
         visualWordOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfWordConversionResult visualWord = opened.ConvertToWordWithEvidence(visualWordOptions);
         using (visualWord.Value) {
@@ -54,7 +54,7 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
 
-        PowerPointPdfImportOptions visualPowerPointOptions = PowerPointPdfImportOptions.CreateVisualPages();
+        PdfPowerPointExportOptions visualPowerPointOptions = PdfPowerPointExportOptions.CreateVisualPages();
         visualPowerPointOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfPowerPointConversionResult visualPowerPoint = opened.ConvertToPowerPointWithEvidence(visualPowerPointOptions);
         using (visualPowerPoint.Value) {
@@ -80,22 +80,22 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.Code == "pdf-attachments-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["AttachmentCount"] == "1");
-            Assert.Throws<InvalidOperationException>(() => word.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => word.ThrowIfLoss());
         }
 
-        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfToHtmlOptions.CreateSemanticProfile());
+        PdfHtmlConversionResult html = logical.ToHtmlResult(PdfHtmlExportOptions.CreateSemanticProfile());
         Assert.True(html.HasLoss);
         Assert.Contains(html.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PdfAttachmentsOmitted &&
             warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => html.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => html.ThrowIfLoss());
 
         byte[] visualSource = PdfDocument.Create()
             .AttachFile("invoice.xml", Encoding.UTF8.GetBytes("<invoice />"), "application/xml")
-            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes();
         PdfWordConversionResult visualWord = PdfDocument.Load(new System.IO.MemoryStream(visualSource))
-            .ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+            .ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages());
         using (visualWord.Value) {
             Assert.Contains(visualWord.Report.Warnings, static warning =>
                 warning.Code == "pdf-attachments-not-reconstructed" &&
@@ -108,9 +108,9 @@ public sealed class PdfReverseAttachmentLossTests {
     public void SelectedPageConversionsStillReportDocumentWideAttachmentLoss() {
         byte[] source = PdfDocument.Create()
             .AttachFile("invoice.xml", Encoding.UTF8.GetBytes("<invoice />"), "application/xml")
-            .Paragraph(paragraph => paragraph.Text("First invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("First invoice page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second invoice page"))
+            .Paragraph(paragraph => paragraph.AddText("Second invoice page"))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult selected = opened.Read(new PdfLoadOptions {
@@ -120,7 +120,7 @@ public sealed class PdfReverseAttachmentLossTests {
         PdfTableExtractionScopeReport scope = PdfLogicalTableAnalysis.AnalyzeExtractionScope(selected);
         Assert.Equal(1, scope.AttachmentCount);
 
-        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new WordPdfImportOptions {
+        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(new PdfWordExportOptions {
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) }
         });
         using (word.Value) {
@@ -130,7 +130,7 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.Details["AttachmentCount"] == "1");
         }
 
-        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult html = opened.ToHtmlResult(new PdfHtmlExportOptions {
             PageRanges = new[] { PdfPageRange.From(1, 1) }
         });
         Assert.Contains(html.Report.Warnings, static warning =>
@@ -147,7 +147,7 @@ public sealed class PdfReverseAttachmentLossTests {
             Assert.True(powerPoint.HasLoss);
         }
 
-        PowerPointPdfImportOptions visualOptions = PowerPointPdfImportOptions.CreateVisualPages();
+        PdfPowerPointExportOptions visualOptions = PdfPowerPointExportOptions.CreateVisualPages();
         visualOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(1) };
         PdfPowerPointConversionResult visual = opened.ConvertToPowerPointWithEvidence(visualOptions);
         using (visual.Value) {
@@ -156,7 +156,7 @@ public sealed class PdfReverseAttachmentLossTests {
                 warning.Code == "pdf-attachments-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission &&
                 warning.Details["Count"] == "1");
-            Assert.Throws<InvalidOperationException>(() => visual.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => visual.ThrowIfLoss());
         }
     }
 
@@ -169,7 +169,7 @@ public sealed class PdfReverseAttachmentLossTests {
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
 
-        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages());
         using (word.Value) {
             Assert.Contains(word.Report.Warnings, static warning =>
                 warning.Code == "pdf-catalog-actions-not-reconstructed" &&
@@ -180,7 +180,7 @@ public sealed class PdfReverseAttachmentLossTests {
         }
 
         PdfPowerPointConversionResult powerPoint = opened.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateVisualPages());
+            PdfPowerPointExportOptions.CreateVisualPages());
         using (powerPoint.Value) {
             Assert.True(powerPoint.Report.HasOmittedPageContent);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
@@ -195,10 +195,10 @@ public sealed class PdfReverseAttachmentLossTests {
     [Fact]
     public void VisualPageReportsOnlySelectedPageInteractionsAsOmitted() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Link("First", "https://example.com/first"))
+            .Paragraph(paragraph => paragraph.AddLink("First", "https://example.com/first"))
             .TextAnnotation("First note")
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Link("Second", "https://example.com/second"))
+            .Paragraph(paragraph => paragraph.AddLink("Second", "https://example.com/second"))
             .TextAnnotation("Second note")
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(new System.IO.MemoryStream(source));
@@ -207,7 +207,7 @@ public sealed class PdfReverseAttachmentLossTests {
             Assert.NotEmpty(page.Annotations);
         });
 
-        WordPdfImportOptions wordOptions = WordPdfImportOptions.CreateVisualPages();
+        PdfWordExportOptions wordOptions = PdfWordExportOptions.CreateVisualPages();
         wordOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) };
         PdfWordConversionResult word = opened.ConvertToWordWithEvidence(wordOptions);
         using (word.Value) {
@@ -220,7 +220,7 @@ public sealed class PdfReverseAttachmentLossTests {
             Assert.DoesNotContain(word.Report.Warnings, static warning => warning.Source.StartsWith("Page 1/", StringComparison.Ordinal));
         }
 
-        PowerPointPdfImportOptions powerPointOptions = PowerPointPdfImportOptions.CreateVisualPages();
+        PdfPowerPointExportOptions powerPointOptions = PdfPowerPointExportOptions.CreateVisualPages();
         powerPointOptions.ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2) };
         PdfPowerPointConversionResult powerPoint = opened.ConvertToPowerPointWithEvidence(powerPointOptions);
         using (powerPoint.Value) {
@@ -238,7 +238,7 @@ public sealed class PdfReverseAttachmentLossTests {
     [Fact]
     public void VisualPageReportsUnsupportedLinkActionThatTypedLinkReaderSkips() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Link("Invoice link", "https://example.com/invoice"))
+            .Paragraph(paragraph => paragraph.AddLink("Invoice link", "https://example.com/invoice"))
             .ToBytes();
         byte[] marker = Encoding.ASCII.GetBytes("/S /URI");
         int actionOffset = -1;
@@ -256,14 +256,14 @@ public sealed class PdfReverseAttachmentLossTests {
         Assert.Empty(page.LinkAnnotations);
         Assert.Contains(page.Annotations, static annotation => annotation.Subtype == "Link");
 
-        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages());
+        PdfWordConversionResult word = opened.ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages());
         using (word.Value) {
             Assert.Contains(word.Report.Warnings, static warning =>
                 warning.Code == "pdf-links-not-reconstructed" &&
                 warning.LossKind == OfficeConversionLossKind.Omission);
         }
         PdfPowerPointConversionResult powerPoint = opened.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateVisualPages());
+            PdfPowerPointExportOptions.CreateVisualPages());
         using (powerPoint.Value) {
             Assert.True(powerPoint.Report.HasOmittedPageContent);
             Assert.Contains(powerPoint.Report.Warnings, static warning =>
@@ -287,11 +287,11 @@ public sealed class PdfReverseAttachmentLossTests {
         bool emitDocumentShell,
         int omittedFieldCount) {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Invoice"))
+            .Paragraph(paragraph => paragraph.AddText("Invoice"))
             .ToBytes();
-        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateMetadata(
+        PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source)).UpdateProperties(
             title: "Invoice title", author: "Invoice author", subject: "Invoice subject", keywords: "invoice");
-        var options = new PdfToHtmlOptions {
+        var options = new PdfHtmlExportOptions {
             Profile = profile,
             IncludeMetadata = includeMetadata,
             EmitDocumentShell = emitDocumentShell
@@ -315,22 +315,22 @@ public sealed class PdfReverseAttachmentLossTests {
     [InlineData(PdfHtmlProfile.PositionedReview)]
     public void HtmlRequireNoLossRejectsDisabledMetadata(PdfHtmlProfile profile) {
         PdfDocument source = PdfDocument.Load(new System.IO.MemoryStream(PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("Invoice"))
+                .Paragraph(paragraph => paragraph.AddText("Invoice"))
                 .ToBytes()))
-            .UpdateMetadata(author: "Invoice author");
-        PdfHtmlConversionResult retained = source.ToHtmlResult(new PdfToHtmlOptions {
+            .UpdateProperties(author: "Invoice author");
+        PdfHtmlConversionResult retained = source.ToHtmlResult(new PdfHtmlExportOptions {
             Profile = profile,
             IncludeMetadata = true
         });
         Assert.DoesNotContain(retained.Report.Warnings, static warning => warning.Code == OfficeDiagnosticCodes.PdfMetadataOmitted);
 
-        PdfHtmlConversionResult omitted = source.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult omitted = source.ToHtmlResult(new PdfHtmlExportOptions {
             Profile = profile,
             IncludeMetadata = false
         });
         Assert.True(omitted.HasLoss);
         Assert.Contains(omitted.Report.Warnings, static warning =>
             warning.Code == OfficeDiagnosticCodes.PdfMetadataOmitted && warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => omitted.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => omitted.ThrowIfLoss());
     }
 }

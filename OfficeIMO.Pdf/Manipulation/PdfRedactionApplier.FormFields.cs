@@ -32,11 +32,10 @@ internal static partial class PdfRedactionApplier {
     /// field, so a field reaching a page in scope is affected as a whole. Signature fields are not values.
     /// </summary>
     internal static PdfRedactionFormAnalysis AnalyzeFormFields(Dictionary<int, PdfIndirectObject> objects, PdfDictionary? catalog,
-        IReadOnlyList<int> pageObjectNumbers, PdfRedactionSearchCriteria[] criteria, ISet<int> scope, bool includeFieldsWithoutWidgets) {
+        IReadOnlyList<int> pageObjectNumbers, PdfRedactionSearchCriteria[] criteria, ISet<int> scope, bool includeFieldsWithoutWidgets, PdfReadLimits limits) {
         var analysis = new PdfRedactionFormAnalysis();
         if (criteria.Length == 0 || catalog is null) return analysis;
         PdfDictionary? acroForm = PdfObjectLookup.Resolve(objects, catalog.Items.TryGetValue("AcroForm", out PdfObject? formValue) ? formValue : null) as PdfDictionary;
-        var limits = new PdfReadLimits();
         var pageOfWidget = new Dictionary<PdfDictionary, int>();
         for (int index = 0; index < pageObjectNumbers.Count; index++) {
             if (!objects.TryGetValue(pageObjectNumbers[index], out PdfIndirectObject? pageObject) || pageObject.Value is not PdfDictionary page ||
@@ -172,7 +171,7 @@ internal static partial class PdfRedactionApplier {
         if (criteria.Length == 0) return false;
         PdfRedactionFormAnalysis analysis = AnalyzeFormFields(objects, catalog, document.Pages.Select(static page => page.ObjectNumber).ToArray(), criteria,
             new HashSet<int>(areas.Where(static area => area.SearchCriteria is not null).Select(static area => area.PageNumber)),
-            criteria.Any(static criterion => criterion.CoversAllPages));
+            criteria.Any(static criterion => criterion.CoversAllPages), limits);
         bool changed = false;
         bool needsAppearances = false;
         if (analysis.Fields.Any(static field => field.NameHoldsSearch)) throw new InvalidOperationException("A form field name holds searched text and cannot be changed safely.");
@@ -298,9 +297,9 @@ internal static partial class PdfRedactionApplier {
         return string.Join(".", parts);
     }
 
-    internal static PdfRedactionFormAnalysis AnalyzeFormFields(PdfReadDocument document, IEnumerable<PdfRedactionArea> areas) {
+    internal static PdfRedactionFormAnalysis AnalyzeFormFields(PdfReadDocument document, IEnumerable<PdfRedactionArea> areas, PdfReadLimits limits) {
         PdfRedactionArea[] searched = areas.Where(static area => area.SearchCriteria is not null).ToArray();
         return AnalyzeFormFields(document.Objects, document.CatalogDictionary, document.Pages.Select(static page => page.ObjectNumber).ToArray(), GetSearchCriteria(searched),
-            new HashSet<int>(searched.Select(static area => area.PageNumber)), searched.Any(static area => area.SearchCriteria!.CoversAllPages));
+            new HashSet<int>(searched.Select(static area => area.PageNumber)), searched.Any(static area => area.SearchCriteria!.CoversAllPages), limits);
     }
 }

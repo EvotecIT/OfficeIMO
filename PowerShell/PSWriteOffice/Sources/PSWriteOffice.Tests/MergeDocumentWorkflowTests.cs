@@ -138,7 +138,7 @@ public sealed partial class MergeDocumentWorkflowTests {
         string second = files.Excel("second.xlsx", "Second", "SECOND");
         string output = files.PathFor("merged.xlsx");
         using var live = ExcelDocument.Create();
-        live.AddSheet("Cover").CellValue(1, 1, "COVER");
+        live.AddSheet("Cover").Cell(1, 1).SetValue("COVER");
         var sources = files.Snapshot();
         var settings = new ExcelWorkbookMergeOptions { CopyMode = ExcelWorksheetCopyMode.Package };
         using var runspace = OpenRunspace();
@@ -155,7 +155,7 @@ public sealed partial class MergeDocumentWorkflowTests {
         for (int index = 0; index < saved.Sheets.Count; index++) {
             Assert.True(saved.Sheets[index].TryGetCellText(1, 1, out string text));
             Assert.Equal(markers[index], text);
-            if (!liveInput || index > 0) Assert.Equal("0.0000", saved.Sheets[index].CellAt(2, 1).GetStyle().NumberFormatCode);
+            if (!liveInput || index > 0) Assert.Equal("0.0000", saved.Sheets[index].Cell(2, 1).GetStyle().NumberFormatCode);
         }
         Assert.Null(settings.SheetNamePrefix);
         live.AddSheet("Still open");
@@ -347,7 +347,7 @@ public sealed partial class MergeDocumentWorkflowTests {
             string marker = index == 0 ? "FIRST" : "SECOND";
             if (excel) {
                 using var workbook = ExcelDocument.Create();
-                workbook.AddSheet(marker).CellValue(1, 1, marker);
+                workbook.AddSheet(marker).Cell(1, 1).SetValue(marker);
                 workbook.Save(path, new ExcelSaveOptions { Password = password });
             } else {
                 using var document = WordDocument.Create();
@@ -374,6 +374,28 @@ public sealed partial class MergeDocumentWorkflowTests {
             InOrder(string.Join("\n", saved.Paragraphs.Select(p => p.Text)), "FIRST", "SECOND");
         }
         files.AssertSourcesUnchanged(before);
+    }
+
+    [Fact]
+    public void PlainTextPerSourcePasswordsBindWithNullForAnUnencryptedInput() {
+        using var files = new MergeFiles();
+        string encrypted = files.PathFor("encrypted.docx");
+        using (var document = WordDocument.Create()) {
+            document.AddParagraph("FIRST");
+            document.Save(encrypted, new WordSaveOptions { Password = "one" });
+        }
+        string plain = files.Word("plain.docx", "SECOND");
+        string output = files.PathFor("merged.docx");
+        using var runspace = OpenRunspace();
+        Set(runspace, ("inputs", new[] { encrypted, plain }), ("output", output));
+        using var shell = PowerShell.Create();
+        shell.Runspace = runspace;
+        shell.AddScript("Merge-OfficeDocument -LiteralPath $inputs -OutputPath $output -Password 'one', $null -ErrorAction Stop");
+        shell.Invoke();
+        Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
+        Assert.Contains("plain-text password", Assert.Single(shell.Streams.Warning).Message);
+        using var saved = WordDocument.Load(output, new WordLoadOptions { Password = "one" });
+        InOrder(string.Join("\n", saved.Paragraphs.Select(p => p.Text)), "FIRST", "SECOND");
     }
 
     private static Runspace OpenRunspace() {
@@ -439,9 +461,9 @@ public sealed partial class MergeDocumentWorkflowTests {
             string path = PathFor(name);
             using var document = ExcelDocument.Create();
             var worksheet = document.AddSheet(sheet);
-            worksheet.CellValue(1, 1, text);
-            worksheet.CellValue(2, 1, 0.25);
-            worksheet.FormatCell(2, 1, "0.0000");
+            worksheet.Cell(1, 1).SetValue(text);
+            worksheet.Cell(2, 1).SetValue(0.25);
+            worksheet.Cell(2, 1).SetNumberFormat("0.0000");
             document.Save(path);
             return path;
         }
@@ -453,7 +475,7 @@ public sealed partial class MergeDocumentWorkflowTests {
                 OwnerPassword = "owner", AllowedPermissions = permissions
             });
             using var document = PdfDocument.Create(options);
-            document.Content.Paragraph(p => p.Text(text));
+            document.Content.AddParagraph(p => p.AddText(text));
             document.Save(path);
             return path;
         }

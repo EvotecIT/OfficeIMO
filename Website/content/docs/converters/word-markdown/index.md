@@ -64,7 +64,7 @@ using OfficeIMO.Markdown;
 using OfficeIMO.Word.Markdown;
 
 const string source = "# Summary\n\nThis report covers **Q4 performance**.\n\n| Metric | Value |\n| --- | --- |\n| Revenue | $1.2M |\n| Users | 5,000 |";
-var options = new WordMarkdownImportOptions();
+var options = new MarkdownWordExportOptions();
 using var markdown = MarkdownDocument.Parse(source, options.CreateReaderOptions());
 using var document = markdown.ToWord(options);
 document.Save("from-markdown.docx");

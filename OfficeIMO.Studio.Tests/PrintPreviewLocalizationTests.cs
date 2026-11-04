@@ -41,7 +41,7 @@ public sealed class PrintPreviewLocalizationTests {
                 string source = Path.Combine(paths.Root, "localized-print.pdf");
                 PdfDocument.Create(document => document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Margin(global::OfficeIMO.OfficeLength.Points(12))
                     .Background(global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.9D, 0.9D, 0.9D)).Content(content => content.Item(item =>
-                        item.Paragraph(text => text.Text("Print pixel review"))))),
+                        item.AddParagraph(text => text.AddText("Print pixel review"))))),
                     new PdfCreateOptions { EmbedDefaultFonts = false }).Save(source);
                 byte[] original = File.ReadAllBytes(source);
                 window.Show();

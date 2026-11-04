@@ -15,7 +15,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [InlineData(@"{\rtf1 text{\pict\pngblip 41\bin 42}}", null)]
     public void InvalidOriginalBinaryDeclarationsCannotPublishACompletePayloadOrHash(string source, string? diagnostic) {
         foreach (bool deferred in new[] { false, true }) {
-            RtfReadResult result = RtfDocument.ParseResult(source, new RtfReadOptions { DeferBinaryPayloads = deferred, ReadEmbeddedObjects = true });
+            RtfReadResult result = RtfDocument.ParseResult(source, new RtfLoadOptions { DeferBinaryPayloads = deferred, ReadEmbeddedObjects = true });
             if (diagnostic != null) Assert.Contains(result.Diagnostics, item => item.Code == diagnostic);
             byte[] semantic = result.Document.Paragraphs[0].Inlines.OfType<RtfImage>().FirstOrDefault()?.Data
                 ?? result.Document.Paragraphs[0].Inlines.OfType<RtfObject>().Single().Data;
@@ -29,7 +29,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [Fact]
     public void InvalidDeclarationRefusesItsWholeMemberAndDoesNotReplaceValidSiblingSourceBytes() {
         RtfReadResult result = RtfDocument.ParseResult(@"{\rtf1 text{\pict\pngblip 414243}{\object\objemb{\*\objdata 41\bin-1 42}}}",
-            new RtfReadOptions { DeferBinaryPayloads = true });
+            new RtfLoadOptions { DeferBinaryPayloads = true });
         using OfficeEmbeddedPayloadInspection inspection = result.InspectEmbeddedPayloads(new OfficeEmbeddedPayloadInspectionOptions {
             MaxPayloads = 2, MaxPayloadBytes = 3, MaxTotalPayloadBytes = 6, MaxReadBytes = 7
         });
@@ -43,7 +43,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [InlineData(true)]
     public void NativePicturesAndExplicitObjectsRetainNormalGetterAndSaveBytes(bool deferred) {
         const string source = @"{\rtf1 text{\pict\pngblip 414243}{\object\objemb{\*\objdata 444546}{\result fallback}}}";
-        RtfReadResult result = RtfDocument.ParseResult(source, new RtfReadOptions { DeferBinaryPayloads = deferred, ReadEmbeddedObjects = true });
+        RtfReadResult result = RtfDocument.ParseResult(source, new RtfLoadOptions { DeferBinaryPayloads = deferred, ReadEmbeddedObjects = true });
         RtfParagraph paragraph = result.Document.Paragraphs[0];
         RtfImage picture = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
         RtfObject embedded = Assert.Single(paragraph.Inlines.OfType<RtfObject>());
@@ -52,7 +52,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
         Assert.Equal(new byte[] { 68, 69, 70 }, embedded.Data);
         Assert.Equal(source, result.ToRtfLossless());
         picture.Data = new byte[] { 71, 72 };
-        RtfDocument reopened = RtfDocument.Parse(result.Document.ToRtf(), new RtfReadOptions { ReadEmbeddedObjects = true });
+        RtfDocument reopened = RtfDocument.Parse(result.Document.ToRtf(), new RtfLoadOptions { ReadEmbeddedObjects = true });
         Assert.Equal(new byte[] { 71, 72 }, reopened.Paragraphs[0].Inlines.OfType<RtfImage>().Single().Data);
         Assert.Equal(new byte[] { 68, 69, 70 }, reopened.Paragraphs[0].Inlines.OfType<RtfObject>().Single().Data);
     }
@@ -60,7 +60,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [Fact]
     public void OriginalSourceInventoryIncludesBlockedObjectsWithoutUnrequestedHexScansOrHashes() {
         RtfReadResult result = RtfDocument.ParseResult(@"{\rtf1 text{\pict\pngblip 414243}{\object\objemb{\*\objdata 444546}}}",
-            new RtfReadOptions { DeferBinaryPayloads = true });
+            new RtfLoadOptions { DeferBinaryPayloads = true });
         Assert.Empty(result.Document.Paragraphs[0].Inlines.OfType<RtfObject>());
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF105");
         using OfficeEmbeddedPayloadInspection inspection = result.InspectEmbeddedPayloads(new OfficeEmbeddedPayloadInspectionOptions {
@@ -81,7 +81,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     public void OriginalBinarySlicesAndLosslessBytesSurviveCallerMutationAndIndependentCancellation() {
         byte[] bytes = Encoding.ASCII.GetBytes(@"{\rtf1 text{\pict\pngblip\bin3 ABC}}");
         using var opening = new CancellationTokenSource();
-        RtfReadResult result = RtfDocument.LoadResult(bytes, new RtfReadOptions { DeferBinaryPayloads = true }, opening.Token);
+        RtfReadResult result = RtfDocument.LoadResult(bytes, new RtfLoadOptions { DeferBinaryPayloads = true }, opening.Token);
         Array.Clear(bytes, 0, bytes.Length); opening.Cancel();
         using OfficeEmbeddedPayloadInspection inspection = result.InspectEmbeddedPayloads();
         Assert.Equal(3, Assert.Single(inspection.Payloads).Length);
@@ -98,8 +98,8 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [InlineData("object")]
     [InlineData("bin")]
     public void DeferredParsingStillRefusesNativeDeclaredAndDecodedPayloadBounds(string kind) {
-        var options = new RtfReadOptions { DeferBinaryPayloads = true, ReadEmbeddedObjects = true,
-            MaxImageBytesPerImage = 2, MaxObjectBytesPerObject = 2, MaxBinaryBytesPerPayload = 2 };
+        var options = new RtfLoadOptions { Limits = {
+            MaxImageBytes = 2, MaxObjectBytes = 2, MaxBinaryPayloadBytes = 2 }, DeferBinaryPayloads = true, ReadEmbeddedObjects = true};
         string source = kind == "image" ? @"{\rtf1{\pict\pngblip 414243}}"
             : kind == "object" ? @"{\rtf1{\object\objemb{\*\objdata 414243}}}" : @"{\rtf1{\pict\pngblip\bin3 ABC}}";
         Assert.Throws<RtfReadLimitException>(() => RtfDocument.ParseResult(source, options));
@@ -107,7 +107,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
 
     [Fact]
     public void RequestedCompleteHashesAndCumulativeReadsObserveSelectedLimits() {
-        RtfReadResult result = RtfDocument.ParseResult(@"{\rtf1{\pict\pngblip 414243}}", new RtfReadOptions { DeferBinaryPayloads = true });
+        RtfReadResult result = RtfDocument.ParseResult(@"{\rtf1{\pict\pngblip 414243}}", new RtfLoadOptions { DeferBinaryPayloads = true });
         using OfficeEmbeddedPayloadInspection hashes = result.InspectEmbeddedPayloads(new OfficeEmbeddedPayloadInspectionOptions {
             IncludeSha256 = true, MaxPayloadBytes = 3, MaxTotalPayloadBytes = 3, MaxReadBytes = 3
         });
@@ -124,7 +124,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [InlineData(@"{\rtf1{\pict\pngblip\bin6 AB", 6L, 2L)]
     [InlineData(@"{\rtf1{\pict\pngblip 41\bin6 AB", -1L, 3L)]
     public void TruncatedDeclaredBinaryCannotPublishACompletePayloadOrHash(string source, long declaredLength, long readBytes) {
-        RtfReadResult result = RtfDocument.ParseResult(source, new RtfReadOptions { DeferBinaryPayloads = true });
+        RtfReadResult result = RtfDocument.ParseResult(source, new RtfLoadOptions { DeferBinaryPayloads = true });
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "RTF004");
         using OfficeEmbeddedPayloadInspection inspection = result.InspectEmbeddedPayloads();
         Assert.Equal(declaredLength, Assert.Single(inspection.Payloads).Length);
@@ -136,7 +136,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [InlineData("41F")]
     [InlineData("41GG")]
     public void OriginalMalformedHexCannotPublishAPartialHashWhileSemanticGetterCompatibilityRemains(string hex) {
-        RtfReadResult result = RtfDocument.ParseResult(@"{\rtf1 text{\pict\pngblip " + hex + "}}", new RtfReadOptions { DeferBinaryPayloads = true });
+        RtfReadResult result = RtfDocument.ParseResult(@"{\rtf1 text{\pict\pngblip " + hex + "}}", new RtfLoadOptions { DeferBinaryPayloads = true });
         Assert.Equal(new byte[] { 65 }, result.Document.Paragraphs[0].Inlines.OfType<RtfImage>().Single().Data);
         using OfficeEmbeddedPayloadInspection inspection = result.InspectEmbeddedPayloads();
         Assert.Throws<InvalidDataException>(() => inspection.OpenRead(0)); Assert.Equal(1, inspection.ReadBytes);
@@ -146,7 +146,7 @@ public sealed class RtfDeferredPayloadPrerequisiteTests {
     [Fact]
     public void FromHtmlBinarySourceIsRefusedByDeferredProfileAndFullKeepsItsBaseline() {
         const string source = @"{\rtf1\fromhtml1 text{\pict\pngblip 414243}}";
-        Assert.Throws<NotSupportedException>(() => RtfDocument.ParseResult(source, new RtfReadOptions { DeferBinaryPayloads = true }));
+        Assert.Throws<NotSupportedException>(() => RtfDocument.ParseResult(source, new RtfLoadOptions { DeferBinaryPayloads = true }));
         RtfReadResult full = RtfDocument.ParseResult(source);
         Assert.NotNull(full.Document.HtmlEncapsulation); Assert.True(full.Document.IsHtmlEncapsulationCurrent);
         Assert.Equal(new byte[] { 65, 66, 67 }, full.Document.Paragraphs[0].Inlines.OfType<RtfImage>().Single().Data);

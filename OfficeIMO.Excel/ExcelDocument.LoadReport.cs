@@ -27,13 +27,13 @@ public partial class ExcelDocument {
         new OfficeConversionReport(source, "Excel", itemsWritten: Sheets.Count, elapsed: elapsed, diagnostics: _sourceLoadDiagnostics);
 
     private void CaptureLegacyLoadDiagnostics(LegacyXls.Model.LegacyXlsWorkbook workbook) {
-        var findings = new LegacyXlsLoadResult(this, workbook).FidelityDiagnostics;
+        var findings = new LegacyXlsLoadResult(this, workbook).Diagnostics;
         _sourceLoadDiagnostics = findings.Select(d => new OfficeDiagnostic(d.Code,
             workbook.Diagnostics.FirstOrDefault(item => item.Code == d.Code)?.Severity switch {
                 LegacyXlsDiagnosticSeverity.Info => OfficeDiagnosticSeverity.Information,
                 LegacyXlsDiagnosticSeverity.Error => OfficeDiagnosticSeverity.Error,
                 _ => OfficeDiagnosticSeverity.Warning
-            }, d.Message, d.Location, d.Source, d.LossKind)).ToArray();
+            }, d.Message, d.Location, d.Format, d.LossKind)).ToArray();
     }
     private void CaptureBinaryLoadDiagnostics(XlsbWorkbook workbook) {
         var findings = workbook.Diagnostics.Select(d => new OfficeDiagnostic(d.Code,

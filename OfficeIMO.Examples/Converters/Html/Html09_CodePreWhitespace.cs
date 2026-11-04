@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Html {
                 throw new FileNotFoundException($"Missing test input: {htmlPath}");
             string html = File.ReadAllText(htmlPath);
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             string docxPath = Path.Combine(folderPath, "Html09_CodePreWhitespace.docx");
             doc.Save(docxPath);
 

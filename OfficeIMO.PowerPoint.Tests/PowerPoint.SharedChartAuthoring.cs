@@ -567,7 +567,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(comboSvg.Diagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
 
-            string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
             byte[] pdf = presentation.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

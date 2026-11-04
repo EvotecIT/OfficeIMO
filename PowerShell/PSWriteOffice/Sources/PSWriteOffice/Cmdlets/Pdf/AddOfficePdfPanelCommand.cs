@@ -32,7 +32,7 @@ public sealed class AddOfficePdfPanelCommand : PSCmdlet
 
     /// <summary>Panel alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Emit the updated document.</summary>
     [Parameter]
@@ -42,7 +42,7 @@ public sealed class AddOfficePdfPanelCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument,
-            content => content.PanelParagraph(p => p.Text(Text), align: Align));
+            content => content.AddPanelParagraph(p => p.AddText(Text), align: Align));
         if (PassThru.IsPresent && document != null)
         {
             WriteObject(document);

@@ -20,8 +20,7 @@ namespace OfficeIMO.IWork.Tests {
                 : CreatePackage(("Index/Document.iwa", FrameIwa(Message(
                     ArchiveRecord(1, 10000, ReferenceField(4, 2), new ulong[] { 2 }),
                     ArchiveRecord(2, 2001, Message(StringField(3, "Body"), attributes)), style))));
-            using var converted = WordIWorkConverter.ConvertPagesToWordResult(package,
-                conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
+            using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                     AllowPartialEditableReconstruction = tableCell });
             if (!tableCell) converted.Report.RequireCompleteEditableReconstruction();
             using var bytes = new MemoryStream();

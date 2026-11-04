@@ -21,7 +21,7 @@ public sealed partial class LatexDocument {
         options = (options ?? new LatexParseOptions()).Clone();
         cancellationToken.ThrowIfCancellationRequested();
         LatexTokenizer.Validate(string.Empty, options);
-        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaximumInputBytes);
+        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes);
         cancellationToken.ThrowIfCancellationRequested();
         return ParseResult(Decode(bytes, encoding, options), options, cancellationToken);
     }
@@ -65,7 +65,7 @@ public sealed partial class LatexDocument {
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(
             stream,
             cancellationToken,
-            options.MaximumInputBytes).ConfigureAwait(false);
+            options.MaxInputBytes).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         string source = Decode(bytes, encoding, options);
         return ParseResult(source, options, cancellationToken);
@@ -87,9 +87,9 @@ public sealed partial class LatexDocument {
         }
         int count = bytes.Length - offset;
         int characterCount = encoding.GetCharCount(bytes, offset, count);
-        if (options.MaximumInputLength.HasValue && characterCount > options.MaximumInputLength.Value) {
+        if (options.MaxInputLength.HasValue && characterCount > options.MaxInputLength.Value) {
             throw new InvalidDataException(
-                $"Decoded LaTeX source exceeds MaximumInputLength ({options.MaximumInputLength.Value} characters).");
+                $"Decoded LaTeX source exceeds MaxInputLength ({options.MaxInputLength.Value} characters).");
         }
         return encoding.GetString(bytes, offset, count);
     }

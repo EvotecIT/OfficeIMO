@@ -11,14 +11,14 @@ namespace OfficeIMO.Excel {
             Worksheet? worksheet,
             Func<ExcelReference, ExcelReference?> transform) {
             if (worksheet == null) return;
-            foreach (OpenXmlElement view in worksheet.Descendants().Where(element =>
+            foreach (OpenXmlElement view in worksheet.MetadataDescendants<OpenXmlElement>().Where(element =>
                 element is SheetView || element is CustomSheetView)) {
                 RewriteMutationSingleReferenceAttribute(view, "topLeftCell", transform, removeOnDeleted: true);
             }
-            foreach (Pane pane in worksheet.Descendants<Pane>()) {
+            foreach (Pane pane in worksheet.MetadataDescendants<Pane>()) {
                 RewriteMutationSingleReferenceAttribute(pane, "topLeftCell", transform, removeOnDeleted: true);
             }
-            foreach (Selection selection in worksheet.Descendants<Selection>()) {
+            foreach (Selection selection in worksheet.MetadataDescendants<Selection>()) {
                 string originalReferences = selection.SequenceOfReferences?.InnerText ?? string.Empty;
                 string rewrittenReferences = string.IsNullOrWhiteSpace(originalReferences)
                     ? string.Empty
@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel {
             Func<ExcelReference, ExcelReference?> transform) {
             if (worksheet == null) return;
             bool changed = false;
-            foreach (DataReference source in worksheet.Descendants<DataReference>().ToList()) {
+            foreach (DataReference source in worksheet.MetadataDescendants<DataReference>().ToList()) {
                 if (!string.IsNullOrWhiteSpace(source.Id?.Value)
                     || !string.Equals(source.Sheet?.Value, editedSheetName, StringComparison.OrdinalIgnoreCase)
                     || source.Reference?.Value is not string referenceText
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel {
                 }
             }
             if (!changed) return;
-            foreach (DataReferences references in worksheet.Descendants<DataReferences>().ToList()) {
+            foreach (DataReferences references in worksheet.MetadataDescendants<DataReferences>().ToList()) {
                 uint count = (uint)references.Elements<DataReference>().Count();
                 if (count == 0U) references.Remove();
                 else references.Count = count;
@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
             Worksheet? worksheet,
             Func<ExcelReference, ExcelReference?> transform) {
             if (worksheet == null) return;
-            foreach (Scenarios scenarios in worksheet.Descendants<Scenarios>().ToList()) {
+            foreach (Scenarios scenarios in worksheet.MetadataDescendants<Scenarios>().ToList()) {
                 List<Scenario> originalScenarios = scenarios.Elements<Scenario>().ToList();
                 var removedIndices = new HashSet<int>();
                 for (int index = 0; index < originalScenarios.Count; index++) {
@@ -163,7 +163,7 @@ namespace OfficeIMO.Excel {
             }
 
             var affectedContainers = new HashSet<OpenXmlElement>();
-            foreach (OpenXmlElement tag in worksheet.Descendants()
+            foreach (OpenXmlElement tag in worksheet.MetadataDescendants<OpenXmlElement>()
                 .Where(element => string.Equals(element.LocalName, "cellSmartTag", StringComparison.OrdinalIgnoreCase)
                     && string.Equals(element.NamespaceUri, SpreadsheetNamespace, StringComparison.Ordinal))
                 .ToList()) {

@@ -17,7 +17,7 @@ public partial class PdfPageFootnoteTests {
     [InlineData("  ", true, false, 24D)]
     public void InvisibleReferenceLabelsRetainOneNoteWithoutChangingAuthoredWhitespace(string label, bool preserve, bool terminal, double width) {
         PdfCreateOptions options = Options();
-        options.PageWidth = global::OfficeIMO.OfficeLength.Points(width + options.MarginLeft.ToPoints() + options.MarginRight.ToPoints());
+        options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(width + options.PageSetup.Margins.Left.ToPoints() + options.PageSetup.Margins.Right.ToPoints()), options.PageSetup.Size.Height);
         options.DefaultFont = PdfStandardFont.Courier;
         options.TextWhitespaceMode = preserve ? PdfTextWhitespaceMode.Preserve : PdfTextWhitespaceMode.Collapse;
         var control = PdfDocument.Create(options);
@@ -26,7 +26,7 @@ public partial class PdfPageFootnoteTests {
         var expected = controlPdf.GetPage(1).Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)).ToArray();
 
         var document = PdfDocument.Create(options);
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Text("AssociatedNote", style: Style()));
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddParagraph("AssociatedNote", style: Style()));
         AddWhitespaceReferenceBody(document.Content, PdfTextRun.Normal(label).WithFootnoteReference(note), terminal);
         foreach (byte[] bytes in new[] { document.ToBytes(), document.ToBytes() }) {
             using var pdf = PdfPigDocument.Open(bytes);
@@ -45,17 +45,17 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void LaterReferenceToSameDefinitionCannotPostponeWrappedWhitespaceReference() {
         PdfCreateOptions options = Options();
-        options.PageWidth = global::OfficeIMO.OfficeLength.Points(options.MarginLeft.ToPoints() + 24D + options.MarginRight.ToPoints());
+        options.PageSetup.Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(options.PageSetup.Margins.Left.ToPoints() + 24D + options.PageSetup.Margins.Right.ToPoints()), options.PageSetup.Size.Height);
         options.DefaultFont = PdfStandardFont.Courier;
         options.TextWhitespaceMode = PdfTextWhitespaceMode.Preserve;
         var document = PdfDocument.Create(options);
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Text("NOTE", style: Style()));
-        document.Content.Paragraph(paragraph => {
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddParagraph("NOTE", style: Style()));
+        document.Content.AddParagraph(paragraph => {
             // Both references belong to this one wrapped paragraph. The spaces after
             // LEFT lose their painted carrier when RIGHT wraps out of the full line.
-            paragraph.Text("LEFT").Runs(new[] { PdfTextRun.Normal("  ").WithFootnoteReference(note) }).Text("RIGHT").LineBreak();
-            for (int index = 0; index < 12; index++) paragraph.Text("PAD").LineBreak();
-            paragraph.Runs(new[] { PdfTextRun.Normal("LATE").WithFootnoteReference(note) });
+            paragraph.AddText("LEFT"); paragraph.AddRuns(new[] { PdfTextRun.Normal("  ").WithFootnoteReference(note) }); paragraph.AddText("RIGHT"); paragraph.AddLineBreak();
+            for (int index = 0; index < 12; index++) { paragraph.AddText("PAD"); paragraph.AddLineBreak(); }
+            paragraph.AddRuns(new[] { PdfTextRun.Normal("LATE").WithFootnoteReference(note) });
         }, style: Style());
 
         using var pdf = PdfPigDocument.Open(document.ToBytes());
@@ -71,9 +71,9 @@ public partial class PdfPageFootnoteTests {
     }
 
     private static void AddWhitespaceReferenceBody(PdfContentBuilder body, PdfTextRun marker, bool terminal) {
-        body.Paragraph(paragraph => {
-            paragraph.Text("LEFT").Runs(new[] { marker });
-            if (!terminal) paragraph.Text("RIGHT");
+        body.AddParagraph(paragraph => {
+            paragraph.AddText("LEFT"); paragraph.AddRuns(new[] { marker });
+            if (!terminal) paragraph.AddText("RIGHT");
         }, style: Style());
     }
 }

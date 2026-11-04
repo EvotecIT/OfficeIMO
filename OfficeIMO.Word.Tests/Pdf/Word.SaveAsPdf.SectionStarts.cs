@@ -46,7 +46,7 @@ public partial class Word {
     public void SaveAsPdf_SectionStartUsesContinuingNumberBeforeRestart(
         WordSectionBreakType breakType, int firstPages, int firstNumber, int secondNumber, int expectedPages, WordFileFormat format) {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D); document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
         document.Settings.MirrorMargins = true;
         document.Sections[0].AddPageNumbering(firstNumber);
         for (int page = 1; page <= firstPages; page++) document.AddParagraph("First" + page).PageBreakBeforeOverride = page > 1;
@@ -165,8 +165,8 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_InlinePageBreakAppliesFirstLineIndentOnlyOnce() {
         using WordDocument document = WordDocument.Create();
-        document.Sections[0].Margins.Left = global::OfficeIMO.OfficeLength.Points(40D);
-        document.Sections[0].Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
+        document.Sections[0].PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points(40D);
+        document.Sections[0].PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(70D);
         document.Settings.MirrorMargins = true;
         WordParagraph paragraph = document.AddParagraph("Before");
         paragraph.IndentationBefore = global::OfficeIMO.OfficeLength.Points(30D);

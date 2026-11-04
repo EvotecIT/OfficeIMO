@@ -168,7 +168,7 @@ features instead of silently dropping them.
 
 `Load` accepts paths, byte arrays, and readable streams, including non-seekable
 streams. It reads from the current stream position and leaves caller streams
-open. `XpsReadOptions` bounds compressed input, expanded bytes, part count, page
+open. `XpsLoadOptions` bounds compressed input, expanded bytes, part count, page
 count, and XML depth. Cancellation is accepted by loading and conversion APIs.
 External resource URIs and XML DTDs are rejected; resources are never fetched.
 Interleaved OPC pieces are assembled into bounded logical parts before parsing,
@@ -187,3 +187,5 @@ presenting changed content with stale signatures. This package does not validate
 signatures or decrypt protected packages.
 
 Targets: .NET Standard 2.0, .NET 8, .NET 10, and .NET Framework 4.7.2 on Windows.
+
+`Save(path)` associates the successfully written path; `Save()` uses that destination. `Save(stream)` leaves the stream open and keeps the associated path. `ToBytes()` returns native bytes without writing a destination. Loading from a path associates it; loading bytes or a stream leaves the document detached.

@@ -70,9 +70,9 @@ public class PdfPageSelectorTests {
     }
 
     private static byte[] CreateSixPageDocument() {
-        PdfDocument document = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page 1"));
+        PdfDocument document = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page 1"));
         for (int page = 2; page <= 6; page++) {
-            document.PageBreak().Paragraph(paragraph => paragraph.Text("Page " + page));
+            document.PageBreak().Paragraph(paragraph => paragraph.AddText("Page " + page));
         }
 
         return document.ToBytes();

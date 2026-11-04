@@ -22,7 +22,7 @@ public sealed class OfficeConverterNativeRouteTests {
                     using (var document = WordDocument.Create()) { document.AddParagraph("Native variant content"); document.Save(source); }
                     break;
                 case OfficeDocumentFormat.Excel:
-                    using (var document = ExcelDocument.Create()) { document.AddSheet("Data").CellValue(1, 1, "Native variant content"); document.Save(source); }
+                    using (var document = ExcelDocument.Create()) { document.AddSheet("Data").Cell(1, 1).SetValue("Native variant content"); document.Save(source); }
                     break;
                 case OfficeDocumentFormat.PowerPoint:
                     using (var document = PowerPointDocument.Create()) { document.AddSlide().AddTextBox("Native variant content"); document.Save(source); }
@@ -78,7 +78,7 @@ public sealed class OfficeConverterNativeRouteTests {
     [Fact]
     public void SourcePasswordAndInputLimitApplyToEncryptedPdfReconstruction() {
         using var pdf = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("synthetic-open")));
-        pdf.Compose(document => document.Content(content => content.Text("Encrypted PDF input")));
+        pdf.Compose(document => document.Content(content => content.AddParagraph("Encrypted PDF input")));
         byte[] bytes = pdf.ToBytes(new PdfSaveOptions { AllowLoss = true });
         using var source = new MemoryStream(bytes);
         using var target = new MemoryStream();

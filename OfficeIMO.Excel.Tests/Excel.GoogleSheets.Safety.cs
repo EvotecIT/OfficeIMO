@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, $"GoogleSheetsFolderPreflight-{replaceExisting}.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddSheet("Data").CellValue(1, 1, "Content");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Content");
                 int sheetsMutationCount = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {

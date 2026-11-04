@@ -22,7 +22,7 @@ internal static partial class Html {
         HtmlConversionDocument report = HtmlConversionDocument.Load(sourcePath);
         File.WriteAllText(stem + ".html", report.ExportSourceHtml());
 
-        var pdfOptions = new HtmlToPdfOptions {
+        var pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = OfficePageSizes.A4,
             Margins = HtmlRenderMargins.All(36D),
@@ -30,30 +30,28 @@ internal static partial class Html {
         };
         var pdf = report.SaveAsPdf(stem + ".pdf", pdfOptions);
 
-        using WordDocument word = report.ToWord(new WordHtmlImportOptions {
+        using WordDocument word = report.ToWord(new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A4,
             SectionTagHandling = WordHtmlSectionTagHandling.Block
         }, out OfficeConversionReport wordReport);
 
-        word.Margins.Type = WordMargin.Narrow;
+        word.PageSetup.Margins.Type = WordMargin.Narrow;
         word.Save(stem + ".docx");
 
-        HtmlToExcelResult excelResult = report.ToExcelDocumentResult(new HtmlToExcelOptions {
+        using ExcelDocument excel = report.ToExcel(new HtmlExcelExportOptions {
             Mode = HtmlImportMode.Generic,
             ImportTypedCellValues = true
-        });
-        using ExcelDocument excel = excelResult.Value;
-        excelResult.RequireValue();
+        }, out OfficeConversionReport excelReport);
         foreach (ExcelSheet sheet in excel.Sheets) {
             sheet.AutoFitColumns();
-            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRangeA1);
+            var (firstRow, firstColumn, lastRow, lastColumn) = ExcelA1.ParseRange(sheet.UsedRange.Address);
             if (firstColumn == lastColumn) {
-                sheet.WrapCells(firstRow,lastRow,firstColumn, ExcelColumnWidth.Characters(80D));
-                for (int row = firstRow; row <= lastRow; row++) sheet.CellVerticalAlign(row, firstColumn, ExcelVerticalAlignment.Top);
+                sheet.Range(firstRow, firstColumn, lastRow, firstColumn).SetWrapText(); sheet.SetColumnWidth(firstColumn, ExcelColumnWidth.Characters(80D));
+                for (int row = firstRow; row <= lastRow; row++) sheet.Cell(row, firstColumn).SetVerticalAlignment(ExcelVerticalAlignment.Top);
             }
             sheet.AutoFitRows();
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.A4);
-            sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.A4;
+            sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
         }
         excel.Save(stem + ".xlsx");
 
@@ -62,8 +60,8 @@ internal static partial class Html {
         foreach (var warning in pdf.Diagnostics) conversionNotes.Add("PDF: " + warning.Code + ": " + warning.Message);
         foreach (OfficeDiagnostic diagnostic in wordReport.Diagnostics)
             conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
-        foreach (HtmlDiagnostic diagnostic in excelResult.Report.Diagnostics)
-            conversionNotes.Add(diagnostic.Component + ": " + diagnostic.Code + ": " + diagnostic.Message);
+        foreach (OfficeDiagnostic diagnostic in excelReport.Diagnostics)
+            conversionNotes.Add(diagnostic.Format + ": " + diagnostic.Code + ": " + diagnostic.Message);
         foreach (string extension in new[] { ".html", ".pdf", ".docx", ".xlsx" })
             index.Add("- [" + extension.TrimStart('.').ToUpperInvariant() + "](" + Uri.EscapeDataString(name + extension) + ")");
 
@@ -104,9 +102,9 @@ internal static partial class Html {
         File.WriteAllLines(Path.Combine(outputFolder, "index.md"), index);
 
         Console.WriteLine($"Report outputs: {outputFolder}");
-        Console.WriteLine($"PDF pages: {pdf.ItemsWritten}; Excel sheets: {excelResult.Sheets}; typed import cells: {excelResult.Cells}");
-        foreach (HtmlDiagnostic diagnostic in excelResult.Report.Diagnostics) {
-            Console.WriteLine($"{diagnostic.Component}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Source}] {diagnostic.Detail}");
+        Console.WriteLine($"PDF pages: {pdf.ItemsWritten}; Excel sheets: {excel.Sheets.Count}");
+        foreach (OfficeDiagnostic diagnostic in excelReport.Diagnostics) {
+            Console.WriteLine($"{diagnostic.Format}: {diagnostic.Code}: {diagnostic.Message} [{diagnostic.Location}]");
         }
     }
 }

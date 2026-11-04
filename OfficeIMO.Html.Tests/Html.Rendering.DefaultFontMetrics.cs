@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = asynchronous
             ? await HtmlRenderEngine.RenderAsync(source, options)
             : HtmlRenderEngine.Render(source, options);
-        HtmlDiagnostic[] estimates = rendered.Diagnostics
+        HtmlDiagnostic[] estimates = rendered.NativeDiagnostics
             .Where(item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated).ToArray();
 
         HtmlRenderText body = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
@@ -32,8 +32,8 @@ public sealed partial class HtmlRenderingTests {
             Assert.Contains("estimator=OfficeTextMeasurer;axes=width;family=Unselected", item.Detail, StringComparison.Ordinal);
         });
         Assert.True(rendered.HasLoss);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
-        options.FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss;
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
+        options.FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss;
         if (asynchronous) await Assert.ThrowsAsync<HtmlConversionException>(() => HtmlRenderEngine.RenderAsync(source, options));
         else Assert.Throws<HtmlConversionException>(() => HtmlRenderEngine.Render(source, options));
     }
@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(face!.Program.Measure(body.Text, body.Font.Size), body.TextAdvanceWidth!.Value, 6);
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal("VISIBLE", rendered.Text.Trim());
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -114,17 +114,17 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(expectedLoss, rendered.HasLoss);
         if (expectedLoss) {
-            HtmlDiagnostic estimate = Assert.Single(rendered.Diagnostics,
+            HtmlDiagnostic estimate = Assert.Single(rendered.NativeDiagnostics,
                 item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated);
             HtmlRenderText text = Assert.Single(rendered.Pages.SelectMany(page => EnumerateRenderVisuals(page.Scene))
                 .OfType<HtmlRenderText>(), item => item.Text == "IFRAME");
             Assert.Equal(text.Source, estimate.Source);
             Assert.Equal(OfficeConversionLossKind.Approximation, estimate.LossKind);
             Assert.Contains("IFRAME", rendered.Text, StringComparison.Ordinal);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         } else {
             Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FontMetricsEstimated);
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 

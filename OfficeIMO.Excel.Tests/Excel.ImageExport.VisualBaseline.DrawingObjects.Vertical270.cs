@@ -75,15 +75,15 @@ namespace OfficeIMO.Tests {
             ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Vertical270Text");
 
-            sheet.CellValue(1, 1, "Vertical270 DrawingML text");
+            sheet.Cell(1, 1).SetValue("Vertical270 DrawingML text");
             sheet.Range("A1:F1").Merge();
             sheet.Range("A1:F1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellAlign(1, 1, ExcelHorizontalAlignment.Center);
-            sheet.CellVerticalAlign(1, 1, ExcelVerticalAlignment.Center);
-            sheet.CellValue(7, 2, "Vertical270 shape text routes through shared rotated text layout.");
+            sheet.Cell(1, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+            sheet.Cell(1, 1).SetVerticalAlignment(ExcelVerticalAlignment.Center);
+            sheet.Cell(7, 2).SetValue("Vertical270 shape text routes through shared rotated text layout.");
             sheet.Range("B7:E7").Merge();
             sheet.Range("B7:E7").SetFillColor("F8FAFC").SetFontColor("334155");
-            sheet.CellAlign(7, 2, ExcelHorizontalAlignment.Center);
+            sheet.Cell(7, 2).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
 
             for (int column = 1; column <= 6; column++) {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 || column == 6 ? 9 : 15));
@@ -99,8 +99,8 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(8, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(22)));
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 6; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 

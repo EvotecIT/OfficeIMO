@@ -42,11 +42,11 @@ public sealed class SaveOfficeEpubCommand : PSCmdlet {
         string destination = Path ?? Document.FilePath ?? throw new PSArgumentException("Supply Path when the publication has no associated save path.", nameof(Path));
         string path = OfficeFileCommandUtilities.ResolvePath(this, destination);
         if (!ShouldProcess(path, "Save EPUB publication")) return;
-        EpubWriteResult result = Document.Write(new EpubWriteOptions {
+        EpubWriteResult result = Document.Write(new EpubSaveOptions {
             RemoveInvalidatedSignatures = RemoveInvalidatedSignatures.IsPresent,
             MaxOutputBytes = MaxOutputBytes
         });
-        if (!AllowLoss) result.Report.RequireNoLoss();
+        if (!AllowLoss) result.Report.ThrowIfLoss();
         OfficeFileOutput.Write(path, result.Bytes, true);
         Document.FilePath = path;
         if (PassThru) WriteObject(result.Report);

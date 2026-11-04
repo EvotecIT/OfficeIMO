@@ -211,7 +211,7 @@ public sealed class MarkdownRendererPlugin {
 
     /// <summary>
     /// HTML-to-markdown document transforms contributed by this plugin.
-    /// Hosts can register these on <c>MarkdownHtmlImportOptions.DocumentTransforms</c>
+    /// Hosts can register these on <c>HtmlMarkdownExportOptions.DocumentTransforms</c>
     /// when they want HTML ingestion aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<IMarkdownDocumentTransform> HtmlDocumentTransforms => _htmlDocumentTransforms;
@@ -225,21 +225,21 @@ public sealed class MarkdownRendererPlugin {
 
     /// <summary>
     /// HTML-to-markdown custom element block converters contributed by this plugin.
-    /// Hosts can register these on <c>MarkdownHtmlImportOptions.ElementBlockConverters</c>
+    /// Hosts can register these on <c>HtmlMarkdownExportOptions.ElementBlockConverters</c>
     /// when they want HTML element decoding aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<MarkdownHtmlBlockConverter> HtmlElementBlockConverters => _htmlElementBlockConverters;
 
     /// <summary>
     /// HTML-to-markdown custom inline element converters contributed by this plugin.
-    /// Hosts can register these on <c>MarkdownHtmlImportOptions.InlineElementConverters</c>
+    /// Hosts can register these on <c>HtmlMarkdownExportOptions.InlineElementConverters</c>
     /// when they want inline HTML decoding aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<MarkdownHtmlInlineConverter> HtmlInlineElementConverters => _htmlInlineElementConverters;
 
     /// <summary>
     /// Shared visual-host HTML round-trip hints contributed by this plugin.
-    /// Hosts can register these on <c>MarkdownHtmlImportOptions.VisualElementRoundTripHints</c>
+    /// Hosts can register these on <c>HtmlMarkdownExportOptions.VisualElementRoundTripHints</c>
     /// when they want HTML-to-AST recovery aligned with the plugin contract.
     /// </summary>
     public IReadOnlyList<MarkdownVisualElementRoundTripHint> VisualElementRoundTripHints => _visualElementRoundTripHints;

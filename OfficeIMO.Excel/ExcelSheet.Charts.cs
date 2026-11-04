@@ -101,7 +101,7 @@ namespace OfficeIMO.Excel {
 
             using (var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks()) {
                 if (!TryApplyPlainCellsByAppendingRows(cells, CancellationToken.None)) {
-                    CellValues(cells, null);
+                    SetValues(cells, null);
                 }
             }
 

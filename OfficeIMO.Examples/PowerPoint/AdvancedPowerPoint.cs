@@ -40,13 +40,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide slide1 = presentation.AddSlide();
             PowerPointTextBox title = slide1.AddTitle("Advanced PowerPoint Example",titleBox);
             title.FontSize = global::OfficeIMO.OfficeLength.Points(30);
-            title.Color = "1F4E79";
+            title.Color = OfficeColor.Parse("1F4E79");
             PowerPointLayoutBox introBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.1));
             PowerPointTextBox intro = slide1.AddTextBox(
                 "Shows layout, charts, tables, images, notes, and transitions.",                introBox);
             intro.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-            intro.Color = "1F4E79";
+            intro.Color = OfficeColor.Parse("1F4E79");
             slide1.BackgroundColor = "F7F7F7";
             slide1.Transition = PowerPointSlideTransition.Fade;
 
@@ -76,13 +76,13 @@ namespace OfficeIMO.Examples.PowerPoint {
                 slide2.AddImage(imagePath,mediaBox);
                 PowerPointTextBox caption = slide2.AddTextBox("Photograph fitted to the box at its own aspect ratio.",captionBox);
                 caption.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                caption.Color = "666666";
+                caption.Color = OfficeColor.Parse("666666");
             } else {
                 PowerPointTextBox placeholder = slide2.AddTextBox("(image placeholder)",mediaBox);
                 placeholder.FillColor = "F3F3F3";
                 placeholder.OutlineColor = "CCCCCC";
                 placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
-                placeholder.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("777777"));
+                placeholder.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("777777")));
             }
 
             // Slide 3: KPI table

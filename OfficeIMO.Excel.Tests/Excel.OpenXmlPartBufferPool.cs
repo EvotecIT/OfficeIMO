@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void OpenXmlPartBufferPool_RejectsPartsAboveTheBoundedFastPath() {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                OpenXmlPartBufferPool.Rent((64 * 1024 * 1024) + 1));
+                OpenXmlPartBufferPool.Rent((256 * 1024 * 1024) + 1));
         }
     }
 }

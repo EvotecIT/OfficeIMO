@@ -12,9 +12,9 @@ public partial class PdfDocumentVisualQualityTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .CatalogUriBase("https://officeimo.net/pdf/")
-            .Paragraph(p => p.Text("Catalog URI base proof."))
+            .Paragraph(p => p.AddText("Catalog URI base proof."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page."))
+            .Paragraph(p => p.AddText("Second page."))
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -48,15 +48,11 @@ public partial class PdfDocumentVisualQualityTests {
         const string tableTarget = "tables/detail.html";
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions().SetCatalogUriBase("https://officeimo.net/docs/"))
-            .Paragraph(p => p.Link("relative paragraph", paragraphTarget, contents: "Relative paragraph"))
+            .Paragraph(p => p.AddLink("relative paragraph", paragraphTarget, contents: "Relative paragraph"))
             .H2("relative heading", linkUri: headingTarget, linkContents: "Relative heading")
-            .TableWithLinks(
-                new[] {
-                    new[] { "Cell", "Value" }
-                },
-                new() {
-                    [(0, 1)] = tableTarget
-                })
+            .Table(new[] {
+                new[] { PdfTableCell.TextCell("Cell"), PdfTableCell.TextCell("Value", tableTarget) }
+            })
             .ToBytes();
 
         string raw = Encoding.ASCII.GetString(bytes);
@@ -85,7 +81,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void RelativeUriActionsRequireCatalogUriBaseWhenRendering() {
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Link("relative paragraph", "assets/report.html"))
+                .Paragraph(p => p.AddLink("relative paragraph", "assets/report.html"))
                 .ToBytes());
 
         Assert.Contains("Relative PDF URI link targets require PdfOptions.CatalogUriBase.", exception.Message, StringComparison.Ordinal);

@@ -40,11 +40,11 @@ namespace OfficeIMO.Examples.Excel
             var rows = GenerateFakeData(50, seed: 42);
             using var doc = ExcelDocument.Create(filePath);
             {
-                doc.BuiltinDocumentProperties.Title = "Domain Detective — Classic Sheets";
-                doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+                doc.Properties.Title = "Domain Detective — Classic Sheets";
+                doc.Properties.Creator = "OfficeIMO";
                 doc.ApplicationProperties.Company = "Evotec";
                 doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
-                doc.BuiltinDocumentProperties.Keywords = "excel,report,sheets,classic";
+                doc.Properties.Keywords = "excel,report,sheets,classic";
             }
 
             // Overview
@@ -57,8 +57,9 @@ namespace OfficeIMO.Examples.Excel
             overview.PropertiesGrid(new (string, object? )[] { ("Domains", rows.Count), ("At Risk", atRisk), ("Errors", totalErrors), ("Warnings", totalWarnings), ("Generated", DateTime.Now.ToString("yyyy-MM-dd")), ("Version", "v1") }, columns: 3);
             // Header/footer + logo (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            overview.Sheet.SetHeaderFooter(headerLeft: "Domain Detective — Overview", headerRight: "Page &P of &N");
-            await overview.Sheet.SetHeaderImageFromUrlAsync(ExcelHeaderFooterPosition.Right, logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
+            overview.Sheet.PageSetup.Header.Left.Text = "Domain Detective — Overview";
+            overview.Sheet.PageSetup.Header.Right.Text = "Page &P of &N";
+            await overview.Sheet.PageSetup.Header.Right.SetImageFromUrlAsync(logoUrl, width: OfficeLength.Points(96), height: OfficeLength.Points(32));
             await overview.AddImageAsync(1, 6, new System.Uri(logoUrl), new OfficeIMO.Excel.ExcelImageOptions {
                 Width = OfficeIMO.OfficeLength.Pixels(120),
                 Height = OfficeIMO.OfficeLength.Pixels(40)
@@ -88,39 +89,39 @@ namespace OfficeIMO.Examples.Excel
                 v.AutoFormatDecimals = 2;
             }).Range!;
             // Links from Domain column to detail sheet
-            overview.Sheet.LinkByHeaderToInternalSheetsInRange(summaryRange, header: "Domain", targetA1: "A1", styled: true);
+            overview.Sheet.LinkByHeader("Domain", ExcelLinkTarget.Sheet(), new ExcelLinkByHeaderOptions { Range = summaryRange });
             // Print settings (explicit, not via PrintDefaults)
-            overview.Sheet.SetGridlinesVisible(false);
-            overview.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
-            doc.SetPrintArea(overview.Sheet, summaryRange);
+            overview.Sheet.View.ShowGridlines = false;
+            overview.Sheet.PageSetup.FitToWidth = 1; overview.Sheet.PageSetup.FitToHeight = 0;
+            overview.Sheet.PageSetup.PrintArea = summaryRange;
             // Manual legend (no SectionLegend helper)
             overview.Section("Legend");
             int hdr = overview.CurrentRow;
-            overview.Sheet.Cell(hdr, 1, "Status");
-            overview.Sheet.CellBold(hdr, 1, true);
-            overview.Sheet.CellBackground(hdr, 1, "#F2F2F2");
-            overview.Sheet.Cell(hdr, 2, "Meaning");
-            overview.Sheet.CellBold(hdr, 2, true);
-            overview.Sheet.CellBackground(hdr, 2, "#F2F2F2");
-            overview.Sheet.Cell(hdr, 3, "Recommended Action");
-            overview.Sheet.CellBold(hdr, 3, true);
-            overview.Sheet.CellBackground(hdr, 3, "#F2F2F2");
+            overview.Sheet.Cell(hdr, 1).SetValue("Status");
+            overview.Sheet.Cell(hdr, 1).SetBold(true);
+            overview.Sheet.Cell(hdr, 1).SetFillColor("#F2F2F2");
+            overview.Sheet.Cell(hdr, 2).SetValue("Meaning");
+            overview.Sheet.Cell(hdr, 2).SetBold(true);
+            overview.Sheet.Cell(hdr, 2).SetFillColor("#F2F2F2");
+            overview.Sheet.Cell(hdr, 3).SetValue("Recommended Action");
+            overview.Sheet.Cell(hdr, 3).SetBold(true);
+            overview.Sheet.Cell(hdr, 3).SetFillColor("#F2F2F2");
             var pal = ReportStatusColors.Create(OfficeTheme.Default);
-            overview.Sheet.Cell(hdr + 1, 1, "OK");
+            overview.Sheet.Cell(hdr + 1, 1).SetValue("OK");
             if (pal.FillHexMap.TryGetValue("OK", out var ok))
-                overview.Sheet.CellBackground(hdr + 1, 1, ok);
-            overview.Sheet.Cell(hdr + 1, 2, "All checks passed or acceptable");
-            overview.Sheet.Cell(hdr + 1, 3, "No action required");
-            overview.Sheet.Cell(hdr + 2, 1, "Warning");
+                overview.Sheet.Cell(hdr + 1, 1).SetFillColor(ok);
+            overview.Sheet.Cell(hdr + 1, 2).SetValue("All checks passed or acceptable");
+            overview.Sheet.Cell(hdr + 1, 3).SetValue("No action required");
+            overview.Sheet.Cell(hdr + 2, 1).SetValue("Warning");
             if (pal.FillHexMap.TryGetValue("Warning", out var wr))
-                overview.Sheet.CellBackground(hdr + 2, 1, wr);
-            overview.Sheet.Cell(hdr + 2, 2, "Requires attention; not blocking");
-            overview.Sheet.Cell(hdr + 2, 3, "Review recommendations");
-            overview.Sheet.Cell(hdr + 3, 1, "Error");
+                overview.Sheet.Cell(hdr + 2, 1).SetFillColor(wr);
+            overview.Sheet.Cell(hdr + 2, 2).SetValue("Requires attention; not blocking");
+            overview.Sheet.Cell(hdr + 2, 3).SetValue("Review recommendations");
+            overview.Sheet.Cell(hdr + 3, 1).SetValue("Error");
             if (pal.FillHexMap.TryGetValue("Error", out var er))
-                overview.Sheet.CellBackground(hdr + 3, 1, er);
-            overview.Sheet.Cell(hdr + 3, 2, "Blocking or invalid configuration");
-            overview.Sheet.Cell(hdr + 3, 3, "Fix immediately");
+                overview.Sheet.Cell(hdr + 3, 1).SetFillColor(er);
+            overview.Sheet.Cell(hdr + 3, 2).SetValue("Blocking or invalid configuration");
+            overview.Sheet.Cell(hdr + 3, 3).SetValue("Fix immediately");
             overview.Spacer(rows: 4);
             // Finish overview
             overview.Finish(autoFitColumns: false);
@@ -168,38 +169,38 @@ namespace OfficeIMO.Examples.Excel
             // Legend (manual)
             s.SectionWithAnchor("Legend");
             int lhdr = s.CurrentRow;
-            s.Sheet.Cell(lhdr, 1, "Status");
-            s.Sheet.CellBold(lhdr, 1, true);
-            s.Sheet.CellBackground(lhdr, 1, "#F2F2F2");
-            s.Sheet.Cell(lhdr, 2, "Meaning");
-            s.Sheet.CellBold(lhdr, 2, true);
-            s.Sheet.CellBackground(lhdr, 2, "#F2F2F2");
-            s.Sheet.Cell(lhdr, 3, "Recommended Action");
-            s.Sheet.CellBold(lhdr, 3, true);
-            s.Sheet.CellBackground(lhdr, 3, "#F2F2F2");
+            s.Sheet.Cell(lhdr, 1).SetValue("Status");
+            s.Sheet.Cell(lhdr, 1).SetBold(true);
+            s.Sheet.Cell(lhdr, 1).SetFillColor("#F2F2F2");
+            s.Sheet.Cell(lhdr, 2).SetValue("Meaning");
+            s.Sheet.Cell(lhdr, 2).SetBold(true);
+            s.Sheet.Cell(lhdr, 2).SetFillColor("#F2F2F2");
+            s.Sheet.Cell(lhdr, 3).SetValue("Recommended Action");
+            s.Sheet.Cell(lhdr, 3).SetBold(true);
+            s.Sheet.Cell(lhdr, 3).SetFillColor("#F2F2F2");
             var pal = ReportStatusColors.Create(OfficeTheme.Default);
             if (pal.FillHexMap.TryGetValue("OK", out var ok2))
             {
-                s.Sheet.Cell(lhdr + 1, 1, "OK");
-                s.Sheet.CellBackground(lhdr + 1, 1, ok2);
-                s.Sheet.Cell(lhdr + 1, 2, "All checks passed or acceptable");
-                s.Sheet.Cell(lhdr + 1, 3, "No action required");
+                s.Sheet.Cell(lhdr + 1, 1).SetValue("OK");
+                s.Sheet.Cell(lhdr + 1, 1).SetFillColor(ok2);
+                s.Sheet.Cell(lhdr + 1, 2).SetValue("All checks passed or acceptable");
+                s.Sheet.Cell(lhdr + 1, 3).SetValue("No action required");
             }
 
             if (pal.FillHexMap.TryGetValue("Warning", out var wr2))
             {
-                s.Sheet.Cell(lhdr + 2, 1, "Warning");
-                s.Sheet.CellBackground(lhdr + 2, 1, wr2);
-                s.Sheet.Cell(lhdr + 2, 2, "Requires attention; not blocking");
-                s.Sheet.Cell(lhdr + 2, 3, "Review recommendations");
+                s.Sheet.Cell(lhdr + 2, 1).SetValue("Warning");
+                s.Sheet.Cell(lhdr + 2, 1).SetFillColor(wr2);
+                s.Sheet.Cell(lhdr + 2, 2).SetValue("Requires attention; not blocking");
+                s.Sheet.Cell(lhdr + 2, 3).SetValue("Review recommendations");
             }
 
             if (pal.FillHexMap.TryGetValue("Error", out var er2))
             {
-                s.Sheet.Cell(lhdr + 3, 1, "Error");
-                s.Sheet.CellBackground(lhdr + 3, 1, er2);
-                s.Sheet.Cell(lhdr + 3, 2, "Blocking or invalid configuration");
-                s.Sheet.Cell(lhdr + 3, 3, "Fix immediately");
+                s.Sheet.Cell(lhdr + 3, 1).SetValue("Error");
+                s.Sheet.Cell(lhdr + 3, 1).SetFillColor(er2);
+                s.Sheet.Cell(lhdr + 3, 2).SetValue("Blocking or invalid configuration");
+                s.Sheet.Cell(lhdr + 3, 3).SetValue("Fix immediately");
             }
 
             s.Spacer(rows: 4);
@@ -211,7 +212,7 @@ namespace OfficeIMO.Examples.Excel
                 s.BulletedList(d.Recommendations);
                 int end = start + d.Recommendations.Length - 1;
                 for (int r = start; r <= end; r++)
-                    s.Sheet.CellBackground(r, 1, "#FFF4CE");
+                    s.Sheet.Cell(r, 1).SetFillColor("#FFF4CE");
             }
 
             // Positives (manual bullet + fill)
@@ -222,7 +223,7 @@ namespace OfficeIMO.Examples.Excel
                 s.BulletedList(d.Positives);
                 int endP = startP + d.Positives.Length - 1;
                 for (int r = startP; r <= endP; r++)
-                    s.Sheet.CellBackground(r, 1, "#E7F4E4");
+                    s.Sheet.Cell(r, 1).SetFillColor("#E7F4E4");
             }
 
             if (d.References.Length > 0)
@@ -232,7 +233,7 @@ namespace OfficeIMO.Examples.Excel
             foreach ((int column, double width) in new[] { (1, 16d), (2, 30d), (3, 22d), (4, 20d), (5, 12d), (6, 10d) }) {
                 s.Sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(width));
             }
-            s.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 1);
+            s.Sheet.PageSetup.FitToWidth = 1; s.Sheet.PageSetup.FitToHeight = 1;
         }
 
         private static List<DomainRow> GenerateFakeData(int count, int seed) {

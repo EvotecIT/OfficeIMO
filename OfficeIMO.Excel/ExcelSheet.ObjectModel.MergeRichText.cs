@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Merges the specified A1 range.
         /// </summary>
-        public void MergeRange(string a1Range) {
+        internal void MergeRange(string a1Range) {
             ExcelA1.ParseRange(a1Range);
             WriteLock(() => {
                 var ws = WorksheetRoot;
@@ -49,7 +49,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Removes merge definitions that overlap the supplied A1 range.
         /// </summary>
-        public void UnmergeRange(string a1Range) {
+        internal void UnmergeRange(string a1Range) {
             var bounds = ExcelA1.ParseRange(a1Range);
             WriteLock(() => UnmergeRangeCore(bounds));
         }
@@ -92,7 +92,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Writes rich inline text runs into a cell.
         /// </summary>
-        public void SetRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs) {
+        internal void SetRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs) {
             if (runs == null) throw new ArgumentNullException(nameof(runs));
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Reads rich text runs from an inline-string or shared-string cell.
         /// </summary>
-        public IReadOnlyList<ExcelRichTextRun> GetRichText(int row, int column) {
+        internal IReadOnlyList<ExcelRichTextRun> GetRichText(int row, int column) {
             var cell = TryGetExistingCell(row, column);
             IEnumerable<Run>? openXmlRuns = cell?.InlineString?.Elements<Run>();
             if (openXmlRuns == null

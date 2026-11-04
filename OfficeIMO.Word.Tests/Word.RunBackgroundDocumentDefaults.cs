@@ -48,7 +48,7 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
         if (depth >= 4) styles.Elements<Style>().Single(style => style.StyleId == "BackgroundCharacter")
             .StyleRunProperties = new StyleRunProperties(Shade("FF00FF"), new Highlight { Val = HighlightColorValues.Magenta });
         if (depth >= 5) {
-            run.RunShadingFillColorHex = "FFFFFF";
+            run.BackgroundColor = OfficeColor.Parse("FFFFFF");
             run.Highlight = WordHighlightColor.White;
         }
         if (level is "off" or "clear") {
@@ -83,9 +83,8 @@ public sealed class WordRunBackgroundDocumentDefaultsTests {
             new DocDefaults(new RunPropertiesDefault(defaults));
         WordParagraph paragraph;
         if (story == "header") {
-            document.AddHeadersAndFooters();
             document.AddParagraph("BODY");
-            paragraph = document.Header.Default.AddParagraph("BACKGROUND");
+            paragraph = document.PageSetup.Header.AddParagraph("BACKGROUND");
         } else if (story == "cell") {
             paragraph = document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0];
             paragraph.Text = "BACKGROUND";

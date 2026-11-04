@@ -20,16 +20,16 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         };
 
         HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html, documentOptions)
-            .ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html, documentOptions)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
 
         Assert.Empty(Assert.Single(workbook.Sheets).Images);
-        Assert.Empty(Assert.Single(presentation.Slides).Pictures);
-        Assert.Contains(excelResult.Report.Diagnostics, IsRejectedImageDiagnostic);
-        Assert.Contains(powerPointResult.Report.Diagnostics, IsRejectedImageDiagnostic);
+        Assert.Empty(Assert.Single(presentation.Slides).Images);
+        Assert.Contains(excelResult.Report.NativeDiagnostics, IsRejectedImageDiagnostic);
+        Assert.Contains(powerPointResult.Report.NativeDiagnostics, IsRejectedImageDiagnostic);
     }
 
     [Fact]
@@ -39,12 +39,12 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
             + "background-image:url('" + image + "');background-repeat:no-repeat;background-size:24px 18px\">Layered</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointAutoShape backingFill = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(),
             shape => shape.FillColor == "123456");
-        PowerPointPicture picture = Assert.Single(slide.Pictures);
+        PowerPointImage picture = Assert.Single(slide.Images);
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes, box => box.Text == "Layered");
         List<PowerPointShape> shapes = slide.Shapes.ToList();
 
@@ -58,18 +58,18 @@ public sealed class HtmlEditableLayoutReviewWave19Tests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style=\"position:absolute;width:180px;height:50px;background-color:#123456;"
             + "background-image:url('" + image + "');background-repeat:no-repeat;background-size:24px 18px\">Layered</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 1;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
-        Assert.Empty(slide.Pictures);
+        Assert.Empty(slide.Images);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }

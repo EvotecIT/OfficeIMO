@@ -40,7 +40,7 @@ public sealed class AddOfficePdfListCommand : PSCmdlet
 
     /// <summary>List alignment.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Emit the updated document.</summary>
     [Parameter]
@@ -53,11 +53,11 @@ public sealed class AddOfficePdfListCommand : PSCmdlet
         {
             if (Numbered.IsPresent)
             {
-                content.Numbered(Items, Align, startNumber: StartNumber);
+                content.AddNumberedList(Items, Align, startNumber: StartNumber);
             }
             else
             {
-                content.Bullets(Items, Align);
+                content.AddList(Items, Align);
             }
         });
 

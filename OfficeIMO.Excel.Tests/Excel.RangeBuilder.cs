@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests
                     var sheet4 = document.AddSheet("Data");
 
                     var range6 = sheet4.Range("A1:C3");
-                    sheet4.Cell(range6.CellAt(2, 2).Row, range6.CellAt(2, 2).Column, "X");
+                    sheet4.Cell(range6.Cell(2, 2).Row, range6.Cell(2, 2).Column).SetValue("X");
                 }
 
                 document.Save();
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests
                     range12.SetValues(values);
                     for (int r = range12.FirstRow; r <= range12.LastRow; r++)
                         for (int column = range12.FirstColumn; column <= range12.LastColumn; column++)
-                            sheet10.CellValue(r, column, string.Empty);
+                            sheet10.Cell(r, column).SetValue(string.Empty);
                 }
 
                 document.Save();

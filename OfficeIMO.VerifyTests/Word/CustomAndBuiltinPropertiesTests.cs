@@ -17,9 +17,9 @@ public class CustomAndBuiltinPropertiesTests {
         var paragraph = document.AddParagraph("Basic paragraph - Page 4");
         paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
-        document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-        document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-        document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+        document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+        document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
+        document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
         await Verifier.Verify(document);
     }
@@ -27,9 +27,9 @@ public class CustomAndBuiltinPropertiesTests {
     [Fact]
     public async Task BasicDocumentProperties() {
         using var document = WordDocument.Create();
-        document.BuiltinDocumentProperties.Title = "This is my title";
-        document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-        document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+        document.Properties.Title = "This is my title";
+        document.Properties.Creator = "Przemysław Kłys";
+        document.Properties.Keywords = "word, docx, test";
 
         var paragraph = document.AddParagraph("Basic paragraph");
         paragraph.ParagraphAlignment = WordParagraphAlignment.Center;

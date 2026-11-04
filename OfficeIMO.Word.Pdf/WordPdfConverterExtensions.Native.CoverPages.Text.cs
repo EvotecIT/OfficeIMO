@@ -72,7 +72,7 @@ namespace OfficeIMO.Word.Pdf {
                 strike: HasNativeOnOff(properties?.Strike),
                 fontSize: ((double?)(style.FontSize ?? (style.SmallCaps && !style.AllCaps
                     ? style.EffectiveFontSize : GetNativeVmlRunFontSize(properties))) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-                font: GetNativeVmlRunFont(properties)));
+                standardFont: GetNativeVmlRunFont(properties)));
 
         private static void AddNativeVmlTextPathRuns(List<PdfCore.PdfTextRun> runs, WordDocument document, OpenXmlElement element) {
             foreach (V.TextPath textPath in element.Descendants<V.TextPath>()) {
@@ -98,7 +98,7 @@ namespace OfficeIMO.Word.Pdf {
                     italic: false,
                     strike: false,
                     fontSize: ((double?)(GetNativeVmlTextPathFontSize(textPath)) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null),
-                    font: GetNativeVmlTextPathFont(textPath)));
+                    standardFont: GetNativeVmlTextPathFont(textPath)));
             }
         }
 
@@ -247,12 +247,12 @@ namespace OfficeIMO.Word.Pdf {
             return max > 0D ? max : 11D;
         }
 
-        private static PdfCore.PdfAlign GetNativeVmlTextAlign(OpenXmlElement element) {
+        private static global::OfficeIMO.OfficeAlignment GetNativeVmlTextAlign(OpenXmlElement element) {
             W.Justification? justification = element.Descendants<W.Justification>().FirstOrDefault();
             W.JustificationValues? value = justification?.Val?.Value;
-            if (value == W.JustificationValues.Center) return PdfCore.PdfAlign.Center;
-            if (value == W.JustificationValues.Right) return PdfCore.PdfAlign.Right;
-            return PdfCore.PdfAlign.Left;
+            if (value == W.JustificationValues.Center) return global::OfficeIMO.OfficeAlignment.Center;
+            if (value == W.JustificationValues.Right) return global::OfficeIMO.OfficeAlignment.Right;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         private static PdfCore.PdfVerticalAlign GetNativeVmlVerticalAlign(OpenXmlElement element) {

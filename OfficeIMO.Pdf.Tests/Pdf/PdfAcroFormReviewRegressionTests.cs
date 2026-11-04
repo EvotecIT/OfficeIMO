@@ -9,7 +9,7 @@ public class PdfAcroFormReviewRegressionTests {
     [InlineData(false)]
     [InlineData(true)]
     public void AppendOnlyFill_RejectsPushButtons(bool useTryFill) {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button append guard")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Push button append guard")).ToBytes();
         byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "calculate",
             Kind = PdfFormFieldCreationKind.PushButton,
@@ -235,7 +235,7 @@ public class PdfAcroFormReviewRegressionTests {
 
     [Fact]
     public void Edit_RejectsClearingPushButtonSemanticFlag() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Push button flags")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Push button flags")).ToBytes();
         byte[] authored = PdfDocument.Load(source).Forms.Edit(edit => edit.Create(new PdfFormFieldCreateOptions {
             Name = "run",
             Kind = PdfFormFieldCreationKind.PushButton,

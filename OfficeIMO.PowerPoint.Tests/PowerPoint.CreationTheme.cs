@@ -55,6 +55,61 @@ public sealed class PowerPointCreationThemeTests {
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void RepeatedCreationKeepsMutablePackagesAndThemesIndependent(int creation) {
+        PowerPointDocument CreatePresentation() => creation switch {
+            1 => PowerPointDocument.Create(new PowerPointCreateOptions { Theme = CustomTheme }),
+            2 => PowerPointDocument.CreateForImport(),
+            _ => PowerPointDocument.Create()
+        };
+
+        using var first = CreatePresentation();
+        string? originalAccent = first.GetThemeColor(PowerPointThemeColor.Accent1);
+        var firstMaster = first.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster;
+        string originalMaster = firstMaster.OuterXml;
+        DateTime oldCreated = new(2000, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        firstMaster.CommonSlideData!.Name = "First master";
+        first.SetThemeColor(PowerPointThemeColor.Accent1, "FF00FF");
+        first.Properties.Title = "First package";
+        first.Properties.Created = oldCreated;
+        first.ApplicationProperties.Company = "First company";
+        first.AddSlide().AddTitle("First slide");
+
+        using var second = CreatePresentation();
+        Assert.Empty(second.Slides);
+        Assert.Equal(originalAccent, second.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.Equal(originalMaster, second.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster.OuterXml);
+        Assert.True(string.IsNullOrEmpty(second.Properties.Title));
+        Assert.NotEqual(oldCreated, second.Properties.Created);
+        Assert.Equal(string.Empty, second.ApplicationProperties.Company);
+        second.AddSlide().AddTitle("Second slide");
+
+        using var firstStream = new MemoryStream();
+        first.Save(firstStream);
+        first.Dispose();
+        using var secondStream = new MemoryStream();
+        second.Save(secondStream);
+        using var firstSaved = PowerPointDocument.Load(firstStream);
+        using var secondSaved = PowerPointDocument.Load(secondStream);
+        Assert.Equal("First slide", Assert.Single(firstSaved.Slides).TextBoxes.First().Text);
+        Assert.Equal("FF00FF", firstSaved.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.Equal(oldCreated, firstSaved.Properties.Created?.ToUniversalTime());
+        Assert.Equal("Second slide", Assert.Single(secondSaved.Slides).TextBoxes.First().Text);
+        Assert.Equal(originalAccent, secondSaved.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.True(string.IsNullOrEmpty(secondSaved.Properties.Title));
+        Assert.Equal(string.Empty, secondSaved.ApplicationProperties.Company);
+
+        using var fresh = CreatePresentation();
+        Assert.Empty(fresh.Slides);
+        Assert.Equal(originalAccent, fresh.GetThemeColor(PowerPointThemeColor.Accent1));
+        Assert.True(string.IsNullOrEmpty(fresh.Properties.Title));
+        Assert.Empty(firstSaved.ValidateDocument());
+        Assert.Empty(secondSaved.ValidateDocument());
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void TemplateStyleSurvivesUnlessThemeIsExplicitlyChosen(bool chooseTheme) {
@@ -186,4 +241,53 @@ public sealed class PowerPointCreationThemeTests {
         Assert.Equal("Second master", saved.GetTheme(1).Name);
         Assert.Empty(saved.ValidateDocument());
     }
+
+    [Fact]
+    public void ApplyThemeOnLoadedDeckKeepsMasterAndLayoutContent() {
+        using var stream = new MemoryStream();
+        using (var author = PowerPointDocument.Create()) {
+            author.AddSlide();
+            author.Save(stream);
+        }
+
+        stream.Position = 0;
+        using (var package = DocumentFormat.OpenXml.Packaging.PresentationDocument.Open(stream, true)) {
+            var master = package.PresentationPart!.SlideMasterParts.First();
+            master.SlideMaster.CommonSlideData!.ShapeTree!.Append(BrandShape(99U, "MasterBrand"));
+            master.SlideMaster.CommonSlideData.Background!.BackgroundProperties!.RemoveAllChildren<A.SolidFill>();
+            master.SlideMaster.CommonSlideData.Background.BackgroundProperties.PrependChild(new A.SolidFill(new A.RgbColorModelHex { Val = "ABCDEF" }));
+            master.SlideMaster.Save();
+            var layout = master.SlideLayoutParts.First(part => part.SlideLayout.CommonSlideData!.Name == "Title and Content");
+            layout.SlideLayout.CommonSlideData!.ShapeTree!.Append(BrandShape(98U, "LayoutBrand"));
+            layout.SlideLayout.Save();
+        }
+
+        stream.Position = 0;
+        using var loaded = PowerPointDocument.Load(stream);
+        string layoutsBefore = string.Concat(loaded.OpenXmlDocument.PresentationPart!.SlideMasterParts.First()
+            .SlideLayoutParts.Select(part => part.SlideLayout.OuterXml));
+        loaded.ApplyTheme(CustomTheme);
+        loaded.ApplyTheme(CustomTheme.WithName("Second pass"));
+
+        Assert.False(loaded.OwnsLayoutTheme);
+        using var saved = PowerPointDocument.Load(new MemoryStream(loaded.ToBytes()));
+        var savedMaster = saved.OpenXmlDocument.PresentationPart!.SlideMasterParts.First();
+        Assert.Contains(savedMaster.SlideMaster.Descendants<DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties>(),
+            shape => shape.Name == "MasterBrand");
+        Assert.Equal("ABCDEF", savedMaster.SlideMaster.CommonSlideData!.Background!.BackgroundProperties!
+            .GetFirstChild<A.SolidFill>()!.GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+        Assert.Equal(layoutsBefore, string.Concat(savedMaster.SlideLayoutParts.Select(part => part.SlideLayout.OuterXml)));
+        Assert.Equal("123456", savedMaster.ThemePart!.Theme.ThemeElements!.ColorScheme!.Accent1Color!
+            .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+        Assert.Equal("Second pass", saved.GetTheme().Name);
+        Assert.Contains("lnSpc", savedMaster.SlideMaster.TextStyles!.TitleStyle!.OuterXml);
+        Assert.Empty(saved.ValidateDocument());
+    }
+
+    private static DocumentFormat.OpenXml.Presentation.Shape BrandShape(uint id, string name) => new(
+        new DocumentFormat.OpenXml.Presentation.NonVisualShapeProperties(
+            new DocumentFormat.OpenXml.Presentation.NonVisualDrawingProperties { Id = id, Name = name },
+            new DocumentFormat.OpenXml.Presentation.NonVisualShapeDrawingProperties(),
+            new DocumentFormat.OpenXml.Presentation.ApplicationNonVisualDrawingProperties()),
+        new DocumentFormat.OpenXml.Presentation.ShapeProperties());
 }

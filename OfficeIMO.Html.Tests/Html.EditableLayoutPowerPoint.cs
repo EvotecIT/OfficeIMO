@@ -19,7 +19,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         const string first = "<section><p>First slide</p></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(first + second)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, presentation.Slides.Count);
@@ -35,7 +35,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "<div style='position:absolute;z-index:-1;width:140px;height:60px'>Near behind</div>" +
             "<p>Front semantic content</p>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointTextBox farBehind = Assert.Single(slide.TextBoxes, box => box.Text == "Far behind");
@@ -51,10 +51,10 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         const string html = "<div style='position:absolute;width:140px;height:60px'>Early region</div>" +
             "<p>Later semantic content</p>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("stacking=appended-after-semantic-content", StringComparison.Ordinal));
@@ -66,7 +66,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         string html = "<div style='position:absolute;width:140px;height:60px;background:#ff0000'>Region" +
             "<img src='" + image + "' style='width:12px;height:12px'></div>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -92,9 +92,9 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "');background-repeat:no-repeat;background-size:140px 60px}</style>" +
             "<div class='background'>Text over background</div>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         PowerPointSlide generatedSlide = Assert.Single(result.Value.Slides);
-        PowerPointPicture background = Assert.Single(generatedSlide.Pictures);
+        PowerPointImage background = Assert.Single(generatedSlide.Images);
         PowerPointTextBox text = Assert.Single(generatedSlide.TextBoxes, box =>
             box.Name?.StartsWith("HTML ", StringComparison.Ordinal) == true);
         Assert.True(background.DrawingOrder < text.DrawingOrder);
@@ -105,7 +105,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         using PowerPointDocument reopened = PowerPointDocument.Load(
             new MemoryStream(stream.ToArray()),
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
-        Assert.Single(Assert.Single(reopened.Slides).Pictures);
+        Assert.Single(Assert.Single(reopened.Slides).Images);
     }
 
     [Fact]
@@ -115,14 +115,14 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "<img src='" + image + "' style='width:12px;height:12px'></div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 ImportPictures = false
             });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
-        Assert.Empty(slide.Pictures);
+        Assert.Empty(slide.Images);
         Assert.Contains(slide.TextBoxes, box => box.Text == "Region");
     }
 
@@ -132,7 +132,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "<section><h1>Second slide</h1><div style='position:absolute;width:140px;height:60px'>Second region</div></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, presentation.Slides.Count);
@@ -146,7 +146,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "<section><h1>Second slide</h1><div style='position:absolute;left:20px;top:30px;width:140px;height:60px'>Local region</div></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, presentation.Slides.Count);
@@ -161,7 +161,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "<div style='position:absolute;width:140px;height:60px'>Generic region</div></section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, box => box.Text == "Generic region");
@@ -175,12 +175,12 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         string html = "<div style='position:absolute;left:900px;top:800px;width:700px;height:600px'>Short" +
             "<img src='" + image + "' style='width:500px;height:400px'></div>" +
             "<div style='position:absolute;width:120px;height:40px'>This metadata is much too long</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 8;
         limits.MaxAbsoluteGeometry = 50D;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
 
@@ -191,7 +191,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             Assert.InRange(box.Height.ToPoints(), 1D, 50D);
         });
         Assert.DoesNotContain(slide.TextBoxes, box => box.Text.Contains("metadata is much", StringComparison.Ordinal));
-        Assert.All(slide.Pictures, picture => {
+        Assert.All(slide.Images, picture => {
             Assert.InRange(picture.Left.ToPoints(), -50D, 50D);
             Assert.InRange(picture.Top.ToPoints(), -50D, 50D);
             Assert.InRange(picture.Width.ToPoints(), 1D, 50D);
@@ -207,14 +207,14 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     public void OmittedPositionedRegionDoesNotDisplaceFollowingInFlowRegion() {
         const string html = "<div style='position:absolute;left:0;top:0;width:300px;height:80px'>Metadata too long</div>" +
             "<div style='display:grid;width:300px;height:80px'>Grid</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 4;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         HtmlToPowerPointResult baseline = HtmlConversionDocument.Parse(
                 "<div style='display:grid;width:300px;height:80px'>Grid</div>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.Value;
         using PowerPointDocument baselinePresentation = baseline.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
@@ -234,13 +234,13 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         const string gridOnly = "<div style='display:grid;width:300px;height:80px'>Grid</div>";
         const string html = gridOnly
             + "<div style='position:absolute;z-index:10;left:0;top:0;width:300px;height:80px'>Omitted</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 2;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         HtmlToPowerPointResult baseline = HtmlConversionDocument.Parse(gridOnly)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.Value;
         using PowerPointDocument baselinePresentation = baseline.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
@@ -265,7 +265,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             "</style><div class='positioned'>Editable positioned<img src='" + image + "' style='opacity:.4;width:24px;height:18px'></div>" +
             "<div class='grid'>Grid A Grid B</div>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using var stream = new MemoryStream();
         result.Value.Save(stream);
         result.Value.Dispose();
@@ -284,7 +284,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.FillColor == "DBEAFE");
         Assert.Equal("FEF3C7", grid.FillColor);
         Assert.False(Overlaps(positioned, grid));
-        Assert.Contains(slide.Pictures, picture => picture.FillTransparency == 60);
+        Assert.Contains(slide.Images, picture => picture.FillTransparency == 60);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.BackgroundLayersFlattened);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
@@ -302,10 +302,10 @@ public sealed class HtmlEditableLayoutPowerPointTests {
             + "box-shadow:inset 20px 0 0 rgba(255,0,0,.3)'>Shadowed</div>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.EffectUnsupported
             && diagnostic.Detail == "shadowLayers=1; nativeShadowParameters=approximated");
     }
@@ -314,7 +314,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
     public void InFlowRegionMovesBelowExistingSemanticTextInsteadOfCoveringIt() {
         const string html = "<p>Ordinary flow</p><div style='display:grid;width:300px;height:80px;background:#fef3c7'>Grid content</div>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointTextBox flow = Assert.Single(slide.TextBoxes, box => box.Text == "Ordinary flow");
@@ -330,7 +330,7 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         const string html = "<table><tbody><tr><th>Heading</th></tr><tr><td>Table value</td></tr></tbody></table>"
             + "<div style='display:grid;width:300px;height:80px;background:#fef3c7'>Grid after table</div>";
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
         PowerPointSlide slide = Assert.Single(presentation.Slides);
         PowerPointTable table = Assert.Single(slide.Tables);
@@ -347,15 +347,15 @@ public sealed class HtmlEditableLayoutPowerPointTests {
         string html = "<div style='position:absolute;width:120px;height:60px'>Budgeted region"
             + "<img src='" + image + "' style='width:12px;height:12px'><img src='" + image
             + "' style='width:12px;height:12px'></div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxImages = 1;
         limits.MaxShapes = 3;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.Value;
 
-        Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        Assert.Single(Assert.Single(presentation.Slides).Images);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
     }

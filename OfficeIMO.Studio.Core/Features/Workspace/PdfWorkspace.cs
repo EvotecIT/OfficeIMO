@@ -293,7 +293,6 @@ internal sealed partial class PdfWorkspace : IDisposable {
                 if (_revision != expectedRevision) {
                     throw new InvalidOperationException("The document changed after this redaction was reviewed. Plan the redaction again before applying it.");
                 }
-                if (sanitizationOptions is not null) sanitizationOptions.CancellationToken = cancellationToken;
                 verified = PdfEditorCommandExecutor.ApplyVerifiedRedaction(LoadDocument(bytes), reviewedPlan, removedTextMarker, sanitizationOptions, cancellationToken);
                 return verified.Bytes;
             },
@@ -348,7 +347,7 @@ internal sealed partial class PdfWorkspace : IDisposable {
                     global::OfficeIMO.OfficeLength.Points(18D),
                     fontSize: global::OfficeIMO.OfficeLength.Points(10D),
                     color: global::OfficeIMO.OfficeColor.FromRgb(71, 84, 103),
-                    align: PdfAlign.Center),
+                    align: OfficeAlignment.Center),
                 new PdfCanvasStampOptions()).ToBytes(),
             cancellationToken,
             progress);

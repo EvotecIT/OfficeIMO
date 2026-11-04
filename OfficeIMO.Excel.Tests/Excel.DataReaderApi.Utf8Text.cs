@@ -228,9 +228,9 @@ public sealed partial class ExcelUtf8TextTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.Excel.Utf8Text.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            sheet.Cell(1, 1).SetValue("Value");
             if (secondSheet) {
-                document.AddSheet("Second").CellValue(1, 1, "Value");
+                document.AddSheet("Second").Cell(1, 1).SetValue("Value");
             }
             document.Save();
         }

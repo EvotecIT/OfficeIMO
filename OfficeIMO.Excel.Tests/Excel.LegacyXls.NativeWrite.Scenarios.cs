@@ -15,8 +15,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Scenarios");
-                    sheet.CellValue(1, 1, "Base");
-                    sheet.CellValue(2, 1, "Other");
+                    sheet.Cell(1, 1).SetValue("Base");
+                    sheet.Cell(2, 1).SetValue("Other");
                     sheet.WorksheetPart.Worksheet.Append(new Scenarios(
                         new Scenario(
                             new InputCells { CellReference = "A1", Val = "Optimistic" },
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksOversizedWorksheetScenarioPayloadsBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet scenario payload lengths outside BIFF8 limits", (document, sheet) => {
-                sheet.CellValue(1, 1, "Scenario value");
+                sheet.Cell(1, 1).SetValue("Scenario value");
                 var scenario = new Scenario {
                     Name = "Large scenario",
                     Count = 32U
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void LegacyXls_NativeSave_BlocksUnsupportedWorksheetScenarioMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("worksheet scenarios with unsupported metadata", (document, sheet) => {
-                sheet.CellValue(1, 1, "Scenario value");
+                sheet.Cell(1, 1).SetValue("Scenario value");
                 var scenario = new Scenario(
                     new InputCells {
                         CellReference = "A1",

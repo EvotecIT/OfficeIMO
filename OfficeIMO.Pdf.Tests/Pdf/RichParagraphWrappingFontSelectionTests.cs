@@ -45,9 +45,9 @@ namespace OfficeIMO.Tests.Pdf {
         public void WriterFontSelection_UsesRequestedFontFamilyForGeneratedPdfResources() {
             var pdf = PdfDocument.Create(new PdfCreateOptions {
                     DefaultFont = PdfStandardFont.TimesItalic,
-                    FooterFont = PdfStandardFont.TimesRoman
+                    PageSetup = { Footer = { StandardFont = PdfStandardFont.TimesRoman } }
                 })
-                .Paragraph(p => p.Text("Times family should stay Times."))
+                .Paragraph(p => p.AddText("Times family should stay Times."))
                 .ToBytes();
 
             string content = System.Text.Encoding.ASCII.GetString(pdf);
@@ -59,12 +59,11 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void WriterFontSelection_UsesRunFontForGeneratedPdfResources() {
             var pdf = PdfDocument.Create()
-                .Paragraph(p => p
-                    .Text("Default ")
-                    .Font(PdfStandardFont.Courier)
-                    .Text("Code")
-                    .ResetFont()
-                    .Text(" Default"))
+                .Paragraph(p => {
+                    p.AddText("Default ");
+                    p.AddText("Code").SetStandardFont(PdfStandardFont.Courier);
+                    p.AddText(" Default");
+                })
                 .ToBytes();
 
             string content = System.Text.Encoding.ASCII.GetString(pdf);

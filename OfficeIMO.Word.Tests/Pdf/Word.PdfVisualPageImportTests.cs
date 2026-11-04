@@ -16,7 +16,7 @@ public sealed class PdfVisualPageImportTests {
         var raster = new OfficeIMO.Drawing.OfficeRasterImage(240, 320, OfficeIMO.OfficeColor.White);
         byte[] png = OfficeIMO.Drawing.OfficeRasterImageEncoder.Encode(raster, OfficeIMO.Drawing.OfficeImageExportFormat.Png);
         using OfficeWordDocument word = OfficeWordDocument.Create();
-        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D); word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(320D);
+        word.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(240D); word.Sections[0].PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(320D);
         using var stream = new MemoryStream(png);
         var image = word.AddParagraph().AddImage(stream, "foreground.png", OfficeIMO.OfficeLength.Pixels(320), OfficeIMO.OfficeLength.Pixels(426.6666666667), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
@@ -40,7 +40,7 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualPagesPreserveSelectedPageOrderGeometryAndRenderedImages() {
         PdfCore.PdfDocument source = Create();
-        var options = new WordPdfImportOptions {
+        var options = new PdfWordExportOptions {
             Mode = WordPdfImportMode.VisualPages, Dpi = 72,
             ReadOptions = new PdfCore.PdfLoadOptions { PageSelection = PdfCore.PdfPageSelection.From(2, 1) }
         };
@@ -70,7 +70,7 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualPagesScopeOutlineWarningsToSelectedPages() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions { CreateOutlineFromHeadings = true })
-            .Paragraph(paragraph => paragraph.Text("Selected first page"))
+            .Paragraph(paragraph => paragraph.AddText("Selected first page"))
             .PageBreak()
             .H1("Excluded second-page outline")
             .ToBytes();
@@ -78,7 +78,7 @@ public sealed class PdfVisualPageImportTests {
         PdfCore.PdfDocumentInfo sourceInfo = source.Inspect();
         Assert.Single(sourceInfo.Outlines);
         Assert.Equal(2, sourceInfo.Outlines[0].PageNumber);
-        var options = WordPdfImportOptions.CreateVisualPages();
+        var options = PdfWordExportOptions.CreateVisualPages();
         options.Dpi = 72;
         options.ReadOptions = new PdfCore.PdfLoadOptions {
             PageSelection = PdfCore.PdfPageSelection.From(1)
@@ -96,7 +96,7 @@ public sealed class PdfVisualPageImportTests {
     [InlineData(false)] [InlineData(true)]
     public async Task StreamSaveOverloadsHonorVisualPageModeAndLeaveStreamOpen(bool asynchronous) {
         PdfCore.PdfDocument source = Create();
-        var options = WordPdfImportOptions.CreateVisualPages(); options.Dpi = 72;
+        var options = PdfWordExportOptions.CreateVisualPages(); options.Dpi = 72;
         using var output = new MemoryStream();
         if (asynchronous) await source.SaveAsWordAsync(output, options); else source.SaveAsWord(output, options);
         Assert.True(output.CanWrite);
@@ -109,7 +109,7 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualWordRoundTripRetainsPageCountSizesAndFullPageImagePlacement() {
         PdfCore.PdfDocument source = Create();
-        using OfficeWordDocument word = source.ToWord(new WordPdfImportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 72 });
+        using OfficeWordDocument word = source.ToWord(new PdfWordExportOptions { Mode = WordPdfImportMode.VisualPages, Dpi = 72 });
         using var serialized = new MemoryStream(word.ToBytes());
         using OfficeWordDocument reopened = OfficeWordDocument.Load(serialized);
         PdfCore.PdfDocument result = PdfCore.PdfDocument.Load(new System.IO.MemoryStream(reopened.ToPdf().ToBytes()));
@@ -137,8 +137,8 @@ public sealed class PdfVisualPageImportTests {
     public void PageAnchoredImageUsesPhysicalOffsetsWithoutConsumingItsHeightInFlow() {
         byte[] png = Create().Render.Pages(PdfCore.PdfPageSelection.From(1), new PdfCore.PdfPageRenderOptions { Dpi = 36 })[0].Bytes!;
         using OfficeWordDocument word = OfficeWordDocument.Create();
-        word.Sections[0].PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D);
-        word.Sections[0].PageSettings.Height = global::OfficeIMO.OfficeLength.Points(320D);
+        word.Sections[0].PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(240D);
+        word.Sections[0].PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(320D);
         using var source = new MemoryStream(png);
         var image = word.AddParagraph().AddImage(source, "page.png", OfficeIMO.OfficeLength.Pixels(60), OfficeIMO.OfficeLength.Pixels(80), options: new OfficeIMO.Word.WordImageOptions { Wrapping = OfficeIMO.Word.WordImageTextWrapping.InFrontOfText });
         image.HorizontalPositionRelativeFrom = OfficeIMO.Word.WordHorizontalRelativePosition.Page;
@@ -167,12 +167,12 @@ public sealed class PdfVisualPageImportTests {
     [Fact]
     public void VisualPagesRequireOriginalPdfInsteadOfSilentlyUsingSemanticReconstruction() {
         PdfCore.PdfDocument source = Create();
-        Assert.Throws<NotSupportedException>(() => (source.Read().ConvertToWordWithEvidence(WordPdfImportOptions.CreateVisualPages())).Value);
-        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToWord(new WordPdfImportOptions { Mode = (WordPdfImportMode)99 }));
+        Assert.Throws<NotSupportedException>(() => (source.Read().ConvertToWordWithEvidence(PdfWordExportOptions.CreateVisualPages())).Value);
+        Assert.Throws<ArgumentOutOfRangeException>(() => source.ToWord(new PdfWordExportOptions { Mode = (WordPdfImportMode)99 }));
     }
 
     private static PdfCore.PdfDocument Create() => PdfCore.PdfDocument.Create(compose => {
-        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.Paragraph(text => text.Text("First page")))));
-        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(item => item.Paragraph(text => text.Text("Second page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(320)).Content(content => content.Item(item => item.AddParagraph(text => text.AddText("First page")))));
+        compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)).Content(content => content.Item(item => item.AddParagraph(text => text.AddText("Second page")))));
     });
 }

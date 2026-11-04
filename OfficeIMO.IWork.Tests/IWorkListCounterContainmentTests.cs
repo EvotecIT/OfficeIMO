@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Null(paragraph.ListNumber);
             Assert.Null(paragraph.ListStartNumber);
         });
-        using var converted = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
     }
 
@@ -48,8 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         records.Add(ArchiveRecord(20, 2003, Message(ReferenceField(1, 10), VarintField(2, 0),
             FloatField(3, 0), VarintField(4, 0), FloatField(5, 0)), new ulong[] { 10 }));
         using var package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { 7, 8, 9 }, result.Projection.Body.Paragraphs.Select(p => p.ListNumber));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

@@ -26,7 +26,7 @@ public sealed class VisioDrawingOptions {
     public long MaximumTotalImageBytes { get; set; } = 128 * 1024 * 1024;
 
     /// <summary>Reject the operation if its report contains an approximation, omission, or unassessed feature.</summary>
-    public bool RequireNoLoss { get; set; }
+    public bool FailOnLoss { get; set; }
 
     /// <summary>Caller-supplied font faces used by the returned scenes before platform fallback.</summary>
     public OfficeFontFaceCollection Fonts { get; } = new();
@@ -46,7 +46,7 @@ public sealed class VisioDrawingOptions {
             SourceName = SourceName, LayerMode = LayerMode, MaximumPages = MaximumPages,
             MaximumShapes = MaximumShapes, MaximumGeometryPoints = MaximumGeometryPoints,
             MaximumTotalImagePixels = MaximumTotalImagePixels, MaximumTotalImageBytes = MaximumTotalImageBytes,
-            RequireNoLoss = RequireNoLoss, TextShapingProvider = TextShapingProvider,
+            FailOnLoss = FailOnLoss, TextShapingProvider = TextShapingProvider,
             TextShapingLanguage = TextShapingLanguage, LayoutMetrics = LayoutMetrics
         };
         copy.Fonts.AddRange(Fonts);

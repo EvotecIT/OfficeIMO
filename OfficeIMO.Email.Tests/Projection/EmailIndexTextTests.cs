@@ -5,7 +5,7 @@ public sealed class EmailIndexTextTests {
     public void SharedBodySourceBudgetRejectsBeforeGeneratedHtmlIsParsed() {
         var source = new EmailDocument();
         source.Body.Text = new string('&', 100);
-        var policy = OfficeIMO.Html.HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var policy = OfficeIMO.Html.HtmlConversionDocumentOptions.UntrustedDefaults;
         policy.Limits.MaxInputCharacters = 1;
         Assert.Throws<ArgumentException>(() => EmailBodyProjection.Create(source, new EmailBodyProjectionOptions {
             MaxBodySourceCharacters = 3, HtmlOptions = policy

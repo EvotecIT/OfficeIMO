@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Checkout Sequence", page.Name);
-            Assert.True(page.Width >= 6);
-            Assert.True(page.Height >= 4);
+            Assert.True(page.Width.ToInches() >= 6);
+            Assert.True(page.Height.ToInches() >= 4);
 
             VisioShape customer = Assert.Single(page.Shapes, shape => shape.Id == "customer");
             VisioShape web = Assert.Single(page.Shapes, shape => shape.Id == "web");
@@ -45,9 +45,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Rectangle", web.MasterNameU);
             Assert.Equal("Rectangle", api.MasterNameU);
             Assert.Equal("Data", db.MasterNameU);
-            Assert.True(customer.PinX < web.PinX);
-            Assert.True(web.PinX < api.PinX);
-            Assert.True(api.PinX < db.PinX);
+            Assert.True(customer.PinX.ToInches() < web.PinX.ToInches());
+            Assert.True(web.PinX.ToInches() < api.PinX.ToInches());
+            Assert.True(api.PinX.ToInches() < db.PinX.ToInches());
             Assert.Equal("SequenceParticipant", customer.GetUserCellValue("OfficeIMO.Kind"));
             Assert.Equal("Database", db.GetUserCellValue("OfficeIMO.SequenceParticipantKind"));
             VisioShape note = Assert.Single(page.Shapes, shape => shape.Id == "retry-note");
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("1", webActivation.GetUserCellValue("OfficeIMO.SequenceStartRowIndex"));
             Assert.Equal("4", webActivation.GetUserCellValue("OfficeIMO.SequenceEndRowIndex"));
             Assert.Contains("Sequence Activations", webActivation.LayerNames);
-            Assert.True(webActivation.Height > webActivation.Width);
+            Assert.True(webActivation.Height.ToInches() > webActivation.Width.ToInches());
             VisioShape retryFragment = Assert.Single(page.Shapes, shape => shape.Id == "retry-fragment");
             Assert.Equal("Rectangle", retryFragment.MasterNameU);
             Assert.Equal("SequenceFragment", retryFragment.GetUserCellValue("OfficeIMO.Kind"));
@@ -71,8 +71,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("web;api;db", retryFragment.GetUserCellValue("OfficeIMO.SequenceParticipantIds"));
             Assert.Equal(0, retryFragment.FillPattern);
             Assert.Contains("Sequence Fragments", retryFragment.LayerNames);
-            Assert.True(retryFragment.PinX < db.PinX);
-            Assert.True(retryFragment.Width > db.PinX - web.PinX);
+            Assert.True(retryFragment.PinX.ToInches() < db.PinX.ToInches());
+            Assert.True(retryFragment.Width.ToInches() > db.PinX.ToInches() - web.PinX.ToInches());
             VisioShape retryFragmentLabel = Assert.Single(page.Shapes, shape => shape.Id == "retry-fragment-label");
             Assert.Equal("alt retry window", retryFragmentLabel.Text);
             Assert.Equal("DiagramAdornment", retryFragmentLabel.GetUserCellValue("OfficeIMO.Kind"));
@@ -175,9 +175,9 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(submit.LabelPlacement);
             double labelLeft = submit.LabelPlacement!.PinX!.Value - (submit.LabelPlacement.Width / 2D);
             double labelRight = submit.LabelPlacement.PinX.Value + (submit.LabelPlacement.Width / 2D);
-            Assert.NotInRange(submit.LabelPlacement.PinX.Value, api.PinX - 0.08D, api.PinX + 0.08D);
-            Assert.True(labelRight < api.PinX - 0.08D || labelLeft > api.PinX + 0.08D);
-            Assert.True(labelRight < queue.PinX - 0.08D);
+            Assert.NotInRange(submit.LabelPlacement.PinX.Value, api.PinX.ToInches() - 0.08D, api.PinX.ToInches() + 0.08D);
+            Assert.True(labelRight < api.PinX.ToInches() - 0.08D || labelLeft > api.PinX.ToInches() + 0.08D);
+            Assert.True(labelRight < queue.PinX.ToInches() - 0.08D);
 
             document.Save();
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("Right", retryNote.GetUserCellValue("OfficeIMO.SequenceRequestedPlacement"));
             Assert.False(ShapesOverlap(retryNote, escalationNote));
-            Assert.True(Math.Abs(retryNote.PinY - escalationNote.PinY) > 0.2D);
+            Assert.True(Math.Abs(retryNote.PinY.ToInches() - escalationNote.PinY.ToInches()) > 0.2D);
             Assert.DoesNotContain(page.AnalyzeVisualQuality(), issue =>
                 issue.ShapeId == "retry-note" ||
                 issue.ShapeId == "escalation-note" ||
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("true", partitionLabel.GetUserCellValue("OfficeIMO.SequenceFragmentOperandDivider"));
             Assert.Equal(2, partitionDivider.LinePattern);
             Assert.Equal(EndArrow.None, partitionDivider.EndArrow);
-            Assert.True(partitionDivider.From.PinY > partitionLabel.PinY);
+            Assert.True(partitionDivider.From.PinY.ToInches() > partitionLabel.PinY.ToInches());
             Assert.Contains("Sequence Fragments", guardLabel.LayerNames);
             Assert.Contains("Sequence Fragments", partitionLabel.LayerNames);
 
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
             Assert.True(Right(retry) < Right(parent));
             Assert.True(Top(retry) < Top(parent));
             Assert.True(Bottom(retry) > Bottom(parent));
-            Assert.True(evidence.Width < parent.Width);
+            Assert.True(evidence.Width.ToInches() < parent.Width.ToInches());
             Assert.Contains(page.Shapes, shape => shape.Id == "retry-guard-label" && shape.Text == "[transient fault]");
             Assert.Contains(page.Shapes, shape => shape.Id == "evidence-guard-label" && shape.Text == "[manual evidence]");
 
@@ -419,9 +419,9 @@ namespace OfficeIMO.Tests {
             VisioShape requestTo = Assert.Single(page.Shapes, shape => shape.Id == "request-to");
             VisioConnector request = Assert.Single(page.Connectors, connector => connector.Id == "request");
 
-            Assert.Equal(client.PinX, requestFrom.PinX, 6);
-            Assert.Equal(0.04D.ToInches(VisioMeasurementUnit.Centimeters), requestFrom.Width, 6);
-            Assert.InRange(requestTo.PinX, 0D, page.Width);
+            Assert.Equal(client.PinX.ToInches(), requestFrom.PinX.ToInches(), 6);
+            Assert.Equal(0.04D.ToInches(VisioMeasurementUnit.Centimeters), requestFrom.Width.ToInches(), 6);
+            Assert.InRange(requestTo.PinX.ToInches(), 0D, page.Width.ToInches());
             Assert.Same(requestFrom, request.From);
             Assert.Same(requestTo, request.To);
         }
@@ -675,7 +675,7 @@ namespace OfficeIMO.Tests {
             VisioPage page = Assert.Single(document.Pages);
             VisioShape note = Assert.Single(page.Shapes, shape => shape.Id == "api-note");
 
-            Assert.True(Right(note) <= page.Width + 0.001D);
+            Assert.True(Right(note) <= page.Width.ToInches() + 0.001D);
             Assert.True(Left(note) >= -0.001D);
         }
 
@@ -696,30 +696,30 @@ namespace OfficeIMO.Tests {
         }
 
         private static bool ShapesOverlap(VisioShape first, VisioShape second) {
-            double left = Math.Max(first.PinX - (first.Width / 2D), second.PinX - (second.Width / 2D));
-            double right = Math.Min(first.PinX + (first.Width / 2D), second.PinX + (second.Width / 2D));
-            double bottom = Math.Max(first.PinY - (first.Height / 2D), second.PinY - (second.Height / 2D));
-            double top = Math.Min(first.PinY + (first.Height / 2D), second.PinY + (second.Height / 2D));
+            double left = Math.Max(first.PinX.ToInches() - (first.Width.ToInches() / 2D), second.PinX.ToInches() - (second.Width.ToInches() / 2D));
+            double right = Math.Min(first.PinX.ToInches() + (first.Width.ToInches() / 2D), second.PinX.ToInches() + (second.Width.ToInches() / 2D));
+            double bottom = Math.Max(first.PinY.ToInches() - (first.Height.ToInches() / 2D), second.PinY.ToInches() - (second.Height.ToInches() / 2D));
+            double top = Math.Min(first.PinY.ToInches() + (first.Height.ToInches() / 2D), second.PinY.ToInches() + (second.Height.ToInches() / 2D));
             return right > left && top > bottom;
         }
 
-        private static double Left(VisioShape shape) => shape.PinX - (shape.Width / 2D);
+        private static double Left(VisioShape shape) => shape.PinX.ToInches() - (shape.Width.ToInches() / 2D);
 
-        private static double Right(VisioShape shape) => shape.PinX + (shape.Width / 2D);
+        private static double Right(VisioShape shape) => shape.PinX.ToInches() + (shape.Width.ToInches() / 2D);
 
-        private static double Top(VisioShape shape) => shape.PinY + (shape.Height / 2D);
+        private static double Top(VisioShape shape) => shape.PinY.ToInches() + (shape.Height.ToInches() / 2D);
 
-        private static double Bottom(VisioShape shape) => shape.PinY - (shape.Height / 2D);
+        private static double Bottom(VisioShape shape) => shape.PinY.ToInches() - (shape.Height.ToInches() / 2D);
 
         private static bool ConnectorLabelNearShape(VisioConnector connector, VisioShape shape, double padding) {
             Assert.NotNull(connector.LabelPlacement);
             Assert.True(connector.LabelPlacement!.PinX.HasValue);
             Assert.True(connector.LabelPlacement.PinY.HasValue);
 
-            double left = Math.Max(connector.LabelPlacement.PinX.Value - (connector.LabelPlacement.Width / 2D), shape.PinX - (shape.Width / 2D) - padding);
-            double right = Math.Min(connector.LabelPlacement.PinX.Value + (connector.LabelPlacement.Width / 2D), shape.PinX + (shape.Width / 2D) + padding);
-            double bottom = Math.Max(connector.LabelPlacement.PinY.Value - (connector.LabelPlacement.Height / 2D), shape.PinY - (shape.Height / 2D) - padding);
-            double top = Math.Min(connector.LabelPlacement.PinY.Value + (connector.LabelPlacement.Height / 2D), shape.PinY + (shape.Height / 2D) + padding);
+            double left = Math.Max(connector.LabelPlacement.PinX.Value - (connector.LabelPlacement.Width / 2D), shape.PinX.ToInches() - (shape.Width.ToInches() / 2D) - padding);
+            double right = Math.Min(connector.LabelPlacement.PinX.Value + (connector.LabelPlacement.Width / 2D), shape.PinX.ToInches() + (shape.Width.ToInches() / 2D) + padding);
+            double bottom = Math.Max(connector.LabelPlacement.PinY.Value - (connector.LabelPlacement.Height / 2D), shape.PinY.ToInches() - (shape.Height.ToInches() / 2D) - padding);
+            double top = Math.Min(connector.LabelPlacement.PinY.Value + (connector.LabelPlacement.Height / 2D), shape.PinY.ToInches() + (shape.Height.ToInches() / 2D) + padding);
             return right > left && top > bottom;
         }
     }

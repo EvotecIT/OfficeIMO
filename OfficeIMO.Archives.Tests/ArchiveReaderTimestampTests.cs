@@ -16,7 +16,7 @@ namespace OfficeIMO.Archives.Tests {
             if (nested) bytes = CreateZip("nested.zip", bytes, out _);
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers().AddZipHandler().Build();
             using var input = new MemoryStream(bytes);
-            var chunk = Assert.Single(reader.Read(input, "input.zip", new() { ComputeHashes = false }));
+            var chunk = Assert.Single(reader.Enumerate(input, "input.zip", new() { ComputeHashes = false }));
             Assert.Equal(expected, chunk.SourceLastWriteUtc);
             Assert.EndsWith("::test.txt", chunk.Location.Path);
             Assert.Equal(corrupt, chunk.Warnings?.Any() ?? false);
@@ -28,7 +28,7 @@ namespace OfficeIMO.Archives.Tests {
             var reader = new OfficeDocumentReaderBuilder().AddPlainTextHandlers()
                 .AddZipHandler(readerZipOptions: new() { ReadNestedZipEntries = false }).Build();
             using var input = new MemoryStream(bytes);
-            var chunk = Assert.Single(reader.Read(input, "input.zip", new() { ComputeHashes = false }));
+            var chunk = Assert.Single(reader.Enumerate(input, "input.zip", new() { ComputeHashes = false }));
             Assert.Equal(expected, chunk.SourceLastWriteUtc);
             Assert.NotEmpty(chunk.Warnings!);
             Assert.EndsWith("::nested.zip", chunk.Location.Path);

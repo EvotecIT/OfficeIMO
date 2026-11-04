@@ -33,7 +33,7 @@ public class ImageAndTextBoxTests {
     public async Task WrappedImageDocument() {
         using var document = WordDocument.Create();
         var paragraph = document.AddParagraph("Wrapped image");
-        var image = paragraph.AddImage(GetSampleImagePath(), OfficeIMO.OfficeLength.Pixels(90), OfficeIMO.OfficeLength.Pixels(45), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Wrapped sample image" });
+        var image = paragraph.AddImage(GetSampleImagePath(), OfficeIMO.OfficeLength.Pixels(90), OfficeIMO.OfficeLength.Pixels(45), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = "Wrapped sample image" });
         image.Title = "Wrapped title";
         image.horizontalPosition = new DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalPosition() {
             RelativeFrom = DocumentFormat.OpenXml.Drawing.Wordprocessing.HorizontalRelativePositionValues.Page,
@@ -50,11 +50,9 @@ public class ImageAndTextBoxTests {
     [Fact]
     public async Task HeaderImageDocument() {
         using var document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-
-        var defaultHeader = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        var defaultHeader = document.Sections[0].PageSetup.Header;
         var headerParagraph = defaultHeader.AddParagraph("Header image");
-        var image = headerParagraph.AddImage(GetSampleImagePath(), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(64), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = "Header image" });
+        var image = headerParagraph.AddImage(GetSampleImagePath(), OfficeIMO.OfficeLength.Pixels(64), OfficeIMO.OfficeLength.Pixels(64), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = "Header image" });
         image.Title = "Header logo";
 
         await Verifier.Verify(document);
@@ -76,9 +74,7 @@ public class ImageAndTextBoxTests {
     [Fact]
     public async Task HeaderTextBoxDocument() {
         using var document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-
-        var defaultHeader = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        var defaultHeader = document.Sections[0].PageSetup.Header;
         var textBox = defaultHeader.AddTextBox("Header textbox", WordImageTextWrapping.Square);
         textBox.AutoFit = WordTextBoxAutoFitType.ResizeShapeToFitText;
         textBox.HorizontalAlignment = WordTextBoxHorizontalAlignment.Right;

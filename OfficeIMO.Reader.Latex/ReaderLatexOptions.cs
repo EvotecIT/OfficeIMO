@@ -9,19 +9,19 @@ public sealed class ReaderLatexOptions {
     /// <summary>Native parse options.</summary>
     public LatexParseOptions ParseOptions { get; set; } = new LatexParseOptions();
     /// <summary>Markdown projection options.</summary>
-    public LatexToMarkdownOptions MarkdownOptions { get; set; } = new LatexToMarkdownOptions();
+    public LatexMarkdownExportOptions MarkdownOptions { get; set; } = new LatexMarkdownExportOptions();
 }
 
 internal static class ReaderLatexOptionsCloner {
     internal static ReaderLatexOptions Clone(ReaderLatexOptions? options) {
         ReaderLatexOptions source = options ?? new ReaderLatexOptions();
         LatexParseOptions parse = source.ParseOptions ?? new LatexParseOptions();
-        LatexToMarkdownOptions markdown = source.MarkdownOptions ?? new LatexToMarkdownOptions();
+        LatexMarkdownExportOptions markdown = source.MarkdownOptions ?? new LatexMarkdownExportOptions();
         return new ReaderLatexOptions {
             ChunkByBlock = source.ChunkByBlock,
             IncludeDiagnostics = source.IncludeDiagnostics,
             ParseOptions = parse.Clone(),
-            MarkdownOptions = new LatexToMarkdownOptions {
+            MarkdownOptions = new LatexMarkdownExportOptions {
                 PreserveUnsupportedAsSource = markdown.PreserveUnsupportedAsSource,
                 IncludePreambleAsFrontMatter = markdown.IncludePreambleAsFrontMatter
             }

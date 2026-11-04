@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Second slide", presentation.Slides[0].TextBoxes.First().Text);
                     Assert.Equal("Notes text", presentation.Slides[1].Notes.Text);
                     Assert.Single(presentation.Slides[1].Tables);
-                    presentation.Slides[1].ReplaceText("Canonical", "Edited");
+                    presentation.Slides[1].ReplaceAll("Canonical", "Edited");
                     presentation.Save();
                 }
 
@@ -40,6 +40,22 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
+        }
+
+        [Fact]
+        public void ReplaceAllIgnoresCaseByDefaultAndHonoursMatchCaseAcrossTextboxesAndTables() {
+            using PowerPointDocument presentation = PowerPointDocument.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            PowerPointTextBox box = slide.AddTextBox("Draft and DRAFT");
+            PowerPointTableCell cell = slide.AddTable(1, 1).GetCell(0, 0);
+            cell.Text = "draft";
+
+            Assert.Equal(1, presentation.ReplaceAll("draft", "Final", new PowerPointTextSearchOptions { MatchCase = true }));
+            Assert.Equal("Draft and DRAFT", box.Text);
+            Assert.Equal("Final", cell.Text);
+
+            Assert.Equal(2, presentation.ReplaceAll("draft", "Final"));
+            Assert.Equal("Final and Final", box.Text);
         }
     }
 }

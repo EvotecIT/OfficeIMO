@@ -8,10 +8,10 @@ namespace OfficeIMO.Html.Tests;
 public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     [Fact]
     public void OversizedTableFallbackHonorsSourceFieldLimit() {
-        var limits = HtmlImportLimits.CreateDefault();
+        var limits = new HtmlImportLimits();
         limits.MaxMetadataCharacters = 256;
         var result = HtmlConversionDocument.Parse("<table><tr><td>ForbiddenMarker " + new string('x', 2000) + "</td></tr></table>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false, Limits = limits });
         using var document = result.RequireValue();
         Assert.DoesNotContain(document.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("ForbiddenMarker"));
         Assert.Contains(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.SemanticMetadataLimitExceeded);
@@ -23,10 +23,10 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
     public void EmptyAuthoredRowKeepsPaginatedTablesAndCellLinks(bool trailingEmptyRow) {
         string rows = string.Concat(Enumerable.Range(1, 20).Select(i => "<tr><td><a href='https://example.test/row'>Row " + i + "</a></td></tr>"));
         var result = HtmlConversionDocument.Parse("<table><tr><th>Name</th></tr><tr></tr>" + rows + (trailingEmptyRow ? "<tr></tr>" : "") + "</table>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using var document = result.RequireValue();
         Assert.True(result.Tables > 1);
-        Assert.DoesNotContain(result.Report.Diagnostics, item => item.Detail?.Contains("projection=paginatedText") == true);
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, item => item.Detail?.Contains("projection=paginatedText") == true);
         using var stream = new MemoryStream();
         document.Save(stream);
         stream.Position = 0;
@@ -44,8 +44,8 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + "<section><p>Key points remain editable.</p></section>"
             + "<section><p>Terms remain editable.</p></section></main>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(2, presentation.Slides.Count);
@@ -73,8 +73,8 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + " <a href='https://example.org/source'>source measurements</a> " + closing
             + "</p><p>Following paragraph remains visible.</p></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
         Assert.True(presentation.Slides.Count >= 3);
@@ -130,8 +130,8 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + string.Concat(Enumerable.Range(1, 5).Select(index => "<p>Section " + index + ": " + paragraph + "</p>"))
             + "</article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Equal(5, presentation.Slides.SelectMany(slide => slide.TextBoxes)
@@ -158,14 +158,14 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
                 "<li>Measurement " + index + " recorded from the field team.</li>"))
             + "</ul></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
         Assert.True(presentation.Slides.Count > 1);
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
             box => box.Text.Contains("Measurement 25", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("block=List; projection=paginatedText", StringComparison.Ordinal) == true);
         Assert.DoesNotContain(presentation.InspectPreflight(new PowerPointDeckPreflightOptions {
@@ -182,14 +182,14 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + string.Concat(Enumerable.Range(1, 18).Select(index => "<p>Entry " + index + "</p>"))
             + "<p>Illustration <img src='" + image + "' alt='Field diagram'></p></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
         Assert.True(result.Slides >= 3);
         Assert.Equal(18, presentation.Slides.Sum(slide =>
             slide.TextBoxes.Count(box => box.Text.StartsWith("Entry ", StringComparison.Ordinal))));
-        Assert.Equal(1, presentation.Slides.Sum(slide => slide.Pictures.Count()));
+        Assert.Equal(1, presentation.Slides.Sum(slide => slide.Images.Count()));
         Assert.All(presentation.Slides, slide => Assert.All(slide.Shapes, shape => {
             Assert.True(shape.Bounds.Left >= OfficeLength.Zero && shape.Bounds.Top >= OfficeLength.Zero);
             Assert.True(shape.Bounds.Right <= presentation.SlideSize.Width);
@@ -203,7 +203,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             new PowerPointLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
         Assert.Equal(presentation.Slides.Count, reopened.Slides.Count);
         Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "Entry 18");
-        Assert.Equal(1, reopened.Slides.Sum(slide => slide.Pictures.Count()));
+        Assert.Equal(1, reopened.Slides.Sum(slide => slide.Images.Count()));
     }
 
     [Fact]
@@ -211,11 +211,11 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         string html = "<article><h1>Field notes</h1>"
             + string.Concat(Enumerable.Range(1, 18).Select(index => "<p>Entry " + index + "</p>"))
             + "</article>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxSemanticContainers = 2;
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits,
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits,
                 ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
@@ -231,8 +231,8 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         string html = "<article><h1>Gallery</h1><table><tr><td><a href='https://example.org/gallery'>Gallery source</a> " + cellText
             + "</td></tr></table><p>After gallery</p></article>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, ImportEditableLayoutRegions = false });
         using PowerPointDocument presentation = result.Value;
 
         Assert.True(presentation.Slides.Count > 1);
@@ -240,10 +240,10 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
             box.Text.Contains("Gallery entry with a description", StringComparison.Ordinal));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text == "After gallery");
-        Assert.Contains(result.Report.Diagnostics, item =>
+        Assert.Contains(result.Report.NativeDiagnostics, item =>
             item.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && item.Detail?.Contains("projection=paginatedText", StringComparison.Ordinal) == true);
-        Assert.Contains(result.Report.Diagnostics, item =>
+        Assert.Contains(result.Report.NativeDiagnostics, item =>
             item.Code == HtmlConversionDiagnosticCodes.ContentOmitted
             && item.Detail?.Contains("hyperlinkRuns=", StringComparison.Ordinal) == true);
     }
@@ -256,7 +256,7 @@ public sealed class HtmlOfficeAdaptersPowerPointGenericPaginationTests {
             + "Second section region</section>";
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(first + second)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
         Assert.True(presentation.Slides.Count >= 3);

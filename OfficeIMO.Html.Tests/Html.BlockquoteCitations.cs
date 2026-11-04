@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BlockquoteWithCitationCreatesFootnote() {
             string html = "<blockquote cite=\"https://example.com\"><p>First</p><p>Second</p></blockquote>";
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
             Assert.Equal("First", doc.Paragraphs[0].Text);
             Assert.Contains(doc.Paragraphs, p => p.Text == "Second");
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BlockquoteCitationDoesNotLinkRejectedFileUrl() {
             string html = "<blockquote cite=\"file:///C:/temp/doc.txt\"><p>Quoted</p></blockquote>";
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
             var footNotes = doc.FootNotes;
             Assert.NotNull(footNotes);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BlockquoteCitationLinksProtocolRelativeUrl() {
             string html = "<blockquote cite=\"//example.com/source\"><p>Quoted</p></blockquote>";
-            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
             var footNotes = doc.FootNotes;
             Assert.NotNull(footNotes);
@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BlockquoteCitationRoundTripsAsCiteAttribute() {
             string html = "<blockquote cite=\"https://example.com/source\"><p>Quoted text</p></blockquote>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
             string roundTrip = doc.ToHtml(new WordHtmlExportOptions { ExportFootnotes = true });
 
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void BlockquoteCitationSurvivesSavedDocumentRoundTrip() {
             string html = "<blockquote cite=\"https://example.com/persisted\"><p>Persisted quote</p></blockquote>";
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
             using MemoryStream packageStream = new System.IO.MemoryStream(doc.ToBytes());
             using var loaded = WordDocument.Load(packageStream);
 

@@ -22,8 +22,8 @@ internal readonly struct VisioTextFramePlacement {
     internal static VisioTextFramePlacement Resolve(VisioShape shape, double drawingToPhysical, VisioNativeShapeTransform? nativeTransform = null) {
         VisioNativeShapeTransform transform = nativeTransform ?? VisioNativeShapeTransform.Create(shape);
         VisioTextStyle? style = shape.TextStyle;
-        double width = style?.TextWidth ?? shape.Width;
-        double height = style?.TextHeight ?? shape.Height;
+        double width = style?.TextWidth ?? shape.WidthInches;
+        double height = style?.TextHeight ?? shape.HeightInches;
         // Text-block margins are physical inches even on a scaled drawing. Convert them
         // before composing the inset with the cached drawing-unit frame and local pins.
         double left = (style?.LeftMargin ?? 0.05D) / drawingToPhysical, right = (style?.RightMargin ?? 0.05D) / drawingToPhysical;
@@ -36,8 +36,8 @@ internal readonly struct VisioTextFramePlacement {
         // local axes, rotate by TxtAngle, and finally add TxtPin before going to page.
         OfficePoint rotated = OfficeTransform.Scale(transform.FlipX ? -1 : 1, transform.FlipY ? -1 : 1)
             .Then(OfficeTransform.RotateDegrees(OfficeGeometry.RadiansToDegrees(angle))).TransformPoint(offset);
-        double x = (style?.TextPinX ?? shape.Width / 2D) + rotated.X;
-        double y = (style?.TextPinY ?? shape.Height / 2D) + rotated.Y;
+        double x = (style?.TextPinX ?? shape.WidthInches / 2D) + rotated.X;
+        double y = (style?.TextPinY ?? shape.HeightInches / 2D) + rotated.Y;
         OfficePoint center = transform.PagePoint(x, y);
         return new VisioTextFramePlacement(center.X, center.Y, width - left - right, height - top - bottom, transform.TextAngle(angle));
     }

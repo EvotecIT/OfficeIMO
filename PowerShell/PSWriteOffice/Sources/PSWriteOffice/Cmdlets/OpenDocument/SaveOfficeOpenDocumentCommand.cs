@@ -38,7 +38,7 @@ public sealed class SaveOfficeOpenDocumentCommand : PSCmdlet {
         OpenDocumentCommandUtilities.ValidateOpenDocumentExtension(output, Document.Kind, nameof(Path));
         if (!ShouldProcess(output, "Save OpenDocument package")) return;
         if (FailOnLoss.IsPresent) {
-            Document.Serialize(Options).RequireNoLoss();
+            Document.Serialize(Options).ThrowIfLoss();
         }
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
         var result = Document.Save(output, Options);

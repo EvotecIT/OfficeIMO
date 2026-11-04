@@ -29,16 +29,15 @@ public sealed class IWorkNumbersCellEditingTests {
         Assert.Equal(tables[0].GetCell(2, 2)!.NumberFormat!.DecimalPlaces, data.GetCell(2, 2)!.NumberFormat!.DecimalPlaces);
         Assert.Equal(tables[0].GetPadding(2, 2)!.LeftPoints, data.GetPadding(2, 2)!.LeftPoints);
         Assert.Equal(tables[0].GetPadding(2, 2)!.BottomPoints, data.GetPadding(2, 2)!.BottomPoints);
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(new MemoryStream(result.GetPackageBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(converted.Report.Diagnostics, item => item.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED");
         using var stream = new MemoryStream(); converted.Value.Save(stream); stream.Position = 0;
         using var reopened = ExcelDocument.Load(stream);
         Assert.Equal(3, reopened.Sheets.Count); Assert.Empty(reopened.ValidateOpenXml());
-        Assert.Equal(42.125, reopened.Sheets[0].CellAt(2, 2).GetValue<double>());
-        Assert.False(reopened.Sheets[0].CellAt(2, 3).GetValue<bool>());
-        Assert.Equal(123.75, reopened.Sheets[1].CellAt(1, 2).GetValue<double>());
-        Assert.True(reopened.Sheets[1].CellAt(2, 1).GetValue<bool>());
+        Assert.Equal(42.125, reopened.Sheets[0].Cell(2, 2).GetValue<double>());
+        Assert.False(reopened.Sheets[0].Cell(2, 3).GetValue<bool>());
+        Assert.Equal(123.75, reopened.Sheets[1].Cell(1, 2).GetValue<double>());
+        Assert.True(reopened.Sheets[1].Cell(2, 1).GetValue<bool>());
     }
 
     [Fact]

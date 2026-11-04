@@ -11,52 +11,47 @@ using System.Threading;
 using System.Threading.Tasks;
 #endif
 using OfficeIMO.CSV;
+using OfficeIMO.Data;
 using Xunit;
 
 namespace OfficeIMO.CSV.Tests;
 
 public sealed class CsvDataReaderApiTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenReader_CombinesParsingAndTypedProjectionOptions(bool parallel) {
+        using var text = new StringReader("Id;Name\n1;Ada\n2;Jan\n");
+        using CsvDataReader reader = CsvDocument.OpenReader(text, new CsvReaderOptions {
+            Delimiter = ';',
+            InferSchema = true,
+            SchemaSampleRows = 2,
+            ParallelProcessing = parallel
+                ? new CsvDataReaderParallelOptions { MaxDegreeOfParallelism = 2, BatchSize = 1 }
+                : null
+        });
+
+        Assert.Equal(';', reader.Delimiter);
+        Assert.Equal(typeof(int), reader.GetFieldType(0));
+        Assert.Equal(new[] { 1, 2 }, reader.RowsAs(factory: row => row.GetInt32(0)).ToArray());
+    }
+
     [Fact]
-    public void DataReaderApi_UsesOpenForSourcesAndCreateForLoadedDocuments() {
-        Assert.DoesNotContain(
-            typeof(CsvDocument).Assembly.GetExportedTypes(),
-            static type => type.Name.EndsWith("DataReader", StringComparison.Ordinal));
-
-        MethodInfo[] methods = typeof(CsvDocument).GetMethods(
-            BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
-
-        Assert.Contains(methods, static method =>
-            method.Name == "OpenDataReader"
-            && method.IsStatic
-            && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(string)
-            && method.ReturnType == typeof(DbDataReader));
-        Assert.Contains(methods, static method =>
-            method.Name == "OpenDataReader"
-            && method.IsStatic
-            && method.GetParameters().FirstOrDefault()?.ParameterType == typeof(Stream)
-            && method.ReturnType == typeof(DbDataReader));
-        Assert.Contains(methods, static method =>
-            method.Name == "CreateDataReader"
-            && !method.IsStatic
-            && method.ReturnType == typeof(DbDataReader));
-        Assert.DoesNotContain(methods, static method =>
-            method.Name == "CreateDataReader" && method.IsStatic);
-        Assert.DoesNotContain(
-            typeof(CsvDocument).Assembly.GetExportedTypes(),
+    public void LoadedDocumentKeepsItsStreamingModeInternal() {
+        Assert.DoesNotContain(typeof(CsvDocument).Assembly.GetExportedTypes(),
             static type => type.Name == "CsvLoadMode");
-        Assert.Null(typeof(CsvLoadOptions).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
+        Assert.Null(typeof(CsvReaderOptions).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
         Assert.Null(typeof(CsvDocument).GetProperty("Mode", BindingFlags.Public | BindingFlags.Instance));
     }
 
 #if NET8_0_OR_GREATER
     [Fact]
-    public async Task OpenDataReaderAsyncUsesAsyncIoAndReturnsIncrementalCursor() {
+    public async Task OpenReaderAsyncUsesAsyncIoAndReturnsIncrementalCursor() {
         byte[] bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alpha\n2,Beta\n");
         await using var stream = new AsyncOnlyReadStream(bytes);
 
-        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
-            stream,
-            readerOptions: new CsvDataReaderOptions { InferSchema = true });
+        using DbDataReader reader = await CsvDocument.OpenReaderAsync(stream,
+            options: new CsvReaderOptions { InferSchema = true });
 
         Assert.True(stream.AsyncReadCount > 0);
         Assert.True(await reader.ReadAsync(CancellationToken.None));
@@ -69,16 +64,14 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public async Task OpenDataReaderAsyncReadsFromCurrentSeekablePositionAndAdvancesIt() {
+    public async Task OpenReaderAsyncReadsFromCurrentSeekablePositionAndAdvancesIt() {
         byte[] prefix = Encoding.UTF8.GetBytes("ignored-prefix");
         byte[] payload = Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n");
         using var stream = new MemoryStream(prefix.Concat(payload).ToArray());
         stream.Position = prefix.Length;
 
-        using DbDataReader reader = await CsvDocument.OpenDataReaderAsync(
-            stream,
-            new CsvLoadOptions { MaxInputBytes = payload.Length },
-            new CsvDataReaderOptions { InferSchema = true });
+        using DbDataReader reader = await CsvDocument.OpenReaderAsync(stream,
+            options: new CsvReaderOptions { MaxInputBytes = payload.Length, InferSchema = true });
 
         Assert.True(stream.Position > prefix.Length);
         Assert.Equal("Id", reader.GetName(0));
@@ -106,12 +99,10 @@ public sealed class CsvDataReaderApiTests {
 #endif
 
     [Fact]
-    public void OpenDataReader_StreamSupportsTypedGettersAndLeavesStreamOpen() {
+    public void OpenReader_StreamSupportsTypedGettersAndLeavesStreamOpen() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
-        using (DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream },
-            new CsvDataReaderOptions { InferSchema = true })) {
+        using (DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions { Mode = CsvLoadMode.Stream, InferSchema = true })) {
             Assert.True(reader.Read());
             Assert.Equal(1, reader.GetInt32(0));
             Assert.Equal("Ada", reader.GetString(1));
@@ -122,13 +113,13 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_HandlesQuotedMultilineEscapedAndLongFields() {
+    public void OpenReader_HandlesQuotedMultilineEscapedAndLongFields() {
         string longValue = new('x', 200_000);
         string csv = "Id,Description,LongValue\n"
             + "1,\"line one\nline \"\"two\"\"\",\"" + longValue + "\"\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv));
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+        using DbDataReader reader = CsvDocument.OpenReader(stream);
 
         Assert.True(reader.Read());
         Assert.Equal(1, reader.GetInt32(0));
@@ -138,7 +129,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_DoesNotLeakCrLfAcrossLargeUnquotedBufferBoundaries() {
+    public void OpenReader_DoesNotLeakCrLfAcrossLargeUnquotedBufferBoundaries() {
         var csv = new StringBuilder(5_000_000);
         csv.Append("Id,DisplayName,Score,CreatedUtc\r\n");
         for (int id = 1; id <= 100_000; id++) {
@@ -153,7 +144,7 @@ public sealed class CsvDataReaderApiTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.BufferBoundary.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, csv.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            using DbDataReader reader = CsvDocument.OpenReader(path);
 
             int expectedId = 0;
             while (reader.Read()) {
@@ -170,7 +161,7 @@ public sealed class CsvDataReaderApiTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void OpenDataReader_PathPreservesUtf8FieldsWithOrWithoutPreamble(bool emitPreamble) {
+    public void OpenReader_PathPreservesUtf8FieldsWithOrWithoutPreamble(bool emitPreamble) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Utf8.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(
@@ -178,7 +169,7 @@ public sealed class CsvDataReaderApiTests {
                 "Id,Name,City\r\n1,Zażółć gęślą jaźń,東京\r\n2,😀,München\r\n",
                 new UTF8Encoding(emitPreamble));
 
-            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            using DbDataReader reader = CsvDocument.OpenReader(path);
 
             Assert.True(reader.Read());
             Assert.Equal("1", reader.GetString(0));
@@ -195,12 +186,12 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_PathFallsBackForUtf16Preamble() {
+    public void OpenReader_PathFallsBackForUtf16Preamble() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Utf16.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, "Id,Name\r\n1,Łódź\r\n", Encoding.Unicode);
 
-            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            using DbDataReader reader = CsvDocument.OpenReader(path);
 
             Assert.True(reader.Read());
             Assert.Equal("1", reader.GetString(0));
@@ -212,7 +203,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_PathFallsBackAtOversizedUnquotedRecordBoundary() {
+    public void OpenReader_PathFallsBackAtOversizedUnquotedRecordBoundary() {
         string longValue = new('x', 600_000);
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Oversized.{Guid.NewGuid():N}.csv");
         try {
@@ -221,7 +212,7 @@ public sealed class CsvDataReaderApiTests {
                 "Id,Value\n1,short\n2," + longValue + "\n3,last\n",
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            using DbDataReader reader = CsvDocument.OpenReader(path);
 
             Assert.True(reader.Read());
             Assert.Equal("short", reader.GetString(1));
@@ -236,13 +227,12 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_PathUtf8FastRowsEnforceStrictColumnCount() {
+    public void OpenReader_PathUtf8FastRowsEnforceStrictColumnCount() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Strict.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, "First,Second\n1,2\n3\n", new UTF8Encoding(false));
-            using DbDataReader reader = CsvDocument.OpenDataReader(
-                path,
-                new CsvLoadOptions {
+            using DbDataReader reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions {
                     ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
                 });
 
@@ -256,12 +246,12 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_PathFallbackDoesNotTreatLaterCommentAsPreHeaderComment() {
+    public void OpenReader_PathFallbackDoesNotTreatLaterCommentAsPreHeaderComment() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.CommentData.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, "Value\nfirst\n# literal data\nlast\n", new UTF8Encoding(false));
 
-            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            using DbDataReader reader = CsvDocument.OpenReader(path);
 
             Assert.True(reader.Read());
             Assert.Equal("first", reader.GetString(0));
@@ -278,7 +268,7 @@ public sealed class CsvDataReaderApiTests {
     [Theory]
     [InlineData('\n')]
     [InlineData('\r')]
-    public void OpenDataReader_PathFallsBackForRecordSeparatorDelimiter(char delimiter) {
+    public void OpenReader_PathFallsBackForRecordSeparatorDelimiter(char delimiter) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.RecordSeparatorDelimiter.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(
@@ -286,9 +276,8 @@ public sealed class CsvDataReaderApiTests {
                 $"Name{delimiter}Ada{delimiter}",
                 new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
 
-            using DbDataReader reader = CsvDocument.OpenDataReader(
-                path,
-                new CsvLoadOptions { Delimiter = delimiter });
+            using DbDataReader reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { Delimiter = delimiter });
 
             Assert.Equal(1, reader.FieldCount);
             Assert.Equal("Name", reader.GetName(0));
@@ -301,7 +290,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_PathAlreadyCancelledReleasesFile() {
+    public void OpenReader_PathAlreadyCancelledReleasesFile() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.CancelledPath.{Guid.NewGuid():N}.csv");
         File.WriteAllText(path, "Name\nAda\n", new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
         using var cancellation = new CancellationTokenSource();
@@ -309,9 +298,8 @@ public sealed class CsvDataReaderApiTests {
 
         try {
             Assert.Throws<OperationCanceledException>(() =>
-                CsvDocument.OpenDataReader(
-                    path,
-                    new CsvLoadOptions { CancellationToken = cancellation.Token }));
+                CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { CancellationToken = cancellation.Token }));
 
             File.Delete(path);
             Assert.False(File.Exists(path));
@@ -326,7 +314,7 @@ public sealed class CsvDataReaderApiTests {
     [Theory]
     [InlineData("\n")]
     [InlineData("\r\n")]
-    public void OpenDataReader_ReportsLogicalRecordsAndStreamingPhysicalLines(string newLine) {
+    public void OpenReader_ReportsLogicalRecordsAndStreamingPhysicalLines(string newLine) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Position.{Guid.NewGuid():N}.csv");
         try {
             string csv = string.Join(newLine, new[] {
@@ -338,9 +326,8 @@ public sealed class CsvDataReaderApiTests {
                 "3,three"
             });
             File.WriteAllText(path, csv);
-            using DbDataReader reader = CsvDocument.OpenDataReader(
-                path,
-                new CsvLoadOptions { SkipCommentRows = true });
+            using DbDataReader reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { SkipCommentRows = true });
             ICsvDataReaderPositionMetadata position =
                 Assert.IsAssignableFrom<ICsvDataReaderPositionMetadata>(reader);
 
@@ -373,11 +360,11 @@ public sealed class CsvDataReaderApiTests {
     [Theory]
     [InlineData("\n")]
     [InlineData("\r\n")]
-    public void OpenDataReader_ReportsMultilineEndPositionAtEndOfFile(string newLine) {
+    public void OpenReader_ReportsMultilineEndPositionAtEndOfFile(string newLine) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.PositionEof.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, $"Id,Value{newLine}1,\"first{newLine}second\"");
-            using DbDataReader reader = CsvDocument.OpenDataReader(path);
+            using DbDataReader reader = CsvDocument.OpenReader(path);
             ICsvDataReaderPositionMetadata position =
                 Assert.IsAssignableFrom<ICsvDataReaderPositionMetadata>(reader);
 
@@ -392,13 +379,12 @@ public sealed class CsvDataReaderApiTests {
     [Theory]
     [InlineData("\n")]
     [InlineData("\r\n")]
-    public void OpenDataReader_PreservesPhysicalLinesForReplayedCommentLookahead(string newLine) {
+    public void OpenReader_PreservesPhysicalLinesForReplayedCommentLookahead(string newLine) {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.PositionComment.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, $"Id,Value{newLine}# \"unterminated{newLine}1,one{newLine}");
-            using DbDataReader reader = CsvDocument.OpenDataReader(
-                path,
-                new CsvLoadOptions { SkipCommentRows = true });
+            using DbDataReader reader = CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions { SkipCommentRows = true });
             ICsvDataReaderPositionMetadata position =
                 Assert.IsAssignableFrom<ICsvDataReaderPositionMetadata>(reader);
 
@@ -413,7 +399,7 @@ public sealed class CsvDataReaderApiTests {
 #endif
 
     [Fact]
-    public void OpenDataReader_StringColumnsSupportTypedGettersWithoutSchemaInference() {
+    public void OpenReader_StringColumnsSupportTypedGettersWithoutSchemaInference() {
         Guid identifier = Guid.NewGuid();
         const string csv =
             "Boolean,Byte,Int16,Int32,Int64,Float,Double,Decimal,Date,Guid\n"
@@ -421,7 +407,7 @@ public sealed class CsvDataReaderApiTests {
         using var stream = new MemoryStream(
             Encoding.UTF8.GetBytes(csv + identifier.ToString("D") + "\n"));
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+        using DbDataReader reader = CsvDocument.OpenReader(stream);
 
         Assert.True(reader.Read());
         Assert.True(reader.GetBoolean(0));
@@ -438,9 +424,8 @@ public sealed class CsvDataReaderApiTests {
 
 #if NET6_0_OR_GREATER
     [Fact]
-    public void OpenDataReader_ExplicitDateOnlyAndTimeOnlyGettersPreserveStringSchema() {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Date,Time\n2026-08-06,14:35:12\n");
+    public void OpenReader_ExplicitDateOnlyAndTimeOnlyGettersPreserveStringSchema() {
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Date,Time\n2026-08-06,14:35:12\n"));
 
         Assert.True(reader.Read());
         Assert.Equal(typeof(string), reader.GetFieldType(0));
@@ -451,15 +436,14 @@ public sealed class CsvDataReaderApiTests {
 #endif
 
     [Fact]
-    public void OpenDataReader_SeekableFallbackStartsAtCallerPosition() {
+    public void OpenReader_SeekableFallbackStartsAtCallerPosition() {
         byte[] prefix = Encoding.UTF8.GetBytes("ignored prefix");
         byte[] payload = Encoding.UTF8.GetBytes("Id;Name\n1;Ada\n");
         using var stream = new MemoryStream(prefix.Concat(payload).ToArray());
         stream.Position = prefix.Length;
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                 Mode = CsvLoadMode.Stream,
                 DetectDelimiter = true
             });
@@ -476,12 +460,11 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_ObservesCancellationDuringTraversal() {
+    public void OpenReader_ObservesCancellationDuringTraversal() {
         using var cancellation = new CancellationTokenSource();
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id\n1\n2\n"));
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                 Mode = CsvLoadMode.Stream,
                 CancellationToken = cancellation.Token
             });
@@ -492,7 +475,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_ObservesCancellationWhileScanningLargeRecord() {
+    public void OpenReader_ObservesCancellationWhileScanningLargeRecord() {
         using var cancellation = new CancellationTokenSource();
         byte[] bytes = Encoding.UTF8.GetBytes(
             "Value\n" + new string('x', 600_000) + "\n");
@@ -500,9 +483,8 @@ public sealed class CsvDataReaderApiTests {
             bytes,
             cancellation,
             cancelOnReadCount: 2);
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                 Mode = CsvLoadMode.Stream,
                 CancellationToken = cancellation.Token
             });
@@ -514,7 +496,7 @@ public sealed class CsvDataReaderApiTests {
 
 #if NET8_0_OR_GREATER
     [Fact]
-    public async Task OpenDataReader_ReadAsyncObservesPerCallCancellationWhileScanningLargeRecord() {
+    public async Task OpenReader_ReadAsyncObservesPerCallCancellationWhileScanningLargeRecord() {
         using var cancellation = new CancellationTokenSource();
         byte[] bytes = Encoding.UTF8.GetBytes(
             "Value\n" + new string('x', 600_000) + "\n");
@@ -522,9 +504,8 @@ public sealed class CsvDataReaderApiTests {
             bytes,
             cancellation,
             cancelOnReadCount: 2);
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions { Mode = CsvLoadMode.Stream });
 
         Assert.False(cancellation.IsCancellationRequested);
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -533,7 +514,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public async Task OpenDataReader_ReadAsyncObservesPerCallCancellationOnGeneralParserFallback() {
+    public async Task OpenReader_ReadAsyncObservesPerCallCancellationOnGeneralParserFallback() {
         using var cancellation = new CancellationTokenSource();
         byte[] bytes = Encoding.UTF8.GetBytes(
             "Value\n" + new string('x', 600_000) + "\n");
@@ -541,9 +522,8 @@ public sealed class CsvDataReaderApiTests {
             bytes,
             cancellation,
             cancelOnReadCount: 2);
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                 Mode = CsvLoadMode.Stream,
                 NormalizeQuotes = true
             });
@@ -557,7 +537,7 @@ public sealed class CsvDataReaderApiTests {
     [Fact]
     public void SchemaInferenceMoveNext_PropagatesOperationCancellationToGeneralParser() {
         using var cancellation = new CancellationTokenSource();
-        var options = new CsvLoadOptions { NormalizeQuotes = true };
+        var options = new CsvReaderOptions { NormalizeQuotes = true };
         using var textReader = new CancelingTextReader(
             new string('x', 600_000) + "\n",
             cancellation,
@@ -577,7 +557,7 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public async Task OpenDataReader_ParallelReadAsyncPropagatesPerCallCancellationToSource() {
+    public async Task OpenReader_ParallelReadAsyncPropagatesPerCallCancellationToSource() {
         using var cancellation = new CancellationTokenSource();
         byte[] bytes = Encoding.UTF8.GetBytes(
             "Id,Value\n1," + new string('x', 600_000) + "\n");
@@ -590,16 +570,12 @@ public sealed class CsvDataReaderApiTests {
             .Column("Value").AsString()
             .Done()
             .Build();
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions { Mode = CsvLoadMode.Stream },
-            new CsvDataReaderOptions {
-                Schema = schema,
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions { Mode = CsvLoadMode.Stream, Schema = schema,
                 ParallelProcessing = new CsvDataReaderParallelOptions {
                     MaxDegreeOfParallelism = 2,
                     BatchSize = 1
-                }
-            });
+                } });
 
         Assert.False(cancellation.IsCancellationRequested);
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
@@ -618,7 +594,7 @@ public sealed class CsvDataReaderApiTests {
         document.WithCulture(culture);
         Assert.False(cancellation.IsCancellationRequested);
         Assert.ThrowsAny<OperationCanceledException>(() => document.CreateDataReader(
-            new CsvDataReaderOptions { InferSchema = true }, cancellation.Token));
+            new CsvReaderOptions { InferSchema = true }, cancellation.Token));
         Assert.True(culture.FormatRequests > 0);
     }
 
@@ -637,7 +613,7 @@ public sealed class CsvDataReaderApiTests {
 #endif
 
     [Fact]
-    public void OpenDataReader_NonSeekableFallbackObservesCancellationWhileBuffering() {
+    public void OpenReader_NonSeekableFallbackObservesCancellationWhileBuffering() {
         using var cancellation = new CancellationTokenSource();
         using var stream = new CancelingNonSeekableReadStream(
             Encoding.UTF8.GetBytes("1,Ada\n2,Grace\n"),
@@ -645,9 +621,8 @@ public sealed class CsvDataReaderApiTests {
             maximumReadSize: 4);
 
         Assert.Throws<OperationCanceledException>(() =>
-            CsvDocument.OpenDataReader(
-                stream,
-                new CsvLoadOptions {
+            CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                     Mode = CsvLoadMode.Stream,
                     HasHeaderRow = false,
                     CancellationToken = cancellation.Token
@@ -672,15 +647,14 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_PathRejectsInputBeyondConfiguredLimit() {
+    public void OpenReader_PathRejectsInputBeyondConfiguredLimit() {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Limit.{Guid.NewGuid():N}.csv");
         try {
             File.WriteAllText(path, "Id,Name\n1,Ada\n");
 
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-                CsvDocument.OpenDataReader(
-                    path,
-                    new CsvLoadOptions {
+                CsvDocument.OpenReader(path,
+            options: new CsvReaderOptions {
                         Mode = CsvLoadMode.Stream,
                         MaxInputBytes = 4
                     }));
@@ -692,14 +666,13 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_SeekableStreamRejectsUnreadInputBeyondConfiguredLimit() {
+    public void OpenReader_SeekableStreamRejectsUnreadInputBeyondConfiguredLimit() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Ada\n"));
         stream.Position = 3;
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            CsvDocument.OpenDataReader(
-                stream,
-                new CsvLoadOptions {
+            CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                     Mode = CsvLoadMode.Stream,
                     MaxInputBytes = 4
                 }));
@@ -710,14 +683,14 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_DefaultSeekableStreamReturnsBeforeReadingToEnd() {
+    public void OpenReader_DefaultSeekableStreamReturnsBeforeReadingToEnd() {
         var csv = new StringBuilder("Id,Name\n");
         for (int index = 0; index < 100_000; index++) {
             csv.Append(index).Append(",Value").Append(index).Append('\n');
         }
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+        using DbDataReader reader = CsvDocument.OpenReader(stream);
 
         Assert.True(stream.Position < stream.Length);
         Assert.True(reader.Read());
@@ -726,16 +699,15 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_SuppliedLoadOptionsCannotDisableStreaming() {
+    public void OpenReader_SuppliedLoadOptionsCannotDisableStreaming() {
         var csv = new StringBuilder("Id,Name\n");
         for (int index = 0; index < 100_000; index++) {
             csv.Append(index).Append(",Value").Append(index).Append('\n');
         }
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv.ToString()));
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            stream,
-            new CsvLoadOptions {
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions {
                 Mode = CsvLoadMode.InMemory,
                 Culture = System.Globalization.CultureInfo.InvariantCulture
             });
@@ -747,11 +719,11 @@ public sealed class CsvDataReaderApiTests {
     }
 
     [Fact]
-    public void OpenDataReader_DefaultNonSeekableStreamReturnsBeforeReadingToEnd() {
+    public void OpenReader_DefaultNonSeekableStreamReturnsBeforeReadingToEnd() {
         using var stream = new SingleChunkNonSeekableReadStream(
             Encoding.UTF8.GetBytes("# metadata\nId,Name\n1,Ada\n"));
 
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream);
+        using DbDataReader reader = CsvDocument.OpenReader(stream);
 
         Assert.Equal(1, stream.ReadCount);
         Assert.True(reader.Read());

@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package,
             IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableCatalogEntries = 1 });
+            new IWorkReadOptions { MaxTableCatalogEntries = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             source.ReadNumbers());
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_internal_slide_links_round_trip_for_shapes_runs_and_notes() {
         using MemoryStream package = CreateKeynotePackageWithInternalSlideLinks();
 
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package);
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Slides.Count);

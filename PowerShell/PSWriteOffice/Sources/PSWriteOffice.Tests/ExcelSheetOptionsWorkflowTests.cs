@@ -18,8 +18,8 @@ public sealed class ExcelSheetOptionsWorkflowTests {
         using var book = ExcelDocument.Create();
         var numericName = book.AddSheet("2");
         var lookup = book.AddSheet("Lookups");
-        numericName.CellValue(1, 1, "Keep first data");
-        lookup.CellValue(1, 1, "Keep lookup data");
+        numericName.Cell(1, 1).SetValue("Keep first data");
+        lookup.Cell(1, 1).SetValue("Keep lookup data");
         var other = expected == "2" ? lookup : numericName;
         book.SetActiveWorksheet(other);
         using var runspace = Open(book);
@@ -31,8 +31,8 @@ public sealed class ExcelSheetOptionsWorkflowTests {
         using var bytes = Save(book);
         using var saved = ExcelDocument.Load(bytes);
         Assert.True(saved[expected].VeryHidden);
-        Assert.Equal("Keep first data", saved["2"].CellAt(1, 1).GetValue<string>());
-        Assert.Equal("Keep lookup data", saved["Lookups"].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Keep first data", saved["2"].Cell(1, 1).GetValue<string>());
+        Assert.Equal("Keep lookup data", saved["Lookups"].Cell(1, 1).GetValue<string>());
         bytes.Position = 0;
         using var package = SpreadsheetDocument.Open(bytes, false);
         var nativeSheet = package.WorkbookPart!.Workbook!.Sheets!.Elements<Sheet>().Single(sheet => sheet.Name!.Value == expected);

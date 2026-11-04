@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// neighbours the text reaches. Coordinates are unscaled points from the table's left edge.
         /// </summary>
         private sealed class WorksheetTextOverflow {
-            public WorksheetTextOverflow(int row, int column, double x, double width, PdfCore.PdfColumnAlign alignment) {
+            public WorksheetTextOverflow(int row, int column, double x, double width, global::OfficeIMO.OfficeAlignment alignment) {
                 Row = row;
                 Column = column;
                 X = x;
@@ -20,7 +20,7 @@ namespace OfficeIMO.Excel.Pdf {
             public int Column { get; }
             public double X { get; }
             public double Width { get; }
-            public PdfCore.PdfColumnAlign Alignment { get; }
+            public global::OfficeIMO.OfficeAlignment Alignment { get; }
         }
 
         private sealed class WorksheetSceneTextPlan {
@@ -98,17 +98,17 @@ namespace OfficeIMO.Excel.Pdf {
             double needed,
             double virtualRightRoom,
             ExcelCellStyleInfo? style) {
-            PdfCore.PdfColumnAlign? alignment = GetOverflowAlignment(style?.HorizontalAlignment);
+            global::OfficeIMO.OfficeAlignment? alignment = GetOverflowAlignment(style?.HorizontalAlignment);
             if (!alignment.HasValue) return;
             double cellLeft = columnLeft[column];
             double cellRight = columnLeft[column + 1];
             double left = cellLeft;
             double right = cellRight;
             switch (alignment.Value) {
-                case PdfCore.PdfColumnAlign.Left:
+                case global::OfficeIMO.OfficeAlignment.Left:
                     right = cellRight + MeasureOverflowRoom(data, row, column, columns, columnLeft, +1, needed, virtualRightRoom);
                     break;
-                case PdfCore.PdfColumnAlign.Right:
+                case global::OfficeIMO.OfficeAlignment.Right:
                     left = cellLeft - MeasureOverflowRoom(data, row, column, columns, columnLeft, -1, needed, 0D);
                     break;
                 default:
@@ -165,17 +165,17 @@ namespace OfficeIMO.Excel.Pdf {
             return true;
         }
 
-        private static PdfCore.PdfColumnAlign? GetOverflowAlignment(string? alignment) {
+        private static global::OfficeIMO.OfficeAlignment? GetOverflowAlignment(string? alignment) {
             switch (alignment?.Trim().ToLowerInvariant()) {
                 case null:
                 case "":
                 case "general":
                 case "left":
-                    return PdfCore.PdfColumnAlign.Left;
+                    return global::OfficeIMO.OfficeAlignment.Left;
                 case "right":
-                    return PdfCore.PdfColumnAlign.Right;
+                    return global::OfficeIMO.OfficeAlignment.Right;
                 case "center":
-                    return PdfCore.PdfColumnAlign.Center;
+                    return global::OfficeIMO.OfficeAlignment.Center;
                 default:
                     // Fill, justify, distributed and centre-across-selection never spill.
                     return null;
@@ -277,7 +277,7 @@ namespace OfficeIMO.Excel.Pdf {
                     CellPaddingY = OfficeLength.Points(0D),
                     ColumnWidths = new List<OfficeLength?> { OfficeLength.Points(width) },
                     FixedRowHeights = new List<OfficeLength?> { OfficeLength.Points(height) },
-                    Alignments = new List<PdfCore.PdfColumnAlign> { overflow.Alignment },
+                    Alignments = new List<global::OfficeIMO.OfficeAlignment> { overflow.Alignment },
                     VerticalAlignments = new List<PdfCore.PdfCellVerticalAlign> { verticalAlignment },
                     MinRowHeight = OfficeLength.Points(0D),
                     PreserveWidth = true,

@@ -20,7 +20,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(32D, Assert.Single(text, item => item.Text == "H").Font.Size, 3);
         Assert.All(text.Where(item => item.Text != "H"), item => Assert.Equal(16D, item.Font.Size, 3));
         Assert.Equal(html, document.SourceHtml);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         AssertInlineTransformText(content, "HVisible");
     }
 
@@ -154,7 +154,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(actualBox.Width > spaceBox.Width);
         Assert.True(actualBox.Height < spaceBox.Height);
         Assert.Contains(FirstLetterText(rendered), item => item.Text == "A\u00a0B");
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
         AssertInlineTransformText(wrapper + content, "A\u00a0Bafter");
     }
 

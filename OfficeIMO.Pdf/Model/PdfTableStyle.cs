@@ -5,8 +5,8 @@ namespace OfficeIMO.Pdf;
 /// Attach an instance to a table block or use the presets in <see cref="PdfTableStyles"/>.
 /// </summary>
 public partial class PdfTableStyle {
-    private PdfAlign _captionAlign = PdfAlign.Left;
-    private System.Collections.Generic.List<PdfColumnAlign>? _alignments;
+    private OfficeAlignment _captionAlign = OfficeAlignment.Left;
+    private System.Collections.Generic.List<OfficeAlignment>? _alignments;
     private System.Collections.Generic.List<PdfCellVerticalAlign>? _verticalAlignments;
     private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _columnWidths;
     private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _columnMinWidths;
@@ -18,7 +18,7 @@ public partial class PdfTableStyle {
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellIcon>? _cellIcons;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellBorder>? _cellBorders;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellPadding>? _cellPaddings;
-    private System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? _cellAlignments;
+    private System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>? _cellAlignments;
     private System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>? _cellVerticalAlignments;
     private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _rowMinHeights;
     private System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>? _fixedRowHeights;
@@ -288,7 +288,7 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Optional per-cell horizontal alignment overrides keyed by zero-based row and column.</summary>
-    public System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? CellAlignments {
+    public System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>? CellAlignments {
         get => _cellAlignments;
         set {
             if (value == null) {
@@ -296,14 +296,13 @@ public partial class PdfTableStyle {
                 return;
             }
 
-            var alignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>();
+            var alignments = new System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>();
             foreach (var cellAlignment in value) {
                 if (cellAlignment.Key.Row < 0 || cellAlignment.Key.Column < 0) {
                     throw new System.ArgumentException("Table cell alignment coordinates cannot be negative.", nameof(CellAlignments));
                 }
 
-                Guard.TableColumnAlign(cellAlignment.Value, nameof(CellAlignments));
-                alignments[cellAlignment.Key] = cellAlignment.Value;
+                alignments[cellAlignment.Key] = Guard.TableColumnAlign(cellAlignment.Value, nameof(CellAlignments));
             }
 
             _cellAlignments = alignments;
@@ -542,10 +541,10 @@ public partial class PdfTableStyle {
     /// <summary>Optional alternate text attached to the tagged PDF table structure. This is not rendered visibly.</summary>
     public string? AlternativeText { get; set; }
     /// <summary>Caption alignment inside the rendered table width.</summary>
-    public PdfAlign CaptionAlign {
+    public OfficeAlignment CaptionAlign {
         get => _captionAlign;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(CaptionAlign), "Table caption");
+            value = Guard.LeftCenterRightAlign(value, nameof(CaptionAlign), "Table caption");
             _captionAlign = value;
         }
     }
@@ -615,16 +614,10 @@ public partial class PdfTableStyle {
         }
     }
     /// <summary>Optional per-column alignment; defaults to Left.</summary>
-    public System.Collections.Generic.List<PdfColumnAlign>? Alignments {
+    public System.Collections.Generic.List<OfficeAlignment>? Alignments {
         get => _alignments;
         set {
-            if (value != null) {
-                foreach (var alignment in value) {
-                    Guard.TableColumnAlign(alignment, nameof(Alignments));
-                }
-            }
-
-            _alignments = value == null ? null : new System.Collections.Generic.List<PdfColumnAlign>(value);
+            _alignments = value?.ConvertAll(alignment => Guard.TableColumnAlign(alignment, nameof(Alignments)));
         }
     }
     /// <summary>Optional per-column vertical alignment; defaults to Top.</summary>
@@ -798,9 +791,9 @@ public partial class PdfTableStyle {
             }
         }
         clone.CellHeaderScopes = CellHeaderScopes;
-        if (CellAlignments != null) clone.CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>(CellAlignments);
+        if (CellAlignments != null) clone.CellAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>(CellAlignments);
         if (CellVerticalAlignments != null) clone.CellVerticalAlignments = new System.Collections.Generic.Dictionary<(int Row, int Column), PdfCellVerticalAlign>(CellVerticalAlignments);
-        if (Alignments != null) clone.Alignments = new System.Collections.Generic.List<PdfColumnAlign>(Alignments);
+        if (Alignments != null) clone.Alignments = new System.Collections.Generic.List<OfficeAlignment>(Alignments);
         if (VerticalAlignments != null) clone.VerticalAlignments = new System.Collections.Generic.List<PdfCellVerticalAlign>(VerticalAlignments);
         if (ColumnWidths != null) clone.ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnWidths);
         if (ColumnMinWidths != null) clone.ColumnMinWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?>(ColumnMinWidths);

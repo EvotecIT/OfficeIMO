@@ -33,7 +33,7 @@ public partial class Word {
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(-2000), actual.TableIndentation);
         var border = actual.GetBorderProperties(WordTableBorderSide.Top);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.25), border.Size);
-        Assert.Equal("FF0000", border.ColorHex);
+        Assert.Equal(OfficeColor.Parse("FF0000"), border.Color);
         TableProperties native = loaded.Tables[0]._tableProperties!;
         Assert.Equal("1", native.TableCellMarginDefault!.TopMargin!.Width!.Value);
         Assert.Equal("0", native.TableCellMarginDefault.BottomMargin!.Width!.Value);

@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Html {
             string html = File.ReadAllText(htmlPath);
 
             var baseDir = Path.GetDirectoryName(htmlPath)!;
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { BasePath = baseDir });
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { BasePath = baseDir });
             string docxPath = Path.Combine(folderPath, "Html06_ImagesAllModes.docx");
             try {
                 doc.Save(docxPath);

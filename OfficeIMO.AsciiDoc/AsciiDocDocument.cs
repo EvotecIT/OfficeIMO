@@ -117,7 +117,7 @@ public sealed partial class AsciiDocDocument {
             if (block is AsciiDocAttributeEntry entry) attributes = attributes.Apply(entry, expandAssignmentValues);
             yield return new AsciiDocBlockContext(block, attributes);
             if (block is AsciiDocDelimitedBlock compound && compound.GetBody(cancellationToken) is AsciiDocDocument body) {
-                if (maximumNestingDepth == 1) throw new InvalidDataException("AsciiDoc attribute traversal exceeds MaximumNestingDepth.");
+                if (maximumNestingDepth == 1) throw new InvalidDataException("AsciiDoc attribute traversal exceeds MaxNestingDepth.");
                 foreach (AsciiDocAttributeEntry child in body.GetAttributeEntries(maximumNestingDepth - 1, cancellationToken)) attributes = attributes.Apply(child, expandAssignmentValues);
             }
         }
@@ -130,7 +130,7 @@ public sealed partial class AsciiDocDocument {
     }
 
     private static IEnumerable<AsciiDocAttributeEntry> EnumerateAttributeEntries(AsciiDocDocument document, int maximumDepth, int depth, System.Threading.CancellationToken token) {
-        if (depth >= maximumDepth) throw new InvalidDataException("AsciiDoc attribute traversal exceeds MaximumNestingDepth.");
+        if (depth >= maximumDepth) throw new InvalidDataException("AsciiDoc attribute traversal exceeds MaxNestingDepth.");
         foreach (AsciiDocBlock block in document.Blocks) {
             token.ThrowIfCancellationRequested();
             if (block is AsciiDocAttributeEntry entry) yield return entry;

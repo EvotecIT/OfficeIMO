@@ -41,12 +41,12 @@ public sealed class MarkdownPdfFidelityTests {
         Assert.Equal(text, PdfReadDocument.Open(bytes).ExtractText().Trim());
         Assert.DoesNotContain(conversion.Warnings, warning => warning.Code is
             "unsupported-bidirectional-text-layout" or "unsupported-complex-script-shaping");
-        conversion.RequireNoLoss();
+        conversion.ThrowIfLoss();
     }
 
     [Fact]
     public void RtfDefaultExportUsesSharedMultilingualFallbacks() {
-        var options = new RtfToPdfOptions();
+        var options = new RtfPdfExportOptions();
         Assert.True((options.Clone().TextFallbacks & PdfTextFallbackFeatures.MultilingualFonts) != 0);
         const string text = "日本語のテキスト。 中文文本。";
         var fallback = new PdfCreateOptions().UseTextFallbacks().EmbeddedFontFallbacks;
@@ -112,7 +112,10 @@ public sealed class MarkdownPdfFidelityTests {
     [InlineData(OfficeImageExportFormat.Svg)]
     public void MarkdownPageImagesUseSerializedPdfPaginationAndGeometry(OfficeImageExportFormat format) {
         var conversion = MarkdownDocument.Parse("# First\n\n```text\n    Indented\n```\n\n" + string.Join("\n\n", Enumerable.Repeat("A paragraph with `code` and a note[^1].", 30)) + "\n\n[^1]: Data source: dashboard.")
-            .ConvertToPdfWithEvidence(new MarkdownPdfExportOptions { PdfOptions = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(20), MarginRight = global::OfficeIMO.OfficeLength.Points(20), MarginTop = global::OfficeIMO.OfficeLength.Points(20), MarginBottom = global::OfficeIMO.OfficeLength.Points(20) } });
+            .ConvertToPdfWithEvidence(new MarkdownPdfExportOptions { PdfOptions = new PdfCreateOptions { PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(300)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(20), Right = global::OfficeIMO.OfficeLength.Points(20), Top = global::OfficeIMO.OfficeLength.Points(20), Bottom = global::OfficeIMO.OfficeLength.Points(20) }
+            } } });
         var options = new PdfImageExportOptions { TargetDpi = 72, Format = format };
         var direct = conversion.CreateImageExportOperation(options).Export();
         var reopened = PdfReadDocument.Open(conversion.ToBytes());

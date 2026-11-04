@@ -30,8 +30,8 @@ namespace OfficeIMO.Examples.Excel
             };
             using var doc = ExcelDocument.Create(filePath);
             {
-                doc.BuiltinDocumentProperties.Title = "OfficeIMO — Clickable Hyperlinks Example";
-                doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
+                doc.Properties.Title = "OfficeIMO — Clickable Hyperlinks Example";
+                doc.Properties.Creator = "OfficeIMO";
                 doc.ApplicationProperties.Company = "Evotec";
                 doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
             }
@@ -51,7 +51,7 @@ namespace OfficeIMO.Examples.Excel
             {
                 string safeTitle = links[rowIndex - headerRow - 1].Title.Replace("\"", "\"\"");
                 string urlRef = IndexToCol(urlColumn) + rowIndex.ToString();
-                s.Sheet.CellFormula(rowIndex, titleColumn, $"HYPERLINK({urlRef},\"{safeTitle}\")");
+                s.Sheet.Cell(rowIndex, titleColumn).SetFormula($"HYPERLINK({urlRef},\"{safeTitle}\")");
             }
 
             s.Finish(autoFitColumns: false);

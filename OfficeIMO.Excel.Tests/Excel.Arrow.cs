@@ -18,16 +18,16 @@ public partial class Excel {
                    memory,
                    new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Name");
-            sheet.CellValue(1, 2, "Id");
-            sheet.CellValue(1, 3, "Amount");
-            sheet.CellValue(1, 4, "When");
-            sheet.CellValue(2, 1, "Alpha & Beta");
-            sheet.CellValue(2, 2, 7);
-            sheet.CellValue(2, 3, 12.5d);
-            sheet.CellValue(2, 4, expectedDate);
-            sheet.CellValue(3, 1, "Gamma");
-            sheet.CellValue(3, 2, 8);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Id");
+            sheet.Cell(1, 3).SetValue("Amount");
+            sheet.Cell(1, 4).SetValue("When");
+            sheet.Cell(2, 1).SetValue("Alpha & Beta");
+            sheet.Cell(2, 2).SetValue(7);
+            sheet.Cell(2, 3).SetValue(12.5d);
+            sheet.Cell(2, 4).SetValue(expectedDate);
+            sheet.Cell(3, 1).SetValue("Gamma");
+            sheet.Cell(3, 2).SetValue(8);
         }
 
         using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(memory.ToArray());
@@ -55,8 +55,8 @@ public partial class Excel {
                    memory,
                    new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Text");
-            sheet.CellValue(2, 1, "Placeholder");
+            sheet.Cell(1, 1).SetValue("Text");
+            sheet.Cell(2, 1).SetValue("Placeholder");
         }
 
         byte[] workbook = ReplaceArrowTestCellXml(

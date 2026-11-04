@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
             PdfStandardFont font = PdfStandardFontMapper.TryMapFontFamily(family, out PdfStandardFont mapped)
                 ? mapped : string.IsNullOrWhiteSpace(family) ? options.DefaultFont : PdfStandardFont.Helvetica;
             var run = new PdfTextRun(text!, bold: (style & OfficeFontStyle.Bold) != 0,
-                italic: (style & OfficeFontStyle.Italic) != 0, fontSize: global::OfficeIMO.OfficeLength.Points(size), font: font, fontFamily: family);
+                italic: (style & OfficeFontStyle.Italic) != 0, fontSize: global::OfficeIMO.OfficeLength.Points(size), standardFont: font, fontFamily: family);
             foreach (PdfTextRun part in NormalizeFallbackRuns(new[] { run }, ChooseNormal(options.DefaultFont), options)) {
                 cancellationToken.ThrowIfCancellationRequested();
                 byte[]? data = null;

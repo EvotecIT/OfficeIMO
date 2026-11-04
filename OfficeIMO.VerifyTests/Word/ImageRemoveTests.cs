@@ -25,10 +25,7 @@ public class ImageRemoveTests {
             0x42, 0x60, 0x82
         });
         using var document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        var headers = document.Header;
-        Assert.NotNull(headers);
-        var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
+        var defaultHeader = document.PageSetup.Header;
         var paragraph = defaultHeader.AddParagraph();
         paragraph.AddImage(stream, "tiny.png", OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
 

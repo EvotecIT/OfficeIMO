@@ -14,11 +14,11 @@ namespace OfficeIMO.Examples.Word
             using (var document = WordDocument.Create(filePath))
             {
                 {
-                    document.PageOrientation = OfficePageOrientation.Landscape;
-                    document.PageSettings.PageSize = WordPageSize.A4;
-                    document.Sections[0].SetMargins(WordMargin.Normal);
-                    document.DifferentFirstPage = true;
-                    document.DifferentOddAndEvenPages = true;
+                    document.PageSetup.Orientation = OfficePageOrientation.Landscape;
+                    document.PageSetup.Size.PageSize = WordPageSize.A4;
+                    document.Sections[0].PageSetup.Margins.Type = WordMargin.Normal;
+                    document.PageSetup.DifferentFirstPage = true;
+                    document.PageSetup.DifferentOddAndEvenPages = true;
                     document.Save();
                 }
             }

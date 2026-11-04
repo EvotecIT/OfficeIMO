@@ -28,7 +28,7 @@ public class ProducerFixtureContracts {
             .Single(c => (string?)c.Element(System.Xml.Linq.XName.Get("Name", XmlContracts.Ns)) == "Workshop");
         Assert.Equal(2, node.Descendants(System.Xml.Linq.XName.Get("FromDate", XmlContracts.Ns)).Count(d => d.Value.StartsWith("2026-10-13", StringComparison.Ordinal)));
         calendar.Exceptions.Remove(exception);
-        using var copy = ProjectDocument.Parse(project.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        using var copy = ProjectDocument.Parse(project.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         var result = copy.Calendars.Single(c => c.Name == "Workshop");
         Assert.Empty(result.Exceptions);
         Assert.DoesNotContain(result.WeekDays, d => d.Day == null);

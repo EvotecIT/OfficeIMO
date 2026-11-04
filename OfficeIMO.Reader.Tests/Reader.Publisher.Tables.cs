@@ -64,7 +64,7 @@ public sealed class ReaderPublisherTableTests {
         Assert.Equal(rich.Location!.BlockAnchor, chunk.Location!.BlockAnchor);
         Assert.Equal(3, chunk.Rows.Count); Assert.All(chunk.Rows, row => Assert.All(row, Assert.Empty));
         Assert.Single(DocumentReaderEngine.ExportTables(DocumentReaderEngine.ExtractTables(result.Chunks)));
-        Assert.Single(new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadTableExports(input, "empty.pub"));
+        Assert.Single(new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadDocument(input, "empty.pub").ExportTables());
     }
 
     [Theory]
@@ -144,7 +144,7 @@ public sealed class ReaderPublisherTableTests {
         PdfDocumentConversionResult pdf = result.ToPdfDocumentResult(new PdfProjectionOptions { PagePolicy = PdfProjectionPagePolicy.ContinuousFlow });
         Assert.DoesNotContain("Bottom Right", PdfReadDocument.Open(pdf.ToBytes()).ExtractText());
         Assert.Contains(pdf.Warnings, warning => warning.Code == "PUB_READER_TABLE_ROWS_TRUNCATED" && warning.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Throws<InvalidOperationException>(() => pdf.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => pdf.ThrowIfLoss());
     }
 
     [Fact]
@@ -263,7 +263,7 @@ public sealed class ReaderPublisherTableTests {
             Assert.Equal(2, exports.Select(bundle => bundle.Id).Distinct().Count());
             Assert.Equal(2, exports.Select(bundle => bundle.FileNamePrefix).Distinct().Count());
         }
-        var publicExports = new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadTableExports(input, "native.pub");
+        var publicExports = new OfficeDocumentReaderBuilder().AddPublisherHandler().Build().ReadDocument(input, "native.pub").ExportTables();
         Assert.Equal(2, publicExports.Select(bundle => bundle.FileNamePrefix).Distinct().Count());
         Assert.All(result.Chunks.Where(chunk => chunk.Tables?.Count > 0), chunk => Assert.Null(chunk.Location.Page));
         Assert.Single(Regex.Matches(result.ToPageMarkedMarkdown(), "Table on page 2"));

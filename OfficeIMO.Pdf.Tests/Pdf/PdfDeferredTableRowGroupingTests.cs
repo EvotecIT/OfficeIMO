@@ -44,13 +44,15 @@ public class PdfDeferredTableRowGroupingTests {
             MinimumBodyRowsOnLastPage = mode == "first" ? 0 : 2
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320), PageHeight = global::OfficeIMO.OfficeLength.Points(roles ? 160 : 120),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30), MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(roles ? 160 : 120)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }
         });
         document.Compose(root => root.Page(page => page.Content(content => {
-            if (mode != "last") content.Paragraph(paragraph => paragraph.Text("Preamble\nContinuation"),
+            if (mode != "last") content.AddParagraph(paragraph => paragraph.AddText("Preamble\nContinuation"),
                 style: new PdfParagraphStyle { FontSize = global::OfficeIMO.OfficeLength.Points(12), LineHeight = 1, SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) });
-            content.TableDeferred(() => rows, batchSize, style: style);
+            content.AddDeferredTable(() => rows, batchSize, style: style);
         })));
         return document.ToBytes();
     }

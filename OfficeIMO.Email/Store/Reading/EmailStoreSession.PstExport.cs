@@ -63,7 +63,7 @@ public sealed partial class EmailStoreSession {
                 var writerOptions = new EmailStorePstWriterOptions(
                     effective.DisplayName ?? DisplayName,
                     stagingPath == null && effective.OverwriteExisting,
-                    effective.FailOnDataLoss,
+                    effective.FailOnLoss,
                     maxFolderCount: Math.Max(1, Folders.Count + 8),
                     maxItemCount: effective.MaxItems,
                     maxNestedMessageDepth: effective.MaxNestedMessageDepth,
@@ -172,21 +172,21 @@ public sealed partial class EmailStoreSession {
             }
 
             EnsureMigrationSourceUnchanged(sourceIdentity, cancellationToken);
-            if (effective.FailOnDataLoss && diagnostics.Any(item =>
+            if (effective.FailOnLoss && diagnostics.Any(item =>
                 item.Severity != EmailStoreDiagnosticSeverity.Information)) {
                 throw new InvalidOperationException(
-                    "Store conversion produced fidelity diagnostics and FailOnDataLoss is enabled.");
+                    "Store conversion produced fidelity diagnostics and FailOnLoss is enabled.");
             }
             string completedWriterDestination = state.WriterDestination;
             completionStarted = true;
             EmailStorePstWriteReport writeReport = writer.Complete(cancellationToken);
             writerCompleted = true;
-            diagnostics.AddRange(writeReport.Diagnostics);
+            diagnostics.AddRange(writeReport.NativeDiagnostics);
             EmailStorePstVerificationReport? verification = effective.VerifyAfterWrite
                 ? VerifyPstConversion(completedWriterDestination, mappings!, effective, diagnostics,
                     manifestStagingPath, cancellationToken)
                 : null;
-            if (effective.FailOnDataLoss && verification?.IsSuccessful == false) {
+            if (effective.FailOnLoss && verification?.IsSuccessful == false) {
                 throw new InvalidOperationException(
                     "PST conversion semantic verification reported data loss; the destination was not changed.");
             }
@@ -198,7 +198,7 @@ public sealed partial class EmailStoreSession {
                 stagingPath = null;
                 writeReport = new EmailStorePstWriteReport(destination, writeReport.FolderCount,
                     writeReport.ItemCount, new FileInfo(destination).Length,
-                    writeReport.Diagnostics, writeReport.DiagnosticsTruncated);
+                    writeReport.NativeDiagnostics, writeReport.DiagnosticsTruncated);
             }
             if (manifestStagingPath != null) {
                 string manifestDestination = Path.GetFullPath(effective.VerificationManifestPath!);

@@ -40,7 +40,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddVisioHandler()
     .Build();
 
-foreach (var chunk in reader.Read("architecture.vsdx")) {
+foreach (var chunk in reader.Enumerate("architecture.vsdx")) {
     Console.WriteLine($"Page {chunk.Location.Page}: {chunk.Id}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 
@@ -62,7 +62,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddVisioHandler()
     .Build();
 
-var chunks = reader.ReadFolder("Architecture",
+var chunks = reader.EnumerateFolder("Architecture",
     new ReaderFolderOptions {
         Extensions = new[] { ".vsdx", ".pdf" },
         Recurse = true,

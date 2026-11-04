@@ -37,7 +37,7 @@ public sealed class OfficeDocumentSummaryRoutingTests {
         OfficeDocumentReadResult read;
         if (format == "Excel") {
             using var workbook = ExcelDocument.Create();
-            workbook.AddSheet("Data").CellValue(1, 1, "Inventory");
+            workbook.AddSheet("Data").Cell(1, 1).SetValue("Inventory");
             workbook.AddSheet("Empty");
             read = workbook.ReadDocument();
         } else {

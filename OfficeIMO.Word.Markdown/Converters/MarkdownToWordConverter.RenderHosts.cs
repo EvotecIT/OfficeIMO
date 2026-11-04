@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.Markdown {
 
         private sealed class DocumentWordBlockRenderHost : IWordBlockRenderHost {
             private readonly WordDocument _document;
-            private readonly WordMarkdownImportOptions _options;
+            private readonly MarkdownWordExportOptions _options;
 
-            public DocumentWordBlockRenderHost(WordDocument document, WordMarkdownImportOptions options) {
+            public DocumentWordBlockRenderHost(WordDocument document, MarkdownWordExportOptions options) {
                 _options = options;
                 _document = document ?? throw new ArgumentNullException(nameof(document));
             }

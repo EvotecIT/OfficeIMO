@@ -10,7 +10,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents an embedded audio or video media frame on a slide.
     /// </summary>
-    public partial class PowerPointMedia : PowerPointPicture {
+    public partial class PowerPointMedia : PowerPointImage {
         internal PowerPointMedia(Picture picture, SlidePart slidePart, PowerPointMediaKind kind) : base(picture, slidePart) {
             Kind = kind;
         }

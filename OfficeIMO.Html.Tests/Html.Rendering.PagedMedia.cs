@@ -180,7 +180,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = true
         });
         IReadOnlyList<HtmlRenderVisual> visuals = rendered.Pages.SelectMany(page => page.Visuals).ToList();
-        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] pdf = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = true
         })).ToBytes();
@@ -209,7 +209,7 @@ public sealed partial class HtmlRenderingTests {
             + ".note::footnote-marker{content:url('data:image/svg+xml;base64," + data + "')}</style>"
             + "<p>Body<span id='svg-note' class='note'>SVG marker footnote</span>.</p>";
 
-        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlToPdfOptions {
+        OfficeIMO.Pdf.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             HonorCssPageRules = true
         });
@@ -548,7 +548,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { Mode = HtmlRenderMode.Paged, HonorCssPageRules = true };
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, options);
-        HtmlDiagnostic[] diagnostics = rendered.Diagnostics
+        HtmlDiagnostic[] diagnostics = rendered.NativeDiagnostics
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported)
             .ToArray();
 
@@ -714,7 +714,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderPage page = Assert.Single(rendered.Pages);
 
         Assert.Equal((816D, 1056D), (page.Width, page.Height));
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "A4 bogus");
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PageSizeUnsupported && diagnostic.Detail == "A4 bogus");
     }
 
     [Theory]

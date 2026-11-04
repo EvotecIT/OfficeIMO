@@ -20,7 +20,7 @@ public partial class Word {
     [InlineData(true, "empty-first")]
     public void SaveAsPdf_ContinuousRunningStoryPreservesSectionPageCounts(bool footer, string boundary) {
         using WordDocument source = WordDocument.Create();
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         WordParagraph field = story.AddParagraph("COUNT ");
         SetInheritedRunningControlStyle(field);
         field.AddField(WordFieldType.SectionPages);
@@ -54,7 +54,7 @@ public partial class Word {
     [InlineData(true, true)]
     public void SaveAsPdf_ContinuousRunningStoryCountsBlankBodyFlow(bool footer, bool explicitBreak) {
         using WordDocument source = WordDocument.Create();
-        WordHeaderFooter story = footer ? source.FooterDefaultOrCreate : source.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? source.PageSetup.Footer : source.PageSetup.Header;
         WordParagraph field = story.AddParagraph("COUNT ");
         SetInheritedRunningControlStyle(field);
         field.AddField(WordFieldType.SectionPages);

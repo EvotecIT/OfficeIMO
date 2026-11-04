@@ -14,7 +14,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
     public void NegativeRtfFrameCoordinatesUseNegativeCapableControls() {
         const string html = "<div style='position:absolute;left:-200px;top:-100px;width:180px;height:70px'>Negative frame</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
             item.ToPlainText().Contains("Negative frame", StringComparison.Ordinal));
         string rtf = result.Value.ToRtf();
@@ -31,7 +31,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
             + "<div style='position:absolute;left:24px;top:20px;width:180px;height:70px'>First-page frame</div>"
             + "<section style='break-before:page'><p>Later page</p></section>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         IReadOnlyList<IRtfBlock> blocks = result.Value.Blocks;
         int frameIndex = FindParagraphIndex(blocks, paragraph => paragraph.Frame.HasAnyValue);
         int pageBreakIndex = FindParagraphIndex(blocks, paragraph => paragraph.PageBreakBefore);
@@ -52,7 +52,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         int resolverCalls = 0;
         PdfCore.PdfResourcePolicy resourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         resourcePolicy.AllowEmbeddedPackageResources = allowEmbeddedResources;
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = resourcePolicy,
             ResourceResolver = (request, cancellationToken) => {
                 resolverCalls++;
@@ -64,11 +64,11 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
             }
         };
 
-        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
+        var result = await document.ToPdfAsync(options);
 
         Assert.Equal(0, resolverCalls);
-        Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
-        Assert.Contains(result.Warnings, warning =>
+        Assert.DoesNotContain(PdfCore.PdfImageExtractor.ExtractImages(result.Value.ToBytes()), image => image.IsImageFile);
+        Assert.Contains(result.Report.Diagnostics, warning =>
             warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
             || warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
@@ -81,7 +81,7 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         int fetcherCalls = 0;
         PdfCore.PdfResourcePolicy resourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost();
         resourcePolicy.AllowEmbeddedPackageResources = false;
-        var options = new HtmlToPdfOptions { ResourcePolicy = resourcePolicy };
+        var options = new HtmlPdfExportOptions { ResourcePolicy = resourcePolicy };
         MhtmlRemoteResourcePolicy remotePolicy = MhtmlRemoteResourcePolicy.CreateSameOriginProfile();
         remotePolicy.ResourceFetcher = (request, cancellationToken) => {
             fetcherCalls++;
@@ -91,11 +91,11 @@ public sealed class HtmlEditableLayoutReviewWave21Tests {
         };
         document.ConfigureRenderOptions(options, remotePolicy);
 
-        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync(options);
+        var result = await document.ToPdfAsync(options);
 
         Assert.Equal(1, fetcherCalls);
-        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
+        Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(result.Value.ToBytes()), image => image.IsImageFile);
+        Assert.DoesNotContain(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable);
     }
 
     private static int FindParagraphIndex(

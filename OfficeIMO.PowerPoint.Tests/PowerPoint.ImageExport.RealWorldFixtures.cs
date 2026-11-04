@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointTextBox title = slide.AddTextBox("Executive Summary",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(12),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(24));
             title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-            title.Color = "0F172A";
+            title.Color = OfficeColor.Parse("0F172A");
 
             AddMetricCard(slide, "Revenue", "$42M", "3B82F6", 18, 42);
             AddMetricCard(slide, "Retention", "96%", "10B981", 116, 42);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointTextBox note = slide.AddTextBox("OpenXML + Drawing only",global::OfficeIMO.OfficeLength.Points(56),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(208),global::OfficeIMO.OfficeLength.Points(20));
             note.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-            note.Color = "0F172A";
+            note.Color = OfficeColor.Parse("0F172A");
 
             return presentation;
         }
@@ -192,11 +192,11 @@ namespace OfficeIMO.Tests {
 
             PowerPointTextBox labelBox = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 7),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(12));
             labelBox.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-            labelBox.Color = "334155";
+            labelBox.Color = OfficeColor.Parse("334155");
 
             PowerPointTextBox valueBox = slide.AddTextBox(value,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 22),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(16));
             valueBox.FontSize = global::OfficeIMO.OfficeLength.Points(14);
-            valueBox.Color = color;
+            valueBox.Color = OfficeColor.Parse(color);
         }
 
         private static void AddProcessNode(PowerPointSlide slide, string label, string color, double left, double top) {
@@ -209,7 +209,7 @@ namespace OfficeIMO.Tests {
             text.TextMarginLeft = text.TextMarginRight = global::OfficeIMO.OfficeLength.Points(0D);
             text.TextMarginTop = text.TextMarginBottom = global::OfficeIMO.OfficeLength.Points(0D);
             text.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-            text.Color = "FFFFFF";
+            text.Color = OfficeColor.Parse("FFFFFF");
         }
 
         private static void AddConnector(PowerPointSlide slide, double left, double top, double width, double height) {

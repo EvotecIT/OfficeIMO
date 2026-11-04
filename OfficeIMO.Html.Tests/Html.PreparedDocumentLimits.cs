@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests;
 public sealed class HtmlPreparedDocumentLimitTests {
     [Fact]
     public void PreparedStylesUseTheSameDefaultCssBudgetAsRawInput() {
-        int rules = HtmlConversionLimits.CreateUntrustedProfile().MaxCssRules!.Value + 1;
+        int rules = HtmlConversionLimits.UntrustedDefaults.MaxCssRules!.Value + 1;
         string source = "<style>" + string.Concat(Enumerable.Repeat(".used{color:red}", rules)) + "p{color:blue}</style><p class='used'>Text</p>";
         HtmlDocument owned = AngleSharpHtmlParser.Instance.ParseDocument(source, new HtmlParseOptions());
         Assert.Equal("MaxCssRules", Assert.Throws<HtmlDomLimitException>(() => HtmlComputedStyleEngine.Compute(owned)).LimitSource);

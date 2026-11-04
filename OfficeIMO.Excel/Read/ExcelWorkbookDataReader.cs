@@ -433,7 +433,7 @@ namespace OfficeIMO.Excel {
                 : (DbDataReader)sheet.ReadRangeAsDataReader(
                     options.A1Range!,
                     headersInFirstRow: options.HasHeaderRow,
-                    chunkRows: Math.Min(1024, options.MaxDataReaderChunkRows),
+                    chunkRows: Math.Min(ExcelSheetReader.DataReaderChunkRows, options.MaxDataReaderChunkRows),
                     schemaSampleRows: options.InferSchema ? options.SchemaSampleRows : 0,
                     ct: cancellationToken);
         }
@@ -801,11 +801,7 @@ namespace OfficeIMO.Excel {
         /// <inheritdoc />
         public override bool IsDBNull(int ordinal) => CurrentReader.IsDBNull(ordinal);
         /// <inheritdoc />
-        public override bool Read() {
-            ThrowIfClosed();
-            _cancellationToken.ThrowIfCancellationRequested();
-            return CurrentReader.Read();
-        }
+        public override bool Read() => CurrentReader.Read();
         /// <inheritdoc />
         public override async Task<bool> ReadAsync(CancellationToken cancellationToken) {
             ThrowIfClosed();

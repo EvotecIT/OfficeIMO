@@ -215,10 +215,19 @@ internal static partial class PdfWriter {
                         requiredHeight(), advance, MaximumContinuationHeight())) break;
                 }
             }
-            double KeepHeight() => tableSpacingBefore + tableContentHeight + (style.Position == null ? style.SpacingAfter.ToPoints() : 0D);
+            double ContinuationKeepHeight() => tableContentHeight +
+                (style.Position == null ? style.SpacingAfter.ToPoints() + GetClosingContainerPadding() : 0D);
+            double KeepHeight() => tableSpacingBefore + ContinuationKeepHeight();
             void AdmitKeptTableFrame() {
                 if (!style.KeepTogether) return;
-                MovePastShortTableFrames(KeepHeight, preserve => { AdvanceInitialTablePage(preserve); tableSpacingBefore = 0D; });
+                void AdvanceKeptTable(bool preserve) { AdvanceInitialTablePage(preserve); tableSpacingBefore = 0D; }
+                MovePastShortTableFrames(ContinuationKeepHeight, AdvanceKeptTable);
+                // Judge a kept table by its destination frame, where spacing before no longer
+                // applies. That frame can still be short, so later running frames stay searchable.
+                while (style.Position == null && ShouldAdvanceForBlockHeight(KeepHeight())) {
+                    AdvanceKeptTable(preserve: false);
+                    MovePastShortTableFrames(ContinuationKeepHeight, AdvanceKeptTable);
+                }
                 if (KeepHeight() > maxContentHeight + .001D)
                     throw new ArgumentException("Table height exceeds the available page content height.");
             }
@@ -551,11 +560,16 @@ internal static partial class PdfWriter {
                     rowIndex, startLine, available, MaximumContinuationHeight(),
                     (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - 0.001D) ||
                         MaximumContinuationHeight() > maxContentHeight + 0.001D, requireDefaultFirstFragment);
-                if (rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex] && GetClosingContainerPadding() > 0D)
+                double finalClosing = rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex]
+                    ? GetClosingTextPadding(style.SpacingAfter.ToPoints()) : 0D;
+                // A complete row that cannot also close the table leaves its last line for the next frame.
+                if (finalClosing > 0D &&
+                    MeasureTableRowSegmentHeight(rowIndex, startLine, take, suppressCellObjects: false) + finalClosing > available + .001D)
                     take = GetPreparedTableRowSegmentLineCountThatFits(tb, style, preparedRows, cols, colPixel, colGapPx,
-                        rowIndex, startLine, available - GetClosingTextPadding(style.SpacingAfter.ToPoints()), MaximumContinuationHeight(),
+                        rowIndex, startLine, available, MaximumContinuationHeight(),
                         (canMoveToNextFrame ?? y < GetCurrentFramePageStartY() - .001D) ||
-                            MaximumContinuationHeight() > maxContentHeight + .001D, requireDefaultFirstFragment);
+                            MaximumContinuationHeight() > maxContentHeight + .001D, requireDefaultFirstFragment,
+                        maximumLineCount: rowLineCounts[rowIndex] - startLine - 1);
                 while (take > 0) {
                     double height = MeasureTableRowSegmentHeight(rowIndex, startLine, take, suppressCellObjects: false);
                     double closing = rowIndex == tb.Rows.Count - 1 && startLine + take == rowLineCounts[rowIndex]

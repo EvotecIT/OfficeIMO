@@ -53,6 +53,7 @@ internal static partial class PdfFormFiller {
         }
 
         int fieldFlags = flags ?? 0;
+        int turn = ReadWidgetRotation(objects, widget, ref width, ref height);
         PdfFormFieldStyle style = ReadWidgetAppearanceStyle(objects, widget, fieldFlags, quadding, maxLength, defaultAppearance);
         // Authoring defaults do not apply: without /MK colours a viewer paints no background or border.
         PdfDictionary? characteristics = ResolveDictionary(objects, widget.Items.TryGetValue("MK", out PdfObject? characteristicsObject) ? characteristicsObject : null);
@@ -108,7 +109,7 @@ internal static partial class PdfFormFiller {
         dictionary.Items["Subtype"] = new PdfName("Form");
         dictionary.Items["BBox"] = CreateNumberArray(0D, 0D, width, height);
         if (resources != null) dictionary.Items["Resources"] = resources;
-        stream = new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
+        stream = ApplyWidgetRotation(new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content)), turn, width, height);
         return true;
     }
 

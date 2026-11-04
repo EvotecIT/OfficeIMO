@@ -191,9 +191,9 @@ internal static class MarkdownParseEvidenceRunner {
     }
 
     private static object Parse(string engine, string markdown, MarkdownLoadOptions officeOptions) => engine switch {
-        OfficeEngine => MarkdownReader.ParseSemantic(markdown, officeOptions),
+        OfficeEngine => MarkdownBenchmarkParsing.ParseSemantic(markdown, officeOptions),
         OfficeSourceBackedEngine => MarkdownDocument.Parse(markdown, officeOptions),
-        OfficeSyntaxTreeEngine => MarkdownReader.ParseWithSyntaxTree(markdown, officeOptions),
+        OfficeSyntaxTreeEngine => MarkdownBenchmarkParsing.ParseWithSyntaxTree(markdown, officeOptions),
         MarkdigEngine => Markdig.Markdown.Parse(markdown, MarkdigCommonMarkPipeline),
         _ => throw new ArgumentException("Unknown Markdown parse benchmark engine: " + engine, nameof(engine))
     };

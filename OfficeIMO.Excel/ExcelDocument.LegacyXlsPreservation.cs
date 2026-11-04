@@ -26,7 +26,8 @@ public partial class ExcelDocument {
     private bool HasLegacyPreservationTransforms(ExcelSaveOptions? options) =>
         options?.SafeRepairDefinedNames == true || options?.SafePreflight == true || options?.ValidateOpenXml == true;
 
-    private byte[] BuildNativeLegacyXls(ExcelSaveOptions? options, CancellationToken cancellationToken, out bool direct, out bool preserved) {
+    /// <summary>Prepares native XLS bytes, or writes an eligible fresh direct workbook to the supplied destination.</summary>
+    private byte[] BuildNativeLegacyXls(ExcelSaveOptions? options, CancellationToken cancellationToken, out bool direct, out bool preserved, Stream? directDestination = null) {
         cancellationToken.ThrowIfCancellationRequested();
         direct = false; preserved = false;
         var calculation = PrepareNativeCalculationForSave(options);
@@ -36,7 +37,7 @@ public partial class ExcelDocument {
             return plan!.Write(null, maximumBytes, cancellationToken, calculation);
         }
         EnsureLegacyXlsSaveDoesNotDropImportedContent(options, preserveLinkedVbaProject: true);
-        if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] bytes)) { direct = true; return bytes; }
+        if (TryBuildDirectTabularLegacyXls(options, cancellationToken, out byte[] bytes, directDestination)) { direct = true; return bytes; }
         PrepareWorkbookForSave(options, applyCalculationPolicy: false);
         cancellationToken.ThrowIfCancellationRequested();
         return LegacyXlsWriter.WriteWorkbook(this);

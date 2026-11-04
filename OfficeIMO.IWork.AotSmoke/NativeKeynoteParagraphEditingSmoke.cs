@@ -41,8 +41,7 @@ internal static class NativeKeynoteParagraphEditingSmoke {
             && deck.Slides[0].Images[0].Geometry!.WidthPoints == 480
             && deck.Slides[1].Images[0].Geometry!.WidthPoints == 480
             && deck.Slides[2].Images[0].Geometry!.WidthPoints == 600, "Keynote text edit changed image frames.");
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(source.BeginEdit().SaveBytes()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction(); using var bytes = new MemoryStream(); converted.Value.Save(bytes);
         using var xml = PresentationDocument.Open(new MemoryStream(bytes.ToArray()), false);
         var paragraphs = xml.PresentationPart!.SlideParts.SelectMany(part => part.Slide!.Descendants<DocumentFormat.OpenXml.Drawing.Paragraph>())

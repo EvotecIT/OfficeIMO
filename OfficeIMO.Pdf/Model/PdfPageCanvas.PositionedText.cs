@@ -6,7 +6,7 @@ public sealed partial class PdfPageCanvas {
     // to an advance/line-height layout box.
     internal PdfPageCanvas PositionedText(IEnumerable<PdfTextRun> runs, PdfCanvasTextStructureRole structureRole,
         double x, double y, double width, double height, global::OfficeIMO.OfficeColor? defaultColor = null,
-        PdfAlign align = PdfAlign.Left, double? fontSize = null, double? lineHeight = null,
+        OfficeAlignment align = OfficeAlignment.Left, double? fontSize = null, double? lineHeight = null,
         double? advanceWidth = null, double clipTopOverflow = 0D, double fontMetricScale = 1D, long? logicalOrder = null) {
         if (fontMetricScale <= 0D || double.IsNaN(fontMetricScale) || double.IsInfinity(fontMetricScale))
             throw new ArgumentOutOfRangeException(nameof(fontMetricScale));

@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
 
             Assert.Single(rendered.Pages);
             AssertColumnPageBandTextOnce(rendered, new[] { "T1", "T2", "AFTER" });
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
         }
     }
 
@@ -36,7 +36,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[2].Scene).OfType<HtmlRenderShape>(),
             shape => shape.Source?.StartsWith("table#empty-page-tail:collapsed-border-", StringComparison.Ordinal) == true);
         AssertColumnPageBandTextOnce(rendered, new[] { "P1", "P2", "TABLE", "T1", "AFTER" });
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -56,7 +56,7 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnBreakPlacements(rendered, ("P1", 20D, 20D), ("P2", 180D, 20D),
             ("SPAN", 20D, before ? 20D : 40D), ("T1", 20D, before ? 40D : 20D),
             ("T2", 180D, before ? 40D : 20D), ("AFTER", 20D, before ? 60D : 40D));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -78,7 +78,7 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnBreakPlacements(rendered, ("S1", 20D, 40D), ("S2", 20D, 60D),
             ("S3", 20D, 20D), ("S4", 20D, 40D), ("T1", 20D, 60D),
             ("T2", 180D, 60D), ("AFTER", 20D, 80D));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -99,7 +99,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, ColumnPageBandTextPage(rendered, "T1").PageNumber);
         AssertColumnBreakPlacements(rendered, ("SPAN", 20D, before ? 40D : 20D),
             ("T1", 20D, before ? 60D : 40D), ("AFTER", 20D, before ? 80D : 60D));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -119,7 +119,7 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnPageBandTextOnce(rendered, empty ? new[] { "P1", "P2", "S2", "T1", "T2", "AFTER" }
             : new[] { "P1", "P2", "S1", "S2", "T1", "T2", "AFTER" });
         if (empty) Assert.Empty(ColumnPageBandText(rendered.Pages[1]));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -137,7 +137,7 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnPageBandTextOnce(rendered, new[] { "P1", "P2", "SPAN", "T1", "T2", "AFTER" });
         AssertColumnBreakPlacements(rendered, ("P1", 20D, 20D), ("P2", 180D, 20D),
             ("T1", 20D, before ? 40D : 20D), ("T2", 180D, before ? 40D : 20D));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -153,7 +153,7 @@ public sealed partial class HtmlRenderingTests {
         foreach (string label in new[] { "P1", "P2", "SPAN", "T1", "AFTER" })
             Assert.Single(text, item => item.Text == label);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]

@@ -20,7 +20,7 @@ public partial class Word {
     public void SaveAsPdf_HiddenRunningTextBoxDoesNotPaintOrReserveContent(string sourceKind) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
         using WordDocument control = CreateAnchoredRunningTextBoxControl(includeTextBox: false);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         W.Run host = anchor.Ancestors<W.Run>().Single();
         host.RunProperties ??= new W.RunProperties();
         if (sourceKind == "character") {
@@ -61,7 +61,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_HiddenPeerCannotRejectVisibleRunningAnchor() {
         using WordDocument document = CreateOverlappingPageAnchoredPeerControl();
-        DW.Anchor hidden = document.Sections[1].Header!.First!.ChildElements.SelectMany(child => child.Descendants<DW.Anchor>())
+        DW.Anchor hidden = document.Sections[1].PageSetup.FirstPageHeader.ChildElements.SelectMany(child => child.Descendants<DW.Anchor>())
             .Single(anchor => anchor.Descendants<W.Text>().Single().Text == "PEERBOX");
         W.Run host = hidden.Ancestors<W.Run>().Single();
         // The clone shares PREFIX's run. Keep that ordinary text visibly separate.
@@ -85,7 +85,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_NonOverlapPeersAcrossRunningParagraphsRetainWarnedFlow() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Header root = document.Sections[1].Header!.First!._header!;
+        W.Header root = document.Sections[1].PageSetup.FirstPageHeader._header!;
         W.Paragraph peer = CloneRunningAnchorParagraph(root.Elements<W.Paragraph>().Single(), "NEXT", "PEERBOX", "END");
         peer.Descendants<DW.Anchor>().Single().AllowOverlap = false;
         root.Append(peer);
@@ -105,7 +105,7 @@ public partial class Word {
     [InlineData("ellipse")]
     public void SaveAsPdf_NonRectangularRunningTextBoxRetainsWarnedContent(string preset) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        DW.Anchor anchor = document.Sections[1].Header!.First!.TextBoxes.Single().Anchor!;
+        DW.Anchor anchor = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.Single().Anchor!;
         anchor.Elements<W14.RelativeHeight>().Single().PercentageHeight!.Text = "8000";
         Wps.ShapeProperties shape = anchor.Descendants<Wps.ShapeProperties>().Single();
         shape.GetFirstChild<A.PresetGeometry>()!.Preset = preset == "roundRect"
@@ -126,7 +126,7 @@ public partial class Word {
     [InlineData(true)]
     public void SaveAsPdf_ObjectOnlyRunningTextBoxReportsBoundedFlowBeforeSerialization(bool nonRectangular) {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Header header = document.Sections[1].Header!.First!._header!;
+        W.Header header = document.Sections[1].PageSetup.FirstPageHeader._header!;
         foreach (W.Text text in header.Descendants<W.Text>()
             .Where(text => !text.Ancestors<W.TextBoxContent>().Any()).ToArray()) text.Remove();
         if (nonRectangular)
@@ -145,10 +145,10 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_SingleNonOverlapAnchorsInDistinctInheritedVariantsRemainIndependent() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Paragraph first = document.Sections[1].Header!.First!._header!.Elements<W.Paragraph>().Single();
+        W.Paragraph first = document.Sections[1].PageSetup.FirstPageHeader._header!.Elements<W.Paragraph>().Single();
         first.Descendants<DW.Anchor>().Single().AllowOverlap = false;
         W.Paragraph separate = CloneRunningAnchorParagraph(first, "DP", "DEFAULTBOX", "DE");
-        document.Sections[0].Header!.Default!._header!.Append(separate);
+        document.Sections[0].PageSetup.Header._header!.Append(separate);
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");
@@ -164,12 +164,12 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_HiddenAnchorInInheritedDefaultStoryRetainsVisibleFields() {
         using WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Paragraph first = document.Sections[1].Header!.First!._header!.Elements<W.Paragraph>().Single();
+        W.Paragraph first = document.Sections[1].PageSetup.FirstPageHeader._header!.Elements<W.Paragraph>().Single();
         W.Paragraph hidden = CloneRunningAnchorParagraph(first, "DEFAULTPREFIX", "HIDDENDEFAULT", "DEFAULTEND");
         W.Run host = hidden.Descendants<DW.Anchor>().Single().Ancestors<W.Run>().Single();
         host.RunProperties ??= new W.RunProperties();
         host.RunProperties.Vanish = new W.Vanish();
-        document.Sections[0].Header!.Default!._header!.Append(hidden);
+        document.Sections[0].PageSetup.Header._header!.Append(hidden);
         string[] before = AnchoredRunningStoryXml(document);
         var result = document.ConvertToPdfWithEvidence(EmptyRunningOptions());
         Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == "native-mixed-text-box-layout-approximated");

@@ -82,10 +82,10 @@ internal static partial class PdfWriter {
             }
         }
 
-        private static PdfColumnAlign MapCellAlignment(PdfAlign align) => align switch {
-            PdfAlign.Center => PdfColumnAlign.Center,
-            PdfAlign.Right => PdfColumnAlign.Right,
-            _ => PdfColumnAlign.Left
+        private static OfficeAlignment MapCellAlignment(OfficeAlignment align) => align switch {
+            OfficeAlignment.Center => OfficeAlignment.Center,
+            OfficeAlignment.Right => OfficeAlignment.Right,
+            _ => OfficeAlignment.Left
         };
     }
 }

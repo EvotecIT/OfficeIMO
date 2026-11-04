@@ -54,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkConversionReport report = ConvertUnitReport(package, kind,
             readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
-        Assert.Contains(report.FidelityDiagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
+        Assert.Contains(report.Diagnostics, issue => issue.Code == "IWORK_SOURCE_DECLARATIONS_UNASSESSED"
             && issue.LossKind == OfficeConversionLossKind.Unassessed);
         IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
         Assert.Equal(12ul, issue.Owner.RecordIdentifier);
@@ -136,7 +136,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: nested ? BytesField(2, fields) : fields);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumProtobufFieldCount = 8 });
+            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -145,7 +145,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(BytesField(2, new byte[] { 0x80 }), VarintField(2, 0), BytesField(2, new byte[] { 0x80 })));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumTableDimensionEntries = 4 });
+            new IWorkReadOptions { MaxTableDimensionEntries = 4 });
         Assert.Contains("dimension entries", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -153,9 +153,9 @@ public sealed partial class IWorkBoundaryTests {
     public void Dimension_declaration_budget_is_cumulative_and_snapshotted() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(BytesField(2, new byte[] { 0x80 }), BytesField(2, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 };
+        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
-        options.MaximumSourceDeclarationIssues = 10;
+        options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -164,7 +164,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers, repeatTable: true,
             firstRowHeader: DimensionHeader(0, -1));
         IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumSourceDeclarationIssues = 1 }).ReadNumbers();
+            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
     }
@@ -206,9 +206,9 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
-            using var automatic = source.ToWordDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToWordResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToWordDocumentResult(options);
+            using var partial = source.ToWordResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using WordDocument reopened = WordDocument.Load(saved);
@@ -216,9 +216,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal(new[] { 200, 200, unknownIndex ? 200 : 600 }, table.RowHeight.Select(height => checked((int)(height?.ToTwips() ?? 0))));
             Assert.Equal(new[] { 810, 400 }.Select(value => (WordTableWidth?)WordTableWidth.Length(OfficeLength.Emus((long)value * 635))), table.ColumnWidth);
         } else if (kind == IWorkDocumentKind.Numbers) {
-            using var automatic = source.ToExcelDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToExcelDocumentResult(options);
+            using var partial = source.ToExcelResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             partial.Value.Save(saved); saved.Position = 0;
             using var reopened = OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -234,9 +234,9 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Equal((40.5d * 96d / 72d - 5d) / 7d, double.Parse(sheet.Descendants(SpreadsheetNs + "col")
                 .Single().Attribute("width")!.Value, CultureInfo.InvariantCulture), 10);
         } else {
-            using var automatic = source.ToPowerPointDocumentResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+            using var automatic = source.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
             Assert.True(automatic.IsVisualFallback);
-            using var partial = source.ToPowerPointDocumentResult(options);
+            using var partial = source.ToPowerPointResult(options);
             Assert.True(partial.Report.IsPartialEditableReconstruction);
             Assert.Equal(!unknownIndex, partial.Report.Diagnostics.Any(issue => issue.Code == "IWORK_KEYNOTE_TABLE_SIZING_SCALED"));
             partial.Value.Save(saved); saved.Position = 0;

@@ -36,7 +36,7 @@ public sealed class AddOfficePdfVisualCommand : OfficeVisualCommandBase
 
     /// <summary>Horizontal alignment in PDF flow.</summary>
     [Parameter]
-    public PdfAlign Align { get; set; } = PdfAlign.Left;
+    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Spacing before the visual in points.</summary>
     [Parameter]

@@ -37,7 +37,7 @@ public static partial class WordPdfConverterExtensions {
             yield return new NativeCasedTextSegment(buffer.ToString(), currentSmall == true ? smallStyle : style);
     }
 
-    private static void AddNativeCasedText(PdfCore.PdfParagraphBuilder builder, string text, NativeResolvedTextStyle style,
+    private static void AddNativeCasedText(PdfCore.PdfParagraph builder, string text, NativeResolvedTextStyle style,
         IReadOnlyList<WordTabStop> tabStops, ref int tabIndex, WordHyperLink? hyperlink = null, NativeBookmarkTargets? bookmarks = null) {
         text = WordPaperText.NormalizeIdentifierBreaksForLayout(text);
         // Body runs explicitly restore the inherited full size after a reduced

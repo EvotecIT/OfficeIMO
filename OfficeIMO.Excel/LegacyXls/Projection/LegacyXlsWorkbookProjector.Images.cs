@@ -85,9 +85,9 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             HeaderFooterImagePlacement placement,
             LegacyXlsDrawingBlipStoreEntry image) {
             if (placement.IsHeader) {
-                sheet.SetHeaderImage(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
+                sheet.SetHeaderImageCore(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
             } else {
-                sheet.SetFooterImage(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
+                sheet.SetFooterImageCore(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
             }
         }
 

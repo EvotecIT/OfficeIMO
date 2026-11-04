@@ -121,7 +121,7 @@ public sealed partial class BrowserConversionService {
         using PdfDocument pdf = BrowserPdfPolicy.Open(file);
         BrowserPowerPointImportProfile profile = BrowserPowerPointImportProfileCatalog.Find(profileId);
         PowerPointPdfImportMode mode = profile.Mode;
-        var options = new PowerPointPdfImportOptions {
+        var options = new PdfPowerPointExportOptions {
             Mode = profile.Mode,
             RenderFonts = BrowserPortablePdfProfile.CreateDrawingFonts(),
             TextShapingProvider = OfficeHarfBuzzTextShapingProvider.Instance
@@ -162,7 +162,7 @@ public sealed partial class BrowserConversionService {
 
     private static PdfImportPayload ConvertPdfToHtml(SelectedDocument file) {
         using PdfDocument pdf = BrowserPdfPolicy.Open(file);
-        PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfToHtmlOptions {
+        PdfHtmlConversionResult conversion = pdf.ToHtmlResult(new PdfHtmlExportOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true,
             IncludeFormWidgets = true

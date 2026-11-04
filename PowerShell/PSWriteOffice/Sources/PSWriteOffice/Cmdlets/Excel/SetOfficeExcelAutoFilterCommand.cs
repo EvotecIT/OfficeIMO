@@ -1,3 +1,5 @@
+using System.Linq;
+using System;
 using System.Management.Automation;
 using OfficeIMO.Excel;
 using PSWriteOffice.Services.Excel;
@@ -95,12 +97,11 @@ public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet
         ValidateSingleCondition();
 
         var sheet = ResolveSheet();
-        if (!string.IsNullOrWhiteSpace(Range))
-        {
-            sheet.AutoFilterAdd(Range!);
-        }
+        string range = !string.IsNullOrWhiteSpace(Range)
+            ? Range!
+            : sheet.GetAutoFilters().FirstOrDefault(filter => !filter.IsTableFilter)?.Range ?? sheet.UsedRange.Address;
 
-        ApplyFilter(sheet);
+        ApplyFilter(sheet.Range(range).AutoFilter().Column(Header));
 
         if (PassThru.IsPresent)
         {
@@ -124,47 +125,47 @@ public sealed class SetOfficeExcelAutoFilterCommand : PSCmdlet
         return context.RequireSheet();
     }
 
-    private void ApplyFilter(ExcelSheet sheet)
+    private void ApplyFilter(ExcelAutoFilterColumn column)
     {
         if (Value is { Length: > 0 })
         {
-            sheet.AutoFilterByHeaderEquals(Header, Value);
+            column.Equals(Value);
         }
         else if (!string.IsNullOrWhiteSpace(Contains))
         {
-            sheet.AutoFilterByHeaderContains(Header, Contains!);
+            column.Contains(Contains!);
         }
         else if (!string.IsNullOrWhiteSpace(DoesNotContain))
         {
-            sheet.AutoFilterByHeaderDoesNotContain(Header, DoesNotContain!);
+            column.DoesNotContain(DoesNotContain!);
         }
         else if (!string.IsNullOrWhiteSpace(StartsWith))
         {
-            sheet.AutoFilterByHeaderStartsWith(Header, StartsWith!);
+            column.BeginsWith(StartsWith!);
         }
         else if (!string.IsNullOrWhiteSpace(EndsWith))
         {
-            sheet.AutoFilterByHeaderEndsWith(Header, EndsWith!);
+            column.EndsWith(EndsWith!);
         }
         else if (GreaterThanOrEqual.HasValue)
         {
-            sheet.AutoFilterByHeaderGreaterThanOrEqual(Header, GreaterThanOrEqual.Value);
+            column.GreaterThanOrEqual(GreaterThanOrEqual.Value);
         }
         else if (LessThanOrEqual.HasValue)
         {
-            sheet.AutoFilterByHeaderLessThanOrEqual(Header, LessThanOrEqual.Value);
+            column.LessThanOrEqual(LessThanOrEqual.Value);
         }
         else if (NotEqual.HasValue)
         {
-            sheet.AutoFilterByHeaderNotEqual(Header, NotEqual.Value);
+            column.NotEqual(NotEqual.Value);
         }
         else if (Between is { Length: 2 })
         {
-            sheet.AutoFilterByHeaderBetween(Header, Between[0], Between[1]);
+            column.Between(Between[0], Between[1]);
         }
         else if (NotBetween is { Length: 2 })
         {
-            sheet.AutoFilterByHeaderNotBetween(Header, NotBetween[0], NotBetween[1]);
+            column.NotBetween(NotBetween[0], NotBetween[1]);
         }
     }
 

@@ -33,7 +33,7 @@ public sealed class ReaderAllOptions {
     public DocBook.ReaderDocBookOptions? DocBook { get; set; }
 
     /// <summary>Gets or sets EPUB adapter options.</summary>
-    public OfficeIMO.Epub.EpubReadOptions? Epub { get; set; }
+    public OfficeIMO.Epub.EpubLoadOptions? Epub { get; set; }
 
     /// <summary>Gets or sets direct email, store, and Offline Address Book adapter options.</summary>
     public Email.ReaderEmailHandlersOptions? Email { get; set; }

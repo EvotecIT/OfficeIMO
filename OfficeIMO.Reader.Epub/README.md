@@ -9,7 +9,7 @@ Rich document metadata includes `RequestedChapterCount`, `SkippedChapterCount`,
 `ChaptersComplete`, and `UsedFallbackScan`. Limit and unreadable-content diagnostics
 retain their EPUB codes and source locations. The reader preserves distinct repeated
 spine positions and forwards cancellation into package reading and parsing.
-Configure `EpubReadOptions.MaxTotalTextCharacters` to bound the aggregate extracted
+Configure `EpubLoadOptions.MaxTotalTextCharacters` to bound the aggregate extracted
 text; its default is 32 Mi UTF-16 characters.
 
 ## Install
@@ -26,7 +26,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddEpubHandler(new EpubReadOptions {
+    .AddEpubHandler(new EpubLoadOptions {
         PreferSpineOrder = true,
         IncludeRawHtml = false,
         MaxChapters = 100
@@ -46,7 +46,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddEpubHandler()
     .Build();
 
-foreach (var chunk in reader.Read("book.epub", new ReaderOptions {
+foreach (var chunk in reader.Enumerate("book.epub", new ReaderOptions {
     MaxChars = 6_000,
     ComputeHashes = true
 })) {
@@ -63,14 +63,14 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddEpubHandler(new EpubReadOptions {
+    .AddEpubHandler(new EpubLoadOptions {
         FallbackToHtmlScan = true,
         MaxChapterBytes = 2L * 1024L * 1024L
     })
     .Build();
 
 await using var stream = File.OpenRead("upload.epub");
-var chunks = reader.Read(stream, "upload.epub").ToList();
+var chunks = reader.Enumerate(stream, "upload.epub").ToList();
 
 foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
     Console.WriteLine(warning);
@@ -81,7 +81,7 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 
 ```csharp
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-    .AddEpubHandler(new EpubReadOptions {
+    .AddEpubHandler(new EpubLoadOptions {
         MaxResources = 500,
         MaxResourceBytes = 4L * 1024L * 1024L,
         MaxTotalResourceBytes = 32L * 1024L * 1024L

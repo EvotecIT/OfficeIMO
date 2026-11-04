@@ -12,7 +12,7 @@ public sealed class HtmlPdfLinkConformanceTests {
     [InlineData("<a href='https://example.test/details'><math alttext='one half'><mfrac><mn>1</mn><mn>2</mn></mfrac></math></a>")]
     public void InvisibleLinkAreasRetainAccessibleAnnotationsWithoutUnnamedDrawingFailures(string body) {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fonts", "SourceSerif4-Regular.otf"));
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             MathMlSourceModificationDate = new DateTimeOffset(2026, 10, 2, 0, 0, 0, TimeSpan.Zero),
             PdfOptions = new PdfCreateOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)

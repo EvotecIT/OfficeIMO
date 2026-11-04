@@ -495,6 +495,15 @@ public sealed partial class PdfCreateOptions {
         return false;
     }
 
-    private static System.Collections.Generic.List<string> EnumerateOfficeFontFamilyCandidates(string familyName) =>
-        OfficeIMO.Drawing.OfficeFontFamilyParser.Parse(familyName, allowSemicolonSeparators: true);
+    // Text checks ask this for every run, and the answer depends only on the string.
+    private const int MaximumParsedFontFamilyLists = 1024;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> ParsedFontFamilyLists =
+        new(StringComparer.Ordinal);
+
+    private static string[] EnumerateOfficeFontFamilyCandidates(string familyName) {
+        if (ParsedFontFamilyLists.TryGetValue(familyName, out string[]? parsed)) return parsed;
+        parsed = OfficeIMO.Drawing.OfficeFontFamilyParser.Parse(familyName, allowSemicolonSeparators: true).ToArray();
+        if (ParsedFontFamilyLists.Count < MaximumParsedFontFamilyLists) ParsedFontFamilyLists.TryAdd(familyName, parsed);
+        return parsed;
+    }
 }

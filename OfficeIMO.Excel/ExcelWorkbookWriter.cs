@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel;
 
 /// <summary>Writes XLSX worksheets as rows arrive, retaining schemas and workbook metadata rather than source rows.</summary>
-/// <remarks>Each table returns its observed row count and occupied range. Dispose completes the package; file destinations are published only after every table succeeds.</remarks>
+/// <remarks>Each table returns its observed row count and occupied range. Dispose completes the package; file destinations are published only after every table succeeds. Disposing before any table was written throws <see cref="InvalidOperationException"/> and leaves the destination untouched.</remarks>
 public sealed class ExcelWorkbookWriter : IDisposable {
     private readonly ExcelDocument.StreamingWorkbook _workbook;
 

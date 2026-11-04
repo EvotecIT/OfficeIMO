@@ -12,7 +12,7 @@ public sealed class EmailStreamingSafetyTests {
         byte[] expected = Enumerable.Range(0, length).Select(value => (byte)value).ToArray();
         string encoded = Convert.ToBase64String(expected);
         if (omitPadding) encoded = encoded.TrimEnd('=');
-        using EmailReadResult result = new EmailDocumentReader().ReadStreaming(new MemoryStream(Base64Artifact(encoded)), "blocks.eml");
+        using EmailReadResult result = new EmailDocumentReader().ReadDocument(new MemoryStream(Base64Artifact(encoded)), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "blocks.eml");
         using Stream input = Assert.Single(result.Document.Attachments).OpenContentStream();
         using var output = new MemoryStream();
         input.CopyTo(output);
@@ -24,7 +24,7 @@ public sealed class EmailStreamingSafetyTests {
     [Fact]
     public void InvalidBase64AfterAFullBlockPreservesTheEntireUndecodedPayload() {
         string encoded = new string('A', 90000) + "!AAA";
-        using EmailReadResult result = new EmailDocumentReader().ReadStreaming(new MemoryStream(Base64Artifact(encoded)), "late-invalid.eml");
+        using EmailReadResult result = new EmailDocumentReader().ReadDocument(new MemoryStream(Base64Artifact(encoded)), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "late-invalid.eml");
         using Stream input = Assert.Single(result.Document.Attachments).OpenContentStream();
         using var reader = new StreamReader(input, Encoding.ASCII);
         Assert.Equal(encoded, reader.ReadToEnd());
@@ -70,8 +70,8 @@ public sealed class EmailStreamingSafetyTests {
             "Content-Transfer-Encoding: base64\r\n\r\nAA!B\r\n" +
             "--officeimo--\r\n");
 
-        using EmailReadResult result = new EmailDocumentReader().ReadStreaming(
-            new MemoryStream(artifact, writable: false), "bad.eml");
+        using EmailReadResult result = new EmailDocumentReader().ReadDocument(
+            new MemoryStream(artifact, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "bad.eml");
         EmailAttachment attachment = Assert.Single(result.Document.Attachments);
 
         Assert.Contains(result.Diagnostics, diagnostic =>
@@ -96,7 +96,7 @@ public sealed class EmailStreamingSafetyTests {
             maxAttachmentCount: 1));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            reader.ReadStreaming(new MemoryStream(artifact, writable: false), "semantic.eml"));
+            reader.ReadDocument(new MemoryStream(artifact, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "semantic.eml"));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentCount), exception.LimitName);
     }
@@ -118,7 +118,7 @@ public sealed class EmailStreamingSafetyTests {
             maxAttachmentCount: 1));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            reader.ReadStreaming(new MemoryStream(artifact, writable: false), "nested.eml"));
+            reader.ReadDocument(new MemoryStream(artifact, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "nested.eml"));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentCount), exception.LimitName);
     }
@@ -134,8 +134,8 @@ public sealed class EmailStreamingSafetyTests {
         byte[] complete = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Tnef);
         byte[] truncated = complete.Take(complete.Length - 7).ToArray();
 
-        using EmailReadResult result = new EmailDocumentReader().ReadStreaming(
-            new MemoryStream(truncated, writable: false), "winmail.dat");
+        using EmailReadResult result = new EmailDocumentReader().ReadDocument(
+            new MemoryStream(truncated, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "winmail.dat");
 
         Assert.True(result.HasErrors || result.Diagnostics.Count > 0);
         foreach (EmailAttachment attachment in result.Document.Attachments) {
@@ -152,8 +152,8 @@ public sealed class EmailStreamingSafetyTests {
 
         using EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
             maxInputBytes: 1024,
-            maxCompoundDirectoryEntries: 16)).ReadStreaming(
-                new MemoryStream(malformed, writable: false), "malformed.msg");
+            maxCompoundDirectoryEntries: 16)).ReadDocument(
+                new MemoryStream(malformed, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "malformed.msg");
 
         Assert.True(result.HasErrors);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_COMPOUND_INVALID");
@@ -171,10 +171,10 @@ public sealed class EmailStreamingSafetyTests {
 
         byte[] first = writer.ToBytes(source, format);
         byte[] second = writer.ToBytes(source, format);
-        using EmailReadResult reopened = new EmailDocumentReader().ReadStreaming(
-            new MemoryStream(first, writable: false), FileName(format));
-        using EmailReadResult reopenedAgain = new EmailDocumentReader().ReadStreaming(
-            new MemoryStream(second, writable: false), FileName(format));
+        using EmailReadResult reopened = new EmailDocumentReader().ReadDocument(
+            new MemoryStream(first, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, FileName(format));
+        using EmailReadResult reopenedAgain = new EmailDocumentReader().ReadDocument(
+            new MemoryStream(second, writable: false), OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, FileName(format));
         EmailSemanticComparisonReport comparison = EmailSemanticComparer.Compare(
             reopened.Document, reopenedAgain.Document);
 

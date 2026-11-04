@@ -20,9 +20,9 @@ public class PowerPointRichRunNativeTextFormattingTests {
                 authoredRun.StrikeStyle = PowerPointStrikeStyle.Double;
                 authoredRun.Capitalization = PowerPointCapitalization.SmallCaps;
                 authoredRun.SetSuperscript();
-                authoredRun.FontName = "Aptos";
+                authoredRun.FontFamily = "Aptos";
                 authoredRun.FontSize = global::OfficeIMO.OfficeLength.Points(14.5D);
-                authoredRun.Color = "336699";
+                authoredRun.Color = OfficeColor.Parse("336699");
                 authoredRun.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.ToggleCase);
                 presentation.Save();
             }
@@ -39,9 +39,9 @@ public class PowerPointRichRunNativeTextFormattingTests {
             Assert.Equal(PowerPointStrikeStyle.Double, actual.StrikeStyle);
             Assert.Equal(PowerPointCapitalization.SmallCaps, actual.Capitalization);
             Assert.Equal(30D, actual.BaselinePercent);
-            Assert.Equal("Aptos", actual.FontName);
+            Assert.Equal("Aptos", actual.FontFamily);
             Assert.Equal(14.5D, actual.FontSize?.ToPoints());
-            Assert.Equal("336699", actual.Color);
+            Assert.Equal(OfficeColor.Parse("336699"), actual.Color);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

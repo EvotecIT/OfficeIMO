@@ -65,8 +65,13 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OfficeIMO.Drawing.OfficeImageFormat imageType = GetImagePartType(imagePath);
-            string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
             using FileStream stream = new(imagePath, FileMode.Open, FileAccess.Read);
+            using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(stream, imageType);
+            if (normalized != null) {
+                SetBackgroundImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png);
+                return;
+            }
+            string imageExtension = PowerPointPartFactory.GetImageExtension(imageType, imagePath);
             SetBackgroundImageCore(stream, imageType, imageExtension);
         }
 
@@ -83,6 +88,11 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }
 
+            using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
+            if (normalized != null) {
+                SetBackgroundImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png);
+                return;
+            }
             SetBackgroundImageCore(image, imageType, PowerPointPartFactory.GetImageExtension(imageType));
         }
 

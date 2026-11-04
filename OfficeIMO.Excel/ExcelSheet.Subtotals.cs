@@ -1,13 +1,9 @@
 using System.Globalization;
+using OfficeIMO.Excel.Reports;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        /// <summary>
-        /// Creates a grouped subtotal summary block from a contiguous worksheet data range.
-        /// </summary>
-        /// <param name="options">Subtotal generation options.</param>
-        /// <returns>Information about the generated summary block.</returns>
-        public ExcelSubtotalResult AddSubtotalSummary(ExcelSubtotalOptions options) {
+        internal ExcelSubtotalResult AddSubtotalSummaryCore(ExcelSubtotalOptions options) {
             if (options == null) throw new ArgumentNullException(nameof(options));
             ValidateSubtotalOptions(options);
 

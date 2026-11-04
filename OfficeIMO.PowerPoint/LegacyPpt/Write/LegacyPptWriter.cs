@@ -220,7 +220,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (shape is PowerPointTextBox) return true;
             if (shape is PowerPointTable) return true;
             if (includeMedia && shape is PowerPointMedia) return true;
-            if (includePictures && shape is PowerPointPicture) return true;
+            if (includePictures && shape is PowerPointImage) return true;
             if (includeCharts && shape is PowerPointChart) return true;
             if (includeSmartArt && shape is PowerPointSmartArt) return true;
             if (includeOleObjects && shape is PowerPointOleObject) return true;

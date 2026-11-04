@@ -21,7 +21,7 @@ public sealed class ProvenanceSignatureMutationTests {
             }
             AddZipEntry(path, "word/media/provenance.png", CreatePngWithManifest());
             using X509Certificate2 certificate = CreateCertificate();
-            OfficePackageSigningResult signed = WordDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate);
+            OfficePackageSigningResult signed = WordDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate, new OfficePackageSigningOptions());
             Assert.True(signed.Succeeded, string.Join(" ", signed.Details));
             Assert.True(OfficeIMO.Security.OfficePackageSignatureService.Inspect(path).HasSignatures);
 
@@ -46,7 +46,7 @@ public sealed class ProvenanceSignatureMutationTests {
             VisioDocument.Create(path).Save();
             AddZipEntry(path, "visio/media/provenance.png", CreatePngWithManifest());
             using X509Certificate2 certificate = CreateCertificate();
-            OfficePackageSigningResult signed = VisioDocument.SignPackageSignature(path, OfficeSecurityProvider.Default, certificate);
+            OfficePackageSigningResult signed = VisioDocument.SignPackage(path, OfficeSecurityProvider.Default, certificate);
             Assert.True(signed.Succeeded, string.Join(" ", signed.Details));
 
             var options = new OfficeProvenanceRemovalOptions {

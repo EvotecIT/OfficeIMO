@@ -58,7 +58,7 @@ public sealed class PowerPointMasterPlaceholderBoundsTests {
             var title = slide.AddTextBox("MASTER INHERITED TITLE",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(50));
             title.PlaceholderType = PowerPointPlaceholderType.Title;
             title.PlaceholderIndex = 0;
-            title.FontName = "Helvetica";
+            title.FontFamily = "Helvetica";
             title.FontSize = global::OfficeIMO.OfficeLength.Points(18);
             Assert.IsType<Shape>(title.Element).ShapeProperties!.Transform2D = null;
             var layout = slide.SlidePart.SlideLayoutPart!.SlideLayout.CommonSlideData!.ShapeTree!;

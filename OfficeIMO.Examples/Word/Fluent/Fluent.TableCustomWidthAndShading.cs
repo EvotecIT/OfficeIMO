@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word
                     table1.Rows[1 - 1].Height = global::OfficeIMO.OfficeLength.Points(((int)(36 * 20)) / 20D);
                     {
                         (table1.Rows[1 - 1].Cells[1 - 1]).Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
-                        (table1.Rows[1 - 1].Cells[1 - 1]).ShadingFillColorHex = "ff0000";
+                        (table1.Rows[1 - 1].Cells[1 - 1]).ShadingFillColor = OfficeColor.Parse("ff0000");
                         (table1.Rows[1 - 1].Cells[1 - 1]).Borders.LeftStyle = WordBorderStyle.Single;
                         (table1.Rows[1 - 1].Cells[1 - 1]).Borders.RightStyle = WordBorderStyle.Single;
                         (table1.Rows[1 - 1].Cells[1 - 1]).Borders.TopStyle = WordBorderStyle.Single;
@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word
 
                     {
                         (table1.Rows[1 - 1].Cells[2 - 1]).Paragraphs[0].ParagraphAlignment = WordParagraphAlignment.Center;
-                        (table1.Rows[1 - 1].Cells[2 - 1]).ShadingFillColorHex = "0000ff";
+                        (table1.Rows[1 - 1].Cells[2 - 1]).ShadingFillColor = OfficeColor.Parse("0000ff");
                         (table1.Rows[1 - 1].Cells[2 - 1]).Borders.LeftStyle = WordBorderStyle.Single;
                         (table1.Rows[1 - 1].Cells[2 - 1]).Borders.RightStyle = WordBorderStyle.Single;
                         (table1.Rows[1 - 1].Cells[2 - 1]).Borders.TopStyle = WordBorderStyle.Single;

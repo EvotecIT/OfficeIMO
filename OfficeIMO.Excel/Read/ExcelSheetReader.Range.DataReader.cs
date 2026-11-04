@@ -12,6 +12,8 @@ namespace OfficeIMO.Excel {
     /// Data-reader projections for <see cref="ExcelSheetReader"/> ranges.
     /// </summary>
     internal sealed partial class ExcelSheetReader {
+        internal const int DataReaderChunkRows = 1024;
+
         internal IDataReader ReadUsedRangeAsDataReader(
             bool headersInFirstRow = true,
             int schemaSampleRows = 0,
@@ -45,7 +47,7 @@ namespace OfficeIMO.Excel {
             return ReadRangeAsDataReaderCore(
                 usedRange,
                 headersInFirstRow: headersInFirstRow,
-                chunkRows: Math.Min(1024, _opt.MaxDataReaderChunkRows),
+                chunkRows: Math.Min(DataReaderChunkRows, _opt.MaxDataReaderChunkRows),
                 schemaSampleRows: schemaSampleRows,
                 mode: null,
                 ct: ct,
@@ -408,7 +410,8 @@ namespace OfficeIMO.Excel {
 
         private bool TryConvertCellForDataReader(Cell cell, out object? value) {
             CellValues? typeHint = cell.DataType?.Value;
-            string? rawText = ExtractRawText(cell);
+            GetCellChildren(cell, out CellFormula? formula, out CellValue? cellValue, out _);
+            string? rawText = cellValue?.InnerText;
             uint? styleIndex = cell.StyleIndex?.Value;
             bool canPreserveDateSerial =
                 _opt.TreatDatesUsingNumberFormat
@@ -419,7 +422,7 @@ namespace OfficeIMO.Excel {
                 && typeHint != CellValues.String
                 && typeHint != CellValues.InlineString
                 && typeHint != CellValues.Date
-                && (cell.CellFormula == null || _opt.UseCachedFormulaResult);
+                && (formula == null || _opt.UseCachedFormulaResult);
             if (canPreserveDateSerial
                 && Styles.IsDateLike(styleIndex!.Value)
                 && (TryParseInvariantDouble(rawText, out double serial)

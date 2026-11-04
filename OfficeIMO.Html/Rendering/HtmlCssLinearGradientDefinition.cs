@@ -3,6 +3,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Html;
 
 internal sealed class HtmlCssLinearGradientDefinition {
+    internal OfficeColor MeanColor => _stops.MeanColor();
+
     private readonly double _angle;
     private readonly HtmlCssGradientStops _stops;
     private readonly bool _repeating;

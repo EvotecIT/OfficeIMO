@@ -461,11 +461,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Ready");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Ready");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Never delivered");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             TruncateFirstXlsbCellRecordPayload(
@@ -495,11 +495,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Ready");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Ready");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Never delivered");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             ReplaceFirstXlsbDataCellStyleIndex(
@@ -529,11 +529,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Ready");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Ready");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellFormula(2, 1, "1+1");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetFormula("1+1");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
 
@@ -561,11 +561,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Ready");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Ready");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Never delivered");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             DuplicateFirstXlsbRecord(

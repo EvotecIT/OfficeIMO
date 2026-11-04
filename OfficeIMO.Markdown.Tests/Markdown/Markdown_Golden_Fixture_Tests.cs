@@ -206,7 +206,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
 
         MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
         string officeMarkdown = document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile());
-        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(MarkdownHtmlImportOptions.CreatePortableProfile()).ToMarkdown();
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlMarkdownExportOptions.CreatePortableProfile()).ToMarkdown();
         string renderedHtml = document.ToHtml(CreatePlainHtmlOptions());
 
         var sb = new StringBuilder();
@@ -222,11 +222,11 @@ public sealed class Markdown_Golden_Fixture_Tests {
     public void MarkdownGolden_HtmlSharedVisualHosts() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
         string officeMarkdown = document.ToMarkdown(MarkdownSaveOptions.CreateOfficeIMOProfile());
-        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html"),
             MarkdownWriteOptions = MarkdownSaveOptions.CreatePortableProfile()
         }).ToMarkdown();
@@ -500,7 +500,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
 
     private static void AppendHtmlFixtureSnapshot(StringBuilder sb, string name, string fixtureName) {
         string html = LoadHtmlFixture(fixtureName);
-        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new MarkdownHtmlImportOptions {
+        MarkdownDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlMarkdownExportOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 

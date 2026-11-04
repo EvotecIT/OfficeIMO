@@ -31,11 +31,11 @@ public partial class ExcelImageExportTests {
     public void Saved_scientific_formats_reach_numeric_cells_and_formula_caches(bool merged) {
         using var workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Scientific");
-        sheet.CellAt(1, 1).SetValue(-1250d).SetNumberFormat("0.00E+00;[Red](0.###E+00)");
-        sheet.CellAt(2, 1).SetValue(1.5d);
-        sheet.CellFormula(2, 1, "=1.5");
-        sheet.CellAt(2, 1).SetNumberFormat("0.###E-00");
-        sheet.CellAt(3, 1).SetValue("-1250").SetNumberFormat("0.00E+00;[Red](0.###E+00)").SetFontColor("0000FF");
+        sheet.Cell(1, 1).SetValue(-1250d).SetNumberFormat("0.00E+00;[Red](0.###E+00)");
+        sheet.Cell(2, 1).SetValue(1.5d);
+        sheet.Cell(2, 1).SetFormula("=1.5");
+        sheet.Cell(2, 1).SetNumberFormat("0.###E-00");
+        sheet.Cell(3, 1).SetValue("-1250").SetNumberFormat("0.00E+00;[Red](0.###E+00)").SetFontColor("0000FF");
         if (merged) sheet.Range("A1:B1").Merge();
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

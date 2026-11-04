@@ -50,7 +50,7 @@ public sealed class PdfAutomationCommandTests {
     public async Task DecryptionRequiresOwnerAuthorizationAndNeverReportsThePassword() {
         using var scope = new DirectoryScope();
         string source = scope.File("protected.pdf"), destination = scope.File("clear.pdf");
-        byte[] clear = PdfDocument.Create(d => d.Page(p => p.Content(c => c.Item(i => i.Paragraph(t => t.Text("Retained content")))))).ToBytes();
+        byte[] clear = PdfDocument.Create(d => d.Page(p => p.Content(c => c.Item(i => i.AddParagraph(t => t.AddText("Retained content")))))).ToBytes();
         byte[] protectedBytes = PdfDocument.Load(clear).Security.Encrypt(new("reader-secret") { OwnerPassword = "owner-secret" }).Pdf;
         await File.WriteAllBytesAsync(source, protectedBytes);
         string variable = "OFFICEIMO_PDF_TEST_" + Guid.NewGuid().ToString("N");
@@ -190,7 +190,7 @@ public sealed class PdfAutomationCommandTests {
     }
     internal static void CreatePdf(string path, int count) => PdfDocument.Create(d => {
         for (int index = 1; index <= count; index++) { int page = index;
-            d.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200 + page), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(10)).Content(c => c.Item(i => i.Paragraph(t => t.Text("Page " + page)))));
+            d.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(200 + page), global::OfficeIMO.OfficeLength.Points(100)).Margin(global::OfficeIMO.OfficeLength.Points(10)).Content(c => c.Item(i => i.AddParagraph(t => t.AddText("Page " + page)))));
         }
     }).Save(path);
     private sealed class DirectoryScope : IDisposable {

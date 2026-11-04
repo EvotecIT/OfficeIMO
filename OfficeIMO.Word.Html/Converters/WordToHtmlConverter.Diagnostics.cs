@@ -282,8 +282,8 @@ namespace OfficeIMO.Word.Html {
                 AddExportDiagnostic(options, "package-signatures-omitted", "OPC package signature metadata is not represented in HTML.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportHeadersAndFooters && document.Sections.Any(section =>
-                section.Header.Default != null || section.Header.Even != null || section.Header.First != null ||
-                section.Footer.Default != null || section.Footer.Even != null || section.Footer.First != null)) {
+                section.PageSetup.GetHeader(WordHeaderFooterType.Default) != null || section.PageSetup.GetHeader(WordHeaderFooterType.Even) != null || section.PageSetup.GetHeader(WordHeaderFooterType.First) != null ||
+                section.PageSetup.GetFooter(WordHeaderFooterType.Default) != null || section.PageSetup.GetFooter(WordHeaderFooterType.Even) != null || section.PageSetup.GetFooter(WordHeaderFooterType.First) != null)) {
                 AddExportDiagnostic(options, "headers-footers-omitted", "Section headers or footers were omitted because ExportHeadersAndFooters is false.", OfficeConversionLossKind.Omission);
             }
             if (!options.ExportFootnotes && document.FootNotes.Count > 0) {
@@ -350,6 +350,18 @@ namespace OfficeIMO.Word.Html {
             internal bool HasRevisions { get; }
             internal bool HasComments { get; }
             internal long OutputConstructionCharacters { get; }
+        }
+
+        private static readonly HtmlUrlPolicy ExportLinkPolicy = HtmlUrlPolicy.CreateHyperlinkProfile();
+
+        // Exported HTML is opened in browsers, so a document link must not carry a script or embedded page.
+        private static bool IsExportableLink(string? href, WordHtmlExportOptions options, string source) {
+            if (string.IsNullOrEmpty(href)) return false;
+            if (HtmlUrlPolicyEvaluator.IsAllowed(href, ExportLinkPolicy)) return true;
+            AddExportDiagnostic(options, "unsafe-link-dropped",
+                source + " used a URL the HTML hyperlink policy rejects, so the link was removed and its text kept.",
+                OfficeConversionLossKind.Omission);
+            return false;
         }
 
         private static void AddExportDiagnostic(WordHtmlExportOptions options, string code, string message, OfficeConversionLossKind lossKind) {

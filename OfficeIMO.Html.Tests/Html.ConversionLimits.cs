@@ -89,7 +89,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_EnforcesEmbeddedCssBytesBeforeAnalysis() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 8;
         limits.MaxTotalCssBytes = 16;
 
@@ -102,7 +102,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_AllowsTotalCssBudgetBelowPerStylesheetBudget() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = 64;
         limits.MaxTotalCssBytes = 8;
 
@@ -120,7 +120,7 @@ public sealed class HtmlConversionLimitTests {
         HtmlDomLimitException nodeException = Assert.Throws<HtmlDomLimitException>(() =>
             HtmlConversionDocument.Parse(html, Options(limits => limits.MaxHtmlNodes = 6)));
 
-        var cssLimits = HtmlConversionLimits.CreateUntrustedProfile();
+        var cssLimits = HtmlConversionLimits.UntrustedDefaults;
         cssLimits.MaxCssBytes = 8;
         cssLimits.MaxTotalCssBytes = 16;
         HtmlDomLimitException cssException = Assert.Throws<HtmlDomLimitException>(() =>
@@ -132,7 +132,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void RawNormalizerAndResourceOverloadsHonorCallerSourceLimitsBeforeParsing() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxInputCharacters = 8;
 
         HtmlDomLimitException normalizeException = Assert.Throws<HtmlDomLimitException>(() =>
@@ -146,7 +146,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_EnforcesSemanticAttributeSizeBeforeAdapters() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSemanticMetadataCharacters = 4;
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
@@ -160,7 +160,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_UsesOneResponsiveCandidateLimitForNormalizationAndResources() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxResponsiveImageCandidates = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<img srcset='https://example.test/first.png 1x, https://example.test/second.png 2x'>",
@@ -188,7 +188,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_DefersStyleWorkAndEnforcesItsComplexityBudgetOnDemand() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>.a{color:red}.b{color:blue}</style><p class='a b'>x</p>",
@@ -202,7 +202,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_RetainsOnlySelectorsWithPossibleDocumentOwners() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssRules = 1;
         limits.MaxCssRuleCandidates = 3;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -215,7 +215,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_Counts_Unsupported_Css_Before_Cascade_Filtering() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>.a{x-officeimo-unknown-a:1}.b{x-officeimo-unknown-b:2}</style><p class='a b'>x</p>",
@@ -228,7 +228,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_BoundsNestedSelectorExpansionBeforeCascadeWork() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssSelectorCharacters = 24;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>.alpha,.beta{& .one,& .two{color:red}}</style><p class='alpha'><span class='one'>x</span></p>",
@@ -242,7 +242,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_CountsRetainedStringSetRuleOnce() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssRules = 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>.target{string-set:chapter content()}</style><p class='target'>x</p>",
@@ -253,7 +253,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlConversionDocument_EnforcesCssNestingDepthBeforeRetainedDeclarationTraversal() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 4;
         string css = string.Concat(Enumerable.Repeat("@media all{", 1024))
             + ".target{string-set:chapter content()}"
@@ -270,7 +270,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlResourcePipeline_EnforcesCssNestingDepthBeforeFontFaceParsing() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 4;
         string css = string.Concat(Enumerable.Repeat("@media all{", 1024))
             + "@font-face{font-family:Nested;src:url('nested.woff2')}"
@@ -287,7 +287,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlRender_EnforcesCssNestingDepthBeforeParsingAdditionalStylesheets() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 4;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<p>Body</p>",
@@ -307,7 +307,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public async Task HtmlRenderAsync_UsesDocumentCssNestingLimitsForExternalStylesheetAnalysis() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 72;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<link rel='stylesheet' href='https://assets.example.test/deep.css'><p class='target'>Body</p>",
@@ -331,7 +331,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlResourcePipeline_DoesNotCountEscapedBracesAsCssRuleBlocks() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 1;
 
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
@@ -343,7 +343,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlResourcePipeline_DoesNotLetEscapedClosingBracesHideCssNesting() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 2;
         const string css = ".outer{--escaped:\\};@media all{.inner{color:red}}}";
 
@@ -357,7 +357,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlResourcePipeline_DoesNotCountBracesInsideUnquotedUrlsAsCssRuleBlocks() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 1;
 
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(
@@ -369,7 +369,7 @@ public sealed class HtmlConversionLimitTests {
 
     [Fact]
     public void HtmlResourcePipeline_DoesNotLetClosingBracesInsideUnquotedUrlsHideCssNesting() {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 2;
         const string css = ".outer{background:url(image}}.png);@media all{.inner{color:red}}}";
 
@@ -386,7 +386,7 @@ public sealed class HtmlConversionLimitTests {
     [InlineData("\r")]
     [InlineData("\f")]
     public void HtmlResourcePipeline_DoesNotLetMalformedStringsHideCssNesting(string newline) {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 2;
         string css = ".outer{content:\"unterminated" + newline + ";@media all{.inner{color:red}}}";
 
@@ -403,7 +403,7 @@ public sealed class HtmlConversionLimitTests {
     [InlineData("\\\r\n")]
     [InlineData("\\\f")]
     public void HtmlResourcePipeline_PreservesEscapedNewlinesInsideCssStrings(string escapedNewline) {
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssNestingDepth = 1;
         string css = ".target{content:\"line" + escapedNewline + "{{\";color:red}";
 
@@ -430,7 +430,7 @@ public sealed class HtmlConversionLimitTests {
     [Fact]
     public void HtmlComputedStyles_IndexIrrelevantSelectorsWithoutChangingTheCascade() {
         string irrelevantRules = string.Concat(Enumerable.Range(0, 200).Select(index => ".unused" + index + "{color:red}"));
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxSelectorEvaluations = 8;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
             "<style>" + irrelevantRules + "#target{color:rgb(1, 2, 3)}</style><p id='target'>indexed</p>",
@@ -477,7 +477,7 @@ public sealed class HtmlConversionLimitTests {
     }
 
     private static HtmlConversionDocumentOptions Options(Action<HtmlConversionLimits> configure) {
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         configure(limits);
         return new HtmlConversionDocumentOptions { Limits = limits };
     }

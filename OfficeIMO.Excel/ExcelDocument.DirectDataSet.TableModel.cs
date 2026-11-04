@@ -9,6 +9,14 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
+        /// <summary>Exposes the existing typed cells to native writers without reboxing them.</summary>
+        internal static ExcelCellValueBuffer? GetBufferedTabularCells(IExcelSheetTabularRowSource source)
+            => (source as DirectDataSetTableModel)?.CellValueBuffer;
+
+        /// <summary>Identifies a retained flat snapshot without calling a source value accessor.</summary>
+        internal static bool HasFlatTabularSnapshot(IExcelSheetTabularRowSource source)
+            => source is DirectDataSetTableModel table && table.TryGetCellValueRows(out _);
+
         private sealed partial class DirectDataSetTableModel : IExcelSheetTabularRowSource {
             private const int MaxAutoFitStringWidthCacheEntriesPerColumn = 1024;
             private const long BufferedDictionaryCellLimit = 500_000;
@@ -45,6 +53,7 @@ namespace OfficeIMO.Excel {
             private readonly IDirectObjectRows? _objectRows;
             private readonly DirectCellValueRows _cellValueRows;
             private readonly bool _hasCellValueRows;
+            private readonly ExcelCellValueBuffer? _cellValueBuffer;
             private readonly IReadOnlyList<Dictionary<string, object?>>? _exactDictionaryRows;
             private readonly IReadOnlyList<IReadOnlyDictionary<string, object?>>? _dictionaryRows;
             private readonly IReadOnlyList<System.Collections.IDictionary>? _legacyDictionaryRows;
@@ -85,6 +94,12 @@ namespace OfficeIMO.Excel {
                 _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
                 _cellValueRows = cellValueRows;
                 _hasCellValueRows = true;
+            }
+
+            private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, ExcelCellValueBuffer cellValueBuffer) {
+                _columns = columns;
+                _stringCandidateColumnIndexes = CreateStringCandidateColumnIndexes(columns);
+                _cellValueBuffer = cellValueBuffer;
             }
 
             private DirectDataSetTableModel(DirectDataSetColumnModel[] columns, IDirectObjectRows objectRows) {
@@ -148,6 +163,16 @@ namespace OfficeIMO.Excel {
                 }
 
                 return new DirectDataSetTableModel(columns, new DirectCellValueRows(values, columnCount, rowCount, valuesMatchColumnTypes));
+            }
+
+            internal static DirectDataSetTableModel FromCellValueBuffer(ExcelCellValueBuffer buffer) {
+                Type[] columnTypes = buffer.CreateColumnTypes();
+                var columns = new DirectDataSetColumnModel[columnTypes.Length];
+                for (int i = 0; i < columns.Length; i++) {
+                    columns[i] = new DirectDataSetColumnModel("Column" + (i + 1).ToString(CultureInfo.InvariantCulture), columnTypes[i]);
+                }
+
+                return new DirectDataSetTableModel(columns, buffer);
             }
 
             internal static DirectDataSetTableModel FromCallbackRows<T>(
@@ -290,6 +315,10 @@ namespace OfficeIMO.Excel {
 
                 if (_hasCellValueRows) {
                     return new DirectDataSetTableModel(columns, _cellValueRows);
+                }
+
+                if (_cellValueBuffer != null) {
+                    return new DirectDataSetTableModel(columns, _cellValueBuffer);
                 }
 
                 if (_objectRows != null) {
@@ -494,13 +523,13 @@ namespace OfficeIMO.Excel {
 
             internal int ColumnCount => _columns!.Length;
 
-            internal int RowCount => _sourceTable?.Rows.Count ?? _arrayRows?.Length ?? _listRows?.Count ?? _objectRows?.Count ?? (_hasCellValueRows ? _cellValueRows.Count : (int?)null) ?? _exactDictionaryRows?.Count ?? _dictionaryRows?.Count ?? _legacyDictionaryRows!.Count;
+            internal int RowCount => _sourceTable?.Rows.Count ?? _cellValueBuffer?.RowCount ?? _arrayRows?.Length ?? _listRows?.Count ?? _objectRows?.Count ?? (_hasCellValueRows ? _cellValueRows.Count : (int?)null) ?? _exactDictionaryRows?.Count ?? _dictionaryRows?.Count ?? _legacyDictionaryRows!.Count;
 
             internal string GetColumnName(int index) => _columns![index].Name;
 
             internal Type GetColumnType(int index) => _columns![index].DataType;
 
-            internal bool AllowObjectColumnKindInference => _objectRows == null;
+            internal bool AllowObjectColumnKindInference => _objectRows == null && _cellValueBuffer == null;
 
             int IExcelSheetTabularRowSource.ColumnCount => ColumnCount;
 
@@ -640,6 +669,8 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            internal ExcelCellValueBuffer? CellValueBuffer => _cellValueBuffer;
+
             internal bool TryGetObjectRows(out IDirectObjectRows rows) {
                 if (_objectRows != null) {
                     rows = _objectRows;
@@ -674,6 +705,8 @@ namespace OfficeIMO.Excel {
                         : null;
                 } else if (_legacyDictionaryRows != null) {
                     value = GetLegacyDictionaryValue(_legacyDictionaryRows[rowIndex], GetColumnName(columnIndex), _legacyDictionaryExactKeyLookup);
+                } else if (_cellValueBuffer != null) {
+                    value = _cellValueBuffer.GetValue(rowIndex, columnIndex);
                 } else if (_hasCellValueRows) {
                     value = _cellValueRows.GetValue(rowIndex, columnIndex);
                 } else if (_objectRows != null) {

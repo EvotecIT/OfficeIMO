@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel {
                 foreach (var worksheetPart in WorkbookPartRoot.WorksheetParts) {
                     var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
                     bool worksheetChanged = false;
-                    foreach (var sheetView in worksheet.Descendants<SheetView>()) {
+                    foreach (var sheetView in worksheet.MetadataDescendants<SheetView>()) {
                         if (sheetView.WorkbookViewId == null || sheetView.WorkbookViewId.Value >= workbookViewCount) {
                             sheetView.WorkbookViewId = 0U;
                             worksheetChanged = true;

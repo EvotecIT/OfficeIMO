@@ -69,7 +69,7 @@ contacts.Indexes.AddPrimaryKey("PK_Contacts", "Id");
 contacts.AppendRow(new AccessRowValues { ["Name"] = "Ada" });
 
 AccessOperationReport assessment = database.AssessSave("contacts.accdb");
-assessment.RequireNoLoss();
+assessment.ThrowIfLoss();
 database.Save("contacts.accdb");
 
 using AccessDocument source = AccessDocument.Load("source.mdb",

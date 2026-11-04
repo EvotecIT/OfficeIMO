@@ -38,12 +38,12 @@ internal sealed record OfficeBatchRendererSettings {
     public OfficeIMO.Word.Pdf.WordPdfExportOptions? Word { get; init; }
     public OfficeIMO.Excel.Pdf.ExcelPdfExportOptions? Excel { get; init; }
     public OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions? PowerPoint { get; init; }
-    public OfficeIMO.Html.Pdf.HtmlToPdfOptions? Html { get; init; }
+    public OfficeIMO.Html.Pdf.HtmlPdfExportOptions? Html { get; init; }
     public OfficeIMO.Markdown.Pdf.MarkdownPdfExportOptions? Markdown { get; init; }
-    public OfficeIMO.Pdf.Word.WordPdfImportOptions? PdfWord { get; init; }
-    public OfficeIMO.Pdf.PowerPoint.PowerPointPdfImportOptions? PdfPowerPoint { get; init; }
+    public OfficeIMO.Pdf.Word.PdfWordExportOptions? PdfWord { get; init; }
+    public OfficeIMO.Pdf.PowerPoint.PdfPowerPointExportOptions? PdfPowerPoint { get; init; }
     public PdfLoadOptions? PdfLoad { get; init; }
-    public PdfToHtmlOptions? PdfHtml { get; init; }
+    public PdfHtmlExportOptions? PdfHtml { get; init; }
     public PdfTextImportOptions? PlainText { get; init; }
     internal static OfficeBatchRendererSettings Capture(OfficeConversionOptions options) => new() {
         SourceFormat = options.SourceFormat, SourceExtension = options.SourceExtension,

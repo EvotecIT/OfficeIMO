@@ -1,6 +1,3 @@
-#if !NET8_0_OR_GREATER
-using DateOnly = System.DateTime;
-#endif
 namespace OfficeIMO.Workflows;
 
 /// <summary>Publisher assertions from ONIX list 196; these are not inferred from individual EPUB elements.</summary>
@@ -86,8 +83,8 @@ public sealed record BookOnixAccessibilityMetadata {
     public string? CompatibilityReportUrl { get; init; }
     /// <summary>Plain trusted intermediary contact email for accessibility questions (98).</summary>
     public string? IntermediaryContactEmail { get; init; }
-    /// <summary>Date of the latest actual assessment (91); not the export date.</summary>
-    public DateOnly? AssessmentDate { get; init; }
+    /// <summary>Date of the latest actual assessment (91); not the export date. Time of day is ignored during export.</summary>
+    public DateTime? AssessmentDate { get; init; }
     /// <summary>Absolute HTTP(S) publisher-maintained accessibility information page (96). Never fetched by export.</summary>
     public string? PublisherInformationUrl { get; init; }
     /// <summary>Plain publisher contact email address for accessibility questions (99).</summary>

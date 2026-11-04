@@ -75,7 +75,7 @@ public sealed partial class AddOfficeExcelChartCommand {
         // Keep all supplied fields while putting the selected chart fields in one native source block.
         table.Columns[names[categoryIndex]]!.SetOrdinal(0);
         for (int i = 0; i < valueIndexes.Length; i++) table.Columns[names[valueIndexes[i]]]!.SetOrdinal(i + 1);
-        var used = ParseSourceRange(sheet.UsedRangeA1);
+        var used = ParseSourceRange(sheet.UsedRange.Address);
         int startRow = used.Top == 1 && used.Bottom == 1 && used.Left == 1 && used.Right == 1 &&
             !sheet.TryGetCellText(1, 1, out _) ? 1 : checked(used.Bottom + 2);
         if ((long)startRow + table.Rows.Count > ExcelA1.MaxRows || table.Columns.Count > ExcelA1.MaxColumns) {

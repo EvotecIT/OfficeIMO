@@ -96,10 +96,10 @@ namespace OfficeIMO.Tests {
 
             string[] headers = { "Region", "Owner", "Status", "Score" };
             for (int column = 1; column <= headers.Length; column++) {
-                sheet.CellValue(1, column, headers[column - 1]);
-                sheet.CellAt(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
-                sheet.CellAlign(1, column, ExcelHorizontalAlignment.Center);
-                sheet.CellVerticalAlign(1, column, ExcelVerticalAlignment.Center);
+                sheet.Cell(1, column).SetValue(headers[column - 1]);
+                sheet.Cell(1, column).SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                sheet.Cell(1, column).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+                sheet.Cell(1, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
             }
 
             AddPageLayoutRow(sheet, 2, "North", "Avery", "Ready", 0.94D, "E7F6E7", "226B22");
@@ -121,30 +121,31 @@ namespace OfficeIMO.Tests {
 
             for (int row = 1; row <= 8; row++) {
                 for (int column = 1; column <= 4; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
-                    sheet.CellVerticalAlign(row, column, ExcelVerticalAlignment.Center);
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "94A3B8").SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+                    sheet.Cell(row, column).SetVerticalAlignment(ExcelVerticalAlignment.Center);
                 }
             }
 
-            document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
-            sheet.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
-            sheet.SetHeaderFooter(headerCenter: "&BPage &P / &N - &A", footerRight: "&IReviewed");
+            sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1, firstColumn: null, lastColumn: null);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
+            sheet.PageSetup.SetMargins(OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D), OfficeLength.Inches(0.35D));
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.Header.Center.Text = "&BPage &P / &N - &A";
+            sheet.PageSetup.Footer.Right.Text = "&IReviewed";
             sheet.AddManualRowPageBreak(2, save: false);
             return new ExcelBaselineFixture(document, sheet);
         }
 
         private static void AddPageLayoutRow(ExcelSheet sheet, int row, string region, string owner, string status, double score, string statusFill, string statusText) {
-            sheet.CellValue(row, 1, region);
-            sheet.CellValue(row, 2, owner);
-            sheet.CellValue(row, 3, status);
-            sheet.CellValue(row, 4, score);
+            sheet.Cell(row, 1).SetValue(region);
+            sheet.Cell(row, 2).SetValue(owner);
+            sheet.Cell(row, 3).SetValue(status);
+            sheet.Cell(row, 4).SetValue(score);
             sheet.Range("A" + row.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":D" + row.ToString(System.Globalization.CultureInfo.InvariantCulture))
                 .SetFillColor(row == 2 ? "F8FAFC" : "FFFFFF");
-            sheet.CellAt(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
-            sheet.CellAt(row, 4).Percent(0).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
-            sheet.CellAlign(row, 4, ExcelHorizontalAlignment.Right);
+            sheet.Cell(row, 3).SetFillColor(statusFill).SetFontColor(statusText).SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.Cell(row, 4).SetNumberFormat("0%").SetBold().SetFontSize(global::OfficeIMO.OfficeLength.Points(12D));
+            sheet.Cell(row, 4).SetHorizontalAlignment(ExcelHorizontalAlignment.Right);
         }
 
         private static ExcelImageExportOptions CreatePageLayoutBaselineOptions() =>

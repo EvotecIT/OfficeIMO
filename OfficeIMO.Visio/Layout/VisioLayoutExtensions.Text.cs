@@ -30,10 +30,10 @@ namespace OfficeIMO.Visio {
                 maximumWidth: null,
                 shape.TextStyle);
 
-            shape.Width = width;
-            shape.Height = height;
-            shape.LocPinX = shape.Width / 2D;
-            shape.LocPinY = shape.Height / 2D;
+            shape.WidthInches = width;
+            shape.HeightInches = height;
+            shape.LocPinXInches = shape.WidthInches / 2D;
+            shape.LocPinYInches = shape.HeightInches / 2D;
             return shape;
         }
 

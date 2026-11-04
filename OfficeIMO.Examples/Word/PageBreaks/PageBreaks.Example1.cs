@@ -9,9 +9,9 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with page breaks and removing them");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with some page breaks.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+                document.Properties.Title = "This is my title";
+                document.Properties.Creator = "Przemysław Kłys";
+                document.Properties.Keywords = "word, docx, test";
 
                 var paragraph = document.AddParagraph("Test 1");
 

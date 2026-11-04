@@ -17,7 +17,7 @@ public sealed class WordHtmlAsyncResourceContracts {
         var handler = new ImageHandler();
         using var client = new HttpClient(handler);
         HtmlConversionDocument html = CreateRemoteImageDocument();
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.AllowDocumentStylesheetLinks = false;
         options.HttpClient = client;
 
@@ -33,7 +33,7 @@ public sealed class WordHtmlAsyncResourceContracts {
         var handler = new ImageHandler();
         using var client = new HttpClient(handler);
         HtmlConversionDocument html = CreateRemoteImageDocument();
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.AllowDocumentStylesheetLinks = false;
         options.HttpClient = client;
 
@@ -51,7 +51,7 @@ public sealed class WordHtmlAsyncResourceContracts {
                 Trust = HtmlInputTrust.Trusted,
                 BaseUri = new Uri("https://assets.example.test/pages/index.html")
             });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.StylesheetPaths.Add("../styles/site.css");
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => html.ToWord(options));

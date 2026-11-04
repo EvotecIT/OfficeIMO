@@ -26,7 +26,7 @@ internal static class BibliographyLayoutFixture {
         citations[0].Items.Add(new CslCitationItem("one")); citations[1].Items.Add(new CslCitationItem("two"));
         var result = new CslProcessor(sources, style, new CslRenderOptions { OutputFormat = CslOutputFormat.Html }).Render(citations);
         var layout = result.BibliographyLayout ?? throw new InvalidDataException("Missing CSL layout.");
-        string fieldWidth = Math.Max(3, layout.MaximumLeftMarginCharacters + 1).ToString(CultureInfo.InvariantCulture) + "ch";
+        string fieldWidth = Math.Max(3, layout.MaxLeftMarginCharacters + 1).ToString(CultureInfo.InvariantCulture) + "ch";
         string css = "body{margin:1em;font-family:serif;overflow-wrap:anywhere}h1{font-size:1.5em}ol{list-style:none;padding:0}" +
             "li{overflow-wrap:anywhere;line-height:" + layout.LineSpacing + ";margin-bottom:" + (layout.EntrySpacing * layout.LineSpacing) + "em}" +
             "li::after{content:'';display:block;clear:both}.csl-left-margin{float:left;width:" + fieldWidth + "}";

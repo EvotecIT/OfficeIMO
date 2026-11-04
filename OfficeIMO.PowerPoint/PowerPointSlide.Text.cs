@@ -34,7 +34,7 @@ namespace OfficeIMO.PowerPoint {
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(text)))
+                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))
                 )
             );
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(text)))
+                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))
                 )
             );
 

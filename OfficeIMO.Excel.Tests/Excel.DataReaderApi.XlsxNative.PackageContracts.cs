@@ -152,11 +152,11 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, 11);
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue(11);
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, 22);
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue(22);
                 document.Save();
             }
 

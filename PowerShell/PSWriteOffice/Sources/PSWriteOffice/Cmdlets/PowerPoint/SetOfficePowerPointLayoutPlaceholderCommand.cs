@@ -113,9 +113,9 @@ public sealed class SetOfficePowerPointLayoutPlaceholderCommand : OfficeDocument
             if (Style != null && !OpenXmlValueParser.TryParse(Style, out style))
                 throw new ArgumentException("Unknown text style.", nameof(Style));
             if (Size.HasValue) style = style.WithFontSize(Size);
-            if (Font != null) style = style.WithFontName(Font);
-            if (Color.HasValue) style = style.WithColor(theme.ResolveColor(Color));
-            if (Highlight.HasValue) style = style.WithHighlightColor(theme.ResolveColor(Highlight));
+            if (Font != null) style = style.WithFontFamily(Font);
+            if (Color.HasValue) style = style.WithColor(OfficeIMO.OfficeColor.Parse(theme.ResolveColor(Color)!));
+            if (Highlight.HasValue) style = style.WithBackgroundColor(OfficeIMO.OfficeColor.Parse(theme.ResolveColor(Highlight)!));
             if (BoundSwitch(nameof(Bold)) is bool bold) style = style.WithBold(bold);
             if (BoundSwitch(nameof(Italic)) is bool italic) style = style.WithItalic(italic);
             if (Underline.HasValue) style = style.WithUnderlineStyle(Underline);

@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.PowerPoint;
 
 /// <summary>Represents the destination artifact and report produced by a PowerPoint conversion.</summary>
-internal sealed class PowerPointDocumentConversionResult : IOfficeConversionResult<string, PowerPointDocumentConversionReport> {
+internal sealed class PowerPointDocumentConversionResult : IOfficeResult<string> {
     internal PowerPointDocumentConversionResult(
         string sourcePath,
         string destinationPath,
@@ -37,6 +37,9 @@ internal sealed class PowerPointDocumentConversionResult : IOfficeConversionResu
     /// <summary>Gets whether the conversion reports fidelity loss.</summary>
     public bool HasLoss => Report.HasLoss;
 
+    /// <summary>Throws when the conversion report describes possible fidelity loss.</summary>
+    public void ThrowIfLoss() => Report.ThrowIfLoss();
+
     /// <summary>Gets whether the destination artifact was committed.</summary>
     public bool Succeeded => Value != null;
 
@@ -44,15 +47,10 @@ internal sealed class PowerPointDocumentConversionResult : IOfficeConversionResu
     public string RequireValue() => Value
         ?? throw new InvalidOperationException("The PowerPoint conversion did not produce a destination artifact.");
 
-    /// <summary>Returns the committed path only when no loss was reported.</summary>
-    public string RequireNoLoss() {
-        Report.RequireNoLoss();
-        return RequireValue();
-    }
 }
 
 /// <summary>Describes paths, formats, fidelity decisions, and commit behavior for one conversion.</summary>
-internal sealed class PowerPointDocumentConversionReport : IOfficeConversionReport {
+internal sealed class PowerPointDocumentConversionReport : OfficeConversionReport {
     internal PowerPointDocumentConversionReport(
         string sourcePath,
         string destinationPath,
@@ -69,15 +67,15 @@ internal sealed class PowerPointDocumentConversionReport : IOfficeConversionRepo
         DestinationFormat = destinationFormat;
         SourceFormatDescriptor = sourceDescriptor;
         DestinationFormatDescriptor = destinationDescriptor;
-        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
-        FidelityDiagnostics = Array.AsReadOnly(Diagnostics
+        NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+        FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics
             .Select(static diagnostic => OfficeConversionFidelityDiagnostics.From(diagnostic, "OfficeIMO.PowerPoint"))
             .ToArray());
         Compatibility = new OfficeCompatibilityReport(
             sourceDescriptor,
             destinationDescriptor,
             compatibilityMode,
-            Diagnostics.Select(ToCompatibilityFinding));
+            NativeDiagnostics.Select(ToCompatibilityFinding));
         ReplacedExistingFile = replacedExistingFile;
     }
 
@@ -100,22 +98,21 @@ internal sealed class PowerPointDocumentConversionReport : IOfficeConversionRepo
     public OfficeFormatDescriptor DestinationFormatDescriptor { get; }
 
     /// <summary>Gets all PowerPoint-specific diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<OfficeConversionDiagnostic> NativeDiagnostics { get; }
 
     /// <summary>Gets the shared category-preserving fidelity diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
 
     /// <summary>Gets the shared feature-level fidelity assessment.</summary>
     public OfficeCompatibilityReport Compatibility { get; }
 
     /// <summary>Gets whether the conversion reports fidelity loss.</summary>
-    public bool HasLoss => Compatibility.HasLoss;
+    public override bool HasLoss => Compatibility.HasLoss;
 
     /// <summary>Gets whether an existing destination was replaced.</summary>
     public bool ReplacedExistingFile { get; }
 
-    /// <summary>Throws when the conversion reports loss or a blocked feature.</summary>
-    public void RequireNoLoss() => Compatibility.RequireNoLoss();
 
     private static OfficeCompatibilityFinding ToCompatibilityFinding(OfficeConversionDiagnostic diagnostic) => new(
         diagnostic.Code,

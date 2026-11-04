@@ -38,13 +38,13 @@ public sealed partial class PowerPointContentWorkflowTests {
         using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
         var slide = Assert.Single(saved.Slides);
-        PowerPointShape persisted = image ? Assert.Single(slide.Pictures) : Assert.Single(slide.Charts);
+        PowerPointShape persisted = image ? Assert.Single(slide.Images) : Assert.Single(slide.Charts);
         Assert.Equal(762000L, persisted.Left.ToEmus());
         Assert.Equal(1778000L, persisted.Top.ToEmus());
         Assert.Equal(2540000L, persisted.Width.ToEmus());
         Assert.Equal(1524000L, persisted.Height.ToEmus());
         var neighbor = Assert.Single(slide.Shapes, shape => shape.Name == "Neighbor");
         Assert.True(persisted.Left + persisted.Width <= neighbor.Left);
-        if (image) Assert.Equal("Status marker", persisted.Description);
+        if (image) Assert.Equal("Status marker", persisted.AltText);
     }
 }

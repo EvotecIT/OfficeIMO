@@ -24,11 +24,11 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(value.CachedValueIsComplete);
         Assert.Equal("GBP", value.NumberFormat!.CurrencyCode);
         package.Position = 0;
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(package);
+        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.DoesNotContain(converted.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
-        var cache = reopened.Sheets[0].CellAt(1, 1).GetValue();
+        var cache = reopened.Sheets[0].Cell(1, 1).GetValue();
         Assert.Equal(global::OfficeIMO.Excel.ExcelCellDataKind.Formula, cache.Kind);
         Assert.Equal(-0.5d, cache.Value);
         Assert.Equal("GBP (0.50)", Assert.Single(reopened.Sheets[0].Range("A1:A1").CreateVisualSnapshot().Cells).Text);
@@ -87,7 +87,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Currency_identifiers_consume_the_projection_text_budget() {
-        var options = new IWorkReadOptions { MaximumProjectedTextCharacters = 2 };
+        var options = new IWorkReadOptions { MaxProjectedTextCharacters = 2 };
         using MemoryStream numeric = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), sheetName: "");
         Assert.NotNull(IWorkSourceDocument.Open(numeric, options).ReadNumbers());
         using MemoryStream currency = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13),
@@ -106,7 +106,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(3, FormatEntry(CurrencyFormat("USD", 2))),
                 BytesField(3, Message(VarintField(1, 2), BytesField(6, CurrencyFormat("EUR", 2)))))));
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumProjectedTextItems = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 1 }).ReadNumbers()).Message);
     }
 
     private static byte[] CurrencyCell(uint identifier) {

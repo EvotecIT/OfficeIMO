@@ -26,13 +26,13 @@ public partial class Word {
         WordPdfExportOptions options = CreateNamedPresentationOptions(profile);
         if (explicitBody) options.PdfOptions!.DefaultFont = PdfStandardFont.Courier;
         if (footer) {
-            options.PdfOptions!.FooterFontFamily = ManagedTextShapingTestAssets.FamilyName;
+            options.PdfOptions!.PageSetup.Footer.FontFamily = ManagedTextShapingTestAssets.FamilyName;
             options.IncludePageNumbers = true;
             options.PageNumberFormat = "NUMBER {page}/{pages}";
         } else {
-            options.PdfOptions!.HeaderFontFamily = ManagedTextShapingTestAssets.FamilyName;
-            options.PdfOptions.ShowHeader = true;
-            options.PdfOptions.HeaderFormat = "HEADER";
+            options.PdfOptions!.PageSetup.Header.FontFamily = ManagedTextShapingTestAssets.FamilyName;
+            options.PdfOptions.PageSetup.Header.Show = true;
+            options.PdfOptions.PageSetup.Header.Format = "HEADER";
         }
         var baselineOptions = new WordPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         if (explicitBody) baselineOptions.PdfOptions = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier };

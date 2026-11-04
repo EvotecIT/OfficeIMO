@@ -99,7 +99,7 @@ Conversion diagnostics are written to standard error.
         packageSecurity.MaxXmlCharactersInPart = arguments.MaxCharactersInPart;
         var openSettings = new OfficeOpenXmlLoadSettings { MaxCharactersInPart = arguments.MaxCharactersInPart };
         return new OfficeConversionOptions {
-            FileConflictPolicy = arguments.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,            FailOnLoss = arguments.RequireNoLoss,            MaximumInputBytes = arguments.MaxInputBytes,MaximumOutputBytes = arguments.MaxOutputBytes,            MaximumXmlCharactersInPart = arguments.MaxCharactersInPart,            WordLoad = new WordLoadOptions {
+            FileConflictPolicy = arguments.Force ? OfficePublicationPolicy.Replace : OfficePublicationPolicy.Fail,            FailOnLoss = arguments.FailOnLoss,            MaximumInputBytes = arguments.MaxInputBytes,MaximumOutputBytes = arguments.MaxOutputBytes,            MaximumXmlCharactersInPart = arguments.MaxCharactersInPart,            WordLoad = new WordLoadOptions {
                 AccessMode = DocumentAccessMode.ReadOnly, MaxInputBytes = arguments.MaxInputBytes,
                 PackageSecurity = packageSecurity, OpenSettings = openSettings,
                 FailOnLoss = Path.GetExtension(arguments.InputPath!).Equals(".doc", StringComparison.OrdinalIgnoreCase) && !arguments.AllowLegacyLoss
@@ -110,8 +110,8 @@ Conversion diagnostics are written to standard error.
                 AccessMode = DocumentAccessMode.ReadOnly, MaxInputBytes = arguments.MaxInputBytes,
                 PackageSecurity = packageSecurity, OpenSettings = openSettings
             },            PlainText = new PdfTextImportOptions { EncodingName = arguments.TextEncoding, TabSize = arguments.TabSize },            RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings {
-                DjVu = arguments.IsDjVuInput ? new OfficeIMO.DjVu.Pdf.DjVuToPdfOptions() : null,
-                Draw = arguments.IsDrawInput ? new OfficeIMO.OpenDocument.Odg.Pdf.OdgToPdfOptions {
+                DjVu = arguments.IsDjVuInput ? new OfficeIMO.DjVu.Pdf.DjVuPdfExportOptions() : null,
+                Draw = arguments.IsDrawInput ? new OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfExportOptions {
                     ForPrint = arguments.DiagramForPrint, LossPolicy = OfficeIMO.OpenDocument.OdfConversionLossPolicy.ReportOnly
                 } : null
             }

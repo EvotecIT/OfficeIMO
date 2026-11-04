@@ -488,7 +488,7 @@ internal static partial class PdfWriter {
             }
 
             if (CreateCanvasTextBoxShape(item.Width, item.Height, style) is { } shape) {
-                ShapeBlock block = PdfDocument.CreateShapeBlock(shape, PdfAlign.Left, spacingBefore: 0D, spacingAfter: 0D);
+                ShapeBlock block = PdfDocument.CreateShapeBlock(shape, OfficeAlignment.Left, spacingBefore: 0D, spacingAfter: 0D);
                 PdfDrawingStyle drawingStyle = ResolveDrawingStyle(block, currentOpts);
                 PdfDocument.ValidateDrawingStyle(drawingStyle, "Canvas text box");
                 DrawShapeAt(block, drawingStyle, item.X, item.Width, topY);

@@ -15,9 +15,9 @@ public class PowerPointTextColorOpacityTests {
         using var document = PowerPointDocument.Create();
         var box = document.AddSlide().AddTextBox("Translucent text");
         var run = box.Paragraphs.Single().Runs.Single();
-        if (target == "box") box.Color = "33669980";
-        else if (target == "run") run.Color = "33669980";
-        else run.HighlightColor = "33669980";
+        if (target == "box") box.Color = OfficeColor.Parse("33669980");
+        else if (target == "run") run.Color = OfficeColor.Parse("33669980");
+        else run.BackgroundColor = OfficeColor.Parse("33669980");
 
         using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Empty(saved.ValidateDocument());

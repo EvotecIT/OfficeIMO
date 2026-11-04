@@ -58,7 +58,7 @@ public sealed class PdfDrawingFillRuleTests {
         PdfDocument document = PdfDocument.Create(CreateOptions());
         document.Compose(builder => builder.Page(page => page
             .Header(header => header.Shape(CreateCompoundPath(fillRule, transformed: false)))
-            .Content(content => content.Paragraph(paragraph => paragraph.Text("Body")))));
+            .Content(content => content.AddParagraph(paragraph => paragraph.AddText("Body")))));
 
         string content = Encoding.ASCII.GetString(document.ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
         Assert.Contains(fillRule == OfficeFillRule.EvenOdd ? " f*\n" : " f\n", content, StringComparison.Ordinal);
@@ -78,8 +78,10 @@ public sealed class PdfDrawingFillRuleTests {
     }
 
     private static PdfCreateOptions CreateOptions() => new PdfCreateOptions {
-        PageWidth = global::OfficeIMO.OfficeLength.Points(80D), PageHeight = global::OfficeIMO.OfficeLength.Points(80D),
-        MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D),
+        PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(80D), global::OfficeIMO.OfficeLength.Points(80D)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+        },
         CompressContentStreams = false
     };
 

@@ -354,7 +354,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelSheetPageSetup setup = document.Sheets[0].GetPageSetup();
+            ExcelSheetPageSetup setup = document.Sheets[0].PageSetup;
             Assert.Equal(OfficePageOrientation.Landscape, setup.Orientation);
             Assert.Equal((uint)125, setup.Scale);
             Assert.Equal((uint)1, setup.FitToWidth);
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            ExcelSheetPrintOptions options = document.Sheets[0].GetPrintOptions();
+            ExcelSheetPageSetup options = document.Sheets[0].PageSetup;
             Assert.True(options.PrintHeadings);
             Assert.True(options.PrintGridLines);
             Assert.True(options.HorizontalCentered);
@@ -757,7 +757,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.Equal(150U, document.Sheets[0].GetZoomScale());
+            Assert.Equal(150U, document.Sheets[0].View.ZoomScale);
 
             using var output = new MemoryStream();
             document.Save(output);
@@ -823,11 +823,11 @@ namespace OfficeIMO.Tests {
             });
 
             ExcelSheet sheet = document.Sheets[0];
-            Assert.Equal("'Names'!$A$1:$B$2", document.GetNamedRange("DataRange"));
-            Assert.Equal("$C$3", sheet.GetNamedRange("HiddenCell"));
-            Assert.Equal("$A$1:$B$3", sheet.GetNamedRange("_FilterDatabase"));
-            Assert.Equal("$A$1:$B$4", sheet.GetPrintArea());
-            ExcelPrintTitles printTitles = sheet.GetPrintTitles();
+            Assert.Equal("'Names'!$A$1:$B$2", document.GetNamedRangeText("DataRange"));
+            Assert.Equal("$C$3", sheet.GetNamedRangeText("HiddenCell"));
+            Assert.Equal("$A$1:$B$3", sheet.GetNamedRangeText("_FilterDatabase"));
+            Assert.Equal("$A$1:$B$4", sheet.PageSetup.PrintArea);
+            ExcelPrintTitles printTitles = sheet.PageSetup.PrintTitles;
             Assert.Equal(1, printTitles.FirstRow);
             Assert.Equal(2, printTitles.LastRow);
             Assert.Equal(1, printTitles.FirstColumn);
@@ -1194,7 +1194,7 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasImportErrors);
             Assert.Equal((ushort)0, Assert.Single(result.Workbook.Worksheets).PageSetup!.FitToHeight);
-            ExcelSheetPageSetup setup = result.Document.Sheets[0].GetPageSetup();
+            ExcelSheetPageSetup setup = result.Document.Sheets[0].PageSetup;
             Assert.Equal(1U, setup.FitToWidth);
             Assert.Equal(0U, setup.FitToHeight);
         }
@@ -1849,7 +1849,7 @@ namespace OfficeIMO.Tests {
             });
 
             ExcelSheet projectedSheet = Assert.Single(document.Sheets);
-            Assert.Equal("$A$1:$A$3", projectedSheet.GetNamedRange("StatusOptions"));
+            Assert.Equal("$A$1:$A$3", projectedSheet.GetNamedRangeText("StatusOptions"));
             ExcelDataValidationInfo projectedValidation = Assert.Single(projectedSheet.GetDataValidations("H2:H5"));
             Assert.Equal("list", projectedValidation.Type);
             Assert.Equal("=StatusOptions", projectedValidation.Formula1);

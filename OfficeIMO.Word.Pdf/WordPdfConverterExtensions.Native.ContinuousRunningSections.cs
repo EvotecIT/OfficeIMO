@@ -14,7 +14,7 @@ public static partial class WordPdfConverterExtensions {
         if (body == null || HasNativeContinuousStoryComplexContent(body)) return false;
         return sections.All(section =>
             (section.ColumnCount ?? 1) == 1 &&
-            !section.DifferentFirstPage && !section.DocumentOddEvenSettingEnabled &&
+            !section.PageSetup.DifferentFirstPage && !section.DocumentOddEvenSettingEnabled &&
             section._sectionProperties.GetFirstChild<W.PageNumberType>() == null &&
             section._sectionProperties.GetFirstChild<W.PageBorders>() == null);
     }
@@ -30,8 +30,8 @@ public static partial class WordPdfConverterExtensions {
         WordSection previous, WordSection current, WordPdfExportOptions? options) {
         if (HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter: false) ||
             HasNativeRunningStoryOverrides(options?.PdfOptions, isFooter: true) ||
-            options?.PdfOptions?.DifferentFirstPageHeaderFooter == true ||
-            options?.PdfOptions?.DifferentOddAndEvenPagesHeaderFooter == true ||
+            options?.PdfOptions?.PageSetup.DifferentFirstPage == true ||
+            options?.PdfOptions?.PageSetup.DifferentOddAndEvenPages == true ||
             ShouldMirrorNativeMargins(previous, options) != ShouldMirrorNativeMargins(current, options)) return false;
 
         WordHeaderFooter? previousHeader = previous.ResolveDefaultHeader();
@@ -46,8 +46,8 @@ public static partial class WordPdfConverterExtensions {
         // running edges fixed. First/even variants and numbering stay outside
         // this source profile.
         return ReferenceEquals(previous.ResolveDefaultFooter()?._footer, current.ResolveDefaultFooter()?._footer) &&
-            NativeDoubleEquals(checked((uint)(previous.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) &&
-            NativeDoubleEquals(checked((uint)(previous.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
+            NativeDoubleEquals(checked((uint)(previous.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) &&
+            NativeDoubleEquals(checked((uint)(previous.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())), checked((uint)(current.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())));
     }
 
     private static bool IsNativePlainContinuousRunningStory(WordHeaderFooter? story) =>
@@ -81,11 +81,11 @@ public static partial class WordPdfConverterExtensions {
     // Story identity and selection are distinct from edge distances and paper
     // geometry. A geometry-only refusal does not establish a story fallback.
     private static bool NativeContinuousRunningStorySelectionChanged(WordSection previous, WordSection current) =>
-        previous.DifferentFirstPage != current.DifferentFirstPage ||
+        previous.PageSetup.DifferentFirstPage != current.PageSetup.DifferentFirstPage ||
         previous.DocumentOddEvenSettingEnabled != current.DocumentOddEvenSettingEnabled ||
         !ReferenceEquals(previous.ResolveDefaultHeader()?._header, current.ResolveDefaultHeader()?._header) ||
         !ReferenceEquals(previous.ResolveDefaultFooter()?._footer, current.ResolveDefaultFooter()?._footer) ||
-        (previous.DifferentFirstPage &&
+        (previous.PageSetup.DifferentFirstPage &&
             (!ReferenceEquals(previous.ResolveFirstHeader()?._header, current.ResolveFirstHeader()?._header) ||
              !ReferenceEquals(previous.ResolveFirstFooter()?._footer, current.ResolveFirstFooter()?._footer))) ||
         (previous.DocumentOddEvenSettingEnabled &&

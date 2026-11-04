@@ -319,10 +319,10 @@ public partial class Word {
             Assert.Equal(6, document.Lists[3].ListItems.Count);
 
             var section = document.AddSection();
-            section.PageSettings.Orientation = OfficePageOrientation.Landscape;
+            section.PageSetup.Size.Orientation = OfficePageOrientation.Landscape;
 
-            Assert.Equal(OfficePageOrientation.Portrait, document.Sections[0].PageSettings.Orientation);
-            Assert.Equal(OfficePageOrientation.Landscape, document.Sections[1].PageSettings.Orientation);
+            Assert.Equal(OfficePageOrientation.Portrait, document.Sections[0].PageSetup.Size.Orientation);
+            Assert.Equal(OfficePageOrientation.Landscape, document.Sections[1].PageSetup.Size.Orientation);
 
             Assert.Equal(5, document.Lists.Count);
             Assert.Equal(5, document.Sections[0].Lists.Count);
@@ -552,7 +552,7 @@ public partial class Word {
 
             document.Lists[0].AddItem("More then enough");
 
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var listInHeader = defaultHeader.AddList(WordListStyle.Bulleted);
@@ -743,7 +743,7 @@ public partial class Word {
     public void Test_RemovingListFromHeadersAndFooters() {
         var filePath = Path.Combine(_directoryWithFiles, "RemoveListHeaderFooter.docx");
         using (var document = WordDocument.Create(filePath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var headerList = defaultHeader.AddList(WordListStyle.Bulleted);

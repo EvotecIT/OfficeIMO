@@ -10,7 +10,7 @@ internal static class PdfXmpMetadataSynchronizer {
     private const string PdfNamespaceUri = "http://ns.adobe.com/pdf/1.3/";
     private const string RdfNamespaceUri = "http://www.w3.org/1999/02/22-rdf-syntax-ns#";
 
-    internal static byte[] Synchronize(string rawXml, PdfMetadata metadata) {
+    internal static byte[] Synchronize(string rawXml, PdfDocumentProperties metadata) {
         Guard.NotNull(rawXml, nameof(rawXml));
         Guard.NotNull(metadata, nameof(metadata));
 

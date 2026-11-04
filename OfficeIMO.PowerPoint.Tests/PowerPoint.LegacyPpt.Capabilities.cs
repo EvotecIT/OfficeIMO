@@ -57,21 +57,21 @@ namespace OfficeIMO.Tests {
             slide.AddChart();
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
-            IOfficeConversionReport commonReport = report;
+            OfficeConversionReport commonReport = report;
 
             LegacyPptWriteFinding finding = Assert.Single(
                 report.Findings,
                 item => item.Code == "ppt-write-chart-converted");
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                commonReport.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                commonReport.Diagnostics,
                 item => item.Code == finding.Code);
             Assert.True(report.HasConversionLoss);
             Assert.True(commonReport.HasLoss);
             Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
-            Assert.Equal("OfficeIMO.PowerPoint.LegacyPpt.Writer", diagnostic.Source);
+            Assert.Equal("OfficeIMO.PowerPoint.LegacyPpt.Writer", diagnostic.Format);
             Assert.Equal($"slide:{finding.SlideIndex!.Value + 1}/shape:{finding.ShapeIndex!.Value + 1}",
                 diagnostic.Location);
-            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonReport.ThrowIfLoss);
         }
 
         [Fact]

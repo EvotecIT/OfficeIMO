@@ -1,0 +1,96 @@
+{
+  "package": "OfficeIMO.PowerPoint.Html",
+  "changes": [
+    {
+      "old": "OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtmlResult(PowerPointDocument, PowerPointHtmlSaveOptions) : PowerPointToHtmlResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "PowerPointDocument.ToHtml(PowerPointHtmlExportOptions options, out OfficeConversionReport report, CancellationToken cancellationToken = default) : string",
+      "reason": "PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult<string>. Snapshot image diagnostics are part of the report.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Html.PowerPointToHtmlResult",
+      "kind": "type",
+      "action": "internalize",
+      "new": null,
+      "replacement": "Use the OfficeConversionReport from ToHtml(options, out report); ImageDiagnostics are report diagnostics with the same codes.",
+      "reason": "PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult<string>.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.SaveAsHtml(PowerPointDocument, string | Stream, PowerPointHtmlSaveOptions) : void",
+      "kind": "method",
+      "action": "change",
+      "new": "PowerPointDocument.SaveAsHtml(string path | Stream stream, PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : OfficeConversionReport",
+      "reason": "PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult<string>.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.SaveAsHtmlAsync(PowerPointDocument, string | Stream, PowerPointHtmlSaveOptions, CancellationToken) : Task",
+      "kind": "method",
+      "action": "change",
+      "new": "PowerPointDocument.SaveAsHtmlAsync(string path | Stream stream, PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : Task<OfficeConversionReport>",
+      "reason": "PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult<string>. Conversion runs on the thread pool instead of blocking before the asynchronous write.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Html.PowerPointHtmlConverterExtensions.ToHtml(PowerPointDocument, PowerPointHtmlSaveOptions)",
+      "kind": "method",
+      "action": "change",
+      "new": "PowerPointDocument.ToHtml(PowerPointHtmlExportOptions options = null, CancellationToken cancellationToken = default) : string; ToHtmlAsync(...) : Task<OfficeConversionResult<string>>",
+      "reason": "PowerPoint to HTML matches Word to HTML: ToHtml returns text with an optional report, SaveAsHtml returns OfficeConversionReport, and ToHtmlAsync returns OfficeConversionResult<string>.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "PowerPointHtmlSaveOptions without a loss policy",
+      "kind": "property",
+      "action": "change",
+      "new": "PowerPointHtmlExportOptions.FailOnLoss",
+      "reason": "Conversions use FailOnLoss to make reported loss an error.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Html.PowerPointHtmlSaveOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.Html.HtmlToPowerPointOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.PowerPoint.Html.HtmlPowerPointExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "HtmlConversionDocument.ToPowerPointDocument(HtmlPowerPointExportOptions) / ToPowerPointDocumentResult : HtmlToPowerPointResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "HtmlConversionDocument.ToPowerPoint(HtmlPowerPointExportOptions options[, out OfficeConversionReport report], CancellationToken) : PowerPointDocument; ToPowerPointAsync; SaveAsPowerPoint(path | stream); SaveAsPowerPointAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "HtmlPowerPointExportOptions without a loss policy",
+      "kind": "property",
+      "action": "change",
+      "new": "HtmlPowerPointExportOptions.FailOnLoss; Clone() is public",
+      "reason": "Conversions use FailOnLoss.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

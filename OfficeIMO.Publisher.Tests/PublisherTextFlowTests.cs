@@ -18,7 +18,7 @@ public sealed class PublisherTextFlowTests {
             Assert.Equal(frames[i - 1].TextStart + frames[i - 1].TextLength, frames[i].TextStart);
         }
         Assert.Contains(frames.Skip(1), frame => frame.TextLength > 0);
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINKED_TEXT_FRAME_OMITTED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_LINKED_TEXT_FRAME_OMITTED");
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed class PublisherTextFlowTests {
 
     [Fact]
     public void Repeated_story_measurement_obeys_the_configured_work_ceiling() {
-        var options = new PublisherReadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 10_000 } };
+        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxTextCharacters = 10_000 } };
         InvalidDataException error = Assert.Throws<InvalidDataException>(() => PublisherDocument.Load(PublisherNativeTests.Fixture("SampleNewsletter.pub"), options));
         Assert.Contains("text layout character work limit", error.Message);
     }

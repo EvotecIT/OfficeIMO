@@ -55,7 +55,7 @@ public class ExcelAllSeverityBatch21Tests {
     public void PendingPreflightSurvivesDirectCellValuePromotion() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValues(Enumerable.Range(1, 160)
+        sheet.SetValues(Enumerable.Range(1, 160)
             .Select(row => (row, 1, (object)("value-" + row))));
         typeof(ExcelDocument)
             .GetMethod("MarkRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!
@@ -71,7 +71,7 @@ public class ExcelAllSeverityBatch21Tests {
     public void MaterializingPendingCellsClearsThePromotionOnlyPreflightMarker() {
         using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValues(Enumerable.Range(1, 160)
+        sheet.SetValues(Enumerable.Range(1, 160)
             .Select(row => (row, 1, (object)("value-" + row))));
         typeof(ExcelDocument)
             .GetMethod("MarkRequiresSavePreflight", BindingFlags.Instance | BindingFlags.NonPublic)!

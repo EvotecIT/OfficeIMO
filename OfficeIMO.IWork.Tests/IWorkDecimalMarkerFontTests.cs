@@ -9,8 +9,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void DOCX_marker_font_changes_cannot_restyle_an_earlier_numbering_scope() {
         using var package = DecimalMarkerFontPackage(IWorkDocumentKind.Pages);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.True(Assert.Single(result.Projection.Tables).Cells[0].RichText!.IsFormattingComplete);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -37,8 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void PPTX_decimal_markers_use_exact_point_size_independently_of_body_runs() {
         using var package = DecimalMarkerFontPackage(IWorkDocumentKind.Keynote);
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly,
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);

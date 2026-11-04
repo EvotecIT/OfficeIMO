@@ -93,7 +93,7 @@ internal static class WordTextRunService
         var rgb = OfficeColorUtilities.ToRgbHex(color);
         if (!string.IsNullOrWhiteSpace(rgb))
         {
-            run.SetColorHex(rgb!);
+            run.SetColor(OfficeIMO.OfficeColor.Parse(rgb!));
         }
 
         ApplyBackground(run, backgroundColor);
@@ -170,7 +170,7 @@ internal static class WordTextRunService
         var rgb = OfficeColorUtilities.ToRgbHex(backgroundColor);
         if (!string.IsNullOrWhiteSpace(rgb))
         {
-            run.ShadingFillColorHex = rgb!;
+            run.ShadingFillColor = OfficeIMO.OfficeColor.Parse(rgb!);
             run.ShadingPattern = WordShadingPattern.Clear;
         }
     }

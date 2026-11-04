@@ -340,7 +340,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         string source = "<!doctype html><html><head><meta charset='utf-8'><style>"
             + "html,body{margin:0;padding:0;width:" + width + "px;height:" + height + "px;overflow:hidden;background:transparent}"
             + "</style></head><body>" + context.Html + "</body></html>";
-        HtmlConversionLimits limits = HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxHtmlNodes = Math.Min(limits.MaxHtmlNodes ?? int.MaxValue, _options.MaxSvgForeignObjectHtmlNodes);
         limits.MaxHtmlDepth = Math.Min(limits.MaxHtmlDepth ?? int.MaxValue, _options.MaxLayoutDepth);
         var conversionOptions = new HtmlConversionDocumentOptions {
@@ -372,7 +372,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         nestedOptions.AdditionalStylesheets.Clear();
 
         HtmlRenderDocument rendered = HtmlRenderEngine.RenderEmbedded(nestedDocument, nestedOptions, _resources, _cancellationToken);
-        _diagnostics.AddRange(rendered.Diagnostics);
+        _diagnostics.AddRange(rendered.NativeDiagnostics);
         HtmlRenderPage page = rendered.Pages[0];
         OfficeDrawing nested = page.CreateDrawing(_cancellationToken);
         if (Math.Abs(nested.Width - context.Width) <= 0.0001D

@@ -25,7 +25,7 @@ public partial class Html {
             html.Append("<p style=\"background-color:rgba(255,0,0,0.5)\">Text</p>");
         }
         html.Append("</div>");
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.UntrustedDefaults;
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
@@ -34,7 +34,7 @@ public partial class Html {
 
         Assert.Equal(paragraphCount, document.Paragraphs.Count);
         Assert.All(document.Paragraphs, paragraph =>
-            Assert.Equal("800080", paragraph.ShadingFillColorHex));
+            Assert.Equal(OfficeColor.Parse("800080"), paragraph.ShadingFillColor));
         Assert.Equal(3, converter.InlineStyleParseCount);
     }
 
@@ -58,7 +58,7 @@ public partial class Html {
             html.Append("<td>Cell</td>");
         }
         html.Append("</tr></table></div>");
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateUntrustedHtmlProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.UntrustedDefaults;
         var converter = new HtmlToWordConverter();
 
         using WordDocument document = await converter.ConvertAsync(
@@ -68,7 +68,7 @@ public partial class Html {
         WordTable table = Assert.Single(document.Tables);
         Assert.Equal(cellCount, table.Rows[0].Cells.Count);
         Assert.All(table.Rows[0].Cells, cell =>
-            Assert.Equal("800080", cell.ShadingFillColorHex));
+            Assert.Equal(OfficeColor.Parse("800080"), cell.ShadingFillColor));
         Assert.Equal(1, converter.TableBackgroundParseCount);
     }
 
@@ -111,7 +111,7 @@ public partial class Html {
 
         using WordDocument document = await converter.ConvertAsync(
             HtmlConversionDocument.Parse(html).CreateNativeDocumentForConversion(),
-            WordHtmlImportOptions.CreateUntrustedHtmlProfile());
+            HtmlWordExportOptions.UntrustedDefaults);
 
         Assert.Equal(3, document.Images.Count);
         var field = typeof(HtmlToWordConverter).GetField(

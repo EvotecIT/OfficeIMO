@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Html {
 
             foreach (string name in names) {
                 string html = File.ReadAllText(Path.Combine(sourceRoot, name + ".html"));
-                var options = new HtmlToPdfOptions {
+                var options = new HtmlPdfExportOptions {
                     PageSize = OfficePageSizes.A4.Landscape(),
                     Margins = HtmlRenderMargins.All(24D),
                     BackgroundColor = OfficeColor.White,
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Html {
                 };
                 HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
                 HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
-                HtmlDiagnostic[] warnings = rendered.Diagnostics
+                HtmlDiagnostic[] warnings = rendered.NativeDiagnostics
                     .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info).ToArray();
                 // Warnings describe fidelity limits of the managed renderer. Report them and keep
                 // writing the showcase; only errors mean the page could not be produced.

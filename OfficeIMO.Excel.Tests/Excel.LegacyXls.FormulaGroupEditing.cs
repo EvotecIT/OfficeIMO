@@ -19,10 +19,10 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         using var seed = ExcelDocument.Create(); var data = seed.AddSheet("Data");
         var sheet = crossSheet ? seed.AddSheet("Formulas") : data;
         string prefix = crossSheet ? "'Data'!" : string.Empty;
-        data.CellValue(4, 1, 40D);
+        data.Cell(4, 1).SetValue(40D);
         for (int row = 1; row <= 3; row++) {
-            data.CellValue(row, 1, row * 10D); sheet.CellValue(row, 2, row * 10D + 5);
-            sheet.CellFormula(row, 2, area ? "SUM(A" + row + ":A" + (row + 1) + ")+5" : "A" + row + "+5");
+            data.Cell(row, 1).SetValue(row * 10D); sheet.Cell(row, 2).SetValue(row * 10D + 5);
+            sheet.Cell(row, 2).SetFormula(area ? "SUM(A" + row + ":A" + (row + 1) + ")+5" : "A" + row + "+5");
             var formula = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B" + row).CellFormula!;
             formula.FormulaType = CellFormulaValues.Shared; formula.SharedIndex = 0;
             if (row == 1) formula.Reference = "B1:B3"; else formula.Text = string.Empty;
@@ -33,8 +33,8 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         Assert.Contains(BiffRecordReader.ReadRecords(compound!.Streams["Workbook"], new()), record => record.Type == 0x04bc);
         using var document = ExcelDocument.Load(new MemoryStream(bytes));
         document.Sheets[crossSheet ? 1 : 0].WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B1").CellFormula = null;
-        document.Sheets[crossSheet ? 1 : 0].CellValue(1, 2, 100D); // Remove the native shared-group owner.
-        document.Sheets[crossSheet ? 1 : 0].CellBold(3, 2);
+        document.Sheets[crossSheet ? 1 : 0].Cell(1, 2).SetValue(100D); // Remove the native shared-group owner.
+        document.Sheets[crossSheet ? 1 : 0].Cell(3, 2).SetBold();
         using var output = new MemoryStream();
         if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
         else document.Save(output, ExcelFileFormat.Xls);
@@ -47,10 +47,10 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         Assert.DoesNotContain(records, record => record.Type == 0x04bc);
         Assert.All(records.Where(record => record.Type == 0x0006), record => Assert.NotEqual(0x01, record.Payload[22]));
         using var loaded = encrypted ? ExcelDocument.LoadEncrypted(output, "test-password") : ExcelDocument.Load(output);
-        Assert.True(loaded.Sheets[crossSheet ? 1 : 0].CellAt(3, 2).GetStyle().Bold);
+        Assert.True(loaded.Sheets[crossSheet ? 1 : 0].Cell(3, 2).GetStyle().Bold);
         loaded.Sheets[crossSheet ? 1 : 0].RecalculateSupportedFormulas();
-        Assert.Equal(area ? 55D : 25D, loaded.Sheets[crossSheet ? 1 : 0].CellAt(2, 2).GetValue<double>());
-        Assert.Equal(area ? 75D : 35D, loaded.Sheets[crossSheet ? 1 : 0].CellAt(3, 2).GetValue<double>());
+        Assert.Equal(area ? 55D : 25D, loaded.Sheets[crossSheet ? 1 : 0].Cell(2, 2).GetValue<double>());
+        Assert.Equal(area ? 75D : 35D, loaded.Sheets[crossSheet ? 1 : 0].Cell(3, 2).GetValue<double>());
     }
 
     [Theory]
@@ -58,13 +58,13 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
     [InlineData(true)]
     public void Adding_self_references_reuses_the_native_supporting_workbook(bool encrypted) {
         using var seed = ExcelDocument.Create();
-        var data = seed.AddSheet("Data"); data.CellValue(1, 1, 10D);
-        var calculations = seed.AddSheet("Calculations"); calculations.CellFormula(1, 1, "Data!A1+1");
+        var data = seed.AddSheet("Data"); data.Cell(1, 1).SetValue(10D);
+        var calculations = seed.AddSheet("Calculations"); calculations.Cell(1, 1).SetFormula("Data!A1+1");
         byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         using var document = ExcelDocument.Load(new MemoryStream(original));
         for (int iteration = 0; iteration < 3; iteration++) {
-            var added = document.AddSheet("Added" + iteration); added.CellValue(1, 1, 20D + iteration);
-            document.Sheets[1].CellFormula(iteration + 2, 1, "'" + added.Name + "'!A1+1");
+            var added = document.AddSheet("Added" + iteration); added.Cell(1, 1).SetValue(20D + iteration);
+            document.Sheets[1].Cell(iteration + 2, 1).SetFormula("'" + added.Name + "'!A1+1");
             using var output = new MemoryStream();
             if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xls);
             else document.Save(output, ExcelFileFormat.Xls);
@@ -85,8 +85,8 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
         string expression = nested ? "IF(A1>0," + rtd + ",\"offline\")" : rtd;
         using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
         for (int row = 1; row <= 2; row++) {
-            sheet.CellValue(row, 1, (double)row); sheet.CellValue(row, 2, "snapshot");
-            sheet.CellFormula(row, 2, expression);
+            sheet.Cell(row, 1).SetValue((double)row); sheet.Cell(row, 2).SetValue("snapshot");
+            sheet.Cell(row, 2).SetFormula(expression);
             var formula = sheet.WorksheetPart.Worksheet!.Descendants<Cell>().Single(cell => cell.CellReference?.Value == "B" + row).CellFormula!;
             formula.FormulaType = CellFormulaValues.Shared; formula.SharedIndex = 0;
             if (row == 1) formula.Reference = "B1:B2"; else formula.Text = string.Empty;
@@ -105,14 +105,14 @@ public sealed class ExcelLegacyFormulaGroupEditingTests {
     [Fact]
     public void Clearing_array_caches_keeps_every_native_member_and_the_array_definition() {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
-        sheet.CellValue(1, 1, 2D); sheet.CellValue(2, 1, 3D);
-        sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)"); sheet.CellValue(1, 2, 5D); sheet.CellValue(2, 2, 5D);
+        sheet.Cell(1, 1).SetValue(2D); sheet.Cell(2, 1).SetValue(3D);
+        sheet.SetArrayFormula("B1:B2", "SUM(A1:A2)"); sheet.Cell(1, 2).SetValue(5D); sheet.Cell(2, 2).SetValue(5D);
         byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
         foreach (bool reload in new[] { false, true }) {
             using var imported = ExcelDocument.Load(new MemoryStream(original));
             var document = reload ? imported : seed;
-            document.Sheets[0].CellBold(2, 2);
-            document.Sheets[0].CellValue(4, 1, "Unrelated edit");
+            document.Sheets[0].Cell(2, 2).SetBold();
+            document.Sheets[0].Cell(4, 1).SetValue("Unrelated edit");
             byte[] bytes = document.ToBytes(ExcelFileFormat.Xls, new() { ClearCachedFormulaResultsBeforeSave = true });
             var native = LegacyXlsWorkbook.Load(bytes);
             var array = Assert.Single(native.Worksheets[0].ArrayFormulaRecords);

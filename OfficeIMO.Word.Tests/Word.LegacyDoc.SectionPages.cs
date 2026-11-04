@@ -144,8 +144,7 @@ public partial class Word {
     private static WordParagraph AddSectionPagesStoryParagraph(WordDocument document, string story) {
         if (story == "cell") return document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         if (story == "header" || story == "footer") {
-            document.AddHeadersAndFooters();
-            return story == "header" ? document.Sections[0].Header.Default!.AddParagraph() : document.Sections[0].Footer.Default!.AddParagraph();
+            return story == "header" ? document.Sections[0].PageSetup.Header.AddParagraph() : document.Sections[0].PageSetup.Footer.AddParagraph();
         }
         if (story == "footnote") return document.AddParagraph("Footnote ").AddFootNote("Note ").Paragraph.FootNote!.Paragraphs![1];
         if (story == "endnote") return document.AddParagraph("Endnote ").AddEndNote("Note ").Paragraph.EndNote!.Paragraphs![1];

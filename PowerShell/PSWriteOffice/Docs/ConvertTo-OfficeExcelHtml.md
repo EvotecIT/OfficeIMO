@@ -11,7 +11,7 @@ Converts an Excel workbook to an HTML review document.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertTo-OfficeExcelHtml [-Path] <string> [-Password <string>] [-OutputPath <string>] [-Profile <OfficeExcelHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-MaxRowsPerSheet <Int32>] [-EmptyCellText <string>] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeExcelHtml [-Path] <string> [-Password <securestring>] [-OutputPath <string>] [-Profile <OfficeExcelHtmlProfile>] [-Theme <OfficeVisualThemeKind>] [-Title <string>] [-MaxRowsPerSheet <Int32>] [-EmptyCellText <string>] [-NoDefaultStyles] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Workbook
@@ -124,7 +124,7 @@ Accept wildcard characters: False
 Password used to open an encrypted workbook package.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Path
 Aliases: None
 Possible values:

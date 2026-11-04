@@ -17,7 +17,7 @@ public class PdfPortfolioTests {
             }.SetField(new PdfPortfolioField(PdfPortfolioFieldKind.Size, "Bytes", 1)));
 
         PdfDocument document = PdfDocument.Create(options);
-        document.Paragraph(paragraph => paragraph.Text("Portfolio"));
+        document.Paragraph(paragraph => paragraph.AddText("Portfolio"));
 
         byte[] pdf = document.ToBytes();
         PdfReadDocument read = PdfReadDocument.Open(pdf);
@@ -37,7 +37,7 @@ public class PdfPortfolioTests {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions {
             Portfolio = new PdfPortfolioOptions()
         });
-        document.Paragraph(paragraph => paragraph.Text("Missing attachment"));
+        document.Paragraph(paragraph => paragraph.AddText("Missing attachment"));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
         Assert.Contains("requires at least one embedded file", exception.Message, StringComparison.Ordinal);

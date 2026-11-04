@@ -146,7 +146,7 @@ public partial class PdfReadStreamTests {
             for (int page = 1; page <= 300; page++) {
                 if (page > 1) content.PageBreak();
                 content.Bookmark("Dest" + page.ToString("D4", System.Globalization.CultureInfo.InvariantCulture));
-                content.Paragraph(paragraph => paragraph.Text("Dense destination page " + page));
+                content.AddParagraph(paragraph => paragraph.AddText("Dense destination page " + page));
             }
         })).ToBytes();
         PdfReadDocument source = PdfReadDocument.Open(input);

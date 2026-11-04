@@ -297,9 +297,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         private static int GetSectionTextWidthTwips(WordDocument document) {
             WordSection? section = document.Sections.Count > 0 ? document.Sections[document.Sections.Count - 1] : null;
-            long? pageWidth = section?.PageSettings?.Width?.ToTwips();
+            long? pageWidth = section?.PageSetup.Size.Width?.ToTwips();
             if (section == null || !pageWidth.HasValue) return DefaultTableTextWidthTwips;
-            long width = pageWidth.Value - (section.Margins.Left?.ToTwips() ?? 0) - (section.Margins.Right?.ToTwips() ?? 0) - (section.Margins.Gutter?.ToTwips() ?? 0);
+            long width = pageWidth.Value - (section.PageSetup.Margins.Left?.ToTwips() ?? 0) - (section.PageSetup.Margins.Right?.ToTwips() ?? 0) - (section.PageSetup.Margins.Gutter?.ToTwips() ?? 0);
             return width > MinimumDefaultColumnWidthTwips ? (int)Math.Min(width, int.MaxValue) : DefaultTableTextWidthTwips;
         }
 
@@ -515,7 +515,7 @@ namespace OfficeIMO.Word {
                 // declared grid width retained by an initially empty table.
                 List<WordTableRow> rows = Rows;
                 cellsCount = rows.Count > 1
-                    ? rows[rows.Count - 2].CellsCount
+                    ? WordTableContent.GridColumnCount(rows[rows.Count - 2]._tableRow)
                     : _table.GetFirstChild<TableGrid>()?.Elements<GridColumn>().Count() ?? 0;
             }
             for (int j = 0; j < cellsCount; j++) {
@@ -551,7 +551,7 @@ namespace OfficeIMO.Word {
         /// Remove table from document
         /// </summary>
         public void Remove() {
-            _table.Remove();
+            WordDocument.RemoveWithOwnedParts(_table);
         }
 
         /// <summary>

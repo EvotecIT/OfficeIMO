@@ -63,7 +63,7 @@ internal static class PdfPlainTextConverter {
         for (int index = 0; index < pages.Length; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             if (index > 0) document.Content.PageBreak();
-            document.Content.Text(pages[index].Length == 0 ? "\n" : pages[index], style: style);
+            document.Content.AddParagraph(pages[index].Length == 0 ? "\n" : pages[index], style: style);
         }
         return new PdfDocumentConversionResult(document, new PdfConversionReport());
     }

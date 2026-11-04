@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unused_rich_text_storage_does_not_consume_text_budget_or_reference_evidence(IWorkDocumentKind kind) {
         using MemoryStream package = SelectedRichTextPackage(kind);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumProjectedTextCharacters = 40 });
+            new IWorkReadOptions { MaxProjectedTextCharacters = 40 });
         (IWorkTable table, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(source, kind);
         Assert.Equal("Value", Assert.Single(table.Cells).RichText!.PlainText);
         Assert.Empty(issues);
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = SelectedRichTextPackage(kind,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 999))), aliases: true);
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         (IWorkTable table, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(source, kind);
         AssertMissingReference(Assert.Single(issues), 15, "8/1[1]/2", 999);
         Assert.Equal(2, table.Cells.Count);
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(AttributeTable(8, AttributeEntry(0, ReferenceField(2, 999))),
                 AttributeTable(11, AttributeEntry(0, ReferenceField(2, 998)))));
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind));
     }
 

@@ -50,15 +50,14 @@ public partial class Excel {
         PdfCore.PdfSaveResult saveResult;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Warnings" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Value");
-            sheet.Cell(2, 1, "Alpha");
-            sheet.Cell(2, 2, 10);
-            sheet.Cell(3, 1, "Beta");
-            sheet.Cell(3, 2, 20);
-            sheet.SetHeaderFooter(
-                headerCenter: "&U&\"Arial,Bold\"&14&KFF0000Styled &D &T &A",
-                footerRight: "Page &P of &N");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("Alpha");
+            sheet.Cell(2, 2).SetValue(10);
+            sheet.Cell(3, 1).SetValue("Beta");
+            sheet.Cell(3, 2).SetValue(20);
+            sheet.PageSetup.Header.Center.Text = "&U&\"Arial,Bold\"&14&KFF0000Styled &D &T &A";
+            sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
             sheet.AddBubbleChartFromRanges(new[] { new ExcelChartSeriesRange("Values", "B2:B3", "B2:B3", "B2:B3") },
                 row: 1, column: 4, width: OfficeLength.Pixels(320), height: OfficeLength.Pixels(180), title: "Unsupported Bubble Chart");
 

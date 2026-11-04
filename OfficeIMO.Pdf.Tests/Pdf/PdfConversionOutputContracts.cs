@@ -29,14 +29,14 @@ public sealed class PdfConversionOutputContracts {
     public void MhtmlSynchronousConversionObservesCancellationDuringHtmlPolicyEvaluation() {
         using var cancellation = new CancellationTokenSource();
         bool evaluatedPolicy = false;
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.UrlPolicy.ResolvedUrlTransform = value => {
             evaluatedPolicy = true;
             cancellation.Cancel();
             return value;
         };
         var mhtml = new MhtmlDocument("<a href='https://example.test/next'>Linked text</a>");
-        Assert.Throws<OperationCanceledException>(() => mhtml.ToPdfDocumentResult(options, cancellation.Token));
+        Assert.Throws<OperationCanceledException>(() => mhtml.ToPdf(options, out _, cancellation.Token));
         Assert.True(evaluatedPolicy);
     }
 
@@ -45,9 +45,9 @@ public sealed class PdfConversionOutputContracts {
     [InlineData(true)]
     public async Task PowerPointFileOutputsRetainTheirDestination(bool asyncOutput) {
         using PdfDocument generated = PdfDocument.Create();
-        generated.Content.Paragraph(p => p.Text("Presentation output"));
+        generated.Content.AddParagraph(p => p.AddText("Presentation output"));
         using PdfDocument opened = PdfDocument.Load(new MemoryStream(generated.ToBytes()));
-        var options = PowerPointPdfImportOptions.CreateEditableTables();
+        var options = PdfPowerPointExportOptions.CreateEditableTables();
         string path = Path.Combine(Path.GetTempPath(), "officeimo-output-contract-" + Guid.NewGuid().ToString("N") + ".pptx");
         try {
             OfficeConversionReport report = asyncOutput
@@ -63,7 +63,7 @@ public sealed class PdfConversionOutputContracts {
     [Fact]
     public void PdfOutputPreservesOverwriteRewindAndOwnership() {
         using PdfDocument pdf = PdfDocument.Create();
-        pdf.Content.Paragraph(p => p.Text("Output contract"));
+        pdf.Content.AddParagraph(p => p.AddText("Output contract"));
         using var destination = new MemoryStream();
         destination.Write(new byte[50000], 0, 50000);
         destination.Position = 37;
@@ -93,10 +93,10 @@ public sealed class PdfConversionOutputContracts {
     public void SharedOutputGuardRejectsFailureAndReverseSaveRetainsTypedEvidence() {
         var failure = OfficeOutputResult<PdfConversionReport>.FromFailure(null, new IOException("Write failed"));
         Assert.False(((IOfficeResult)failure).Succeeded);
-        Assert.Throws<InvalidOperationException>(() => failure.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => failure.ThrowIfLoss());
 
         PdfDocument pdf = PdfDocument.Create();
-        pdf.Content.Paragraph(p => p.Text("HTML output"));
+        pdf.Content.AddParagraph(p => p.AddText("HTML output"));
         using var destination = new MemoryStream();
         OfficeConversionReport result = PdfDocument.Load(new System.IO.MemoryStream(pdf.ToBytes())).SaveAsHtml(destination);
         Assert.Null(result.OutputPath);
@@ -115,7 +115,7 @@ public sealed class PdfConversionOutputContracts {
         pdf.Content.Deferred(_ => {
             enteredLayout = true;
             cancellation.Cancel();
-            return content => content.Paragraph(p => p.Text("Canceled during layout"));
+            return content => content.AddParagraph(p => p.AddText("Canceled during layout"));
         });
         var conversion = new PdfDocumentConversionResult(pdf, new PdfConversionReport());
         using var destination = new MemoryStream();

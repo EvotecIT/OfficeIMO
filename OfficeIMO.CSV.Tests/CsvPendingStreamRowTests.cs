@@ -23,7 +23,7 @@ public sealed class CsvPendingStreamRowTests {
         bool trim = route != "utf16-bom";
         Encoding encoding = trim ? new UTF8Encoding(false) : Encoding.Unicode;
         byte[] bytes = encoding.GetPreamble().Concat(encoding.GetBytes(text)).ToArray();
-        var options = new CsvLoadOptions { HasHeaderRow = false, TrimWhitespace = trim };
+        var options = new CsvReaderOptions { HasHeaderRow = false, TrimWhitespace = trim };
         string? path = null;
         using var stream = new MemoryStream(bytes);
         try {
@@ -32,8 +32,8 @@ public sealed class CsvPendingStreamRowTests {
                 File.WriteAllBytes(path, bytes);
             }
             using DbDataReader reader = path is null
-                ? CsvDocument.OpenDataReader(stream, options)
-                : CsvDocument.OpenDataReader(path, options);
+                ? CsvDocument.OpenReader(stream, options: options)
+                : CsvDocument.OpenReader(path, options: options);
             Assert.Equal(2, reader.FieldCount);
             Assert.Equal("Column1", reader.GetName(0));
             Assert.True(reader.HasRows);
@@ -57,8 +57,8 @@ public sealed class CsvPendingStreamRowTests {
     public void HeaderedTextStreamRetainsAllRecordsAfterBufferGrowth() {
         const int rowCount = 10_002;
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Name,Id\n" + CreateInput("first", rowCount)));
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream,
-            new CsvLoadOptions { TrimWhitespace = true });
+        using DbDataReader reader = CsvDocument.OpenReader(stream,
+            options: new CsvReaderOptions { TrimWhitespace = true });
         Assert.Equal("Name", reader.GetName(0));
         for (int index = 0; index < rowCount; index++) {
             Assert.True(reader.Read());

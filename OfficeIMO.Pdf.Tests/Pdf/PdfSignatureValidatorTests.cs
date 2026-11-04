@@ -9,7 +9,7 @@ public class PdfSignatureValidatorTests {
     [Fact]
     public void Validate_ReportsUnsignedPdfWithoutErrors() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unsigned document"))
+            .Paragraph(paragraph => paragraph.AddText("Unsigned document"))
             .ToBytes();
 
         PdfSignatureValidationReport report = PdfSignatureValidator.Validate(pdf);
@@ -220,7 +220,7 @@ public class PdfSignatureValidatorTests {
     [Fact]
     public void PrepareExternalSignature_AppendsSignablePlaceholderAndDigest() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("External signing draft"))
+            .Paragraph(paragraph => paragraph.AddText("External signing draft"))
             .ToBytes();
 
         PdfAppendOnlyMutationReport appendOnly = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(pdf);
@@ -280,7 +280,7 @@ public class PdfSignatureValidatorTests {
     [Fact]
     public void PrepareExternalSignature_EmitsDocTimeStampTypeForDocumentTimestamps() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Timestamp signing draft"))
+            .Paragraph(paragraph => paragraph.AddText("Timestamp signing draft"))
             .ToBytes();
 
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
@@ -303,7 +303,7 @@ public class PdfSignatureValidatorTests {
     [Fact]
     public void ApplyExternalSignature_PatchesReservedContentsWithoutChangingByteRange() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("External signature injection"))
+            .Paragraph(paragraph => paragraph.AddText("External signature injection"))
             .ToBytes();
         PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
             pdf,

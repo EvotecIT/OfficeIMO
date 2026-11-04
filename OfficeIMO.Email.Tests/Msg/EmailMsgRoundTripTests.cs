@@ -49,7 +49,7 @@ public sealed class EmailMsgRoundTripTests {
 
         byte[] first = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         byte[] second = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
-        EmailReadResult result = new EmailDocumentReader().Read(first);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(first);
 
         Assert.Equal(first, second);
         Assert.Equal(EmailFileFormat.OutlookMsg, result.Document.Format);
@@ -133,7 +133,7 @@ public sealed class EmailMsgRoundTripTests {
             Assert.Equal(new byte[] { 0x9E, 0x53, 0xE9, 0x83, 0x09, 0x00, 0x01, 0x00 }, entry);
         }
 
-        EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().ReadDocument(bytes).Document;
         Assert.Equal(new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero),
             roundTrip.MessageMetadata.CreatedDate);
         Assert.Equal(1, roundTrip.MapiProperties.Single(property => property.PropertyId == 0x1016).Value);
@@ -203,7 +203,7 @@ public sealed class EmailMsgRoundTripTests {
         source.Attachments.Add(new EmailAttachment { FileName = "a.bin", Content = new byte[] { 1, 2, 3 }, Length = 3 });
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
-        EmailDocument parsed = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false)).Read(bytes).Document;
+        EmailDocument parsed = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false)).ReadDocument(bytes).Document;
 
         EmailAttachment attachment = Assert.Single(parsed.Attachments);
         Assert.Equal(3, attachment.Length);
@@ -220,7 +220,7 @@ public sealed class EmailMsgRoundTripTests {
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailDocument parsed = new EmailDocumentReader(
-            new EmailReaderOptions(includeAttachmentContent: false)).Read(bytes).Document;
+            new EmailReaderOptions(includeAttachmentContent: false)).ReadDocument(bytes).Document;
 
         EmailAttachment result = Assert.Single(parsed.Attachments);
         Assert.Equal(4, result.Length);
@@ -240,7 +240,7 @@ public sealed class EmailMsgRoundTripTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
-        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(bytes).Document.Attachments);
+        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().ReadDocument(bytes).Document.Attachments);
 
         Assert.Equal(opaque, roundTrip.StructuredStorageStreams["CONTENTS"]);
         Assert.Contains(writeResult.Diagnostics, diagnostic =>
@@ -263,7 +263,7 @@ public sealed class EmailMsgRoundTripTests {
 
         byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
-        EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
+        EmailReadResult readResult = new EmailDocumentReader().ReadDocument(bytes);
         EmailAttachment roundTrip = Assert.Single(readResult.Document.Attachments);
 
         Assert.Null(roundTrip.EmbeddedDocument);
@@ -331,7 +331,7 @@ public sealed class EmailMsgRoundTripTests {
         var source = new EmailDocument { Subject = "parent" };
         source.Attachments.Add(new EmailAttachment { FileName = "embedded.msg", EmbeddedDocument = embedded });
 
-        EmailReadResult result = new EmailDocumentReader().Read(
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         EmailAttachment parentAttachment = Assert.Single(result.Document.Attachments);
@@ -347,7 +347,7 @@ public sealed class EmailMsgRoundTripTests {
         parent.Attachments.Add(new EmailAttachment { FileName = "child.msg", EmbeddedDocument = child });
         byte[] source = new EmailDocumentWriter().ToBytes(parent, EmailFileFormat.OutlookMsg);
 
-        EmailReadResult limited = new EmailDocumentReader(new EmailReaderOptions(maxNestedMessageDepth: 0)).Read(source);
+        EmailReadResult limited = new EmailDocumentReader(new EmailReaderOptions(maxNestedMessageDepth: 0)).ReadDocument(source);
         EmailAttachment opaque = Assert.Single(limited.Document.Attachments);
         Assert.Null(opaque.EmbeddedDocument);
         Assert.NotEmpty(opaque.StructuredStorageStreams);
@@ -355,7 +355,7 @@ public sealed class EmailMsgRoundTripTests {
 
         byte[] rewritten = new EmailDocumentWriter().ToBytes(
             limited.Document, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
-        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
+        EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().ReadDocument(rewritten).Document.Attachments);
 
         Assert.DoesNotContain(writeResult.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
@@ -378,7 +378,7 @@ public sealed class EmailMsgRoundTripTests {
             File.WriteAllText(emlPath, eml, new UTF8Encoding(false));
             MsgKit.Converter.ConvertEmlToMsg(emlPath, msgPath);
 
-            EmailReadResult result = new EmailDocumentReader().Read(msgPath);
+            EmailReadResult result = new EmailDocumentReader().ReadDocument(msgPath);
 
             Assert.Equal("MsgKit source", result.Document.Subject);
             Assert.Contains("body from MsgKit", result.Document.Body.Text);

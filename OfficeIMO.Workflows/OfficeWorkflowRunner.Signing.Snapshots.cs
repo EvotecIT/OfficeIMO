@@ -26,7 +26,6 @@ public sealed partial class OfficeWorkflowRunner {
         };
         return new PdfExternalSignatureOptions {
             MaxInputBytes = options.MaxInputBytes,
-            CancellationToken = options.CancellationToken,
             Profile = options.Profile,
             CertificationPermission = options.CertificationPermission,
             VisibleAppearance = appearance,

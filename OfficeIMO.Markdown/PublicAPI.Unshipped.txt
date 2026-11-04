@@ -1,1 +1,14 @@
 #nullable enable
+OfficeIMO.Markdown.MarkdownDocument.AddDefinitionList(System.Action<OfficeIMO.Markdown.MarkdownDefinitionListBuilder!>! build) -> OfficeIMO.Markdown.DefinitionListBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddHeading(string! text, int level = 1) -> OfficeIMO.Markdown.HeadingBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddImage(string! path, string? altText = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Markdown.ImageBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddList(System.Action<OfficeIMO.Markdown.MarkdownUnorderedListBuilder!>! build) -> OfficeIMO.Markdown.UnorderedListBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddList<T>(System.Collections.Generic.IEnumerable<T>! items) -> OfficeIMO.Markdown.UnorderedListBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddOrderedList(System.Action<OfficeIMO.Markdown.MarkdownOrderedListBuilder!>! build) -> OfficeIMO.Markdown.OrderedListBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddOrderedList<T>(System.Collections.Generic.IEnumerable<T>! items, int start = 1) -> OfficeIMO.Markdown.OrderedListBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddParagraph(System.Action<OfficeIMO.Markdown.MarkdownParagraphBuilder!>! build) -> OfficeIMO.Markdown.ParagraphBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddParagraph(string! text) -> OfficeIMO.Markdown.ParagraphBlock!
+OfficeIMO.Markdown.MarkdownDocument.AddTable(System.Action<OfficeIMO.Markdown.MarkdownTableBuilder!>! build) -> OfficeIMO.Markdown.TableBlock!
+*REMOVED*OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Markdown.MarkdownDocument!
+*REMOVED*OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? alt, string? title) -> OfficeIMO.Markdown.MarkdownDocument!
+OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? altText = null, string? title = null, OfficeIMO.OfficeLength? width = null, OfficeIMO.OfficeLength? height = null) -> OfficeIMO.Markdown.MarkdownDocument!

@@ -10,11 +10,11 @@ public class HtmlOfficeAdaptersExcelSemantics {
     public void ExcelHtml_HeaderModeMakesHeaderIntentExplicit() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Data");
-        sheet.CellValue(1, 1, "Not a header");
-        sheet.CellValue(2, 1, "Second row");
+        sheet.Cell(1, 1).SetValue("Not a header");
+        sheet.Cell(2, 1).SetValue("Second row");
 
         string defaultHtml = workbook.ToHtml();
-        string dataOnlyHtml = workbook.ToHtml(new ExcelHtmlSaveOptions {
+        string dataOnlyHtml = workbook.ToHtml(new ExcelHtmlExportOptions {
             HeaderMode = ExcelHtmlHeaderMode.None
         });
 
@@ -28,11 +28,11 @@ public class HtmlOfficeAdaptersExcelSemantics {
         DateTime expected = new(2026, 7, 11, 14, 15, 16, DateTimeKind.Unspecified);
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Dates");
-        sheet.CellValue(1, 1, "When");
-        sheet.CellValue(2, 1, expected);
+        sheet.Cell(1, 1).SetValue("When");
+        sheet.Cell(2, 1).SetValue(expected);
 
         string html = workbook.ToHtml();
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -40,7 +40,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
         Assert.True(importedSheet.TryGetCellValueSnapshot(2, 1, out ExcelNativeCellValueInfo? snapshot));
         Assert.Equal(ExcelCellValueKind.DateTime, snapshot!.Kind);
         Assert.Equal(expected, snapshot.DateTimeValue);
-        Assert.True(importedSheet.GetCellStyle(2, 1).IsDateLike);
+        Assert.True(importedSheet.Cell(2, 1).GetStyle().IsDateLike);
         Assert.Empty(result.Report.Diagnostics);
     }
 
@@ -52,7 +52,7 @@ public class HtmlOfficeAdaptersExcelSemantics {
             </section>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { MaxTableCells = 4 });
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(new HtmlExcelExportOptions { MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
 
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
@@ -65,14 +65,14 @@ public class HtmlOfficeAdaptersExcelSemantics {
             <table><tr><td colspan="2147483647"><strong>First</strong></td><td>Second</td></tr></table>
             """;
 
-        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
 
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
         Assert.True(sheet.TryGetCellValueSnapshot(1, 1, out ExcelNativeCellValueInfo? first));
         Assert.Equal("First", first!.Text);
-        Assert.Equal("Second", sheet.CellAt(1, 2).GetValue<string>());
+        Assert.Equal("Second", sheet.Cell(1, 2).GetValue<string>());
         Assert.Equal(2, result.Cells);
         Assert.Empty(sheet.GetMergedRanges());
         Assert.Contains(result.Report.Diagnostics,
@@ -87,8 +87,8 @@ public class HtmlOfficeAdaptersExcelSemantics {
             + "data-officeimo-to-row='1048576' data-officeimo-to-column='16384'><span class='officeimo-feature-label'>Huge</span>"
             + "<img src='data:image/png;base64," + png + "'></li></ul></section></section>";
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { MaxTableCells = 4 });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { MaxTableCells = 4 });
         using ExcelDocument workbook = result.Value;
         ExcelImage image = Assert.Single(Assert.Single(workbook.Sheets).Images);
 

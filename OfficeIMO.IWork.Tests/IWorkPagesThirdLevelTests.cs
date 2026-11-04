@@ -20,7 +20,7 @@ public sealed class IWorkPagesThirdLevelWritingTests {
         Assert.Equal(document.Paragraphs.Where(p => p.ListNumber.HasValue).Select(p => p.ListNumber), items.Select(p => p.ListNumber));
         Assert.Equal(new[] { 0, 1, 2, 2, 2, 1, 2, 2, 0, 2, 0, 1, 2, 0, 1, 2 }, items.Select(p => p.ListLevel));
         Assert.All(items, p => Assert.Equal(p.ListLevel * 18, p.ListLayout!.MarkerIndentPoints));
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using (var reopened = WordDocument.Load(new MemoryStream(saved.ToArray())))

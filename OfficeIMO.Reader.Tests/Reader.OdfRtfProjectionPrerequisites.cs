@@ -70,7 +70,7 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
     [Fact]
     public void LoadedRtfProjectionPreservesOriginalDiagnosticsAndSourcePayloadAfterSemanticEdits() {
         RtfReadResult loaded = RtfDocument.ParseResult(@"{\rtf1 visible{\pict\pngblip 414243}{\object\objemb{\*\objdata 444546}}}",
-            new RtfReadOptions { DeferBinaryPayloads = true });
+            new RtfLoadOptions { DeferBinaryPayloads = true });
         Assert.NotEmpty(loaded.Diagnostics);
         loaded.Document.ReplaceText("visible", "edited native text");
         OfficeDocumentReadResult projected = loaded.ReadDocument("logical-only.rtf", new ReaderOptions {
@@ -116,7 +116,7 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
         byte[] bytes;
         string name;
         if (format == "odf") {
-            OdtDocument document = OdtDocument.Create(); document.Metadata.Title = "Source title";
+            OdtDocument document = OdtDocument.Create(); document.Properties.Title = "Source title";
             document.AddParagraph("visible text").AddImage(Convert.FromBase64String(
                 "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),
                 "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
@@ -137,7 +137,7 @@ public sealed class ReaderOdfRtfProjectionPrerequisiteTests {
         Assert.Throws<ReaderResourceLimitException>(() => reader.ReadDocument(bytes, name,
             new ReaderOptions { ResourceLimits = new ReaderResourceLimits { MaxAssets = 0 } }));
         Assert.NotEmpty(reader.ReadDocument(bytes, name).Assets);
-        ReaderChunk[] chunks = reader.Read(bytes, name, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata }).ToArray();
+        ReaderChunk[] chunks = reader.Enumerate(bytes, name, new ReaderOptions { Projection = ReaderProjection.TextAndMetadata }).ToArray();
         Assert.All(chunks, chunk => Assert.Null(chunk.Markdown));
     }
 

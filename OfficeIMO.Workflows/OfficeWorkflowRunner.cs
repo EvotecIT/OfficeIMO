@@ -101,9 +101,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
             Directory.CreateDirectory(outputDirectory);
             if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
-            stagingPath = Path.Combine(
-                outputDirectory,
-                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            stagingPath = Path.Combine(outputDirectory, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp");
             await OfficeRuntimeCompatibility.WriteAllBytesAsync(stagingPath, artifact.Bytes, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -188,6 +186,7 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 conversionEvidence: cancelledConversionEvidence);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            AddImageCodecDiagnostic(failure, diagnostics, failureStage);
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             OfficeWorkflowConversionEvidence? failedConversionEvidence = (ex as WorkflowConversionFailureException)?.Evidence
@@ -324,10 +323,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfHealthSnapshot before = CreateHealthSnapshot(input, request.PdfLoadOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         PdfOptimizationOptions options = PdfOptimizationOptions.Create(ToOptimizationProfile(request.OutputProfile));
-        options.CancellationToken = cancellationToken;
         options.MaximumOutputBytes = request.Limits.MaximumOutputBytes;
         PdfOptimizationActionResult optimization = PdfDocument.Load(input, request.PdfLoadOptions)
-            .Optimization.Apply(options);
+            .Optimization.Apply(options, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!optimization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("Lossless optimization preservation verification failed; no artifact will be published.");
@@ -369,10 +367,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         PdfRepairArtifactResult repair = PdfRepairArtifact.Create(
             input,
             new PdfRepairArtifactOptions {
-                MaximumOutputBytes = request.Limits.MaximumOutputBytes,
-                CancellationToken = cancellationToken
+                MaximumOutputBytes = request.Limits.MaximumOutputBytes
             },
-            request.PdfLoadOptions);
+            request.PdfLoadOptions, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!repair.IsVerified) {
             throw new InvalidOperationException("Repair artifact verification failed; no artifact will be published.");
@@ -426,10 +423,9 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                 PdfRepairArtifactResult feasibility = PdfRepairArtifact.Create(
                     input,
                     new PdfRepairArtifactOptions {
-                        MaximumOutputBytes = request.Limits.MaximumOutputBytes,
-                        CancellationToken = cancellationToken
+                        MaximumOutputBytes = request.Limits.MaximumOutputBytes
                     },
-                    request.PdfLoadOptions);
+                    request.PdfLoadOptions, cancellationToken: cancellationToken);
                 plannedOutputBytes = feasibility.OutputSizeBytes;
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
                 throw;
@@ -473,9 +469,8 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
         cancellationToken.ThrowIfCancellationRequested();
         PdfSanitizationResult sanitization = PdfDocument.Load(input, request.PdfLoadOptions).Sanitize(
             new PdfSanitizationOptions {
-                CancellationToken = cancellationToken,
                 MaximumOutputBytes = request.Limits.MaximumOutputBytes
-            });
+            }, cancellationToken: cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         if (!sanitization.IsSanitized || !sanitization.PreservationReport.IsPreserved) {
             throw new InvalidOperationException("Sanitization verification failed; no artifact will be published.");
@@ -590,10 +585,15 @@ public sealed partial class OfficeWorkflowRunner : IOfficeWorkflowRunner {
                     cancellationToken: cancellationToken).ConfigureAwait(false)) { }
                 break;
             case ".html":
+                // The output byte limit bounds this artifact. Ingestion size budgets would reject valid large output.
+                HtmlConversionLimits htmlLimits = HtmlConversionLimits.UntrustedDefaults;
+                htmlLimits.MaxInputCharacters = (int)Math.Min(loadOptions.Limits.MaxInputBytes, int.MaxValue);
+                htmlLimits.MaxHtmlNodes = null;
                 _ = await HtmlConversionDocument.LoadAsync(
                     stagingPath,
-                    encoding: Encoding.UTF8,
-                    cancellationToken: cancellationToken).ConfigureAwait(false);
+                    new HtmlConversionDocumentOptions { Limits = htmlLimits },
+                    Encoding.UTF8,
+                    cancellationToken).ConfigureAwait(false);
                 break;
             case ".md":
                 using (FileStream stream = OpenStagedArtifact(stagingPath)) {

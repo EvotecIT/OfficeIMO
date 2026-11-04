@@ -69,7 +69,7 @@ public sealed class AsciiDocBoundedLoadTests {
     [InlineData(true)]
     public async Task OversizedNonSeekableInputStopsAfterBoundedRead(bool asynchronous) {
         using var stream = new CountingTextStream(1024 * 1024);
-        var options = new AsciiDocParseOptions { MaximumInputLength = 10 };
+        var options = new AsciiDocParseOptions { MaxInputLength = 10 };
         if (asynchronous) {
             await Assert.ThrowsAsync<InvalidDataException>(() => AsciiDocDocument.LoadAsync(stream, options));
         } else {

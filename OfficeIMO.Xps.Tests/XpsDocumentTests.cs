@@ -21,8 +21,8 @@ public sealed class XpsDocumentTests {
         string font = document.AddFont(Font);
         document.AddResource("Metadata/opaque.bin", new byte[] { 3, 7, 9 }, "application/octet-stream");
         document.AddPage(320, 160).AddPath("M10,10 L310,10 310,150 10,150Z", "#FF0080FF").AddText("{Hello XPS}", font, 24, 30, 80);
-        Assert.Equal(document.Save(), document.Save());
-        using var stream = new MemoryStream(document.Save());
+        Assert.Equal(document.ToBytes(), document.ToBytes());
+        using var stream = new MemoryStream(document.ToBytes());
         var loaded = XpsDocument.Load(stream);
         Assert.True(stream.CanRead);
         Assert.Equal(format, loaded.Format);
@@ -30,14 +30,14 @@ public sealed class XpsDocumentTests {
         var markup = loaded.Pages[0].GetMarkup();
         markup.Elements().First().SetAttributeValue("Fill", "#FF00FF00");
         loaded.Pages[0].ReplaceMarkup(markup);
-        var reopened = XpsDocument.Load(loaded.Save());
+        var reopened = XpsDocument.Load(loaded.ToBytes());
         Assert.Equal(new byte[] { 3, 7, 9 }, reopened.GetPartBytes("Metadata/opaque.bin"));
         Assert.Equal("#FF00FF00", (string?)reopened.Pages[0].GetMarkup().Elements().First().Attribute("Fill"));
         Assert.True(reopened.Pages[0].ToSvg().IsComplete);
         Assert.DoesNotContain("<text", reopened.Pages[0].ToSvg().Svg);
         byte[] png = reopened.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes;
         Assert.Equal(320, OfficeImageReader.Identify(png).Width);
-        byte[] pdf = reopened.ToPdf(); Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 8));
+        byte[] pdf = reopened.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }); Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 8));
     }
     [Fact]
     public void RejectsExternalStartRelationshipAndMissingPages() {
@@ -49,12 +49,12 @@ public sealed class XpsDocumentTests {
     }
     [Fact]
     public void BoundsInputExpansionPagesAndXmlDepth() {
-        var doc = XpsDocument.Create(); doc.AddPage(); doc.AddPage(); byte[] bytes = doc.Save();
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { MaximumInputBytes = 20 }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { MaximumExpandedBytes = 50 }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { MaximumPages = 1 }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsReadOptions { MaximumParts = 1 }));
-        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(Rewrite(bytes, "Documents/1/Pages/1.fpage", b => Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(b).Replace(" />", "><Canvas><Canvas /></Canvas></FixedPage>"))), new XpsReadOptions { MaximumXmlDepth = 1 }));
+        var doc = XpsDocument.Create(); doc.AddPage(); doc.AddPage(); byte[] bytes = doc.ToBytes();
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxInputBytes = 20 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxExpandedBytes = 50 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxPages = 1 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(bytes, new XpsLoadOptions { Limits = { MaxParts = 1 } }));
+        Assert.Throws<InvalidDataException>(() => XpsDocument.Load(Rewrite(bytes, "Documents/1/Pages/1.fpage", b => Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(b).Replace(" />", "><Canvas><Canvas /></Canvas></FixedPage>"))), new XpsLoadOptions { Limits = { MaxDepth = 1 } }));
         Assert.Throws<OperationCanceledException>(() => XpsDocument.Load(bytes, cancellationToken: new CancellationToken(true)));
     }
     [Fact]
@@ -70,7 +70,7 @@ public sealed class XpsDocumentTests {
         xml.Elements().First().SetAttributeValue("Stroke", "#FF000000");
         xml.Elements().First().SetAttributeValue("StrokeStartLineCap", "Triangle"); page.ReplaceMarkup(xml);
         Assert.True(page.ToSvg().IsComplete);
-        Assert.NotNull(XpsDocument.Load(doc.Save()).Pages[0].GetMarkup().Elements().First().Attribute("StrokeStartLineCap"));
+        Assert.NotNull(XpsDocument.Load(doc.ToBytes()).Pages[0].GetMarkup().Elements().First().Attribute("StrokeStartLineCap"));
     }
     [Fact]
     public void SignedPackagesCannotBeRewrittenAndAtomicDestinationSurvives() {
@@ -108,7 +108,7 @@ public sealed class XpsDocumentTests {
         var doc = XpsDocument.Create(dialect);
         string image = doc.AddResource("Resources/test.png", OfficePngWriter.Encode(new OfficeRasterImage(4, 2, OfficeColor.SteelBlue)), "image/png");
         var page = doc.AddPage(80, 60).AddImage(image, 10, 20, 40, 20);
-        var loaded = XpsDocument.Load(doc.Save());
+        var loaded = XpsDocument.Load(doc.ToBytes());
         Assert.True(OfficeRasterImageDecoder.TryDecode(loaded.Pages[0].ExportImage(OfficeImageExportFormat.Png).Bytes, out var raster));
         Assert.NotNull(raster);
         Assert.Equal(OfficeColor.SteelBlue, raster!.GetPixel(30, 30));
@@ -171,7 +171,7 @@ public sealed class XpsDocumentTests {
         Assert.Equal(" ", page.ExtractText());
         Assert.NotNull(page.ToDrawing());
     }
-    private static byte[] Sample() { var d = XpsDocument.Create(); d.AddPage(100, 100).AddPath("M0,0L50,0 50,50Z"); return d.Save(); }
+    private static byte[] Sample() { var d = XpsDocument.Create(); d.AddPage(100, 100).AddPath("M0,0L50,0 50,50Z"); return d.ToBytes(); }
     internal static byte[] Rewrite(byte[] bytes, string name, Func<byte[], byte[]> change) {
         using var output = new MemoryStream(); using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true)) {
             using var input = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);

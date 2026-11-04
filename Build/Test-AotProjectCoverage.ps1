@@ -55,6 +55,10 @@ $nativeLibraries = @(
 )
 $nativeWorkflowProfiles = @(
     [ordered]@{
+        name = 'OfficeIMO.Drawing.ImageIO'
+        evidence = 'Build/Verification/HeicSmoke publishes and runs as a macOS arm64 .NET 10 NativeAOT host. It decodes three HEIC fixtures through Core composition and the explicit Apple codec, then compares rendered PDFs with independent full-file ImageIO references. This bounded profile does not qualify the full API surface, .NET 8 NativeAOT, iOS devices or other platforms.'
+    }
+    [ordered]@{
         name = 'OfficeIMO.Workflows.IWork'
         evidence = 'A dedicated macOS arm64 .NET 10 NativeAOT host executes bounded complete Pages body/list and Keynote image PDF workflows with caller-supplied portable fonts, a synthetic unpadded Numbers control, rejection and atomic cancellation. The .NET 8 PDF profile remains unqualified because native publishing fails in the Apple linker. Native Numbers padding rejects complete publication; other architectures and the complete API surface are not qualified by this profile.'
     }

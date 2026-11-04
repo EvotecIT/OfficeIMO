@@ -31,14 +31,14 @@ public class RtfHtmlSectionLayoutTests {
             .SetEndnotePlacement(RtfEndnotePlacement.DocumentEnd);
         document.AddParagraph("Landscape body");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = false, NewLine = "\n" });
 
         Assert.Contains("<meta name=\"officeimo-rtf-colors\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-document-layout\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal(2, roundTrip.Colors.Count);
         Assert.Equal(16838, roundTrip.PageSetup.PaperWidthTwips);
         Assert.Equal(11906, roundTrip.PageSetup.PaperHeightTwips);
@@ -77,7 +77,7 @@ public class RtfHtmlSectionLayoutTests {
         Assert.Equal(RtfEndnotePlacement.DocumentEnd, roundTrip.NoteSettings.EndnotePlacement);
         Assert.Equal("Landscape body", Assert.Single(roundTrip.Paragraphs).ToPlainText());
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\paperw16838\paperh11906", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\ftnstart5\ftnrestart\ftnnrlc\ftntj", rtf, StringComparison.Ordinal);
@@ -115,7 +115,7 @@ public class RtfHtmlSectionLayoutTests {
         second.LineNumbering.Set(countBy: 0, restart: RtfLineNumberRestart.Continuous);
         second.AddParagraph("Second");
 
-        string html = document.ToHtml(new RtfToHtmlOptions {
+        string html = document.ToHtml(new RtfHtmlExportOptions {
             IncludeRoundTripMetadata = true,
             EmbedImagesAsDataUri = true, FragmentOnly = true, NewLine = "\n" });
 
@@ -123,7 +123,7 @@ public class RtfHtmlSectionLayoutTests {
         Assert.Contains("data-officeimo-rtf-section-layout=\"", html, StringComparison.Ordinal);
         Assert.Contains("<table>", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         Assert.Equal(2, roundTrip.Sections.Count);
         Assert.Equal(2, roundTrip.Paragraphs.Count);
         RtfSection roundTripFirst = roundTrip.Sections[0];
@@ -162,7 +162,7 @@ public class RtfHtmlSectionLayoutTests {
         Assert.Equal(0, roundTripSecond.LineNumbering.CountBy);
         Assert.Equal(RtfLineNumberRestart.Continuous, roundTripSecond.LineNumbering.Restart);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"\sectd\sbkodd", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\cols2\colsx720", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\colno1\colw3000\colsr360", rtf, StringComparison.Ordinal);

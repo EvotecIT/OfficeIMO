@@ -11,7 +11,7 @@ namespace OfficeIMO.Workflows;
 public sealed partial class OfficeWorkflowRunner {
     private const int AssemblyInputBufferSize = 81920;
     private static readonly HashSet<string> AssemblyImageExtensions = new(StringComparer.OrdinalIgnoreCase) {
-        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx"
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff", ".webp", ".ico", ".pcx", ".heic", ".heif", ".hif"
     };
     private static readonly IReadOnlyDictionary<string, string> AssemblyOfficeRoutes =
         new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
@@ -108,9 +108,7 @@ public sealed partial class OfficeWorkflowRunner {
             Directory.CreateDirectory(outputDirectory);
             if (validated.OutputStream is null && stagingGuard is not null)
                 await stagingGuard.EnsureStagingDirectoryAllowedAsync(outputDirectory, cancellationToken).ConfigureAwait(false);
-            stagingPath = Path.Combine(
-                outputDirectory,
-                "." + Path.GetFileName(validated.OutputStream?.Name ?? validated.OutputPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            stagingPath = Path.Combine(outputDirectory, ".officeimo-" + Guid.NewGuid().ToString("N") + ".tmp");
             using (var outputStream = new FileStream(
                 stagingPath,
                 FileMode.CreateNew,
@@ -204,6 +202,7 @@ public sealed partial class OfficeWorkflowRunner {
                 diagnostics);
         } catch (Exception ex) when (ex is not OutOfMemoryException and not StackOverflowException) {
             Exception failure = ex is WorkflowConversionFailureException ? ex.InnerException! : ex;
+            AddImageCodecDiagnostic(failure, diagnostics, failureStage);
             ReportInputStagingCleanupFailure(failure, diagnostics);
             inputs.Cleanup(diagnostics);
             CleanupAssemblyExtraction(ref extractionRoot, diagnostics);

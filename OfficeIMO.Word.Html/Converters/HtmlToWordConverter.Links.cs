@@ -37,14 +37,14 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
+        private WordParagraph AddNoteReference(WordParagraph paragraph, string text, HtmlWordExportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             var resolvedNoteType = noteType ?? options.NoteReferenceType;
             return resolvedNoteType == WordHtmlNoteReferenceType.Endnote
                 ? paragraph.AddEndNote(text).Paragraph
                 : paragraph.AddFootNote(text).Paragraph;
         }
 
-        private WordParagraph AddNoteReference(WordParagraph paragraph, IReadOnlyList<string> paragraphs, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
+        private WordParagraph AddNoteReference(WordParagraph paragraph, IReadOnlyList<string> paragraphs, HtmlWordExportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             var noteReference = AddNoteReference(paragraph, paragraphs.Count == 0 ? string.Empty : paragraphs[0], options, noteType);
             if (paragraphs.Count <= 1) {
                 return noteReference;
@@ -66,7 +66,7 @@ namespace OfficeIMO.Word.Html {
             return noteReference;
         }
 
-        private void TryLinkNoteReference(WordParagraph noteReference, string text, WordHtmlImportOptions options, WordHtmlNoteReferenceType? noteType = null) {
+        private void TryLinkNoteReference(WordParagraph noteReference, string text, HtmlWordExportOptions options, WordHtmlNoteReferenceType? noteType = null) {
             if (!options.LinkNoteUrls) {
                 return;
             }
@@ -132,7 +132,7 @@ namespace OfficeIMO.Word.Html {
             _pendingTopBookmark = false;
         }
 
-        private static bool IsInvalidHref(string href, WordHtmlImportOptions options) {
+        private static bool IsInvalidHref(string href, HtmlWordExportOptions options) {
             if (string.IsNullOrWhiteSpace(href)) {
                 return true;
             }
@@ -140,7 +140,7 @@ namespace OfficeIMO.Word.Html {
             return !HtmlUrlPolicyEvaluator.IsAllowed(trimmed, options.HyperlinkUrlPolicy, allowEmptyFragment: false);
         }
 
-        private static bool IsInvalidResolvedHref(Uri href, WordHtmlImportOptions options) {
+        private static bool IsInvalidResolvedHref(Uri href, HtmlWordExportOptions options) {
             if (href == null) {
                 return true;
             }

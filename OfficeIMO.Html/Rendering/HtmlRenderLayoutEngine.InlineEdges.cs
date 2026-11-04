@@ -100,6 +100,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         internal void RecordInlineScopePositions(double start, IDictionary<HtmlInlineEdgeScope, (double Left, double Right)> positions) {
             positions.Clear();
+            // Most lines have no inline box edges; then no segment slot is read.
+            if (_inlineEdges.Count == 0) return;
             var slots = new Dictionary<InlineSegment, (double Before, double After)>();
             double cursor = start;
             foreach (InlineSegment segment in Segments) {

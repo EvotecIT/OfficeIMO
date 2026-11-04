@@ -129,7 +129,7 @@ internal static partial class PdfWriter {
                     textFrame.FirstLineX - textFrame.X, GetParagraphTabStopWidth(style), currentOpts,
                     style?.TabStops.ToArray(), lineSpacing: style?.LineSpacing,
                     textWhitespaceMode: style?.TextWhitespaceMode,
-                    wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == PdfAlign.Justify ? style.JustificationMode : null,
+                    wordJustificationMode: style?.UseWordJustificationSpacing == true && paragraph.Align == OfficeAlignment.Justify ? style.JustificationMode : null,
                     rowLayout: rowLayout, cancellationToken: cancellationToken));
         }
 

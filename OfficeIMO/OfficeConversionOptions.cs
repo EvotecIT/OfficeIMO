@@ -78,25 +78,25 @@ public sealed partial class OfficeConversionOptions {
     /// <summary>Email parsing, attachments and concealed-text policy.</summary>
     public ReaderEmailOptions? ReaderEmail { get; set; }
     /// <summary>EPUB parsing and resource policy.</summary>
-    public EpubReadOptions? ReaderEpub { get; set; }
+    public EpubLoadOptions? ReaderEpub { get; set; }
     /// <summary>Visio semantic fallback and preview policies.</summary>
     public ReaderVisioOptions? ReaderVisio { get; set; }
     /// <summary>Reader-to-PDF pagination, resource and attachment policy.</summary>
     public PdfProjectionOptions? ReaderPdf { get; set; }
     /// <summary>HTML-to-PDF rendering and resource settings.</summary>
-    public HtmlToPdfOptions? Html { get; set; }
+    public HtmlPdfExportOptions? Html { get; set; }
     /// <summary>PDF-to-HTML semantic or positioned review settings.</summary>
-    public PdfToHtmlOptions? PdfHtml { get; set; }
+    public PdfHtmlExportOptions? PdfHtml { get; set; }
     /// <summary>Literal text-to-PDF settings.</summary>
     public PdfTextImportOptions? PlainText { get; set; }
     /// <summary>PDF source parsing and page selection.</summary>
     public PdfLoadOptions? PdfLoad { get; set; }
     /// <summary>PDF-to-Word reconstruction settings.</summary>
-    public WordPdfImportOptions? PdfWord { get; set; }
+    public PdfWordExportOptions? PdfWord { get; set; }
     /// <summary>PDF-to-Excel reconstruction settings.</summary>
-    public ExcelPdfImportOptions? PdfExcel { get; set; }
+    public PdfExcelExportOptions? PdfExcel { get; set; }
     /// <summary>PDF-to-PowerPoint reconstruction settings.</summary>
-    public PowerPointPdfImportOptions? PdfPowerPoint { get; set; }
+    public PdfPowerPointExportOptions? PdfPowerPoint { get; set; }
     /// <summary>Word source access, native decoding and package-security settings.</summary>
     public WordLoadOptions? WordLoad { get; set; }
     /// <summary>Excel source access, native decoding and package-security settings.</summary>
@@ -112,17 +112,17 @@ public sealed partial class OfficeConversionOptions {
     /// <summary>Word-to-Markdown settings.</summary>
     public WordMarkdownExportOptions? WordMarkdown { get; set; }
     /// <summary>Markdown-to-Word settings.</summary>
-    public WordMarkdownImportOptions? MarkdownWord { get; set; }
+    public MarkdownWordExportOptions? MarkdownWord { get; set; }
     /// <summary>Word-to-HTML settings.</summary>
     public WordHtmlExportOptions? WordHtml { get; set; }
     /// <summary>PowerPoint-to-HTML semantic or visual-review settings.</summary>
-    public PowerPointHtmlSaveOptions? PowerPointHtml { get; set; }
+    public PowerPointHtmlExportOptions? PowerPointHtml { get; set; }
     /// <summary>HTML-to-Word settings.</summary>
-    public WordHtmlImportOptions? HtmlWord { get; set; }
+    public HtmlWordExportOptions? HtmlWord { get; set; }
     /// <summary>Markdown-to-HTML settings.</summary>
     public MarkdownHtmlExportOptions? MarkdownHtml { get; set; }
     /// <summary>HTML-to-Markdown settings.</summary>
-    public MarkdownHtmlImportOptions? HtmlMarkdown { get; set; }
+    public HtmlMarkdownExportOptions? HtmlMarkdown { get; set; }
     /// <summary>Adapter-owned settings for a registered route, independently captured before execution.</summary>
     [JsonIgnore]
     public IOfficeConversionSettings? RegisteredSettings { get; set; }

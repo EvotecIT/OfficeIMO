@@ -110,7 +110,7 @@ namespace OfficeIMO.Visio {
         /// <param name="name">Name of the page.</param>
         /// <param name="widthInches">Page width in inches.</param>
         /// <param name="heightInches">Page height in inches.</param>
-        public VisioPage(string name, double widthInches, double heightInches) {
+        internal VisioPage(string name, double widthInches, double heightInches) {
             Name = name;
             NameU = name;
             _width = widthInches;
@@ -165,7 +165,7 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets or sets the page width in inches.
         /// </summary>
-        public double Width {
+        internal double WidthInches {
             get => _width;
             set {
                 _width = value;
@@ -173,18 +173,11 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the page width in centimeters.
-        /// </summary>
-        public double WidthCentimeters {
-            get => _width.FromInches(VisioMeasurementUnit.Centimeters);
-            set => Width = value.ToInches(VisioMeasurementUnit.Centimeters);
-        }
 
         /// <summary>
         /// Gets or sets the page height in inches.
         /// </summary>
-        public double Height {
+        internal double HeightInches {
             get => _height;
             set {
                 _height = value;
@@ -192,17 +185,10 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the page height in centimeters.
-        /// </summary>
-        public double HeightCentimeters {
-            get => _height.FromInches(VisioMeasurementUnit.Centimeters);
-            set => Height = value.ToInches(VisioMeasurementUnit.Centimeters);
-        }
 
         /// <summary>
-        /// Default measurement unit for positions and sizes on this page.
-        /// New shape-adding overloads use this unit implicitly.
+        /// Native measurement unit for drawing scale and imported ShapeSheet values.
+        /// Public geometry uses explicit OfficeLength values.
         /// </summary>
         public VisioMeasurementUnit DefaultUnit {
             get => _defaultUnit;
@@ -291,23 +277,7 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        /// <summary>
-        /// Gets or sets the page width. Use <see cref="Width"/> instead.
-        /// </summary>
-        [System.Obsolete("Use Width instead")]
-        public double PageWidth {
-            get => Width;
-            set => Width = value;
-        }
 
-        /// <summary>
-        /// Gets or sets the page height. Use <see cref="Height"/> instead.
-        /// </summary>
-        [System.Obsolete("Use Height instead")]
-        public double PageHeight {
-            get => Height;
-            set => Height = value;
-        }
 
         /// <summary>
         /// Gets or sets a value indicating whether the grid is visible.
@@ -463,22 +433,22 @@ namespace OfficeIMO.Visio {
         /// <summary>
         /// Gets the left print margin in inches.
         /// </summary>
-        public double LeftMargin => _leftMargin;
+        internal double LeftMarginInches => _leftMargin;
 
         /// <summary>
         /// Gets the right print margin in inches.
         /// </summary>
-        public double RightMargin => _rightMargin;
+        internal double RightMarginInches => _rightMargin;
 
         /// <summary>
         /// Gets the top print margin in inches.
         /// </summary>
-        public double TopMargin => _topMargin;
+        internal double TopMarginInches => _topMargin;
 
         /// <summary>
         /// Gets the bottom print margin in inches.
         /// </summary>
-        public double BottomMargin => _bottomMargin;
+        internal double BottomMarginInches => _bottomMargin;
 
         internal bool HasExplicitMargins { get; private set; }
 

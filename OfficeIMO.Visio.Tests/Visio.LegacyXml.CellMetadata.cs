@@ -101,7 +101,7 @@ public class VisioLegacyCellMetadataTests {
             + "<XForm><Width>2</Width><Height>1</Height></XForm><Scratch IX='0'><X Unit='IN' F='CustomFormula' Err='producer-specific error'>1.2500</X>"
             + "</Scratch></Shape></Shapes></Page></Pages></VisioDocument>";
         var imported = VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(source)));
-        Assert.Contains(imported.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VDX_CELL_ERROR" && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(imported.Report.Diagnostics, diagnostic => diagnostic.Code == "VDX_CELL_ERROR" && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
         var document = imported.Value;
         foreach (var candidate in new[] { document, ReopenPackage(document) }) {
             AssertCell(Export(candidate).Descendants(Legacy + "Scratch").Single().Element(Legacy + "X")!,

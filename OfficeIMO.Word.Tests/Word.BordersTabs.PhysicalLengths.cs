@@ -186,7 +186,7 @@ public sealed class WordBorderTabPhysicalLengthTests {
             }
             foreach (Action<OfficeLength?> set in setters) set(OfficeLength.Points(1));
             cellBorders.LeftStyle = WordBorderStyle.Double;
-            cellBorders.LeftColorHex = "0000FF";
+            cellBorders.LeftColor = OfficeColor.Parse("0000FF");
         }
     }
 

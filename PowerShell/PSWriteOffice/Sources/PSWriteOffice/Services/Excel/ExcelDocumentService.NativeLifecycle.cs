@@ -1,8 +1,8 @@
 using System;
-using System.Net;
 using System.Security;
 using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Services.Excel;
 
@@ -18,7 +18,7 @@ internal static partial class ExcelDocumentService {
         SecureString? password, bool passwordBound) {
         var options = source?.Clone() ?? new ExcelSaveOptions();
         if (allowLoss.HasValue) options.AllowLoss = allowLoss.Value;
-        if (passwordBound) options.Password = password == null ? null : new NetworkCredential(string.Empty, password).Password;
+        if (passwordBound) options.Password = password.ToPlainText();
         return options;
     }
 }

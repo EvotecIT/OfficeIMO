@@ -79,12 +79,17 @@ public sealed class PdfConversionWarning {
     public IReadOnlyDictionary<string, string> Details { get; }
 
     /// <summary>Projects this warning into the shared category-preserving conversion contract.</summary>
-    public OfficeConversionFidelityDiagnostic ToFidelityDiagnostic() => new(
+    public OfficeDiagnostic ToFidelityDiagnostic() => new(
         Code,
+        Severity switch {
+            PdfConversionWarningSeverity.Information => OfficeDiagnosticSeverity.Information,
+            PdfConversionWarningSeverity.Error => OfficeDiagnosticSeverity.Error,
+            _ => OfficeDiagnosticSeverity.Warning
+        },
         string.IsNullOrWhiteSpace(Message) ? Code + " was reported without a diagnostic message." : Message,
-        LossKind,
+        string.IsNullOrWhiteSpace(Source) ? null : Source,
         Converter,
-        string.IsNullOrWhiteSpace(Source) ? null : Source);
+        LossKind);
 
     /// <inheritdoc />
     public override string ToString() {

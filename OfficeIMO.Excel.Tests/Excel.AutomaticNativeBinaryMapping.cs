@@ -146,8 +146,8 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
     public void ErrorCellsRetainTheirTextDuringAutomaticMapping(ExcelFileFormat format) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(2, 1, "error");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("error");
         Cell cell = sheet.WorksheetPart.Worksheet.Descendants<Cell>().Single(item => item.CellReference == "A2");
         cell.DataType = CellValues.Error;
         cell.CellValue = new CellValue("#VALUE!");
@@ -192,12 +192,12 @@ public sealed class ExcelAutomaticNativeBinaryMappingTests {
         using ExcelDocument document = ExcelDocument.Create();
         document.DateSystem = dateSystem;
         ExcelSheet sheet = document.AddSheet("Data");
-        for (int column = 0; column < headers.Length; column++) sheet.CellValue(1, column + 1, headers[column]);
+        for (int column = 0; column < headers.Length; column++) sheet.Cell(1, column + 1).SetValue(headers[column]);
         for (int row = 0; row < rows.Length; row++) {
             for (int column = 0; column < rows[row].Length; column++) {
-                if (rows[row][column] != null) sheet.CellValue(row + 2, column + 1, rows[row][column]);
+                if (rows[row][column] != null) sheet.Cell(row + 2, column + 1).SetValue(rows[row][column]);
             }
-            if (styledSerialColumn > 0) sheet.CellAt(row + 2, styledSerialColumn).SetNumberFormat(serialFormat);
+            if (styledSerialColumn > 0) sheet.Cell(row + 2, styledSerialColumn).SetNumberFormat(serialFormat);
         }
         return document.ToBytes(new OfficeIMO.Excel.ExcelSaveOptions{Format=format});
     }

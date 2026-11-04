@@ -113,7 +113,7 @@ namespace OfficeIMO.Word.Html {
 
             var borders = paragraph.Borders;
             return borders.LeftStyle != null && borders.TopStyle == null && borders.RightStyle == null &&
-                borders.BottomStyle == null && string.IsNullOrEmpty(paragraph.ShadingFillColorHex);
+                borders.BottomStyle == null && string.IsNullOrEmpty(paragraph.ShadingFillValue);
         }
 
         private static bool TryGetBlockquoteCiteAttribute(WordParagraph paragraph, out string cite) {

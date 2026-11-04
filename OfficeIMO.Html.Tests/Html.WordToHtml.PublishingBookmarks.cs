@@ -18,7 +18,7 @@ public partial class HtmlWordToHtml {
         Assert.Single(html.QuerySelectorAll("#primary"));
         Assert.Single(html.QuerySelectorAll("#secondary"));
         Assert.Equal("#secondary", html.QuerySelector("a")!.GetAttribute("href"));
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "bookmark-position-projected" && item.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "bookmark-position-projected" && item.LossKind == OfficeConversionLossKind.Approximation);
     }
     [Fact]
     public void WordProducedTableAndTextBoxBookmarksRemainReachableForPublishing() {
@@ -29,6 +29,6 @@ public partial class HtmlWordToHtml {
         Assert.NotNull(html.QuerySelector("#_Toc233703443"));
         Assert.NotNull(html.QuerySelector("#_Toc233703444"));
         Assert.Contains("Word-generated table text-box TOC detail", html.Body!.TextContent);
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "bookmark-position-projected");
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "bookmark-position-projected");
     }
 }

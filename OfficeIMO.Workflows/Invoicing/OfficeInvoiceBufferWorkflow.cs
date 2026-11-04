@@ -11,11 +11,26 @@ namespace OfficeIMO.Workflows;
 
 /// <summary>Memory-only invoice workflows. Hosts own input acquisition and safe publication; format owners own semantics and rendering.</summary>
 public static partial class OfficeInvoiceBufferWorkflow {
-    /// <summary>Runs captured input through shared owners. A requested standards stage fails closed when its validator is unavailable. Cancellation returns no artifact.</summary>
+    /// <summary>Runs a captured invoice request without a standards provider.</summary>
     public static Task<OfficeInvoiceWorkflowResult> RunAsync(OfficeInvoiceWorkflowRequest request,
+        CancellationToken cancellationToken = default) => RunCoreAsync(request,
+#if NET8_0_OR_GREATER
+            null,
+#endif
+            cancellationToken);
 
 #if NET8_0_OR_GREATER
-        InvoiceValidator? validator = null,
+    /// <summary>Runs a captured invoice request with an explicit standards provider.</summary>
+    public static Task<OfficeInvoiceWorkflowResult> RunAsync(OfficeInvoiceWorkflowRequest request,
+        InvoiceValidator? validator, CancellationToken cancellationToken = default) =>
+        RunCoreAsync(request, validator, cancellationToken);
+#endif
+
+    /// <summary>Runs captured input through shared owners. A requested standards stage fails closed when its validator is unavailable. Cancellation returns no artifact.</summary>
+    private static Task<OfficeInvoiceWorkflowResult> RunCoreAsync(OfficeInvoiceWorkflowRequest request,
+
+#if NET8_0_OR_GREATER
+        InvoiceValidator? validator,
 #endif
         CancellationToken cancellationToken = default) {
         if (request == null) throw new ArgumentNullException(nameof(request));

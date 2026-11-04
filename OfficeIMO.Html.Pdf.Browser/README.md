@@ -36,11 +36,11 @@ string text = result.Value.Read().Text;
 
 Use `tagged: false` when later full-rewrite operations are important. Use `tagged: true` when Chromium-generated accessibility structure is required. In both cases, treat `PdfDocument.Preflight()` and `PdfDocument.PlanMutation(...)` as authoritative: a valid, readable PDF can still have operation-specific rewrite blockers.
 
-The bridge never falls back from managed rendering to Chromium automatically. Browser capture executes page code and may access network resources, so callers must opt in and configure HtmlTinkerX security policy explicitly.
+Browser capture is a separate contract from the OfficeIMO converters: it drives an external browser process and returns the captured `PdfDocumentConversionResult` instead of the `ToPdf`/`SaveAsPdf` converter shape. The bridge never falls back from managed rendering to Chromium automatically. Browser capture executes page code and may access network resources, so callers must opt in and configure HtmlTinkerX security policy explicitly.
 
 ## Provisioning and deployment
 
-The managed [HTML renderer](../OfficeIMO.Html/PDF.md) runs without Chromium.
+The managed [HTML renderer](../OfficeIMO.Html.Pdf/PDF.md) runs without Chromium.
 This optional package uses HtmlTinkerX's Playwright driver and Chromium runtime.
 HtmlTinkerX installs missing components on first use; provisioning needs download
 access and writable cache locations. The page's network policy does not govern

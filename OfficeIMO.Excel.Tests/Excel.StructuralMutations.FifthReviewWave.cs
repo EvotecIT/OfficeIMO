@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet third = document.AddSheet("Q3");
             ExcelSheet fourth = document.AddSheet("Q4");
             ExcelSheet outside = document.AddSheet("Outside");
-            fourth.CellValue(1, 2, 1);
+            fourth.Cell(1, 2).SetValue(1);
             ExtendedChartPart chartPart = AddChartsheetExtendedFormula(
                 document,
                 "Quarterly Chart",

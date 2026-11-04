@@ -31,7 +31,7 @@ public sealed class PdfRunSpacingFontTrackingTests {
         Assert.All(letters, letter => Assert.Equal(letters[0].StartBaseLine.Y, letter.StartBaseLine.Y, 3));
         double chosenSize = letters[0].FontSize;
         using var probe = PdfPigDocument.Open(PdfDocument.Create(options).Paragraph(p =>
-            p.Runs(new[] { Run(chosenSize), PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(chosenSize)) })).ToBytes());
+            p.AddRuns(new[] { Run(chosenSize), PdfTextRun.Normal("X", fontSize: global::OfficeIMO.OfficeLength.Points(chosenSize)) })).ToBytes());
         var painted = probe.GetPage(1).Letters;
         double width = painted.Single(letter => letter.Value == "X").StartBaseLine.X - painted[0].StartBaseLine.X;
         Assert.InRange(width, 99.9D, 100.02D);
@@ -50,7 +50,7 @@ public sealed class PdfRunSpacingFontTrackingTests {
         var document = PdfDocument.Create(options);
         if (positioned) document.Canvas(canvas => canvas.PositionedText(runs, PdfCanvasTextStructureRole.Paragraph,
             40D, 40D, 400D, 40D, fontSize: 12D, fontMetricScale: 0.75D));
-        else document.Paragraph(p => p.Runs(runs));
+        else document.Paragraph(p => p.AddRuns(runs));
         using var pdf = PdfPigDocument.Open(document.ToBytes());
         var page = pdf.GetPage(1);
         var underlines = page.Paths.Where(path => path.IsStroked).Select(path => path.GetBoundingRectangle())
@@ -99,7 +99,7 @@ public sealed class PdfRunSpacingFontTrackingTests {
             PdfDocument document = PdfDocument.Create(options);
             if (positioned) document.Canvas(canvas => canvas.PositionedText(runs, PdfCanvasTextStructureRole.Paragraph,
                 40D, 40D, 400D, 40D, fontSize: 12D, fontMetricScale: 0.75D));
-            else document.Paragraph(paragraph => paragraph.Runs(runs));
+            else document.Paragraph(paragraph => paragraph.AddRuns(runs));
             return document.ToBytes();
         }
         using var natural = PdfPigDocument.Open(Render(false));

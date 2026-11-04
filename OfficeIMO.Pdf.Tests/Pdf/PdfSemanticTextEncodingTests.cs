@@ -58,7 +58,7 @@ public sealed class PdfSemanticTextEncodingTests {
     public void GeneratedOutlineTitlesAndLinkCommentsKeepUnicode(string text) {
         byte[] bytes = PdfDocument.Create()
             .Canvas(canvas => canvas.Outline(text, 1, global::OfficeIMO.OfficeLength.Points(10D)))
-            .Paragraph(paragraph => paragraph.Link("Link", "https://evotec.xyz/", contents: text))
+            .Paragraph(paragraph => paragraph.AddLink("Link", "https://evotec.xyz/", contents: text))
             .ToBytes();
 
         PdfDocumentInfo info = PdfInspector.Inspect(bytes);

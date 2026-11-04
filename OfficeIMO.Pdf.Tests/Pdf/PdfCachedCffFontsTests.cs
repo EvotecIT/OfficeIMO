@@ -25,7 +25,7 @@ public sealed class PdfCachedCffFontsTests {
             PdfOpenTypeCffFontProgram program = PdfFontProgramCache.GetOpenTypeCff(family!.Regular, null);
             Assert.True(program.MeasureTextWidth("Office fonts 0123456789", 11D) > 0D);
             byte[] pdf = PdfDocument.Create(new PdfCreateOptions().UseFontFamily(family))
-                .Paragraph(paragraph => paragraph.Text("Office fonts 0123456789")).ToBytes();
+                .Paragraph(paragraph => paragraph.AddText("Office fonts 0123456789")).ToBytes();
             using var reopened = UglyToad.PdfPig.PdfDocument.Open(pdf);
             Assert.Equal("Office fonts 0123456789", reopened.GetPage(1).Text);
         } finally {

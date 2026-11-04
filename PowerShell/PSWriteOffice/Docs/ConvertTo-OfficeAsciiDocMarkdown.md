@@ -11,12 +11,12 @@ Converts AsciiDoc to Markdown with fidelity diagnostics.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-ConvertTo-OfficeAsciiDocMarkdown [-Path] <string> [-OutputPath <string>] [-Options <AsciiDocToMarkdownOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeAsciiDocMarkdown [-Path] <string> [-OutputPath <string>] [-Options <AsciiDocMarkdownExportOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-ConvertTo-OfficeAsciiDocMarkdown -Document <AsciiDocDocument> [-OutputPath <string>] [-Options <AsciiDocToMarkdownOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficeAsciiDocMarkdown -Document <AsciiDocDocument> [-OutputPath <string>] [-Options <AsciiDocMarkdownExportOptions>] [-FailOnLoss] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -74,7 +74,7 @@ Accept wildcard characters: False
 Optional conversion settings.
 
 ```yaml
-Type: AsciiDocToMarkdownOptions
+Type: AsciiDocMarkdownExportOptions
 Parameter Sets: Path, Document
 Aliases: None
 Possible values:

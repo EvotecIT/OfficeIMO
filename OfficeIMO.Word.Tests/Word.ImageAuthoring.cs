@@ -36,11 +36,11 @@ public sealed class WordImageAuthoringTests {
         using var document = WordDocument.Create();
         using var source = new MemoryStream(Gif);
         var image = document.AddImage(source, OfficeLength.Pixels(32), OfficeLength.Pixels(16), new WordImageOptions {
-            FileName = "sample.gif", Title = "Sample", Description = "An embedded sample",
+            FileName = "sample.gif", Title = "Sample", AltText = "An embedded sample",
             MaximumWidth = OfficeLength.Pixels(24), Alignment = WordParagraphAlignment.Center
         });
         Assert.Equal("Sample", image.Title);
-        Assert.Equal("An embedded sample", image.Description);
+        Assert.Equal("An embedded sample", image.AltText);
         Assert.Equal(WordParagraphAlignment.Center, image.Paragraph.ParagraphAlignment);
         Assert.Equal(24d, (image.Width?.ToPixels()));
         Assert.Equal(Gif, Assert.Single(document.GetImageBytes()));

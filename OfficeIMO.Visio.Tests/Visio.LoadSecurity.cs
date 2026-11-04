@@ -83,9 +83,9 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.ThrowsAny<XmlException>(() => VisioDocument.Load(filePath,
-                    new VisioLoadOptions { MaxPackageXmlCharacters = 20_000 }));
+                    new VisioLoadOptions { Limits = { MaxPackageXmlCharacters = 20_000 } }));
                 VisioDocument accepted = VisioDocument.Load(filePath,
-                    new VisioLoadOptions { MaxPackageXmlCharacters = 30_000 });
+                    new VisioLoadOptions { Limits = { MaxPackageXmlCharacters = 30_000 } });
                 Assert.Single(accepted.Pages);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
@@ -126,8 +126,8 @@ namespace OfficeIMO.Tests {
         private static string CreateBasicVisioDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            VisioPage page = document.AddPage("Secure Load", 8.5, 11);
-            page.Shapes.Add(new VisioShape("shape-1", 1, 1, 1, 1, "Shape"));
+            VisioPage page = document.AddPage("Secure Load", OfficeLength.Inches(8.5), OfficeLength.Inches(11));
+            page.Shapes.Add(new VisioShape("shape-1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Shape"));
             document.Save();
             return filePath;
         }

@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void ValidateReturnsNoIssuesForSimpleDocument() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Start"));
 
             Assert.Empty(document.Validate());
         }
@@ -22,11 +22,11 @@ namespace OfficeIMO.Tests {
             VisioPage first = document.AddPage("Page-1", id: 0);
             VisioPage second = document.AddPage("Page-2", id: 0);
 
-            VisioShape shared = new("dup", 1, 1, 1, 1, "Shared");
+            VisioShape shared = new("dup", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Shared");
             first.Shapes.Add(shared);
-            AddRawShape(first, new VisioShape("dup", 3, 1, 1, 1, "Duplicate"));
+            AddRawShape(first, new VisioShape("dup", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Duplicate"));
 
-            VisioShape external = new("outside", 1, 1, 1, 1, "Outside");
+            VisioShape external = new("outside", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Outside");
             second.Shapes.Add(external);
 
             AddRawConnector(first, new VisioConnector("dup", shared, external));
@@ -43,13 +43,13 @@ namespace OfficeIMO.Tests {
         public void ValidateReportsNegativeDimensionsAndDetachedConnectionPoints() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
-            page.Width = -1;
-            page.Height = -2;
+            page.Width = OfficeLength.Inches(-1);
+            page.Height = OfficeLength.Inches(-2);
 
-            VisioShape shape = new("shape", 1, 1, -1, -3, "Broken");
+            VisioShape shape = new("shape", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(-1), OfficeLength.Inches(-3), "Broken");
             page.Shapes.Add(shape);
 
-            VisioShape target = new("target", 3, 1, 1, 1, "Target");
+            VisioShape target = new("target", OfficeLength.Inches(3), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Target");
             page.Shapes.Add(target);
 
             VisioConnector connector = new("connector", shape, target) {
@@ -73,9 +73,9 @@ namespace OfficeIMO.Tests {
             VisioPage first = document.AddPage("Page-1", id: 0);
             VisioPage second = document.AddPage("Page-2", id: 0);
 
-            VisioShape shared = new("dup", 1, 1, 1, 1, "Shared");
+            VisioShape shared = new("dup", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Shared");
             first.Shapes.Add(shared);
-            second.Shapes.Add(new VisioShape("outside", 2, 2, 1, 1, "Outside"));
+            second.Shapes.Add(new VisioShape("outside", OfficeLength.Inches(2), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "Outside"));
             AddRawConnector(first, new VisioConnector("dup", shared, second.Shapes[0]));
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.Save());
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
             VisioPage page = document.AddPage("Page-1");
             VisioShape group = new("1") { Type = "Group" };
-            VisioShape child = new("2", 1, 1, 1, 1, "Child");
+            VisioShape child = new("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Child");
             group.Children.Add(child);
             page.Shapes.Add(group);
 

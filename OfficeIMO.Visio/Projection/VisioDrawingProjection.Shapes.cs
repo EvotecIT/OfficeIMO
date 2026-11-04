@@ -48,8 +48,8 @@ internal sealed partial class VisioDrawingProjection {
         if (!native) {
             string kind = VisioShapeGeometry.ResolveRenderKind(shape);
             List<(double X, double Y)> points = kind is "ellipse" or "circle"
-                ? OfficeGeometry.CreateEllipticalArcPointsAsTuples(shape.Width / 2D, shape.Height / 2D,
-                    shape.Width / 2D, shape.Height / 2D, 0, Math.PI * 2D, 64).ToList()
+                ? OfficeGeometry.CreateEllipticalArcPointsAsTuples(shape.WidthInches / 2D, shape.HeightInches / 2D,
+                    shape.WidthInches / 2D, shape.HeightInches / 2D, 0, Math.PI * 2D, 64).ToList()
                 : VisioShapeGeometry.GetBuiltinClosedPath(shape, kind);
             paths.Add(new VisioShapeGeometryPath(points, false, false, true, 0));
             _report.Add("VISIO_DRAWING_GEOMETRY_FALLBACK", "A named builtin outline or rectangular fallback replaces unavailable native geometry.", OfficeConversionLossKind.Approximation, location);

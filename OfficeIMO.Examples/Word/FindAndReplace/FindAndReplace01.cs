@@ -28,13 +28,13 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var listFound = document.Find("Test Section");
-                Console.WriteLine("Replaced (should be 2): " + listFound.Count);
+                Console.WriteLine("Found (should be 2): " + listFound.MatchCount);
 
-                var replacedCount = document.FindAndReplace("Test Section", "Production Section");
+                var replacedCount = document.ReplaceAll("Test Section", "Production Section");
                 Console.WriteLine("Replaced (should be 2): " + replacedCount);
 
                 // should be 2 because it stretches over 2 paragraphs
-                var replacedCount1 = document.FindAndReplace("This is a text more text", "Shorter text");
+                var replacedCount1 = document.ReplaceAll("This is a text more text", "Shorter text");
                 Console.WriteLine("Replaced (should be 2): " + replacedCount1);
 
                 document.CleanupDocument();
@@ -42,10 +42,10 @@ namespace OfficeIMO.Examples.Word {
                 // cleanup should merge paragraphs making it easier to find and replace text
                 // this only works for same formatting though
                 // may require improvement in the future to ignore formatting completely, but then it's a bit tricky which formatting to apply
-                var replacedCount2 = document.FindAndReplace("This is a text more text", "Shorter text");
+                var replacedCount2 = document.ReplaceAll("This is a text more text", "Shorter text");
                 Console.WriteLine("Replaced (should be 0): " + replacedCount2);
 
-                var replacedCount3 = document.FindAndReplace("even longer", "not longer");
+                var replacedCount3 = document.ReplaceAll("even longer", "not longer");
                 Console.WriteLine("Replaced (should be 4): " + replacedCount3);
 
                 document.Save();

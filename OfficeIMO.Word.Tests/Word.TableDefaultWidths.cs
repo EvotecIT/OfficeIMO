@@ -11,7 +11,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create();
         WordTable table = document.AddTable(2, columns);
         WordSection section = document.Sections[0];
-        long textWidth = (section.PageSettings.Width!.Value - section.Margins.Left!.Value - section.Margins.Right!.Value).ToTwips();
+        long textWidth = (section.PageSetup.Size.Width!.Value - section.PageSetup.Margins.Left!.Value - section.PageSetup.Margins.Right!.Value).ToTwips();
 
         long total = table.GridColumnWidth.Sum(width => width.ToTwips());
         Assert.InRange(total, textWidth - columns, textWidth);

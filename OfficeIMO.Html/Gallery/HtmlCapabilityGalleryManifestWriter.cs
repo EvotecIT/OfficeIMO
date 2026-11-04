@@ -34,7 +34,7 @@ public static class HtmlCapabilityGalleryManifestWriter {
                 builder.AppendLine("  - Reported loss: " + artifact.Evidence.HasLoss + "; source pages: " + artifact.Evidence.PageCount);
                 foreach (HtmlCapabilityGalleryCheck check in artifact.Evidence.Checks)
                     builder.AppendLine("  - Executed " + check.Name + ": " + (check.Passed ? "PASS" : "FAIL") + ". " + check.Detail);
-                foreach (HtmlDiagnostic diagnostic in artifact.Evidence.Diagnostics)
+                foreach (HtmlDiagnostic diagnostic in artifact.Evidence.NativeDiagnostics)
                     builder.AppendLine("  - " + diagnostic.Code + " (" + diagnostic.Severity + ", " + diagnostic.LossKind + "): " + diagnostic.Message);
             }
         }

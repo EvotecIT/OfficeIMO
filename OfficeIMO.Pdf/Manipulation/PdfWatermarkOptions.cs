@@ -1,9 +1,13 @@
 namespace OfficeIMO.Pdf;
 
 /// <summary>Visual text or image watermark placed in a rectangle on existing PDF pages.</summary>
-public sealed class PdfWatermarkOptions {
-    /// <summary>Cancels input reading, PDF processing, and output publication for this operation.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfWatermarkOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>Stable identifier for this watermark. Reusing it revises the existing watermark; use a new identifier to add another.</summary>
     public string Id { get; set; } = Guid.NewGuid().ToString("N");

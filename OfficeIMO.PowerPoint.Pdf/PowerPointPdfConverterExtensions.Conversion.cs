@@ -24,6 +24,7 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Converts the source document, returning the model and report together.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
     public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this PptCore.PowerPointDocument presentation,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new PowerPointPdfExportOptions()).Clone();
@@ -61,12 +62,14 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously writes a PDF file and returns the complete conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the file is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this PptCore.PowerPointDocument presentation, string path,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         options = (options ?? new PowerPointPdfExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
-        PdfDocumentConversionResult converted = presentation.ConvertToPdfWithEvidence(options, cancellationToken);
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => presentation.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
         using PdfDocument model = converted.Value;
         PdfSaveResult saved = options?.FailOnLoss == true
             ? await PdfConversionEvidence.SaveLosslessAsync(converted, "PowerPoint", path, timer, cancellationToken).ConfigureAwait(false)
@@ -75,12 +78,14 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously writes PDF to a caller-owned stream and returns its conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the stream is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this PptCore.PowerPointDocument presentation, Stream stream,
         PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         options = (options ?? new PowerPointPdfExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
-        PdfDocumentConversionResult converted = presentation.ConvertToPdfWithEvidence(options, cancellationToken);
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => presentation.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
         using PdfDocument model = converted.Value;
         PdfSaveResult saved = options?.FailOnLoss == true
             ? await PdfConversionEvidence.SaveLosslessAsync(converted, "PowerPoint", stream, timer, cancellationToken).ConfigureAwait(false)

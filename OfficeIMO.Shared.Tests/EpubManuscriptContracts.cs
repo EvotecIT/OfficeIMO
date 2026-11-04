@@ -35,19 +35,19 @@ public sealed class EpubManuscriptContracts {
         Assert.Equal("Definition", definitions.Elements(Html + "dd").First().Value);
         Assert.Contains(chapter.Descendants(Html + "a"), anchor => (string?)anchor.Attribute("href") == "#legacy");
         Assert.Contains(chapter.Descendants().Attributes("id"), id => id.Value == "legacy");
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_LEGACY_LIST_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.NotEmpty(result.Publication.Write().RequireValue());
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_LEGACY_LIST_NORMALIZED" && diagnostic.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.NotEmpty(result.Publication.Write().Value);
     }
 
     [Fact]
     public void Import_CollectsEmbeddedImagesOnceAndRetainsAlternativeText() {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Images</title><h1>First</h1><img alt='A dot' src='" + ImageData + "'><h1>Second</h1><img alt='' src='" + ImageData + "'>"));
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         EpubManifestItem image = Assert.Single(result.Publication.Manifest, item => item.MediaType == "image/png");
         Assert.Equal("A dot", (string?)result.Publication.GetContentXml("chapter-1").Descendants(Html + "img").Single().Attribute("alt"));
         Assert.StartsWith("../resources/", (string?)result.Publication.GetContentXml("chapter-2").Descendants(Html + "img").Single().Attribute("src"));
         Assert.NotEmpty(result.Publication.GetResourceBytes(image.Id));
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class EpubManuscriptContracts {
         var result = await EpubManuscript.ImportHtmlAsync(source, new EpubManuscriptOptions {
             ResourceResolver = (_, _) => Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(System.Text.Encoding.UTF8.GetBytes("p{color:green}"), "text/css"))
         });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         XDocument chapter = result.Publication.GetContentXml("chapter-1");
         XElement[] links = chapter.Descendants(Html + "link").ToArray();
         Assert.Equal("print", (string?)links[2].Attribute("media"));
@@ -66,18 +66,18 @@ public sealed class EpubManuscriptContracts {
         Assert.Equal("manuscript", (string?)chapter.Descendants(Html + "body").Single().Attribute("class"));
         Assert.Equal("theme", (string?)chapter.Root!.Attribute("class"));
         Assert.Equal("rtl", (string?)chapter.Root!.Attribute("dir"));
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
 
     [Fact]
     public void Import_RetainsEpubFootnoteVocabularyAndSvgNamespaces() {
         var source = HtmlConversionDocument.Parse("<title>Semantics</title><h1>Chapter</h1><p><a epub:type='noteref' href='#note'>1</a></p><aside epub:type='footnote' id='note'>Note</aside><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><title>A shape</title><rect width='10' height='10'/></svg>");
         var result = EpubManuscript.ImportHtml(source);
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         XDocument chapter = result.Publication.GetContentXml("chapter-1");
         Assert.Equal("noteref", (string?)chapter.Descendants(Html + "a").Single().Attribute(XName.Get("type", "http://www.idpf.org/2007/ops")));
         Assert.Single(chapter.Descendants(XName.Get("svg", "http://www.w3.org/2000/svg")));
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class EpubManuscriptContracts {
                 return Task.FromResult(resource);
             }
         });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         Assert.Equal(4, requested.Count);
         Assert.Contains("https://example.test/book/styles/nested.css", requested);
         Assert.Contains("https://example.test/book/fonts/book.woff2", requested);
@@ -113,7 +113,7 @@ public sealed class EpubManuscriptContracts {
         Assert.Contains("@media print", mainCss);
         Assert.Contains("url(\"resource-", mainCss);
         Assert.Contains("../resources/", (string?)result.Publication.GetContentXml("chapter-1").Descendants(Html + "p").Single().Attribute("style"));
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
 
     [Theory]
@@ -129,15 +129,15 @@ public sealed class EpubManuscriptContracts {
         Assert.Equal(1, calls);
         Assert.False(result.Report.Succeeded);
         Assert.Throws<InvalidOperationException>(() => result.RequireValue());
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Code == "EPUB_IMPORT_RESOURCE_MISSING");
-        Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
+        Assert.Contains(result.Report.Diagnostics, item => item.Code == "EPUB_IMPORT_RESOURCE_MISSING");
+        Assert.ThrowsAny<OfficeConversionException>(result.Report.ThrowIfLoss);
     }
 
     [Fact]
     public void Import_SplitsNestedSectionsAndRewritesCrossChapterAnchors() {
         var source = HtmlConversionDocument.Parse("<html lang='pl'><head><title>Book</title></head><body><p>Preface</p><main><section class='prose'><h1 id='one'>First</h1><p><a href='#two'>Next</a> &amp; prose</p><h2>Details</h2><ol><li>List</li></ol><h1 id='two'>Second</h1><table><tr><th scope='col'>Name</th></tr><tr><td>Value</td></tr></table><p><a href='#one'>Back</a></p></section></main></body></html>");
         EpubManuscriptResult result = EpubManuscript.ImportHtml(source, new EpubManuscriptOptions { Creator = "Author" });
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         var book = result.Publication;
         Assert.Equal("pl", book.Language);
         Assert.Equal("Author", book.Creator);
@@ -145,7 +145,7 @@ public sealed class EpubManuscriptContracts {
         Assert.Equal("chapter-0003.xhtml#two", (string?)book.GetContentXml("chapter-2").Descendants(Html + "a").Single().Attribute("href"));
         Assert.Equal("chapter-0002.xhtml#one", (string?)book.GetContentXml("chapter-3").Descendants(Html + "a").Single().Attribute("href"));
         Assert.Equal("prose", (string?)book.GetContentXml("chapter-3").Descendants(Html + "section").Single().Attribute("class"));
-        EpubDocument reopened = book.Read(new EpubReadOptions { IncludeRawHtml = true });
+        EpubDocument reopened = book.Read(new EpubLoadOptions { IncludeRawHtml = true });
         Assert.Equal(new[] { "Book", "First", "Second" }, reopened.Chapters.Select(chapter => chapter.Title));
         Assert.Contains("Value", reopened.Chapters[2].Text);
         Assert.Single(reopened.TableOfContents[1].Children);
@@ -157,7 +157,7 @@ public sealed class EpubManuscriptContracts {
             "<p>Text</p><h1>Media</h1><img alt='Dot' src='" + ImageData + "'><h1>Final</h1><p>More</p>";
         EpubManuscriptResult result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse(html));
 
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         Assert.Equal(3, result.Publication.Spine.Count);
         Assert.Equal(1024, result.Publication.GetContentXml("chapter-1").Descendants(Html + "h1").Count());
         Assert.Single(result.Publication.GetContentXml("chapter-2").Descendants(Html + "img"));
@@ -167,7 +167,7 @@ public sealed class EpubManuscriptContracts {
     [Fact]
     public void Import_ParsesHtmlVoidsAndEntitiesIntoXmlWithoutLosingText() {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Text</title><h1>Heading</h1><p>Zażółć&nbsp;&amp; <strong>bold</strong><br>next <ruby>漢<rt>kan</rt></ruby></p>"));
-        result.Report.RequireNoLoss();
+        result.Report.ThrowIfLoss();
         XDocument xml = result.Publication.GetContentXml("chapter-1");
         Assert.Equal("bold", xml.Descendants(Html + "strong").Single().Value);
         Assert.Single(xml.Descendants(Html + "br"));
@@ -180,12 +180,12 @@ public sealed class EpubManuscriptContracts {
         var result = EpubManuscript.ImportHtml(HtmlConversionDocument.Parse("<title>Review</title><h1>Chapter</h1><script>danger()</script><iframe src='https://example.com'></iframe><p onclick='danger()'><a href='#absent'>Broken</a></p>"));
         Assert.False(result.Report.Succeeded);
         Assert.True(result.Report.HasLoss);
-        Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ACTIVE_CONTENT_OMITTED");
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ACTIVE_ATTRIBUTE_OMITTED");
-        Assert.Contains(result.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ANCHOR_MISSING");
+        Assert.ThrowsAny<OfficeConversionException>(result.Report.ThrowIfLoss);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ACTIVE_CONTENT_OMITTED");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ACTIVE_ATTRIBUTE_OMITTED");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "EPUB_IMPORT_ANCHOR_MISSING");
         Assert.DoesNotContain("danger", result.Publication.GetContentXml("chapter-1").ToString());
-        result.Publication.Write().Report.RequireNoLoss();
+        result.Publication.Write().Report.ThrowIfLoss();
     }
 
     [Fact]

@@ -37,8 +37,8 @@ internal static partial class VisioGeometryScaling {
                 !VisioShapeGeometry.TryReadCell(row, ns, "B", original, out controlY))
                 throw new NotSupportedException("Nonuniform elliptical arc resizing requires readable control coordinates.");
             if (type == "RelEllipticalArcTo") {
-                controlX *= original.Width;
-                controlY *= original.Height;
+                controlX *= original.WidthInches;
+                controlY *= original.HeightInches;
             }
             if (row.Elements(ns + "Cell").Any(c => (string?)c.Attribute("N") == "C") &&
                 !VisioShapeGeometry.TryReadCell(row, ns, "C", original, out angle) ||

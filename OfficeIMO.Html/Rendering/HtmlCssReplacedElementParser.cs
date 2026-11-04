@@ -58,6 +58,8 @@ internal static class HtmlCssReplacedElementParser {
     internal static string NormalizeObjectPosition(string value, double fontSize, double rootFontSize, double viewportWidth, double viewportHeight, out string unsupported, double characterAdvance = double.NaN) {
         unsupported = string.Empty;
         string normalized = string.IsNullOrWhiteSpace(value) ? "50% 50%" : value.Trim().ToLowerInvariant();
+        // The initial value is the common case and always parses.
+        if (normalized == "50% 50%") return normalized;
         if (TryParsePosition(normalized, fontSize, rootFontSize, viewportWidth, viewportHeight, out _, out _, characterAdvance)) return normalized;
         unsupported = "object-position=" + normalized;
         return "50% 50%";
@@ -72,6 +74,7 @@ internal static class HtmlCssReplacedElementParser {
         prefersIntrinsic = true;
         unsupported = string.Empty;
         string normalized = string.IsNullOrWhiteSpace(value) ? "auto" : value.Trim().ToLowerInvariant();
+        if (normalized == "auto") return true;
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(normalized);
         if (tokens.Count == 1 && tokens[0] == "auto") return true;
 

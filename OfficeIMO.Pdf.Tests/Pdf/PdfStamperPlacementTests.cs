@@ -20,7 +20,7 @@ public partial class PdfStamperTests {
             X = OfficeLength.Points(300),
             Y = OfficeLength.Points(100),
             FontSize = OfficeLength.Points(24),
-            Align = PdfAlign.Right,
+            Align = OfficeAlignment.Right,
             EmbedFont = true,
             Font = PdfStandardFont.Helvetica
         });

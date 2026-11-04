@@ -52,7 +52,7 @@ $results = foreach ($case in $manifest.cases) {
                     $sheet = $excel.Sheets[0]
                     for ($row = 0; $row -lt @($case.table).Count; $row++) {
                         for ($column = 0; $column -lt @($case.table[$row]).Count; $column++) {
-                            $cell = $sheet.CellAt($row + 1, $column + 1)
+                            $cell = $sheet.Cell($row + 1, $column + 1)
                             # Read the underlying typed cell value so string formatting cannot conceal a text-only workbook.
                             $value = $cell.GetValue().Value
                             if ($row -gt 0 -and $column -gt 0) {

@@ -26,13 +26,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointSlide first = presentation.AddSlide();
             PowerPointTextBox title = first.AddTitle("Theme and Layout",titleBox);
             title.FontSize = global::OfficeIMO.OfficeLength.Points(30);
-            title.Color = "1F4E79";
+            title.Color = OfficeColor.Parse("1F4E79");
             PowerPointLayoutBox summaryBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(1.1));
             PowerPointTextBox details = first.AddTextBox(
                 "Uses the built-in Office theme, layout placeholders, and content boxes.",                summaryBox);
             details.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-            details.Color = "1F4E79";
+            details.Color = OfficeColor.Parse("1F4E79");
             PowerPointLayoutBox themeBox = new OfficeIMO.PowerPoint.PowerPointLayoutBox(
                 OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters() + 1.6),OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),OfficeIMO.OfficeLength.Centimeters(0.9));
             first.AddTextBox($"Theme: {themeName}",themeBox);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                                                ?? second.GetPlaceholder(PowerPointPlaceholderType.CenteredTitle);
             if (titlePlaceholder != null) {
                 titlePlaceholder.Text = "Layout Placeholders";
-                titlePlaceholder.ApplyTextStyle(PowerPointTextStyle.Title.WithColor("1F4E79"));
+                titlePlaceholder.ApplyTextStyle(PowerPointTextStyle.Title.WithColor(OfficeColor.Parse("1F4E79")));
             } else {
                 second.AddTitle("Layout Placeholders",global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(marginCm),global::OfficeIMO.OfficeLength.Centimeters(content.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(titleHeightCm));
             }
@@ -97,13 +97,13 @@ namespace OfficeIMO.Examples.PowerPoint {
             leftCard.FillColor = "E7F7FF";
             leftCard.OutlineColor = "5B9BD5";
             leftCard.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
-            leftCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
+            leftCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("1F4E79")));
 
             PowerPointTextBox rightCard = third.AddTextBox("Right column\n(details)",topColumns[1]);
             rightCard.FillColor = "FFF4E5";
             rightCard.OutlineColor = "C48A00";
             rightCard.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
-            rightCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("7F6000"));
+            rightCard.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("7F6000")));
 
             PowerPointTextBox footer = third.AddTextBox("Content boxes keep spacing consistent across slides.",rows[1]);
             footer.FillColor = "F3F3F3";

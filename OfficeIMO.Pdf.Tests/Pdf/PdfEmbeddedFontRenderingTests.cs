@@ -14,7 +14,7 @@ public class PdfEmbeddedFontRenderingTests {
         var family = new PdfEmbeddedFontFamily("Managed Embedded", fontBytes);
         byte[] pdf = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily(family)
-            .Paragraph(paragraph => paragraph.Text("Document font outlines"))
+            .Paragraph(paragraph => paragraph.AddText("Document font outlines"))
             .ToBytes();
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -41,7 +41,7 @@ public class PdfEmbeddedFontRenderingTests {
     [Fact]
     public void RenderPage_ReportsSubstitutionForUnembeddedStandardFont() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Standard font"))
+            .Paragraph(paragraph => paragraph.AddText("Standard font"))
             .ToBytes();
 
         PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(

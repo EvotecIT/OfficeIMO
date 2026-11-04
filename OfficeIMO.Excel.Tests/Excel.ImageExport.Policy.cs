@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddSheet("AnchorOverlay");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-            sheet.CellValue(1, 1, "Covered anchor text should not show fragments");
+            sheet.Cell(1, 1).SetValue("Covered anchor text should not show fragments");
             sheet.AddImage(1, 1, CreateSolidOpaquePng(120, 32, OfficeColor.FromRgb(37, 99, 235)), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(120),
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Strict");
-            sheet.CellValue(1, 1, "Reviewed");
+            sheet.Cell(1, 1).SetValue("Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
             OfficeImageExportPolicyException exception = Assert.Throws<OfficeImageExportPolicyException>(() =>
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Approximation");
-            sheet.CellValue(1, 1, "Reviewed");
+            sheet.Cell(1, 1).SetValue("Reviewed");
             sheet.SetComment("A1", "Needs design review", "Reviewer");
 
             OfficeImageExportResult result = sheet.Range("A1:F8").ExportImage(

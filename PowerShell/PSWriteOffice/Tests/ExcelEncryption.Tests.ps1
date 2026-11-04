@@ -32,12 +32,12 @@ Describe 'Excel encrypted lifecycle and conversion' {
 
         $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
-            $doc.Sheets[0].Cell(1, 1, 'Saved with retained encryption', $null, $null)
+            $doc.Sheets[0].Cell(1, 1).SetValue('Saved with retained encryption')
             $saved = $doc | Save-OfficeExcel -PassThru -ErrorAction Stop
             $saved.FullName | Should -Be $path
             $saved | Should -BeOfType ([IO.FileInfo])
             { Get-ZipEntriesLocal -Path $path } | Should -Throw
-            $doc.Sheets[0].Cell(1, 1, 'Do not save on close', $null, $null)
+            $doc.Sheets[0].Cell(1, 1).SetValue('Do not save on close')
         } finally {
             Close-OfficeExcel -Document $doc
         }
@@ -54,7 +54,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
         $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
             $doc | Save-OfficeExcel -Path $plainCopyPath -Password $null
-            $doc.Sheets[0].Cell(1, 1, 'Updated plain copy', $null, $null)
+            $doc.Sheets[0].Cell(1, 1).SetValue('Updated plain copy')
             $doc | Save-OfficeExcel
         } finally {
             Close-OfficeExcel -Document $doc
@@ -74,7 +74,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
         $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
             $doc | Save-OfficeExcel -Path $encryptedCopyPath -Password 'copy-secret'
-            $doc.Sheets[0].Cell(1, 1, 'Updated encrypted copy', $null, $null)
+            $doc.Sheets[0].Cell(1, 1).SetValue('Updated encrypted copy')
             $doc | Save-OfficeExcel -ErrorAction Stop
         } finally {
             Close-OfficeExcel -Document $doc
@@ -93,7 +93,7 @@ Describe 'Excel encrypted lifecycle and conversion' {
 
         $doc = Open-OfficeExcel -Path $path -Password 'secret'
         try {
-            $doc.Sheets[0].Cell(1, 1, 'Updated encrypted value', $null, $null)
+            $doc.Sheets[0].Cell(1, 1).SetValue('Updated encrypted value')
             $doc | Save-OfficeExcel -Password 'secret'
         } finally {
             Close-OfficeExcel -Document $doc

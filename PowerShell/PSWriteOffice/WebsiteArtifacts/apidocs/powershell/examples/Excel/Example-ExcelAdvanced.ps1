@@ -32,7 +32,7 @@ New-OfficeExcel -Path $path {
             ExcelImage -Path $imagePath -Address 'I20:J24' -Name 'OfficeIMOLogo' -AltText 'OfficeIMO logo'
         }
     } -PassThru | ForEach-Object {
-        $null = $_.AddConditionalRule('C2:C20', [OfficeIMO.Excel.ExcelConditionalFormattingOperator]::GreaterThan,
+        $null = $_.Range('C2:C20').ConditionalFormat().CellIs([OfficeIMO.Excel.ExcelConditionalFormattingOperator]::GreaterThan,
             '1000', $null, '#C6EFCE')
     }
 

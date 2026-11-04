@@ -2,7 +2,7 @@ namespace OfficeIMO.Html;
 
 /// <summary>Projects compatibility-tolerant HTML diagnostics into the strict shared fidelity contract.</summary>
 internal static class HtmlFidelityProjection {
-    internal static OfficeConversionFidelityDiagnostic From(HtmlDiagnostic diagnostic) {
+    internal static OfficeDiagnostic From(HtmlDiagnostic diagnostic) {
         if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
         string code = string.IsNullOrWhiteSpace(diagnostic.Code)
             ? "HTML_DIAGNOSTIC_UNCATEGORIZED"
@@ -13,11 +13,12 @@ internal static class HtmlFidelityProjection {
         string message = string.IsNullOrWhiteSpace(diagnostic.Message)
             ? code + " was reported without a diagnostic message."
             : diagnostic.Message;
-        return new OfficeConversionFidelityDiagnostic(
+        return new global::OfficeIMO.OfficeDiagnostic(
             code,
+            diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             message,
-            diagnostic.LossKind,
+            diagnostic.Provenance.SourceAddress,
             source,
-            diagnostic.Provenance.SourceAddress);
+            diagnostic.LossKind);
     }
 }

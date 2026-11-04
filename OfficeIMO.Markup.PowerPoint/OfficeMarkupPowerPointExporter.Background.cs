@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.Markup.PowerPoint;
 
 internal sealed partial class OfficeMarkupPowerPointExporter {
-    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, MarkupToPowerPointOptions options, SlideCanvasMetrics metrics) {
+    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, MarkupPowerPointExportOptions options, SlideCanvasMetrics metrics) {
         var spec = ParseBackground(background, theme, options);
         if (!string.IsNullOrWhiteSpace(spec.GradientStartColor) && !string.IsNullOrWhiteSpace(spec.GradientEndColor)) {
             slide.SetBackgroundGradient(
@@ -39,7 +39,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         return spec.Color ?? spec.GradientStartColor;
     }
 
-    private static OfficeMarkupBackgroundSpec ParseBackground(string? background, PowerPointDesignTheme? theme, MarkupToPowerPointOptions? options) {
+    private static OfficeMarkupBackgroundSpec ParseBackground(string? background, PowerPointDesignTheme? theme, MarkupPowerPointExportOptions? options) {
         if (string.IsNullOrWhiteSpace(background)) {
             return new OfficeMarkupBackgroundSpec();
         }

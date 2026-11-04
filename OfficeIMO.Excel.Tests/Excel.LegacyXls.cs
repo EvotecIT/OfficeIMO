@@ -1221,7 +1221,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.AutoFilterCriteria]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-BIFF-FEATURE-AUTOFILTER-CRITERIA-UNSUPPORTED"]);
-            Assert.Same(result.Workbook.Diagnostics, result.Diagnostics);
+            Assert.Same(result.Workbook.Diagnostics, result.NativeDiagnostics);
             Assert.Same(result.Workbook.UnsupportedFeatures, result.UnsupportedFeatures);
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.EnsureNoUnsupportedFeatures());
             Assert.Contains("XLS-BIFF-FEATURE-HYPERLINK-UNSUPPORTED", exception.Message, StringComparison.Ordinal);
@@ -1322,13 +1322,13 @@ namespace OfficeIMO.Tests {
             Assert.False(document.Sheets[1].VeryHidden);
             Assert.True(document.Sheets[2].Hidden);
             Assert.True(document.Sheets[2].VeryHidden);
-            Assert.True(projected.RightToLeft);
-            Assert.False(projected.RowColumnHeadingsVisible);
-            Assert.False(projected.ZeroValuesVisible);
+            Assert.True(projected.View.RightToLeft);
+            Assert.False(projected.View.ShowRowColumnHeadings);
+            Assert.False(projected.View.ShowZeros);
             Assert.Equal(ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18.5d)), projected.DefaultRowHeight);
             Assert.False(projected.DefaultRowsHidden);
             Assert.Equal(ExcelColumnWidth.Characters(11d), projected.DefaultColumnWidth);
-            ExcelWorksheetViewInfo projectedView = projected.GetViewInfo();
+            ExcelWorksheetViewInfo projectedView = projected.View.Inspect();
             Assert.Equal(120U, projectedView.ZoomScale);
             Assert.Equal(90U, projectedView.ZoomScaleNormal);
 
@@ -1385,7 +1385,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.UnsupportedFeatures, item =>
                 item.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetView
                 && item.RecordType == (ushort)BiffRecordType.Pane);
-            Assert.DoesNotContain(result.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(result.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == "XLS-BIFF-FEATURE-WORKSHEET-VIEW-UNSUPPORTED"
                 && diagnostic.RecordType == (ushort)BiffRecordType.Pane);
 

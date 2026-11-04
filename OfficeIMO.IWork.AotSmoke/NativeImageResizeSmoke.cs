@@ -48,13 +48,13 @@ internal static class NativeImageResizeSmoke {
         var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadKeynote(); var before = original.ReadKeynote();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.Slides.Count == 3, "Resized source has incomplete declarations.");
-        using var result = source.ToPowerPointDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
         Require(saved.Slides.Count == 3 && !saved.ValidateDocument().Any(), "Resized source failed saved PowerPoint reconstruction.");
         for (int index = 0; index < 3; index++) {
             var image = projection.Slides[index].Images.Single(); var expected = before.Slides[index].Images.Single();
-            var frame = image.Geometry!; var picture = saved.Slides[index].Pictures.Single();
+            var frame = image.Geometry!; var picture = saved.Slides[index].Images.Single();
             Require(image.GetBytes().SequenceEqual(expected.GetBytes()) && image.AccessibilityDescription == expected.AccessibilityDescription
                 && image.PixelWidth == 96 && image.PixelHeight == 64
                 && before.Slides[index].Drawables.Select(item => item.Kind).SequenceEqual(projection.Slides[index].Drawables.Select(item => item.Kind))

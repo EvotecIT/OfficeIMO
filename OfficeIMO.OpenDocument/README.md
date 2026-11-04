@@ -1043,7 +1043,7 @@ Draw interoperability covers [LibreOffice FODG and ODG fixtures](../OfficeIMO.Op
 
 - **External:** None; no OpenDocument SDK and no LibreOffice process.
 - **OfficeIMO:** `OfficeIMO.Core`. ODT/ODS/ODP/ODG parsing, models, preservation, inspection, and writing are first-party.
-- **Security:** ODF password encryption/decryption is first-party and dependency-free. Signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidatePackageSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively.
+- **Security:** ODF password encryption/decryption is first-party and dependency-free. Signature carriers are detected and changed signed packages fail safely without a cryptographic dependency. `OdfDocument.SignPackage(...)` and `ValidateSignatures(...)` use an explicit provider for the bounded OfficeIMO XML package-manifest profile; `OfficeIMO.Security` is not pulled transitively.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
 

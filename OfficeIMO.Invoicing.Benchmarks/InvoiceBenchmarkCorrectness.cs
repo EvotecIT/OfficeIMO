@@ -22,10 +22,10 @@ internal static class InvoiceBenchmarkCorrectness {
     }
 
     internal static void Pdf(byte[] pdf, byte[] xml) {
-        PdfDocument document = PdfDocument.Load(pdf);
+        PdfDocument document = PdfDocument.Load(new MemoryStream(pdf, writable: false));
         if (!document.Attachments.Extract().Single().Bytes.SequenceEqual(xml))
             throw new InvalidDataException("The PDF workload did not embed the exact equivalent XML corpus.");
-        string text = PdfReadDocument.Open(pdf).ExtractText();
+        string text = document.ExtractText();
         if (!text.Contains(InvoiceBenchmarkCorpus.Marker, StringComparison.Ordinal) || !text.Contains("日本語", StringComparison.Ordinal) || !text.Contains("العربية", StringComparison.Ordinal))
             throw new InvalidDataException("The PDF workload did not preserve representative visible multilingual text.");
     }

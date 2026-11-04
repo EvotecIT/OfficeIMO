@@ -108,7 +108,7 @@ public sealed class HtmlBackgroundCascadeTests {
                 Assert.Equal(OfficeColor.Red, Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
                     shape => shape.Source == "div#target").Shape.FillColor);
                 if (image.IndexOf("url(", StringComparison.Ordinal) >= 0) {
-                    HtmlDiagnostic pending = Assert.Single(rendered.Diagnostics,
+                    HtmlDiagnostic pending = Assert.Single(rendered.NativeDiagnostics,
                         diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
                     Assert.Equal("https://assets.example.test/x.png", pending.Detail);
                     Assert.Equal("div#target:background-image", pending.Source);

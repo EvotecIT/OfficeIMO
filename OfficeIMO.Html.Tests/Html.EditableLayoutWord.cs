@@ -17,7 +17,7 @@ public sealed class HtmlEditableLayoutWordTests {
     public void PositionedRegionWithRawCommentStaysInSemanticFlow() {
         const string html = "<div style='position:absolute;width:180px;height:50px'>"
             + "Visible <!-- reviewer note -->text.</div>";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             ImportHtmlComments = true,
             HtmlCommentAuthor = "HTML Reviewer",
             HtmlCommentInitials = "HR"
@@ -30,7 +30,7 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Equal("Visible text.", string.Concat(word.Paragraphs.Select(paragraph => paragraph.Text)));
         WordComment comment = Assert.Single(word.Comments);
         Assert.Equal("reviewer note", comment.Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "htmlComment=true; semanticFlow=true");
     }
@@ -87,7 +87,7 @@ public sealed class HtmlEditableLayoutWordTests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
@@ -113,7 +113,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Equal(int.MaxValue, Assert.Single(word.TextBoxes).HorizontalPositionOffset?.ToEmus());
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("nativeRange", StringComparison.Ordinal));
@@ -129,7 +129,7 @@ public sealed class HtmlEditableLayoutWordTests {
         WordTextBox textBox = Assert.Single(word.TextBoxes);
         Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Width.ToEmus());
         Assert.Equal(HtmlToWordConverter.MaximumDrawingExtent, textBox.Height.ToEmus());
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("sizeRange", StringComparison.Ordinal));
@@ -145,7 +145,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Detail == "mixedInlinePictures=true");
     }
 
@@ -161,7 +161,7 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Print anchor", StringComparison.Ordinal));
+        Assert.NotEmpty(word.Find("Print anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified);
     }
@@ -175,8 +175,8 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Ambiguous anchor", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.NotEmpty(word.Find("Ambiguous anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
@@ -185,7 +185,7 @@ public sealed class HtmlEditableLayoutWordTests {
     [Fact]
     public void CallerStylesheetContentsParticipateInEditableLayoutProjection() {
         const string html = "<div class='positioned'>Caller styled anchor</div>";
-        var options = new WordHtmlImportOptions();
+        var options = new HtmlWordExportOptions();
         options.StylesheetContents.Add(
             ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
 
@@ -203,7 +203,7 @@ public sealed class HtmlEditableLayoutWordTests {
         try {
             File.WriteAllText(path,
                 ".positioned{position:absolute;left:24px;top:18px;width:160px;height:40px}");
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             options.StylesheetPaths.Add(path);
 
             HtmlToWordResult result = HtmlConversionDocument.Parse(
@@ -211,8 +211,8 @@ public sealed class HtmlEditableLayoutWordTests {
             using WordDocument word = result.Value;
 
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Path styled anchor", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.NotEmpty(word.Find("Path styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
         } finally {
@@ -230,7 +230,7 @@ public sealed class HtmlEditableLayoutWordTests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("text/css");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             AllowDocumentStylesheetLinks = true,
             HttpClient = httpClient
         };
@@ -243,8 +243,8 @@ public sealed class HtmlEditableLayoutWordTests {
         using WordDocument word = result.Value;
 
         Assert.Empty(word.TextBoxes);
-        Assert.NotEmpty(word.Find("Linked styled anchor", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.NotEmpty(word.Find("Linked styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
     }
@@ -274,10 +274,10 @@ public sealed class HtmlEditableLayoutWordTests {
         Assert.Equal(685800, positioned.VerticalPositionOffset?.ToEmus());
         Assert.Equal(2286000L, positioned.Width.ToEmus());
         Assert.Equal(685800L, positioned.Height.ToEmus());
-        Assert.Equal("DBEAFE", positioned.FillColorHex);
+        Assert.Equal(OfficeColor.Parse("DBEAFE"), positioned.FillColor);
         Assert.Equal(WordImageTextWrapping.InFrontOfText, positioned.WrapText);
         Assert.Equal(WordImageTextWrapping.Square, floating.WrapText);
-        Assert.NotEmpty(reopened.Find("Flex remains", StringComparison.Ordinal));
+        Assert.NotEmpty(reopened.Find("Flex remains", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
         Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);
         Assert.True(result.Succeeded);

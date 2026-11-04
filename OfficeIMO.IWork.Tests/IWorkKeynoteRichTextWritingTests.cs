@@ -8,8 +8,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
     public void Creation_example_matches_the_package_qualified_by_native_Keynote() {
         byte[] expected = File.ReadAllBytes(Fixture("keynote-created-rich-v15.4.key"));
         Assert.Equal(expected, RichExample().SaveBytes());
-        using var converted = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(expected),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Open(new MemoryStream(expected), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -52,8 +51,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.False(reset.Underline); Assert.False(reset.Strikethrough);
         Assert.Equal(24, reset.FontSizePoints);
         Assert.Equal("000000", reset.Color!.RgbHex);
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(Fixture("keynote-created-rich-edited-v15.4.key"),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(Fixture("keynote-created-rich-edited-v15.4.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); conversion.Value.Save(output); output.Position = 0;
         using var reopened = PowerPointDocument.Load(output);
@@ -89,8 +87,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.Equal(30, last.FontSizePoints);
         Assert.Equal("008000", last.Color!.RgbHex);
 
-        using var conversion = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(new MemoryStream(bytes),
-            conversionOptions: new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var conversion = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         conversion.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream();
         conversion.Value.Save(output); output.Position = 0;
@@ -105,11 +102,11 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         Assert.False(savedReset.Bold); Assert.False(savedReset.Italic);
         Assert.False(savedReset.Underline); Assert.False(savedReset.Strikethrough);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(24), savedReset.FontSize);
-        Assert.Equal("000000", savedReset.Color);
+        Assert.Equal(OfficeColor.Parse("000000"), savedReset.Color);
         PowerPointTextRun savedLast = Assert.Single(saved, run => run.Text == "Italic");
         Assert.True(savedLast.Italic); Assert.False(savedLast.Bold);
-        Assert.Equal("Times New Roman", savedLast.FontName);
-        Assert.Equal("008000", savedLast.Color);
+        Assert.Equal("Times New Roman", savedLast.FontFamily);
+        Assert.Equal(OfficeColor.Parse("008000"), savedLast.Color);
     }
 
     [Fact]
@@ -163,7 +160,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
         document.AddSlide().AddRichText(new[] { new IWorkTextRunData("one"), new IWorkTextRunData("two", bold: true) },
             0, 0, 400, 100);
         document.AddSlide().AddText("three", 0, 0, 400, 100);
-        var limits = new IWorkKeynoteWriteOptions { MaximumTextRuns = 2 };
+        var limits = new IWorkKeynoteWriteOptions { MaxTextRuns = 2 };
         using var stream = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(stream, limits));
         Assert.Equal(new byte[] { 9, 8, 7 }, stream.ToArray());
@@ -176,7 +173,7 @@ public sealed class IWorkKeynoteRichTextWritingTests {
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(destination));
             Assert.Single(Directory.GetFiles(folder));
         } finally { Directory.Delete(folder, recursive: true); }
-        limits.MaximumTextRuns = 0;
+        limits.MaxTextRuns = 0;
         Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(limits));
     }
 

@@ -79,9 +79,9 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet formulas = document.AddSheet("Formulas");
-            formulas.CellFormula(1, 1, "SUM(Data!A1:Data!C1)");
+            formulas.Cell(1, 1).SetFormula("SUM(Data!A1:Data!C1)");
 
-            data.DeleteColumns(1);
+            data.DeleteColumnsTransactional(1);
 
             Assert.Equal("SUM(Data!A1:B1)", Assert.Single(formulas.GetFormulaCells()).Formula);
         }

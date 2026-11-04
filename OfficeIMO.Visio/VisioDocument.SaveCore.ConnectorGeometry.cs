@@ -22,7 +22,7 @@ namespace OfficeIMO.Visio {
         private static void WriteConnectorTransform(XmlWriter writer, string ns, VisioConnector connector, string? cellName = null, XElement? original = null) {
             VisioShape shape = VisioConnectorGeometry.CreateShape(connector);
             bool native = connector.NativeGeometry?.AppliesTo(connector) == true;
-            double[] values = { shape.PinX, shape.PinY, shape.Width, shape.Height, shape.LocPinX, shape.LocPinY, shape.Angle,
+            double[] values = { shape.PinXInches, shape.PinYInches, shape.WidthInches, shape.HeightInches, shape.LocPinXInches, shape.LocPinYInches, shape.Angle,
                 native && connector.NativeGeometry!.FlipX ? 1 : 0, native && connector.NativeGeometry!.FlipY ? 1 : 0 };
             for (int i = 0; i < ConnectorTransformCells.Length; i++) {
                 string name = ConnectorTransformCells[i];

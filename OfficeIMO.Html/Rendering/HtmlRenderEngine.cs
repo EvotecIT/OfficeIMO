@@ -63,7 +63,7 @@ public static class HtmlRenderEngine {
     /// Renders a prepared HTML DOM without reparsing source text or mutating the caller's document.
     /// </summary>
     internal static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) =>
-        Render(document, options, HtmlConversionLimits.CreateUntrustedProfile(),
+        Render(document, options, HtmlConversionLimits.UntrustedDefaults,
             sourceAlreadyValidated: false, cancellationToken: CancellationToken.None);
 
     /// <summary>
@@ -109,7 +109,7 @@ public static class HtmlRenderEngine {
         IHtmlDocument document,
         HtmlRenderOptions? options,
         CancellationToken cancellationToken) =>
-        Render(document, options, HtmlConversionLimits.CreateUntrustedProfile(),
+        Render(document, options, HtmlConversionLimits.UntrustedDefaults,
             sourceAlreadyValidated: false, cancellationToken);
 
     private static HtmlRenderDocument Render(
@@ -210,9 +210,9 @@ public static class HtmlRenderEngine {
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
-        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(
+        HtmlRenderDocument rendered = LayOutWithContainerSizes(styles, current => new HtmlRenderLayoutEngine(
             document,
-            styles,
+            current,
             resolved,
             diagnostics,
             resources,
@@ -220,7 +220,7 @@ public static class HtmlRenderEngine {
             fonts,
             limits: limits,
             operationBudget: operationBudget,
-            cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+            cancellationToken: cancellationToken, fontUsage: fontUsage), diagnostics, document, resolved, limits);
         return CompleteRender(rendered.WithSourceAccessibilityEvidence(imagesMissingNames), resolved);
     }
 
@@ -253,11 +253,18 @@ public static class HtmlRenderEngine {
     internal static HtmlRenderOptions PrepareOptions(HtmlConversionDocument document, HtmlRenderRequest request) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (request == null) throw new ArgumentNullException(nameof(request));
-        HtmlRenderOptions resolved = request.Encoder is HtmlRenderEncoder.Png or HtmlRenderEncoder.Jpeg
-            or HtmlRenderEncoder.Tiff or HtmlRenderEncoder.Webp or HtmlRenderEncoder.Svg
-            || request.Encoder == HtmlRenderEncoder.DisplayList && request.Options is Pdf.HtmlToPdfOptions
-            ? Pdf.HtmlPdfRenderedConverter.PrepareNonPdfOptions(request)
-            : request.ResolveOptions();
+        HtmlRenderOptions resolved;
+        if (request.Encoder is HtmlRenderEncoder.Png or HtmlRenderEncoder.Jpeg
+            or HtmlRenderEncoder.Tiff or HtmlRenderEncoder.Webp or HtmlRenderEncoder.Svg) {
+            // Image encoders measure and paint text through the PDF engine.
+            resolved = request.Options is IHtmlPrintRenderOptions print
+                ? print.PrepareRenderOptions(request)
+                : throw new ArgumentException("Image encoders measure and paint text through the PDF engine. Reference OfficeIMO.Html.Pdf and pass HtmlPdfExportOptions, or HtmlPdfExportOptions.ForImageExport(options) to keep these options' resource policy.", nameof(request));
+        } else {
+            resolved = request.Encoder == HtmlRenderEncoder.DisplayList && request.Options is IHtmlPrintRenderOptions print
+                ? print.PrepareRenderOptions(request)
+                : request.ResolveOptions();
+        }
         resolved.BaseUri ??= document.BaseUri;
         ApplyDocumentPolicies(document, resolved);
         resolved.Validate();
@@ -335,7 +342,7 @@ public static class HtmlRenderEngine {
                 renderDocument,
                 resolved,
                 initialDiagnostics: null,
-                HtmlConversionLimits.CreateUntrustedProfile(),
+                HtmlConversionLimits.UntrustedDefaults,
                 operationCancellationToken).ConfigureAwait(false);
         }).ConfigureAwait(false);
     }
@@ -395,8 +402,8 @@ public static class HtmlRenderEngine {
         HtmlRenderSystemFontLoader.Load(document, styles, fonts, resolved, resources, diagnostics, cancellationToken, pageRules);
         cancellationToken.ThrowIfCancellationRequested();
         int imagesMissingNames = HtmlAccessibilitySourceInspection.CountImagesMissingNames(document, styles.Elements, cancellationToken);
-        HtmlRenderDocument rendered = new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts,
-            limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage).Render();
+        HtmlRenderDocument rendered = LayOutWithContainerSizes(styles, current => new HtmlRenderLayoutEngine(document, current, resolved, diagnostics, resources, pageRules, fonts,
+            limits: limits, operationBudget: operationBudget, cancellationToken: cancellationToken, fontUsage: fontUsage), diagnostics, document, resolved, limits);
         return CompleteRender(rendered.WithSourceAccessibilityEvidence(imagesMissingNames), resolved);
     }
 
@@ -405,10 +412,31 @@ public static class HtmlRenderEngine {
     internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
 
-    private static HtmlRenderDocument CompleteRender(HtmlRenderDocument rendered, HtmlRenderOptions options) =>
-        options.FidelityPolicy == HtmlRenderFidelityPolicy.RequireNoLoss
-            ? rendered.RequireNoLoss()
-            : rendered;
+    /// <summary>
+    /// Style resolution can only estimate a query container's width, and flex or grid sizing decides it
+    /// during layout. When an estimate was wrong, styles are recomputed once from the measured widths.
+    /// </summary>
+    private static HtmlRenderDocument LayOutWithContainerSizes(
+        HtmlComputedStyleSet styles,
+        Func<HtmlComputedStyleSet, HtmlRenderLayoutEngine> createEngine,
+        HtmlDiagnosticReport diagnostics,
+        IHtmlDocument document,
+        HtmlRenderOptions resolved,
+        HtmlConversionLimits limits) {
+        HtmlDiagnosticReport before = diagnostics.Snapshot();
+        HtmlRenderLayoutEngine engine = createEngine(styles);
+        HtmlRenderDocument rendered = engine.Render();
+        if (!engine.ContainerEstimatesDiffer(styles)) return rendered;
+        resolved.ContainerInlineSizes = engine.MeasuredContainerWidths;
+        diagnostics.Clear();
+        diagnostics.AddRange(before);
+        return createEngine(HtmlComputedStyleEngine.ComputeForRendering(document, resolved, limits)).Render();
+    }
+
+    private static HtmlRenderDocument CompleteRender(HtmlRenderDocument rendered, HtmlRenderOptions options) {
+        if (options.FidelityPolicy == HtmlRenderFidelityPolicy.FailOnLoss) rendered.ThrowIfLoss();
+        return rendered;
+    }
 
     internal static T ExecuteWithDeadline<T>(
         HtmlRenderOptions options,

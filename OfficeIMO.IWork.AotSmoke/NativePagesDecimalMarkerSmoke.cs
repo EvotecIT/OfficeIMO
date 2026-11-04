@@ -71,7 +71,7 @@ internal static class NativePagesDecimalMarkerSmoke {
             && pages.SourceReferenceIssues.Count == 0 && items.Select(p => p.ListNumber!.Value).SequenceEqual(numbers)
             && items.Select(p => p.ListLevel).SequenceEqual(levels)
             && items.All(p => p.ListLabel == (p.Text == "Other root three" ? "1." : sample)), "Marker projection lost counters or punctuation.");
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var bytes = new MemoryStream(); result.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes);
         string[] markers = items.Select(p => p.Text == "Other root three" ? "3."

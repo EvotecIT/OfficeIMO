@@ -221,7 +221,7 @@ public sealed class WorkflowCommandTests {
                 int pageNumber = page;
                 document.Page(current => current
                     .Size(global::OfficeIMO.OfficeLength.Points(400 + pageNumber * 10), global::OfficeIMO.OfficeLength.Points(600))
-                    .Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Page " + pageNumber)))));
+                    .Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Page " + pageNumber)))));
             }
         }).Save(path);
     }

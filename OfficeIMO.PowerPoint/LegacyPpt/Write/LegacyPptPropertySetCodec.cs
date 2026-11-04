@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     modified = ReadDate(summary, 13);
                 }
             }
-            presentation.BuiltinDocumentProperties
+            presentation.Properties
                 .SetReadOnlyLegacyDateOverrides(created, modified,
                     lastPrinted);
         }

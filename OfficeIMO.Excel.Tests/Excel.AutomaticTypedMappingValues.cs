@@ -273,9 +273,9 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "NumberText");
-                sheet.CellValue(2, 1, 1.2345678901234567);
-                sheet.CellValue(3, 1, -1.9876543210987654);
+                sheet.Cell(1, 1).SetValue("NumberText");
+                sheet.Cell(2, 1).SetValue(1.2345678901234567);
+                sheet.Cell(3, 1).SetValue(-1.9876543210987654);
                 document.Save();
             }
             string[] expected;
@@ -398,7 +398,7 @@ public sealed class ExcelAutomaticTypedMappingValuesTests {
         string path = Path.Combine(Path.GetTempPath(), $"OfficeIMO.TypedMapping.{Guid.NewGuid():N}.xlsx");
         using (var document = ExcelDocument.Create(path)) {
             document.DateSystem = dateSystem;
-            document.AddSheet("Data").CellValue(1, 1, "Value");
+            document.AddSheet("Data").Cell(1, 1).SetValue("Value");
             document.Save();
         }
         string headerCells = string.Concat(headers.Select((header, index) =>

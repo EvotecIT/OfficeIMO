@@ -24,8 +24,21 @@ workbook.Save("sales.xlsx");
 ```
 
 Use `ImportCsvText`, `ImportCsv(Stream)`, or `ImportCsv(CsvDocument)` for other
-source shapes. `ExcelCsvImportOptions.LoadOptions` and `ReaderOptions` expose the
-canonical CSV option types instead of introducing another parsing model.
+source shapes. `ExcelCsvImportOptions.ReaderOptions` takes one `CsvReaderOptions`
+for parsing and typed projection. Its defaults enable delimiter detection and
+schema inference (`DetectDelimiter = true`, `InferSchema = true`).
+
+```csharp
+var options = new ExcelCsvImportOptions {
+    ReaderOptions = new CsvReaderOptions {
+        Delimiter = ';',
+        InferSchema = true,
+        SchemaSampleRows = 1000
+    }
+};
+workbook.ImportCsvFile("sales.csv", options);
+```
+
 `ExcelCsvImportResult.Delimiter` reports the delimiter that was actually used,
 including one selected by delimiter detection. `ExcelCsvImportResult.TableName`
 reports the sanitized, unique table name that was actually created.

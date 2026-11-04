@@ -13,7 +13,7 @@ public sealed class HtmlConversionLimits {
     internal const int DefaultMaxResponsiveImageSizesCharacters = 64 * 1024;
 
     /// <summary>Creates conservative limits suitable for untrusted HTML ingestion.</summary>
-    public static HtmlConversionLimits CreateUntrustedProfile() => new HtmlConversionLimits {
+    public static HtmlConversionLimits UntrustedDefaults => new HtmlConversionLimits {
         MaxInputCharacters = 72 * 1024 * 1024,
         MaxHtmlNodes = 100_000,
         MaxHtmlDepth = 256,
@@ -34,9 +34,6 @@ public sealed class HtmlConversionLimits {
         MaxResponsiveImageSizesCharacters = DefaultMaxResponsiveImageSizesCharacters,
         MaxSemanticMetadataCharacters = 1024 * 1024
     };
-
-    /// <summary>Creates compatibility-oriented limits for caller-trusted HTML.</summary>
-    public static HtmlConversionLimits CreateTrustedProfile() => new HtmlConversionLimits();
 
     /// <summary>Maximum UTF-16 source or normalized serialized characters, or <c>null</c> for no character limit.</summary>
     /// <remarks>Owned conversion input also checks aggregate attached node names and values before capture,
@@ -119,8 +116,8 @@ public sealed class HtmlConversionLimits {
     /// Combines two shared limit sets without allowing either boundary to be relaxed.
     /// </summary>
     internal static HtmlConversionLimits Intersect(HtmlConversionLimits? first, HtmlConversionLimits? second) {
-        HtmlConversionLimits left = first ?? CreateTrustedProfile();
-        HtmlConversionLimits right = second ?? CreateTrustedProfile();
+        HtmlConversionLimits left = first ?? new HtmlConversionLimits();
+        HtmlConversionLimits right = second ?? new HtmlConversionLimits();
         return new HtmlConversionLimits {
             MaxInputCharacters = Minimum(left.MaxInputCharacters, right.MaxInputCharacters),
             MaxHtmlNodes = Minimum(left.MaxHtmlNodes, right.MaxHtmlNodes),

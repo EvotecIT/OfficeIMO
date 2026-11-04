@@ -15,6 +15,10 @@ namespace OfficeIMO.DocBook;
 /// Source-preserving DocBook 4/5 document with a bounded typed common-structure API and extension access.
 /// </summary>
 public sealed partial class DocBookDocument {
+    private string? _filePath;
+    /// <summary>Gets the associated path, or null for an in-memory document.</summary>
+    public string? FilePath => _filePath;
+
     private readonly XDocument _xml;
     private readonly byte[]? _originalBytes;
     private readonly string? _originalText;
@@ -82,9 +86,9 @@ public sealed partial class DocBookDocument {
     }
 
     /// <summary>Parses DocBook text using secure, bounded XML settings.</summary>
-    public static DocBookDocument Parse(string text, DocBookReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static DocBookDocument Parse(string text, DocBookLoadOptions? options = null, CancellationToken cancellationToken = default) {
         if (text == null) throw new ArgumentNullException(nameof(text));
-        options ??= new DocBookReadOptions(); options.Validate();
+        options ??= new DocBookLoadOptions(); options.Validate();
         if (text.Length > options.MaxCharacters) throw new InvalidDataException("DocBook input exceeds MaxCharacters.");
         cancellationToken.ThrowIfCancellationRequested();
         using var source = new StringReader(text);
@@ -96,20 +100,22 @@ public sealed partial class DocBookDocument {
     }
 
     /// <summary>Loads a DocBook file.</summary>
-    public static DocBookDocument Load(string path, DocBookReadOptions? options = null, CancellationToken cancellationToken = default) {
+    public static DocBookDocument Load(string path, DocBookLoadOptions? options = null, CancellationToken cancellationToken = default) {
         using var stream = File.OpenRead(path ?? throw new ArgumentNullException(nameof(path)));
-        return Load(stream, options, cancellationToken);
+        var document = Load(stream, options, cancellationToken);
+        document._filePath = Path.GetFullPath(path);
+        return document;
     }
 
     /// <summary>Loads DocBook from a caller-owned stream while preserving seekable position.</summary>
-    public static DocBookDocument Load(Stream stream, DocBookReadOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new DocBookReadOptions(); options.Validate();
+    public static DocBookDocument Load(Stream stream, DocBookLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new DocBookLoadOptions(); options.Validate();
         return ParseBytes(OfficeStreamReader.ReadAllBytes(stream, cancellationToken, options.MaxInputBytes), options, cancellationToken);
     }
 
     /// <summary>Loads DocBook asynchronously from a caller-owned stream.</summary>
-    public static async Task<DocBookDocument> LoadAsync(Stream stream, DocBookReadOptions? options = null, CancellationToken cancellationToken = default) {
-        options ??= new DocBookReadOptions(); options.Validate();
+    public static async Task<DocBookDocument> LoadAsync(Stream stream, DocBookLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        options ??= new DocBookLoadOptions(); options.Validate();
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, options.MaxInputBytes).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return ParseBytes(bytes, options, cancellationToken);
@@ -374,8 +380,8 @@ public sealed partial class DocBookDocument {
     }
 
     /// <summary>Returns DocBook XML, preserving the exact unchanged source by default.</summary>
-    public string ToDocBook(DocBookWriteOptions? options = null) {
-        options ??= new DocBookWriteOptions();
+    public string ToDocBook(DocBookSaveOptions? options = null) {
+        options ??= new DocBookSaveOptions();
         if (!HasChanges && options.PreserveUnchangedSource) {
             if (_originalText != null) return _originalText;
             if (_originalBytes != null) return OfficeXmlTextEncoding.Decode(_originalBytes, _xml.Declaration?.Encoding);
@@ -384,15 +390,32 @@ public sealed partial class DocBookDocument {
     }
 
     /// <summary>Writes to a caller-owned stream.</summary>
-    public void Write(Stream destination, DocBookWriteOptions? options = null) => OfficeStreamWriter.WriteAllBytes(destination, GetBytes(options));
+    public void Save(Stream destination, DocBookSaveOptions? options = null) => OfficeStreamWriter.WriteAllBytes(destination, ToBytes(options));
     /// <summary>Writes asynchronously to a caller-owned stream.</summary>
-    public Task WriteAsync(Stream destination, DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeStreamWriter.WriteAllBytesAsync(destination, GetBytes(options), cancellationToken);
-    /// <summary>Saves using an atomic same-directory file commit.</summary>
-    public void Save(string path, DocBookWriteOptions? options = null) => OfficeFileCommit.WriteAllBytes(path, GetBytes(options));
-    /// <summary>Saves asynchronously using an atomic same-directory file commit.</summary>
-    public Task SaveAsync(string path, DocBookWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        OfficeFileCommit.WriteAllBytesAsync(path, GetBytes(options), cancellationToken: cancellationToken);
+    public Task SaveAsync(Stream destination, DocBookSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeStreamWriter.WriteAllBytesAsync(destination, ToBytes(options), cancellationToken);
+    /// <summary>Saves to the associated path, failing when no destination is associated.</summary>
+    public void Save(DocBookSaveOptions? options = null) =>
+        Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options);
+
+    /// <summary>Atomically saves native output and associates the successfully written path.</summary>
+    public void Save(string path, DocBookSaveOptions? options = null) {
+        string fullPath = Path.GetFullPath(path);
+        OfficeFileCommit.WriteAllBytes(fullPath, ToBytes(options));
+        _filePath = fullPath;
+    }
+
+    /// <summary>Asynchronously saves to the associated path.</summary>
+    public Task SaveAsync(DocBookSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        SaveAsync(_filePath ?? throw new InvalidOperationException("The document has no associated path."), options, cancellationToken);
+
+    /// <summary>Atomically saves native output asynchronously and associates the successfully written path.</summary>
+    public async Task SaveAsync(string path, DocBookSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        string fullPath = Path.GetFullPath(path);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, ToBytes(options), cancellationToken: cancellationToken).ConfigureAwait(false);
+        _filePath = fullPath;
+    }
 
     internal void MarkModified() => _modified = true;
 
@@ -657,13 +680,14 @@ public sealed partial class DocBookDocument {
         }
     }
 
-    private byte[] GetBytes(DocBookWriteOptions? options) {
-        options ??= new DocBookWriteOptions();
+    /// <summary>Serializes native bytes, preserving an unchanged source when requested.</summary>
+    public byte[] ToBytes(DocBookSaveOptions? options = null) {
+        options ??= new DocBookSaveOptions();
         if (!HasChanges && options.PreserveUnchangedSource && _originalBytes != null) return (byte[])_originalBytes.Clone();
         return Serialize(options);
     }
 
-    private byte[] Serialize(DocBookWriteOptions options) {
+    private byte[] Serialize(DocBookSaveOptions options) {
         using var output = new MemoryStream();
         var settings = new XmlWriterSettings {
             Encoding = new UTF8Encoding(false),
@@ -675,7 +699,7 @@ public sealed partial class DocBookDocument {
         return output.ToArray();
     }
 
-    private static DocBookDocument ParseBytes(byte[] bytes, DocBookReadOptions options, CancellationToken cancellationToken) {
+    private static DocBookDocument ParseBytes(byte[] bytes, DocBookLoadOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         using var memory = new MemoryStream(bytes, writable: false);
         using var reader = CreateLimitingReader(XmlReader.Create(memory, CreateSettings(options)), options, cancellationToken);
@@ -685,7 +709,7 @@ public sealed partial class DocBookDocument {
         return new DocBookDocument(xml, profile, (byte[])bytes.Clone(), null);
     }
 
-    private static XmlReaderSettings CreateSettings(DocBookReadOptions options) => new XmlReaderSettings {
+    private static XmlReaderSettings CreateSettings(DocBookLoadOptions options) => new XmlReaderSettings {
         DtdProcessing = DtdProcessing.Parse,
         XmlResolver = null,
         MaxCharactersInDocument = options.MaxCharacters,
@@ -694,10 +718,10 @@ public sealed partial class DocBookDocument {
         IgnoreProcessingInstructions = false
     };
 
-    private static XmlReader CreateLimitingReader(XmlReader reader, DocBookReadOptions options, CancellationToken cancellationToken) =>
+    private static XmlReader CreateLimitingReader(XmlReader reader, DocBookLoadOptions options, CancellationToken cancellationToken) =>
         new OfficeXmlLimitingReader(reader, "DocBook", options.MaxDepth, options.MaxElements, options.MaxAttributes, cancellationToken);
 
-    private static DocBookProfile DetectAndValidateShape(XDocument xml, DocBookReadOptions options, CancellationToken cancellationToken) {
+    private static DocBookProfile DetectAndValidateShape(XDocument xml, DocBookLoadOptions options, CancellationToken cancellationToken) {
         XElement? root = xml.Root;
         if (root == null || (root.Name.LocalName != "article" && root.Name.LocalName != "book"))
             throw new InvalidDataException("The DocBook root must be article or book.");

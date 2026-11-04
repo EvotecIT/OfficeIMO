@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents the collection of headers used within a section.
     /// </summary>
-    public class WordHeaders {
+    internal sealed class WordHeaders {
         /// <summary>
         /// Gets or sets the default header.
         /// </summary>
@@ -44,11 +44,11 @@ namespace OfficeIMO.Word {
             }
 
             if (_type == HeaderFooterValues.Default) {
-                document._currentSection.Header.Default = this;
+                document._currentSection.Headers.Default = this;
             } else if (_type == HeaderFooterValues.Even) {
-                document._currentSection.Header.Even = this;
+                document._currentSection.Headers.Even = this;
             } else if (_type == HeaderFooterValues.First) {
-                document._currentSection.Header.First = this;
+                document._currentSection.Headers.First = this;
             } else {
                 throw new InvalidOperationException("Shouldn't happen?");
             }

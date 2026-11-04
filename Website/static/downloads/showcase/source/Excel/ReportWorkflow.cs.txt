@@ -33,18 +33,18 @@ namespace OfficeIMO.Examples.Excel
                 for (int index = 0; index < Sales.Length; index++)
                 {
                     int row = 5 + index;
-                    sheet.Cell(row, 1, Sales[index].Region);
-                    sheet.Cell(row, 2, Sales[index].Product);
-                    sheet.Cell(row, 3, Sales[index].Revenue, numberFormat: "#,##0");
-                    sheet.Cell(row, 4, Sales[index].Cost, numberFormat: "#,##0");
-                    sheet.CellFormula(row, 5, $"C{row}-D{row}");
-                    sheet.CellFormula(row, 6, $"E{row}/C{row}");
-                    sheet.FormatCell(row, 5, "#,##0");
-                    sheet.FormatCell(row, 6, "0.0%");
+                    sheet.Cell(row, 1).SetValue(Sales[index].Region);
+                    sheet.Cell(row, 2).SetValue(Sales[index].Product);
+                    sheet.Cell(row, 3).SetValue(Sales[index].Revenue).SetNumberFormat("#,##0");
+                    sheet.Cell(row, 4).SetValue(Sales[index].Cost).SetNumberFormat("#,##0");
+                    sheet.Cell(row, 5).SetFormula($"C{row}-D{row}");
+                    sheet.Cell(row, 6).SetFormula($"E{row}/C{row}");
+                    sheet.Cell(row, 5).SetNumberFormat("#,##0");
+                    sheet.Cell(row, 6).SetNumberFormat("0.0%");
                 }
 
                 int lastRow = 4 + Sales.Length, totalRow = lastRow + 1;
-                sheet.Cell(totalRow, 1, "Total");
+                sheet.Cell(totalRow, 1).SetValue("Total");
                 foreach ((int column, string letter)in new[]
                 {
                     (3, "C"),
@@ -54,16 +54,16 @@ namespace OfficeIMO.Examples.Excel
 
                 )
                 {
-                    sheet.CellFormula(totalRow, column, $"SUM({letter}5:{letter}{lastRow})");
-                    sheet.FormatCell(totalRow, column, "#,##0");
+                    sheet.Cell(totalRow, column).SetFormula($"SUM({letter}5:{letter}{lastRow})");
+                    sheet.Cell(totalRow, column).SetNumberFormat("#,##0");
                 }
 
-                sheet.CellFormula(totalRow, 6, $"E{totalRow}/C{totalRow}");
-                sheet.FormatCell(totalRow, 6, "0.0%");
+                sheet.Cell(totalRow, 6).SetFormula($"E{totalRow}/C{totalRow}");
+                sheet.Cell(totalRow, 6).SetNumberFormat("0.0%");
                 // Table style, a colour scale on margin %, and a frozen header.
                 sheet.AddTable($"A4:F{lastRow}", hasHeader: true, name: "RevenueData", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-                sheet.AddConditionalColorScale($"F5:F{lastRow}", "F8D7DA", "C9ECD3");
-                sheet.Freeze(topRows: 4);
+                sheet.Range($"F5:F{lastRow}").ConditionalFormat().ColorScale("F8D7DA", "C9ECD3");
+                sheet.View.Freeze(topRows: 4);
                 // A SUMIF summary by region feeds the chart; the pivot reads the same table.
                 string[] regions =
                 {
@@ -72,15 +72,15 @@ namespace OfficeIMO.Examples.Excel
                     "East",
                     "West"
                 };
-                sheet.Cell(4, 8, "Region");
-                sheet.Cell(4, 9, "Revenue");
-                sheet.Cell(4, 10, "Margin");
+                sheet.Cell(4, 8).SetValue("Region");
+                sheet.Cell(4, 9).SetValue("Revenue");
+                sheet.Cell(4, 10).SetValue("Margin");
                 for (int index = 0; index < regions.Length; index++)
                 {
                     int row = 5 + index;
-                    sheet.Cell(row, 8, regions[index]);
-                    sheet.CellFormula(row, 9, $"SUMIF($A$5:$A${lastRow},H{row},$C$5:$C${lastRow})");
-                    sheet.CellFormula(row, 10, $"SUMIF($A$5:$A${lastRow},H{row},$E$5:$E${lastRow})");
+                    sheet.Cell(row, 8).SetValue(regions[index]);
+                    sheet.Cell(row, 9).SetFormula($"SUMIF($A$5:$A${lastRow},H{row},$C$5:$C${lastRow})");
+                    sheet.Cell(row, 10).SetFormula($"SUMIF($A$5:$A${lastRow},H{row},$E$5:$E${lastRow})");
                 }
 
                 sheet.AddChart(OfficeChartType.ColumnClustered, "H4:J8", new OfficeIMO.Excel.ExcelChartOptions { Row = 10, Column = 8, Width = OfficeLength.Pixels(350), Height = OfficeLength.Pixels(235), Title = "Revenue and margin by region" });
@@ -119,29 +119,23 @@ namespace OfficeIMO.Examples.Excel
         }
 
         private static void WriteTitleBand(ExcelSheet sheet) {
-            sheet.MergeRange("A1:F1");
-            sheet.Cell(1, 1, "{{ReportTitle}}");
-            sheet.CellFontSize(1, 1, global::OfficeIMO.OfficeLength.Points(20));
-            sheet.CellBold(1, 1, true);
-            sheet.CellFontColor(1, 1, "FFFFFF");
-            for (int column = 1; column <= 6; column++) sheet.CellBackground(1, column, "17365D");
+            sheet.Range("A1:F1").Merge();
+            sheet.Cell(1, 1).SetValue("{{ReportTitle}}")
+                .SetFontSize(global::OfficeIMO.OfficeLength.Points(20))
+                .SetBold()
+                .SetFontColor("FFFFFF");
+            sheet.Range("A1:F1").SetFillColor("17365D");
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(34)));
-            sheet.MergeRange("A2:F2");
-            sheet.Cell(2, 1, "Revenue, cost and margin by region and product line. Margin columns are formulas.");
-            sheet.CellFontColor(2, 1, "5B6B7F");
+            sheet.Range("A2:F2").Merge();
+            sheet.Cell(2, 1).SetValue("Revenue, cost and margin by region and product line. Margin columns are formulas.");
+            sheet.Cell(2, 1).SetFontColor("5B6B7F");
             string[] headers = { "Region", "Product", "Revenue", "Cost", "Margin", "Margin %" };
-            for (int column = 0; column < headers.Length; column++) sheet.Cell(4, column + 1, headers[column]);
+            for (int column = 0; column < headers.Length; column++) sheet.Cell(4, column + 1).SetValue(headers[column]);
         }
 
         private static void StyleLayout(ExcelSheet sheet, int totalRow) {
-            for (int column = 1; column <= 6; column++) {
-                sheet.CellBold(totalRow, column, true);
-                sheet.CellBackground(totalRow, column, "E8EEF7");
-            }
-            for (int row = 5; row <= 8; row++) {
-                sheet.FormatCell(row, 9, "#,##0");
-                sheet.FormatCell(row, 10, "#,##0");
-            }
+            sheet.Range(totalRow, 1, totalRow, 6).SetBold().SetFillColor("E8EEF7");
+            sheet.Range("I5:J8").SetNumberFormat("#,##0");
             foreach ((int column, double width) in new[] { (1, 12d), (2, 14d), (3, 14d), (4, 14d), (5, 14d), (6, 12d), (7, 3d), (8, 12d), (9, 14d), (10, 14d) }) {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(width));
             }

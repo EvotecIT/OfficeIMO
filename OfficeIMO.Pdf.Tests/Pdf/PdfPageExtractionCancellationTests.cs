@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfPageExtractionCancellationTests {
     [Fact]
     public void CancellableInfoSerializationPreservesTextStringBytes() {
-        var metadata = new PdfMetadata {
+        var metadata = new PdfDocumentProperties {
             Title = "Zażółć 😀",
             Author = "OfficeIMO",
             Keywords = "PDF, cancellation"
@@ -231,7 +231,7 @@ public class PdfPageExtractionCancellationTests {
     }
 
     private static byte[] CreatePdf() => PdfDocument.Create()
-        .Paragraph(paragraph => paragraph.Text("Page extraction cancellation"))
+        .Paragraph(paragraph => paragraph.AddText("Page extraction cancellation"))
         .ToBytes();
 
     private sealed class ChunkedNonSeekableStream : Stream {

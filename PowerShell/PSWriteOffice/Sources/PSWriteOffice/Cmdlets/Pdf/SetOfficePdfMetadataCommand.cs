@@ -40,6 +40,6 @@ public sealed class SetOfficePdfMetadataCommand : PdfMutationCmdlet {
             return document.Meta(Title, Author, Subject, Keywords);
         return Incremental
             ? document.AppendMetadataRevision(cancellationToken, Title, Author, Subject, Keywords)
-            : document.UpdateMetadata(cancellationToken, Title, Author, Subject, Keywords);
+            : document.UpdateProperties(cancellationToken, Title, Author, Subject, Keywords);
     }
 }

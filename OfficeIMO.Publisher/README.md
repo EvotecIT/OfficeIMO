@@ -23,7 +23,7 @@ foreach (var page in publication.Pages)
 foreach (var story in publication.TextStories)
     Console.WriteLine(story.Text);
 
-foreach (var diagnostic in publication.ReadReport.FidelityDiagnostics)
+foreach (var diagnostic in publication.ReadReport.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
@@ -50,8 +50,8 @@ Native transparent-color keys, brightness/contrast controls, grayscale and
 two-color picture modes produce a processed PNG in the page scene. Original
 assets remain in `Images`. The read report identifies the managed color-space
 and threshold approximations; recoloring and extended color controls remain
-unassessed. Picture effects require bounded raster decoding. `MaximumRasterPixels`
-limits each decoded picture, and `MaximumImageProcessingPixels` limits cumulative
+unassessed. Picture effects require bounded raster decoding. `MaxRasterPixels`
+limits each decoded picture, and `MaxImageProcessingPixels` limits cumulative
 decode/filter work and inspected GIF, WebP or icon frame pixels across picture
 references.
 
@@ -129,7 +129,7 @@ recovery; changing the separate page drawing does not update the table model.
 var exported = publication.ToSvgResult(pageIndex: 0);
 File.WriteAllText("page-1.svg", exported.Value);
 
-foreach (var diagnostic in exported.Report.FidelityDiagnostics)
+foreach (var diagnostic in exported.Report.Diagnostics)
     Console.WriteLine($"{diagnostic.LossKind}: {diagnostic.Message}");
 ```
 
@@ -146,9 +146,9 @@ multi-page PDF conversion.
 ```csharp
 using OfficeIMO;
 
-var options = new PublisherReadOptions {
-    MaximumPages = 100,
-    MaximumImageBytes = 8 * 1024 * 1024,
+var options = new PublisherLoadOptions {
+    MaxPages = 100,
+    MaxImageBytes = 8 * 1024 * 1024,
     Limits = new OfficeLegacyImportLimits {
         MaxInputBytes = 32 * 1024 * 1024,
         MaxTextCharacters = 1_000_000
@@ -175,12 +175,12 @@ references; delayed decoding results are reused within the operation.
 256 columns within the configured item limit.
 
 Recovery reports distinguish approximation, omission and unassessed content.
-`RequireNoLoss()` rejects any of those categories. Current native recovery
+`ThrowIfLoss()` rejects any of those categories. Current native recovery
 reports unassessed publication features, so a successful load is not a claim of
 complete Publisher fidelity.
 
 Native WMF/EMF assets remain available in `Images`. Their page projection uses an
-explicit application `PublisherReadOptions.ImageCodec` when supplied; otherwise
+explicit application `PublisherLoadOptions.ImageCodec` when supplied; otherwise
 it displays a placeholder and reports the omission. Codec output is subject to
 pixel and encoded-byte limits. No external decoder is installed or invoked by
 the package.

@@ -14,10 +14,10 @@ public sealed class EmailTextProjectionTests {
     public async Task FlowedQuoteDepthAndSignatureBoundariesAgreeAcrossReaders(string wire, bool delsp, string expected) {
         byte[] bytes = Encoding.UTF8.GetBytes("Content-Type: text/plain; charset=utf-8; format=flowed" +
             (delsp ? "; delsp=yes" : "") + "\r\n\r\n" + wire);
-        using EmailReadResult buffered = new EmailDocumentReader().Read(bytes);
+        using EmailReadResult buffered = new EmailDocumentReader().ReadDocument(bytes);
         Assert.Equal(expected, buffered.Document.Body.Text);
         using var stream = new MemoryStream(bytes);
-        using EmailReadResult streaming = await new EmailDocumentReader().ReadStreamingAsync(stream, "flowed.eml");
+        using EmailReadResult streaming = await new EmailDocumentReader().ReadDocumentAsync(stream, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "flowed.eml");
         Assert.Equal(expected, streaming.Document.Body.Text);
     }
 

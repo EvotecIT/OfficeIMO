@@ -132,8 +132,10 @@ public static partial class PowerPointPdfConverterExtensions {
                     }
 
                     break;
-                case A.Break:
-                    runs.Add(PdfCore.PdfTextRun.LineBreak());
+                case A.Break lineBreak:
+                    // The break takes part in the line's size, so it has to carry the authored one.
+                    runs.Add(CreatePdfTableCellTextRun(
+                        cell, paragraph, lineBreak.RunProperties, "\n", fallbackFontFamily, slideNumber, options, tableDefaults, fallbackFontSize));
                     break;
                 case A.Field field:
                     string fieldText = field.Text?.Text ?? field.InnerText ?? string.Empty;
@@ -148,14 +150,14 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     private static PdfCore.PdfTextRun CreatePdfTableCellTextRun(PptCore.PowerPointTableCell cell, string text, string? fallbackFontFamily) {
-        string? fontFamily = cell.FontName ?? fallbackFontFamily;
+        string? fontFamily = cell.FontFamily ?? fallbackFontFamily;
         return new PdfCore.PdfTextRun(
             text,
             bold: cell.Bold,
             italic: cell.Italic,
-            color: ParsePdfColor(cell.Color),
+            color: cell.Color is global::OfficeIMO.OfficeColor cellColor ? global::OfficeIMO.OfficeColor.FromRgb(cellColor.R, cellColor.G, cellColor.B) : null,
             fontSize: ((double?)(cell.FontSize?.ToPoints()) is double physicalLength9 ? global::OfficeIMO.OfficeLength.Points(physicalLength9) : (global::OfficeIMO.OfficeLength?)null),
-            font: MapFont(fontFamily),
+            standardFont: MapFont(fontFamily),
             fontFamily: fontFamily);
     }
 
@@ -178,7 +180,7 @@ public static partial class PowerPointPdfConverterExtensions {
             style.CellPaddings = MergeTableCellMap(style.CellPaddings, cellPaddings);
         }
 
-        Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? cellAlignments = CreateTableCellAlignments(table);
+        Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? cellAlignments = CreateTableCellAlignments(table);
         if (cellAlignments != null) {
             style.CellAlignments = MergeTableCellMap(style.CellAlignments, cellAlignments);
         }
@@ -294,10 +296,10 @@ public static partial class PowerPointPdfConverterExtensions {
         return paddings.Count == 0 ? null : paddings;
     }
 
-    private static Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>? CreateTableCellAlignments(PptCore.PowerPointTable table) {
-        var alignments = new Dictionary<(int Row, int Column), PdfCore.PdfColumnAlign>();
+    private static Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>? CreateTableCellAlignments(PptCore.PowerPointTable table) {
+        var alignments = new Dictionary<(int Row, int Column), global::OfficeIMO.OfficeAlignment>();
         ForEachTableAnchorCell(table, (row, column, cell) => {
-            PdfCore.PdfColumnAlign? align = MapColumnAlign(cell.HorizontalAlignment.ToOpenXml());
+            global::OfficeIMO.OfficeAlignment? align = MapColumnAlign(cell.HorizontalAlignment.ToOpenXml());
             if (align.HasValue) {
                 alignments[(row, column)] = align.Value;
             }

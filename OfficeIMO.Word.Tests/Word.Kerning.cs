@@ -124,8 +124,8 @@ public partial class Word {
         document.AddParagraph("Body");
         document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0].AddText("Cell")
             .KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(0D);
-        document.HeaderDefaultOrCreate.AddParagraph("Header").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1.5D);
-        document.FooterDefaultOrCreate.AddParagraph("Footer").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(13D);
+        document.PageSetup.Header.AddParagraph("Header").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(1.5D);
+        document.PageSetup.Footer.AddParagraph("Footer").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(13D);
         document.AddParagraph("Reference").AddFootNote("Footnote").Paragraph.FootNote!.Paragraphs!
             .Single(item => item.Text == "Footnote").KerningMinimumFontSize = global::OfficeIMO.OfficeLength.Points(7.5D);
         document.AddParagraph("Reference").AddEndNote("Endnote").Paragraph.EndNote!.Paragraphs!
@@ -135,9 +135,9 @@ public partial class Word {
             ? document.ToBytes(new WordSaveOptions { Format = WordFileFormat.Doc }) : document.ToBytes()));
         Assert.Equal(0D, reloaded.Tables[0].Rows[0].Cells[0].Paragraphs.Single(item => item.Text == "Cell")
             .KerningMinimumFontSize?.ToPoints());
-        Assert.Equal(1.5D, reloaded.Sections[0].Header.Default!.Paragraphs.Single(item => item.Text == "Header")
+        Assert.Equal(1.5D, reloaded.Sections[0].PageSetup.Header.Paragraphs.Single(item => item.Text == "Header")
             .KerningMinimumFontSize?.ToPoints());
-        Assert.Equal(13D, reloaded.Sections[0].Footer.Default!.Paragraphs.Single(item => item.Text == "Footer")
+        Assert.Equal(13D, reloaded.Sections[0].PageSetup.Footer.Paragraphs.Single(item => item.Text == "Footer")
             .KerningMinimumFontSize?.ToPoints());
         Assert.Equal(7.5D, Assert.Single(reloaded.FootNotes).Paragraphs!.Single(item => item.Text == "Footnote")
             .KerningMinimumFontSize?.ToPoints());

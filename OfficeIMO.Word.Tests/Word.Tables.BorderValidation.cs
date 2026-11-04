@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             else table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, global::OfficeIMO.OfficeLength.Points(1), OfficeColor.Blue);
             using var saved = WordDocument.Load(new MemoryStream(document.ToBytes()));
             Assert.Empty(saved.ValidateDocument());
-            Assert.Equal("0000FF", saved.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).ColorHex);
-            Assert.Equal(separateInside ? "FF0000" : "0000FF", saved.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal).ColorHex);
+            Assert.Equal(OfficeColor.Parse("0000FF"), saved.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.Top).Color);
+            Assert.Equal(OfficeColor.Parse(separateInside ? "FF0000" : "0000FF"), saved.Tables[0].StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal).Color);
         }
     }
 }

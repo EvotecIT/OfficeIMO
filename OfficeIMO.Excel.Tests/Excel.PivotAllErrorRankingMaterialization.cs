@@ -59,11 +59,11 @@ namespace OfficeIMO.Tests
                 var source = document.AddSheet("Source");
                 for (int row = 0; row < input.GetLength(0); row++)
                 {
-                    source.CellValue(row + 1, 1, Assert.IsType<string>(input[row, 0]));
+                    source.Cell(row + 1, 1).SetValue(Assert.IsType<string>(input[row, 0]));
                     if (row == 0)
-                        source.CellValue(1, 2, Assert.IsType<string>(input[row, 1]));
+                        source.Cell(1, 2).SetValue(Assert.IsType<string>(input[row, 1]));
                     else
-                        source.CellError(row + 1, 2, Assert.IsType<string>(input[row, 1]));
+                        source.Cell(row + 1, 2).SetError(Assert.IsType<string>(input[row, 1]));
                 }
 
                 var pivot = new ExcelPivotTableOptions();
@@ -115,12 +115,12 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Source");
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Sales");
-            source.CellValue(2, 1, "Alpha");
-            source.CellError(2, 2, "#N/A");
-            source.CellValue(3, 1, "Bravo");
-            source.CellError(3, 2, "#DIV/0!");
+            source.Cell(1, 1).SetValue("Region");
+            source.Cell(1, 2).SetValue("Sales");
+            source.Cell(2, 1).SetValue("Alpha");
+            source.Cell(2, 2).SetError("#N/A");
+            source.Cell(3, 1).SetValue("Bravo");
+            source.Cell(3, 2).SetError("#DIV/0!");
             ExcelPivotFilter filter = sum ? ExcelPivotFilter.TopSum("Region", "Metric", 1) : ExcelPivotFilter.TopPercent("Region", "Metric", 40);
             {
                 var pivotOptions1 = new ExcelPivotTableOptions();

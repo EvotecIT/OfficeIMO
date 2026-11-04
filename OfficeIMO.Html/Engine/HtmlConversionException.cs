@@ -3,15 +3,19 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Thrown when an HTML conversion cannot satisfy its requested semantic contract.
 /// </summary>
-public sealed class HtmlConversionException : InvalidOperationException {
+public sealed class HtmlConversionException : OfficeConversionException {
     /// <summary>Creates an exception from structured conversion diagnostics.</summary>
     public HtmlConversionException(IEnumerable<HtmlDiagnostic> diagnostics)
         : this(ToDiagnosticList(diagnostics)) {
     }
 
     private HtmlConversionException(IReadOnlyList<HtmlDiagnostic> diagnostics)
-        : base(CreateMessage(diagnostics)) {
-        Diagnostics = diagnostics;
+        : this(new HtmlConversionReport(diagnostics)) {
+    }
+
+    internal HtmlConversionException(HtmlConversionReport report)
+        : base(CreateMessage(report.NativeDiagnostics), report) {
+        Diagnostics = report.NativeDiagnostics;
     }
 
     /// <summary>Diagnostics that caused the conversion to fail.</summary>

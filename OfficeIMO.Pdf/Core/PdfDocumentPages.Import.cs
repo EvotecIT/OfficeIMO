@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -6,28 +7,31 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Appends all pages from another loaded or generated PDF to this document.
     /// </summary>
-    public PdfDocument Append(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Append(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Append(
             sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
-            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
+            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Appends selected one-based pages from another loaded or generated PDF to this document.
     /// </summary>
-    public PdfDocument Append(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Append(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Append(
             sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             sourceSelection,
-            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
+            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Appends all pages from source PDF bytes to this document.
     /// </summary>
-    public PdfDocument Append(byte[] sourcePdf, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Append(byte[] sourcePdf, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         return Append(sourcePdf, importOptions, _document.ReadOptions);
     }
 
@@ -37,7 +41,8 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Appends selected one-based pages from source PDF bytes to this document.
     /// </summary>
-    public PdfDocument Append(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Append(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         return Append(sourcePdf, sourceSelection, importOptions, _document.ReadOptions);
     }
 
@@ -49,31 +54,35 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Appends all pages from a readable source PDF stream to this document.
     /// </summary>
-    public PdfDocument Append(Stream sourceStream, PdfPageImportOptions? importOptions = null) {
-        return Append(ReadSourceStream(sourceStream, importOptions), importOptions);
+    public PdfDocument Append(Stream sourceStream, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
+        return Append(ReadSourceStream(sourceStream, importOptions), importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Appends selected one-based pages from a readable source PDF stream to this document.
     /// </summary>
-    public PdfDocument Append(Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
-        return Append(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions);
+    public PdfDocument Append(Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
+        return Append(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Appends all pages from a source PDF file to this document.
     /// </summary>
-    public PdfDocument Append(string sourcePath, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Append(string sourcePath, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return Append(ReadSourcePath(sourcePath, importOptions), importOptions);
+        return Append(ReadSourcePath(sourcePath, importOptions), importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Appends selected one-based pages from a source PDF file to this document.
     /// </summary>
-    public PdfDocument Append(string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Append(string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return Append(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions);
+        return Append(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -149,28 +158,31 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Prepends all pages from another loaded or generated PDF before this document.
     /// </summary>
-    public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Prepend(
             sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
-            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
+            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Prepends selected one-based pages from another loaded or generated PDF before this document.
     /// </summary>
-    public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Prepend(PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Prepend(
             sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             sourceSelection,
-            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
+            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Prepends all pages from source PDF bytes before this document.
     /// </summary>
-    public PdfDocument Prepend(byte[] sourcePdf, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Prepend(byte[] sourcePdf, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         return Prepend(sourcePdf, importOptions, _document.ReadOptions);
     }
 
@@ -180,7 +192,8 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Prepends selected one-based pages from source PDF bytes before this document.
     /// </summary>
-    public PdfDocument Prepend(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Prepend(byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         return Prepend(sourcePdf, sourceSelection, importOptions, _document.ReadOptions);
     }
 
@@ -192,31 +205,35 @@ public sealed partial class PdfDocumentPages {
     /// <summary>
     /// Prepends all pages from a readable source PDF stream before this document.
     /// </summary>
-    public PdfDocument Prepend(Stream sourceStream, PdfPageImportOptions? importOptions = null) {
-        return Prepend(ReadSourceStream(sourceStream, importOptions), importOptions);
+    public PdfDocument Prepend(Stream sourceStream, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
+        return Prepend(ReadSourceStream(sourceStream, importOptions), importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Prepends selected one-based pages from a readable source PDF stream before this document.
     /// </summary>
-    public PdfDocument Prepend(Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
-        return Prepend(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions);
+    public PdfDocument Prepend(Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
+        return Prepend(ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Prepends all pages from a source PDF file before this document.
     /// </summary>
-    public PdfDocument Prepend(string sourcePath, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Prepend(string sourcePath, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return Prepend(ReadSourcePath(sourcePath, importOptions), importOptions);
+        return Prepend(ReadSourcePath(sourcePath, importOptions), importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Prepends selected one-based pages from a source PDF file before this document.
     /// </summary>
-    public PdfDocument Prepend(string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Prepend(string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return Prepend(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions);
+        return Prepend(ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -293,32 +310,35 @@ public sealed partial class PdfDocumentPages {
     /// Inserts all pages from another loaded or generated PDF before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Insert(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Insert(
             insertBeforePageNumber,
             sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
-            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
+            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Inserts selected one-based pages from another loaded or generated PDF before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Insert(int insertBeforePageNumber, PdfDocument sourceDocument, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNull(sourceDocument, nameof(sourceDocument));
         return Insert(
             insertBeforePageNumber,
             sourceDocument.GetBytesForOperation(importOptions?.CancellationToken ?? default),
             sourceSelection,
-            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions));
+            ResolveSourceImportOptions(importOptions, sourceDocument.ReadOptions), cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Inserts all pages from source PDF bytes before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, byte[] sourcePdf, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Insert(int insertBeforePageNumber, byte[] sourcePdf, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         return Insert(insertBeforePageNumber, sourcePdf, importOptions, _document.ReadOptions);
     }
 
@@ -329,7 +349,8 @@ public sealed partial class PdfDocumentPages {
     /// Inserts selected one-based pages from source PDF bytes before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Insert(int insertBeforePageNumber, byte[] sourcePdf, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         return Insert(insertBeforePageNumber, sourcePdf, sourceSelection, importOptions, _document.ReadOptions);
     }
 
@@ -342,34 +363,38 @@ public sealed partial class PdfDocumentPages {
     /// Inserts all pages from a readable source PDF stream before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, Stream sourceStream, PdfPageImportOptions? importOptions = null) {
-        return Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), importOptions);
+    public PdfDocument Insert(int insertBeforePageNumber, Stream sourceStream, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
+        return Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Inserts selected one-based pages from a readable source PDF stream before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
-        return Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions);
+    public PdfDocument Insert(int insertBeforePageNumber, Stream sourceStream, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
+        return Insert(insertBeforePageNumber, ReadSourceStream(sourceStream, importOptions), sourceSelection, importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Inserts all pages from a source PDF file before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, string sourcePath, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Insert(int insertBeforePageNumber, string sourcePath, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), importOptions);
+        return Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>
     /// Inserts selected one-based pages from a source PDF file before the supplied one-based page number.
     /// Use target page count + 1 to insert at the end.
     /// </summary>
-    public PdfDocument Insert(int insertBeforePageNumber, string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null) {
+    public PdfDocument Insert(int insertBeforePageNumber, string sourcePath, PdfPageSelection sourceSelection, PdfPageImportOptions? importOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        importOptions = PdfOperationCancellation.Bind(importOptions, createWhenNull: true, cancellationToken);
         Guard.NotNullOrWhiteSpace(sourcePath, nameof(sourcePath));
-        return Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions);
+        return Insert(insertBeforePageNumber, ReadSourcePath(sourcePath, importOptions), sourceSelection, importOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>

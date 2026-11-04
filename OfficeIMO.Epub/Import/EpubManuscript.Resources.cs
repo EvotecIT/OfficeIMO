@@ -13,7 +13,7 @@ public static partial class EpubManuscript {
 
     private static async Task<List<ImportedStylesheet>> CollectResourcesAsync(IHtmlDocument source, List<Chapter> chapters,
         EpubPublication publication, HtmlConversionDocument manuscript, EpubManuscriptOptions options,
-        List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         var pipelineOptions = new HtmlResourcePipelineOptions {
             BaseUri = manuscript.BaseUri, ResourceUrlPolicy = manuscript.ResourceUrlPolicy, Limits = manuscript.Limits
         };
@@ -28,9 +28,7 @@ public static partial class EpubManuscript {
         HtmlResourceSession session = await HtmlRenderResourceLoader.LoadArchiveAsync(manifest, resourceOptions, resourceDiagnostics,
             manuscript.Limits, token).ConfigureAwait(false);
         foreach (HtmlDiagnostic diagnostic in resourceDiagnostics.Diagnostics)
-            diagnostics.Add(new OfficeConversionFidelityDiagnostic(diagnostic.Code, diagnostic.Message,
-                diagnostic.LossKind == OfficeConversionLossKind.None ? OfficeConversionLossKind.Omission : diagnostic.LossKind,
-                diagnostic.Component, diagnostic.Source));
+            diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(diagnostic.Code, global::OfficeIMO.OfficeDiagnosticSeverity.Warning, diagnostic.Message, diagnostic.Source, diagnostic.Component, diagnostic.LossKind == OfficeConversionLossKind.None ? OfficeConversionLossKind.Omission : diagnostic.LossKind));
         var paths = new Dictionary<string, string>(StringComparer.Ordinal);
         var mediaTypes = new Dictionary<string, string>(StringComparer.Ordinal);
         var declarations = new Dictionary<string, string>(StringComparer.Ordinal);

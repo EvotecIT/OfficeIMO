@@ -1,10 +1,16 @@
-using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeColor = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Fluent conditional formatting builder for an <see cref="ExcelRange"/>.
+    /// Adds conditional formatting rules to an <see cref="ExcelRange"/>. Each method adds one native rule and
+    /// returns it attached to the worksheet; edit it with <see cref="ExcelSheet.UpdateConditionalFormattingRule"/>.
     /// </summary>
+    /// <remarks>
+    /// Existing rules are listed, updated, cloned, reordered and removed through the worksheet
+    /// (<see cref="ExcelSheet.GetConditionalFormattingRules(string)"/>, <see cref="ExcelSheet.ClearConditionalFormatting"/>).
+    /// <see cref="ExcelSheet.AddConditionalFormattingRule"/> adds a rule from the full rule model, including
+    /// multi-area ranges and Office 2010 extension rules.
+    /// </remarks>
     public sealed class ExcelRangeConditionalFormattingBuilder {
         private readonly ExcelRange _range;
 
@@ -12,375 +18,95 @@ namespace OfficeIMO.Excel {
             _range = range ?? throw new ArgumentNullException(nameof(range));
         }
 
-        /// <summary>
-        /// Applies a cell-value comparison rule.
-        /// </summary>
-        public ExcelRange CellIs(ExcelConditionalFormattingOperator @operator, string formula1) {
-            return CellIs(@operator, formula1, null, null);
-        }
+        /// <summary>Adds a cell-value comparison rule, such as greater than, between or equal.</summary>
+        /// <param name="operator">Comparison operator.</param>
+        /// <param name="formula1">Primary value or formula.</param>
+        /// <param name="formula2">Secondary value or formula for Between and NotBetween.</param>
+        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
+        /// <param name="priority">Optional explicit rule priority.</param>
+        public ExcelConditionalFormattingInfo CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null,
+            string? fillColor = null, bool stopIfTrue = false, int? priority = null) =>
+            _range.Sheet.CreateConditionalCellIsRule(_range.Reference, @operator, formula1, formula2, fillColor, stopIfTrue, priority);
 
-        /// <summary>
-        /// Applies a cell-value comparison rule.
-        /// </summary>
-        public ExcelRange CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2) {
-            return CellIs(@operator, formula1, formula2, null);
-        }
+        /// <summary>Adds a formula rule that matches when the formula evaluates to true for the top-left cell.</summary>
+        /// <param name="formula">Formula relative to the top-left cell of the range.</param>
+        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
+        /// <param name="priority">Optional explicit rule priority.</param>
+        public ExcelConditionalFormattingInfo Formula(string formula, string? fillColor = null, bool stopIfTrue = false, int? priority = null) =>
+            _range.Sheet.CreateConditionalFormulaRule(_range.Reference, formula, fillColor, stopIfTrue, priority);
 
-        /// <summary>
-        /// Applies a cell-value comparison rule.
-        /// </summary>
-        public ExcelRange CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, string? fillColor = null) {
-            _range.Sheet.AddConditionalRule(_range.Address, @operator, formula1, formula2, fillColor);
-            return _range;
-        }
+        /// <summary>Adds a text rule: contains, does not contain, begins with or ends with.</summary>
+        /// <param name="type">ContainsText, NotContainsText, BeginsWith or EndsWith.</param>
+        /// <param name="text">Text to match.</param>
+        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
+        public ExcelConditionalFormattingInfo Text(ExcelConditionalFormatType type, string text, string? fillColor = null, bool stopIfTrue = false) =>
+            _range.Sheet.CreateConditionalTextRule(_range.Reference, type, text, fillColor, stopIfTrue);
 
-        /// <summary>
-        /// Applies a greater-than cell-value rule.
-        /// </summary>
-        public ExcelRange GreaterThan(string formula) {
-            return GreaterThan(formula, null);
-        }
+        /// <summary>Adds a duplicate-values rule.</summary>
+        public ExcelConditionalFormattingInfo DuplicateValues(string? fillColor = null) =>
+            _range.Sheet.CreateConditionalDuplicateValuesRule(_range.Reference, fillColor);
 
-        /// <summary>
-        /// Applies a greater-than cell-value rule.
-        /// </summary>
-        public ExcelRange GreaterThan(string formula, string? fillColor) {
-            return CellIs(ExcelConditionalFormattingOperator.GreaterThan, formula, null, fillColor);
-        }
+        /// <summary>Adds a unique-values rule.</summary>
+        public ExcelConditionalFormattingInfo UniqueValues(string? fillColor = null) =>
+            _range.Sheet.CreateConditionalUniqueValuesRule(_range.Reference, fillColor);
 
-        /// <summary>
-        /// Applies a less-than cell-value rule.
-        /// </summary>
-        public ExcelRange LessThan(string formula) {
-            return LessThan(formula, null);
-        }
+        /// <summary>Adds an above-average or, with <paramref name="aboveAverage"/> false, a below-average rule.</summary>
+        /// <param name="aboveAverage">True for values above the average; false for values below it.</param>
+        /// <param name="equalAverage">Whether values equal to the average match.</param>
+        /// <param name="standardDeviation">Optional number of standard deviations from the average.</param>
+        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
+        public ExcelConditionalFormattingInfo AboveAverage(bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null,
+            string? fillColor = null, bool stopIfTrue = false) =>
+            _range.Sheet.CreateConditionalAboveAverageRule(_range.Reference, aboveAverage, equalAverage, standardDeviation, fillColor, stopIfTrue);
 
-        /// <summary>
-        /// Applies a less-than cell-value rule.
-        /// </summary>
-        public ExcelRange LessThan(string formula, string? fillColor) {
-            return CellIs(ExcelConditionalFormattingOperator.LessThan, formula, null, fillColor);
-        }
+        /// <summary>Adds a top or bottom N (or N percent) rule.</summary>
+        /// <param name="rank">Number of items, or percentage when <paramref name="percent"/> is true.</param>
+        /// <param name="bottom">True for the lowest values; false for the highest.</param>
+        /// <param name="percent">Whether <paramref name="rank"/> is a percentage.</param>
+        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        public ExcelConditionalFormattingInfo TopBottom(uint rank, bool bottom = false, bool percent = false, string? fillColor = null) =>
+            _range.Sheet.CreateConditionalTopBottomRule(_range.Reference, rank, bottom, percent, fillColor);
 
-        /// <summary>
-        /// Applies a between cell-value rule.
-        /// </summary>
-        public ExcelRange Between(string formula1, string formula2) {
-            return Between(formula1, formula2, null);
-        }
+        /// <summary>Adds a blanks or, with <paramref name="containsBlanks"/> false, a non-blanks rule.</summary>
+        public ExcelConditionalFormattingInfo Blanks(bool containsBlanks = true, bool stopIfTrue = false) =>
+            _range.Sheet.CreateConditionalBlanksRule(_range.Reference, containsBlanks, stopIfTrue);
 
-        /// <summary>
-        /// Applies a between cell-value rule.
-        /// </summary>
-        public ExcelRange Between(string formula1, string formula2, string? fillColor) {
-            return CellIs(ExcelConditionalFormattingOperator.Between, formula1, formula2, fillColor);
-        }
+        /// <summary>Adds an errors or, with <paramref name="containsErrors"/> false, a non-errors rule.</summary>
+        public ExcelConditionalFormattingInfo Errors(bool containsErrors = true, bool stopIfTrue = false) =>
+            _range.Sheet.CreateConditionalErrorsRule(_range.Reference, containsErrors, stopIfTrue);
 
-        /// <summary>
-        /// Applies a formula-based rule.
-        /// </summary>
-        public ExcelRange Formula(string formula) {
-            return Formula(formula, stopIfTrue: false, fillColor: null);
-        }
+        /// <summary>Adds a date rule for a time period such as yesterday, this week or last month.</summary>
+        public ExcelConditionalFormattingInfo TimePeriod(ExcelConditionalTimePeriod timePeriod, string? fillColor = null, bool stopIfTrue = false) =>
+            _range.Sheet.CreateConditionalTimePeriodRule(_range.Reference, timePeriod, fillColor, stopIfTrue);
 
-        /// <summary>
-        /// Applies a formula-based rule.
-        /// </summary>
-        public ExcelRange Formula(string formula, bool stopIfTrue) {
-            return Formula(formula, stopIfTrue, fillColor: null);
-        }
+        /// <summary>Adds a two-color scale from the minimum to the maximum value.</summary>
+        public ExcelConditionalFormattingInfo ColorScale(OfficeColor startColor, OfficeColor endColor) =>
+            _range.Sheet.CreateConditionalColorScale(_range.Reference, startColor, endColor);
 
-        /// <summary>
-        /// Applies a formula-based rule.
-        /// </summary>
-        public ExcelRange Formula(string formula, bool stopIfTrue = false, string? fillColor = null) {
-            _range.Sheet.AddConditionalFormulaRule(_range.Address, formula, stopIfTrue, fillColor);
-            return _range;
-        }
+        /// <summary>Adds a two-color scale from hex colors such as F8D7DA.</summary>
+        public ExcelConditionalFormattingInfo ColorScale(string startColor, string endColor) =>
+            _range.Sheet.CreateConditionalColorScale(_range.Reference, startColor, endColor);
 
-        /// <summary>
-        /// Applies a contains-text rule.
-        /// </summary>
-        public ExcelRange ContainsText(string text) {
-            return ContainsText(text, fillColor: null);
-        }
+        /// <summary>Adds a data bar.</summary>
+        public ExcelConditionalFormattingInfo DataBar(OfficeColor color) =>
+            _range.Sheet.CreateConditionalDataBar(_range.Reference, color);
 
-        /// <summary>
-        /// Applies a contains-text rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange ContainsText(string text, string? fillColor) {
-            _range.Sheet.AddConditionalContainsTextRule(_range.Address, text, fillColor);
-            return _range;
-        }
+        /// <summary>Adds a data bar from a hex color such as 4472C4.</summary>
+        public ExcelConditionalFormattingInfo DataBar(string color) =>
+            _range.Sheet.CreateConditionalDataBar(_range.Reference, color);
 
-        /// <summary>
-        /// Applies a not-contains-text rule.
-        /// </summary>
-        public ExcelRange NotContainsText(string text) {
-            return NotContainsText(text, fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies a not-contains-text rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange NotContainsText(string text, string? fillColor) {
-            _range.Sheet.AddConditionalNotContainsTextRule(_range.Address, text, fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a begins-with-text rule.
-        /// </summary>
-        public ExcelRange BeginsWithText(string text) {
-            return BeginsWithText(text, fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies a begins-with-text rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange BeginsWithText(string text, string? fillColor) {
-            _range.Sheet.AddConditionalBeginsWithTextRule(_range.Address, text, fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies an ends-with-text rule.
-        /// </summary>
-        public ExcelRange EndsWithText(string text) {
-            return EndsWithText(text, fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies an ends-with-text rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange EndsWithText(string text, string? fillColor) {
-            _range.Sheet.AddConditionalEndsWithTextRule(_range.Address, text, fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a duplicate-values rule.
-        /// </summary>
-        public ExcelRange DuplicateValues() {
-            return DuplicateValues(fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies a duplicate-values rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange DuplicateValues(string? fillColor) {
-            _range.Sheet.AddConditionalDuplicateValuesRule(_range.Address, fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a unique-values rule.
-        /// </summary>
-        public ExcelRange UniqueValues() {
-            return UniqueValues(fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies a unique-values rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange UniqueValues(string? fillColor) {
-            _range.Sheet.AddConditionalUniqueValuesRule(_range.Address, fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies an above-average rule.
-        /// </summary>
-        public ExcelRange AboveAverage() {
-            return AboveAverage(fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies an above-average rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange AboveAverage(string? fillColor, bool equalAverage = false) {
-            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: true, equalAverage: equalAverage, fillColor: fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a below-average rule.
-        /// </summary>
-        public ExcelRange BelowAverage() {
-            return BelowAverage(fillColor: null);
-        }
-
-        /// <summary>
-        /// Applies a below-average rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange BelowAverage(string? fillColor, bool equalAverage = false) {
-            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: false, equalAverage: equalAverage, fillColor: fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a top-values rule.
-        /// </summary>
-        public ExcelRange Top(uint rank, bool percent = false) {
-            return Top(rank, fillColor: null, percent: percent);
-        }
-
-        /// <summary>
-        /// Applies a top-values rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange Top(uint rank, string? fillColor, bool percent = false) {
-            _range.Sheet.AddConditionalTopBottomRule(_range.Address, rank, bottom: false, percent: percent, fillColor: fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a bottom-values rule.
-        /// </summary>
-        public ExcelRange Bottom(uint rank, bool percent = false) {
-            return Bottom(rank, fillColor: null, percent: percent);
-        }
-
-        /// <summary>
-        /// Applies a bottom-values rule with an optional solid fill.
-        /// </summary>
-        public ExcelRange Bottom(uint rank, string? fillColor, bool percent = false) {
-            _range.Sheet.AddConditionalTopBottomRule(_range.Address, rank, bottom: true, percent: percent, fillColor: fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies an above-average rule.
-        /// </summary>
-        public ExcelRange AboveAverage(bool equalAverage = false, uint? standardDeviation = null) {
-            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: true, equalAverage: equalAverage, standardDeviation: standardDeviation);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a below-average rule.
-        /// </summary>
-        public ExcelRange BelowAverage(bool equalAverage = false, uint? standardDeviation = null) {
-            _range.Sheet.AddConditionalAboveAverageRule(_range.Address, aboveAverage: false, equalAverage: equalAverage, standardDeviation: standardDeviation);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a begins-with text rule.
-        /// </summary>
-        public ExcelRange BeginsWith(string text) {
-            _range.Sheet.AddConditionalTextRule(_range.Address, ExcelConditionalFormatType.BeginsWith, text);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies an ends-with text rule.
-        /// </summary>
-        public ExcelRange EndsWith(string text) {
-            _range.Sheet.AddConditionalTextRule(_range.Address, ExcelConditionalFormatType.EndsWith, text);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a blanks rule.
-        /// </summary>
-        public ExcelRange Blanks() {
-            _range.Sheet.AddConditionalBlanksRule(_range.Address, containsBlanks: true);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a non-blanks rule.
-        /// </summary>
-        public ExcelRange NonBlanks() {
-            _range.Sheet.AddConditionalBlanksRule(_range.Address, containsBlanks: false);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies an errors rule.
-        /// </summary>
-        public ExcelRange Errors() {
-            _range.Sheet.AddConditionalErrorsRule(_range.Address, containsErrors: true);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a non-errors rule.
-        /// </summary>
-        public ExcelRange NonErrors() {
-            _range.Sheet.AddConditionalErrorsRule(_range.Address, containsErrors: false);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a time-period rule.
-        /// </summary>
-        public ExcelRange TimePeriod(ExcelConditionalTimePeriod timePeriod) {
-            _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a time-period rule with a differential fill color.
-        /// </summary>
-        public ExcelRange TimePeriod(ExcelConditionalTimePeriod timePeriod, string fillColor) {
-            _range.Sheet.AddConditionalTimePeriodRule(_range.Address, timePeriod, fillColor: fillColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a two-color scale.
-        /// </summary>
-        public ExcelRange ColorScale(OfficeColor startColor, OfficeColor endColor) {
-            _range.Sheet.AddConditionalColorScale(_range.Address, startColor, endColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a two-color scale using hex colors.
-        /// </summary>
-        public ExcelRange ColorScale(string startColor, string endColor) {
-            _range.Sheet.AddConditionalColorScale(_range.Address, startColor, endColor);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a data bar.
-        /// </summary>
-        public ExcelRange DataBar(OfficeColor color) {
-            _range.Sheet.AddConditionalDataBar(_range.Address, color);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies a data bar using a hex color.
-        /// </summary>
-        public ExcelRange DataBar(string color) {
-            _range.Sheet.AddConditionalDataBar(_range.Address, color);
-            return _range;
-        }
-
-        /// <summary>
-        /// Applies an icon set.
-        /// </summary>
-        public ExcelRange IconSet() {
-            return IconSet(ExcelIconSet.ThreeTrafficLights1);
-        }
-
-        /// <summary>
-        /// Applies an icon set.
-        /// </summary>
-        public ExcelRange IconSet(ExcelIconSet iconSet, bool showValue = true, bool reverseIconOrder = false, double[]? percentThresholds = null, double[]? numberThresholds = null) {
-            _range.Sheet.AddConditionalIconSet(_range.Address, iconSet, showValue, reverseIconOrder, percentThresholds, numberThresholds);
-            return _range;
-        }
-
-        /// <summary>
-        /// Removes conditional formatting rules that overlap the range.
-        /// </summary>
-        public ExcelRange Clear() {
-            _range.Sheet.ClearConditionalFormatting(_range.Address);
-            return _range;
-        }
+        /// <summary>Adds an icon set.</summary>
+        /// <param name="iconSet">Icon set, such as ThreeTrafficLights1, FourArrows or FiveRating.</param>
+        /// <param name="showValue">Whether the cell value is shown next to the icon.</param>
+        /// <param name="reverseIconOrder">Whether the icon order is reversed.</param>
+        /// <param name="percentThresholds">Optional percent thresholds (0..100), one per icon.</param>
+        /// <param name="numberThresholds">Optional number thresholds, one per icon; used instead of percent thresholds.</param>
+        public ExcelConditionalFormattingInfo IconSet(ExcelIconSet iconSet = ExcelIconSet.ThreeTrafficLights1, bool showValue = true,
+            bool reverseIconOrder = false, double[]? percentThresholds = null, double[]? numberThresholds = null) =>
+            _range.Sheet.CreateConditionalIconSet(_range.Reference, iconSet, showValue, reverseIconOrder, percentThresholds, numberThresholds);
     }
 }

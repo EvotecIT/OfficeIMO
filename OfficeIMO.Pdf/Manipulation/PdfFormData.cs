@@ -27,7 +27,10 @@ internal static class PdfFormData {
     /// <summary>Exports readable fields as XFDF.</summary>
     public static string ExportXfdf(byte[] pdf, PdfLoadOptions? options = null) => Export(pdf, options).ToXfdf();
     /// <summary>Imports typed form data through the validated full-rewrite filler.</summary>
-    public static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options = null) => Import(pdf, data, options, readOptions: null);
+    public static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return Import(pdf, data, options, readOptions: null);
+    }
     internal static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         Import(pdf, data, options, readOptions, out _);
     internal static byte[] Import(byte[] pdf, PdfFormDataSet data, PdfFormFillerOptions? options,
@@ -36,7 +39,10 @@ internal static class PdfFormData {
         return PdfFormFiller.FillFields(pdf, data.ToFieldValues(), options, readOptions, out outputReadOptions);
     }
     /// <summary>Imports XFDF through the validated full-rewrite filler.</summary>
-    public static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options = null) => ImportXfdf(pdf, xfdf, options, readOptions: null);
+    public static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return ImportXfdf(pdf, xfdf, options, readOptions: null);
+    }
     internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options, PdfLoadOptions? readOptions) =>
         ImportXfdf(pdf, xfdf, options, readOptions, out _);
     internal static byte[] ImportXfdf(byte[] pdf, string xfdf, PdfFormFillerOptions? options,

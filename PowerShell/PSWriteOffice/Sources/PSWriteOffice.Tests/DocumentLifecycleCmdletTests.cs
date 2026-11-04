@@ -90,7 +90,7 @@ public sealed class DocumentLifecycleCmdletTests {
                 source.Save(template);
             } else {
                 using var source = ExcelDocument.Create();
-                source.AddSheet("Data").CellValue(1, 1, "Template content");
+                source.AddSheet("Data").Cell(1, 1).SetValue("Template content");
                 source.Save(template);
             }
             byte[] sourceBytes = File.ReadAllBytes(template);
@@ -255,7 +255,7 @@ public sealed class DocumentLifecycleCmdletTests {
             string copy = Path.Combine(directory, "copy.xlsx");
             string plain = Path.Combine(directory, "plain.xlsx");
             using (var source = ExcelDocument.Create()) {
-                source.AddSheet("Data").CellValue(1, 1, "Original");
+                source.AddSheet("Data").Cell(1, 1).SetValue("Original");
                 source.Save(path, new ExcelSaveOptions { Password = "test-secret" });
             }
             byte[] original = File.ReadAllBytes(path);
@@ -273,7 +273,7 @@ public sealed class DocumentLifecycleCmdletTests {
                 .AddParameter("Password", "test-secret").AddParameter("MaxDegreeOfParallelism", 1).Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
             Assert.Equal(1, document.Execution.MaxDegreeOfParallelism);
-            document.Sheets[0].CellValue(1, 1, "Reviewed");
+            document.Sheets[0].Cell(1, 1).SetValue("Reviewed");
             shell.Commands.Clear();
             var saved = Assert.Single(shell.AddCommand("Save-OfficeExcel").AddParameter("Document", document)
                 .AddParameter("Path", copy).AddParameter("PassThru").Invoke());
@@ -289,7 +289,7 @@ public sealed class DocumentLifecycleCmdletTests {
             var options = Assert.IsType<ExcelSaveOptions>(Assert.Single(shell.AddCommand("New-OfficeExcelSaveOptions")
                 .AddParameter("Preflight").AddParameter("ValidateOpenXml").AddParameter("EvaluateFormulas").Invoke()).BaseObject);
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
-            document.Sheets[0].CellFormula(2, 2, "20+22");
+            document.Sheets[0].Cell(2, 2).SetFormula("20+22");
             shell.Commands.Clear();
             shell.AddCommand("Save-OfficeExcel").AddParameter("Document", document).AddParameter("Path", plain)
                 .AddParameter("Password", null).AddParameter("SaveOptions", options).Invoke();
@@ -322,7 +322,7 @@ public sealed class DocumentLifecycleCmdletTests {
                 Assert.Equal("Reviewed", text);
             }
             byte[] savedPlain = File.ReadAllBytes(plain);
-            document.Sheets[0].CellValue(1, 1, "Do not save this on close");
+            document.Sheets[0].Cell(1, 1).SetValue("Do not save this on close");
             shell.Commands.Clear();
             shell.AddCommand("Close-OfficeExcel").AddParameter("Document", document).Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
@@ -333,10 +333,10 @@ public sealed class DocumentLifecycleCmdletTests {
             using var implicitDocument = ExcelDocument.Create(implicitPath, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose
             });
-            implicitDocument.AddSheet("Data").CellValue(1, 1, "Original");
+            implicitDocument.AddSheet("Data").Cell(1, 1).SetValue("Original");
             implicitDocument.Save();
             byte[] beforeClose = File.ReadAllBytes(implicitPath);
-            implicitDocument.Sheets[0].CellValue(1, 1, "Do not publish implicitly");
+            implicitDocument.Sheets[0].Cell(1, 1).SetValue("Do not publish implicitly");
             shell.Commands.Clear();
             shell.AddCommand("Close-OfficeExcel").AddParameter("Document", implicitDocument);
             Exception? failure = Record.Exception(() => shell.Invoke());

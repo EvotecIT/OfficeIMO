@@ -10,7 +10,7 @@ namespace OfficeIMO.Pdf.Excel {
             ExcelSheet sheet,
             IReadOnlyList<PdfCore.PdfLogicalTableColumn> columns,
             int columnCount,
-            ExcelPdfImportOptions options) {
+            PdfExcelExportOptions options) {
             if (!options.PreserveColumnProportions || columnCount == 0 || columns.Count != columnCount) return false;
 
             bool horizontal = PdfCore.PdfTableColumnGeometry.HasHorizontalProgression(

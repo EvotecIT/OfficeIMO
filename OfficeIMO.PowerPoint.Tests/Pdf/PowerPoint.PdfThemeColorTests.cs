@@ -236,7 +236,7 @@ public class PowerPointPdfThemeColorTests {
         map.SetAttribute(new OpenXmlAttribute("tx1", string.Empty, "accent2"));
         slide.SlidePart.Slide.ColorMapOverride = new ColorMapOverride(map);
         PowerPointTextBox box = slide.AddTextBox("Mapped theme text",global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(260),global::OfficeIMO.OfficeLength.Points(70));
-        box.FontName = "Helvetica";
+        box.FontFamily = "Helvetica";
         box.FontSize = global::OfficeIMO.OfficeLength.Points(12);
         Shape native = Assert.IsType<Shape>(box.Element);
         PowerPointParagraph paragraph = box.Paragraphs[0];

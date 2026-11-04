@@ -24,7 +24,7 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
             Projection = lean ? ReaderProjection.TextAndMetadata : ReaderProjection.Full };
         byte[] bytes = BuildMixedPdf(decoratedReadablePage: true);
         OfficeDocumentReadResult? result = chunksOnly ? null : reader.ReadDocument(bytes, "selected.pdf", options);
-        ReaderChunk[] chunks = (chunksOnly ? reader.Read(bytes, "selected.pdf", options) : result!.Chunks)
+        ReaderChunk[] chunks = (chunksOnly ? reader.Enumerate(bytes, "selected.pdf", options) : result!.Chunks)
             .Where(chunk => chunk.Warnings == null || chunk.Warnings.Count == 0).ToArray();
         Assert.Equal(new int?[] { 1, 2 }, chunks.Select(chunk => chunk.Location.SourceBlockIndex));
         Assert.EndsWith("selection-0001", chunks[0].Location.BlockAnchor);
@@ -78,8 +78,8 @@ public sealed class ReaderPdfManagedInspectionEvidenceTests {
             ChunkByPage = chunkByPage,
             ReadOptions = new PdfLoadOptions { PageSelection = PdfPageSelection.From(2, 1, 1) }
         }).Build();
-        ReaderVisual[] visuals = reader.ReadVisuals(BuildMixedPdf(decoratedReadablePage: true), "selected.pdf",
-            new ReaderOptions { Inspection = new ReaderInspectionOptions() }).ToArray();
+        ReaderVisual[] visuals = reader.ReadDocument(BuildMixedPdf(decoratedReadablePage: true), "selected.pdf",
+            new ReaderOptions { Inspection = new ReaderInspectionOptions() }).ExtractVisuals().ToArray();
         Assert.Equal(new int?[] { 1, 2 }, visuals.Select(visual => visual.Location!.SourceBlockIndex));
         Assert.Contains("selection-0001", visuals[0].Location!.BlockAnchor);
         Assert.Contains("selection-0002", visuals[1].Location!.BlockAnchor);

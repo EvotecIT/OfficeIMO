@@ -23,8 +23,10 @@ public sealed class PdfTableBorderContinuationTests {
             });
 
         byte[] bytes = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = OfficeLength.Points(220D), PageHeight = OfficeLength.Points(140D),
-            MarginLeft = OfficeLength.Points(20D), MarginRight = OfficeLength.Points(20D), MarginTop = OfficeLength.Points(20D), MarginBottom = OfficeLength.Points(20D)
+            PageSetup = {
+                Size = new PdfPageSize(OfficeLength.Points(220D), OfficeLength.Points(140D)),
+                Margins = { Left = OfficeLength.Points(20D), Right = OfficeLength.Points(20D), Top = OfficeLength.Points(20D), Bottom = OfficeLength.Points(20D) }
+            }
         }).Table(rows, style: style).ToBytes();
 
         using var pdf = PdfPigDocument.Open(bytes);

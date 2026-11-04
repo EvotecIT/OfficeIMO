@@ -71,12 +71,12 @@ public sealed partial class ConversionCmdletWorkflowTests {
                 """);
             var output = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join(Environment.NewLine, shell.Streams.Error));
-            var options = Assert.IsType<WordHtmlImportOptions>(Assert.Single(output).BaseObject);
+            var options = Assert.IsType<HtmlWordExportOptions>(Assert.Single(output).BaseObject);
             Assert.Equal(css, Assert.Single(options.StylesheetPaths));
             Assert.False(options.AllowDocumentStylesheetLinks);
             using var document = WordDocument.Load(outputPath);
             var paragraph = Assert.Single(document.Paragraphs, paragraph => paragraph.Text == "Styled evidence");
-            Assert.Equal("112233", paragraph.ColorHex);
+            Assert.Equal(OfficeIMO.OfficeColor.Parse("112233"), paragraph.Color);
             var table = Assert.Single(document.Tables);
             Assert.Contains(table.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Preformatted evidence");
         } finally { Directory.Delete(root, true); }

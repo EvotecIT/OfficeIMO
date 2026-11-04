@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_IndexReferencesComposeWithRangeAndArrayConsumers(string caseId, string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = CreateLookupModeSheet(document);
-            sheet.CellFormula(1, 18, formula);
+            sheet.Cell(1, 18).SetFormula(formula);
             Assert.Equal(1, document.Calculate());
             AssertFormulaCache(sheet, 1, 18, expected);
             Assert.True(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO, caseId);
@@ -33,11 +33,11 @@ namespace OfficeIMO.Tests {
         public void FormulaEvaluator_IndexAreasOnDifferentSheetsReturnTypedValueErrors() {
             using var document = ExcelDocument.Create();
             var source = document.AddSheet("Data");
-            source.CellValue(1, 1, 10d);
+            source.Cell(1, 1).SetValue(10d);
             var report = document.AddSheet("Report");
-            report.CellValue(1, 1, 20d);
-            report.CellFormula(1, 4, "INDEX((Data!A1,Report!A1),1,1,2)");
-            report.CellFormula(2, 4, "IFERROR(SUM(INDEX((Data!A1,Report!A1),0,1,2)),99)");
+            report.Cell(1, 1).SetValue(20d);
+            report.Cell(1, 4).SetFormula("INDEX((Data!A1,Report!A1),1,1,2)");
+            report.Cell(2, 4).SetFormula("IFERROR(SUM(INDEX((Data!A1,Report!A1),0,1,2)),99)");
             report.SetArrayFormula("D4:D4", "INDEX((Data!A1,Report!A1),1,1,2)");
             Assert.Equal(3, document.Calculate());
             AssertFormulaCache(report, 1, 4, "#VALUE!");
@@ -52,14 +52,14 @@ namespace OfficeIMO.Tests {
             sheet.SetDynamicArrayFormula("R2", "INDEX(A1:B6,0,1)");
             sheet.SetArrayFormula("T2:U2", "INDEX(A1:B6,3,0)");
             sheet.SetDynamicArrayFormula("W2", "XLOOKUP(20,A1:A6,B1:C6)");
-            sheet.CellFormula(1, 18, "R7+T2");
-            sheet.CellFormula(1, 23, "X2&\"!\"");
+            sheet.Cell(1, 18).SetFormula("R7+T2");
+            sheet.Cell(1, 23).SetFormula("X2&\"!\"");
             Assert.Equal(5, document.Calculate());
             AssertFormulaCache(sheet, 1, 18, "70");
             AssertFormulaCache(sheet, 1, 23, "Alpine!");
-            Assert.Equal("last20", sheet.CellAt(2, 21).GetValue().Value);
-            sheet.CellValue(6, 1, 60d);
-            sheet.CellValue(2, 3, "Changed");
+            Assert.Equal("last20", sheet.Cell(2, 21).GetValue().Value);
+            sheet.Cell(6, 1).SetValue(60d);
+            sheet.Cell(2, 3).SetValue("Changed");
             Assert.Equal(5, document.Calculate());
             AssertFormulaCache(sheet, 1, 18, "80");
             AssertFormulaCache(sheet, 1, 23, "Changed!");

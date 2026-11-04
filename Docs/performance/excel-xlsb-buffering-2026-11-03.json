@@ -1,0 +1,2329 @@
+{
+  "date": "2026-11-03",
+  "baseline_source": "3bd89bcafe560aaa391ae0a6e41145b9cf427657",
+  "implementation_commits": [
+    "8b98201b4caf3f0c41b0bbb1aace907a9dd5be1c",
+    "231694d85e685e95bd7a1a9bd543e6c87783ee3c"
+  ],
+  "candidate_source_files": [
+    {
+      "path": "OfficeIMO.Excel.Benchmarks/ExcelBufferedXlsbWriteBenchmarks.cs",
+      "sha256": "d04011a0074635d72cf0f941a5aa5103b85751346bac5af85571b4952f9bdf7e"
+    },
+    {
+      "path": "OfficeIMO.Excel.Tests/Excel.InsertObjects.SelectorSnapshot.cs",
+      "sha256": "da8a354b5641006624ab07ab3d4e7a1ab19149d204fae3ebbdd78cb8e293d796"
+    },
+    {
+      "path": "OfficeIMO.Excel/ExcelDocument.DirectDataSet.TableModel.cs",
+      "sha256": "c764718f70c9e7d4065be650886810d867104179de915b68cb12d77fdf218274"
+    },
+    {
+      "path": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.Rows.cs",
+      "sha256": "23d9263119636a4e4763778680f1747badc633577ef877c93c0527efad0ce368"
+    },
+    {
+      "path": "OfficeIMO.Excel/ExcelSheet.ObjectInsertion.cs",
+      "sha256": "d1b3c6347da0d9390f1e216093519b195eafe0143a6af5feb45f512ffcef9dd7"
+    },
+    {
+      "path": "OfficeIMO.Excel/Xlsb/Write/XlsbDirectTabularPlan.BufferedCells.cs",
+      "sha256": "a0c12eaab666e894fa2590dc83883c52eaf31f85d4f92ddbce7e9a2089446872"
+    },
+    {
+      "path": "OfficeIMO.Excel/Xlsb/Write/XlsbDirectTabularPlan.cs",
+      "sha256": "b964a1b62ed4a71eb57847b58809a531a33b850be16bcddb15aa74c447b8746e"
+    }
+  ],
+  "assembly_metadata": "Measured candidate compiled before local commits, with 3bd89bcafe in informational metadata; file hashes bind it to the committed implementation. Both harness builds use identical benchmark sources; their binary hashes differ after compilation against changed implementation metadata.",
+  "host": {
+    "BenchmarkDotNetCaption": "BenchmarkDotNet",
+    "BenchmarkDotNetVersion": "0.15.8",
+    "OsVersion": "macOS 27.0.1 (26A434) [Darwin 27.0.0]",
+    "ProcessorName": "Apple M4",
+    "PhysicalProcessorCount": 1,
+    "PhysicalCoreCount": 10,
+    "LogicalCoreCount": 10,
+    "RuntimeVersion": ".NET 10.0.14 (10.0.14, 10.0.1426.52326)",
+    "Architecture": "Arm64",
+    "HasAttachedDebugger": false,
+    "HasRyuJit": true,
+    "Configuration": "RELEASE",
+    "DotNetCliVersion": "10.0.403",
+    "ChronometerFrequency": {
+      "Hertz": 1000000000
+    },
+    "HardwareTimerKind": "Unknown"
+  },
+  "host_policy": {
+    "placement": "Default OS scheduling across heterogeneous M4 cores; no affinity",
+    "priority": "Normal, priority elevation unavailable",
+    "AC_low_power_mode": 0,
+    "quiet_host_claim": false
+  },
+  "measurement": {
+    "rows": 50000,
+    "warmups": 8,
+    "measurements": 12,
+    "invocations": 16,
+    "unroll": 1,
+    "outliers": "DontRemove",
+    "toolchain": "InProcessEmitToolchain",
+    "stable_launch_order": [
+      "final-after-1",
+      "final-before-2",
+      "final-after-2"
+    ],
+    "comparison": "One baseline bracketed by two candidate launches; these are not two independent baseline pairs. Earlier controls and the inline-dispatch experiment are retained separately."
+  },
+  "packages": {
+    "BenchmarkDotNet": {
+      "version": "0.15.8",
+      "license": "MIT",
+      "role": "harness"
+    },
+    "ExcelReader.NET": {
+      "version": "7.3.4",
+      "license": "MIT",
+      "role": "comparison only"
+    },
+    "SpreadCheetah": {
+      "version": "1.28.0",
+      "license": "MIT",
+      "role": "comparison only"
+    },
+    "ExcelDataReader": {
+      "version": "3.9.0",
+      "license": "MIT",
+      "role": "output validation only"
+    }
+  },
+  "validation": "Every timed package passes strict OfficeIMO parsing and independent ExcelDataReader verification of every header, row and typed value. XLS also checks Index/DBCell structure. All operations include creation, row generation, serialization, finalization and complete byte[] output. Buffered-cell diagnostic compares OfficeIMO revisions only, separately from equivalent-work engine lanes.",
+  "assemblies": {
+    "baseline": [
+      {
+        "name": "OfficeIMO.Excel.dll",
+        "sha256": "bd94d8b86afbb167036ada219bd477a5201cee75b43fc0228e9d0a3d894fe229"
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "1c99e40a7d465ceee6b5d64af0dc4ab3ad4f8e43bef3167cfd4ddb91160a6449"
+      },
+      {
+        "name": "OfficeIMO.Excel.Benchmarks.dll",
+        "sha256": "cc3b7c097ebe22b8191db59d2466aa22d5c7523077c1c72a245d865059a019ee"
+      }
+    ],
+    "candidate": [
+      {
+        "name": "OfficeIMO.Excel.dll",
+        "sha256": "891b1ea34925a1c10a5993b339559cb116998e6d12011bf594a138498f1ea55b"
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "1c99e40a7d465ceee6b5d64af0dc4ab3ad4f8e43bef3167cfd4ddb91160a6449"
+      },
+      {
+        "name": "OfficeIMO.Excel.Benchmarks.dll",
+        "sha256": "7e56b2eb71b4983e7f51c499c991f8c77b1c43facd44bcf34f49e24ba4eed808"
+      }
+    ],
+    "inline_dispatch_experiment": [
+      {
+        "name": "OfficeIMO.Excel.dll",
+        "sha256": "d9f48f7125ef41c01474b8f385e997235b6282722b05aa8a88f5a1676c3374dd"
+      },
+      {
+        "name": "OfficeIMO.Core.dll",
+        "sha256": "1c99e40a7d465ceee6b5d64af0dc4ab3ad4f8e43bef3167cfd4ddb91160a6449"
+      },
+      {
+        "name": "OfficeIMO.Excel.Benchmarks.dll",
+        "sha256": "cc3b7c097ebe22b8191db59d2466aa22d5c7523077c1c72a245d865059a019ee"
+      }
+    ]
+  },
+  "stable_runs": {
+    "final-after-1": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 15.370777375,
+        "mean_ms": 15.399657578125,
+        "samples_ns_per_operation": [
+          15242958.375,
+          15575033.875,
+          15188630.1875,
+          15523494.8125,
+          15282320.3125,
+          15388049.5,
+          15746961,
+          15496914.0625,
+          15464531.3125,
+          15353505.25,
+          15300617.1875,
+          15232875.0625
+        ],
+        "memory": {
+          "Gen0Collections": 21,
+          "Gen1Collections": 10,
+          "Gen2Collections": 2,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 13355622
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 15.16532546875,
+        "mean_ms": 15.176621270833333,
+        "samples_ns_per_operation": [
+          15727656.187499998,
+          15423432.25,
+          14828343.75,
+          15157690.0625,
+          15374122.375,
+          14737528.625,
+          14690867.125,
+          15012492.125,
+          15404026,
+          15513091.125,
+          15077244.75,
+          15172960.875
+        ],
+        "memory": {
+          "Gen0Collections": 33,
+          "Gen1Collections": 17,
+          "Gen2Collections": 9,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 29612869
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 4.61150125,
+        "mean_ms": 5.1121495,
+        "samples_ns_per_operation": [
+          4784773.4375,
+          4590377.5625,
+          4526005.1875,
+          4531513,
+          4550739.5625,
+          4511317.6875,
+          4530604.1875,
+          4707966.125,
+          4632624.9375,
+          9403815.0625,
+          5935335.875,
+          4640721.375
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17905036
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 16.06913284375,
+        "mean_ms": 16.049778666666665,
+        "samples_ns_per_operation": [
+          15885078.125,
+          16245687.5,
+          16215984.375000002,
+          16141807.312500002,
+          15783083.374999998,
+          15802658.875,
+          16232109.375,
+          15996458.375,
+          16351856.812500002,
+          16296356.812499998,
+          15776937.562499998,
+          15869325.499999998
+        ],
+        "memory": {
+          "Gen0Collections": 24,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 15597285
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.515671875,
+        "mean_ms": 5.523165770833333,
+        "samples_ns_per_operation": [
+          5525726.5,
+          5523791.625,
+          5527848.9375,
+          5667562.5,
+          5527054.625,
+          5511846.3125,
+          5492205.6875,
+          5512994.8125,
+          5503718.75,
+          5470622.375,
+          5496268.1875,
+          5518348.9375
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257990
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 9.666665375,
+        "mean_ms": 9.689821208333335,
+        "samples_ns_per_operation": [
+          9665765.625,
+          9694445.3125,
+          9706760.4375,
+          9915007.875,
+          9687981.8125,
+          9651395.875,
+          9653020.875,
+          9699492.1875,
+          9653599,
+          9627049.5,
+          9655770.875,
+          9667565.125
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505952
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 7.959048125,
+        "mean_ms": 7.963987583333333,
+        "samples_ns_per_operation": [
+          7976721.3125,
+          7953523.374999999,
+          7961502.562499999,
+          7959325.5,
+          7958770.750000001,
+          8144718.687500001,
+          8007497.312499999,
+          7960721.312499999,
+          7922786.4375,
+          7936687.4375,
+          7890283.8125,
+          7895312.5
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445028
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 11.47858596875,
+        "mean_ms": 11.501000010416666,
+        "samples_ns_per_operation": [
+          11331062.5,
+          11377541.6875,
+          11428684.9375,
+          11643773.4375,
+          11414375,
+          11403130.1875,
+          11751020.8125,
+          11533940.125,
+          11557554.6875,
+          11624346.375,
+          11528487,
+          11418083.375
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ],
+    "final-before-2": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 17.398484375,
+        "mean_ms": 17.73102953125,
+        "samples_ns_per_operation": [
+          17450802.0625,
+          17451127.625,
+          17757716.1875,
+          17260179.6875,
+          17326270.875,
+          17231164.125,
+          16972518.25,
+          17272127.625,
+          21147184.875,
+          17959731.75,
+          17346166.6875,
+          17597364.625
+        ],
+        "memory": {
+          "Gen0Collections": 29,
+          "Gen1Collections": 14,
+          "Gen2Collections": 4,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16956524
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 16.282474,
+        "mean_ms": 16.489167333333334,
+        "samples_ns_per_operation": [
+          16264562.5625,
+          17202015.625,
+          15956799.5,
+          15970335.937499998,
+          16073317.749999998,
+          17431013,
+          16541500,
+          16342362.000000002,
+          17367474,
+          16263083.312500002,
+          16157158.875,
+          16300385.437500002
+        ],
+        "memory": {
+          "Gen0Collections": 32,
+          "Gen1Collections": 19,
+          "Gen2Collections": 10,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 30234785
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 4.4827773125,
+        "mean_ms": 4.537951583333333,
+        "samples_ns_per_operation": [
+          4801479.125,
+          4440510.375,
+          4472947.9375,
+          4484671.8125,
+          4444989.5625,
+          4573317.6875,
+          4579914,
+          4449682.25,
+          4698130.1875,
+          4480882.8125,
+          4590546.875,
+          4438346.375
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17905008
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 16.2147018125,
+        "mean_ms": 16.210566619791667,
+        "samples_ns_per_operation": [
+          16120680.96875,
+          16073037.781250002,
+          16065897.156249998,
+          16094751.28125,
+          16535470.03125,
+          16219782.531250002,
+          16093006.468750002,
+          16262191.406250002,
+          16345037.781249998,
+          16256834.65625,
+          16209621.093749998,
+          16250488.28125
+        ],
+        "memory": {
+          "Gen0Collections": 23,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16220088
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.39030340625,
+        "mean_ms": 5.390209223958333,
+        "samples_ns_per_operation": [
+          5420846.375,
+          5401723.9375,
+          5379166.6875,
+          5408791.6875,
+          5389976.625,
+          5387406.3125,
+          5390630.1875,
+          5382197.9375,
+          5391585.9375,
+          5376630.25,
+          5391169.3125,
+          5362385.4375
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257990
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 9.96902478125,
+        "mean_ms": 10.02481534375,
+        "samples_ns_per_operation": [
+          10377205.75,
+          10493984.375,
+          10561278.625,
+          10093945.375,
+          10137065.125,
+          9914208.375,
+          9943515.6875,
+          9669349,
+          9704661.4375,
+          9744489.625,
+          9994533.875,
+          9663546.875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505948
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 7.895450468749999,
+        "mean_ms": 7.895504322916667,
+        "samples_ns_per_operation": [
+          7916841.124999999,
+          7852703.124999999,
+          7832835.9375,
+          7929481.75,
+          7874502.5625,
+          7875953.125,
+          7955898.4375,
+          7929773.437499999,
+          7910398.374999999,
+          7880502.562499999,
+          7932726.562499999,
+          7854434.875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445028
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 11.20663409375,
+        "mean_ms": 11.207553807291665,
+        "samples_ns_per_operation": [
+          11156981.75,
+          11234007.8125,
+          11165481.75,
+          11263130.1875,
+          11244049.5,
+          11200440.125,
+          11202833.3125,
+          11219153.625,
+          11210434.875,
+          11185598.9375,
+          11219169.25,
+          11189364.5625
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ],
+    "final-after-2": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 15.0352109375,
+        "mean_ms": 15.1714364375,
+        "samples_ns_per_operation": [
+          14979872.4375,
+          16476682.3125,
+          14881828.1875,
+          15214734.4375,
+          14931890.625,
+          14799497.4375,
+          15455221.375,
+          15270091.125,
+          15040328.125,
+          14932112,
+          15044885.4375,
+          15030093.75
+        ],
+        "memory": {
+          "Gen0Collections": 21,
+          "Gen1Collections": 10,
+          "Gen2Collections": 2,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 13355398
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 15.0531575625,
+        "mean_ms": 15.048464182291665,
+        "samples_ns_per_operation": [
+          15146359.375,
+          14974989.5625,
+          14960322.875,
+          14861812.5,
+          14745562.4375,
+          15038718.75,
+          15158799.4375,
+          15047674.5,
+          15261362,
+          15058640.625,
+          15194067.6875,
+          15133260.4375
+        ],
+        "memory": {
+          "Gen0Collections": 33,
+          "Gen1Collections": 17,
+          "Gen2Collections": 9,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 29613016
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 4.3468333125,
+        "mean_ms": 4.346241734375,
+        "samples_ns_per_operation": [
+          4294278.625,
+          4412794.25,
+          4440989.5625,
+          4254960.9375,
+          4441166.625,
+          4246682.3125,
+          4285278.625,
+          4283367.125,
+          4421601.5625,
+          4399388,
+          4412471.3125,
+          4261921.875
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17905036
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 16.11953125,
+        "mean_ms": 16.083544927083334,
+        "samples_ns_per_operation": [
+          15644345.03125,
+          16141608.09375,
+          15753183.593750002,
+          16115115.906249998,
+          15898972.65625,
+          16178420.59375,
+          16123946.593750002,
+          16032024.71875,
+          16233371.093750002,
+          16365847.656249998,
+          16071360.71875,
+          16444342.468749998
+        ],
+        "memory": {
+          "Gen0Collections": 24,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 15597060
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.40324609375,
+        "mean_ms": 5.407230255208333,
+        "samples_ns_per_operation": [
+          5383947.9375,
+          5442104.1875,
+          5394250,
+          5450625,
+          5389934.875,
+          5424356.75,
+          5378265.625,
+          5404598.9375,
+          5393192.75,
+          5418710.9375,
+          5404882.8125,
+          5401893.25
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257990
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 9.6580234375,
+        "mean_ms": 9.667735026041665,
+        "samples_ns_per_operation": [
+          9635694.03125,
+          9653824.21875,
+          9618782.53125,
+          9622845.03125,
+          9612256.53125,
+          9751683.59375,
+          9733696.65625,
+          9636949.21875,
+          9689915.34375,
+          9717324.21875,
+          9662222.65625,
+          9677626.28125
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505944
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 7.880794249999999,
+        "mean_ms": 7.9055093125,
+        "samples_ns_per_operation": [
+          7875848.937499999,
+          7968966.124999999,
+          7859455.6875,
+          7850244.749999999,
+          7849502.5625,
+          8030114.5625,
+          8040387.999999999,
+          7849205.75,
+          7885739.562499999,
+          7851835.9375,
+          7905677.0625,
+          7899132.8125
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445028
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 11.437533875,
+        "mean_ms": 11.492615244791667,
+        "samples_ns_per_operation": [
+          11434533.875,
+          11355481.75,
+          12067627.625,
+          11515612,
+          11440533.875,
+          11380424.5,
+          11383205.75,
+          11288401.0625,
+          11427263,
+          11483674.5,
+          11520690.125,
+          11613934.875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ]
+  },
+  "earlier_runs": {
+    "before-1": [
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 16.68202865625,
+        "mean_ms": 16.779490880208332,
+        "samples_ns_per_operation": [
+          17324720.03125,
+          17337980.46875,
+          17408045.59375,
+          17281584.59375,
+          16821441.40625,
+          16437329.40625,
+          16542615.90625,
+          16198295.59375,
+          16287082.031250002,
+          16471993.468749998,
+          16346308.593750002,
+          16896493.46875
+        ],
+        "memory": {
+          "Gen0Collections": 34,
+          "Gen1Collections": 20,
+          "Gen2Collections": 11,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 30234610
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 4.39194009375,
+        "mean_ms": 4.40421703125,
+        "samples_ns_per_operation": [
+          4442494.8125,
+          4530429.75,
+          4372117.1875,
+          4360885.4375,
+          4454127.625,
+          4502619.8125,
+          4275377.625,
+          4252237,
+          4346161.5,
+          4348544.25,
+          4553846.375,
+          4411763
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17904861
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 16.41285028125,
+        "mean_ms": 16.705820979166667,
+        "samples_ns_per_operation": [
+          16288651.062499998,
+          16337747.374999998,
+          16339927.125,
+          16358575.5625,
+          16493651.062499998,
+          16286098.9375,
+          16467125.000000002,
+          16269609.375,
+          16691135.4375,
+          18707192.75,
+          17052187.5,
+          17177950.5625
+        ],
+        "memory": {
+          "Gen0Collections": 23,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16219639
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.63762371875,
+        "mean_ms": 5.891628703125,
+        "samples_ns_per_operation": [
+          7117390.625,
+          5620875,
+          5637851.5625,
+          7194195.3125,
+          5627940.125,
+          5657658.875,
+          5628187.5,
+          5628528.625,
+          5645612,
+          5667455.75,
+          5636453.1875,
+          5637395.875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257930
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 9.74612890625,
+        "mean_ms": 9.756787348958333,
+        "samples_ns_per_operation": [
+          9826838.5625,
+          9820760.4375,
+          9786153.6875,
+          9710932.3125,
+          9726869.8125,
+          9787109.4375,
+          9703979.1875,
+          9750531.25,
+          9716783.875,
+          9736338.5625,
+          9741726.5625,
+          9773424.5
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505952
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 8.77300784375,
+        "mean_ms": 8.651670817708334,
+        "samples_ns_per_operation": [
+          8753164.0625,
+          9121312.5625,
+          8819216.1875,
+          8808083.3125,
+          8798997.4375,
+          8978989.625,
+          8792851.625,
+          8445627.625,
+          8393549.5,
+          8298018.25,
+          8330546.875,
+          8279692.75
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445028
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 11.215849,
+        "mean_ms": 11.475746109375,
+        "samples_ns_per_operation": [
+          11142618.5,
+          11221686.1875,
+          11205915.375,
+          14398925.75,
+          11265717.4375,
+          11195511.75,
+          11162332.0625,
+          11277845.0625,
+          11215355.5,
+          11183839.875,
+          11216342.5,
+          11222863.3125
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ],
+    "trial": [
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 15.34705209375,
+        "mean_ms": 15.28221746875,
+        "samples_ns_per_operation": [
+          15642515.625000002,
+          15906174.5,
+          15766575.5,
+          15671174.500000002,
+          15945104.187499998,
+          15730390.624999998,
+          15051588.5625,
+          14846114.625,
+          14746830.75,
+          14700778.6875,
+          14722463.5625,
+          14656898.5
+        ],
+        "memory": {
+          "Gen0Collections": 34,
+          "Gen1Collections": 18,
+          "Gen2Collections": 13,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 29612416
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 4.7046015625,
+        "mean_ms": 4.713312078125,
+        "samples_ns_per_operation": [
+          4733445.3125,
+          4836257.875,
+          4765434.875,
+          4693408.875,
+          4628375,
+          4840078.125,
+          4859835.9375,
+          4675981.8125,
+          4557054.6875,
+          4670135.4375,
+          4583942.75,
+          4715794.25
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17905114
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 14.93235159375,
+        "mean_ms": 14.944438390625,
+        "samples_ns_per_operation": [
+          14764140.625,
+          14724276.0625,
+          15087757.8125,
+          14578992.25,
+          15036419.3125,
+          14587570.3125,
+          14828283.875,
+          15222802.125,
+          15138239.625,
+          14629505.25,
+          15042273.4375,
+          15693000.000000002
+        ],
+        "memory": {
+          "Gen0Collections": 23,
+          "Gen1Collections": 12,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 15597228
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.56454815625,
+        "mean_ms": 5.566922286458333,
+        "samples_ns_per_operation": [
+          5578841.125,
+          5622270.8125,
+          5543955.75,
+          5600171.8125,
+          5565033.8125,
+          5564062.5,
+          5551098.9375,
+          5537341.125,
+          5572945.3125,
+          5576695.3125,
+          5558697.875,
+          5531953.0625
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257948
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 9.6742578125,
+        "mean_ms": 9.678410395833334,
+        "samples_ns_per_operation": [
+          9731651.0625,
+          9671856.8125,
+          9663604.1875,
+          9669122.4375,
+          9675218.75,
+          9673296.875,
+          9633041.6875,
+          9723976.5625,
+          9629994.8125,
+          9705453.125,
+          9676414.125,
+          9687294.3125
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505952
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 7.837027375,
+        "mean_ms": 8.030872859375,
+        "samples_ns_per_operation": [
+          7816236.999999999,
+          7853523.4375,
+          7845932.312500001,
+          7813789.062500001,
+          7828122.4375,
+          7785119.8125,
+          7822468.812499999,
+          7786388.0625,
+          7955979.187500001,
+          9476023.5,
+          8184559.937499999,
+          8202330.749999999
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445028
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 11.294582,
+        "mean_ms": 11.304193338541666,
+        "samples_ns_per_operation": [
+          11403395.8125,
+          11317953.0625,
+          11309875,
+          11294088.5,
+          11273484.375,
+          11344817.6875,
+          11291880.1875,
+          11295075.5,
+          11266518.1875,
+          11281515.625,
+          11251054.6875,
+          11320661.4375
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ],
+    "control-1": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 19.87660546875,
+        "mean_ms": 19.843412973958333,
+        "samples_ns_per_operation": [
+          20053216.125,
+          19749838.5625,
+          19237487,
+          19806718.75,
+          18854973.9375,
+          19551773.4375,
+          19208296.875,
+          20623203.125,
+          20771184.875,
+          20158697.875,
+          19946492.1875,
+          20159072.9375
+        ],
+        "memory": {
+          "Gen0Collections": 29,
+          "Gen1Collections": 14,
+          "Gen2Collections": 4,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16956563
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 22.50995575,
+        "mean_ms": 22.88962088541667,
+        "samples_ns_per_operation": [
+          23900984.375,
+          24656578.125,
+          21757786.4375,
+          23642200.5,
+          22434789.0625,
+          23455085.9375,
+          25095349,
+          20664583.375,
+          22585122.4375,
+          22340333.375,
+          22196966.125,
+          21945671.875
+        ],
+        "memory": {
+          "Gen0Collections": 35,
+          "Gen1Collections": 23,
+          "Gen2Collections": 12,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 30235731
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 6.73061846875,
+        "mean_ms": 6.60907725,
+        "samples_ns_per_operation": [
+          6597580.6875,
+          5998138,
+          6863656.25,
+          8681653.6875,
+          7797544.25,
+          5180601.5625,
+          5398523.4375,
+          6896406.25,
+          6999369.75,
+          5496562.5,
+          6018169.25,
+          7380721.375
+        ],
+        "memory": {
+          "Gen0Collections": 18,
+          "Gen1Collections": 7,
+          "Gen2Collections": 6,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17905076
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 18.63161065625,
+        "mean_ms": 19.133538625,
+        "samples_ns_per_operation": [
+          22436773.4375,
+          18128570.3125,
+          22393494.75,
+          18860679.6875,
+          18341476.5625,
+          18501713.5,
+          18456851.5625,
+          18996729.1875,
+          19072497.375,
+          17701934.9375,
+          17950234.375,
+          18761507.8125
+        ],
+        "memory": {
+          "Gen0Collections": 23,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16219428
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.7687044375,
+        "mean_ms": 5.888565765625,
+        "samples_ns_per_operation": [
+          5784812.5,
+          5739645.8125,
+          6440325.5625,
+          5702578.125,
+          5732458.375,
+          6071752.625,
+          5758877.625,
+          6096750,
+          5778531.25,
+          5741190.0625,
+          5720869.8125,
+          6094997.4375
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257532
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 15.93753909375,
+        "mean_ms": 16.069890848958334,
+        "samples_ns_per_operation": [
+          18257355.46875,
+          14876321.59375,
+          16327660.15625,
+          13578696.65625,
+          15460167.96875,
+          14666535.15625,
+          15781334.65625,
+          17679785.15625,
+          15071837.21875,
+          16093743.53125,
+          16674805.968749998,
+          18370446.65625
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505918
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 8.742352875,
+        "mean_ms": 8.716885411458334,
+        "samples_ns_per_operation": [
+          9378082.03125,
+          9051756.46875,
+          9032389.34375,
+          9300618.46875,
+          9037295.59375,
+          8318410.15625,
+          8213964.84375,
+          8230084.59375,
+          8851220.09375,
+          8633485.65625,
+          8209277.343749999,
+          8346040.343750001
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9444986
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 12.10066015625,
+        "mean_ms": 12.224990875,
+        "samples_ns_per_operation": [
+          12092899.75,
+          11737675.75,
+          12866761.6875,
+          13241998.6875,
+          11895084.625,
+          11679954.4375,
+          11708785.125,
+          12108420.5625,
+          12382061.1875,
+          12475087.25,
+          12019446.5625,
+          12491714.875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ],
+    "after-1": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 16.94134896875,
+        "mean_ms": 18.211113953125,
+        "samples_ns_per_operation": [
+          16415049.499999998,
+          16810690.125,
+          24304367.25,
+          19440786.5,
+          16624846.375,
+          21735559.875,
+          16767588.5625,
+          18687822.9375,
+          17062578.125,
+          17053786.5,
+          16828911.4375,
+          16801380.25
+        ],
+        "memory": {
+          "Gen0Collections": 21,
+          "Gen1Collections": 10,
+          "Gen2Collections": 2,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 13356486
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 21.2115143125,
+        "mean_ms": 21.855639302083333,
+        "samples_ns_per_operation": [
+          17721893.25,
+          21433223.9375,
+          18325523.4375,
+          18183531.1875,
+          24359656.1875,
+          20989804.6875,
+          25426992.125,
+          23661182.25,
+          20747640.625,
+          26062479.1875,
+          20230294.25,
+          25125450.5
+        ],
+        "memory": {
+          "Gen0Collections": 33,
+          "Gen1Collections": 18,
+          "Gen2Collections": 10,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 29613052
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 6.80320446875,
+        "mean_ms": 7.37003321875,
+        "samples_ns_per_operation": [
+          11486540.34375,
+          7786891.90625,
+          7692324.21875,
+          8336201.84375,
+          5469095.09375,
+          6096339.90625,
+          10988686.21875,
+          6784743.53125,
+          5953727.84375,
+          6821665.40625,
+          5579220.09375,
+          5444962.21875
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17905738
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 19.52243621875,
+        "mean_ms": 19.557011296875,
+        "samples_ns_per_operation": [
+          18862666.71875,
+          20409257.78125,
+          19457515.65625,
+          19498861.96875,
+          19086911.46875,
+          19582981.78125,
+          19851742.15625,
+          20575088.53125,
+          19009398.46875,
+          19790072.90625,
+          19013627.65625,
+          19546010.46875
+        ],
+        "memory": {
+          "Gen0Collections": 24,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 15597207
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.66229296875,
+        "mean_ms": 5.686245223958333,
+        "samples_ns_per_operation": [
+          5678579.40625,
+          5659917.96875,
+          5613714.84375,
+          5638722.65625,
+          5647290.34375,
+          5664667.96875,
+          5667550.78125,
+          5672220.09375,
+          5647251.28125,
+          6011759.09375,
+          5676509.15625,
+          5656759.09375
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257910
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 17.2024284375,
+        "mean_ms": 17.125844229166667,
+        "samples_ns_per_operation": [
+          18007416.6875,
+          18824648.4375,
+          16129130.25,
+          15631515.6875,
+          15899468.8125,
+          18256515.6875,
+          18319927.125,
+          18309817.75,
+          15980044.3125,
+          17442000.0625,
+          16962856.8125,
+          15746789.125
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505786
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 8.30836196875,
+        "mean_ms": 8.383445083333333,
+        "samples_ns_per_operation": [
+          8270734.375000001,
+          8242231.75,
+          8288640.625,
+          8596984.375,
+          8386432.25,
+          8199294.25,
+          8328083.312500001,
+          8576609.375,
+          8865098.9375,
+          8342039.0625,
+          8256640.625,
+          8248552.0625
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445010
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 11.955015625,
+        "mean_ms": 12.009860026041666,
+        "samples_ns_per_operation": [
+          11918359.375,
+          11717487,
+          11598335.9375,
+          11991671.875,
+          11620515.625,
+          12168875,
+          12517966.125,
+          12176546.875,
+          12100328.125,
+          12719833.3125,
+          11782869.8125,
+          11805531.25
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11675869
+        }
+      }
+    ],
+    "control-2": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 20.09865234375,
+        "mean_ms": 20.17539734895833,
+        "samples_ns_per_operation": [
+          21287652.34375,
+          19339316.40625,
+          20161014.34375,
+          19993847.65625,
+          20799928.40625,
+          21067191.40625,
+          18921011.71875,
+          20293131.46875,
+          19758608.03125,
+          20036290.34375,
+          20840832.03125,
+          19605944.03125
+        ],
+        "memory": {
+          "Gen0Collections": 29,
+          "Gen1Collections": 14,
+          "Gen2Collections": 4,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16956569
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 23.16524215625,
+        "mean_ms": 23.638904916666668,
+        "samples_ns_per_operation": [
+          20373407.5625,
+          23319636.6875,
+          23211832,
+          22606662.6875,
+          23439404.9375,
+          29847292.9375,
+          22161701.8125,
+          23824644.5,
+          23118652.3125,
+          26759259.0625,
+          22817680.9375,
+          22186683.5625
+        ],
+        "memory": {
+          "Gen0Collections": 36,
+          "Gen1Collections": 23,
+          "Gen2Collections": 13,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 30237016
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 7.32636328125,
+        "mean_ms": 7.435719848958333,
+        "samples_ns_per_operation": [
+          6394286.46875,
+          8368179.71875,
+          10000278.65625,
+          7527877.65625,
+          8408111.96875,
+          7149908.84375,
+          8712276.09375,
+          6437625.03125,
+          6955945.34375,
+          6077617.15625,
+          5693713.53125,
+          7502817.71875
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17904854
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 18.37583075,
+        "mean_ms": 20.14061505729167,
+        "samples_ns_per_operation": [
+          18632356.8125,
+          18253643.25,
+          18976705.75,
+          17672234.4375,
+          18088947.9375,
+          18215567.75,
+          18047875.0625,
+          18498018.25,
+          20141559.9375,
+          28451664.125,
+          28785054.75,
+          17923752.625
+        ],
+        "memory": {
+          "Gen0Collections": 23,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 16219662
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.69443878125,
+        "mean_ms": 5.743380640625,
+        "samples_ns_per_operation": [
+          5699742.1875,
+          5675411.4375,
+          5722403.625,
+          5658432.3125,
+          5690229.1875,
+          6265164.0625,
+          5701286.5,
+          5693414.0625,
+          5749041.625,
+          5695463.5,
+          5680015.625,
+          5689963.5625
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257888
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 15.44259109375,
+        "mean_ms": 15.079887567708335,
+        "samples_ns_per_operation": [
+          13907865.90625,
+          15807899.718749998,
+          15829209.593749998,
+          12603858.09375,
+          15087855.40625,
+          15797326.78125,
+          13538769.46875,
+          14559076.78125,
+          12847027.34375,
+          18137621.09375,
+          16975720.03125,
+          15866420.593750002
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505876
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 8.50647528125,
+        "mean_ms": 8.582753291666666,
+        "samples_ns_per_operation": [
+          8932427.125,
+          8792125,
+          8515669.3125,
+          8497281.25,
+          8460177.125,
+          8786320.375,
+          8399421.9375,
+          8414351.5625,
+          8799221.375,
+          8419773.5,
+          8460591.1875,
+          8515679.75
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9445028
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 12.80291146875,
+        "mean_ms": 12.88932246875,
+        "samples_ns_per_operation": [
+          12450941.375,
+          13247436.1875,
+          12448628.875,
+          12856558.625,
+          12938475.25,
+          12468483.0625,
+          13626850.25,
+          13075053.375,
+          12717016.875,
+          12749264.3125,
+          12609529.9375,
+          13483631.5
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676040
+        }
+      }
+    ],
+    "after-2": [
+      {
+        "type": "ExcelBufferedXlsbWriteBenchmarks",
+        "method": "Write",
+        "parameters": "RowCount=50000",
+        "median_ms": 17.36079296875,
+        "mean_ms": 17.50312694270833,
+        "samples_ns_per_operation": [
+          19605781.25,
+          17442489.5625,
+          17837122.375,
+          17180476.5625,
+          18030401,
+          17408572.875,
+          17313013.0625,
+          17104500,
+          17827348.9375,
+          16565661.4375,
+          17080067.6875,
+          16642088.5625
+        ],
+        "memory": {
+          "Gen0Collections": 21,
+          "Gen1Collections": 10,
+          "Gen2Collections": 2,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 13355813
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 18.355346375,
+        "mean_ms": 18.474762385416668,
+        "samples_ns_per_operation": [
+          17913354.1875,
+          18398828.125,
+          18750033.875,
+          18936776.0625,
+          18734700.5625,
+          18384906.25,
+          18169182.3125,
+          18325786.5,
+          17468846.375,
+          17647007.8125,
+          20972578.125,
+          17995148.4375
+        ],
+        "memory": {
+          "Gen0Collections": 34,
+          "Gen1Collections": 18,
+          "Gen2Collections": 9,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 29611344
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xls&RowCount=50000",
+        "median_ms": 6.48042578125,
+        "mean_ms": 6.664322270833333,
+        "samples_ns_per_operation": [
+          6101152.34375,
+          7713993.53125,
+          6060274.71875,
+          5858110.65625,
+          6635542.96875,
+          7296647.09375,
+          5821167.96875,
+          6320225.28125,
+          7635233.09375,
+          6325308.59375,
+          6943704.46875,
+          7260506.53125
+        ],
+        "memory": {
+          "Gen0Collections": 19,
+          "Gen1Collections": 7,
+          "Gen2Collections": 7,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 17904834
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 19.626152375,
+        "mean_ms": 19.619150421875,
+        "samples_ns_per_operation": [
+          19700817.71875,
+          19442601.59375,
+          19551487.03125,
+          19167632.84375,
+          18600236.96875,
+          20236848.96875,
+          19812531.28125,
+          19836510.46875,
+          20395539.09375,
+          20396682.34375,
+          19137273.46875,
+          19151643.28125
+        ],
+        "memory": {
+          "Gen0Collections": 24,
+          "Gen1Collections": 13,
+          "Gen2Collections": 5,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 15597044
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "Format=Xlsb&RowCount=50000",
+        "median_ms": 5.72535290625,
+        "mean_ms": 5.722250677083333,
+        "samples_ns_per_operation": [
+          5729372.4375,
+          5737320.375,
+          5729296.9375,
+          5733184.875,
+          5721408.875,
+          5737143.25,
+          5672734.4375,
+          5718432.3125,
+          5720518.25,
+          5729408.875,
+          5718973.9375,
+          5719213.5625
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9257930
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "OfficeIMO",
+        "parameters": "",
+        "median_ms": 14.80150128125,
+        "mean_ms": 14.630372145833334,
+        "samples_ns_per_operation": [
+          15945355.437500002,
+          15429667.9375,
+          13507123.625,
+          14953735.6875,
+          15018798.1875,
+          13765527.3125,
+          17332292.9375,
+          14078623.6875,
+          16767446.562500002,
+          12033126.25,
+          14649266.875,
+          12083501.25
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9505916
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "ExcelReaderNet",
+        "parameters": "",
+        "median_ms": 8.48622784375,
+        "mean_ms": 8.585602635416667,
+        "samples_ns_per_operation": [
+          8321531.187500001,
+          8698237,
+          8523536.4375,
+          8609335.9375,
+          8284046.875,
+          8391494.8125,
+          8772429.6875,
+          8448919.25,
+          8412083.3125,
+          9346947.875,
+          8923997.375,
+          8294671.875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 9444944
+        }
+      },
+      {
+        "type": "ExcelReaderGeneratedXlsxWriteBenchmarks",
+        "method": "SpreadCheetah",
+        "parameters": "",
+        "median_ms": 12.16265753125,
+        "mean_ms": 12.574102630208333,
+        "samples_ns_per_operation": [
+          11769199.15625,
+          12607561.21875,
+          11734503.84375,
+          12382389.34375,
+          17201472.65625,
+          12165733.03125,
+          11846639.28125,
+          12159582.03125,
+          12173535.09375,
+          12026123.71875,
+          13020592.46875,
+          11801899.71875
+        ],
+        "memory": {
+          "Gen0Collections": 12,
+          "Gen1Collections": 0,
+          "Gen2Collections": 0,
+          "TotalOperations": 16,
+          "BytesAllocatedPerOperation": 11676058
+        }
+      }
+    ]
+  },
+  "earlier_run_interpretation": {
+    "trial": "Owned source snapshot only.",
+    "after-1 and after-2": "Typed capture dispatched inside the large object-row method. This layout is superseded after selector timing differences.",
+    "control-1 and control-2": "Baseline engine with the added public buffered-cell diagnostic."
+  },
+  "profile": {
+    "workload": "Only XLSB OfficeIMO generated selector writer; one case, 2 warmups, 4 measurements, 128 invocations; sampled-thread-time and verbose GC. Diagnostic samples are not the reported timing results.",
+    "exclusive_sample_counts": {
+      "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheet.CreateExplicitObjectExportCellValues(class System.Collections.Generic.IReadOnlyList`1<!!0>,class System.Collections.Generic.IReadOnlyList`1<class System.Func`2<!!0,class System.Object>>,class System.Type[]&)": 1995,
+      "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks+<>c.<WriteOfficeIMO>b__32_3(class GeneratedRecord)": 1849,
+      "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheet.MaterializeObjectRowsBounded(class System.Collections.Generic.IEnumerable`1<!!0>,bool,int32,value class System.Threading.CancellationToken)": 1437,
+      "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks+<>c.<WriteOfficeIMO>b__32_4(class GeneratedRecord)": 1114,
+      "System.Private.CoreLib!System.Number.UInt32ToDecStr_NoSmallNumberCheck(unsigned int32)": 779,
+      "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks+<>c.<WriteOfficeIMO>b__32_2(class GeneratedRecord)": 739,
+      "System.Private.CoreLib!System.IO.MemoryStream.set_Capacity(int32)": 572,
+      "System.Private.CoreLib!System.Collections.Generic.List`1[System.__Canon].AddWithResize(!0)": 486,
+      "?!?": 442,
+      "System.Private.CoreLib!System.Threading.Thread.<PollGC>g__PollGCWorker|67_0()": 229,
+      "System.Private.CoreLib!System.GC.<AllocateUninitializedArray>g__AllocateNewArrayWorker|77_0(int32,bool)": 162,
+      "System.IO.Compression!System.IO.Compression.ZipArchiveEntry+DirectToArchiveWriterStream.Write(unsigned int8[],int32,int32)": 158,
+      "System.Private.CoreLib!System.Collections.Generic.List`1[System.__Canon].set_Capacity(int32)": 146,
+      "OfficeIMO.Excel!OfficeIMO.Excel.Xlsb.Write.XlsbDirectTabularPlan.TryCreate(value class OfficeIMO.Excel.ExcelDateSystem,class OfficeIMO.Excel.ExcelSheet,class OfficeIMO.Excel.ExcelDirectTabularSource,class OfficeIMO.Excel.Xlsb.Write.XlsbSharedStringTable,value class System.Threading.CancellationToken,class OfficeIMO.Excel.Xlsb.Write.XlsbDirectTabularPlan&)": 130,
+      "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks.CreateRecord(int32)": 91,
+      "System.Private.Xml!System.Xml.XmlEncodedRawTextWriter..ctor(class System.IO.TextWriter,class System.Xml.XmlWriterSettings)": 88,
+      "System.IO.Compression!System.IO.Compression.CheckSumAndSizeWriteStream.Write(unsigned int8[],int32,int32)": 77,
+      "System.Private.Xml!System.Xml.XmlUtf8RawTextWriter..ctor(class System.IO.Stream,class System.Xml.XmlWriterSettings)": 74,
+      "System.Private.Xml!System.Xml.XmlTextReaderImpl.InitStreamInput(class System.Uri,class System.String,class System.IO.Stream,unsigned int8[],int32,class System.Text.Encoding)": 71,
+      "System.Private.CoreLib!System.RuntimeTypeHandle.<InternalAllocNoChecks>g__InternalAllocNoChecksWorker|37_0(value class System.Runtime.CompilerServices.MethodTable*)": 51,
+      "System.Private.CoreLib!System.Runtime.CompilerServices.CastHelpers.IsInstanceOfClass(void*,class System.Object)": 32,
+      "System.Private.CoreLib!System.String.Concat(class System.String,class System.String)": 20,
+      "System.Private.CoreLib!System.RuntimeType.InitializeCache()": 19,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.Schema.ParticleCollection.Clear()": 19,
+      "System.Private.Xml!System.Xml.XmlTextReaderImpl.InitTextReaderInput(class System.String,class System.Uri,class System.IO.TextReader)": 18,
+      "System.Private.Xml!System.Xml.XmlWellFormedWriter..ctor(class System.Xml.XmlWriter,class System.Xml.XmlWriterSettings)": 15,
+      "OfficeIMO.Excel!OfficeIMO.Excel.ExcelDirectTabularValue.Normalize(class System.Object,bool)": 15,
+      "System.Private.CoreLib!System.Int32.ToString(class System.IFormatProvider)": 13,
+      "System.Private.Xml!System.Xml.XmlWriterSettings.CreateWriter(class System.IO.TextWriter)": 13,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.ParticleExtensions.Get(class DocumentFormat.OpenXml.Framework.CompiledParticle,class DocumentFormat.OpenXml.OpenXmlCompositeElement,value class DocumentFormat.OpenXml.Framework.OpenXmlSchemaType)": 12,
+      "System.Private.Xml!System.Xml.XmlTextReaderImpl.AllocNode(int32,int32)": 10,
+      "System.Private.CoreLib!System.ModuleHandle.GetModuleType(class System.Reflection.RuntimeModule)": 10,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.OpenXmlElement.CreateFeatures()": 10,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.Metadata.ElementFactoryCollection.Create(value class DocumentFormat.OpenXml.Framework.OpenXmlQualifiedName&)": 10,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.CompiledParticle.Find(class DocumentFormat.OpenXml.OpenXmlElement)": 10,
+      "System.Private.CoreLib!System.SpanHelpers.Memmove(unsigned int8&,unsigned int8&,unsigned int)": 9,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.Schema.ParticleCollection+OpenXmlCompositeElementEnumerator.Advance()": 9,
+      "System.Private.Xml!System.Xml.XmlWriterSettings.CreateWriter(class System.IO.Stream)": 9,
+      "OfficeIMO.Excel.Benchmarks!OfficeIMO.Excel.Benchmarks.ExcelReaderGeneratedBenchmarks+<>c.<WriteOfficeIMO>b__32_1(class GeneratedRecord)": 7,
+      "OfficeIMO.Excel!OfficeIMO.Excel.ExcelDateSystemConverter.ToSerial(value class System.DateTime,value class OfficeIMO.Excel.ExcelDateSystem)": 7,
+      "System.Private.CoreLib!System.Text.StringBuilder.ExpandByABlock(int32)": 7,
+      "OfficeIMO.Excel!OfficeIMO.Excel.ExcelDirectTabularValue.NumberValue(float64)": 7,
+      "OfficeIMO.Excel!OfficeIMO.Excel.ExcelSheet.InsertObjects(class System.Collections.Generic.IEnumerable`1<!!0>,bool,int32,value class System.ValueTuple`2<class System.String,class System.Func`2<!!0,class System.Object>>[])": 7,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.Schema.ParticleCollection+OpenXmlCompositeElementEnumerator.MoveNext()": 7,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.Schema.ParticleCollection.GetNode()": 7,
+      "System.Private.CoreLib!System.Text.StringBuilder.ToString()": 6,
+      "System.Private.CoreLib!System.String.Ctor(wchar[],int32,int32)": 6,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.UInt32Value.FromUInt32(unsigned int32)": 5,
+      "System.Private.CoreLib!System.Guid.NewGuid()": 5,
+      "System.IO.Compression!System.IO.Compression.ZLibNative+ZLibStreamHandle.DeflateInit2_(value class CompressionLevel,int32,int32,value class CompressionStrategy)": 5,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.Framework.CompiledParticle.Find(value class System.Nullable`1<value class DocumentFormat.OpenXml.Framework.OpenXmlSchemaType>)": 5,
+      "System.Private.CoreLib!System.String.Ctor(value class System.ReadOnlySpan`1<wchar>)": 5,
+      "OfficeIMO.Excel!OfficeIMO.Excel.Xlsb.Write.XlsbDirectRecordWriter.Flush()": 5,
+      "System.Private.Xml!System.Xml.NameTable.AddEntry(class System.String,int32)": 4,
+      "System.Linq!System.Linq.Enumerable.OfType(class System.Collections.IEnumerable)": 4,
+      "System.Private.CoreLib!System.RuntimeType.CreateInstanceOfT()": 4,
+      "System.Private.CoreLib!System.Text.StringBuilder..ctor(class System.String,int32,int32,int32)": 4,
+      "System.Private.CoreLib!System.Runtime.CompilerServices.CastHelpers.Box(value class System.Runtime.CompilerServices.MethodTable*,unsigned int8&)": 3,
+      "System.Private.CoreLib!System.Array.Copy(class System.Array,class System.Array,int32)": 3,
+      "DocumentFormat.OpenXml.Framework!DocumentFormat.OpenXml.OpenXmlElement.get_RawState()": 3
+    }
+  },
+  "compatibility": {
+    "API": "Unchanged",
+    "frameworks": [
+      "netstandard2.0",
+      "net8.0",
+      "net10.0",
+      "net472"
+    ],
+    "runtime_dependencies": "Unchanged",
+    "enumeration_and_selectors": "Enumeration completes and disposes before row-major selector invocation. Selectors run before WriteData returns; values remain captured for saves. Indexed caller-owned sources retain per-selector reads.",
+    "native_snapshot": "All typed cells are validated and copied before destination writes; no source buffer is borrowed during emission."
+  },
+  "verification": {
+    "focused-dispatch": {
+      "framework": "net10.0",
+      "counters": {
+        "total": "318",
+        "executed": "318",
+        "passed": "318",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "939cbda81856490572af20408b2f50f4123df37bd6c658869ba751378178cc9c"
+    },
+    "baseline-contract": {
+      "framework": "net10.0",
+      "counters": {
+        "total": "1",
+        "executed": "1",
+        "passed": "1",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "b7ebcee78097127292cc60e5c80aca2bb6c4eb0f3556f35394e46024d25e97db"
+    },
+    "excel-final": {
+      "framework": "net10.0",
+      "counters": {
+        "total": "7757",
+        "executed": "7752",
+        "passed": "7752",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "3f1db45c135db374c22390711e2fe8d041c9e31c178dfd0d71371829c2fe8afc"
+    },
+    "csv-final": {
+      "framework": "net10.0",
+      "counters": {
+        "total": "938",
+        "executed": "938",
+        "passed": "938",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "trx_sha256": "fbc4ab47de5cfabcb6ecbc537167609552328d2f8dd78c22b762fcaf97a87401"
+    },
+    "frameworks": {
+      "netstandard2.0": "Passed, zero warnings/errors",
+      "net8.0": "Passed, zero warnings/errors",
+      "net10.0": "Passed, zero warnings/errors",
+      "net472": "Passed, zero warnings/errors"
+    },
+    "AOT": {
+      "target": "net10.0/osx-arm64",
+      "publish": "Passed",
+      "smoke": [
+        "PASS | Constructor-bound worksheet and table records retain values and native schemas",
+        "PASS | Excel DataReader, typed, and generic-only dictionary tables create, save, and reload"
+      ],
+      "binary_sha256": "75333b07cb4f5649f7462903914428b4cfed846163316fcc847f9db86ae0d2d9"
+    },
+    "review": {
+      "mode": "One independent fresh-context read-only review",
+      "findings": [],
+      "scope_base": "3bd89bcafe",
+      "boundary": "current",
+      "confirmation_needed": false,
+      "new_public_API_or_runtime_dependency": false
+    },
+    "limits": [
+      "Normal M4 scheduling; earlier timing variation is retained.",
+      "net472 cross-build only; Windows runtime not exercised.",
+      "Selector value-type results still box through the existing Func<T, object?> contract.",
+      "Comparison assemblies predate local commits; exact source and assembly hashes are retained."
+    ]
+  }
+}

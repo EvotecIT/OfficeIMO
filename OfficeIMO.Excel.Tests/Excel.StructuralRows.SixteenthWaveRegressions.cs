@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RejectsDialogSheetVmlControls() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(2, 1).SetValue(1);
+            sheet.Cell(2, 1).SetValue(1);
             DialogsheetPart dialogPart = document.WorkbookPartRoot.AddNewPart<DialogsheetPart>();
             dialogPart.DialogSheet = new DialogSheet();
             VmlDrawingPart vmlPart = dialogPart.AddNewPart<VmlDrawingPart>();
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(2));
 
             Assert.Contains("form controls", exception.Message);
-            Assert.Equal(1, sheet.CellAt(2, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(2, 1).GetValue<int>());
         }
 
         [Fact]
@@ -102,7 +102,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsVmlNoteAnchorOverflow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("keep");
+            sheet.Cell(1, 1).SetValue("keep");
             sheet.SetComment(1, 1, "Stationary note", author: "Tester");
             VmlDrawingPart vmlPart = Assert.Single(sheet.WorksheetPart.VmlDrawingParts);
             XDocument vmlDocument;
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
                 () => sheet.InsertRows(ExcelA1.MaxRows));
 
             Assert.Contains("note anchor", exception.Message);
-            Assert.Equal("keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("keep", sheet.Cell(1, 1).GetValue<string>());
             using Stream unchangedStream = vmlPart.GetStream();
             Assert.Equal(
                 originalAnchor,
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RejectsDeletionOfCellBackedConnectionParameter() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(5, 1).SetValue(1);
+            sheet.Cell(5, 1).SetValue(1);
             Parameter parameter = AttachCellBackedConnection(document, sheet, "A5");
 
             InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("connection parameter", exception.Message);
             Assert.Equal("A5", parameter.Cell!.Value);
-            Assert.Equal(1, sheet.CellAt(5, 1).GetValue<int>());
+            Assert.Equal(1, sheet.Cell(5, 1).GetValue<int>());
             Assert.Equal(
                 1U,
                 parameter.Ancestors<Parameters>().Single().Count!.Value);
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("header row", exception.Message);
             Assert.Equal("A1:B3", source.Reference!.Value);
-            Assert.Equal("Region", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Region", sheet.Cell(1, 1).GetValue<string>());
         }
     }
 }

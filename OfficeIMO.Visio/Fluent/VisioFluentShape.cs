@@ -29,7 +29,7 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Applies a reusable shape style.</summary>
         /// <param name="style">Shape style to apply.</param>
-        public VisioFluentShape Style(VisioShapeStyle style) { _s.ApplyStyle(style); return this; }
+        public VisioFluentShape ApplyStyle(VisioShapeStyle style) { _s.ApplyStyle(style); return this; }
 
         /// <summary>Sets the whole-shape text color.</summary>
         public VisioFluentShape TextColor(Color color) { EnsureTextStyle().Color = color; return this; }
@@ -72,7 +72,7 @@ namespace OfficeIMO.Visio.Fluent {
         public VisioFluentShape TransformTextCase(OfficeTextCase textCase, System.Globalization.CultureInfo? culture = null) { _s.TransformTextCase(textCase, culture); return this; }
 
         /// <summary>Sets whole-shape text alignment.</summary>
-        public VisioFluentShape TextAlignment(VisioTextHorizontalAlignment horizontal, VisioTextVerticalAlignment? vertical = null) {
+        public VisioFluentShape TextAlignment(OfficeAlignment horizontal, VisioTextVerticalAlignment? vertical = null) {
             VisioTextStyle style = EnsureTextStyle();
             style.HorizontalAlignment = horizontal;
             if (vertical.HasValue) {

@@ -747,9 +747,9 @@ A,120
 
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
-        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(3, 2, @""Product"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(4, 3, @""120"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellFormula(4, 4, @""=C4-B4"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(3, 2).SetValue(@""Product"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(4, 3).SetValue(@""120"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(4, 4).SetFormula(@""=C4-B4"")", code, StringComparison.Ordinal);
         Assert.Contains(@"var chart1 = GetOrAddSheet(@""Sheet1"").AddChartFromRange(@""B3:C4"", row: 2, column: 6", code, StringComparison.Ordinal);
         Assert.Contains("OfficeChartType.ColumnClustered", code, StringComparison.Ordinal);
         Assert.Contains("chart1.SetCategoryAxisTitle(@\"Product\")", code, StringComparison.Ordinal);
@@ -778,8 +778,8 @@ Revenue,120
 
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
-        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellValue(1, 1, @""Metric"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").CellFormula(2, 3, @""=B2*2"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(1, 1).SetValue(@""Metric"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Sheet1"").Cell(2, 3).SetFormula(@""=B2*2"")", code, StringComparison.Ordinal);
         Assert.DoesNotContain("sheet!", code, StringComparison.Ordinal);
     }
 
@@ -807,18 +807,18 @@ Revenue,120,
         var code = new OfficeMarkupCSharpEmitter().Emit(result.Document);
 
         Assert.Contains("ExcelSheet GetOrAddSheet(string name)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellValue(1, 1, @""Metric"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellFormula(2, 3, @""=B2*2"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").FormatCell(2, 2, @""#,##0"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellBackground(2, 2, @""#D9EAD3"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellFontColor(2, 2, @""#112233"")", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellBold(2, 2, true)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellItalic(2, 2, true)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellUnderline(2, 2, true)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellAlign(2, 2, ExcelHorizontalAlignment.Center)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellVerticalAlign(2, 2, ExcelVerticalAlignment.Center)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").WrapCells(2, 2, 2)", code, StringComparison.Ordinal);
-        Assert.Contains(@"GetOrAddSheet(@""Data"").CellBorder(2, 2, ExcelBorderStyle.Thin, @""#445566"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Cell(1, 1).SetValue(@""Metric"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Cell(2, 3).SetFormula(@""=B2*2"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetNumberFormat(@""#,##0"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetFillColor(@""#D9EAD3"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetFontColor(@""#112233"")", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetBold()", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetItalic()", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetUnderline()", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetHorizontalAlignment(ExcelHorizontalAlignment.Center)", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetVerticalAlignment(ExcelVerticalAlignment.Center)", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetWrapText()", code, StringComparison.Ordinal);
+        Assert.Contains(@"GetOrAddSheet(@""Data"").Range(@""B2:C2"").SetBorder(ExcelBorderStyle.Thin, @""#445566"")", code, StringComparison.Ordinal);
         Assert.Contains(@"GetOrAddSheet(@""Data"").AddTable(@""A1:C2""", code, StringComparison.Ordinal);
         Assert.Contains(@"var chartSourceSheet1 = GetOrAddSheet(@""Data"")", code, StringComparison.Ordinal);
         Assert.Contains(@"chartSourceSheet1.GetTableRange(@""DataTable"")", code, StringComparison.Ordinal);
@@ -849,18 +849,18 @@ Revenue,120,
         var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
 
         Assert.Contains("function Get-OrAddOfficeExcelWorksheet", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Cell(1, 1, 'Metric')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellFormula(2, 3, '=B2*2')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').FormatCell(2, 2, '#,##0')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellBackground(2, 2, '#D9EAD3')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellFontColor(2, 2, '#112233')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellBold(2, 2, $true)", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellItalic(2, 2, $true)", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellUnderline(2, 2, $true)", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellAlign(2, 2, 'Center')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellVerticalAlign(2, 2, 'Center')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').WrapCells(2, 2, 2)", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').CellBorder(2, 2, 'Thin', '#445566')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Cell(1, 1).SetValue('Metric')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Cell(2, 3).SetFormula('=B2*2')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetNumberFormat('#,##0')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetFillColor('#D9EAD3')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetFontColor('#112233')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetBold()", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetItalic()", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetUnderline()", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetHorizontalAlignment('Center')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetVerticalAlignment('Center')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetWrapText()", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').Range('B2:C2').SetBorder('Thin', '#445566')", code, StringComparison.Ordinal);
         Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Data').AddTable('A1:C2', $true, 'DataTable', 'TableStyleMedium2')", code, StringComparison.Ordinal);
         Assert.Contains("# TODO: bind chart source 'Data!DataTable' to an Excel range or table before adding the chart at 'B2'.", code, StringComparison.Ordinal);
         Assert.DoesNotContain("AddChartFromRange('Data!DataTable'", code, StringComparison.Ordinal);
@@ -884,8 +884,8 @@ Revenue,120
 
         var code = new OfficeMarkupPowerShellEmitter().Emit(result.Document);
 
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Sheet1').Cell(1, 1, 'Metric')", code, StringComparison.Ordinal);
-        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Sheet1').CellFormula(2, 3, '=B2*2')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Sheet1').Cell(1, 1).SetValue('Metric')", code, StringComparison.Ordinal);
+        Assert.Contains("(Get-OrAddOfficeExcelWorksheet -Workbook $workbook -Name 'Sheet1').Cell(2, 3).SetFormula('=B2*2')", code, StringComparison.Ordinal);
         Assert.DoesNotContain("-Worksheet $sheet", code, StringComparison.Ordinal);
     }
 
@@ -1061,7 +1061,7 @@ Q3,260
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1127,7 +1127,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1177,7 +1177,7 @@ Stay in semantic Markdown until the slide actually needs more control.
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1279,7 +1279,7 @@ Details
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1339,7 +1339,7 @@ Body
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1388,7 +1388,7 @@ Background image slide
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1437,7 +1437,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1479,7 +1479,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1522,7 +1522,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1562,7 +1562,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false,
                 AllowExternalImagePaths = true
@@ -1605,14 +1605,14 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
 
             using var presentation = PowerPointDocument.Load(path);
             var slide = Assert.Single(presentation.Slides);
-            var picture = Assert.Single(slide.Pictures);
+            var picture = Assert.Single(slide.Images);
             Assert.True(picture.Width.ToInches() < 3.0, "Contained JPEG should not stretch to the full placement width.");
             Assert.InRange(picture.Height.ToInches(), 1.12, 1.13);
         } finally {
@@ -1644,7 +1644,7 @@ profile: presentation
 
             Assert.False(result.HasErrors);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 IncludeUnsupportedBlocksAsText = true,
                 RenderMermaidDiagrams = false
             });
@@ -1680,7 +1680,7 @@ Scaled textbox
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 SlideWidthInches = 13.333,
                 SlideHeightInches = 7.5,
                 RenderMermaidDiagrams = false
@@ -1726,7 +1726,7 @@ Gradient background slide
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1779,7 +1779,7 @@ Gradient angle slide
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1859,7 +1859,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1911,7 +1911,7 @@ flowchart LR
   AST --> PPTX
 """);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 MermaidRendererPath = rendererPath,
                 TemporaryDirectory = directory
             });
@@ -1960,7 +1960,7 @@ flowchart LR
   AST --> Office
 """);
 
-            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
+            result.Document.SaveAsPowerPoint(path, new MarkupPowerPointExportOptions {
                 MermaidRendererPath = rendererPath,
                 TemporaryDirectory = directory
             });
@@ -2010,7 +2010,7 @@ C,60,77
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
+            result.Document.SaveAsExcel(path, new MarkupExcelExportOptions {
             });
 
             Assert.True(File.Exists(path));
@@ -2081,7 +2081,7 @@ C,60,77
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
+            result.Document.SaveAsExcel(path, new MarkupExcelExportOptions {
             });
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
@@ -2139,7 +2139,7 @@ Cost,80,
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
+            result.Document.SaveAsExcel(path, new MarkupExcelExportOptions {
             });
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
@@ -2187,7 +2187,7 @@ Revenue,120
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
+            result.Document.SaveAsExcel(path, new MarkupExcelExportOptions {
             });
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -2236,7 +2236,7 @@ Revenue,120
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
+            result.Document.SaveAsExcel(path, new MarkupExcelExportOptions {
             });
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -2336,7 +2336,7 @@ Q2,180
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsWord(path, new MarkupToWordOptions {
+            result.Document.SaveAsWord(path, new MarkupWordExportOptions {
             });
 
             Assert.True(File.Exists(path));
@@ -2380,7 +2380,7 @@ profile: document
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsWord(path, new MarkupToWordOptions {
+            result.Document.SaveAsWord(path, new MarkupWordExportOptions {
                 BaseDirectory = tempDirectory
             });
 
@@ -2416,7 +2416,7 @@ profile: document
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsWord(path, new MarkupToWordOptions {
+            result.Document.SaveAsWord(path, new MarkupWordExportOptions {
             });
 
             using var package = WordprocessingDocument.Open(path, false);
@@ -2453,7 +2453,7 @@ profile: document
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            result.Document.SaveAsWord(path, new MarkupToWordOptions {
+            result.Document.SaveAsWord(path, new MarkupWordExportOptions {
                 BaseDirectory = tempDirectory,
                 AllowExternalImagePaths = true
             });
@@ -2482,7 +2482,7 @@ profile: document
             section.Blocks.Add(list);
             documentModel.Blocks.Add(section);
 
-            documentModel.SaveAsWord(path, new MarkupToWordOptions {
+            documentModel.SaveAsWord(path, new MarkupWordExportOptions {
             });
 
             using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
@@ -2506,7 +2506,7 @@ profile: document
             var list = CreateMixedNestedList();
             documentModel.Blocks.Add(list);
 
-            documentModel.SaveAsExcel(path, new MarkupToExcelOptions());
+            documentModel.SaveAsExcel(path, new MarkupExcelExportOptions());
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
             var sheet = Assert.Single(spreadsheet.WorkbookPart!.Workbook!.Sheets!.OfType<Sheet>());
@@ -2532,7 +2532,7 @@ profile: document
             var documentModel = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
             documentModel.Blocks.Add(CreateMixedNestedList());
 
-            documentModel.SaveAsWord(path, new MarkupToWordOptions());
+            documentModel.SaveAsWord(path, new MarkupWordExportOptions());
 
             using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly });
             var items = document.Paragraphs.Where(paragraph => paragraph.IsListItem).ToArray();

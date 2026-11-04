@@ -293,7 +293,7 @@ public static partial class HtmlResourcePipeline {
             string? raw = element.GetAttribute(attribute);
             if (options.MediaWidth.HasValue && options.MediaHeight.HasValue && !string.IsNullOrWhiteSpace(raw)) {
                 int? candidateLimit = HtmlConversionLimits.Minimum(options.MaxResponsiveImageCandidates,
-                    (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageCandidates);
+                    (options.Limits ?? HtmlConversionLimits.UntrustedDefaults).MaxResponsiveImageCandidates);
                 if (TrySelectAllowedSrcSet(HtmlResourceKind.Image, element, attribute, "sizes", defaultSource: null,
                     baseUri, options, candidateLimit, out _)) return true;
                 continue;

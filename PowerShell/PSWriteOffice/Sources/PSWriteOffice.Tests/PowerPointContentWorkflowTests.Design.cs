@@ -47,7 +47,7 @@ public sealed partial class PowerPointContentWorkflowTests {
             Assert.Equal(OfficeTheme.Dark.Palette.Accent1.ToRgbHex(), saved.GetThemeColor(PowerPointThemeColor.Accent1));
             Assert.Equal(OfficeTheme.Dark.Fonts.Body.Family, saved.GetThemeFonts().MinorLatin);
             var body = Assert.Single(saved.Slides[1].TextBoxes, box => box.Text == note);
-            var picture = Assert.Single(saved.Slides[1].Pictures);
+            var picture = Assert.Single(saved.Slides[1].Images);
             var left = Assert.Single(saved.Slides[2].TextBoxes, box => box.Text == "Keep the complete review evidence.");
             var right = Assert.Single(saved.Slides[2].TextBoxes, box => box.Text == "Track the next action to closure.");
             results[item.Item1] = (body.Paragraphs[0].Runs[0].FontSize!.Value.ToPoints(),

@@ -13,12 +13,12 @@ public static partial class WordPdfConverterExtensions {
         IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers,
         NativeDocumentDefaults defaults, bool isFooter) {
         WordHeaderFooter? defaultStory = isFooter ? section.ResolveDefaultFooter() : section.ResolveDefaultHeader();
-        WordHeaderFooter? firstStory = section.DifferentFirstPage
+        WordHeaderFooter? firstStory = section.PageSetup.DifferentFirstPage
             ? isFooter ? section.ResolveFirstFooter() : section.ResolveFirstHeader() : null;
         WordHeaderFooter? evenStory = section.DocumentOddEvenSettingEnabled
             ? isFooter ? section.ResolveEvenFooter() : section.ResolveEvenHeader() : null;
         WordHeaderFooter?[] stories = { defaultStory, firstStory, evenStory };
-        double distance = (isFooter ? checked((uint)(section.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
+        double distance = (isFooter ? checked((uint)(section.PageSetup.Margins.FooterDistance.GetValueOrDefault().ToTwips())) : checked((uint)(section.PageSetup.Margins.HeaderDistance.GetValueOrDefault().ToTwips()))) / 20D;
         for (int index = 0; index < stories.Length; index++) {
             WordHeaderFooter? story = stories[index];
             if (story == null || story.ChildElements.Any()) continue;

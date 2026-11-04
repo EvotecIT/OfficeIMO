@@ -146,13 +146,12 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static bool CanPositionGeneratedContentLocally(HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle) =>
         style.Position == "absolute"
-        && (style.Display is "block" or "flow-root" or "list-item")
-        && style.ExplicitWidth.HasValue
-        && style.ExplicitHeight.HasValue
+        // An absolutely positioned box is blockified, so inline display is the usual case.
+        && (style.Display is "block" or "flow-root" or "list-item" or "inline" or "inline-block")
         && (parentStyle.Position is "relative" or "sticky")
         && (parentStyle.Display is "block" or "flow-root" or "list-item" or "inline-block")
-        && (!IsAutoInset(style.Left) || !IsAutoInset(style.Right))
-        && (!IsAutoInset(style.Top) || !IsAutoInset(style.Bottom));
+        // A right-anchored box needs a used width, which auto sizing doesn't give here yet.
+        && (style.ExplicitWidth.HasValue || IsAutoInset(style.Right));
 
     private bool TryGetLocallyPositionedGeneratedContentZIndex(
         IElement element,
@@ -183,6 +182,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
             || !CanPositionGeneratedContentLocally(style, parentStyle)) return;
 
         string source = DescribePseudoSource(element, kind);
+        if (style.Display is "inline" or "inline-block") {
+            style = style.Clone();
+            style.Display = "block";
+        }
         HtmlRenderFlowBlock block = CreateGeneratedContentBlock(
             element, kind, containingWidth, parentStyle, style, content, positioned: true);
         block = ApplyPaintEffects(block, style, containingWidth, source, out _);
@@ -190,8 +193,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double? right = ResolveOutOfFlowInset(style.Right, containingWidth, style, source, "right");
         double? top = ResolveOutOfFlowInset(style.Top, containingHeight, style, source, "top");
         double? bottom = ResolveOutOfFlowInset(style.Bottom, containingHeight, style, source, "bottom");
-        double x = left ?? containingWidth - (right ?? 0D) - block.Width;
-        double y = top ?? containingHeight - (bottom ?? 0D) - block.Height;
+        // Auto insets on both sides keep the static position, the start of the parent's content box.
+        double x = left ?? (right.HasValue ? containingWidth - right.Value - block.Width : parentStyle.PaddingLeft);
+        double y = top ?? (bottom.HasValue ? containingHeight - bottom.Value - block.Height : parentStyle.PaddingTop);
         foreach (HtmlRenderVisual visual in block.Visuals) {
             visuals.Add(visual.Translate(originX + x, originY + y, visuals.Count).IdentifyOutOfFlowPaint());
         }

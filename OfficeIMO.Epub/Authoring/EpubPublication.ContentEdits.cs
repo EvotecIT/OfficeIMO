@@ -56,7 +56,7 @@ public sealed partial class EpubPublication {
         if (validatePublication) {
             var proposed = new Dictionary<string, byte[]>(_entries, StringComparer.Ordinal);
             foreach (var pair in payloads) proposed[pair.Key] = pair.Value;
-            ValidatePublication(package, proposed, new List<OfficeConversionFidelityDiagnostic>(), token, changed: true);
+            ValidatePublication(package, proposed, new List<OfficeDiagnostic>(), token, changed: true);
             EnsurePackageBudget(package, delta);
         }
         token.ThrowIfCancellationRequested();

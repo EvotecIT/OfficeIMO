@@ -29,8 +29,8 @@ public sealed class CslNarrativeCitationTests {
     public void SortWorkSharesTheRenderingBudgetAndPreservesThePublicLimitException() {
         string data = "[" + string.Join(",", Enumerable.Range(0, 100).Select(index => "{\"id\":\"" + index + "\",\"type\":\"book\",\"title\":\"Title " + (100 - index) + "\"}")) + "]";
         CslStyle style = CslStyle.Parse(Header + "<citation><layout><text variable=\"title\"/></layout></citation><bibliography><sort><key variable=\"title\"/></sort><layout><text variable=\"title\"/></layout></bibliography></style>");
-        var processor = new CslProcessor(BibliographyDocument.Parse(data, BibliographyFormat.CslJson).Document, style, new CslRenderOptions { MaximumRenderingOperations = 20 });
+        var processor = new CslProcessor(BibliographyDocument.Parse(data, BibliographyFormat.CslJson).Document, style, new CslRenderOptions { MaxRenderingOperations = 20 });
         InvalidDataException failure = Assert.Throws<InvalidDataException>(() => processor.Render(Array.Empty<CslCitation>(), includeUncitedItems: true));
-        Assert.Contains("MaximumRenderingOperations", failure.Message);
+        Assert.Contains("MaxRenderingOperations", failure.Message);
     }
 }

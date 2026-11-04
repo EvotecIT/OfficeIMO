@@ -86,7 +86,7 @@ internal static partial class HtmlReaderAdapter {
     private static OfficeDocumentReadResult BuildHtmlDocumentResult(string html, SourceMetadata source,
         ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken, bool countSourceNodes, out int sourceNodeCount) {
         ReaderHtmlOptions effectiveHtmlOptions = ReaderHtmlOptionsCloner.CloneOrDefault(htmlOptions);
-        MarkdownHtmlImportOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? MarkdownHtmlImportOptions.CreateOfficeIMOProfile();
+        HtmlMarkdownExportOptions projectionOptions = effectiveHtmlOptions.HtmlToMarkdownOptions ?? HtmlMarkdownExportOptions.CreateOfficeIMOProfile();
         bool hasProjectionFilters = projectionOptions.ExcludeSelectors.Count > 0 || projectionOptions.ElementFilters.Count > 0;
         string projectedHtml = html;
         HtmlConversionDocument conversionDocument = ParseConversionDocument(
@@ -143,7 +143,7 @@ internal static partial class HtmlReaderAdapter {
         HtmlLogicalDocument document,
         string? path,
         int maxTableRows,
-        MarkdownHtmlImportOptions htmlOptions,
+        HtmlMarkdownExportOptions htmlOptions,
         CancellationToken cancellationToken) {
         var projection = new HtmlProjection();
         int blockIndex = 0;
@@ -162,7 +162,7 @@ internal static partial class HtmlReaderAdapter {
         bool suppressBlockEmission,
         string? path,
         int maxTableRows,
-        MarkdownHtmlImportOptions htmlOptions,
+        HtmlMarkdownExportOptions htmlOptions,
         HtmlProjection projection,
         ref int blockIndex,
         ref int tableIndex,
@@ -275,7 +275,7 @@ internal static partial class HtmlReaderAdapter {
         string.Equals(cell.Name, "th", StringComparison.OrdinalIgnoreCase)
         || (cell.Attributes.TryGetValue("role", out string? role) && ContainsHtmlToken(role, "columnheader"));
 
-    private static OfficeDocumentAsset? MapHtmlImage(HtmlLogicalNode node, string? path, int index, MarkdownHtmlImportOptions htmlOptions) {
+    private static OfficeDocumentAsset? MapHtmlImage(HtmlLogicalNode node, string? path, int index, HtmlMarkdownExportOptions htmlOptions) {
         node.Attributes.TryGetValue("alt", out string? altText);
         if (!string.IsNullOrWhiteSpace(node.AccessibleName)) altText = node.AccessibleName;
         node.Attributes.TryGetValue("title", out string? title);
@@ -383,7 +383,7 @@ internal static partial class HtmlReaderAdapter {
         return string.Join(Environment.NewLine, rows.Select(static row => string.Join(" | ", row)));
     }
 
-    private static string ResolveHtmlImageSource(HtmlLogicalNode node, MarkdownHtmlImportOptions options) {
+    private static string ResolveHtmlImageSource(HtmlLogicalNode node, HtmlMarkdownExportOptions options) {
         HtmlUrlPolicy policy = options.ResourceUrlPolicy ?? options.UrlPolicy;
         foreach (string attribute in new[] { "data-src", "data-original", "data-original-src", "data-lazy-src" }) {
             if (!node.Attributes.TryGetValue(attribute, out string? value)) continue;
@@ -418,7 +418,7 @@ internal static partial class HtmlReaderAdapter {
         ReaderLocation location,
         string? payloadHash,
         string? mediaType,
-        MarkdownHtmlImportOptions options,
+        HtmlMarkdownExportOptions options,
         string? sourceOverride = null) {
         string source = node.Attributes.TryGetValue("src", out string? candidate)
             ? HtmlUrlPolicyEvaluator.ResolveUrl(candidate, options.BaseUri, options.ResourceUrlPolicy ?? options.UrlPolicy)
@@ -455,7 +455,7 @@ internal static partial class HtmlReaderAdapter {
         };
     }
 
-    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node, MarkdownHtmlImportOptions options) {
+    private static HtmlLogicalNode? FindHtmlMediaSource(HtmlLogicalNode node, HtmlMarkdownExportOptions options) {
         foreach (HtmlLogicalNode child in node.Children) {
             if (child.Kind == HtmlLogicalNodeKind.Media
                 && string.Equals(child.Name, "source", StringComparison.OrdinalIgnoreCase)

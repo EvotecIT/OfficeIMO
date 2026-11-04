@@ -11,7 +11,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint;
 
 internal static partial class PowerPointSlideImageRenderer {
-    private static void AddImage(OfficeDrawing drawing, PowerPointPicture picture,
+    private static void AddImage(OfficeDrawing drawing, PowerPointImage picture,
         List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping,
         PowerPointEmbeddedImageReadBudget imageBudget) {
         if (!TryGetBounds(picture, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
@@ -33,7 +33,7 @@ internal static partial class PowerPointSlideImageRenderer {
             return;
         }
 
-        PowerPointPictureCrop crop = picture.GetCrop();
+        PowerPointImageCrop crop = picture.GetCrop();
         OfficeImageProjection projection = CreateImageProjection(
             left,
             top,

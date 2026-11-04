@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             textBoxParagraph.AddField("text field", "custom", null, run => {
                 run.Bold = true;
                 run.Italic = true;
-                run.FontName = "Arial";
+                run.FontFamily = "Arial";
                 run.FontSize = global::OfficeIMO.OfficeLength.Points(15);
                 run.UnderlineStyle = PowerPointUnderlineStyle.Double;
                 run.Capitalization = PowerPointCapitalization.AllCaps;
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             cellParagraph.Paragraph.RemoveAllChildren<A.Run>();
             cellParagraph.AddField("table field", "custom", null, run => {
                 run.Bold = true;
-                run.FontName = "Consolas";
+                run.FontFamily = "Consolas";
                 run.FontSize = global::OfficeIMO.OfficeLength.Points(13);
                 run.UnderlineStyle = PowerPointUnderlineStyle.Wavy;
                 run.Capitalization = PowerPointCapitalization.SmallCaps;

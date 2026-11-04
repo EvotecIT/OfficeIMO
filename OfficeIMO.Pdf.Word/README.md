@@ -15,7 +15,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Pdf.Word;
 
 PdfDocument pdf = PdfDocument.Load("packet.pdf");
-using WordDocument word = pdf.ToWord(new WordPdfImportOptions(), out OfficeConversionReport report);
+using WordDocument word = pdf.ToWord(new PdfWordExportOptions(), out OfficeConversionReport report);
 word.Save("packet.docx");
 
 foreach (var warning in report.Diagnostics) {
@@ -33,7 +33,7 @@ For selected pages, Fast versus Structured reconstruction, or custom semantic bu
 using OfficeIMO;
 OfficeConversionReport report = pdf.SaveAsWord(
     "packet-selection.docx",
-    new WordPdfImportOptions {
+    new PdfWordExportOptions {
         ReadOptions = new PdfLoadOptions {
             PageSelection = PdfPageSelection.Parse("1-3,5"),
             LayoutOptions = new PdfTextLayoutOptions { ForceSingleColumn = true },
@@ -50,7 +50,7 @@ For table-only recovery, use the same façade with the explicit profile:
 using OfficeIMO;
 pdf.SaveAsWord(
     "statement-tables.docx",
-    WordPdfImportOptions.CreateTablesOnly());
+    PdfWordExportOptions.CreateTablesOnly());
 ```
 
 ## What it imports
@@ -58,9 +58,9 @@ pdf.SaveAsWord(
 - Parser-supported PDF metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, complete image-file payloads with transparency-mask fidelity metadata, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette PDF image streams into editable `.docx` content when their filters are supported.
 - Image fallback placeholders and form-widget placeholders with diagnostics instead of silently dropping unsupported objects.
 - Page-range filtered imports through `PdfDocument.Read(new PdfLoadOptions { PageSelection = ... })`.
-- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `WordPdfImportOptions.ImportUriLinks` and `WordPdfImportOptions.AllowedHyperlinkUriSchemes`.
-- Internal PDF destination reconstruction through `WordPdfImportOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
-- Native image embedding through `WordPdfImportOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Fully transparent and unplaced resources are suppressed. Images whose clips, placement soft masks, unresolved source transparency masks, or unsupported blend modes could expose hidden source pixels are not embedded as raw pictures; the report records a typed omission, and `WordPdfImportOptions.IncludeImagePlaceholders` can retain an editable marker instead. Supported opacity is mapped to native Word picture transparency.
+- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfWordExportOptions.ImportUriLinks` and `PdfWordExportOptions.AllowedHyperlinkUriSchemes`.
+- Internal PDF destination reconstruction through `PdfWordExportOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
+- Native image embedding through `PdfWordExportOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Fully transparent and unplaced resources are suppressed. Images whose clips, placement soft masks, unresolved source transparency masks, or unsupported blend modes could expose hidden source pixels are not embedded as raw pictures; the report records a typed omission, and `PdfWordExportOptions.IncludeImagePlaceholders` can retain an editable marker instead. Supported opacity is mapped to native Word picture transparency.
 - Per-operation import findings through `OfficeConversionReport.Diagnostics`. `HasLoss` and `ThrowIfLoss()` use typed approximation, omission, and failure evidence even when a diagnostic is informational. The table-only profile reports visible text outside detected tables as `pdf-text-content-not-imported` instead of treating an intentionally narrow extraction as lossless.
 
 ## Visual pages
@@ -73,7 +73,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Word;
 
 var pdf = PdfDocument.Load("source.pdf");
-var options = WordPdfImportOptions.CreateVisualPages();
+var options = PdfWordExportOptions.CreateVisualPages();
 options.Dpi = 144;
 options.ReadOptions = new PdfLoadOptions {
     PageSelection = PdfPageSelection.Parse("1-3,5")

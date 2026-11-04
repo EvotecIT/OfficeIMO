@@ -17,7 +17,7 @@ public static partial class ProjectReportWorkflow {
         var timer = Stopwatch.StartNew();
         ProjectImageExportOptions resolved = options?.Snapshot() ?? new ProjectImageExportOptions();
         OfficeImageExportBatchSaveResult saved = CreateProjectViewImageBatchOperation(document, resolved).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("Project", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Project", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -29,7 +29,7 @@ public static partial class ProjectReportWorkflow {
         ProjectImageExportOptions resolved = options?.Snapshot() ?? new ProjectImageExportOptions();
         OfficeImageExportBatchSaveResult saved = await CreateProjectViewImageBatchOperation(document, resolved)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("Project", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Project", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 

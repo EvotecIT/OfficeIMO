@@ -14,7 +14,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
         using var stream = new MemoryStream();
-        var options = new OneNoteVisualPdfOptions { RasterScale = 0D };
+        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0D };
 
         foreach (MethodInfo method in typeof(OneNoteVisualPdfExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static)
             .Where(method => method.GetParameters()[0].ParameterType == source.GetType())) {
@@ -22,7 +22,7 @@ public sealed class OneNoteVisualPdfLifecycleTests {
                 parameter.ParameterType == source.GetType() ? source :
                 parameter.ParameterType == typeof(Stream) ? stream :
                 parameter.ParameterType == typeof(string) ? string.Empty :
-                parameter.ParameterType == typeof(OneNoteVisualPdfOptions) ? options :
+                parameter.ParameterType == typeof(OneNoteVisualPdfExportOptions) ? options :
                 parameter.ParameterType == typeof(CancellationToken) ? (object)cancellation.Token : null).ToArray();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => {
                 object? result;
@@ -40,25 +40,18 @@ public sealed class OneNoteVisualPdfLifecycleTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public async Task VisualResultSavesCaptureRenderingFailuresAndRetainDestination(bool notebookSource) {
+    public async Task VisualSavesRejectInvalidRenderingSettingsAndRetainDestination(bool notebookSource) {
         var section = new OneNoteSection();
         var notebook = new OneNoteNotebook();
-        var options = new OneNoteVisualPdfOptions { RasterScale = 0D };
+        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0D };
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         using var stream = new MemoryStream();
-        PdfSaveResult fileResult = notebookSource
-            ? notebook.SaveAsVisualPdfResult(path, options)
-            : section.SaveAsVisualPdfResult(path, options);
-        PdfSaveResult streamResult = notebookSource
-            ? await notebook.SaveAsVisualPdfResultAsync(stream, options)
-            : await section.SaveAsVisualPdfResultAsync(stream, options);
-
-        Assert.False(fileResult.Succeeded);
-        Assert.IsType<ArgumentOutOfRangeException>(fileResult.Exception);
-        Assert.Equal(path, fileResult.OutputPath);
-        Assert.False(streamResult.Succeeded);
-        Assert.IsType<ArgumentOutOfRangeException>(streamResult.Exception);
-        Assert.Null(streamResult.OutputPath);
+        Assert.Throws<ArgumentOutOfRangeException>(() => notebookSource
+            ? notebook.SaveAsVisualPdf(path, options)
+            : section.SaveAsVisualPdf(path, options));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => notebookSource
+            ? notebook.SaveAsVisualPdfAsync(stream, options)
+            : section.SaveAsVisualPdfAsync(stream, options));
         Assert.False(File.Exists(path));
         Assert.Equal(0, stream.Length);
         Assert.Throws<ArgumentOutOfRangeException>(() => {
@@ -75,8 +68,8 @@ public sealed class OneNoteVisualPdfLifecycleTests {
         section.Pages.Add(new OneNotePage { Title = "A", PageSize = OneNotePageSize.IndexCard });
         var notebook = new OneNoteNotebook();
         notebook.Sections.Add(section);
-        var options = new OneNoteVisualPdfOptions { RasterScale = 0.1D };
-        byte[] bytes = notebookSource ? notebook.ToVisualPdfBytes(options) : section.ToVisualPdfBytes(options);
+        var options = new OneNoteVisualPdfExportOptions { RasterScale = 0.1D };
+        byte[] bytes = notebookSource ? notebook.ToVisualPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }) : section.ToVisualPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var stream = new MemoryStream(bytes);
         PdfDocument document = PdfDocument.Load(stream);

@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
 
         AssertColumnPageBandTextOnce(rendered, new[] { "P1", "P2", "SPAN", "T1", "T2", "T3", "T4", "AFTER" });
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -264,7 +264,7 @@ public sealed partial class HtmlRenderingTests {
         AssertColumnPageBandTextOnce(rendered, new[] { "NESTED" });
         if (column) {
             Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
-            Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+            Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
         } else AssertColumnBreaksQualified(rendered);
     }
 }

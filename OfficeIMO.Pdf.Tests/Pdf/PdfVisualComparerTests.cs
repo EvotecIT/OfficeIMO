@@ -10,10 +10,10 @@ public class PdfVisualComparerTests {
     [InlineData(true)]
     public void Gallery_DistinguishesMatchingVisualPagesFromStructuralDifferences(bool extraExpectedPage) {
         byte[] single = BuildPdf("Common page");
-        byte[] multiple = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
-            .Paragraph(paragraph => paragraph.Text("Common page"))
+        byte[] multiple = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } })
+            .Paragraph(paragraph => paragraph.AddText("Common page"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Extra page"))
+            .Paragraph(paragraph => paragraph.AddText("Extra page"))
             .ToBytes();
         PdfVisualComparisonReport report = PdfVisualComparer.Compare(
             extraExpectedPage ? multiple : single, extraExpectedPage ? single : multiple);
@@ -67,13 +67,13 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void Compare_ReportsPageCountAndDimensionStructureWithCenterAlignment() {
-        byte[] expected = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400)) })
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+        byte[] expected = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(300),OfficeIMO.OfficeLength.Points(400)) } })
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Page two"))
+            .Paragraph(paragraph => paragraph.AddText("Page two"))
             .ToBytes();
-        byte[] actual = PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(420)) })
-            .Paragraph(paragraph => paragraph.Text("Page one"))
+        byte[] actual = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(320),OfficeIMO.OfficeLength.Points(420)) } })
+            .Paragraph(paragraph => paragraph.AddText("Page one"))
             .ToBytes();
 
         PdfVisualComparisonReport report = PdfVisualComparer.Compare(expected, actual, options: new PdfVisualComparisonOptions {
@@ -168,7 +168,7 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareRejectsIgnoredRegionWorkBeforeRasterizing() {
-        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(300D) })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(300D)) } })
             .Canvas(canvas => canvas.Text("Bounded ignored regions", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(200D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 3000; index++) {
@@ -183,11 +183,15 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareChargesIgnoredRegionWorkForTheCombinedCanvas() {
-        byte[] wide = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(400D), PageHeight = global::OfficeIMO.OfficeLength.Points(40D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D), MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D) })
+        byte[] wide = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400D), global::OfficeIMO.OfficeLength.Points(40D)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D), Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D) }
+        } })
             .Canvas(canvas => canvas.Text("A", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))).ToBytes();
-        byte[] tall = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(40D), PageHeight = global::OfficeIMO.OfficeLength.Points(400D),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D), MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D) })
+        byte[] tall = PdfDocument.Create(new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(400D)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D), Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D) }
+        } })
             .Canvas(canvas => canvas.Text("A", global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(10D), global::OfficeIMO.OfficeLength.Points(10D))).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 4096; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 1, 1));
@@ -200,7 +204,7 @@ public class PdfVisualComparerTests {
 
     [Fact]
     public void CompareDoesNotChargeSourceRastersAsIgnoredRegionWork() {
-        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(500D), PageHeight = global::OfficeIMO.OfficeLength.Points(500D) })
+        byte[] pdf = PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(500D), global::OfficeIMO.OfficeLength.Points(500D)) } })
             .Canvas(canvas => canvas.Text("A", global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D), global::OfficeIMO.OfficeLength.Points(20D))).ToBytes();
         var options = new PdfVisualComparisonOptions();
         for (int index = 0; index < 300; index++) options.IgnoredRegions.Add(new PdfPixelRegion(0, 0, 500, 500));
@@ -226,8 +230,8 @@ public class PdfVisualComparerTests {
                 cancellationToken: cancellation.Token));
     }
 
-    private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSize = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) })
-        .Paragraph(paragraph => paragraph.Text(text))
+    private static byte[] BuildPdf(string text) => PdfDocument.Create(new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(OfficeIMO.OfficeLength.Points(240),OfficeIMO.OfficeLength.Points(180)) } })
+        .Paragraph(paragraph => paragraph.AddText(text))
         .ToBytes();
 
     private static byte[] UnsupportedOperatorPdf(string operation) => System.Text.Encoding.ASCII.GetBytes(string.Join("\n", new[] {

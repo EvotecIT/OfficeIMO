@@ -309,7 +309,7 @@ namespace OfficeIMO.Word.Pdf {
             // tblInd applies only to left-aligned tables. A floating coordinate
             // remains a placement coordinate even in the column fallback path.
             double? leftIndent = GetNativeTableHorizontalPositionIndent(properties?.TablePositionProperties) ??
-                (MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)) == PdfCore.PdfAlign.Left
+                (MapNativeTableAlignment(ResolveNativeTableAlignment(table, tableStyleDefaults)) == global::OfficeIMO.OfficeAlignment.Left
                     ? GetNativeTableLeftIndent(properties?.TableIndentation) ?? tableStyleDefaults.LeftIndent
                     : null);
             if (leftIndent.HasValue) {
@@ -628,16 +628,16 @@ namespace OfficeIMO.Word.Pdf {
             return height;
         }
 
-        private static PdfCore.PdfAlign MapNativeTableAlignment(W.TableRowAlignmentValues? alignment) {
+        private static global::OfficeIMO.OfficeAlignment MapNativeTableAlignment(W.TableRowAlignmentValues? alignment) {
             if (alignment == W.TableRowAlignmentValues.Center) {
-                return PdfCore.PdfAlign.Center;
+                return global::OfficeIMO.OfficeAlignment.Center;
             }
 
             if (alignment == W.TableRowAlignmentValues.Right) {
-                return PdfCore.PdfAlign.Right;
+                return global::OfficeIMO.OfficeAlignment.Right;
             }
 
-            return PdfCore.PdfAlign.Left;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         private static W.TableRowAlignmentValues? ResolveNativeTableAlignment(WordTable table, NativeTableStyleDefaults tableStyleDefaults) =>
@@ -662,23 +662,23 @@ namespace OfficeIMO.Word.Pdf {
             return null;
         }
 
-        private static PdfCore.PdfColumnAlign GetNativeCellHorizontalAlignment(WordTableCell cell) {
-            PdfCore.PdfColumnAlign? alignment = null;
+        private static global::OfficeIMO.OfficeAlignment GetNativeCellHorizontalAlignment(WordTableCell cell) {
+            global::OfficeIMO.OfficeAlignment? alignment = null;
             foreach (WordParagraph paragraph in cell.Paragraphs) {
                 string text = GetNativeCellParagraphText(paragraph);
                 if (string.IsNullOrWhiteSpace(text)) {
                     continue;
                 }
 
-                PdfCore.PdfColumnAlign paragraphAlignment = ResolveNativeColumnAlign(paragraph);
+                global::OfficeIMO.OfficeAlignment paragraphAlignment = ResolveNativeColumnAlign(paragraph);
                 if (alignment == null) {
                     alignment = paragraphAlignment;
                 } else if (alignment.Value != paragraphAlignment) {
-                    return PdfCore.PdfColumnAlign.Left;
+                    return global::OfficeIMO.OfficeAlignment.Left;
                 }
             }
 
-            return alignment ?? PdfCore.PdfColumnAlign.Left;
+            return alignment ?? global::OfficeIMO.OfficeAlignment.Left;
         }
 
     }

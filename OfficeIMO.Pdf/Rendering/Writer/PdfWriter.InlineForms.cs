@@ -100,7 +100,7 @@ internal static partial class PdfWriter {
             string resource = GetFontResourceName(segment.Font, segment.NamedFont, ChooseNormal(options.DefaultFont));
             resources[resource] = segment.NamedFont.HasValue
                 ? ensureNamedFont(segment.NamedFont.Value, options) : ensureFont(segment.Font, options);
-            var paragraph = new RichParagraphBlock(Array.Empty<PdfTextRun>(), PdfAlign.Left, fragment.DefaultColor);
+            var paragraph = new RichParagraphBlock(Array.Empty<PdfTextRun>(), OfficeAlignment.Left, fragment.DefaultColor);
             var lines = new List<List<RichSeg>> { new List<RichSeg> { segment } };
             double leading = Math.Max(segment.FontSize, appearance.Top - appearance.Bottom);
             WriteRichParagraph(content, paragraph, lines, new List<double> { leading }, options,

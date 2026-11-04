@@ -13,10 +13,9 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     public void RelativeCellComparisonRoundTripsWithItsBaseCell() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data Set");
-        sheet.ValidationCustomFormula("C5:C7", "C5>0", allowBlank: false,
-            errorTitle: "Positive", errorMessage: "Enter a positive number.");
+        sheet.Range("C5:C7").Validation().CustomFormula("C5>0", allowBlank: false, errorTitle: "Positive", errorMessage: "Enter a positive number.");
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument ods = OdsDocument.Load(new MemoryStream(toOds.Value.ToBytes()));
         Assert.True(ods.Validate().IsValid);
         OdsValidation validation = Assert.Single(ods.Validations);
@@ -26,7 +25,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
         Assert.DoesNotContain(toOds.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
 
-        OdfConversionResult<ExcelDocument> toExcel = ods.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> toExcel = ods.ConvertToExcelWithEvidence();
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(toExcel.Value.ToBytes()));
         ExcelDataValidationInfo result = Assert.Single(reopened.Sheets.Single().GetDataValidations());
         Assert.Equal("custom", result.Type);
@@ -44,11 +43,11 @@ public sealed class SpreadsheetCustomValidationConversionTests {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
         source.AddSheet("Other");
-        sheet.ValidationCustomFormula("C1:C2", "SUM(A1:B1)>10");
-        sheet.ValidationCustomFormula("E1 E3", "E1>0");
-        sheet.ValidationCustomFormula("G1", "Other!A1>0");
+        sheet.Range("C1:C2").Validation().CustomFormula("SUM(A1:B1)>10");
+        sheet.Range("E1 E3").Validation().CustomFormula("E1>0");
+        sheet.Range("G1").Validation().CustomFormula("Other!A1>0");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.Validations);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 3);
@@ -73,13 +72,13 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     public void TextAndCellComparisonOperandsRoundTrip(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.ValidationCustomFormula("D4", formula);
+        sheet.Range("D4").Validation().CustomFormula(formula);
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument ods = OdsDocument.Load(new MemoryStream(toOds.Value.ToBytes()));
         Assert.Single(ods.Validations);
         Assert.True(ods.Validate().IsValid);
-        OdfConversionResult<ExcelDocument> toExcel = ods.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> toExcel = ods.ConvertToExcelWithEvidence();
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(toExcel.Value.ToBytes()));
         Assert.Equal(formula, Assert.Single(reopened.Sheets.Single().GetDataValidations()).Formula1);
     }
@@ -93,7 +92,7 @@ public sealed class SpreadsheetCustomValidationConversionTests {
         validation.BaseCellAddress = "$'Other'.$A$1";
         sheet.Cell(0, 0).ValidationName = validation.Name;
 
-        OdfConversionResult<ExcelDocument> result = source.ToExcelDocumentResult();
+        OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence();
         Assert.Empty(result.Value.Sheets.Single().GetDataValidations());
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -102,9 +101,9 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [Fact]
     public void MalformedCustomComparisonRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddSheet("Data").ValidationCustomFormula("C5", "C5>0()");
+        source.AddSheet("Data").Range("C5").Validation().CustomFormula("C5>0()");
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.Validations);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -125,9 +124,9 @@ public sealed class SpreadsheetCustomValidationConversionTests {
     [InlineData("ISBLANK(\"text\")")]
     public void UnsupportedBooleanCustomFormulaRemainsExplicitLoss(string formula) {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddSheet("Data").ValidationCustomFormula("C5", formula);
+        source.AddSheet("Data").Range("C5").Validation().CustomFormula(formula);
 
-        OdfConversionResult<OdsDocument> result = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Empty(result.Value.Validations);
         Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "validations"
             && mapping.Status == OdfConversionMappingStatus.Unsupported);

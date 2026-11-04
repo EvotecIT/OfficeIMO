@@ -150,7 +150,7 @@ namespace OfficeIMO.Visio {
             writer.WriteAttributeString("N", "Paragraph");
             writer.WriteStartElement("Row", ns);
             writer.WriteAttributeString("IX", "0");
-            WriteCell(writer, ns, "HorzAlign", (int)textStyle.HorizontalAlignment.Value);
+            WriteCell(writer, ns, "HorzAlign", VisioDrawingTextAlignment.ToHorzAlignCell(textStyle.HorizontalAlignment.Value));
             writer.WriteEndElement();
             writer.WriteEndElement();
         }

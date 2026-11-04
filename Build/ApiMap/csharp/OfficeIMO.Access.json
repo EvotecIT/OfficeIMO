@@ -1,7 +1,18 @@
 {
   "package": "OfficeIMO.Access",
   "status": "Consumer changes required by M2 Phase A validation.",
-  "changes": [],
+  "changes": [
+    {
+      "old": "OfficeIMO.Access.AccessSaveOptions.LossPolicy",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Access.AccessSaveOptions.AllowLoss",
+      "replacement": "AllowLoss = true replaces LossPolicy = OfficeConversionLossPolicy.Allow.",
+      "category": "naming",
+      "reason": "Native saves use AllowLoss like the other formats.",
+      "applied": true
+    }
+  ],
   "extraChanges": [
     {
       "subject": "DbDataReader trimming contract",

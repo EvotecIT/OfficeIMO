@@ -12,13 +12,13 @@ public sealed class ExcelAddedRuleObjectTests {
     public void ReturnedConditionalRulesRetainTheirOwnIdentityThroughLaterAddsAndUpdates() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Values");
-        sheet.CellValue(1, 1, "Amount");
-        sheet.CellValue(2, 1, 10);
-        var first = sheet.AddConditionalRule("A2:A4", ExcelConditionalFormattingOperator.GreaterThan, "5");
-        var second = sheet.AddConditionalFormulaRule("A2:A4", "A2<2");
-        var scale = sheet.AddConditionalColorScale("B2:B4", "FF0000", "00FF00");
-        var bar = sheet.AddConditionalDataBar("C2:C4", "0000FF");
-        var icons = sheet.AddConditionalIconSet("D2:D4");
+        sheet.Cell(1, 1).SetValue("Amount");
+        sheet.Cell(2, 1).SetValue(10);
+        var first = sheet.Range("A2:A4").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "5");
+        var second = sheet.Range("A2:A4").ConditionalFormat().Formula("A2<2");
+        var scale = sheet.Range("B2:B4").ConditionalFormat().ColorScale("FF0000", "00FF00");
+        var bar = sheet.Range("C2:C4").ConditionalFormat().DataBar("0000FF");
+        var icons = sheet.Range("D2:D4").ConditionalFormat().IconSet();
         Assert.Equal("ColorScale", scale.Type);
         Assert.Equal("DataBar", bar.Type);
         Assert.Equal("IconSet", icons.Type);
@@ -45,16 +45,16 @@ public sealed class ExcelAddedRuleObjectTests {
     public void AutoFilterHandleTracksTableOwnershipAndTocReturnsItsCreatedSheet() {
         using var document = ExcelDocument.Create();
         var sheet = document.AddSheet("Values");
-        sheet.CellValue(1, 1, "Name");
-        sheet.CellValue(2, 1, "Alpha");
-        var filter = sheet.AddAutoFilter("A1:A2");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Alpha");
+        var filter = sheet.Range("A1:A2").AutoFilter();
         Assert.Same(sheet, filter.Sheet);
         Assert.False(filter.Inspect()!.IsTableFilter);
         sheet.AddTable("A1:A2", name: "ValuesTable");
         Assert.Equal("ValuesTable", filter.Inspect()!.TableName);
         var contents = document.AddTableOfContents(styled: false);
         Assert.Equal(contents.Name, document.Sheets[0].Name);
-        contents.CellValue(1, 1, "Edited navigation");
+        contents.Cell(1, 1).SetValue("Edited navigation");
         using var output = new MemoryStream();
         document.Save(output);
         output.Position = 0;

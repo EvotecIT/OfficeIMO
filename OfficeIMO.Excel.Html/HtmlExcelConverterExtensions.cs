@@ -11,21 +11,11 @@ public static partial class HtmlExcelConverterExtensions {
     private const int ExcelCellTextCharacterLimit = 32_767;
     private const int ExcelFormulaCharacterLimit = 8_192;
 
-    /// <summary>
-    /// Imports a prepared shared HTML conversion document into a native workbook without reparsing its adapter DOM.
-    /// </summary>
-    public static ExcelDocument ToExcelDocument(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
-        return GetWorkbookOrThrow(ToExcelDocumentResult(document, options));
-    }
-
-    /// <summary>
-    /// Imports a prepared shared HTML conversion document and returns the workbook plus structured evidence.
-    /// </summary>
-    public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
+    internal static HtmlToExcelResult ConvertToExcelWithEvidence(this HtmlConversionDocument document, HtmlExcelExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
-        HtmlToExcelOptions resolved = options?.Clone() ?? new HtmlToExcelOptions();
+        HtmlExcelExportOptions resolved = options?.Clone() ?? new HtmlExcelExportOptions();
         var budget = new HtmlImportBudget(resolved.Limits);
         bool targetSemantic = resolved.Mode != HtmlImportMode.Generic
             && (resolved.Mode == HtmlImportMode.Semantic
@@ -52,7 +42,7 @@ public static partial class HtmlExcelConverterExtensions {
         IHtmlDocument document,
         HtmlSemanticDocument semanticDocument,
         HtmlInputTrust trust,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         IEnumerable<HtmlDiagnostic>? initialDiagnostics = null,
         HtmlEditableLayoutProjection? editableLayout = null,
@@ -142,7 +132,7 @@ public static partial class HtmlExcelConverterExtensions {
     private static void ApplyFormulaTrustBoundary(
         IHtmlDocument document,
         HtmlInputTrust trust,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlToExcelResult result) {
         if (!options.ImportFormulas
             || trust == HtmlInputTrust.Trusted
@@ -171,7 +161,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
-        throw new HtmlConversionException(result.Report.Diagnostics);
+        throw new HtmlConversionException(result.Report.NativeDiagnostics);
     }
 
     private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {
@@ -191,7 +181,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement section,
         ExcelSheet sheet,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         HashSet<long> importedFormulaCells) {
         IElement? table = section.Children.FirstOrDefault(child => IsElement(child, "table"));
@@ -261,7 +251,7 @@ public static partial class HtmlExcelConverterExtensions {
                 continue;
             }
 
-            sheet.CellFormula(row, column, formula);
+            sheet.Cell(row, column).SetFormula(formula);
             importedFormulaCells.Add(cellKey);
             result.Formulas++;
         }
@@ -298,7 +288,7 @@ public static partial class HtmlExcelConverterExtensions {
         }
     }
 
-    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlToExcelOptions options, HtmlToExcelResult result, HtmlImportBudget budget, HtmlUrlPolicy? hyperlinkPolicy, Uri? baseUri) {
+    private static void ImportDrawings(IElement section, ExcelSheet sheet, HtmlExcelExportOptions options, HtmlToExcelResult result, HtmlImportBudget budget, HtmlUrlPolicy? hyperlinkPolicy, Uri? baseUri) {
         var drawings = new List<ExcelDrawingImportItem>();
         int fallbackOrder = 0;
         if (options.ImportImages) {
@@ -313,7 +303,7 @@ public static partial class HtmlExcelConverterExtensions {
             }
         }
 
-        string range = section.GetAttribute("data-officeimo-range") ?? sheet.UsedRangeA1;
+        string range = section.GetAttribute("data-officeimo-range") ?? sheet.UsedRange.Address;
         int chartIndex = 0;
         foreach (ExcelDrawingImportItem drawing in drawings.OrderBy(item => item.LayerIndex ?? item.FallbackOrder).ThenBy(item => item.FallbackOrder)) {
             if (drawing.Kind == ExcelDrawingImportKind.Image) {
@@ -898,7 +888,7 @@ public static partial class HtmlExcelConverterExtensions {
             return false;
         }
 
-        sheet.CellValue(row, column, text);
+        sheet.Cell(row, column).SetValue(text);
         return true;
     }
 

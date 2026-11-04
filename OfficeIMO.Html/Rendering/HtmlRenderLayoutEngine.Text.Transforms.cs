@@ -148,11 +148,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private static CultureInfo ResolveTextTransformCulture(string language) {
         if (string.IsNullOrWhiteSpace(language)) return CultureInfo.InvariantCulture;
+        if (TextTransformCultures.TryGetValue(language, out CultureInfo? cached)) return cached;
+        CultureInfo culture;
         try {
-            return CultureInfo.GetCultureInfo(language);
+            culture = CultureInfo.GetCultureInfo(language);
         } catch (CultureNotFoundException) {
-            return CultureInfo.InvariantCulture;
+            culture = CultureInfo.InvariantCulture;
         }
+        if (TextTransformCultures.Count < MaximumTextTransformCultures) TextTransformCultures.TryAdd(language, culture);
+        return culture;
     }
+
+    // The framework takes a process-wide lock for each lookup, and this runs per text run.
+    private const int MaximumTextTransformCultures = 256;
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, CultureInfo> TextTransformCultures =
+        new(StringComparer.Ordinal);
 
 }

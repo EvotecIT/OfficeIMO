@@ -35,13 +35,13 @@ public sealed class LatexParseOptions {
     /// <summary>Semantic profile. Defaults to OfficeIMO.</summary>
     public LatexDocumentProfile Profile { get; set; } = LatexDocumentProfile.OfficeIMO;
     /// <summary>Maximum input characters.</summary>
-    public int? MaximumInputLength { get; set; } = 64 * 1024 * 1024;
+    public int? MaxInputLength { get; set; } = 64 * 1024 * 1024;
     /// <summary>Maximum encoded bytes accepted by file and stream loading APIs.</summary>
-    public long? MaximumInputBytes { get; set; } = 64L * 1024 * 1024;
+    public long? MaxInputBytes { get; set; } = 64L * 1024 * 1024;
     /// <summary>Maximum tokens.</summary>
-    public int MaximumTokenCount { get; set; } = 2_000_000;
+    public int MaxTokenCount { get; set; } = 2_000_000;
     /// <summary>Maximum nested groups and environments.</summary>
-    public int MaximumNestingDepth { get; set; } = 128;
+    public int MaxNestingDepth { get; set; } = 128;
 
     /// <summary>
     /// Environment names whose bodies are opaque. Commands, comments, groups, math, and table separators
@@ -53,16 +53,16 @@ public sealed class LatexParseOptions {
     public LatexMacroExpansion MacroExpansion { get; set; } = LatexMacroExpansion.None;
 
     /// <summary>Maximum recursive safe macro expansion depth.</summary>
-    public int MaximumExpansionDepth { get; set; } = 16;
+    public int MaxExpansionDepth { get; set; } = 16;
 
     /// <summary>Maximum characters produced by explicit safe macro expansion.</summary>
-    public int MaximumExpansionLength { get; set; } = 16 * 1024 * 1024;
+    public int MaxExpansionLength { get; set; } = 16 * 1024 * 1024;
 
     /// <summary>Maximum input characters accepted by one explicit safe macro expansion step.</summary>
-    public int MaximumExpansionInputLength { get; set; } = 64 * 1024 * 1024;
+    public int MaxExpansionInputLength { get; set; } = 64 * 1024 * 1024;
 
     /// <summary>Maximum tokens consumed across one explicit safe macro expansion.</summary>
-    public int MaximumExpansionTokenCount { get; set; } = 2_000_000;
+    public int MaxExpansionTokenCount { get; set; } = 2_000_000;
 
     internal LatexParseOptions Clone() {
         var copy = (LatexParseOptions)MemberwiseClone();

@@ -578,7 +578,7 @@ internal static class CslJsonCodec {
         if (!stream.TryGetBuffer(out ArraySegment<byte> buffer) || buffer.Array == null) throw new InvalidOperationException("The CSL JSON input buffer is unavailable.");
         ValidateBeforeMaterialization(buffer.Array, buffer.Offset, checked((int)stream.Length), options, partialItems, cancellationToken);
         stream.Position = 0;
-        return JsonDocument.ParseAsync(stream, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth }, cancellationToken).GetAwaiter().GetResult();
+        return JsonDocument.ParseAsync(stream, new JsonDocumentOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaxNestingDepth }, cancellationToken).GetAwaiter().GetResult();
     }
 
     private static void ValidateBeforeMaterialization(byte[] sourceBytes, int sourceOffset, int sourceLength, BibliographyReadOptions options, IList<BibliographyItem> partialItems, CancellationToken cancellationToken) {
@@ -591,7 +591,7 @@ internal static class CslJsonCodec {
         ReadOnlySpan<byte> source = new ReadOnlySpan<byte>(sourceBytes, sourceOffset, sourceLength);
         var limits = new BibliographyLimitGuard(options);
         using var cancellationAwareSource = new CslJsonInfrastructure.CancellationAwareJsonSequence(sourceBytes, sourceOffset, sourceLength, cancellationToken);
-        var reader = new Utf8JsonReader(cancellationAwareSource.Sequence, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaximumNestingDepth });
+        var reader = new Utf8JsonReader(cancellationAwareSource.Sequence, new JsonReaderOptions { AllowTrailingCommas = true, CommentHandling = JsonCommentHandling.Skip, MaxDepth = options.MaxNestingDepth });
         var arrayContainers = new List<bool>();
         var containerOffsets = new List<int>();
         var containerUtf16Starts = new List<int>();

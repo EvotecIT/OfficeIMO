@@ -65,7 +65,7 @@ public class PdfPageCompositionTests {
     private static byte[] BuildNumberedPages(int pageCount) {
         PdfDocument document = PdfDocument.Create();
         for (int page = 1; page <= pageCount; page++) {
-            document.Paragraph(paragraph => paragraph.Text("Page " + page));
+            document.Paragraph(paragraph => paragraph.AddText("Page " + page));
             if (page < pageCount) {
                 document.PageBreak();
             }

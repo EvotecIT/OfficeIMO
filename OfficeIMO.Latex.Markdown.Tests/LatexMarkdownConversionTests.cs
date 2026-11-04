@@ -51,7 +51,7 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void DirectPdfAdapter_PreservesProjectionDiagnosticsAndProducesPdf() {
-        var result = LatexDocument.ParseResult(Source).Document.ToPdfDocumentResult();
+        var result = LatexDocument.ParseResult(Source).Document.ConvertToPdfWithEvidence(null, default);
         byte[] bytes = result.ToBytes();
         LatexToMarkdownReport projection = Assert.IsType<LatexToMarkdownReport>(
             Assert.Single(result.SourceConversionReports));
@@ -116,7 +116,7 @@ public sealed class LatexMarkdownConversionTests {
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 
         Assert.Contains("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
-        Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.Diagnostics).Outcome);
+        Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.NativeDiagnostics).Outcome);
     }
 
     [Fact]
@@ -128,6 +128,6 @@ public sealed class LatexMarkdownConversionTests {
         Assert.Contains("\\footnote{real \\textbf{text}}", result.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("\\footnote{1}", result.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
     }
 }

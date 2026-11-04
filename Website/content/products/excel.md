@@ -48,9 +48,9 @@ using var workbook = ExcelDocument.Create("Sales.xlsx");
 var sheet = workbook.AddSheet("Q4 Sales");
 
 // Set headers
-sheet.CellValue(1, 1, "Product");
-sheet.CellValue(1, 2, "Units");
-sheet.CellValue(1, 3, "Revenue");
+sheet.Cell(1, 1).SetValue("Product");
+sheet.Cell(1, 2).SetValue("Units");
+sheet.Cell(1, 3).SetValue("Revenue");
 
 // Add data rows
 string[] products = { "Widget A", "Widget B", "Widget C", "Widget D" };
@@ -60,10 +60,10 @@ decimal[] revenue = { 24000m, 17000m, 63000m, 12900m };
 for (int i = 0; i < products.Length; i++)
 {
     int row = i + 2;
-    sheet.CellValue(row, 1, products[i]);
-    sheet.CellValue(row, 2, units[i]);
-    sheet.CellValue(row, 3, revenue[i]);
-    sheet.FormatCell(row, 3, "$#,##0");
+    sheet.Cell(row, 1).SetValue(products[i]);
+    sheet.Cell(row, 2).SetValue(units[i]);
+    sheet.Cell(row, 3).SetValue(revenue[i]);
+    sheet.Cell(row, 3).SetNumberFormat("$#,##0");
 }
 
 // Create a styled table with a totals row

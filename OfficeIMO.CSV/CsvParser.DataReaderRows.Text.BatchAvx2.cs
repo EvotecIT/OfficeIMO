@@ -18,7 +18,7 @@ internal static partial class CsvParser
 
     internal static int GetPreferredTextParallelBatchSize() => 4096;
 
-    private static bool CanUseTextDataReaderBatchAvx2(CsvLoadOptions options, int sourceColumnCount) =>
+    private static bool CanUseTextDataReaderBatchAvx2(CsvParsingSettings options, int sourceColumnCount) =>
         Avx2.IsSupported &&
         sourceColumnCount is > 0 and <= TextQuoteAwareFieldSpanCapacity &&
         CanUseAvx2PackedDelimiter(GetDelimiterChar(options)) &&
@@ -26,7 +26,7 @@ internal static partial class CsvParser
 
     private static bool TryFillTextDataReaderBatchAvx2(
         ReadOnlySpan<char> text,
-        CsvLoadOptions options,
+        CsvParsingSettings options,
         ref CsvTextFieldSpanReadState state,
         CsvTextDataReaderBatch batch,
         CancellationToken cancellationToken = default)

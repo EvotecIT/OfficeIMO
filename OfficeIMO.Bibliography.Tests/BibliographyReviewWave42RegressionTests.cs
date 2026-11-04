@@ -16,10 +16,10 @@ public sealed class BibliographyReviewWave42RegressionTests {
 
         BibliographyDiagnostic diagnostic = Assert.Single(read.Diagnostics, diagnostic => diagnostic.Code == "BIBEND004" && diagnostic.Field == "ref-type");
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         if (!string.IsNullOrWhiteSpace(code)) Assert.Contains(code, diagnostic.Message, StringComparison.Ordinal);
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222" && diagnostic.Field == "ref-type");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV222" && diagnostic.Field == "ref-type");
     }
 
     [Fact]
@@ -29,10 +29,10 @@ public sealed class BibliographyReviewWave42RegressionTests {
         document.Items[0].Title = "After";
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Equal("JOUR ", document.Items[0].NativeType);
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
     }
 
     [Theory]
@@ -43,9 +43,9 @@ public sealed class BibliographyReviewWave42RegressionTests {
         document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, kind, "<bar>value</bar>", "foo"));
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "foo");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "foo");
     }
 
     [Fact]
@@ -55,7 +55,7 @@ public sealed class BibliographyReviewWave42RegressionTests {
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = string.Empty });
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.BibTex).Document.Items).Dates);
 
         Assert.Equal(string.Empty, reopened.Literal);
@@ -68,8 +68,8 @@ public sealed class BibliographyReviewWave42RegressionTests {
         document.Items[0].Type = BibliographyItemType.Unknown;
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV200" && diagnostic.Field == "type");
     }
 }

@@ -298,6 +298,24 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Equal(bytes, source.ToBytes());
         }
 
+        // Shaped output wraps a ligature in its own section; removing other glyphs of the line leaves that section intact.
+        [Fact]
+        public void PreciseSearchKeepsAlternateTextOfUntouchedSectionInTheSameTextObject() {
+            byte[] bytes = BuildTextContentRedactionSource(
+                "BT /F1 12 Tf 72 720 Td (Before secret and ) Tj /Span << /ActualText (after) >> BDC (after) Tj EMC ET");
+            PdfDocument source = PdfDocument.Load(bytes);
+            PdfRedactionPlan plan = source.Redactions.Search(PreciseOptions().AddLiteral("secret"));
+            Assert.True(plan.IsReviewable, DescribeFindings(plan));
+
+            PdfRedactionApplyResult result = source.Redactions.ApplyWithEvidence(plan);
+
+            Assert.True(result.Evidence.IsVerified, result.Evidence.Summary);
+            string text = result.ToDocument().Read().Text;
+            Assert.DoesNotContain("secret", text, StringComparison.Ordinal);
+            Assert.Contains("after", text, StringComparison.Ordinal);
+            Assert.Contains("/ActualText (after)", DecodeAllStreams(result.Pdf), StringComparison.Ordinal);
+        }
+
         [Theory]
         [InlineData("/Span << /ActualText (Alpha secret Omega) >> BDC (painted substitute) Tj EMC")]
         [InlineData("/Span << /ActualText (secret) /MCID 0 >> BDC (secret) Tj EMC")]
@@ -331,8 +349,8 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void PreciseSelectionHonorsPagesCaseCancellationAndCandidateLimits() {
             PdfDocument source = PdfDocument.Create(pdf => {
-                pdf.Page(page => page.Content(content => content.Text("Alpha SECRET Omega")));
-                pdf.Page(page => page.Content(content => content.Text("Alpha SECRET Omega")));
+                pdf.Page(page => page.Content(content => content.AddParagraph("Alpha SECRET Omega")));
+                pdf.Page(page => page.Content(content => content.AddParagraph("Alpha SECRET Omega")));
             });
             PdfRedactionSearchOptions options = PreciseOptions().AddLiteral("secret");
             options.MaximumCandidates = 1;
@@ -343,8 +361,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Empty(source.Redactions.Search(options).Areas);
             using CancellationTokenSource cancellation = new CancellationTokenSource();
             cancellation.Cancel();
-            options.CancellationToken = cancellation.Token;
-            Assert.Throws<OperationCanceledException>(() => source.Redactions.Search(options));
+            Assert.Throws<OperationCanceledException>(() => source.Redactions.Search(options, cancellationToken: cancellation.Token));
         }
 
         [Fact]

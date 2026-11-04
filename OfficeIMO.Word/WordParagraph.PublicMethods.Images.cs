@@ -8,9 +8,9 @@ public partial class WordParagraph {
         var resolved = options ?? new WordImageOptions();
         if (resolved.Vml) {
             using var stream = File.OpenRead(path);
-            return resolved.Apply(InsertImageVml(stream, Path.GetFileName(path), width?.ToPoints(), height?.ToPoints(), resolved.Description));
+            return resolved.Apply(InsertImageVml(stream, Path.GetFileName(path), width?.ToPoints(), height?.ToPoints(), resolved.AltText));
         }
-        return AttachImage(new WordImage(_document, this, path, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.Description), resolved);
+        return AttachImage(new WordImage(_document, this, path, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.AltText), resolved);
     }
 
     /// <summary>Embeds an image stream without disposing the caller's stream.</summary>
@@ -18,15 +18,15 @@ public partial class WordParagraph {
         WordImageOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         var resolved = options ?? new WordImageOptions();
-        if (resolved.Vml) return resolved.Apply(InsertImageVml(stream, fileName, width?.ToPoints(), height?.ToPoints(), resolved.Description));
-        return AttachImage(new WordImage(_document, this, stream, fileName, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.Description), resolved);
+        if (resolved.Vml) return resolved.Apply(InsertImageVml(stream, fileName, width?.ToPoints(), height?.ToPoints(), resolved.AltText));
+        return AttachImage(new WordImage(_document, this, stream, fileName, width?.ToPixels(), height?.ToPixels(), resolved.Wrapping, resolved.AltText), resolved);
     }
 
     /// <summary>Adds a linked external image. The image remains an external relationship.</summary>
     public WordImage AddImage(Uri uri, OfficeLength width, OfficeLength height, WordImageOptions? options = null) {
         var resolved = options ?? new WordImageOptions();
         if (resolved.Vml) throw new ArgumentException("VML images must be embedded from a file or stream.", nameof(options));
-        return AttachImage(new WordImage(_document, this, uri, width.ToPixels(), height.ToPixels(), resolved.Wrapping, resolved.Description), resolved);
+        return AttachImage(new WordImage(_document, this, uri, width.ToPixels(), height.ToPixels(), resolved.Wrapping, resolved.AltText), resolved);
     }
 
     private WordImage AttachImage(WordImage image, WordImageOptions options) {

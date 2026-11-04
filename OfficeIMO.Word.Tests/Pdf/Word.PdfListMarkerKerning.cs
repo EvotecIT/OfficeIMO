@@ -73,8 +73,8 @@ public sealed class WordPdfListMarkerKerningTests {
         }
         WordParagraph paragraph = route switch {
             "cell" => document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0],
-            "header" => document.HeaderDefaultOrCreate.AddParagraph("B"),
-            "footer" => document.FooterDefaultOrCreate.AddParagraph("B"),
+            "header" => document.PageSetup.Header.AddParagraph("B"),
+            "footer" => document.PageSetup.Footer.AddParagraph("B"),
             _ => list.AddItem("B")
         };
         paragraph.Text = "B";

@@ -29,7 +29,7 @@ internal sealed class PdfTableStyleOptions
     internal double? SpacingBefore { get; set; }
     internal double? SpacingAfter { get; set; }
     internal string? Caption { get; set; }
-    internal PdfAlign? CaptionAlign { get; set; }
+    internal OfficeAlignment? CaptionAlign { get; set; }
     internal string? CaptionColor { get; set; }
     internal double? CaptionFontSize { get; set; }
     internal double? CaptionSpacingAfter { get; set; }
@@ -40,7 +40,7 @@ internal sealed class PdfTableStyleOptions
     internal double[]? ColumnMinWidthPoints { get; set; }
     internal double[]? ColumnMaxWidthPoints { get; set; }
     internal double[]? ColumnWidthWeights { get; set; }
-    internal PdfColumnAlign[]? ColumnAlign { get; set; }
+    internal OfficeAlignment[]? ColumnAlign { get; set; }
     internal bool AutoFitColumns { get; set; }
     internal bool RightAlignNumeric { get; set; }
     internal bool ShrinkTextToFit { get; set; }
@@ -180,13 +180,13 @@ internal static class PdfTableStyleBuilder
             SpacingBefore = GetDouble(specification, "SpacingBefore"),
             SpacingAfter = GetDouble(specification, "SpacingAfter"),
             Caption = GetString(specification, "Caption"),
-            CaptionAlign = GetEnum<PdfAlign>(specification, "CaptionAlign"),
+            CaptionAlign = GetEnum<OfficeAlignment>(specification, "CaptionAlign"),
             CaptionColor = GetString(specification, "CaptionColor"),
             CaptionFontSize = GetDouble(specification, "CaptionFontSize"),
             MinimumShrinkFontSize = GetDouble(specification, "MinimumShrinkFontSize", "MinShrinkFontSize"),
             ColumnWidthPoints = GetDoubleArray(specification, "ColumnWidthPoints", "ColumnWidths"),
             ColumnWidthWeights = GetDoubleArray(specification, "ColumnWidthWeights", "ColumnWeights"),
-            ColumnAlign = GetEnumArray<PdfColumnAlign>(specification, "ColumnAlign", "ColumnAlignment"),
+            ColumnAlign = GetEnumArray<OfficeAlignment>(specification, "ColumnAlign", "ColumnAlignment"),
             AutoFitColumns = GetBool(specification, "AutoFitColumns"),
             RightAlignNumeric = GetBool(specification, "RightAlignNumeric"),
             ShrinkTextToFit = GetBool(specification, "ShrinkTextToFit", "FitTextToCell"),

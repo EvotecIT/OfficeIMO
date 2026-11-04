@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using ExcelReader.Core.Parser;
 using ExcelReader.Core.Reader.Csv;
 using OfficeIMO.CSV;
+using CsvReaderOptions = OfficeIMO.CSV.CsvReaderOptions;
 using OfficeIMO.Data;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -86,11 +87,17 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
         [Benchmark]
         public long OfficeIMOCallerReduction() {
             string text = File.ReadAllText(_fixture.Path);
-            CsvLoadOptions loadOptions = new CsvLoadOptions { MaxInputBytes = Math.Max(CsvLoadOptions.DefaultMaxInputBytes, _fixture.Bytes) };
+            CsvReaderOptions loadOptions = new CsvReaderOptions { MaxInputBytes = Math.Max(CsvReaderOptions.DefaultMaxInputBytes, _fixture.Bytes) };
             ParallelRowMappingOptions parallelOptions = new ParallelRowMappingOptions { MaxDegreeOfParallelism = Dop == 0 ? null : Dop };
             IEnumerable<CsvAggregateValue> values = _fixture.Heavy
-                ? CsvDocument.ReadTextRowsAsParallel(text, HeavyFactory, loadOptions: loadOptions, parallelOptions: parallelOptions)
-                : CsvDocument.ReadTextRowsAsParallel(text, NarrowFactory, loadOptions: loadOptions, parallelOptions: parallelOptions);
+                ? CsvDocument.ReadTextRowsAsParallel(text,
+            HeavyFactory,
+            options: loadOptions,
+            parallelOptions: parallelOptions)
+                : CsvDocument.ReadTextRowsAsParallel(text,
+            NarrowFactory,
+            options: loadOptions,
+            parallelOptions: parallelOptions);
             long sum = 0;
             int count = 0;
             foreach (CsvAggregateValue value in values) { sum += value.Value; count++; }

@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesPackageWithTextStyle(
             Message(VarintField(field, value)), includePreview: true);
 
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Projection.Body.IsComplete);
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(records)),
             ("preview.png", ValidPreviewPng()));
 
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package, conversionOptions: new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Empty(result.Projection.Sheets);
@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
             IWorkSourceDocument source = IWorkSourceDocument.Open(package,
                 IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaximumProtobufFieldCount = 1 });
+                new IWorkReadOptions { MaxProtobufFieldCount = 1 });
             source.ReadNumbers();
         });
 

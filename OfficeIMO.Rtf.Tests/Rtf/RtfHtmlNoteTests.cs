@@ -17,19 +17,19 @@ public class RtfHtmlNoteTests {
         noteParagraph.AddText("text").SetItalic();
         reference.SetNote(note);
 
-        string html = document.ToHtml(RtfToHtmlOptions.CreateRoundTripProfile());
+        string html = document.ToHtml(RtfHtmlExportOptions.CreateRoundTripProfile());
 
         Assert.Contains("data-officeimo-rtf-note=\"footnote\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rtf-note-content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtf();
         RtfRun roundTripReference = Assert.Single(roundTrip.Paragraphs).Runs[1];
         Assert.NotNull(roundTripReference.Note);
         Assert.Equal(RtfNoteKind.Footnote, roundTripReference.Note!.Kind);
         Assert.Equal("Footnote text", roundTripReference.Note.ToPlainText());
         Assert.Contains(roundTripReference.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Italic);
 
-        string rtf = roundTrip.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = roundTrip.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\footnote", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\i text\i0", rtf, StringComparison.Ordinal);
     }
@@ -39,7 +39,7 @@ public class RtfHtmlNoteTests {
         string content = Convert.ToBase64String(Encoding.UTF8.GetBytes("<p>Endnote <strong>text</strong></p>"));
         string html = "<p>Value<sup>i</sup><span data-officeimo-rtf-note=\"endnote\" data-officeimo-rtf-note-content=\"" + content + "\"></span></p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
         RtfRun reference = Assert.Single(document.Paragraphs).Runs[1];
 
         Assert.NotNull(reference.Note);
@@ -47,7 +47,7 @@ public class RtfHtmlNoteTests {
         Assert.Equal("Endnote text", reference.Note.ToPlainText());
         Assert.Contains(reference.Note.Paragraphs[0].Runs, run => run.Text == "text" && run.Bold);
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\footnote\ftnalt", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\b text\b0", rtf, StringComparison.Ordinal);
     }
@@ -58,7 +58,7 @@ public class RtfHtmlNoteTests {
         const string created = "2026-01-02T03:04:05.0000000";
         string html = "<p>Flag<span data-officeimo-rtf-note=\"annotation\" data-officeimo-rtf-note-content=\"" + content + "\" data-officeimo-rtf-note-id=\"c1\" data-officeimo-rtf-note-author=\"Alice\" data-officeimo-rtf-note-created=\"" + created + "\"></span></p>";
 
-        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtf();
         RtfNote note = Assert.Single(document.Paragraphs).Runs[0].Note!;
 
         Assert.Equal(RtfNoteKind.Annotation, note.Kind);
@@ -67,7 +67,7 @@ public class RtfHtmlNoteTests {
         Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), note.Created);
         Assert.Equal("Review note", note.ToPlainText());
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         Assert.Contains(@"{\annotation", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\atnid c1}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\*\atnauthor Alice}", rtf, StringComparison.Ordinal);

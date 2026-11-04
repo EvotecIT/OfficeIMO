@@ -18,13 +18,13 @@ public sealed class RtfWordDefaultFontTests {
         string family, string paintedFont, int expectedFontId) {
         RtfDocument authored = CreateSource(out int selectedFont, family);
         authored.AddParagraph().AddText("DEFAULTFONT").SetFontSize(12);
-        RtfDocument source = parsed ? RtfDocument.Read(authored.ToRtf()).Document : authored;
+        RtfDocument source = parsed ? RtfDocument.ParseResult(authored.ToRtf()).Document : authored;
         Assert.Equal(expectedFontId, selectedFont);
         Assert.Equal(selectedFont, source.Settings.DefaultFontId);
         Assert.All(source.Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.Null(run.FontId));
         string original = source.ToRtf();
 
-        using WordDocument converted = source.ToWordDocument();
+        using WordDocument converted = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
@@ -45,7 +45,7 @@ public sealed class RtfWordDefaultFontTests {
         source.AddParagraph("Anchor").AddNoteReference(note);
         string original = source.ToRtf();
 
-        using WordDocument converted = source.ToWordDocument();
+        using WordDocument converted = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 
@@ -70,7 +70,7 @@ public sealed class RtfWordDefaultFontTests {
         run.FontId = directFont;
         string original = source.ToRtf();
 
-        using WordDocument converted = source.ToWordDocument();
+        using WordDocument converted = source.ToWord();
         using WordDocument reopened = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         using PdfPigDocument pdf = PdfPigDocument.Open((reopened.ToPdf(PortableOptions())).ToBytes());
 

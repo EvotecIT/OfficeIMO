@@ -29,27 +29,27 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, dateOffset);
-                sheet.FormatCell(1, 1, "yyyy-mm-dd hh:mm");
-                sheet.CellValue(2, 1, time);
-                sheet.FormatCell(2, 1, "hh:mm:ss");
-                sheet.CellValue(3, 1, ui);
-                sheet.FormatCell(3, 1, "000000");
-                sheet.CellValue(4, 1, ul);
-                sheet.CellValue(5, 1, us);
-                sheet.CellValue(6, 1, by);
-                sheet.CellValue(7, 1, nullableInt);
-                sheet.FormatCell(7, 1, "0");
-                sheet.CellValue(8, 1, nullableNull);
-                sheet.CellValue(9, 1, nullableDto);
-                sheet.FormatCell(9, 1, "yyyy-mm-dd hh:mm");
-                sheet.CellValue(10, 1, nullableTs);
-                sheet.FormatCell(10, 1, "hh:mm:ss");
+                sheet.Cell(1, 1).SetValue(dateOffset);
+                sheet.Cell(1, 1).SetNumberFormat("yyyy-mm-dd hh:mm");
+                sheet.Cell(2, 1).SetValue(time);
+                sheet.Cell(2, 1).SetNumberFormat("hh:mm:ss");
+                sheet.Cell(3, 1).SetValue(ui);
+                sheet.Cell(3, 1).SetNumberFormat("000000");
+                sheet.Cell(4, 1).SetValue(ul);
+                sheet.Cell(5, 1).SetValue(us);
+                sheet.Cell(6, 1).SetValue(by);
+                sheet.Cell(7, 1).SetValue(nullableInt);
+                sheet.Cell(7, 1).SetNumberFormat("0");
+                sheet.Cell(8, 1).SetValue(nullableNull);
+                sheet.Cell(9, 1).SetValue(nullableDto);
+                sheet.Cell(9, 1).SetNumberFormat("yyyy-mm-dd hh:mm");
+                sheet.Cell(10, 1).SetValue(nullableTs);
+                sheet.Cell(10, 1).SetNumberFormat("hh:mm:ss");
 #if NET6_0_OR_GREATER
-                sheet.CellValue(11, 1, dateOnly);
-                sheet.FormatCell(11, 1, "yyyy-mm-dd");
-                sheet.CellValue(12, 1, timeOnly);
-                sheet.FormatCell(12, 1, "hh:mm:ss");
+                sheet.Cell(11, 1).SetValue(dateOnly);
+                sheet.Cell(11, 1).SetNumberFormat("yyyy-mm-dd");
+                sheet.Cell(12, 1).SetValue(timeOnly);
+                sheet.Cell(12, 1).SetNumberFormat("hh:mm:ss");
 #endif
                 document.Save();
             }
@@ -119,8 +119,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, new DateOnly(2026, 5, 22));
-                sheet.CellValue(2, 1, new TimeOnly(14, 30, 0));
+                sheet.Cell(1, 1).SetValue(new DateOnly(2026, 5, 22));
+                sheet.Cell(2, 1).SetValue(new TimeOnly(14, 30, 0));
                 document.Save();
             }
 
@@ -154,8 +154,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, largeUnsigned);
-                sheet.CellValue(2, 1, (object)largeSigned);
+                sheet.Cell(1, 1).SetValue(largeUnsigned);
+                sheet.Cell(2, 1).SetValue((object)largeSigned);
                 document.Save();
             }
 
@@ -185,8 +185,8 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, positive);
-                sheet.CellValue(2, 1, negative);
+                sheet.Cell(1, 1).SetValue(positive);
+                sheet.Cell(2, 1).SetValue(negative);
                 document.Save();
             }
 
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
             {
                 document.DateTimeOffsetWriteStrategy = dto => dto.UtcDateTime;
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, value);
+                sheet.Cell(1, 1).SetValue(value);
                 document.Save();
             }
 
@@ -242,7 +242,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath))
             {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, historical);
+                sheet.Cell(1, 1).SetValue(historical);
                 document.Save();
             }
 
@@ -274,7 +274,7 @@ namespace OfficeIMO.Tests {
                 document.DateTimeOffsetWriteStrategy = _ => throw new InvalidOperationException("boom");
                 var sheet = document.AddSheet("Data");
 
-                var ex = Assert.Throws<InvalidOperationException>(() => sheet.CellValue(1, 1, value));
+                var ex = Assert.Throws<InvalidOperationException>(() => sheet.Cell(1, 1).SetValue(value));
                 Assert.Contains("DateTimeOffset write strategy", ex.Message);
                 Assert.IsType<InvalidOperationException>(ex.InnerException);
             }
@@ -287,8 +287,8 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, duration);
-                sheet.CellValue(2, 1, (TimeSpan?)duration);
+                sheet.Cell(1, 1).SetValue(duration);
+                sheet.Cell(2, 1).SetValue((TimeSpan?)duration);
                 document.Save();
             }
 

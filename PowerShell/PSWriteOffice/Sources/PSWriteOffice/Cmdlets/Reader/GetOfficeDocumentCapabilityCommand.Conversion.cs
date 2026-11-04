@@ -10,7 +10,7 @@ namespace PSWriteOffice.Cmdlets.Reader;
 public sealed partial class GetOfficeDocumentCapabilityCommand {
     private void WriteConversions() {
         OfficeWorkflowCommandUtilities.RegisterConversions();
-        var executable = new HashSet<string>(OfficeConverter.Routes.Select(route => route.Id), StringComparer.OrdinalIgnoreCase);
+        var executable = new HashSet<string>(OfficeWorkflowCommandUtilities.SupportedConversionRoutes.Select(route => route.Id), StringComparer.OrdinalIgnoreCase);
         OfficeFormatSelection? from = OfficeFormatSelection.Parse(From);
         OfficeFormatSelection? to = OfficeFormatSelection.Parse(To);
         foreach (OfficeConversionCapability route in OfficeConversionCapabilityCatalog.All) {

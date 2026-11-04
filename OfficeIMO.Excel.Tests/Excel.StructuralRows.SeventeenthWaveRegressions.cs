@@ -32,10 +32,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreservesSameRowTableFormulaAtFirstDataRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Value");
-            sheet.CellAt(1, 2).SetValue("Result");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(3, 1).SetValue(20);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(1, 2).SetValue("Result");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(3, 1).SetValue(20);
             sheet.AddTable(
                 "A1:B3",
                 hasHeader: true,
@@ -57,8 +57,8 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_RequestsRecalculationForDataTableOnlyWorkbook() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue(1);
-            sheet.CellAt(2, 2).SetValue(2);
+            sheet.Cell(1, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             Cell owner = sheet.WorksheetPart.Worksheet.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "B2");
             owner.CellFormula = new CellFormula {

@@ -43,7 +43,7 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
         properties.Append(new A.Outline());
         properties.Append(new A.EffectList());
 
-        textBox.FillColorHex = "ABCDEF";
+        textBox.FillColor = OfficeColor.Parse("ABCDEF");
 
         List<DocumentFormat.OpenXml.OpenXmlElement> children = properties.ChildElements.ToList();
         int fillIndex = children.IndexOf(Assert.Single(properties.Elements<A.SolidFill>()));
@@ -63,7 +63,7 @@ public sealed class HtmlEditableLayoutReviewWave27Tests {
         properties.Append(new A.Outline());
         properties.Append(new A.EffectList());
 
-        shape.FillColorHex = "ABCDEF";
+        shape.FillColor = OfficeColor.Parse("ABCDEF");
 
         List<DocumentFormat.OpenXml.OpenXmlElement> children = properties.ChildElements.ToList();
         int fillIndex = children.IndexOf(Assert.Single(properties.Elements<A.SolidFill>()));

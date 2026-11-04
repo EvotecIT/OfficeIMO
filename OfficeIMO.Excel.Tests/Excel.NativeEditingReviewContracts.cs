@@ -15,7 +15,7 @@ public sealed class ExcelNativeEditingReviewContracts {
     [InlineData(true)]
     public void Newly_authored_array_materializes_preexisting_empty_members(bool encrypted) {
         using var seed = ExcelDocument.Create(); var sheet = seed.AddSheet("Data");
-        sheet.CellValue(1, 1, 2D); sheet.CellValue(2, 1, 3D); sheet.CellBold(1, 2); sheet.CellBold(2, 2);
+        sheet.Cell(1, 1).SetValue(2D); sheet.Cell(2, 1).SetValue(3D); sheet.Cell(1, 2).SetBold(); sheet.Cell(2, 2).SetBold();
         using var document = ExcelDocument.Load(new MemoryStream(seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls })));
         document.Sheets[0].SetArrayFormula("B1:B2", "SUM(A1:A2)");
         using var output = new MemoryStream();
@@ -25,7 +25,7 @@ public sealed class ExcelNativeEditingReviewContracts {
         var array = Assert.Single(native.Worksheets[0].ArrayFormulaRecords);
         Assert.Equal("B1:B2", array.Range); Assert.Equal(2, array.MatchedFormulaCellCount);
         Assert.All(native.Worksheets[0].Cells.Where(cell => cell.Column == 2), cell => Assert.True(cell.IsFormula));
-        document.Sheets[0].CellValue(3, 1, "second save");
+        document.Sheets[0].Cell(3, 1).SetValue("second save");
         var second = LegacyXlsWorkbook.Load(document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
         Assert.Equal(2, Assert.Single(second.Worksheets[0].ArrayFormulaRecords).MatchedFormulaCellCount);
     }
@@ -72,7 +72,7 @@ public sealed class ExcelNativeEditingReviewContracts {
             entry.Delete(); using var target = package.CreateEntry("[Content_Types].xml").Open(); types.Save(target);
         });
         using var document = ExcelDocument.Load(new MemoryStream(source));
-        document.AddSheet("Added host").CellValue(1, 1, "host");
+        document.AddSheet("Added host").Cell(1, 1).SetValue("host");
         byte[] sentinel = { 1, 2, 3, 4 }; using var output = new MemoryStream(); output.Write(sentinel, 0, sentinel.Length);
         var error = Assert.Throws<NotSupportedException>(() => {
             if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xlsb);
@@ -84,7 +84,7 @@ public sealed class ExcelNativeEditingReviewContracts {
     [Fact]
     public void Name_projection_does_not_rebind_cross_scope_or_shadowed_global_tokens() {
         using var seed = ExcelDocument.Create(); var first = seed.AddSheet("First"); var second = seed.AddSheet("Second");
-        first.CellValue(1, 1, 10D); second.CellValue(1, 1, 20D);
+        first.Cell(1, 1).SetValue(10D); second.Cell(1, 1).SetValue(20D);
         seed.SetNamedRange("Value", "'First'!A1", save: false);
         seed.SetNamedRange("Value", "A1", first, save: false);
         seed.SetNamedRange("Value", "A1", second, save: false);

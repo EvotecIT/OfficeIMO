@@ -16,12 +16,12 @@ public partial class HtmlOfficeAdapters {
         using (var source = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = dark ? OfficeTheme.Dark : OfficeTheme.Modern })) {
             var slide = source.AddSlide();
             slide.BackgroundColor = background;
-            slide.AddTextBox("Keep native colors").Paragraphs[0].Runs[0].Color = foreground;
+            slide.AddTextBox("Keep native colors").Paragraphs[0].Runs[0].Color = OfficeColor.Parse(foreground);
             source.Save(bytes);
         }
         bytes.Position = 0;
         using var saved = PowerPointDocument.Load(bytes);
-        var settings = new PowerPointHtmlSaveOptions();
+        var settings = new PowerPointHtmlExportOptions();
         settings.DocumentOutput.DocumentTheme = dark ? OfficeTheme.Modern : OfficeTheme.Dark;
         string html = saved.ToHtml(settings);
         var parsed = new HtmlParser().ParseDocument(html);

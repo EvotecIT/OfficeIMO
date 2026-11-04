@@ -87,13 +87,12 @@ namespace OfficeIMO.Tests.Pdf {
         [Fact]
         public void FooterSegments_RejectInvalidExternalState() {
             var nullEntryOptions = new PdfCreateOptions {
-                ShowPageNumbers = true,
-                FooterSegments = new System.Collections.Generic.List<PdfFooterSegment> { null! }
+                PageSetup = { Footer = { Show = true, Segments = new System.Collections.Generic.List<PdfFooterSegment> { null! } } }
             };
 
             var nullEntryException = Assert.Throws<ArgumentException>(() =>
                 PdfDocument.Create(nullEntryOptions)
-                    .Paragraph(p => p.Text("Invalid footer segment"))
+                    .Paragraph(p => p.AddText("Invalid footer segment"))
                     .ToBytes());
             Assert.Contains("footer segments", nullEntryException.Message, StringComparison.OrdinalIgnoreCase);
         }
@@ -120,34 +119,28 @@ namespace OfficeIMO.Tests.Pdf {
         }
 
         [Fact]
-        public void FooterSegments_SnapshotAssignedAndReadbackLists() {
+        public void FooterSegments_SnapshotAssignedList() {
             var assigned = new System.Collections.Generic.List<PdfFooterSegment> {
                 new PdfFooterSegment(PdfFooterSegmentKind.Text, "Page "),
                 new PdfFooterSegment(PdfFooterSegmentKind.PageNumber)
             };
 
             var options = new PdfCreateOptions {
-                ShowPageNumbers = true,
-                FooterSegments = assigned
+                PageSetup = { Footer = { Show = true, Segments = assigned } }
             };
 
             assigned[0] = new PdfFooterSegment(PdfFooterSegmentKind.Text, "Mutated");
             assigned.Add(new PdfFooterSegment(PdfFooterSegmentKind.TotalPages));
 
-            var readback = options.FooterSegments!;
-            readback[0] = new PdfFooterSegment(PdfFooterSegmentKind.Text, "Readback mutated");
-            readback.Add(new PdfFooterSegment(PdfFooterSegmentKind.TotalPages));
-
-            Assert.Equal(2, options.FooterSegments!.Count);
-            Assert.Equal("Page ", options.FooterSegments![0].Text);
+            Assert.Equal(2, options.PageSetup.Footer.Segments!.Count);
+            Assert.Equal("Page ", options.PageSetup.Footer.Segments![0].Text);
 
             var doc = PdfDocument.Create(options)
-                .Paragraph(p => p.Text("Footer segment snapshot"));
+                .Paragraph(p => p.AddText("Footer segment snapshot"));
 
             string pdfText = Normalize(PdfPigDocument.Open(new MemoryStream(doc.ToBytes())).GetPage(1).Text);
             Assert.Contains("Page1", pdfText, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Mutated", pdfText, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain("Readbackmutated", pdfText, StringComparison.OrdinalIgnoreCase);
         }
 
     }

@@ -12,13 +12,17 @@ namespace OfficeIMO.PowerPoint {
     internal sealed class PowerPointLayoutRun {
         internal PowerPointLayoutRun(string text, PowerPointTextStyleSpec style, double? size = null, string? color = null,
             bool? bold = null) {
-            Text = style.Upper ? (text ?? string.Empty).ToUpperInvariant() : text ?? string.Empty;
+            string value = PowerPointTextContent.NormalizeBreaks(text);
+            Text = style.Upper ? value.ToUpperInvariant() : value;
             Heading = style.HeadingFont;
             Size = size ?? style.Size;
             Color = color ?? style.Color;
             Bold = bold ?? style.Bold;
             Tracking = style.Tracking;
         }
+
+        /// <summary>Single-line form for attribute text, where a vertical tab cannot be saved.</summary>
+        internal static string FlattenBreaks(string? text) => PowerPointTextContent.NormalizeBreaks(text).Replace('\n', ' ');
 
         internal string Text { get; }
         internal bool Heading { get; set; }
@@ -72,7 +76,10 @@ namespace OfficeIMO.PowerPoint {
 
         private static string E(double points) => ((long)Math.Round(points * 12700D)).ToString(CultureInfo.InvariantCulture);
         private static string I(double value) => ((int)Math.Round(value)).ToString(CultureInfo.InvariantCulture);
-        private static string X(string text) => SecurityElement.Escape(text) ?? string.Empty;
+        internal static string X(string text) {
+            PowerPointXmlValueValidator.ValidateCharacters(text, nameof(text), "Layout text");
+            return SecurityElement.Escape(text) ?? string.Empty;
+        }
 
         /// <summary>A colour as a theme reference when it is a theme slot, otherwise a literal.</summary>
         internal string ColorXml(string hex, double alpha = 1D) {

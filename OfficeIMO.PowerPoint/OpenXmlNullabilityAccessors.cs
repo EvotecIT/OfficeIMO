@@ -17,7 +17,7 @@ namespace OfficeIMO.PowerPoint {
         }
     }
 
-    public partial class PowerPointPicture {
+    public partial class PowerPointImage {
         private Slide SlideRoot =>
             SlidePart.Slide ?? throw new InvalidOperationException("Slide is null.");
     }

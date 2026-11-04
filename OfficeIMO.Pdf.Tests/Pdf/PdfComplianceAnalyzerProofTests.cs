@@ -87,7 +87,7 @@ public partial class PdfComplianceAnalyzerTests {
     public void DocumentProofUsesGeneratedEvidenceBeforeAcceptingExternalPdfAValidation() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
-            .Paragraph(paragraph => paragraph.Text("Generated text must still have embedded font proof."));
+            .Paragraph(paragraph => paragraph.AddText("Generated text must still have embedded font proof."));
         PdfComplianceArtifact complianceArtifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
         byte[] artifact = complianceArtifact.ToBytes();
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
@@ -135,7 +135,7 @@ public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void ComplianceArtifactUsesTheSingleEncryptedRenderItCaptured() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted exact artifact."));
+            .Paragraph(paragraph => paragraph.AddText("Encrypted exact artifact."));
 
         PdfComplianceArtifact artifact = document.CreateComplianceArtifact(PdfComplianceProfile.PdfA3B);
         byte[] firstCopy = artifact.ToBytes();
@@ -155,7 +155,7 @@ public partial class PdfComplianceAnalyzerTests {
     [Fact]
     public void OpenedEncryptedDocumentProofReusesItsAuthenticatedReadOptions() {
         byte[] encryptedBytes = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Authenticated compliance readback."))
+            .Paragraph(paragraph => paragraph.AddText("Authenticated compliance readback."))
             .ToBytes();
         PdfDocument opened = PdfDocument.Load(
             encryptedBytes,
@@ -181,7 +181,7 @@ public partial class PdfComplianceAnalyzerTests {
                     "Earlier evidence reported an output intent.")
             });
         byte[] artifactWithoutOutputIntent = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("No output intent."))
+            .Paragraph(paragraph => paragraph.AddText("No output intent."))
             .ToBytes();
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(

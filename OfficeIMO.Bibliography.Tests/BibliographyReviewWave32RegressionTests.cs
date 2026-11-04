@@ -15,9 +15,9 @@ public sealed class BibliographyReviewWave32RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV244" && diagnostic.Field == "contributors");
     }
 
     [Fact]
@@ -27,7 +27,7 @@ public sealed class BibliographyReviewWave32RegressionTests {
         item.Contributors.Add(new BibliographyContributor(BibliographyContributorRole.Author, new BibliographyName { Given = string.Empty, Family = "Doe" }));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyName reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].Contributors).Name;
 
         Assert.Equal(string.Empty, reopened.Given);
@@ -42,9 +42,9 @@ public sealed class BibliographyReviewWave32RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV245" && diagnostic.Field == "identifiers.doi");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV245" && diagnostic.Field == "identifiers.doi");
     }
 
     [Theory]
@@ -59,7 +59,7 @@ public sealed class BibliographyReviewWave32RegressionTests {
         if (format == BibliographyFormat.Nbib) item.Identifiers.Add(new BibliographyIdentifier("PMID", "1"));
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items[0].Dates);
 
         Assert.Equal("n.d. ", reopened.Literal);
@@ -77,9 +77,9 @@ public sealed class BibliographyReviewWave32RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV246" && diagnostic.Field == "dates.Issued.literal");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV246" && diagnostic.Field == "dates.Issued.literal");
     }
 
     [Fact]
@@ -89,7 +89,7 @@ public sealed class BibliographyReviewWave32RegressionTests {
         item.Dates.Add(new BibliographyDate { Role = BibliographyDateRole.Issued, Literal = " n.d. " });
         document.Items.Add(item);
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.CslJson).Document.Items[0].Dates);
 
         Assert.Equal(" n.d. ", reopened.Literal);
@@ -108,8 +108,8 @@ public sealed class BibliographyReviewWave32RegressionTests {
         document.Items[0].Title = "After";
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-        Assert.Contains(exception.Report.Diagnostics, candidate => candidate.Code == "BIBCONV222" && candidate.Field == elementName);
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
+        Assert.Contains(exception.Report.NativeDiagnostics, candidate => candidate.Code == "BIBCONV222" && candidate.Field == elementName);
     }
 
 
@@ -118,7 +118,7 @@ public sealed class BibliographyReviewWave32RegressionTests {
     [InlineData("record")]
     public void EndNote_structural_mixed_text_counts_as_a_materialized_value(string elementName) {
         const string clean = "<records><record><rec-number>1</rec-number><ref-type name=\"Book\">6</ref-type><titles><title>Before</title></titles></record></records>";
-        var options = new BibliographyReadOptions { MaximumValueCount = 4 };
+        var options = new BibliographyReadOptions { MaxValueCount = 4 };
 
         BibliographyReadResult baseline = BibliographyDocument.Parse(clean, BibliographyFormat.EndNoteXml, options);
         BibliographyReadResult mixed = BibliographyDocument.Parse(CreateMixedTextSource(elementName, "orphan"), BibliographyFormat.EndNoteXml, options);

@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         public void Test_ImageLocation_Header() {
             var filePath = Path.Combine(_directoryWithFiles, "ImageLocationHeader.docx");
             using var document = WordDocument.Create(filePath);
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
         public void Test_ImageLocation_Footer() {
             var filePath = Path.Combine(_directoryWithFiles, "ImageLocationFooter.docx");
             using var document = WordDocument.Create(filePath);
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
             var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);

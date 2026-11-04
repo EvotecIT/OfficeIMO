@@ -78,7 +78,7 @@ public partial class Excel {
     public void CustomProperties_ReturnAttachedValuesAndKeepDictionaryContracts() {
         using var document = ExcelDocument.Create();
         document.AddSheet("Data");
-        var properties = document.CustomDocumentProperties;
+        var properties = document.CustomProperties;
         var supplied = new ExcelCustomProperty { Value = "Draft", PropertyType = ExcelCustomPropertyType.Text };
         var added = properties.Add(" Workflow ", supplied);
         Assert.Same(supplied, added);
@@ -94,10 +94,10 @@ public partial class Excel {
         added.Value = "Reviewed";
         pair.Value.Value = "Second";
         using var loaded = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
-        Assert.Equal("Reviewed", loaded.CustomDocumentProperties["Workflow"].Text);
-        Assert.Equal("Second", loaded.CustomDocumentProperties["Reviewer"].Text);
-        Assert.Equal("Present", loaded.CustomDocumentProperties["Dictionary"].Text);
-        Assert.Equal("Present", loaded.CustomDocumentProperties["Collection"].Text);
+        Assert.Equal("Reviewed", loaded.CustomProperties["Workflow"].Text);
+        Assert.Equal("Second", loaded.CustomProperties["Reviewer"].Text);
+        Assert.Equal("Present", loaded.CustomProperties["Dictionary"].Text);
+        Assert.Equal("Present", loaded.CustomProperties["Collection"].Text);
     }
 
 }

@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             slide.AddTitle("Validation Example",titleBox);
             PowerPointTextBox intro = slide.AddTextBox(
                 "Creates a deck, saves it, and validates the Open XML package.",                bodyBox);
-            intro.ApplyTextStyle(PowerPointTextStyle.Body.WithColor("1F4E79"));
+            intro.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("1F4E79")));
             intro.TextAutoFit = PowerPointTextAutoFit.Normal;
             intro.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.2));
 

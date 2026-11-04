@@ -137,14 +137,14 @@ public partial class WordDocument {
         using WordDocument fallback = WordDocument.Create();
         OfficeImageExportResult firstPage = plan.Pages[0];
         WordSection section = fallback.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Width * 20))) / 20D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Height * 20))) / 20D);
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Zero;
-        section.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
-        section.Margins.Top = global::OfficeIMO.OfficeLength.Zero;
-        section.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
-        section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Zero;
-        section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Width * 20))) / 20D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points((checked((uint)Math.Max(1, firstPage.Height * 20))) / 20D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Zero;
+        section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Zero;
 
         for (int index = 0; index < plan.Pages.Count; index++) {
             OfficeImageExportResult page = plan.Pages[index];
@@ -154,7 +154,7 @@ public partial class WordDocument {
                 $"compatibility-page-{index + 1:D4}.png",
                 OfficeLength.Points(page.Width),
                 OfficeLength.Points(page.Height),
-                new WordImageOptions { Description = $"Static visual compatibility fallback page {index + 1}" });
+                new WordImageOptions { AltText = $"Static visual compatibility fallback page {index + 1}" });
             if (index + 1 < plan.Pages.Count) fallback.AddPageBreak();
         }
 

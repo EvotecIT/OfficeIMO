@@ -231,7 +231,7 @@ namespace OfficeIMO.Word {
 
         private static void ApplyLegacyDocTableCellShading(WordTableCell cell, LegacyDocTableCellShading shading) {
             if (!string.IsNullOrEmpty(shading.FillColorHex)) {
-                cell.ShadingFillColorHex = shading.FillColorHex!;
+                cell.ShadingFillValue = shading.FillColorHex!;
             }
         }
 
@@ -239,25 +239,25 @@ namespace OfficeIMO.Word {
             ApplyLegacyDocTableCellBorder(
                 borders.Top,
                 style => cell.Borders.TopStyle = style.ToOfficeEnum(),
-                color => cell.Borders.TopColorHex = color,
+                color => cell.Borders.TopColorValue = color,
                 size => cell.Borders.TopSize = WordBorderLengths.FromSize(size),
                 space => cell.Borders.TopSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Left,
                 style => cell.Borders.LeftStyle = style.ToOfficeEnum(),
-                color => cell.Borders.LeftColorHex = color,
+                color => cell.Borders.LeftColorValue = color,
                 size => cell.Borders.LeftSize = WordBorderLengths.FromSize(size),
                 space => cell.Borders.LeftSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Bottom,
                 style => cell.Borders.BottomStyle = style.ToOfficeEnum(),
-                color => cell.Borders.BottomColorHex = color,
+                color => cell.Borders.BottomColorValue = color,
                 size => cell.Borders.BottomSize = WordBorderLengths.FromSize(size),
                 space => cell.Borders.BottomSpace = WordBorderLengths.FromSpace(space));
             ApplyLegacyDocTableCellBorder(
                 borders.Right,
                 style => cell.Borders.RightStyle = style.ToOfficeEnum(),
-                color => cell.Borders.RightColorHex = color,
+                color => cell.Borders.RightColorValue = color,
                 size => cell.Borders.RightSize = WordBorderLengths.FromSize(size),
                 space => cell.Borders.RightSpace = WordBorderLengths.FromSpace(space));
         }

@@ -331,8 +331,8 @@ internal static partial class PdfWriter {
                 double codeTokenWidth = 0D;
                 for (int runIndex = 0; runIndex < cell.Runs.Count; runIndex++) {
                     PdfTextRun run = cell.Runs[runIndex];
-                    if (!run.Font.HasValue && !run.FontSize.HasValue) continue;
-                    PdfStandardFont runFont = run.Font ?? rowStandardFont;
+                    if (!run.StandardFont.HasValue && !run.FontSize.HasValue) continue;
+                    PdfStandardFont runFont = run.StandardFont ?? rowStandardFont;
                     if (run.Bold) runFont = ChooseBold(runFont);
                     double runSize = run.FontSize?.ToPoints() ?? rowSize;
                     if (PdfStandardFontMapper.GetFontFamily(runFont) == PdfStandardFont.Courier) {

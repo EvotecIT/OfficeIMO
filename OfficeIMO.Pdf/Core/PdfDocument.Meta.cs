@@ -303,6 +303,8 @@ public sealed partial class PdfDocument : IDisposable {
             if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
                 throw new NotSupportedException("Page-associated footnotes require ordinary single-column flow.");
         }
+        if (block is MultiColumnBlock or RowBlock or PdfCanvasBlock)
+            foreach (PdfParagraph paragraph in PdfFootnoteTraversal.LiveParagraphs(block)) paragraph.RejectsFootnotes = true;
         if (block is TableBlock { Style: { BorderFrame: not null, Position: null, ConsumesVerticalFlow: true } } table)
             block = new ContainerBlock(table);
         CurrentBlockSink(block);
@@ -348,6 +350,7 @@ public sealed partial class PdfDocument : IDisposable {
         if (_source is not null) {
             throw new InvalidOperationException("This PDF was opened from existing bytes and cannot accept generated document content. Use Pages, Stamp, Forms, metadata operations, or create a new PdfDocument.");
         }
+        Volatile.Write(ref _completedOutput, null);
     }
 
     internal byte[] GetBytesForOperation() => GetBytesForOperation(CancellationToken.None);

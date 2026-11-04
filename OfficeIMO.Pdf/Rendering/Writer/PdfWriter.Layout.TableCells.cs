@@ -93,19 +93,19 @@ internal static partial class PdfWriter {
         return spacing;
     }
 
-    private static PdfColumnAlign GetTableCellAlignment(PdfTableStyle style, int rowIndex, int columnIndex, string cellText) {
+    private static OfficeAlignment GetTableCellAlignment(PdfTableStyle style, int rowIndex, int columnIndex, string cellText) {
         if (style.CellAlignments != null &&
-            style.CellAlignments.TryGetValue((rowIndex, columnIndex), out PdfColumnAlign cellAlignment)) {
+            style.CellAlignments.TryGetValue((rowIndex, columnIndex), out OfficeAlignment cellAlignment)) {
             return cellAlignment;
         }
 
-        var alignment = PdfColumnAlign.Left;
+        var alignment = OfficeAlignment.Left;
         if (style.Alignments != null && columnIndex < style.Alignments.Count) {
             alignment = style.Alignments[columnIndex];
         }
 
         if (style.RightAlignNumeric && LooksNumeric(cellText)) {
-            return PdfColumnAlign.Right;
+            return OfficeAlignment.Right;
         }
 
         return alignment;
@@ -118,9 +118,9 @@ internal static partial class PdfWriter {
         if (!style.RightAlignNumeric || headerRows <= 0 || table.Cells.Count <= headerRows) return style;
         int footerStart = table.Cells.Count - style.FooterRowCount;
         int columns = table.ColumnCount;
-        System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>? aligned = null;
+        System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>? aligned = null;
         for (int column = 0; column < columns; column++) {
-            if (style.Alignments != null && column < style.Alignments.Count && style.Alignments[column] != PdfColumnAlign.Left) continue;
+            if (style.Alignments != null && column < style.Alignments.Count && style.Alignments[column] != OfficeAlignment.Left) continue;
             bool sawNumber = false, numeric = true;
             for (int row = headerRows; row < footerStart && numeric; row++) {
                 System.Collections.Generic.IReadOnlyList<PdfTableCell> cells = table.Cells[row];
@@ -133,14 +133,14 @@ internal static partial class PdfWriter {
             if (!numeric || !sawNumber) continue;
             for (int row = 0; row < headerRows; row++) {
                 if (style.CellAlignments != null && style.CellAlignments.ContainsKey((row, column))) continue;
-                (aligned ??= new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>())[(row, column)] = PdfColumnAlign.Right;
+                (aligned ??= new System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>())[(row, column)] = OfficeAlignment.Right;
             }
         }
         if (aligned == null) return style;
         PdfTableStyle copy = style.Clone();
         var merged = copy.CellAlignments == null
-            ? new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>()
-            : new System.Collections.Generic.Dictionary<(int Row, int Column), PdfColumnAlign>(copy.CellAlignments);
+            ? new System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>()
+            : new System.Collections.Generic.Dictionary<(int Row, int Column), OfficeAlignment>(copy.CellAlignments);
         foreach (var entry in aligned) merged[entry.Key] = entry.Value;
         copy.CellAlignments = merged;
         return copy;

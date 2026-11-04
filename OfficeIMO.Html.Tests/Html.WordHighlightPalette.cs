@@ -51,7 +51,7 @@ public sealed class WordHighlightPaletteTests {
     [Fact]
     public void ExactDarkMagentaImportUsesTheSharedPaletteWithoutApproximation() {
         HtmlToWordResult conversion = HtmlConversionDocument.Parse("<p><span style='background-color:#800080'>Highlight</span></p>")
-            .ConvertToWordWithEvidence(new WordHtmlImportOptions { TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight });
+            .ConvertToWordWithEvidence(new HtmlWordExportOptions { TextBackgroundMode = WordHtmlTextBackgroundMode.NearestHighlight });
         using WordDocument document = conversion.Value;
         Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "text-background-color-approximated");
         WordParagraph run = document.Paragraphs.SelectMany(paragraph => paragraph.GetRuns())

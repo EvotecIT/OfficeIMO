@@ -16,26 +16,26 @@ public abstract class PdfInlineElement {
     public global::OfficeIMO.OfficeLength BaselineOffset { get; }
 
     /// <summary>Alternative text used when the element is emitted into a tagged document.</summary>
-    public string? AlternativeText { get; }
+    public string? AltText { get; }
 
-    private protected PdfInlineElement(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength baselineOffset, string? alternativeText)
-        : this(width, height, baselineOffset, alternativeText, flexibleWidth: false) { }
+    private protected PdfInlineElement(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength baselineOffset, string? altText)
+        : this(width, height, baselineOffset, altText, flexibleWidth: false) { }
 
-    private protected PdfInlineElement(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength baselineOffset, string? alternativeText, bool flexibleWidth) {
+    private protected PdfInlineElement(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeLength baselineOffset, string? altText, bool flexibleWidth) {
         if (!flexibleWidth || width.ToPoints() != 0D) Guard.Positive(width.ToPoints(), nameof(width));
         Guard.Positive(height.ToPoints(), nameof(height));
         if (double.IsNaN(baselineOffset.ToPoints()) || double.IsInfinity(baselineOffset.ToPoints())) {
             throw new ArgumentException("Inline element baseline offset must be finite.", nameof(baselineOffset));
         }
 
-        if (alternativeText != null) {
-            Guard.NotNullOrWhiteSpace(alternativeText, nameof(alternativeText));
+        if (altText != null) {
+            Guard.NotNullOrWhiteSpace(altText, nameof(altText));
         }
 
         Width = width;
         Height = height;
         BaselineOffset = baselineOffset;
-        AlternativeText = alternativeText;
+        AltText = altText;
     }
 }
 
@@ -54,7 +54,7 @@ public sealed class PdfInlineImage : PdfInlineElement {
     internal PdfInlineImage ForTableTextRotation(int rotation) => rotation == 0 ? this : new PdfInlineImage(this, rotation);
 
     private PdfInlineImage(PdfInlineImage source, int rotation)
-        : base(source.Height, source.Width, source.BaselineOffset, source.AlternativeText) {
+        : base(source.Height, source.Width, source.BaselineOffset, source.AltText) {
         Block = source.Block;
         Fit = source.Fit;
         TableTextRotation = rotation;
@@ -70,19 +70,19 @@ public sealed class PdfInlineImage : PdfInlineElement {
         byte[] imageBytes,
         global::OfficeIMO.OfficeLength width,
         global::OfficeIMO.OfficeLength height,
-        string? alternativeText = null,
+        string? altText = null,
         OfficeImageFit fit = OfficeImageFit.Contain,
         global::OfficeIMO.OfficeLength baselineOffset = default)
         : this(imageBytes, width, height, new PdfImageStyle {
             Fit = fit,
-            AlternativeText = alternativeText
+            AltText = altText
         }, baselineOffset) {
     }
 
     /// <summary>Creates an inline image with source crop, rotation, mirrors and alternate text from a reusable image style.</summary>
     /// <remarks>The style is copied. Width and height describe the authored inline frame; rotation does not enlarge the line box.</remarks>
     public PdfInlineImage(byte[] imageBytes, global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, PdfImageStyle style, global::OfficeIMO.OfficeLength baselineOffset)
-        : base(width, height, baselineOffset, style?.AlternativeText) {
+        : base(width, height, baselineOffset, style?.AltText) {
         Guard.NotNull(style, nameof(style));
         PdfImageStyle imageStyle = style!;
         PdfDocument.ValidateImageStyleForBox(imageStyle, width.ToPoints(), height.ToPoints(), nameof(style));
@@ -133,13 +133,13 @@ public sealed class PdfInlineBox : PdfInlineElement {
         global::OfficeIMO.OfficeColor? background = null,
         global::OfficeIMO.OfficeColor? borderColor = null,
         global::OfficeIMO.OfficeLength? borderWidth = null,
-        string? alternativeText = null,
+        string? altText = null,
         global::OfficeIMO.OfficeLength baselineOffset = default)
-        : this(width, height, background, borderColor, (borderWidth ?? global::OfficeIMO.OfficeLength.Points(0.5D)), alternativeText, baselineOffset, flexibleWidth: false) { }
+        : this(width, height, background, borderColor, (borderWidth ?? global::OfficeIMO.OfficeLength.Points(0.5D)), altText, baselineOffset, flexibleWidth: false) { }
 
     private PdfInlineBox(global::OfficeIMO.OfficeLength width, global::OfficeIMO.OfficeLength height, global::OfficeIMO.OfficeColor? background, global::OfficeIMO.OfficeColor? borderColor,
-        global::OfficeIMO.OfficeLength borderWidth, string? alternativeText, global::OfficeIMO.OfficeLength baselineOffset, bool flexibleWidth)
-        : base(width, height, baselineOffset, alternativeText, flexibleWidth) {
+        global::OfficeIMO.OfficeLength borderWidth, string? altText, global::OfficeIMO.OfficeLength baselineOffset, bool flexibleWidth)
+        : base(width, height, baselineOffset, altText, flexibleWidth) {
         if (borderWidth.ToPoints() < 0D || double.IsNaN(borderWidth.ToPoints()) || double.IsInfinity(borderWidth.ToPoints())) {
             throw new ArgumentException("Inline box border width must be a non-negative finite value.", nameof(borderWidth));
         }

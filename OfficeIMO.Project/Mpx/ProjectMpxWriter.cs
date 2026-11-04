@@ -45,7 +45,7 @@ internal sealed partial class ProjectMpxWriter {
                 writer.Diagnostic("PROJECT_MPX_UNREPRESENTABLE", ex.Message, "/", false);
             }
             var report = new ProjectReport(document.Revision, writer._diagnostics);
-            return (report, serialize && !report.HasErrors && !(report.HasLoss && options.LossPolicy == OfficeConversionLossPolicy.Block) ? writer._output!.ToArray() : null);
+            return (report, serialize && !report.HasErrors && !(report.HasLoss && !options.AllowLoss) ? writer._output!.ToArray() : null);
         } finally { writer._output?.Dispose(); }
     }
     private void Diagnostic(string code, string message, string path, bool loss = true) {

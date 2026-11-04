@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendField(StringBuilder builder, RtfField field, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendField(StringBuilder builder, RtfField field, RtfHtmlExportOptions options, RtfDocument document) {
         string? href = ResolveHtmlUrl(GetHyperlinkFieldHref(field), options, "RtfHtmlFieldHyperlinkRejected", "field.Hyperlink");
         string tagName = href != null ? "a" : "span";
         builder.Append('<');

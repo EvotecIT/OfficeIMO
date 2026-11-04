@@ -92,14 +92,21 @@ public sealed partial class PdfDocument {
 
 
     /// <summary>Renders the PDF while observing cancellation.</summary>
-    internal byte[] SerializeBytes(System.Threading.CancellationToken cancellationToken) {
+    internal byte[] SerializeBytes(System.Threading.CancellationToken cancellationToken) =>
+        SerializeBytes(cancellationToken, out _);
+
+    /// <summary>Serializes and reports the writer's page count, or null for passthrough bytes without page evidence.</summary>
+    internal byte[] SerializeBytes(System.Threading.CancellationToken cancellationToken, out int? pageCount) {
         cancellationToken.ThrowIfCancellationRequested();
         if (_source is not null) {
+            pageCount = _pipeline.Output?.PageCount;
             return _source.CopyBytes();
         }
 
         ThrowIfTextEncodingPreflightFails(cancellationToken);
-        return RenderBytesCore(cancellationToken);
+        byte[] bytes = PdfWriter.Write(this, _blocks, _options, _title, _author, _subject, _keywords, cancellationToken, out int written);
+        pageCount = written;
+        return bytes;
     }
 
 

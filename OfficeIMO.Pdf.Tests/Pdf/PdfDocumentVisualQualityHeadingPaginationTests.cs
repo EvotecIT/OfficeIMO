@@ -15,7 +15,10 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(3, false)]
     [InlineData(3, true)]
     public void ContinuedHeadingRetainsOneLogicalHeadingElement(int level, bool linked) {
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(220), PageHeight = global::OfficeIMO.OfficeLength.Points(160), MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25) };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(220), global::OfficeIMO.OfficeLength.Points(160)),
+            Margins = { Left = global::OfficeIMO.OfficeLength.Points(25), Right = global::OfficeIMO.OfficeLength.Points(25), Top = global::OfficeIMO.OfficeLength.Points(25), Bottom = global::OfficeIMO.OfficeLength.Points(25) }
+        } };
         PdfDocument document = PdfDocument.Create(options).TaggedPdfCatalogMarkers();
         string text = string.Join(" ", Enumerable.Repeat("Heading content", 100)) + " FINAL-MARKER";
         string? link = linked ? "https://example.test/heading" : null;
@@ -48,20 +51,22 @@ public partial class PdfDocumentVisualQualityTests {
     [InlineData(320, 160)]
     public void OversizedHeadingPaginatesTextAndLinksWithinThePageFrame(double pageWidth, double pageHeight) {
         var options = new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(pageWidth), PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(25), MarginRight = global::OfficeIMO.OfficeLength.Points(25), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(pageWidth), global::OfficeIMO.OfficeLength.Points(pageHeight)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(25), Right = global::OfficeIMO.OfficeLength.Points(25), Top = global::OfficeIMO.OfficeLength.Points(25), Bottom = global::OfficeIMO.OfficeLength.Points(25) }
+            },
             CreateOutlineFromHeadings = true
         };
         string heading = string.Join(" ", Enumerable.Repeat("Heading text", 100)) + " FINAL-MARKER";
-        byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().H1(heading, linkUri: "https://example.test/heading").Paragraph(p => p.Text("Following paragraph")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).TaggedPdfCatalogMarkers().H1(heading, linkUri: "https://example.test/heading").Paragraph(p => p.AddText("Following paragraph")).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.True(pdf.NumberOfPages > 2);
         Assert.Contains("FINAL-MARKER", string.Join("", pdf.GetPages().Select(page => page.Text)), StringComparison.Ordinal);
         foreach (var page in pdf.GetPages()) {
             Assert.NotEmpty(page.Letters);
             Assert.All(page.Letters.Where(letter => !string.IsNullOrWhiteSpace(letter.Value)), letter => {
-                Assert.InRange(letter.BoundingBox.Bottom, options.MarginBottom.ToPoints() - 1, options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + 1);
-                Assert.InRange(letter.BoundingBox.Top, options.MarginBottom.ToPoints() - 1, options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + 1);
+                Assert.InRange(letter.BoundingBox.Bottom, options.PageSetup.Margins.Bottom.ToPoints() - 1, options.PageSetup.Size.Height.ToPoints() - options.PageSetup.Margins.Top.ToPoints() + 1);
+                Assert.InRange(letter.BoundingBox.Top, options.PageSetup.Margins.Bottom.ToPoints() - 1, options.PageSetup.Size.Height.ToPoints() - options.PageSetup.Margins.Top.ToPoints() + 1);
             });
         }
         var rectangles = ExtractLinkRectangles(System.Text.Encoding.ASCII.GetString(bytes));
@@ -70,8 +75,8 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(pdf.NumberOfPages, CountOccurrences(content, "/StructParents "));
         Assert.Equal(rectangles.Count, CountOccurrences(content, "/Type /OBJR /Obj "));
         Assert.All(rectangles, rectangle => {
-            Assert.InRange(rectangle.Y1, options.MarginBottom.ToPoints() - 1, options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + 1);
-            Assert.InRange(rectangle.Y2, options.MarginBottom.ToPoints() - 1, options.PageHeight.ToPoints() - options.MarginTop.ToPoints() + 1);
+            Assert.InRange(rectangle.Y1, options.PageSetup.Margins.Bottom.ToPoints() - 1, options.PageSetup.Size.Height.ToPoints() - options.PageSetup.Margins.Top.ToPoints() + 1);
+            Assert.InRange(rectangle.Y2, options.PageSetup.Margins.Bottom.ToPoints() - 1, options.PageSetup.Size.Height.ToPoints() - options.PageSetup.Margins.Top.ToPoints() + 1);
         });
         string? evidence = Environment.GetEnvironmentVariable("OFFICEIMO_INVOICE_PDF_EVIDENCE");
         if (!string.IsNullOrWhiteSpace(evidence)) {
@@ -87,17 +92,23 @@ public partial class PdfDocumentVisualQualityTests {
     public void ParagraphLineLargerThanTheFrameFailsWithoutUnboundedPagination(double pageHeight) {
         // The boundary case leaves 33.5995 points for an explicitly 33.6-point line.
         var options = new PdfCreateOptions {
-            PageHeight = global::OfficeIMO.OfficeLength.Points(pageHeight), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(pageHeight)),
+                Margins = { Top = global::OfficeIMO.OfficeLength.Points(25), Bottom = global::OfficeIMO.OfficeLength.Points(25) }
+            },
             DefaultFont = PdfStandardFont.Helvetica, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(24),
             DefaultParagraphStyle = new PdfParagraphStyle { LineHeight = 1.4, SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0) }
         };
-        Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.Text("Too tall")).ToBytes());
+        Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).Paragraph(p => p.AddText("Too tall")).ToBytes());
     }
 
     [Fact]
     public void SmallPositiveFrameAcceptsALineThatFits() {
-        var options = new PdfCreateOptions { PageHeight = global::OfficeIMO.OfficeLength.Points(50.2), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(0.1) };
-        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.Text("Fits")).ToBytes();
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(50.2)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(25), Bottom = global::OfficeIMO.OfficeLength.Points(25) }
+        }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(0.1) };
+        byte[] bytes = PdfDocument.Create(options).Paragraph(p => p.AddText("Fits")).ToBytes();
         using var pdf = PdfPigDocument.Open(bytes);
         Assert.Equal(1, pdf.NumberOfPages);
         Assert.Equal("Fits", pdf.GetPage(1).Text);
@@ -105,14 +116,20 @@ public partial class PdfDocumentVisualQualityTests {
 
     [Fact]
     public void HeadingRequiredTopSpacingCannotBeSilentlyDroppedToFitALine() {
-        var options = new PdfCreateOptions { PageHeight = global::OfficeIMO.OfficeLength.Points(150), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25) };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(150)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(25), Bottom = global::OfficeIMO.OfficeLength.Points(25) }
+        } };
         var style = new PdfHeadingStyle { FontSize = global::OfficeIMO.OfficeLength.Points(24), LineHeight = 1.25, SpacingBefore = global::OfficeIMO.OfficeLength.Points(90), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0), ApplySpacingBeforeAtTop = true };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).H1("Too tall", style: style).ToBytes());
     }
 
     [Fact]
     public void HeadingLineLargerThanTheFrameFailsWithoutUnboundedPagination() {
-        var options = new PdfCreateOptions { PageHeight = global::OfficeIMO.OfficeLength.Points(70), MarginTop = global::OfficeIMO.OfficeLength.Points(25), MarginBottom = global::OfficeIMO.OfficeLength.Points(25) };
+        var options = new PdfCreateOptions { PageSetup = {
+            Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(612), global::OfficeIMO.OfficeLength.Points(70)),
+            Margins = { Top = global::OfficeIMO.OfficeLength.Points(25), Bottom = global::OfficeIMO.OfficeLength.Points(25) }
+        } };
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(options).H1("Too tall").ToBytes());
     }
 }

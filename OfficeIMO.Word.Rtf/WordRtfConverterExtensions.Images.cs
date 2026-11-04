@@ -96,7 +96,7 @@ public static partial class WordRtfConverterExtensions {
             CropRightTwips = ToCropTwips((source.CropRightRatio is double cropRatio18 ? (int?)System.Math.Round(cropRatio18 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalWidth),
             CropTopTwips = ToCropTwips((source.CropTopRatio is double cropRatio20 ? (int?)System.Math.Round(cropRatio20 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalHeight),
             CropBottomTwips = ToCropTwips((source.CropBottomRatio is double cropRatio22 ? (int?)System.Math.Round(cropRatio22 * 100000D, System.MidpointRounding.AwayFromZero) : null), goalHeight),
-            Description = source.Description
+            Description = source.AltText
         };
         return image;
     }
@@ -138,11 +138,11 @@ public static partial class WordRtfConverterExtensions {
             ? OfficeLength.Points(heightTwips / 20D) : null;
         if (UsesOrdinaryRunningVmlImage(paragraph, image, layout)) {
             paragraph.AddImage(stream, fileName, width, height,
-                new WordImageOptions { Vml = true, Description = image.Description ?? string.Empty });
+                new WordImageOptions { Vml = true, AltText = image.Description ?? string.Empty });
             return;
         }
         WordImage output = paragraph.AddImage(stream, fileName, width, height,
-            new WordImageOptions { Description = image.Description ?? string.Empty });
+            new WordImageOptions { AltText = image.Description ?? string.Empty });
         output.CropLeftRatio = ((double?)(ToWordCrop(image.CropLeftTwips, layout.WidthTwips))) / 100000D;
         output.CropRightRatio = ((double?)(ToWordCrop(image.CropRightTwips, layout.WidthTwips))) / 100000D;
         output.CropTopRatio = ((double?)(ToWordCrop(image.CropTopTwips, layout.HeightTwips))) / 100000D;

@@ -38,9 +38,9 @@ public sealed partial class PowerPointContentWorkflowTests {
         var run = Assert.Single(Assert.Single(edited.Paragraphs).Runs);
         Assert.Equal("Template title", run.Text);
         Assert.Equal(31.5, run.FontSize!.Value.ToPoints());
-        Assert.Equal("Arial", run.FontName);
-        Assert.Equal(saved.GetThemeColor(PowerPointThemeColor.Accent2), run.Color, ignoreCase: true);
-        Assert.Equal("FFFF00", run.HighlightColor, ignoreCase: true);
+        Assert.Equal("Arial", run.FontFamily);
+        Assert.Equal(OfficeIMO.OfficeColor.Parse(saved.GetThemeColor(PowerPointThemeColor.Accent2)!), run.Color);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), run.BackgroundColor);
         Assert.False(run.Bold);
         Assert.False(run.Italic);
         Assert.Equal(PowerPointUnderlineStyle.Double, run.UnderlineStyle);

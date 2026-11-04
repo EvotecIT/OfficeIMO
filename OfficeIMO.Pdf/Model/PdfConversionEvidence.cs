@@ -5,12 +5,19 @@ internal static partial class PdfConversionEvidence {
     internal static PdfDocument CompleteModel(PdfDocumentConversionResult conversion, string source, bool failOnLoss,
         System.Diagnostics.Stopwatch timer, System.Threading.CancellationToken token, out OfficeConversionReport report) {
         try {
-            byte[] bytes = conversion.ToBytes(token);
-            PdfLoadOptions reading = PdfLoadOptions.WithMinimumInputBytes(conversion.Value.ReadOptions, bytes.LongLength);
-            using PdfDocument model = PdfDocument.LoadOwned(bytes, reading, token);
-            int pageCount = model.Pages.Count;
+            byte[] bytes;
+            int? writtenPages;
+            PdfConversionReport outputDiagnostics;
+            using (var scope = new PdfOutputDiagnosticScope()) {
+                bytes = conversion.ToBytes(token, out writtenPages);
+                outputDiagnostics = scope.Report;
+            }
+            // The writer counts the pages it emits, as the stream save path already reports;
+            // only passthrough bytes without that evidence are read back to count them.
+            int pageCount = writtenPages ?? CountPages(conversion, bytes, token);
             report = CreateReport(source, conversion.ConversionReports, elapsed: timer.Elapsed, itemsWritten: pageCount);
             if (failOnLoss) report.ThrowIfLoss();
+            conversion.Value.RetainCompletedOutput(bytes, outputDiagnostics);
             return conversion.Value;
         } catch (Exception error) when (error is not OperationCanceledException and not OfficeConversionException and not OutOfMemoryException and not StackOverflowException) {
             conversion.Value.Dispose();
@@ -19,6 +26,12 @@ internal static partial class PdfConversionEvidence {
             conversion.Value.Dispose();
             throw;
         }
+    }
+
+    private static int CountPages(PdfDocumentConversionResult conversion, byte[] bytes, System.Threading.CancellationToken token) {
+        PdfLoadOptions reading = PdfLoadOptions.WithMinimumInputBytes(conversion.Value.ReadOptions, bytes.LongLength);
+        using PdfDocument model = PdfDocument.LoadOwned(bytes, reading, token);
+        return model.Pages.Count;
     }
 
     internal static OfficeConversionReport CreateReport(string source, IEnumerable<PdfConversionWarning> warnings,
@@ -30,10 +43,10 @@ internal static partial class PdfConversionEvidence {
                 _ => OfficeDiagnosticSeverity.Warning
             }, warning.Message, warning.Source, warning.Converter, warning.LossKind)));
 
-    internal static OfficeConversionReport CreateReport(string source, IEnumerable<IOfficeConversionReport> stages,
+    internal static OfficeConversionReport CreateReport(string source, IEnumerable<OfficeConversionReport> stages,
         string? outputPath = null, TimeSpan elapsed = default, long itemsWritten = 0, string target = "Pdf") {
         var diagnostics = new List<OfficeDiagnostic>();
-        foreach (IOfficeConversionReport stage in stages) {
+        foreach (OfficeConversionReport stage in stages) {
             if (stage is OfficeConversionReport shared) {
                 diagnostics.AddRange(shared.Diagnostics);
             } else if (stage is PdfConversionReport pdf) {
@@ -47,9 +60,9 @@ internal static partial class PdfConversionEvidence {
                         warning.Source, warning.Converter, warning.LossKind));
                 }
             } else {
-                foreach (OfficeConversionFidelityDiagnostic diagnostic in stage.FidelityDiagnostics) {
+                foreach (OfficeDiagnostic diagnostic in stage.Diagnostics) {
                     diagnostics.Add(new OfficeDiagnostic(diagnostic.Code, OfficeDiagnosticSeverity.Warning,
-                        diagnostic.Message, diagnostic.Location, diagnostic.Source, diagnostic.LossKind));
+                        diagnostic.Message, diagnostic.Location, diagnostic.Format, diagnostic.LossKind));
                 }
             }
         }

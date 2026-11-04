@@ -84,8 +84,8 @@ public sealed partial class PdfAttachmentAuthoringBudgetTests {
         var options = new PdfCreateOptions { MaxEmbeddedFileBytes = 3, MaxTotalEmbeddedFileBytes = 6 }
             .AddEmbeddedFile("first.bin", payload);
         var document = PdfDocument.Create(options).Compose(compose => compose
-            .Page(page => page.Content(content => content.Text("First page")))
-            .Page(page => page.Content(content => content.Text("Second page"))));
+            .Page(page => page.Content(content => content.AddParagraph("First page")))
+            .Page(page => page.Content(content => content.AddParagraph("Second page"))));
         options.ClearEmbeddedFiles();
         options.MaxEmbeddedFileBytes = 20;
         options.MaxTotalEmbeddedFileBytes = 20;

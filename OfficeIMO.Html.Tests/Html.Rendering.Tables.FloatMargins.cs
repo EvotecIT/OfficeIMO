@@ -93,9 +93,9 @@ namespace OfficeIMO.Tests {
                 ViewportWidth = 600D, ViewportHeight = 300D,
                 PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(600D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(300D / HtmlRenderOptions.CssPixelsPerInch)),
                 HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D), AllowSystemFontFallback = false,
-                FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+                FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
             });
-            rendered.RequireNoLoss();
+            rendered.ThrowIfLoss();
             Assert.Empty(rendered.Text);
             Assert.Empty(rendered.Fonts.Faces);
             return rendered;

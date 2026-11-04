@@ -20,7 +20,7 @@ public sealed class WordPdfImportedHeadingColorTests {
         using WordDocument document = CreateDocument();
         AddImportedHeadingStyle(document, "Heading1");
         WordParagraph paragraph = header
-            ? document.HeaderDefaultOrCreate.AddParagraph()
+            ? document.PageSetup.Header.AddParagraph()
             : document.AddParagraph();
         SetImportedHeading(paragraph, "Heading1", "IMPORTED");
         if (header) {
@@ -106,11 +106,11 @@ public sealed class WordPdfImportedHeadingColorTests {
         document.Settings.FontFamily = ManagedTextShapingTestAssets.FamilyName;
         W.Styles styles = document.OpenXmlDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(240D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(300D);
-        section.Margins.Left = section.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
-        section.Margins.Top = section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
-        section.Margins.HeaderDistance = section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(15D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(240D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(300D);
+        section.PageSetup.Margins.Left = section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points(30D);
+        section.PageSetup.Margins.Top = section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points(30D);
+        section.PageSetup.Margins.HeaderDistance = section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(15D);
         var runDefaults = new W.RunPropertiesBaseStyle(
             new W.RunFonts { Ascii = ManagedTextShapingTestAssets.FamilyName, HighAnsi = ManagedTextShapingTestAssets.FamilyName });
         if (defaultColor != null) runDefaults.Append(new W.Color { Val = defaultColor });

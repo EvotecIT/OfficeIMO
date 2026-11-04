@@ -25,8 +25,8 @@ public sealed class VisioMasterFontOwnershipTests {
         VisioDocument first = Destination("First destination"), second = Destination("Second destination");
         Assert.Same(shared, first.RegisterMaster(shared));
         Assert.Same(shared, second.RegisterMaster(shared));
-        first.AddPage("First").AddShape("1", shared, 1, 1, 2, 1);
-        second.AddPage("Second").AddShape("1", shared, 1, 1, 2, 1);
+        first.AddPage("First").AddShape("1", shared, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
+        second.AddPage("Second").AddShape("1", shared, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
 
         for (int repeat = 0; repeat < 2; repeat++) {
             foreach (VisioDocument destination in new[] { first, second }) {
@@ -54,7 +54,7 @@ public sealed class VisioMasterFontOwnershipTests {
         master.Shape.TextStyle!.FontFamily = family;
         VisioDocument destination = Destination("Destination family");
         Assert.Same(master, destination.RegisterMaster(master));
-        destination.AddPage("Instance").AddShape("1", master, 1, 1, 2, 1);
+        destination.AddPage("Instance").AddShape("1", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         foreach (VisioDocument candidate in new[] { destination, VisioDocument.Load(new MemoryStream(destination.ToBytes())) }) {
             XDocument xml = LegacyXml(candidate);
             XElement font = xml.Descendants(Legacy + "Master").Descendants(Legacy + "Font").Single();
@@ -136,7 +136,7 @@ public sealed class VisioMasterFontOwnershipTests {
     public void NewModeledMasterChildKeepsDestinationFontIdentity() {
         VisioDocument source = Load(Faces + Master);
         VisioMaster master = source.GetMaster("Shared fonts");
-        master.Shape.Children.Add(new VisioShape("2", 1, 1, 1, 1, "Authored child") {
+        master.Shape.Children.Add(new VisioShape("2", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Authored child") {
             TextStyle = new VisioTextStyle { FontFamily = "Destination family", Size = 10 }
         });
         VisioDocument destination = Destination("Destination family", VisioPackageType.Stencil);
@@ -157,7 +157,7 @@ public sealed class VisioMasterFontOwnershipTests {
         VisioDocument destination = Destination("Destination family");
         VisioMaster master = source.GetMaster("Shared fonts");
         destination.RegisterMaster(master);
-        destination.AddPage("Instance").AddShape("1", master, 1, 1, 2, 1);
+        destination.AddPage("Instance").AddShape("1", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)));
         foreach (VisioDocument candidate in new[] { destination, VisioDocument.Load(new MemoryStream(destination.ToBytes())) }) {
             AssertSourceFamily(candidate);
             XDocument xml = LegacyXml(candidate);

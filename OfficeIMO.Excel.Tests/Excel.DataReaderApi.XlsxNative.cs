@@ -147,10 +147,10 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(1, 2, "Optional");
-                sheet.CellValue(2, 1, "Sampled");
-                sheet.CellValue(3, 1, "Streamed");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(1, 2).SetValue("Optional");
+                sheet.Cell(2, 1).SetValue("Sampled");
+                sheet.Cell(3, 1).SetValue("Streamed");
                 document.Save();
             }
 
@@ -185,8 +185,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Cached");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Cached");
                 document.Save();
             }
 

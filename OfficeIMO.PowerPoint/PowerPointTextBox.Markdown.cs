@@ -147,7 +147,7 @@ namespace OfficeIMO.PowerPoint {
                     run = paragraph.Runs[0];
                     first = false;
                 } else {
-                    run = paragraph.AddRun(inlineRun.Text);
+                    run = paragraph.AddText(inlineRun.Text);
                 }
 
                 ApplyMarkdownInlineStyle(run, inlineRun);
@@ -168,14 +168,14 @@ namespace OfficeIMO.PowerPoint {
             }
 
             if (inlineRun.Code) {
-                run.FontName = "Consolas";
-                run.HighlightColor = "F2F2F2";
+                run.FontFamily = "Consolas";
+                run.BackgroundColor = global::OfficeIMO.OfficeColor.Parse("F2F2F2");
             }
 
             if (!string.IsNullOrWhiteSpace(inlineRun.Link)) {
                 run.SetHyperlink(inlineRun.Link!);
                 run.Underline = true;
-                run.Color = "0563C1";
+                run.Color = global::OfficeIMO.OfficeColor.Parse("0563C1");
             }
         }
 

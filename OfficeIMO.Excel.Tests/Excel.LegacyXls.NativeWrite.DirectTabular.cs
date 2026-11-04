@@ -12,30 +12,38 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        [Fact]
-        public void LegacyXls_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public void LegacyXls_DirectTabularSave_WritesSupportedScalarValuesThroughPublicApi(bool captureTimings) {
             var timings = new List<string>();
             using ExcelDocument document = ExcelDocument.Create();
-            document.Execution.OnTiming = (operation, _) => timings.Add(operation);
+            if (captureTimings) document.Execution.OnTiming = (operation, _) => timings.Add(operation);
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Text");
-            sheet.CellValue(1, 2, "Integer");
-            sheet.CellValue(1, 3, "Decimal");
-            sheet.CellValue(1, 4, "Boolean");
-            sheet.CellValue(2, 1, "Zażółć gęślą");
-            sheet.CellValue(2, 2, 42);
-            sheet.CellValue(2, 3, 12.5m);
-            sheet.CellValue(2, 4, true);
+            sheet.Cell(1, 1).SetValue("Text");
+            sheet.Cell(1, 2).SetValue("Integer");
+            sheet.Cell(1, 3).SetValue("Decimal");
+            sheet.Cell(1, 4).SetValue("Boolean");
+            sheet.Cell(2, 1).SetValue("Zażółć gęślą");
+            sheet.Cell(2, 2).SetValue(42);
+            sheet.Cell(2, 3).SetValue(12.5m);
+            sheet.Cell(2, 4).SetValue(true);
             for (int row = 3; row <= 256; row++) {
-                sheet.CellValue(row, 1, "Row " + row);
-                sheet.CellValue(row, 2, row);
-                sheet.CellValue(row, 3, row + 0.5m);
-                sheet.CellValue(row, 4, (row & 1) == 0);
+                sheet.Cell(row, 1).SetValue("Row " + row);
+                sheet.Cell(row, 2).SetValue(row);
+                sheet.Cell(row, 3).SetValue(row + 0.5m);
+                sheet.Cell(row, 4).SetValue((row & 1) == 0);
             }
 
-            byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
+            using var destination = new MemoryStream();
+            destination.SetLength(100_000);
+            destination.Position = 100;
+            document.Save(destination, new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
+            byte[] workbook = destination.ToArray();
 
-            Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
+            Assert.Equal(0, destination.Position);
+            Assert.True(destination.Length < 100_000);
+            if (captureTimings) Assert.Contains("Save.Xls.Direct.ExtractCells", timings);
             Assert.Equal(ExcelSavePackageWriter.NativeBinaryDirectPackage, document.LastSaveDiagnostics.Writer);
             var readOptions = new ExcelReaderOptions();
             using (LegacyXlsTabularWorkbook indexedWorkbook = LegacyXlsTabularWorkbook.Open(workbook, readOptions))
@@ -69,8 +77,8 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             document.Execution.OnInfo = messages.Add;
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "When");
-            sheet.CellValue(2, 1, expected);
+            sheet.Cell(1, 1).SetValue("When");
+            sheet.Cell(2, 1).SetValue(expected);
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
 
@@ -85,8 +93,8 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_DirectTabularSave_DoesNotBypassUnsupportedPackagePartPreflight() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 42);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(42);
             CustomXmlPart customXmlPart = document._spreadSheetDocument.WorkbookPart!
                 .AddCustomXmlPart(CustomXmlPartType.CustomXml);
             using (var stream = new MemoryStream(Encoding.UTF8.GetBytes("<metadata />"))) {
@@ -109,9 +117,9 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.Create();
                 document.Execution.OnTiming = (operation, _) => timings.Add(operation);
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 256; row++) {
-                    sheet.CellValue(row, 1, row - 1);
+                    sheet.Cell(row, 1).SetValue(row - 1);
                 }
 
                 document.Save(syncPath);
@@ -123,7 +131,7 @@ namespace OfficeIMO.Tests {
                     "The directly generated XLS workbook failed to open in desktop Excel.");
 
                 timings.Clear();
-                sheet.CellValue(2, 1, 2);
+                sheet.Cell(2, 1).SetValue(2);
                 await document.SaveAsync(asyncPath);
                 AssertSingleValue(asyncPath, 2);
             } finally {
@@ -191,13 +199,15 @@ namespace OfficeIMO.Tests {
             const int columnCount = 256;
             var table = new DataTable("Sparse");
             for (int column = 0; column < columnCount; column++) {
-                table.Columns.Add("Column" + column, typeof(string));
+                table.Columns.Add("Column" + column, column == columnCount / 2 + 1 ? typeof(DateTime) : typeof(string));
             }
             for (int row = 0; row < rowCount; row++) {
                 table.Rows.Add(table.NewRow());
             }
             table.Rows[0][0] = "First";
             table.Rows[rowCount / 2][columnCount / 2] = "Middle";
+            DateTime expectedDate = new DateTime(2024, 3, 2, 6, 30, 0);
+            table.Rows[rowCount / 2][columnCount / 2 + 1] = expectedDate;
             table.Rows[rowCount - 1][columnCount - 1] = "Last";
 
             var dataSet = new DataSet();
@@ -219,7 +229,10 @@ namespace OfficeIMO.Tests {
             int actualRows = 0;
             while (reader.Read()) {
                 if (actualRows == 0) Assert.Equal("First", reader.GetString(0));
-                if (actualRows == rowCount / 2) Assert.Equal("Middle", reader.GetString(columnCount / 2));
+                if (actualRows == rowCount / 2) {
+                    Assert.Equal("Middle", reader.GetString(columnCount / 2));
+                    Assert.Equal(expectedDate, reader.GetDateTime(columnCount / 2 + 1));
+                }
                 if (actualRows == rowCount - 1) Assert.Equal("Last", reader.GetString(columnCount - 1));
                 actualRows++;
             }
@@ -297,8 +310,8 @@ namespace OfficeIMO.Tests {
         public async Task LegacyXls_DirectTabularSave_HonorsPreCanceledAsyncStreamWrite() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Value");
+            sheet.Cell(2, 1).SetValue(1);
             using var destination = new MemoryStream();
             using var cancellation = new CancellationTokenSource();
             cancellation.Cancel();
@@ -312,9 +325,9 @@ namespace OfficeIMO.Tests {
         public async Task LegacyXls_DirectTabularSave_ObservesCancellationBeforeSharedStringSerialization() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            sheet.Cell(1, 1).SetValue("Value");
             for (int row = 2; row <= 4096; row++) {
-                sheet.CellValue(row, 1, "Unique value " + row);
+                sheet.Cell(row, 1).SetValue("Unique value " + row);
             }
 
             using var cancellation = new CancellationTokenSource();
@@ -371,9 +384,9 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Create();
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
                 for (int row = 2; row <= 256; row++) {
-                    sheet.CellValue(row, 1, row - 1);
+                    sheet.Cell(row, 1).SetValue(row - 1);
                 }
 
                 document.Save(path, new ExcelSaveOptions { DisableFastPackageWriter = true });
@@ -398,9 +411,9 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_GeneralWriter_IndexesSparseCoordinateBandsAndFormattingOnlyRows() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Sparse");
-            sheet.CellValue(10, 1, "First");
+            sheet.Cell(10, 1).SetValue("First");
             sheet.SetRowHeight(65, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(21d)));
-            sheet.CellValue(100, 1, "Last");
+            sheet.Cell(100, 1).SetValue("Last");
 
             byte[] workbook = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls,  DisableFastPackageWriter = true });
 

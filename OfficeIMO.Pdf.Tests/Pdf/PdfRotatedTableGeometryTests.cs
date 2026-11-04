@@ -84,7 +84,7 @@ public sealed class PdfRotatedTableGeometryTests {
         double actualRatio = (double)weights[0] / weights[1];
         Assert.InRange(actualRatio, expectedRatio - 0.01D, expectedRatio + 0.01D);
 
-        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult word = logical.ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         using (word.Value) {
             using var serialized = new MemoryStream(word.Value.ToBytes());
             using OfficeIMO.Word.WordDocument reopened = OfficeIMO.Word.WordDocument.Load(serialized);
@@ -95,7 +95,7 @@ public sealed class PdfRotatedTableGeometryTests {
         }
 
         PdfPowerPointConversionResult powerPoint = logical.ConvertToPowerPointWithEvidence(
-            PowerPointPdfImportOptions.CreateEditableTables());
+            PdfPowerPointExportOptions.CreateEditableTables());
         using (powerPoint.Value) {
             OfficeIMO.PowerPoint.PowerPointTable powerPointTable = Assert.Single(
                 powerPoint.Value.Slides.SelectMany(static slide => slide.Tables));

@@ -113,7 +113,7 @@ namespace OfficeIMO.Tool.Tests {
                 Bytes = PdfDocument.Create(compose => {
                     for (int number = 1; number <= pageCount; number++) {
                         int pageNumber = number;
-                        compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Printable page " + pageNumber)))));
+                        compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Printable page " + pageNumber)))));
                     }
                 }, new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions(UserPassword) {
                     OwnerPassword = OwnerPassword, AllowedPermissions = permissions

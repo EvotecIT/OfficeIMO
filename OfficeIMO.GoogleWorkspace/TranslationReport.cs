@@ -22,7 +22,7 @@ namespace OfficeIMO.GoogleWorkspace {
     /// <summary>
     /// Standard fidelity report shared across exporter packages.
     /// </summary>
-    public sealed class TranslationReport : IOfficeConversionReport {
+    public sealed class TranslationReport : OfficeConversionReport {
         private readonly List<TranslationNotice> _notices;
         private readonly IReadOnlyList<TranslationNotice> _readOnlyNotices;
         private readonly bool _isReadOnly;
@@ -44,28 +44,20 @@ namespace OfficeIMO.GoogleWorkspace {
         public bool HasErrors => _notices.Any(n => n.Severity >= TranslationSeverity.Error);
 
         /// <summary>Gets immutable, category-preserving diagnostics for this translation stage.</summary>
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
-            Array.AsReadOnly(_notices.Select(static notice => new OfficeConversionFidelityDiagnostic(
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
+            Array.AsReadOnly(_notices.Select(static notice => new global::OfficeIMO.OfficeDiagnostic(
                 notice.Code,
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 notice.Message,
-                ResolveLossKind(notice),
+                string.IsNullOrWhiteSpace(notice.Path) ? notice.TargetId : notice.Path,
                 "OfficeIMO.GoogleWorkspace",
-                string.IsNullOrWhiteSpace(notice.Path) ? notice.TargetId : notice.Path)).ToArray());
+                ResolveLossKind(notice))).ToArray());
 
         /// <summary>Gets whether the translation omitted, approximated, or failed to preserve content.</summary>
-        public bool HasLoss => _notices.Any(static notice =>
+        public override bool HasLoss => _notices.Any(static notice =>
             ResolveLossKind(notice) != OfficeConversionLossKind.None);
 
-        /// <summary>Throws when the translation omitted, approximated, or failed to preserve content.</summary>
-        public void RequireNoLoss() {
-            OfficeConversionFidelityDiagnostic? firstLoss = FidelityDiagnostics.FirstOrDefault(static diagnostic =>
-                diagnostic.LossKind != OfficeConversionLossKind.None);
-            if (firstLoss != null) {
-                throw new InvalidOperationException(
-                    "Google Workspace translation reported possible content loss. First diagnostic: "
-                    + firstLoss.Code + ".");
-            }
-        }
 
         /// <summary>Adds a structured translation notice.</summary>
         /// <param name="severity">Impact of the notice.</param>

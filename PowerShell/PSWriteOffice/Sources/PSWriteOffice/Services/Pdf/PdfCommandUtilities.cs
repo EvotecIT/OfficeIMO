@@ -6,7 +6,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Text;
 
@@ -185,16 +187,17 @@ internal static class PdfCommandUtilities
             $"{cmdlet.MyInvocation.InvocationName} cannot emit a PdfDocument before New-OfficePdf finishes composition. Remove -PassThru inside the PDF DSL and use the document returned by New-OfficePdf.");
     }
 
-    internal static PdfLoadOptions? CreateReadOptions(string? password, bool ignorePermissionRestrictions = false)
+    internal static PdfLoadOptions? CreateReadOptions(SecureString? password, bool ignorePermissionRestrictions = false)
     {
         return CreateReadOptions(null, password, ignorePermissionRestrictions);
     }
 
     internal static PdfLoadOptions? CreateReadOptions(
         PdfLoadOptions? readOptions,
-        string? password,
+        SecureString? securePassword,
         bool ignorePermissionRestrictions = false)
     {
+        string? password = securePassword.ToPlainText();
         if (readOptions == null && string.IsNullOrEmpty(password) && !ignorePermissionRestrictions)
         {
             return null;
@@ -288,8 +291,8 @@ internal static class PdfCommandUtilities
         System.Security.SecureString? ownerPassword, PdfStandardPermissions permissions, bool permissionBound) {
         if ((permissions & ~PdfStandardPermissions.All) != 0)
             throw new PSArgumentException("Permission contains unsupported PDF flags.");
-        string? user = password == null ? null : new System.Net.NetworkCredential(string.Empty, password).Password;
-        string? owner = ownerPassword == null ? null : new System.Net.NetworkCredential(string.Empty, ownerPassword).Password;
+        string? user = password.ToPlainText();
+        string? owner = ownerPassword.ToPlainText();
         if (user == null && owner == null) {
             if (permissionBound) throw new PSArgumentException("Permission requires Password or OwnerPassword.");
             return null;

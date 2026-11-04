@@ -17,11 +17,11 @@ namespace OfficeIMO.Tests {
             var doc = VisioDocument.Create(target);
             doc.UseMastersByDefault = true;
             doc.LearnMastersFromVsdx(template);
-            var page = doc.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
-            page.Shapes.Add(new VisioShape("R1") { NameU = "Rectangle", PinX = 2, PinY = 6 });
-            page.Shapes.Add(new VisioShape("S1") { NameU = "Square", PinX = 4, PinY = 6, Width = 1.2, Height = 1.2 });
-            page.Shapes.Add(new VisioShape("C1") { NameU = "Circle", PinX = 6, PinY = 6, Width = 1.2, Height = 1.2 });
-            page.Shapes.Add(new VisioShape("D1") { NameU = "Diamond", PinX = 8, PinY = 6 });
+            var page = doc.AddPage("Page-1", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
+            page.Shapes.Add(new VisioShape("R1") { NameU = "Rectangle", PinX = OfficeLength.Inches(2), PinY = OfficeLength.Inches(6 )});
+            page.Shapes.Add(new VisioShape("S1") { NameU = "Square", PinX = OfficeLength.Inches(4), PinY = OfficeLength.Inches(6), Width = OfficeLength.Inches(1.2), Height = OfficeLength.Inches(1.2 )});
+            page.Shapes.Add(new VisioShape("C1") { NameU = "Circle", PinX = OfficeLength.Inches(6), PinY = OfficeLength.Inches(6), Width = OfficeLength.Inches(1.2), Height = OfficeLength.Inches(1.2 )});
+            page.Shapes.Add(new VisioShape("D1") { NameU = "Diamond", PinX = OfficeLength.Inches(8), PinY = OfficeLength.Inches(6 )});
             page.Connectors.Add(new VisioConnector(page.Shapes[0], page.Shapes[1]) { Kind = ConnectorKind.Dynamic });
             doc.Save();
 

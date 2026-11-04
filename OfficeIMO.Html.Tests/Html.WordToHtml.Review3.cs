@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void Test_HtmlToWord_PixelFontSizesConvertToPoints() {
             string html = "<h1 style=\"font-size:32px\">Title</h1><p style=\"font-size:14px\">Body text</p><p style=\"font-size:12pt\">Points</p>";
 
-            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
             var title = doc.Paragraphs.First(p => p.Text == "Title");
             var body = doc.Paragraphs.First(p => p.Text == "Body text");

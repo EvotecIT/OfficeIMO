@@ -15,7 +15,7 @@ public sealed class MsgResourceLimitTests {
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));
+            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
         Assert.Equal(1000, exception.ActualValue);
@@ -33,7 +33,7 @@ public sealed class MsgResourceLimitTests {
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 1024)).Read(bytes));
+            new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 1024)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxAttachmentBytes), exception.LimitName);
         Assert.True(exception.ActualValue > 1024);
@@ -53,7 +53,7 @@ public sealed class MsgResourceLimitTests {
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(
                 maxAttachmentBytes: 4000,
-                maxTotalAttachmentBytes: 5000)).Read(bytes));
+                maxTotalAttachmentBytes: 5000)).ReadDocument(bytes));
 
         Assert.Equal(nameof(EmailReaderOptions.MaxTotalAttachmentBytes), exception.LimitName);
         Assert.Equal(6000, exception.ActualValue);
@@ -72,7 +72,7 @@ public sealed class MsgResourceLimitTests {
         EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
             maxAttachmentBytes: 2 * 1024 * 1024,
             maxTotalAttachmentBytes: 2 * 1024 * 1024,
-            maxDecodedPropertyBytes: 64 * 1024)).Read(bytes);
+            maxDecodedPropertyBytes: 64 * 1024)).ReadDocument(bytes);
 
         Assert.Equal(EmailFileFormat.OutlookMsg, result.Document.Format);
         Assert.Equal(1024 * 1024, Assert.Single(result.Document.Attachments).Content!.Length);

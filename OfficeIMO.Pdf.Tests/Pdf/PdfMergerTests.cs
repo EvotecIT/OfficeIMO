@@ -47,7 +47,7 @@ public class PdfMergerTests {
         byte[] withImage = PdfDocument.Create()
             .Meta(title: "Image source", author: "OfficeIMO")
             .Image(CreateMinimalRgbPng(), 24, 24)
-            .Paragraph(p => p.Text("Image source page"))
+            .Paragraph(p => p.AddText("Image source page"))
             .ToBytes();
         byte[] textOnly = BuildPdf("Text source", "Text only page");
 
@@ -361,14 +361,14 @@ public class PdfMergerTests {
     private static byte[] BuildPdf(string title, string firstPageText, params (string Text, PdfPageSize Size)[] extraPages) {
         var doc = PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text(firstPageText));
+            .Paragraph(p => p.AddText(firstPageText));
 
         if (extraPages.Length > 0) {
             doc.Compose(compose => {
                 foreach (var extraPage in extraPages) {
                     compose.Page(page => {
                         page.Size(extraPage.Size);
-                        page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text(extraPage.Text))));
+                        page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText(extraPage.Text))));
                     });
                 }
             });
@@ -382,14 +382,14 @@ public class PdfMergerTests {
                 CompressContentStreams = false
             })
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text(pageText))
+            .Paragraph(p => p.AddText(pageText))
             .FreeTextAnnotation(
                 "Merge review note",
                 width: 150,
                 height: 44,
                 borderColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.2D, 0.4D, 0.8D),
                 fillColor: global::OfficeIMO.OfficeColor.FromNormalizedRgb(0.95D, 0.98D, 1D),
-                textAlign: PdfAlign.Center)
+                textAlign: OfficeAlignment.Center)
             .HighlightAnnotation("Merge highlight", width: 120, height: 14, color: global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0.9D, 0.1D))
             .ToBytes();
     }

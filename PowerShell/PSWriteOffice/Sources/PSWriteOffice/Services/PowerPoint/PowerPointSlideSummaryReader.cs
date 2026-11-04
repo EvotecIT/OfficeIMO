@@ -85,7 +85,7 @@ internal static class PowerPointSlideSummaryReader
             NotesText = notes.Text,
             ShapeCount = slide.Shapes.Count,
             TextBoxCount = slide.TextBoxes.Count(),
-            PictureCount = slide.Pictures.Count(),
+            PictureCount = slide.Images.Count(),
             TableCount = slide.Tables.Count(),
             ChartCount = slide.Charts.Count(),
             PlaceholderCount = slide.TextBoxes.Count(textBox => textBox.IsPlaceholder),

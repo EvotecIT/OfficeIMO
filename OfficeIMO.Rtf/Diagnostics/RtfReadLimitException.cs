@@ -17,7 +17,7 @@ public sealed class RtfReadLimitException : InvalidOperationException {
     /// <summary>Stable machine-readable limit code.</summary>
     public string Code { get; }
 
-    /// <summary>Name of the <see cref="RtfReadOptions"/> property that supplied the limit.</summary>
+    /// <summary>Name of the <see cref="RtfLoadOptions"/> property that supplied the limit.</summary>
     public string LimitSource { get; }
 
     /// <summary>Observed or declared value that exceeded the limit.</summary>

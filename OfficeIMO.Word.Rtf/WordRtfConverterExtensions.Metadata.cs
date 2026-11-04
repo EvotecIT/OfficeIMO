@@ -8,26 +8,26 @@ namespace OfficeIMO.Word.Rtf;
 
 public static partial class WordRtfConverterExtensions {
     private static void CopyDocumentInfo(WordDocument source, RtfDocument destination) {
-        destination.Info.Title = source.BuiltinDocumentProperties.Title;
-        destination.Info.Subject = source.BuiltinDocumentProperties.Subject;
-        destination.Info.Author = source.BuiltinDocumentProperties.Creator;
-        destination.Info.Category = source.BuiltinDocumentProperties.Category;
-        destination.Info.Keywords = source.BuiltinDocumentProperties.Keywords;
-        destination.Info.Comments = source.BuiltinDocumentProperties.Description;
-        destination.Info.Operator = source.BuiltinDocumentProperties.LastModifiedBy;
-        destination.Info.Created = source.BuiltinDocumentProperties.Created;
-        destination.Info.Revised = source.BuiltinDocumentProperties.Modified;
-        destination.Info.Printed = source.BuiltinDocumentProperties.LastPrinted;
-        destination.Info.Company = EmptyToNull(source.ApplicationProperties.Company);
-        destination.Info.Manager = EmptyToNull(source.ApplicationProperties.Manager);
-        destination.Info.HyperlinkBase = EmptyToNull(source.ApplicationProperties.HyperlinkBase);
-        destination.Info.NumberOfPages = ParseInvariantInt(source.ApplicationProperties.Pages);
-        destination.Info.NumberOfCharacters = ParseInvariantInt(source.ApplicationProperties.Characters);
-        destination.Info.NumberOfCharactersWithSpaces = ParseInvariantInt(source.ApplicationProperties.CharactersWithSpaces);
+        destination.Properties.Title = source.Properties.Title;
+        destination.Properties.Subject = source.Properties.Subject;
+        destination.Properties.Author = source.Properties.Creator;
+        destination.Properties.Category = source.Properties.Category;
+        destination.Properties.Keywords = source.Properties.Keywords;
+        destination.Properties.Comments = source.Properties.Description;
+        destination.Properties.Operator = source.Properties.LastModifiedBy;
+        destination.Properties.Created = source.Properties.Created;
+        destination.Properties.Revised = source.Properties.Modified;
+        destination.Properties.Printed = source.Properties.LastPrinted;
+        destination.Properties.Company = EmptyToNull(source.ApplicationProperties.Company);
+        destination.Properties.Manager = EmptyToNull(source.ApplicationProperties.Manager);
+        destination.Properties.HyperlinkBase = EmptyToNull(source.ApplicationProperties.HyperlinkBase);
+        destination.Properties.NumberOfPages = ParseInvariantInt(source.ApplicationProperties.Pages);
+        destination.Properties.NumberOfCharacters = ParseInvariantInt(source.ApplicationProperties.Characters);
+        destination.Properties.NumberOfCharactersWithSpaces = ParseInvariantInt(source.ApplicationProperties.CharactersWithSpaces);
     }
 
     private static void CopyCustomMetadata(WordDocument source, RtfDocument destination) {
-        foreach (KeyValuePair<string, WordCustomProperty> pair in source.CustomDocumentProperties.OrderBy(item => item.Key, StringComparer.Ordinal)) {
+        foreach (KeyValuePair<string, WordCustomProperty> pair in source.CustomProperties.OrderBy(item => item.Key, StringComparer.Ordinal)) {
             destination.AddUserProperty(ToRtfUserProperty(pair.Key, pair.Value));
         }
 
@@ -37,41 +37,41 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void ApplyDocumentInfo(RtfDocument source, WordDocument destination) {
-        destination.BuiltinDocumentProperties.Title = source.Info.Title;
-        destination.BuiltinDocumentProperties.Subject = source.Info.Subject;
-        destination.BuiltinDocumentProperties.Creator = source.Info.Author;
-        destination.BuiltinDocumentProperties.Category = source.Info.Category;
-        destination.BuiltinDocumentProperties.Keywords = source.Info.Keywords;
-        destination.BuiltinDocumentProperties.Description = source.Info.Comments;
-        destination.BuiltinDocumentProperties.LastModifiedBy = source.Info.Operator;
-        destination.BuiltinDocumentProperties.Created = source.Info.Created;
-        destination.BuiltinDocumentProperties.Modified = source.Info.Revised;
-        destination.BuiltinDocumentProperties.LastPrinted = source.Info.Printed;
+        destination.Properties.Title = source.Properties.Title;
+        destination.Properties.Subject = source.Properties.Subject;
+        destination.Properties.Creator = source.Properties.Author;
+        destination.Properties.Category = source.Properties.Category;
+        destination.Properties.Keywords = source.Properties.Keywords;
+        destination.Properties.Description = source.Properties.Comments;
+        destination.Properties.LastModifiedBy = source.Properties.Operator;
+        destination.Properties.Created = source.Properties.Created;
+        destination.Properties.Modified = source.Properties.Revised;
+        destination.Properties.LastPrinted = source.Properties.Printed;
 
-        if (!string.IsNullOrEmpty(source.Info.Company)) {
-            destination.ApplicationProperties.Company = source.Info.Company!;
+        if (!string.IsNullOrEmpty(source.Properties.Company)) {
+            destination.ApplicationProperties.Company = source.Properties.Company!;
         }
 
-        string? manager = source.Info.Manager;
+        string? manager = source.Properties.Manager;
         if (!string.IsNullOrEmpty(manager)) {
             destination.ApplicationProperties.Manager = manager;
         }
 
-        string? hyperlinkBase = source.Info.HyperlinkBase;
+        string? hyperlinkBase = source.Properties.HyperlinkBase;
         if (!string.IsNullOrEmpty(hyperlinkBase)) {
             destination.ApplicationProperties.HyperlinkBase = hyperlinkBase;
         }
 
-        if (source.Info.NumberOfPages.HasValue) {
-            destination.ApplicationProperties.Pages = source.Info.NumberOfPages.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (source.Properties.NumberOfPages.HasValue) {
+            destination.ApplicationProperties.Pages = source.Properties.NumberOfPages.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        if (source.Info.NumberOfCharacters.HasValue) {
-            destination.ApplicationProperties.Characters = source.Info.NumberOfCharacters.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (source.Properties.NumberOfCharacters.HasValue) {
+            destination.ApplicationProperties.Characters = source.Properties.NumberOfCharacters.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
-        if (source.Info.NumberOfCharactersWithSpaces.HasValue) {
-            destination.ApplicationProperties.CharactersWithSpaces = source.Info.NumberOfCharactersWithSpaces.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (source.Properties.NumberOfCharactersWithSpaces.HasValue) {
+            destination.ApplicationProperties.CharactersWithSpaces = source.Properties.NumberOfCharactersWithSpaces.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
     }
 
@@ -80,7 +80,7 @@ public static partial class WordRtfConverterExtensions {
             string? value = property.StaticValue ?? property.LinkedValue;
             if (value == null) continue;
 
-            destination.CustomDocumentProperties[property.Name] = ToWordCustomProperty(property.TypeCode, value);
+            destination.CustomProperties[property.Name] = ToWordCustomProperty(property.TypeCode, value);
         }
 
         foreach (RtfDocumentVariable variable in source.DocumentVariables) {

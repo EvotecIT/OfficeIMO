@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
             File.WriteAllBytes(path, package.ToArray());
             var readerOptions = new ReaderOptions { ComputeHashes = false };
             var bounded = new ReaderIWorkOptions {
-                ReadOptions = new OfficeIMO.IWork.IWorkReadOptions { MaximumPackageBytes = package.Length - 1 }
+                ReadOptions = new OfficeIMO.IWork.IWorkReadOptions { MaxPackageBytes = package.Length - 1 }
             };
             package.Position = 5;
             Assert.Throws<IOException>(() => pathInput

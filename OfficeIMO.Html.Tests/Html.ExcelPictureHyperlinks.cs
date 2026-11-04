@@ -16,7 +16,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
     public void GenericLinkedPhotoRetainsNativeTargetPayloadAndGeometry(string target) {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.SteelBlue));
         string html = "<a href='" + target.Replace("&", "&amp;") + "'><img alt='Photo' width='32' height='16' src='data:image/png;base64," + Convert.ToBase64String(png) + "'></a>";
-        var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        var result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument document = result.RequireValue();
         Assert.DoesNotContain(result.Report.Diagnostics, item => item.Code == HtmlConversionDiagnosticCodes.ContentOmitted && item.Message.Contains("hyperlink"));
         using var artifact = new System.IO.MemoryStream(document.ToBytes());
@@ -43,7 +43,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         var target = new Uri("https://example.org/photo?item=1&view=full");
         sourceImage.HyperlinkUri = target;
         string html = source.ToHtml();
-        var result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
+        var result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence();
         using ExcelDocument restored = result.RequireValue();
         using var artifact = new System.IO.MemoryStream(restored.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
@@ -63,7 +63,7 @@ public sealed class HtmlExcelPictureHyperlinkTests {
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         sheet.AddImage(1, 1, png, new ExcelImageOptions { ContentType = "image/png", Width = OfficeLength.Pixels(32), Height = OfficeLength.Pixels(16) }).HyperlinkUri = new Uri("file://server/private");
 
-        var result = HtmlConversionDocument.Parse(source.ToHtml()).ToExcelDocumentResult();
+        var result = HtmlConversionDocument.Parse(source.ToHtml()).ConvertToExcelWithEvidence();
         using ExcelDocument restored = result.RequireValue();
         using var artifact = new MemoryStream(restored.ToBytes());
         using var reopened = ExcelDocument.Load(new MemoryStream(artifact.ToArray()));
@@ -83,14 +83,14 @@ public sealed class HtmlExcelPictureHyperlinkTests {
     public void VisualReviewRetainsSafePictureTargetsAndReportsUnsafeOmission(string target, bool interactive) {
         using var document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Pictures");
-        sheet.Cell(1, 1, "Photo");
+        sheet.Cell(1, 1).SetValue("Photo");
         byte[] png = OfficePngWriter.Encode(new OfficeRasterImage(2, 2, OfficeColor.Red));
         sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
             ContentType = "image/png",
             Width = OfficeIMO.OfficeLength.Pixels(32),
             Height = OfficeIMO.OfficeLength.Pixels(16)
         }).HyperlinkUri = new Uri(target, UriKind.RelativeOrAbsolute);
-        var result = sheet.ToHtmlResult(new ExcelHtmlSaveOptions { ExportProfile = ExcelHtmlExportProfile.VisualReview });
+        var result = sheet.ConvertToHtmlWithEvidence(new ExcelHtmlExportOptions { ExportProfile = ExcelHtmlExportProfile.VisualReview });
         var parsed = System.Xml.Linq.XElement.Parse(result.Value.Substring(result.Value.IndexOf("<svg"), result.Value.IndexOf("</svg>") + 6 - result.Value.IndexOf("<svg")));
         var links = parsed.Descendants().Where(element => element.Name.LocalName == "a").ToArray();
         if (interactive) {

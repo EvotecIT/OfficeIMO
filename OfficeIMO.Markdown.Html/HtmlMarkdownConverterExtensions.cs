@@ -24,7 +24,7 @@ public static partial class HtmlMarkdownConverterExtensions {
 
     internal static HtmlToMarkdownResult ConvertToMarkdownWithEvidence(
         this HtmlConversionDocument document,
-        MarkdownHtmlImportOptions operation, CancellationToken cancellationToken = default) {
+        HtmlMarkdownExportOptions operation, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         ApplyDocumentPolicies(document, operation);
@@ -54,9 +54,9 @@ public static partial class HtmlMarkdownConverterExtensions {
 
     /// <summary>Projects an independently owned, already filtered DOM using the source document's URL policies.</summary>
     internal static string ToMarkdownPreparedDocument(HtmlConversionDocument document,
-        AngleSharp.Html.Dom.IHtmlDocument prepared, MarkdownHtmlImportOptions options, CancellationToken cancellationToken = default) {
+        AngleSharp.Html.Dom.IHtmlDocument prepared, HtmlMarkdownExportOptions options, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        MarkdownHtmlImportOptions operation = options.Clone();
+        HtmlMarkdownExportOptions operation = options.Clone();
         HtmlUrlPolicy fallbackResourcePolicy = HtmlUrlPolicy.Intersect(document.ResourceUrlPolicy,
             operation.ResourceUrlPolicy ?? operation.UrlPolicy);
         ApplyDocumentPolicies(document, operation, documentTransformsApplied: true);
@@ -69,7 +69,7 @@ public static partial class HtmlMarkdownConverterExtensions {
             prepared, operation, document.SourceHtml.Length).ToMarkdown(operation.MarkdownWriteOptions, cancellationToken);
     }
 
-    private static void ApplyDocumentPolicies(HtmlConversionDocument document, MarkdownHtmlImportOptions operation,
+    private static void ApplyDocumentPolicies(HtmlConversionDocument document, HtmlMarkdownExportOptions operation,
         bool documentTransformsApplied = false) {
         operation.BaseUri ??= document.FallbackBaseUri;
         HtmlUrlPolicy requestedHyperlinkPolicy = operation.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
@@ -90,7 +90,7 @@ public static partial class HtmlMarkdownConverterExtensions {
 
     private static bool CanProjectSourceReadOnly(
         HtmlConversionDocument document,
-        MarkdownHtmlImportOptions operation) =>
+        HtmlMarkdownExportOptions operation) =>
         document.ProfileContract.Profile != HtmlConversionProfile.HighFidelityPrint
         && operation.ExcludeSelectors.Count == 0
         && operation.ElementFilters.Count == 0

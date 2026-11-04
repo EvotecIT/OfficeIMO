@@ -5,7 +5,6 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -136,7 +135,7 @@ public sealed class SplitOfficeDocumentCommand : AsyncPSCmdlet {
                 load = ((PdfLoadOptions)new OfficeOptionsTransformationAttribute(typeof(PdfLoadOptions)).ApplyTo(engine, load, table)).Clone();
             else throw new PSArgumentException("Options requires PDF load options or a property hashtable.");
         }
-        if (Password != null) load = load.Clone(null, new NetworkCredential(string.Empty, Password).Password);
+        if (Password != null) load = load.Clone(null, Password.ToPlainText());
         _load = load;
         return Task.CompletedTask;
     }
@@ -164,7 +163,7 @@ public sealed class SplitOfficeDocumentCommand : AsyncPSCmdlet {
             int count = document.Inspect(null, token).PageCount;
             PdfPageSelection[] groups;
             if (bookmarks) {
-                var chapters = document.Pages.BookmarkPageRanges(1, token, titles);
+                var chapters = document.Pages.BookmarkPageRanges(1, titles, token);
                 if (chapters.Count == 0) throw new InvalidOperationException("The PDF has no readable top-level chapter bookmarks.");
                 groups = chapters.Select(chapter => PdfPageSelection.FromRanges(chapter.PageRange)).ToArray();
             } else if (selections != null) groups = selections;

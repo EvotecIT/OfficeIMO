@@ -27,7 +27,7 @@ public sealed class ConvertFromOfficeLatexMarkdownCommand : PSCmdlet
 
     /// <summary>Optional conversion settings.</summary>
     [Parameter]
-    public MarkdownToLatexOptions? Options { get; set; }
+    public MarkdownLatexExportOptions? Options { get; set; }
 
     /// <summary>Throw when a source feature cannot be mapped exactly.</summary>
     [Parameter]
@@ -40,7 +40,7 @@ public sealed class ConvertFromOfficeLatexMarkdownCommand : PSCmdlet
             ? MarkdownDocument.Load(SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path))
             : Document;
         var result = document.ToLatexDocumentResult(Options);
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
+        if (FailOnLoss.IsPresent) result.ThrowIfLoss();
         if (!string.IsNullOrWhiteSpace(OutputPath))
         {
             var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);

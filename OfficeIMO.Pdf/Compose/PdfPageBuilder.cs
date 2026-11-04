@@ -11,6 +11,9 @@ public sealed class PdfPageBuilder {
     internal PdfCreateOptions Options => _options;
     internal PdfPageBuilder(PdfDocument doc, PdfCreateOptions options) { _doc = doc; _options = options; }
 
+    /// <summary>Page size, margins, orientation and running headers and footers of this page group's options snapshot.</summary>
+    public PdfPageSetup PageSetup => _options.PageSetup;
+
     /// <summary>Sets or clears the parity required at the start of a later page group. Optionally uses the continuing page number before this group's numbering restart.</summary>
     public PdfPageBuilder StartOnPageParity(PdfPageParity? parity, bool useContinuingPageNumber = false) {
         Options.PageStartParity = parity;

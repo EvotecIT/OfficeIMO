@@ -66,6 +66,9 @@ public sealed partial record OfficeBatchOptions {
     public Func<bool>? RetainReport { get; set; }
 
     internal string? CheckpointDirectory => ResumeFrom == null ? null : ResumeFrom + ".state";
+    /// <summary>Captures the current host's executable route IDs without persisting host policy in a portable job.</summary>
+    [JsonIgnore]
+    internal Func<string, bool>? RouteFilter { get; set; }
     internal string? JobPath { get; set; }
     internal string? JobSha256 { get; set; }
 }

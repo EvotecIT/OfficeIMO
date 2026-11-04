@@ -31,14 +31,14 @@ namespace OfficeIMO.Tests {
                 legacy,
                 new InvalidDataException("Projection failed."));
 
-            OfficeConversionFidelityDiagnostic diagnostic = Assert.Single(
-                failed.FidelityDiagnostics,
+            OfficeDiagnostic diagnostic = Assert.Single(
+                failed.Diagnostics,
                 item => item.Code == "ppt-projection-failed");
 
             Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
             Assert.True(failed.HasLoss);
             Assert.True(failed.HasImportErrors);
-            Assert.Throws<InvalidDataException>(failed.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(failed.ThrowIfLoss);
             Assert.Throws<InvalidOperationException>(() => failed.EnsureNoImportErrors());
         }
 
@@ -120,19 +120,19 @@ namespace OfficeIMO.Tests {
         public void ImportReport_ExposesTypedLossAndStrictAcceptance() {
             LegacyPptDocument legacy = LegacyPptDocument.Load(FixturePath);
             LegacyPptImportReport report = legacy.CreateImportReport();
-            IOfficeConversionReport commonReport = report;
+            OfficeConversionReport commonReport = report;
 
             Assert.Equal(report.HasConversionLoss, commonReport.HasLoss);
             Assert.Equal(
                 legacy.Diagnostics.Count(diagnostic =>
                     diagnostic.Severity != LegacyPptDiagnosticSeverity.Information)
                     + (report.UnsupportedShapeCount > 0 ? 1 : 0),
-                commonReport.FidelityDiagnostics.Count(diagnostic =>
+                commonReport.Diagnostics.Count(diagnostic =>
                     diagnostic.LossKind != OfficeConversionLossKind.None));
-            Assert.All(commonReport.FidelityDiagnostics.Where(diagnostic =>
+            Assert.All(commonReport.Diagnostics.Where(diagnostic =>
                     diagnostic.Code == "ppt-unsupported-shapes"),
                 diagnostic => Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind));
-            Assert.Throws<InvalidDataException>(commonReport.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(commonReport.ThrowIfLoss);
         }
 
         [Fact]
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(PictureFixturePath);
 
             PowerPointSlide slide = Assert.Single(presentation.Slides);
-            PowerPointPicture picture = Assert.Single(slide.Pictures);
+            PowerPointImage picture = Assert.Single(slide.Images);
             Assert.Equal("image/png", picture.ContentType);
             Assert.Equal(expected, picture.GetImageBytes());
             LegacyPptShape sourcePicture = Assert.Single(legacy.Slides[0].Shapes,
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
 
             using MemoryStream pptx = new System.IO.MemoryStream(presentation.ToBytes());
             using PowerPointDocument reopened = PowerPointDocument.Load(pptx);
-            Assert.Equal(expected, Assert.Single(reopened.Slides[0].Pictures).GetImageBytes());
+            Assert.Equal(expected, Assert.Single(reopened.Slides[0].Images).GetImageBytes());
             Assert.Empty(reopened.ValidateDocument());
         }
 
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
         public void NormalLoad_ProjectsNativePictureEffectsAndPreservesBinaryExactly() {
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 PictureEffectsFixturePath);
-            P.Picture[] pictures = Assert.Single(presentation.Slides).Pictures
+            P.Picture[] pictures = Assert.Single(presentation.Slides).Images
                 .OrderBy(picture => picture.Top)
                 .ThenBy(picture => picture.Left)
                 .Select(picture => Assert.IsType<P.Picture>(picture.Element))
@@ -266,7 +266,7 @@ namespace OfficeIMO.Tests {
                 "Pictures"];
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 PictureEffectsFixturePath);
-            PowerPointPicture picture = presentation.Slides[0].Pictures
+            PowerPointImage picture = presentation.Slides[0].Images
                 .OrderBy(item => item.Top.ToEmus())
                 .ThenBy(item => item.Left.ToEmus())
                 .First();
@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
             LegacyPptDocument source = LegacyPptDocument.Load(CroppedPictureFixturePath);
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 CroppedPictureFixturePath);
-            PowerPointPicture[] pictures = Assert.Single(presentation.Slides).Pictures
+            PowerPointImage[] pictures = Assert.Single(presentation.Slides).Images
                 .OrderBy(picture => picture.Left)
                 .ToArray();
 
@@ -315,7 +315,7 @@ namespace OfficeIMO.Tests {
                 presentation.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }
 
-        private static void AssertLegacyPictureBounds(LegacyPptShape source, PowerPointPicture target) {
+        private static void AssertLegacyPictureBounds(LegacyPptShape source, PowerPointImage target) {
             Assert.Equal(source.Bounds.Left / 8D, target.Left.ToPoints(), 3);
             Assert.Equal(source.Bounds.Top / 8D, target.Top.ToPoints(), 3);
             Assert.Equal(source.Bounds.Width / 8D, target.Width.ToPoints(), 3);
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
                 "Pictures"];
             using PowerPointDocument presentation = PowerPointDocument.Load(
                 CroppedPictureFixturePath);
-            PowerPointPicture picture = presentation.Slides[0].Pictures.OrderBy(item => item.Left.ToEmus()).First();
+            PowerPointImage picture = presentation.Slides[0].Images.OrderBy(item => item.Left.ToEmus()).First();
 
             picture.Crop(10D, 20D, 5D, 10D);
 
@@ -355,7 +355,7 @@ namespace OfficeIMO.Tests {
         public void ImportedNegativeCropSurvivesPictureEffectEdit() {
             using PowerPointDocument presentation = PowerPointDocument
                 .Load(CroppedPictureFixturePath);
-            PowerPointPicture picture = presentation.Slides[0].Pictures
+            PowerPointImage picture = presentation.Slides[0].Images
                 .OrderBy(item => item.Left.ToEmus())
                 .Last();
             picture.GrayScale = true;
@@ -394,7 +394,7 @@ namespace OfficeIMO.Tests {
             byte[] picturesStream = original.Package.CopyCompoundStreams()["Pictures"];
 
             using PowerPointDocument presentation = PowerPointDocument.Load(PictureFixturePath);
-            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+            PowerPointImage picture = Assert.Single(presentation.Slides[0].Images);
             picture.Left+= OfficeIMO.OfficeLength.Emus(15875);
             picture.Width+= OfficeIMO.OfficeLength.Emus(3175);
 
@@ -412,7 +412,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ImportedPictureImageReplacement_RemainsLossBlocked() {
             using PowerPointDocument presentation = PowerPointDocument.Load(PictureFixturePath);
-            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+            PowerPointImage picture = Assert.Single(presentation.Slides[0].Images);
             using var replacement = new MemoryStream(picture.GetImageBytes(), writable: false);
 
             picture.UpdateImage(replacement, OfficeIMO.Drawing.OfficeImageFormat.Png);
@@ -440,7 +440,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument presentation = PowerPointDocument.Load(FixturePath);
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
 
-            presentation.BuiltinDocumentProperties.Title = "Changed title";
+            presentation.Properties.Title = "Changed title";
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);

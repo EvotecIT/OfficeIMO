@@ -11,6 +11,15 @@ namespace OfficeIMO.Word {
         private static readonly Lazy<Styles> RequiredLoadedStyleDefinitions = new(CreateRequiredLoadedStyleDefinitions);
         private static readonly Lazy<XElement> RequiredLoadedStyleDefinitionsXml = new(
             () => XElement.Parse(RequiredLoadedStyleDefinitions.Value.OuterXml, LoadOptions.PreserveWhitespace));
+        // Serialized required styles; each fragment declares its own namespaces so it can be spliced into any catalog.
+        private static readonly Lazy<KeyValuePair<string, byte[]>[]> RequiredLoadedStyleFragments = new(
+            () => RequiredLoadedStyleDefinitionsXml.Value.Elements()
+                .Where(element => element.Name.LocalName == "style")
+                .Select(element => new KeyValuePair<string, string?>(GetStyleId(element) ?? string.Empty, element.ToString(SaveOptions.DisableFormatting)))
+                .Where(pair => pair.Key.Length > 0)
+                .Select(pair => new KeyValuePair<string, byte[]>(pair.Key, System.Text.Encoding.UTF8.GetBytes(pair.Value!)))
+                .ToArray());
+        private static readonly byte[] XmlDeclarationUtf8 = System.Text.Encoding.UTF8.GetBytes("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
         private static readonly Lazy<HashSet<string>> RequiredLoadedStyleDefinitionIds = new(
             () => new HashSet<string>(
                 RequiredLoadedStyleDefinitions.Value.Elements<Style>()
@@ -83,6 +92,7 @@ namespace OfficeIMO.Word {
 
         private static void CompleteStyleCatalog(StyleDefinitionsPart styleDefinitionsPart, Styles styles) {
             if (HasCompleteStyleCatalog(styles)) return;
+            if (TrySpliceStyleCatalog(styleDefinitionsPart, styles)) return;
 
             XElement merged = XElement.Parse(styles.OuterXml, LoadOptions.PreserveWhitespace);
             var existingIds = new HashSet<string>(
@@ -108,6 +118,49 @@ namespace OfficeIMO.Word {
             merged.Save(stream, SaveOptions.DisableFormatting);
             stream.Position = 0;
             styleDefinitionsPart.FeedData(stream);
+        }
+
+        /// <summary>
+        /// Appends the missing required styles as pre-serialized fragments instead of rebuilding the whole catalog
+        /// through XLinq. The existing catalog text is preserved and the result matches the XLinq merge semantically.
+        /// </summary>
+        private static bool TrySpliceStyleCatalog(StyleDefinitionsPart styleDefinitionsPart, Styles styles) {
+            string existingXml = styles.OuterXml;
+            int closing = existingXml.LastIndexOf("</", StringComparison.Ordinal);
+            if (closing <= 0 || existingXml.Length == 0 || existingXml[existingXml.Length - 1] != '>') return false;
+
+            var existingIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Style style in styles.Elements<Style>()) {
+                string? styleId = style.StyleId?.Value;
+                if (styleId != null) existingIds.Add(styleId);
+            }
+
+            var fragments = new List<byte[]>();
+            int fragmentBytes = 0;
+            foreach (KeyValuePair<string, byte[]> fragment in RequiredLoadedStyleFragments.Value) {
+                if (!existingIds.Add(fragment.Key)) continue;
+                fragments.Add(fragment.Value);
+                fragmentBytes += fragment.Value.Length;
+            }
+            foreach (Style custom in WordParagraphStyle.CustomStyles) {
+                string? styleId = custom.StyleId?.Value;
+                if (styleId == null || !existingIds.Add(styleId)) continue;
+                byte[] bytes = System.Text.Encoding.UTF8.GetBytes(custom.OuterXml);
+                fragments.Add(bytes);
+                fragmentBytes += bytes.Length;
+            }
+
+            var encoding = new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            byte[] head = encoding.GetBytes(existingXml.Substring(0, closing));
+            byte[] tail = encoding.GetBytes(existingXml.Substring(closing));
+            using var stream = new MemoryStream(XmlDeclarationUtf8.Length + head.Length + fragmentBytes + tail.Length);
+            stream.Write(XmlDeclarationUtf8, 0, XmlDeclarationUtf8.Length);
+            stream.Write(head, 0, head.Length);
+            foreach (byte[] fragment in fragments) stream.Write(fragment, 0, fragment.Length);
+            stream.Write(tail, 0, tail.Length);
+            stream.Position = 0;
+            styleDefinitionsPart.FeedData(stream);
+            return true;
         }
 
         private static bool HasCompleteStyleCatalog(Styles styles) {

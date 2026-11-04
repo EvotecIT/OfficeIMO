@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Rectangle"));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), "Rectangle"));
             document.Save();
 
             XDocument pageDoc;
@@ -145,8 +145,8 @@ namespace OfficeIMO.Tests {
             double viewCenterY = XmlConvert.ToDouble(viewCenterYAttr);
 
             Assert.Equal(1, viewScale);
-            Assert.Equal(page.Width / 2, viewCenterX, 10);
-            Assert.Equal(page.Height / 2, viewCenterY, 10);
+            Assert.Equal(page.Width.ToInches() / 2, viewCenterX, 10);
+            Assert.Equal(page.Height.ToInches() / 2, viewCenterY, 10);
         }
     }
 }

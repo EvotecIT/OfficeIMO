@@ -25,17 +25,18 @@ public partial class VisioDocument {
         VisioPackageType packageType = VisioPackageType.Drawing, VisioLoadOptions? options = null, CancellationToken cancellationToken = default) {
         VisioLegacyXmlCodec.ValidateFamily(packageType);
         VisioLoadOptions resolved = options ?? new VisioLoadOptions();
-        if (resolved.MaxLegacyXmlCharacters < 1 || resolved.MaxLegacyXmlDepth < 1 || resolved.MaxLegacyXmlElements < 1)
+        VisioLoadLimits limits = resolved.Limits ?? throw new ArgumentNullException(nameof(options));
+        if (limits.MaxLegacyXmlCharacters < 1 || limits.MaxLegacyXmlDepth < 1 || limits.MaxLegacyXmlElements < 1)
             throw new ArgumentOutOfRangeException(nameof(options), "Legacy XML limits must be positive.");
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, ResolveInputLimit(resolved));
         using var source = new MemoryStream(bytes, writable: false);
         using var reader = XmlReader.Create(source, new XmlReaderSettings {
             DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null,
-            MaxCharactersInDocument = resolved.MaxLegacyXmlCharacters
+            MaxCharactersInDocument = limits.MaxLegacyXmlCharacters
         });
-        using var bounded = new OfficeXmlLimitingReader(reader, "Visio XML", resolved.MaxLegacyXmlDepth,
-            resolved.MaxLegacyXmlElements, resolved.MaxLegacyXmlElements, cancellationToken);
+        using var bounded = new OfficeXmlLimitingReader(reader, "Visio XML", limits.MaxLegacyXmlDepth,
+            limits.MaxLegacyXmlElements, limits.MaxLegacyXmlElements, cancellationToken);
         XDocument xml = XDocument.Load(bounded, LoadOptions.PreserveWhitespace);
         var report = new VisioXmlConversionReport();
         using MemoryStream normalized = VisioLegacyXmlCodec.ToPackage(xml, packageType, report, cancellationToken);
@@ -66,16 +67,16 @@ public partial class VisioDocument {
     /// <summary>Writes a legacy XML copy atomically. Omitted content requires explicit allowOmissions; inspect the returned report for approximations.</summary>
     public VisioXmlConversionReport SaveLegacyXml(string path, bool allowOmissions = false) {
         var result = ToLegacyXmlResult();
-        RequireLegacyXmlOutput(result.Report, allowOmissions);
+        RequireLegacyXmlOutput((VisioXmlConversionReport)result.Report, allowOmissions);
         OfficeFileCommit.WriteAllBytes(path, result.Value);
-        return result.Report;
+        return (VisioXmlConversionReport)result.Report;
     }
     /// <summary>Writes legacy XML once to a caller-owned stream without changing the associated destination.</summary>
     public VisioXmlConversionReport SaveLegacyXml(Stream stream, bool allowOmissions = false) {
         var result = ToLegacyXmlResult();
-        RequireLegacyXmlOutput(result.Report, allowOmissions);
+        RequireLegacyXmlOutput((VisioXmlConversionReport)result.Report, allowOmissions);
         OfficeStreamWriter.WriteAllBytes(stream, result.Value);
-        return result.Report;
+        return (VisioXmlConversionReport)result.Report;
     }
     private static void RequireLegacyXmlOutput(VisioXmlConversionReport report, bool allowOmissions) {
         if (!allowOmissions && report.HasOmissions) throw new OfficeConversionException("Legacy XML export would omit content. Inspect ToLegacyXmlResult before permitting omissions.", report);

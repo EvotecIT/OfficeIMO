@@ -91,7 +91,7 @@ public sealed class ProjectCostAssignmentBoundaryTests {
         var summary = document.Tasks.AddSummary("Phase"); summary.Children.Add("Delivery").Duration = ProjectDuration.WorkingDays(1);
         document.Assignments.Add(summary, document.Resources.AddCost("Travel")).Cost = 500m;
         var result = document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true });
-        Assert.Contains(result.Report.Diagnostics, d => d.Code == "PROJECT_SUMMARY_ASSIGNMENT_PROFILE" && d.Severity == ProjectDiagnosticSeverity.Error);
+        Assert.Contains(result.Report.NativeDiagnostics, d => d.Code == "PROJECT_SUMMARY_ASSIGNMENT_PROFILE" && d.Severity == ProjectDiagnosticSeverity.Error);
         Assert.Throws<InvalidDataException>(() => document.ApplySchedule(result));
     }
 }

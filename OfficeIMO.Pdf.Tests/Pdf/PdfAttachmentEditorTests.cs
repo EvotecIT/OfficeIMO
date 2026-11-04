@@ -45,7 +45,7 @@ public class PdfAttachmentEditorTests {
     [Fact]
     public void Edit_AddsReplacesRenamesRemovesAndValidatesAttachmentMetadata() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Attachment edit proof"))
+            .Paragraph(p => p.AddText("Attachment edit proof"))
             .AttachFile("alpha.txt", Encoding.UTF8.GetBytes("alpha"), "text/plain")
             .AttachFile("beta.txt", Encoding.UTF8.GetBytes("old beta"), "text/plain")
             .AttachFile("obsolete.bin", new byte[] { 1, 2, 3 }, "application/octet-stream")
@@ -84,7 +84,7 @@ public class PdfAttachmentEditorTests {
 
     [Fact]
     public void Edit_RejectsMissingAndDuplicateNames() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Attachment conflicts")).AttachFile("one.txt", new byte[] { 1 }).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(p => p.AddText("Attachment conflicts")).AttachFile("one.txt", new byte[] { 1 }).ToBytes();
         Assert.Throws<KeyNotFoundException>(() => PdfAttachmentEditor.Remove(source, "missing.txt"));
         Assert.Throws<ArgumentException>(() => PdfAttachmentEditor.Add(source, new PdfEmbeddedFile("one.txt", new byte[] { 2 })));
     }
@@ -105,7 +105,7 @@ public class PdfAttachmentEditorTests {
     [Fact]
     public void Edit_RemoveDeletesUnreferencedEmbeddedFileObjectsFromTheRewrittenGraph() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(p => p.Text("Attachment graph cleanup"))
+            .Paragraph(p => p.AddText("Attachment graph cleanup"))
             .AttachFile("hidden-marker.txt", Encoding.ASCII.GetBytes("hidden-attachment-marker"), "text/plain")
             .ToBytes();
 

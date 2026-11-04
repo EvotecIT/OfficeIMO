@@ -75,7 +75,7 @@ public sealed class LatexAuditRegressionTests {
     [Fact]
     public void ParserAndTokenizerEnforceInputLimitsAndPreCancellation() {
         const string source = "\n\n";
-        var options = new LatexParseOptions { MaximumInputLength = 1 };
+        var options = new LatexParseOptions { MaxInputLength = 1 };
         Assert.Throws<ArgumentException>(() => LatexDocument.Parse(source, options));
         Assert.Throws<ArgumentException>(() => LatexTokenizer.Tokenize(source, options));
         using var cancellation = new CancellationTokenSource();
@@ -86,10 +86,10 @@ public sealed class LatexAuditRegressionTests {
 
     [Fact]
     public void ExpansionLimitsAndOpaqueNamesBelongToTheParsedSnapshot() {
-        var options = new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions, MaximumExpansionLength = 64 };
+        var options = new LatexParseOptions { MacroExpansion = LatexMacroExpansion.SafeSimpleDefinitions, MaxExpansionLength = 64 };
         options.VerbatimEnvironmentNames.Add("opaque");
         LatexDocument document = LatexDocument.Parse("\\newcommand{\\repeat}[1]{#1#1#1#1#1#1#1#1#1}", options);
-        options.MaximumExpansionLength = 1000;
+        options.MaxExpansionLength = 1000;
         options.VerbatimEnvironmentNames.Clear();
         Assert.Throws<System.IO.InvalidDataException>(() => document.ExpandSimpleMacros("\\repeat{long argument}"));
         Assert.Equal("\\begin{opaque}\\repeat{x}\\end{opaque}", document.ExpandSimpleMacros("\\begin{opaque}\\repeat{x}\\end{opaque}").Value);

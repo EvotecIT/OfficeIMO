@@ -17,12 +17,12 @@ The output directory contains the source SVG/PNG images, a five-page DOCX/PDF, a
 
 Managed Word previews use OfficeIMO's estimated pagination. Managed Excel and PowerPoint previews use their respective layout engines. Saved-PDF previews render the serialized PDF page content. These are distinct from Microsoft Office application rendering and must be assessed separately when an application-specific fidelity claim is needed.
 
-On Windows with PowerPoint Desktop installed, reuse that output directory and explicitly request its existing reference-render lane:
+On Windows with PowerPoint Desktop installed, reuse that output directory and explicitly request the development reference-render lane:
 
 ```powershell
 dotnet run --project ./OfficeIMO.ChartForgeX.Examples/OfficeIMO.ChartForgeX.Examples.csproj -c Release -f net10.0 -- $outputDirectory --native-powerpoint
 ```
 
-That opt-in produces `powerpoint-desktop/` and a separate result report. Unavailable or failed native rendering returns a nonzero exit code; it does not fall back to managed images and claim native proof. Ordinary generation and managed rendering do not launch Office applications.
+The non-packable example links the shared development verifier from `Build/Verification/PowerPoint`; no COM renderer is included in the shipped OfficeIMO assemblies. That opt-in produces `powerpoint-desktop/` and a separate result report. Unavailable or failed native rendering returns a nonzero exit code; it does not fall back to managed images and claim native proof. Ordinary generation and managed rendering do not launch Office applications.
 
 The editable Visio specimen uses prepared topology bounds and connector routes. Its report retains styling, font, accessibility and other conversion limits. Flow and sequence diagrams use their existing native reflow policy; this example does not establish exact editable layout preservation for those families.

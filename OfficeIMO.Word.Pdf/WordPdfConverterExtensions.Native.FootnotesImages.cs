@@ -238,19 +238,19 @@ namespace OfficeIMO.Word.Pdf {
                         AddNativeExportWarning(options, "native-endnote-content-approximated", "endnote",
                             "This endnote's content is outside the supported paragraph profile; visible text is retained in section flow.");
                     pdf.Paragraph(builder => {
-                        builder.Baseline(PdfCore.PdfTextBaseline.Superscript);
-                        builder.Text(footnote.Label);
-                        builder.Baseline(PdfCore.PdfTextBaseline.Normal);
+                        builder.RunDefaults.Baseline = PdfCore.PdfTextBaseline.Superscript;
+                        builder.AddText(footnote.Label);
+                        builder.RunDefaults.Baseline = PdfCore.PdfTextBaseline.Normal;
                         if (!string.IsNullOrWhiteSpace(footnote.Text)) {
-                            builder.Text(" ");
-                            builder.Text(NormalizeNativeDirectText(footnote.Text));
+                            builder.AddText(" ");
+                            builder.AddText(NormalizeNativeDirectText(footnote.Text));
                         }
                     });
                 }
             }
         }
 
-        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, PdfCore.PdfAlign align = PdfCore.PdfAlign.Left, WordPdfExportOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null) {
+        private static bool RenderNativeImage(INativePdfFlow pdf, WordImage image, global::OfficeIMO.OfficeAlignment align = global::OfficeIMO.OfficeAlignment.Left, WordPdfExportOptions? options = null, string source = "body image", PdfCore.PdfParagraphStyle? anchorStyle = null, PdfCore.PdfPageCanvas? anchoredCanvas = null, NativeObjectParagraphSpacing? paragraphSpacing = null, WordParagraph? anchorParagraph = null, WordSection? anchorSection = null) {
             if (image == null) {
                 return false;
             }

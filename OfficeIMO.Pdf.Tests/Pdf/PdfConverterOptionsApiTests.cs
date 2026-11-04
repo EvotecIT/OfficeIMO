@@ -7,9 +7,9 @@ namespace OfficeIMO.Tests.Pdf;
 public sealed class PdfConverterOptionsApiTests {
     [Fact]
     public void DirectAndComposedPdfOptionsUseUnambiguousStageNames() {
-        Type html = typeof(OfficeIMO.Html.Pdf.HtmlToPdfOptions);
-        Type asciiDoc = typeof(OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions);
-        Type latex = typeof(OfficeIMO.Latex.Pdf.LatexToPdfOptions);
+        Type html = typeof(OfficeIMO.Html.Pdf.HtmlPdfExportOptions);
+        Type asciiDoc = typeof(OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfExportOptions);
+        Type latex = typeof(OfficeIMO.Latex.Pdf.LatexPdfExportOptions);
 
         Assert.Equal(typeof(PdfCreateOptions), html.GetProperty("PdfOptions")?.PropertyType);
         Assert.Null(html.GetProperty("DocumentOptions"));
@@ -25,10 +25,10 @@ public sealed class PdfConverterOptionsApiTests {
         var word = new OfficeIMO.Word.Pdf.WordPdfExportOptions();
         var excel = new OfficeIMO.Excel.Pdf.ExcelPdfExportOptions();
         var powerPoint = new OfficeIMO.PowerPoint.Pdf.PowerPointPdfExportOptions();
-        var html = new OfficeIMO.Html.Pdf.HtmlToPdfOptions();
-        var rtf = new OfficeIMO.Rtf.Pdf.RtfToPdfOptions();
-        var asciiDoc = new OfficeIMO.AsciiDoc.Pdf.AsciiDocToPdfOptions();
-        var latex = new OfficeIMO.Latex.Pdf.LatexToPdfOptions();
+        var html = new OfficeIMO.Html.Pdf.HtmlPdfExportOptions();
+        var rtf = new OfficeIMO.Rtf.Pdf.RtfPdfExportOptions();
+        var asciiDoc = new OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfExportOptions();
+        var latex = new OfficeIMO.Latex.Pdf.LatexPdfExportOptions();
 
         Assert.Equal(PdfTextFallbackFeatures.Default, markdown.TextFallbacks);
         Assert.Equal(PdfTextFallbackFeatures.Default, word.TextFallbacks);
@@ -151,25 +151,24 @@ public sealed class PdfConverterOptionsApiTests {
         PdfCreateOptions defaultClone = defaults.Clone();
 
         Assert.False(defaults.HasExplicitDefaultFont);
-        Assert.False(defaults.HasExplicitHeaderFont);
-        Assert.False(defaults.HasExplicitFooterFont);
+        Assert.False(defaults.PageSetup.Header.HasExplicitStandardFont);
+        Assert.False(defaults.PageSetup.Footer.HasExplicitStandardFont);
         Assert.False(defaultClone.HasExplicitDefaultFont);
-        Assert.False(defaultClone.HasExplicitHeaderFont);
-        Assert.False(defaultClone.HasExplicitFooterFont);
+        Assert.False(defaultClone.PageSetup.Header.HasExplicitStandardFont);
+        Assert.False(defaultClone.PageSetup.Footer.HasExplicitStandardFont);
 
         var configured = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier,
-            HeaderFont = PdfStandardFont.TimesRoman,
-            FooterFont = PdfStandardFont.Helvetica
+            PageSetup = { Header = { StandardFont = PdfStandardFont.TimesRoman }, Footer = { StandardFont = PdfStandardFont.Helvetica } }
         };
         PdfCreateOptions configuredClone = configured.Clone();
 
         Assert.True(configured.HasExplicitDefaultFont);
-        Assert.True(configured.HasExplicitHeaderFont);
-        Assert.True(configured.HasExplicitFooterFont);
+        Assert.True(configured.PageSetup.Header.HasExplicitStandardFont);
+        Assert.True(configured.PageSetup.Footer.HasExplicitStandardFont);
         Assert.True(configuredClone.HasExplicitDefaultFont);
-        Assert.True(configuredClone.HasExplicitHeaderFont);
-        Assert.True(configuredClone.HasExplicitFooterFont);
+        Assert.True(configuredClone.PageSetup.Header.HasExplicitStandardFont);
+        Assert.True(configuredClone.PageSetup.Footer.HasExplicitStandardFont);
     }
 
     [Fact]

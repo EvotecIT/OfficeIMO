@@ -13,6 +13,15 @@
       "applied": "applied",
       "reason": "The approved design gives each conversion direction its own adapter. Source PdfDocument.ToTarget, out-report and async OfficeConversionResult<T> forms replace the old result pairs.",
       "file": "OfficeIMO.Pdf.Word/OfficeIMO.Pdf.Word.csproj"
+    },
+    {
+      "old": "OfficeIMO.Pdf.Word.WordPdfImportOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Pdf.Word.PdfWordExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
     }
   ],
   "extraChanges": [

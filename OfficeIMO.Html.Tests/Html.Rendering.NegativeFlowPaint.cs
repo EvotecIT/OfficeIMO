@@ -50,7 +50,7 @@ public sealed partial class HtmlRenderingTests {
             "Retained earlier text must paint visible red glyph ink within the later block's green background.");
         Assert.Equal(green, raster.GetPixel((int)(background.X + background.Width - 2D),
             (int)(background.Y + 2D)));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static bool NegativeFlowContainsRedInk(OfficeRasterImage raster, HtmlRenderText text,

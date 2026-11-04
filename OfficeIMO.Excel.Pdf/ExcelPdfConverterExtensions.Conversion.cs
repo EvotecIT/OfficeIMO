@@ -23,6 +23,7 @@ public static partial class ExcelPdfConverterExtensions {
     }
 
     /// <summary>Converts the source document, returning the model and report together.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool so the caller is not blocked.</remarks>
     public static async Task<OfficeConversionResult<PdfDocument>> ToPdfAsync(this ExcelDocument document,
         ExcelPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new ExcelPdfExportOptions()).Clone();
@@ -60,12 +61,14 @@ public static partial class ExcelPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously writes a PDF file and returns the complete conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the file is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this ExcelDocument document, string path,
         ExcelPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(path);
         options = (options ?? new ExcelPdfExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
-        PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
         using PdfDocument model = converted.Value;
         PdfSaveResult saved = options?.FailOnLoss == true
             ? await PdfConversionEvidence.SaveLosslessAsync(converted, "Excel", path, timer, cancellationToken).ConfigureAwait(false)
@@ -74,12 +77,14 @@ public static partial class ExcelPdfConverterExtensions {
     }
 
     /// <summary>Asynchronously writes PDF to a caller-owned stream and returns its conversion report.</summary>
+    /// <remarks>Conversion is CPU-bound and runs on the thread pool; the stream is written asynchronously.</remarks>
     public static async Task<OfficeConversionReport> SaveAsPdfAsync(this ExcelDocument document, Stream stream,
         ExcelPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         PdfConversionEvidence.ValidateDestination(stream);
         options = (options ?? new ExcelPdfExportOptions()).Clone();
         var timer = Stopwatch.StartNew();
-        PdfDocumentConversionResult converted = document.ConvertToPdfWithEvidence(options, cancellationToken);
+        PdfDocumentConversionResult converted = await Task.Run(
+            () => document.ConvertToPdfWithEvidence(options, cancellationToken), cancellationToken).ConfigureAwait(false);
         using PdfDocument model = converted.Value;
         PdfSaveResult saved = options?.FailOnLoss == true
             ? await PdfConversionEvidence.SaveLosslessAsync(converted, "Excel", stream, timer, cancellationToken).ConfigureAwait(false)

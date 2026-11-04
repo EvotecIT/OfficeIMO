@@ -11,15 +11,15 @@ public partial class PdfTextExtractorPageTests {
         var doc = PdfDocument.Create();
         doc.Compose(compose => {
             compose.Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("First page marker"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("First page marker"))));
             });
 
             compose.Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Second page marker"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Second page marker"))));
             });
 
             compose.Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Third page marker"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Third page marker"))));
             });
         });
 
@@ -28,12 +28,10 @@ public partial class PdfTextExtractorPageTests {
 
     private static byte[] BuildTwoColumnPdf() {
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(260),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(260)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Compose(document =>
@@ -42,26 +40,24 @@ public partial class PdfTextExtractorPageTests {
                         content.Row(row => row
                             .Gap(global::OfficeIMO.OfficeLength.Points(36))
                             .PercentColumn(50, column => column
-                                .Paragraph(p => p.Text("Left Start marker"))
-                                .Paragraph(p => p.Text("Left Finish marker")))
+                                .AddParagraph(p => p.AddText("Left Start marker"))
+                                .AddParagraph(p => p.AddText("Left Finish marker")))
                             .PercentColumn(50, column => column
-                                .Paragraph(p => p.Text("Right Start marker"))
-                                .Paragraph(p => p.Text("Right Finish marker")))))))
+                                .AddParagraph(p => p.AddText("Right Start marker"))
+                                .AddParagraph(p => p.AddText("Right Finish marker")))))))
             .ToBytes();
     }
 
     private static byte[] BuildMarkdownPdf() {
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("Markdown Heading")
-            .Paragraph(p => p.Text("Markdown readback marker."))
+            .Paragraph(p => p.AddText("Markdown readback marker."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -77,22 +73,20 @@ public partial class PdfTextExtractorPageTests {
 
     private static byte[] BuildThreePageMarkdownPdf() {
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(300),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .H1("First Page")
-            .Paragraph(p => p.Text("First markdown marker."))
+            .Paragraph(p => p.AddText("First markdown marker."))
             .PageBreak()
             .H1("Second Page")
-            .Paragraph(p => p.Text("Second markdown marker."))
+            .Paragraph(p => p.AddText("Second markdown marker."))
             .PageBreak()
             .H1("Third Page")
-            .Paragraph(p => p.Text("Third markdown marker."))
+            .Paragraph(p => p.AddText("Third markdown marker."))
             .ToBytes();
     }
 

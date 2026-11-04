@@ -1,3 +1,4 @@
+using OfficeIMO.Excel.LegacyXls.Biff;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
@@ -26,7 +27,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             ExcelDocument document,
             ExcelDirectTabularSource source,
             CancellationToken cancellationToken,
-            out byte[] workbookBytes) {
+            out byte[] workbookBytes,
+            Stream? destination = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (source == null) throw new ArgumentNullException(nameof(source));
 
@@ -36,7 +38,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
-            if (!TryCreateDirectTabularPlan(source, cancellationToken, out DirectTabularPlan directPlan)) {
+            if (!TryCreateDirectTabularPlan(source, document.DateSystem, cancellationToken, out DirectTabularPlan directPlan)) {
                 workbookBytes = Array.Empty<byte>();
                 return false;
             }
@@ -44,9 +46,14 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.ExtractCells");
 
                 using (DirectTabularWorkbookStream workbookStream =
-                       BuildDirectTabularWorkbookStream(document, sheet, directPlan)) {
+                       BuildDirectTabularWorkbookStream(document, sheet, source.UseCellValueNumberFormats, directPlan)) {
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildWorkbookStream");
-                    workbookBytes = BuildCompoundFile(document, workbookStream);
+                    if (destination == null) {
+                        workbookBytes = BuildCompoundFile(document, workbookStream);
+                    } else {
+                        WriteDirectCompoundFile(document, workbookStream, destination);
+                        workbookBytes = Array.Empty<byte>();
+                    }
                     ReportDirectWriteTiming(document, stageWatch, "Save.Xls.Direct.BuildCompoundFile");
                     return true;
                 }
@@ -680,7 +687,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     checked((ushort)(mergedRange.EndColumn - 1))));
             }
 
-            ExcelWorksheetViewInfo viewInfo = sheet.GetViewInfo();
+            ExcelWorksheetViewInfo viewInfo = sheet.ReadViewInfo();
             IReadOnlyList<SheetView> sheetViews = sheet.WorksheetPart.Worksheet!
                 .GetFirstChild<SheetViews>()?
                 .Elements<SheetView>()
@@ -729,8 +736,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 frozenColumnCount,
                 sheetView?.ShowFormulas?.Value == true,
                 sheetView?.ShowGridLines?.Value ?? (primary ? viewInfo.ShowGridlines : true),
-                sheetView?.ShowRowColHeaders?.Value ?? (primary ? sheet.RowColumnHeadingsVisible : true),
-                sheetView?.ShowZeros?.Value ?? (primary ? sheet.ZeroValuesVisible : true),
+                sheetView?.ShowRowColHeaders?.Value ?? (primary ? sheet.RowColumnHeadingsVisibleCore : true),
+                sheetView?.ShowZeros?.Value ?? (primary ? sheet.ZeroValuesVisibleCore : true),
                 sheetView?.RightToLeft?.Value ?? (primary && viewInfo.RightToLeft),
                 sheetView?.DefaultGridColor?.Value ?? true,
                 GetWindow2GridLineColorIndex(sheetView?.DefaultGridColor?.Value ?? true, sheetView?.ColorId?.Value),
@@ -1440,8 +1447,8 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static LegacyXlsWorksheetPageSetup ExtractPageSetup(ExcelSheet sheet) {
-            ExcelSheetPageSetup pageSetup = sheet.GetPageSetup();
-            ExcelSheetPrintOptions printOptions = sheet.GetPrintOptions();
+            ExcelSheetPageSetup pageSetup = sheet.PageSetup;
+            ExcelSheetPrintOptions printOptions = sheet.ReadPrintOptions();
             ExcelSheet.ExcelHeaderFooterInfo headerFooter = sheet.GetHeaderFooter();
             Worksheet worksheet = sheet.WorksheetPart.Worksheet!;
             PageSetup? storedPageSetup = worksheet.GetFirstChild<PageSetup>();
@@ -2016,6 +2023,13 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static void WriteNumberCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, double value, ushort styleIndex) {
+            // A number with an exact RK form uses the shorter RK record, as Excel does.
+            if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
+                WriteFixedCellRecordHeader(buffer, 0x027e, payloadLength: 10, row, column, styleIndex);
+                WriteUInt32(buffer, 10, rk);
+                stream.Write(buffer, 0, 14);
+                return;
+            }
             WriteFixedCellRecordHeader(buffer, 0x0203, payloadLength: 14, row, column, styleIndex);
             ulong bits = unchecked((ulong)BitConverter.DoubleToInt64Bits(value));
             WriteUInt32(buffer, 10, unchecked((uint)bits));

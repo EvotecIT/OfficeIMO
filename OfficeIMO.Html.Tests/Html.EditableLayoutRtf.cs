@@ -11,7 +11,7 @@ public sealed class HtmlEditableLayoutRtfTests {
         const string html = "<div style='position:absolute;width:200px;height:60px'>" +
             "<strong>Bold</strong> <a href='https://example.test'>Linked</a></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         string rtf = result.Value.ToRtf();
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
@@ -30,7 +30,7 @@ public sealed class HtmlEditableLayoutRtfTests {
             "<img alt='Hidden marker' src='" + image + "' style='display:none'>" +
             "<img alt='Region marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
             item.Inlines.OfType<RtfImage>().Any());
         RtfImage picture = Assert.Single(paragraph.Inlines.OfType<RtfImage>());
@@ -45,13 +45,13 @@ public sealed class HtmlEditableLayoutRtfTests {
         string html = "<div style='position:absolute;width:180px;height:70px'>" +
             string.Concat(Enumerable.Range(0, 12).Select(index => "<span>" + index + "</span>")) +
             "</div>";
-        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        HtmlRtfExportOptions options = HtmlRtfExportOptions.UntrustedDefaults;
         options.MaxHtmlNodes = 10;
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
-            () => HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options));
+            () => HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(options));
 
-        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlNodes), exception.LimitSource);
+        Assert.Equal(nameof(HtmlRtfExportOptions.MaxHtmlNodes), exception.LimitSource);
     }
 
     [Fact]
@@ -59,13 +59,13 @@ public sealed class HtmlEditableLayoutRtfTests {
         const string html = "<div style='position:absolute;width:180px;height:70px'>" +
             "<span><span><span><span><span><span>Deep</span></span></span></span></span></span>" +
             "</div>";
-        HtmlToRtfOptions options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
+        HtmlRtfExportOptions options = HtmlRtfExportOptions.UntrustedDefaults;
         options.MaxHtmlDepth = 5;
 
         HtmlRtfConversionLimitException exception = Assert.Throws<HtmlRtfConversionLimitException>(
-            () => HtmlConversionDocument.Parse(html).ToRtfDocumentResult(options));
+            () => HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence(options));
 
-        Assert.Equal(nameof(HtmlToRtfOptions.MaxHtmlDepth), exception.LimitSource);
+        Assert.Equal(nameof(HtmlRtfExportOptions.MaxHtmlDepth), exception.LimitSource);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public sealed class HtmlEditableLayoutRtfTests {
             Profile = HtmlConversionProfile.HighFidelityPrint
         });
 
-        HtmlToRtfResult result = document.ToRtfDocumentResult();
+        HtmlToRtfResult result = document.ConvertToRtfWithEvidence();
         string rtf = result.Value.ToRtf();
 
         Assert.Contains("Print anchor", string.Join("\n", result.Value.Paragraphs.Select(
@@ -91,12 +91,12 @@ public sealed class HtmlEditableLayoutRtfTests {
         const string html = "<div style='height:1400px'>Long semantic flow</div>" +
             "<div style='position:absolute;top:24px;width:160px;height:40px'>Ambiguous frame</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         string rtf = result.Value.ToRtf();
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
         Assert.Contains("Ambiguous frame", rtf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail != null
             && diagnostic.Detail.Contains("continuousSurfaceHeight", StringComparison.Ordinal));
@@ -106,7 +106,7 @@ public sealed class HtmlEditableLayoutRtfTests {
     public void OversizedFrameCoordinateIsBoundedWithStableDiagnostic() {
         const string html = "<div style='position:absolute;left:300000000px;top:24px;width:180px;height:70px'>Bounded frame</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
             item.ToPlainText().Contains("Bounded frame", StringComparison.Ordinal));
 
@@ -119,7 +119,7 @@ public sealed class HtmlEditableLayoutRtfTests {
     public void OversizedFrameSizeIsBoundedWithStableDiagnostic() {
         const string html = "<div style='position:absolute;width:1000000000000000px;height:1000000000000000px'>Bounded size</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         RtfParagraph paragraph = Assert.Single(result.Value.Paragraphs, item =>
             item.ToPlainText().Contains("Bounded size", StringComparison.Ordinal));
 
@@ -135,11 +135,11 @@ public sealed class HtmlEditableLayoutRtfTests {
         string html = "<div style='position:absolute;width:180px;height:50px'>Before" +
             "<img alt='Middle' src='" + image + "'>After</div>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         string rtf = result.Value.ToRtf();
 
         Assert.DoesNotContain(@"\phpg", rtf, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Detail == "mixedInlinePictures=true");
     }
 
@@ -151,10 +151,10 @@ public sealed class HtmlEditableLayoutRtfTests {
             ".flex{display:flex;width:300px}</style>" +
             "<p>Ordinary flow</p><div class='positioned'>Editable positioned</div>" +
             "<div class='floating'>Editable float</div><div class='flex'><span>Flex remains</span></div>";
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         string rtf = result.Value.ToRtf();
 
-        RtfReadResult reopened = RtfDocument.Read(rtf);
+        RtfReadResult reopened = RtfDocument.ParseResult(rtf);
         RtfParagraph positioned = Assert.Single(reopened.Document.Paragraphs, paragraph =>
             paragraph.ToPlainText().Contains("Editable positioned", StringComparison.Ordinal));
         RtfParagraph floating = Assert.Single(reopened.Document.Paragraphs, paragraph =>

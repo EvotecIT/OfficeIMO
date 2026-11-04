@@ -92,7 +92,7 @@ public sealed class GetOfficeExcelNamedRangeCommand : AsyncPSCmdlet {
             var scope = ResolveSheet(document);
 
             if (!string.IsNullOrWhiteSpace(Name)) {
-                var range = document.GetNamedRange(Name!, scope);
+                var range = document.GetNamedRangeText(Name!, scope);
                 if (range != null) {
                     WriteObject(CreateRecord(
                         Name!,

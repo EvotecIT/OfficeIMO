@@ -65,7 +65,7 @@ public sealed class ReaderAdapterTests {
             text.CopyTo(payload, 3);
             components[id] = SharedComponentTests.AppendChunk(components[id], wordZones ? "TXTz" : "TXTa", wordZones ? nativeText : payload);
         }
-        var document = DjVuDocument.Load(index, new DjVuReadOptions { ComponentResolver = (id, _) => components[id] });
+        var document = DjVuDocument.Load(index, new DjVuLoadOptions { ComponentResolver = (id, _) => components[id] });
         var rich = document.ToReadResult(new ReaderDjVuOptions { PageNumbers = new[] { 2, 1 } }, readerOptions: new ReaderOptions { MaxChars = 3 });
         AssertOrder(rich);
         var restored = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(rich));
@@ -126,8 +126,8 @@ public sealed class ReaderAdapterTests {
         Assert.Equal("https://example.org/archive", document.Bookmarks[1].Target);
         Assert.Null(document.Bookmarks[1].PageNumber);
         Assert.Equal(3, document.Bookmarks[2].PageNumber);
-        Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(Fixture("reader-book.djvu"), new DjVuReadOptions { MaxBookmarks = 4 }));
-        Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(Fixture("reader-book.djvu"), new DjVuReadOptions { MaxBookmarkDepth = 1 }));
+        Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(Fixture("reader-book.djvu"), new DjVuLoadOptions { MaxBookmarks = 4 }));
+        Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(Fixture("reader-book.djvu"), new DjVuLoadOptions { MaxBookmarkDepth = 1 }));
     }
 
     [Theory]

@@ -31,8 +31,8 @@ internal static partial class PdfMetadataEditor {
         _ = PdfMutationPlanner.RequireFullRewrite(pdf, PdfMutationOperation.UpdateMetadata, readOptions, cancellationToken: cancellationToken);
 
         var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
-        PdfMetadata existing = document.GetUncheckedMetadata(cancellationToken);
-        var metadata = new PdfMetadata {
+        PdfDocumentProperties existing = document.GetUncheckedMetadata(cancellationToken);
+        var metadata = new PdfDocumentProperties {
             Title = title ?? existing.Title,
             Author = author ?? existing.Author,
             Subject = subject ?? existing.Subject,
@@ -135,11 +135,11 @@ internal static partial class PdfMetadataEditor {
     /// <summary>
     /// Creates a new PDF with exactly the supplied document metadata.
     /// </summary>
-    public static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata) {
+    public static byte[] ReplaceMetadata(byte[] pdf, PdfDocumentProperties metadata) {
         return ReplaceMetadata(pdf, metadata, readOptions: null);
     }
 
-    internal static byte[] ReplaceMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
+    internal static byte[] ReplaceMetadata(byte[] pdf, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken = default) {
         Guard.NotNull(pdf, nameof(pdf));
         Guard.NotNull(metadata, nameof(metadata));
         cancellationToken.ThrowIfCancellationRequested();
@@ -151,28 +151,28 @@ internal static partial class PdfMetadataEditor {
     /// <summary>
     /// Creates a new PDF with exactly the supplied document metadata from the current position of a readable stream.
     /// </summary>
-    public static byte[] ReplaceMetadata(Stream stream, PdfMetadata metadata) {
+    public static byte[] ReplaceMetadata(Stream stream, PdfDocumentProperties metadata) {
         return ReplaceMetadata(stream, metadata, readOptions: null, CancellationToken.None);
     }
 
     /// <summary>
     /// Writes a new PDF with exactly the supplied document metadata to <paramref name="outputStream"/>.
     /// </summary>
-    public static void ReplaceMetadata(byte[] pdf, Stream outputStream, PdfMetadata metadata) {
+    public static void ReplaceMetadata(byte[] pdf, Stream outputStream, PdfDocumentProperties metadata) {
         WriteOutput(outputStream, ReplaceMetadata(pdf, metadata));
     }
 
     /// <summary>
     /// Writes a new PDF with exactly the supplied document metadata from the current position of a readable stream to <paramref name="outputStream"/>.
     /// </summary>
-    public static void ReplaceMetadata(Stream inputStream, Stream outputStream, PdfMetadata metadata) {
+    public static void ReplaceMetadata(Stream inputStream, Stream outputStream, PdfDocumentProperties metadata) {
         WriteOutput(outputStream, ReplaceMetadata(inputStream, metadata));
     }
 
     /// <summary>
     /// Writes a new PDF with exactly the supplied document metadata.
     /// </summary>
-    public static void ReplaceMetadata(string inputPath, string outputPath, PdfMetadata metadata) {
+    public static void ReplaceMetadata(string inputPath, string outputPath, PdfDocumentProperties metadata) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(outputPath, nameof(outputPath));
         Guard.NotNull(metadata, nameof(metadata));
@@ -185,7 +185,7 @@ internal static partial class PdfMetadataEditor {
     /// <summary>
     /// Writes a new PDF with exactly the supplied document metadata from a file path to <paramref name="outputStream"/>.
     /// </summary>
-    public static void ReplaceMetadata(string inputPath, Stream outputStream, PdfMetadata metadata) {
+    public static void ReplaceMetadata(string inputPath, Stream outputStream, PdfDocumentProperties metadata) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         ValidateWritableOutputStream(outputStream);
         Guard.NotNull(metadata, nameof(metadata));
@@ -197,13 +197,13 @@ internal static partial class PdfMetadataEditor {
     /// <summary>
     /// Creates a new PDF with exactly the supplied document metadata from a file path.
     /// </summary>
-    public static byte[] ReplaceMetadataToBytes(string inputPath, PdfMetadata metadata) {
+    public static byte[] ReplaceMetadataToBytes(string inputPath, PdfDocumentProperties metadata) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNull(metadata, nameof(metadata));
         return ReplaceMetadata(PdfDocumentSource.FromPath(inputPath, null).Bytes, metadata);
     }
 
-    private static byte[] RewriteWithMetadata(byte[] pdf, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    private static byte[] RewriteWithMetadata(byte[] pdf, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, readOptions, out _, out _, cancellationToken);
         var document = PdfReadDocument.Open(pdf, readOptions, cancellationToken);
         if (document.Pages.Count == 0) {
