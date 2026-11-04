@@ -113,6 +113,7 @@ internal static partial class PdfReaderAdapter {
             ReaderChunkDiagnostics documentDiagnostics = BuildChunkDiagnostics(document, pages, page: null, documentTableExtractions, documentActions);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
+                BuildPlainText(pages),
                 source,
                 readerOptions,
                 page: null,
@@ -151,6 +152,7 @@ internal static partial class PdfReaderAdapter {
             ReaderChunkDiagnostics pageDiagnostics = BuildChunkDiagnostics(document, pages, page, pageTableExtractions, pageActions);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
+                PdfDocumentReadResult.GetCanonicalPageText(page),
                 source,
                 readerOptions,
                 page.PageNumber,
@@ -199,43 +201,6 @@ internal static partial class PdfReaderAdapter {
         }
 
         return string.Join(Environment.NewLine + Environment.NewLine, pages.Select(page => page.ExtractMarkdown(markdownOptions)).Where(text => !string.IsNullOrWhiteSpace(text)));
-    }
-
-    private static IEnumerable<ReaderChunk> BuildChunksFromText(string markdown, SourceMetadata source, ReaderOptions readerOptions, int? page, int sourceBlockIndex, string blockKind, string blockAnchor, IReadOnlyList<ReaderTable>? tables, IReadOnlyList<ReaderVisual>? visuals, IReadOnlyList<ReaderFormField>? formFields, IReadOnlyList<ReaderActionSummary>? actions, ReaderChunkDiagnostics diagnostics, string idPrefix, int maxChars, CancellationToken cancellationToken) {
-        var parts = SplitText(markdown, maxChars);
-        if (parts.Count == 0) {
-            blockKind = "warning";
-            string warning = page.HasValue
-                ? "PDF page " + page.Value.ToString(CultureInfo.InvariantCulture) + " produced no readable text."
-                : "PDF content produced no readable text.";
-            parts = new[] { new TextPart(warning, new[] { warning }) };
-        }
-
-        for (int i = 0; i < parts.Count; i++) {
-            cancellationToken.ThrowIfCancellationRequested();
-            TextPart part = parts[i];
-            yield return EnrichChunk(new ReaderChunk {
-                Id = parts.Count == 1
-                    ? idPrefix
-                    : idPrefix + "-part-" + i.ToString("D4", CultureInfo.InvariantCulture),
-                Kind = ReaderInputKind.Pdf,
-                Location = new ReaderLocation {
-                    Path = source.Path,
-                    SourceBlockIndex = sourceBlockIndex,
-                    SourceBlockKind = blockKind,
-                    BlockAnchor = parts.Count == 1 ? blockAnchor : blockAnchor + "-part-" + i.ToString("D4", CultureInfo.InvariantCulture),
-                    Page = page
-                },
-                Text = part.Text,
-                Markdown = part.Text,
-                Tables = i == 0 ? tables : null,
-                Visuals = i == 0 ? visuals : null,
-                FormFields = i == 0 ? formFields : null,
-                Actions = i == 0 ? actions : null,
-                Diagnostics = diagnostics,
-                Warnings = part.Warnings
-            }, source, readerOptions.ComputeHashes);
-        }
     }
 
     private static ReaderChunkDiagnostics BuildChunkDiagnostics(PdfDocumentReadResult document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, IReadOnlyList<PdfLogicalTableExtraction> tableExtractions, IReadOnlyList<ReaderActionSummary>? actions) {

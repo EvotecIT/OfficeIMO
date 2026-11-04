@@ -16,8 +16,7 @@ internal static partial class PdfReaderAdapter {
     private static IEnumerable<ReaderChunk> ReadTextAndMetadataChunks(IReadOnlyList<PdfLogicalPage> pages,
         SourceMetadata source, ReaderOptions options, CancellationToken token, bool chunkByPage = true) {
         if (!chunkByPage) {
-            string documentText = string.Join(Environment.NewLine + Environment.NewLine,
-                pages.Select(page => string.Join(Environment.NewLine, page.TextBlocks.Select(block => block.Text))));
+            string documentText = BuildPlainText(pages);
             IReadOnlyList<string> documentParts = DocumentReaderEngine.SplitAdapterProjection(documentText, options.MaxChars);
             for (int index = 0; index < documentParts.Count; index++) {
                 token.ThrowIfCancellationRequested();
@@ -33,7 +32,7 @@ internal static partial class PdfReaderAdapter {
             token.ThrowIfCancellationRequested();
             PdfLogicalPage page = pages[pageIndex];
             int selectionIndex = GetPageSelectionIndex(source, pageIndex);
-            string text = string.Join(Environment.NewLine, page.TextBlocks.Select(block => block.Text));
+            string text = PdfDocumentReadResult.GetCanonicalPageText(page);
             IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(text, options.MaxChars);
             for (int index = 0; index < parts.Count; index++) {
                 token.ThrowIfCancellationRequested();
