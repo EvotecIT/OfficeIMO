@@ -80,7 +80,7 @@ internal static partial class XlBenchShapeScenarios {
 
     internal static long OfficeImoWideRead() {
         using var document = ExcelDocument.Load(new MemoryStream(WideWorkbook));
-        using var reader = document.CreateDataReader();
+        using var reader = document.CreateDataReader(new ExcelReaderOptions { HasHeaderRow = false });
         long cells = 0;
         while (reader.Read()) {
             for (int column = 0; column < reader.FieldCount; column++) {
@@ -89,7 +89,7 @@ internal static partial class XlBenchShapeScenarios {
                 }
             }
         }
-        return cells;
+        return cells == (long)WideRows * WideColumns ? cells : throw new InvalidDataException($"Read {cells} cells.");
     }
 
     internal static long OfficeImoEditedRead() {

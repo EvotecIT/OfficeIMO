@@ -72,6 +72,11 @@ if (args.Length > 0 && string.Equals(args[0], "--compare-xlbench-shapes", String
     return;
 }
 
+if (args.Length == 2 && args[0] == "--prepare-xlbench-inputs") {
+    XlBenchShapeRunner.PrepareInputs(args[1]);
+    return;
+}
+
 if (args.Length > 0 && string.Equals(args[0], "--profile-xlbench-shape", StringComparison.OrdinalIgnoreCase)) {
     XlBenchShapeRunner.Profile(args);
     return;

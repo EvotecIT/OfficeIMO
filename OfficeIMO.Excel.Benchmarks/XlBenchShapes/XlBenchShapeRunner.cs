@@ -7,6 +7,21 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>Opt-in OfficeIMO and plain Open XML SDK comparison of the public XLBench scenario shapes.</summary>
 internal static class XlBenchShapeRunner {
+    /// <summary>Creates fixed neutral-producer read inputs before comparing reader builds.</summary>
+    internal static void PrepareInputs(string directory) {
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OFFICEIMO_XLBENCH_INPUT")))
+            throw new InvalidOperationException("Unset OFFICEIMO_XLBENCH_INPUT before preparing inputs.");
+        Directory.CreateDirectory(directory);
+        WriteNew("read-all.xlsx", ReadWorkbook);
+        WriteNew("sheets-20.xlsx", SheetsWorkbook);
+        WriteNew("wide-read.xlsx", WideWorkbook);
+
+        void WriteNew(string name, byte[] bytes) {
+            using var output = new FileStream(Path.Combine(directory, name), FileMode.CreateNew, FileAccess.Write);
+            output.Write(bytes, 0, bytes.Length);
+        }
+    }
+
     private sealed record Scenario(string Name, Func<int> OfficeImo, Func<int>? OpenXml, Action<string, byte[]>? Validate, Func<byte[]>? OfficeImoOutput, Func<byte[]>? OpenXmlOutput);
 
     private static readonly Scenario[] Scenarios = [
