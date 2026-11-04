@@ -119,7 +119,7 @@ public sealed partial class EmailStoreSession {
     /// </summary>
     public EmailStorePstSplitReport ExecutePstSplit(EmailStorePstSplitPlan plan,
         CancellationToken cancellationToken = default) {
-        if (plan == null) throw new ArgumentNullException(nameof(plan));
+        ArgumentNullException.ThrowIfNull(plan);
         ThrowIfDisposed();
         plan.ValidateOwner(this);
         if (!plan.IsExecutable) throw new InvalidOperationException(

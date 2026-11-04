@@ -34,7 +34,7 @@ public sealed class HtmlSemanticSourceLocation {
         : Selector;
 
     internal static HtmlSemanticSourceLocation FromElement(IElement element) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         string selector = BuildSelector(element);
         ISourceReference? source = element.SourceReference;
         if (source == null) return new HtmlSemanticSourceLocation(selector, element.LocalName, 0, 0, -1);

@@ -68,8 +68,8 @@ internal static class PstPropertyContextWriter {
         IReadOnlyDictionary<ushort, PstWriterObjectReference>? objectReferences,
         Action<EmailStoreDiagnostic>? reportDiagnostic, string location,
         ushort? calculatedSizePropertyId) {
-        if (file == null) throw new ArgumentNullException(nameof(file));
-        if (properties == null) throw new ArgumentNullException(nameof(properties));
+        ArgumentNullException.ThrowIfNull(file);
+        ArgumentNullException.ThrowIfNull(properties);
 
         var candidates = new List<EncodedProperty>();
         foreach (MapiProperty property in properties

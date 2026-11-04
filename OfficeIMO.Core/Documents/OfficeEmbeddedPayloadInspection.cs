@@ -55,7 +55,8 @@ public sealed class OfficeEmbeddedPayloadInspection : IDisposable {
     public Stream OpenRead(int ordinal, CancellationToken cancellationToken = default) {
         lock (_gate) {
             ThrowIfDisposed();
-            if (ordinal < 0 || ordinal >= _sources.Length) throw new ArgumentOutOfRangeException(nameof(ordinal));
+            ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, _sources.Length);
             cancellationToken.ThrowIfCancellationRequested();
             if (_readBytes > _options.MaxReadBytes) throw Limit(nameof(_options.MaxReadBytes), _options.MaxReadBytes);
             using var output = new MemoryStream();

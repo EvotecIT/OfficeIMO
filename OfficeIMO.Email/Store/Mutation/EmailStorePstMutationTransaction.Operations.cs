@@ -119,7 +119,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// <summary>Adds an item and returns its transaction-local identifier.</summary>
     public string AddItem(string folderId, EmailDocument document, bool isAssociated = false,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ThrowIfUnavailable();
         EnsureWritableItemFolder(GetFolder(folderId));
         EnsureItemsIndexed(cancellationToken);
@@ -140,7 +140,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// <summary>Replaces the semantic document for an existing or newly staged item.</summary>
     public void ReplaceItem(string itemId, EmailDocument document,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ThrowIfUnavailable();
         ItemState item = GetItem(itemId, cancellationToken);
         item.Document = document;
@@ -239,7 +239,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// <summary>Applies one reusable typed patch to an item.</summary>
     public void PatchItem(string itemId, EmailStoreItemPatch patch,
         CancellationToken cancellationToken = default) {
-        if (patch == null) throw new ArgumentNullException(nameof(patch));
+        ArgumentNullException.ThrowIfNull(patch);
         ThrowIfUnavailable();
         if (patch.IsEmpty) return;
         ItemState item = GetItem(itemId, cancellationToken);
@@ -257,8 +257,8 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// </summary>
     public EmailStorePstMutationSelectionReport PatchItems(EmailStoreTableQuery query,
         EmailStoreItemPatch patch, CancellationToken cancellationToken = default) {
-        if (query == null) throw new ArgumentNullException(nameof(query));
-        if (patch == null) throw new ArgumentNullException(nameof(patch));
+        ArgumentNullException.ThrowIfNull(query);
+        ArgumentNullException.ThrowIfNull(patch);
         ThrowIfUnavailable();
         if (query.ContinuationToken != null)
             throw new ArgumentException("A mutation selection query must start without a continuation token.", nameof(query));
@@ -300,7 +300,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// </summary>
     public void PatchItemProperties(string itemId, MapiPropertyPatch patch,
         CancellationToken cancellationToken = default) {
-        if (patch == null) throw new ArgumentNullException(nameof(patch));
+        ArgumentNullException.ThrowIfNull(patch);
         ThrowIfUnavailable();
         if (patch.IsEmpty) return;
         ItemState item = GetItem(itemId, cancellationToken);
@@ -312,7 +312,7 @@ public sealed partial class EmailStorePstMutationTransaction {
     /// <summary>Applies ordered, bounds-checked attachment changes to an item.</summary>
     public void PatchItemAttachments(string itemId, EmailAttachmentPatch patch,
         CancellationToken cancellationToken = default) {
-        if (patch == null) throw new ArgumentNullException(nameof(patch));
+        ArgumentNullException.ThrowIfNull(patch);
         ThrowIfUnavailable();
         if (patch.IsEmpty) return;
         ItemState item = GetItem(itemId, cancellationToken);

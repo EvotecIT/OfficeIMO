@@ -15,10 +15,10 @@ public static partial class OfficeRasterContentSafety {
         OfficeContentCleanupSelection selection,
         OfficeRasterContentSafetyOptions options,
         CancellationToken cancellationToken = default) {
-        if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(imageBytes);
+        ArgumentNullException.ThrowIfNull(engine);
+        ArgumentNullException.ThrowIfNull(selection);
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterContentSafetyOptions.Snapshot snapshot = options.Capture();
         if (!snapshot.EnableOpaqueRectangleRedaction) {

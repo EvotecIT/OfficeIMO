@@ -19,7 +19,7 @@ public sealed partial class HtmlDocument {
     /// copies in this document; use an Edit session when the operation must produce an atomic snapshot.
     /// </remarks>
     public HtmlNode ImportNode(HtmlNode source, bool deep = true, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         EnsureMutable();
         if (source.Kind == HtmlNodeKind.Document) throw new ArgumentException("Import a document's children instead of the document itself.", nameof(source));
         cancellationToken.ThrowIfCancellationRequested();

@@ -16,9 +16,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Creates a duplicate of the provided shape and optionally offsets its position using exact document lengths.
         /// </summary>
         public PowerPointShape DuplicateShape(PowerPointShape shape, OfficeLength offsetX = default, OfficeLength offsetY = default) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             int index = EnsureShapeOnSlide(shape);
             OpenXmlElement parent = shape.Element.Parent ?? throw new InvalidOperationException("Shape is not attached to a slide.");
@@ -55,9 +53,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Moves the shape one step forward in z-order.
         /// </summary>
         public void BringForward(PowerPointShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             int index = EnsureShapeOnSlide(shape);
             if (index >= ShapeList.Count - 1) {
@@ -78,9 +74,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Moves the shape one step backward in z-order.
         /// </summary>
         public void SendBackward(PowerPointShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             int index = EnsureShapeOnSlide(shape);
             if (index <= 0) {
@@ -101,9 +95,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Moves the shape to the front (top) of the z-order.
         /// </summary>
         public void BringToFront(PowerPointShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             int index = EnsureShapeOnSlide(shape);
             if (index >= ShapeList.Count - 1) {
@@ -123,9 +115,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Moves the shape to the back (bottom) of the z-order.
         /// </summary>
         public void SendToBack(PowerPointShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             int index = EnsureShapeOnSlide(shape);
             if (index <= 0) {

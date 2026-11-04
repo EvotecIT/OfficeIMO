@@ -581,9 +581,7 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChart SetAxisTitle(string title, OfficeChartAxisGroup axisGroup, AxisKind axisKind) {
-            if (title == null) {
-                throw new ArgumentNullException(nameof(title));
-            }
+            ArgumentNullException.ThrowIfNull(title);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -610,12 +608,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void InsertAxisTitle(OpenXmlCompositeElement axis, C.Title title) {
-            if (axis == null) {
-                throw new ArgumentNullException(nameof(axis));
-            }
-            if (title == null) {
-                throw new ArgumentNullException(nameof(title));
-            }
+            ArgumentNullException.ThrowIfNull(axis);
+            ArgumentNullException.ThrowIfNull(title);
 
             OpenXmlElement? insertBefore = axis.GetFirstChild<C.NumberingFormat>();
             insertBefore ??= axis.GetFirstChild<C.MajorTickMark>();

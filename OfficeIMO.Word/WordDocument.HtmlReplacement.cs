@@ -50,9 +50,7 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordEmbeddedDocument"/>.</returns>
         public WordEmbeddedDocument AddEmbeddedFragmentAfter(WordParagraph paragraph,
             string htmlContent, WordAlternativeFormatImportPartType type = WordAlternativeFormatImportPartType.Html) {
-            if (paragraph == null) {
-                throw new ArgumentNullException(nameof(paragraph));
-            }
+            ArgumentNullException.ThrowIfNull(paragraph);
 
             return InsertHtmlFragmentAfter(paragraph, htmlContent, type);
         }

@@ -17,8 +17,9 @@ public static partial class OfficeTiffCodec {
         byte[] input,
         int inputCount,
         CancellationToken cancellationToken = default) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
-        if (inputCount < 0 || inputCount > input.Length) throw new ArgumentOutOfRangeException(nameof(inputCount));
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentOutOfRangeException.ThrowIfNegative(inputCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(inputCount, input.Length);
         using var writer = new TiffLzwBitWriter(Math.Max(32, inputCount));
         writer.Write(LzwClearCode, 9);
         if (inputCount == 0) {

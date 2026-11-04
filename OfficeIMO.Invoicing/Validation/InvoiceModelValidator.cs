@@ -10,7 +10,7 @@ public static partial class InvoiceModelValidator {
 
     /// <summary>Validates a parsed source model, retaining the aggregate-only semantics declared by recognized MINIMUM or BASIC WL sources. This does not run standards rules.</summary>
     public static InvoiceModelValidationResult ValidateSource(InvoiceReadResult source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         InvoiceProfile? profile = source.Declaration.Profile;
         return Validate(source.Invoice, source.Invoice.Lines.Count == 0 &&
             profile is InvoiceProfile.Minimum or InvoiceProfile.BasicWithoutLines ? profile : null);
@@ -25,7 +25,7 @@ public static partial class InvoiceModelValidator {
     }
 
     private static InvoiceModelValidationResult Validate(Invoice invoice, InvoiceProfile? aggregateProfile) {
-        if (invoice == null) throw new ArgumentNullException(nameof(invoice));
+        ArgumentNullException.ThrowIfNull(invoice);
         var diagnostics = new InvoiceDiagnosticBuffer();
         var check = new ModelChecks(diagnostics);
         int modelItems;

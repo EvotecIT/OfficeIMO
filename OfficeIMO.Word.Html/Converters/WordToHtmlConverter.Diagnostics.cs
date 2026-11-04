@@ -10,11 +10,11 @@ namespace OfficeIMO.Word.Html {
         private static ExportInspection InspectExport(WordDocument document, WordHtmlExportOptions options) {
             HtmlConversionProfileContracts.Get(options.SharedProfile);
             options.DocumentOutput.Validate();
-            if (options.MaxDocumentElements <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDocumentElements));
-            if (options.MaxEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedImageBytes));
-            if (options.MaxTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalEmbeddedImageBytes));
-            if (options.MaxOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxOutputCharacters));
-            if (options.MaxEquationNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEquationNestingDepth));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDocumentElements, nameof(options.MaxDocumentElements));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEmbeddedImageBytes, nameof(options.MaxEmbeddedImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalEmbeddedImageBytes, nameof(options.MaxTotalEmbeddedImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxOutputCharacters, nameof(options.MaxOutputCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEquationNestingDepth, nameof(options.MaxEquationNestingDepth));
             if (options.MaxEquationNestingDepth > WordMath.DefaultMaximumProjectionDepth) {
                 throw new ArgumentOutOfRangeException(
                     nameof(options.MaxEquationNestingDepth),

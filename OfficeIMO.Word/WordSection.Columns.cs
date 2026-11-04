@@ -33,7 +33,7 @@ public partial class WordSection {
             return definitions.AsReadOnly();
         }
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             WordSectionColumn[] snapshot = value.ToArray();
             if (snapshot.Length > short.MaxValue || snapshot.Any(column => column == null))
                 throw new ArgumentException("Column definitions must contain non-null columns within the section count range.", nameof(value));

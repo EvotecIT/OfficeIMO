@@ -15,7 +15,7 @@ namespace OfficeIMO {
         /// <summary>Inspects package bytes using secure structural defaults.</summary>
         public static OfficePackageSecurityReport Inspect(byte[] packageBytes,
             OfficePackageSecurityOptions? options = null) {
-            if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+            ArgumentNullException.ThrowIfNull(packageBytes);
             OfficePackageSecurityOptions resolved = options ?? OfficePackageSecurityOptions.SecureDefaults;
             ValidateOptions(resolved);
 
@@ -49,7 +49,7 @@ namespace OfficeIMO {
         public static OfficePackageSecurityReport Inspect(Stream source,
             OfficePackageSecurityOptions? options = null) {
             OfficePackageSecurityOptions resolved = options ?? OfficePackageSecurityOptions.SecureDefaults;
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (source.CanSeek) return InspectSeekableSource(source, resolved);
             byte[] bytes = ReadSource(source, resolved);
             return Inspect(bytes, resolved);
@@ -398,7 +398,7 @@ namespace OfficeIMO {
         }
 
         internal static void ValidateOptions(OfficePackageSecurityOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (options.MaxPackageBytes < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
             if (options.MaxPartCount < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPartCount));
             if (options.MaxRelationships < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));

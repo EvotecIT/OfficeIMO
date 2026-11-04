@@ -15,13 +15,9 @@ namespace OfficeIMO.Visio {
         /// Use <c>-1</c> to append.
         /// </param>
         public void ReparentShape(VisioShape shape, VisioShape newParent, int childIndex = -1) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
-            if (newParent == null) {
-                throw new ArgumentNullException(nameof(newParent));
-            }
+            ArgumentNullException.ThrowIfNull(newParent);
 
             if (childIndex < -1) {
                 throw new ArgumentOutOfRangeException(nameof(childIndex), "Child index must be -1 or greater.");
@@ -85,9 +81,7 @@ namespace OfficeIMO.Visio {
         /// <param name="group">The group to ungroup.</param>
         /// <returns>The children that were promoted.</returns>
         public IReadOnlyList<VisioShape> UngroupShape(VisioShape group) {
-            if (group == null) {
-                throw new ArgumentNullException(nameof(group));
-            }
+            ArgumentNullException.ThrowIfNull(group);
 
             if (!TryFindShapeCollection(group, out IList<VisioShape>? ownerCollection, out int index)) {
                 throw new InvalidOperationException("The group shape is not part of this page.");
@@ -115,13 +109,9 @@ namespace OfficeIMO.Visio {
         /// Reconnects the start of an existing connector to a different shape.
         /// </summary>
         public void ReconnectConnectorStart(VisioConnector connector, VisioShape newFrom, VisioSide side = VisioSide.Auto) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
-            if (newFrom == null) {
-                throw new ArgumentNullException(nameof(newFrom));
-            }
+            ArgumentNullException.ThrowIfNull(newFrom);
 
             EnsureConnectorBelongsToPage(connector);
             EnsureShapeBelongsToPage(newFrom, "The source shape is not part of this page.");
@@ -138,13 +128,9 @@ namespace OfficeIMO.Visio {
         /// Reconnects the end of an existing connector to a different shape.
         /// </summary>
         public void ReconnectConnectorEnd(VisioConnector connector, VisioShape newTo, VisioSide side = VisioSide.Auto) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
-            if (newTo == null) {
-                throw new ArgumentNullException(nameof(newTo));
-            }
+            ArgumentNullException.ThrowIfNull(newTo);
 
             EnsureConnectorBelongsToPage(connector);
             EnsureShapeBelongsToPage(newTo, "The target shape is not part of this page.");
@@ -161,17 +147,11 @@ namespace OfficeIMO.Visio {
         /// Reconnects both ends of an existing connector.
         /// </summary>
         public void ReconnectConnector(VisioConnector connector, VisioShape newFrom, VisioShape newTo, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
-            if (newFrom == null) {
-                throw new ArgumentNullException(nameof(newFrom));
-            }
+            ArgumentNullException.ThrowIfNull(newFrom);
 
-            if (newTo == null) {
-                throw new ArgumentNullException(nameof(newTo));
-            }
+            ArgumentNullException.ThrowIfNull(newTo);
 
             EnsureConnectorBelongsToPage(connector);
             EnsureShapeBelongsToPage(newFrom, "The source shape is not part of this page.");
@@ -201,13 +181,9 @@ namespace OfficeIMO.Visio {
         /// <param name="toSide">The side to glue to when an end point is updated.</param>
         /// <returns>The connectors that were updated.</returns>
         public IReadOnlyList<VisioConnector> RetargetConnectors(VisioShape oldShape, VisioShape newShape, VisioConnectorEndpointScope endpointScope = VisioConnectorEndpointScope.Both, VisioSide fromSide = VisioSide.Auto, VisioSide toSide = VisioSide.Auto) {
-            if (oldShape == null) {
-                throw new ArgumentNullException(nameof(oldShape));
-            }
+            ArgumentNullException.ThrowIfNull(oldShape);
 
-            if (newShape == null) {
-                throw new ArgumentNullException(nameof(newShape));
-            }
+            ArgumentNullException.ThrowIfNull(newShape);
 
             EnsureShapeBelongsToPage(newShape, "The replacement shape is not part of this page.");
 

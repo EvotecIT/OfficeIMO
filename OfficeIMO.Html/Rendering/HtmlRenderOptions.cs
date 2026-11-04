@@ -30,7 +30,7 @@ public partial class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Creates an independent copy of shared HTML rendering settings.</summary>
     /// <param name="source">Settings to copy.</param>
     protected HtmlRenderOptions(HtmlRenderOptions source) : this() {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         source.CopyTo(this);
     }
 

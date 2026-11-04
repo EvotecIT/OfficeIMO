@@ -41,7 +41,7 @@ public sealed class OfficeImageOptimizationRequest {
     public int TargetPixelWidth {
         get => _targetPixelWidth;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(TargetPixelWidth));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, nameof(TargetPixelWidth));
             _targetPixelWidth = value;
         }
     }
@@ -50,7 +50,7 @@ public sealed class OfficeImageOptimizationRequest {
     public int TargetPixelHeight {
         get => _targetPixelHeight;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(TargetPixelHeight));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, nameof(TargetPixelHeight));
             _targetPixelHeight = value;
         }
     }
@@ -190,8 +190,8 @@ public static class OfficeImageOptimizer {
     /// </summary>
     /// <exception cref="ArgumentException">The encoded input exceeds the managed size limit.</exception>
     public static OfficeImageOptimizationResult Optimize(byte[] encodedBytes, OfficeImageOptimizationRequest request, string? fileName = null) {
-        if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(encodedBytes);
+        ArgumentNullException.ThrowIfNull(request);
         request.CancellationToken.ThrowIfCancellationRequested();
         ValidateRequest(request);
         ValidateInputLength(encodedBytes.Length);

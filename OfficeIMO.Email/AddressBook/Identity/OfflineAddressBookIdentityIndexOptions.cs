@@ -10,8 +10,8 @@ public sealed class OfflineAddressBookIdentityIndexOptions {
         bool includeAccountNames = true,
         bool includeDisplayNames = false,
         bool continueOnEntryError = true) {
-        if (maxEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxEntries));
-        if (maxIdentitiesPerEntry <= 0) throw new ArgumentOutOfRangeException(nameof(maxIdentitiesPerEntry));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEntries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxIdentitiesPerEntry);
         AddressListId = string.IsNullOrWhiteSpace(addressListId) ? null : addressListId;
         MaxEntries = maxEntries;
         MaxIdentitiesPerEntry = maxIdentitiesPerEntry;

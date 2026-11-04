@@ -10,8 +10,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IEnumerable<PowerPointSlide> slides,
             LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterAnimationCatalog catalog, out string? reason) {
-            if (slides == null) throw new ArgumentNullException(nameof(slides));
-            if (soundCatalog == null) throw new ArgumentNullException(nameof(soundCatalog));
+            ArgumentNullException.ThrowIfNull(slides);
+            ArgumentNullException.ThrowIfNull(soundCatalog);
             var items = new Dictionary<string, LegacyPptWriterAnimation>(
                 StringComparer.Ordinal);
             reason = null;
@@ -76,7 +76,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildAnimationInfoRecord(
             LegacyPptWriterAnimation animation) {
-            if (animation == null) throw new ArgumentNullException(nameof(animation));
+            ArgumentNullException.ThrowIfNull(animation);
             var payload = new byte[28];
             WriteUInt32(payload, 0, animation.RawDimColor);
             uint flags = 0;

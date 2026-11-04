@@ -17,10 +17,10 @@ public sealed class EmailStorePstMutationOptions {
         bool overwriteBackup = false,
         string? pstPassword = null,
         Encoding? pstPasswordEncoding = null) {
-        if (maxFolderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxFolderCount));
-        if (maxItemCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemCount));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (maxVerificationIssues <= 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationIssues));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxFolderCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemCount);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxVerificationIssues);
         MaxFolderCount = maxFolderCount;
         MaxItemCount = maxItemCount;
         MaxNestedMessageDepth = maxNestedMessageDepth;

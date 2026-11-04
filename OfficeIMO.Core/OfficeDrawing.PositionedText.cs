@@ -37,7 +37,7 @@ public sealed partial class OfficeDrawing {
         double clipX, double clipY, OfficeClipPath clipPath,
         OfficeFontInfo? font, OfficeColor? color, double? lineHeight,
         double? textAdvanceWidth, OfficeTextDirection textDirection) {
-        if (clipPath == null) throw new ArgumentNullException(nameof(clipPath));
+        ArgumentNullException.ThrowIfNull(clipPath);
         ValidateFiniteNonNegative(clipX, nameof(clipX));
         ValidateFiniteNonNegative(clipY, nameof(clipY));
         if (clipX + clipPath.Width > Width || clipY + clipPath.Height > Height)
@@ -66,7 +66,7 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Attaches retained glyphs to the last ordinary positioned text element.</summary>
     internal void MarkLastTextWithPreparedShaping(OfficePreparedTextShaping prepared) {
-        if (prepared == null) throw new ArgumentNullException(nameof(prepared));
+        ArgumentNullException.ThrowIfNull(prepared);
         if (Elements.Count == 0) throw new InvalidOperationException("No text element is available for prepared shaping.");
         OfficeDrawingElement last = Elements[Elements.Count - 1];
         if (last is OfficeDrawingGroup group && group.InnerDrawing.Elements.Count > 0)
@@ -135,7 +135,7 @@ public sealed partial class OfficeDrawing {
         OfficeFontInfo? font = null, OfficeColor? color = null,
         OfficeTextAlignment alignment = OfficeTextAlignment.Left,
         double? lineHeight = null, double? textAdvanceWidth = null) {
-        if (clipPath == null) throw new ArgumentNullException(nameof(clipPath));
+        ArgumentNullException.ThrowIfNull(clipPath);
         ValidateFiniteNonNegative(clipX, nameof(clipX));
         ValidateFiniteNonNegative(clipY, nameof(clipY));
         if (clipX + clipPath.Width > Width || clipY + clipPath.Height > Height)

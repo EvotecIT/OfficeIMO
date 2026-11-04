@@ -54,7 +54,7 @@ internal static class NativeDomBridge {
     }
 
     internal static HtmlDocument Import(IHtmlDocument native, HtmlParseOptions? options = null, CancellationToken cancellationToken = default) {
-        if (native == null) throw new ArgumentNullException(nameof(native));
+        ArgumentNullException.ThrowIfNull(native);
         var mode = ((AngleSharp.Html.Construction.IConstructableDocument)native).QuirksMode;
         var owned = new HtmlDocument(AngleSharpDomServices.Instance, AngleSharpHtmlParser.Instance.Id,
             mode == QuirksMode.On ? HtmlDocumentMode.Quirks : mode == QuirksMode.Limited ? HtmlDocumentMode.LimitedQuirks : HtmlDocumentMode.Standards);
@@ -98,7 +98,7 @@ internal static class NativeDomBridge {
         HtmlParseOptions? options = null,
         CancellationToken cancellationToken = default,
         int sourceIndexOffset = 0) {
-        if (nativeNodes == null) throw new ArgumentNullException(nameof(nativeNodes));
+        ArgumentNullException.ThrowIfNull(nativeNodes);
         var owned = new HtmlDocument(AngleSharpDomServices.Instance, AngleSharpHtmlParser.Instance.Id, mode);
         HtmlDocumentFragment fragment = owned.CreateFragment();
         var pending = new Stack<(INode Native, HtmlNode Owned, int Depth)>();
@@ -203,12 +203,12 @@ internal static class NativeDomBridge {
     /// <summary>Preserves optional-node inputs for helpers whose established contract handles missing elements.</summary>
     internal static INode? GetNativeOrNull(HtmlNode? node) => node == null ? null : GetNative(node);
     internal static INode GetNative(HtmlNode node) {
-        if (node == null) throw new ArgumentNullException(nameof(node));
+        ArgumentNullException.ThrowIfNull(node);
         return GetState(node).ToNative[node.NodeId];
     }
 
     internal static NativeState GetState(HtmlNode node) {
-        if (node == null) throw new ArgumentNullException(nameof(node));
+        ArgumentNullException.ThrowIfNull(node);
         NativeState state = GetState(node.Document);
         lock (state.DetachedSync) {
             if (!state.ToNative.ContainsKey(node.NodeId)) {
@@ -230,7 +230,7 @@ internal static class NativeDomBridge {
     }
 
     internal static NativeState GetState(HtmlDocument document, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         IHtmlDocument? retainedNative = null;
         lock (CacheSync) {

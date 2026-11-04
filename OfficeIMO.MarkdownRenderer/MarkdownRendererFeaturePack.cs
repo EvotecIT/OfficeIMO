@@ -64,9 +64,7 @@ public sealed class MarkdownRendererFeaturePack {
             throw new ArgumentException("Feature pack name is required.", nameof(name));
         }
 
-        if (plugins == null) {
-            throw new ArgumentNullException(nameof(plugins));
-        }
+        ArgumentNullException.ThrowIfNull(plugins);
 
         var normalizedPlugins = new List<MarkdownRendererPlugin>();
         var readerDocumentTransforms = new List<IMarkdownDocumentTransform>();
@@ -268,9 +266,7 @@ public sealed class MarkdownRendererFeaturePack {
     /// Applies the feature pack once to the supplied renderer options.
     /// </summary>
     public void Apply(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (!options.TryMarkFeaturePackApplied(Id)) {
             return;
@@ -288,17 +284,13 @@ public sealed class MarkdownRendererFeaturePack {
     /// Returns <see langword="true"/> when the feature pack has already been applied.
     /// </summary>
     public bool IsApplied(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasFeaturePackId(Id);
     }
 
     internal void ApplyReader(MarkdownLoadOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         for (int i = 0; i < _plugins.Count; i++) {
             options.ApplyPlugin(_plugins[i]);

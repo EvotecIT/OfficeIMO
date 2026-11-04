@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic swimlane diagram page and returns the document for chaining.
         /// </summary>
         public static VisioDocument SwimlaneDiagram(this VisioDocument document, string pageName, Action<VisioSwimlaneDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioSwimlaneDiagramBuilder builder = new VisioSwimlaneDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

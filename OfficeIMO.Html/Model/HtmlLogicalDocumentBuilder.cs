@@ -21,9 +21,7 @@ internal static class HtmlLogicalDocumentBuilder {
     /// Builds a logical document from an AngleSharp HTML document.
     /// </summary>
     public static HtmlLogicalDocument FromDocument(IHtmlDocument document, bool useBodyContentsOnly = true, CancellationToken cancellationToken = default) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         cancellationToken.ThrowIfCancellationRequested();
         INode rootNode = HtmlDocumentParser.GetConversionRoot(document, useBodyContentsOnly);

@@ -72,7 +72,7 @@ public sealed class OutlookDistributionList {
 
     /// <summary>Adds a portable one-off member and returns its editable model.</summary>
     public OutlookDistributionListMember Add(EmailAddress address) {
-        if (address == null) throw new ArgumentNullException(nameof(address));
+        ArgumentNullException.ThrowIfNull(address);
         byte[] entryId = OutlookEntryIdCodec.EncodeOneOff(address);
         var member = new OutlookDistributionListMember {
             EntryId = entryId,
@@ -140,7 +140,7 @@ public sealed class OutlookDistributionList {
 
     /// <summary>Calculates the MS-OXOCNTC seed-zero IEEE CRC over ordered member EntryID bytes.</summary>
     public static int CalculateChecksum(IEnumerable<byte[]> memberEntryIds) {
-        if (memberEntryIds == null) throw new ArgumentNullException(nameof(memberEntryIds));
+        ArgumentNullException.ThrowIfNull(memberEntryIds);
         uint checksum = 0;
         foreach (byte[] entryId in memberEntryIds) {
             if (entryId == null) throw new ArgumentException("A member EntryID collection cannot contain null.", nameof(memberEntryIds));

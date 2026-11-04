@@ -423,7 +423,7 @@ public sealed class OfficeChartStyle {
 
     /// <summary>Returns a style with a replacement series and slice palette.</summary>
     public OfficeChartStyle WithPalette(IEnumerable<OfficeColor> palette) {
-        if (palette == null) throw new ArgumentNullException(nameof(palette));
+        ArgumentNullException.ThrowIfNull(palette);
         var colors = new List<OfficeColor>(palette);
         if (colors.Count == 0) throw new ArgumentException("Palette cannot be empty.", nameof(palette));
         var copy = (OfficeChartStyle)MemberwiseClone();

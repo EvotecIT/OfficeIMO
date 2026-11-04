@@ -20,7 +20,7 @@ public sealed class OfficeTextHyphenationLexicon {
         char breakMarker = '-',
         int minimumPrefixLength = 2,
         int minimumSuffixLength = 2) {
-        if (hyphenatedWords == null) throw new ArgumentNullException(nameof(hyphenatedWords));
+        ArgumentNullException.ThrowIfNull(hyphenatedWords);
         if (char.IsLetterOrDigit(breakMarker) || char.IsSurrogate(breakMarker) || char.IsWhiteSpace(breakMarker)) {
             throw new ArgumentException("Hyphenation break markers cannot be letters, digits, surrogates, or whitespace.", nameof(breakMarker));
         }
@@ -48,13 +48,13 @@ public sealed class OfficeTextHyphenationLexicon {
 
     /// <summary>Returns preferred UTF-16 break positions for a word.</summary>
     public IReadOnlyList<int> GetBreakpoints(string token) {
-        if (token == null) throw new ArgumentNullException(nameof(token));
+        ArgumentNullException.ThrowIfNull(token);
         return _entries.TryGetValue(token, out int[]? points) ? points.ToArray() : Array.Empty<int>();
     }
 
     /// <summary>Returns true when the normalized word is present.</summary>
     public bool Contains(string token) {
-        if (token == null) throw new ArgumentNullException(nameof(token));
+        ArgumentNullException.ThrowIfNull(token);
         return _entries.ContainsKey(token);
     }
 

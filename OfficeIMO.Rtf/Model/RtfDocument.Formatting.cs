@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf;
 public sealed partial class RtfDocument {
     /// <summary>Returns an independent paragraph copy with inherited paragraph formatting applied. Missing bases and cycles stop the style chain at the last reachable entry.</summary>
     public RtfParagraph ResolveParagraphFormatting(RtfParagraph paragraph) {
-        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+        ArgumentNullException.ThrowIfNull(paragraph);
         var result = new RtfCloneContext().Clone(paragraph)!;
         return ApplyParagraphListFormatting(ApplyParagraphInheritance(result));
     }
@@ -91,8 +91,8 @@ public sealed partial class RtfDocument {
 
     /// <summary>Returns an independent run copy with paragraph and character styles applied beneath direct formatting.</summary>
     public RtfRun ResolveRunFormatting(RtfParagraph paragraph, RtfRun run) {
-        if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-        if (run == null) throw new ArgumentNullException(nameof(run));
+        ArgumentNullException.ThrowIfNull(paragraph);
+        ArgumentNullException.ThrowIfNull(run);
         var result = new RtfCloneContext().Clone(run)!;
         return ApplyRunInheritance(paragraph, result);
     }

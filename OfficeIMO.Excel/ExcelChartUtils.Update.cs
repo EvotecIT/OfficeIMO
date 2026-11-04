@@ -10,12 +10,8 @@ using ChartIndex = DocumentFormat.OpenXml.Drawing.Charts.Index;
 namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
         internal static void UpdateChartData(ChartPart chartPart, ExcelChartData data, ExcelChartDataRange range) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ArgumentNullException.ThrowIfNull(data);
 
             ChartSpace? chartSpace = chartPart.ChartSpace;
             Chart? chart = chartSpace?.GetFirstChild<Chart>();

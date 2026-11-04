@@ -50,9 +50,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Workbook reader options.</param>
         /// <returns>A forward-only reader whose results follow workbook worksheet order.</returns>
         public static ExcelWorkbookDataReader OpenReader(Stream stream, ExcelReaderOptions? options = null) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
             }
@@ -79,9 +77,7 @@ namespace OfficeIMO.Excel {
         /// Opens an in-memory XLSX, XLSM, XLTX, XLTM, XLAM, XLSB, or BIFF8 XLS workbook as a forward-only data reader.
         /// </summary>
         internal static ExcelWorkbookDataReader OpenReader(byte[] bytes, ExcelReaderOptions? options = null) {
-            if (bytes == null) {
-                throw new ArgumentNullException(nameof(bytes));
-            }
+            ArgumentNullException.ThrowIfNull(bytes);
 
             ExcelReaderOptions effectiveOptions = options ?? new ExcelReaderOptions();
             effectiveOptions.CancellationToken.ThrowIfCancellationRequested();
@@ -121,7 +117,7 @@ namespace OfficeIMO.Excel {
             Uri uri,
             ExcelReaderOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
             ExcelReaderOptions effectiveOptions = (options ?? new ExcelReaderOptions()).Clone();
             var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,

@@ -28,7 +28,7 @@ public sealed partial class BookProject {
     }
 
     private static OnixTerritory ReadOnixTerritory(BookOnixTerritory territory) {
-        if (territory == null) throw new ArgumentNullException(nameof(territory));
+        ArgumentNullException.ThrowIfNull(territory);
         HashSet<string> countries = ReadOnixCountries(territory.Countries), excluded = ReadOnixCountries(territory.ExcludedCountries);
         HashSet<string> regions = ReadOnixSubregions(territory.Regions), excludedRegions = ReadOnixSubregions(territory.ExcludedRegions);
         if (territory.Worldwide ? countries.Count + regions.Count != 0 : countries.Count + regions.Count == 0 || excluded.Count != 0)
@@ -41,7 +41,7 @@ public sealed partial class BookProject {
     }
 
     private static HashSet<string> ReadOnixCountries(IReadOnlyList<string> countries) {
-        if (countries == null) throw new ArgumentNullException(nameof(countries));
+        ArgumentNullException.ThrowIfNull(countries);
         if (countries.Count > 250) throw new ArgumentException("A territory country list cannot exceed 250 codes.", nameof(countries));
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (string code in countries) {

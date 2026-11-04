@@ -23,10 +23,10 @@ namespace OfficeIMO.Core.Internal {
             out OfficeCompoundFile? compoundFile, out string? error) {
             compoundFile = null;
             error = null;
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (externalize == null) throw new ArgumentNullException(nameof(externalize));
-            if (openExternalDestination == null) throw new ArgumentNullException(nameof(openExternalDestination));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(externalize);
+            ArgumentNullException.ThrowIfNull(openExternalDestination);
             if (!stream.CanRead || !stream.CanSeek) {
                 error = "Selective compound reading requires a readable seekable stream.";
                 return false;

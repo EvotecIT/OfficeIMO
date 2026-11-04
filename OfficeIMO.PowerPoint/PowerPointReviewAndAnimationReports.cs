@@ -211,9 +211,9 @@ namespace OfficeIMO.PowerPoint {
         public CancellationToken CancellationToken { get; set; }
 
         internal void Validate() {
-            if (MaxXmlElements <= 0) throw new ArgumentOutOfRangeException(nameof(MaxXmlElements));
-            if (MaxXmlDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxXmlDepth));
-            if (MaxAnimationNodes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxAnimationNodes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxXmlElements);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxXmlDepth);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxAnimationNodes);
         }
     }
 
@@ -242,7 +242,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Inspects slide timing trees with explicit traversal and result limits.</summary>
         public PowerPointAnimationReport InspectAnimations(PowerPointAnimationInspectionOptions options) {
             ThrowIfDisposed();
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             options.Validate();
             var nodes = new List<PowerPointAnimationNode>();
             int visitedElements = 0;

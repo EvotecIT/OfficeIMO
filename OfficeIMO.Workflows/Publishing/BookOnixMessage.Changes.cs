@@ -16,7 +16,7 @@ public sealed partial class BookOnixMessage {
     /// </summary>
     public static BookOnixMessage CreateBlockUpdates(IReadOnlyList<BookOnixBlockUpdate> updates, XmlSchemaSet schemas,
         CancellationToken cancellationToken = default) {
-        if (updates == null) throw new ArgumentNullException(nameof(updates));
+        ArgumentNullException.ThrowIfNull(updates);
         cancellationToken.ThrowIfCancellationRequested();
         if (updates.Count is < 1 or > 1000) throw new ArgumentException("Supply 1–1000 block updates.", nameof(updates));
         var sources = new BookOnixExportResult[updates.Count];
@@ -25,7 +25,7 @@ public sealed partial class BookOnixMessage {
         var markets = new OnixMarketSelection[updates.Count];
         for (int index = 0; index < updates.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var update = updates[index]; if (update == null) throw new ArgumentNullException(nameof(update)); if (update.Source == null) throw new ArgumentNullException("update.Source");
+            var update = updates[index]; ArgumentNullException.ThrowIfNull(update); if (update.Source == null) throw new ArgumentNullException("update.Source");
             sources[index] = update.Source;
             replacements[index] = ReadBlocks(update.ReplaceBlocks);
             clears[index] = ReadBlocks(update.ClearBlocks);
@@ -64,7 +64,7 @@ public sealed partial class BookOnixMessage {
     /// </summary>
     public static BookOnixMessage CreateDeletions(IReadOnlyList<BookOnixDeletion> deletions, XmlSchemaSet schemas,
         CancellationToken cancellationToken = default) {
-        if (deletions == null) throw new ArgumentNullException(nameof(deletions));
+        ArgumentNullException.ThrowIfNull(deletions);
         cancellationToken.ThrowIfCancellationRequested();
         if (deletions.Count is < 1 or > 1000) throw new ArgumentException("Supply 1–1000 deletions.", nameof(deletions));
         XNamespace ns = BookProject.OnixNamespace;
@@ -72,14 +72,14 @@ public sealed partial class BookOnixMessage {
         var reasons = new XElement[deletions.Count][];
         for (int index = 0; index < deletions.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var deletion = deletions[index]; if (deletion == null) throw new ArgumentNullException(nameof(deletion)); if (deletion.Source == null) throw new ArgumentNullException("deletion.Source");
+            var deletion = deletions[index]; ArgumentNullException.ThrowIfNull(deletion); if (deletion.Source == null) throw new ArgumentNullException("deletion.Source");
             sources[index] = deletion.Source;
             if (deletion.Reasons == null) throw new ArgumentNullException("deletion.Reasons");
             if (deletion.Reasons.Count > 16) throw new ArgumentException("At most 16 deletion-reason translations are supported.", nameof(deletions));
             var languages = new HashSet<string>(StringComparer.Ordinal); var values = new List<XElement>();
             foreach (var reason in deletion.Reasons) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (reason == null) throw new ArgumentNullException(nameof(reason)); if ((reason.Text == null || string.IsNullOrWhiteSpace(reason.Text))) throw new ArgumentException("A non-empty value is required.", "reason.Text");
+                ArgumentNullException.ThrowIfNull(reason); if ((reason.Text == null || string.IsNullOrWhiteSpace(reason.Text))) throw new ArgumentException("A non-empty value is required.", "reason.Text");
                 if (reason.Text.Length > 100) throw new ArgumentException("Deletion reasons cannot exceed 100 UTF-16 code units.", nameof(deletions));
                 XmlConvert.VerifyXmlChars(reason.Text);
                 BookProject.RequireOnixTranslationLanguage(reason.LanguageCode, deletion.Reasons.Count, nameof(deletion.Reasons));
@@ -96,7 +96,7 @@ public sealed partial class BookOnixMessage {
     }
 
     private static HashSet<BookOnixBlock> ReadBlocks(IReadOnlyList<BookOnixBlock> blocks) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        ArgumentNullException.ThrowIfNull(blocks);
         if (blocks.Count > 8) throw new ArgumentException("At most eight blocks may be selected.", nameof(blocks));
         var result = new HashSet<BookOnixBlock>();
         foreach (var block in blocks)

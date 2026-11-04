@@ -37,7 +37,7 @@ internal sealed class OdfDeferredEntryStream : Stream {
     public override int Read(byte[] buffer, int offset, int count) {
         if (_disposed) throw new ObjectDisposedException(nameof(OdfDeferredEntryStream));
         _token.ThrowIfCancellationRequested();
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(count));
         if (count == 0 || _complete) return 0;
         int read = _entry.Read(buffer, offset, count);

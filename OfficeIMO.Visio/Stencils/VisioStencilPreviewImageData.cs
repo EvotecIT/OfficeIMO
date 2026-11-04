@@ -18,8 +18,8 @@ namespace OfficeIMO.Visio.Stencils {
         public VisioStencilPreviewImageData(string masterId, string masterNameU, string? masterName, VisioStencilPreviewImage previewImage, byte[] data) {
             if (string.IsNullOrWhiteSpace(masterId)) throw new ArgumentException("Master id cannot be null or whitespace.", nameof(masterId));
             if (string.IsNullOrWhiteSpace(masterNameU)) throw new ArgumentException("Master NameU cannot be null or whitespace.", nameof(masterNameU));
-            if (previewImage == null) throw new ArgumentNullException(nameof(previewImage));
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(previewImage);
+            ArgumentNullException.ThrowIfNull(data);
             if (data.Length == 0) throw new ArgumentException("Preview image payload cannot be empty.", nameof(data));
 
             MasterId = masterId;

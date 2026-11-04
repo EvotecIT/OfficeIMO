@@ -65,7 +65,7 @@ public sealed class HtmlRoundTripScore {
     public string? ArtifactKind { get; }
 
     private static IReadOnlyDictionary<string, double> Snapshot(IReadOnlyDictionary<string, double> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         var copy = new Dictionary<string, double>(StringComparer.Ordinal);
         foreach (KeyValuePair<string, double> pair in values) copy[pair.Key] = pair.Value;
         return new ReadOnlyDictionary<string, double>(copy);

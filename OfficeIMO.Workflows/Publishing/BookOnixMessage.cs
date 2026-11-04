@@ -41,8 +41,8 @@ public sealed partial class BookOnixMessage {
 
     private static BookOnixMessage Compose(IReadOnlyList<BookOnixExportResult> products, XmlSchemaSet schemas,
         BookOnixMessageKind kind, Func<int, XElement, XElement>? transform, CancellationToken cancellationToken) {
-        if (products == null) throw new ArgumentNullException(nameof(products));
-        if (schemas == null) throw new ArgumentNullException(nameof(schemas));
+        ArgumentNullException.ThrowIfNull(products);
+        ArgumentNullException.ThrowIfNull(schemas);
         cancellationToken.ThrowIfCancellationRequested();
         RequireSchema(schemas);
         if (products.Count is < 1 or > 1000)
@@ -57,7 +57,7 @@ public sealed partial class BookOnixMessage {
         for (int index = 0; index < snapshot.Length; index++) {
             BookOnixExportResult product = snapshot[index];
             cancellationToken.ThrowIfCancellationRequested();
-            if (product == null) throw new ArgumentNullException(nameof(product));
+            ArgumentNullException.ThrowIfNull(product);
             inputBytes += product.Bytes.LongLength;
             if (inputBytes > 16L * 1024 * 1024)
                 throw new InvalidDataException("Combined source ONIX XML exceeds 16 MiB.");

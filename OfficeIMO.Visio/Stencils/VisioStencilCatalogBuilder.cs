@@ -172,7 +172,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Adds an existing stencil shape definition.
         /// </summary>
         public VisioStencilCatalogBuilder Add(VisioStencilShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!_ids.Add(shape.Id)) {
                 throw new ArgumentException($"Stencil shape id '{shape.Id}' already exists in catalog '{Name}'.", nameof(shape));
             }

@@ -109,7 +109,7 @@ public sealed class SpreadsheetNumberFormatSyntax {
 
     /// <summary>Parses a number format while retaining every authored character.</summary>
     public static SpreadsheetNumberFormatSyntax Parse(string format) {
-        if (format == null) throw new ArgumentNullException(nameof(format));
+        ArgumentNullException.ThrowIfNull(format);
         var tokens = new List<SpreadsheetNumberFormatToken>();
         bool valid = true;
         int index = 0;

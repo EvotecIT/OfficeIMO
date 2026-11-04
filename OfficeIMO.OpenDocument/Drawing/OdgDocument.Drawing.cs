@@ -23,7 +23,7 @@ public sealed partial class OdgDocument {
     public OdfConversionResult<IReadOnlyList<OfficeDrawing>> ToDrawings(OfficeRenderingProfile renderingProfile,
         OdfConversionLossPolicy lossPolicy = OdfConversionLossPolicy.ReportOnly, bool forPrint = false,
         int maximumPages = 1000, CancellationToken cancellationToken = default, OdfDateTimeFieldProjectionOptions? dateTimeFields = null) {
-        if (renderingProfile == null) throw new ArgumentNullException(nameof(renderingProfile));
+        ArgumentNullException.ThrowIfNull(renderingProfile);
         return ToDrawings(lossPolicy, forPrint, maximumPages, cancellationToken, dateTimeFields, renderingProfile, null);
     }
 
@@ -32,7 +32,7 @@ public sealed partial class OdgDocument {
         bool forPrint, int maximumPages, CancellationToken cancellationToken, OdfDateTimeFieldProjectionOptions? dateTimeFields,
         OfficeRenderingProfile? renderingProfile, OfficeDrawingTextMetrics? layoutMetrics) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (maximumPages < 1) throw new ArgumentOutOfRangeException(nameof(maximumPages));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumPages, 1);
         if (lossPolicy < OdfConversionLossPolicy.ReportOnly || lossPolicy > OdfConversionLossPolicy.ThrowOnAnyLoss)
             throw new ArgumentOutOfRangeException(nameof(lossPolicy));
         IReadOnlyList<OdgPage> pages = Pages;

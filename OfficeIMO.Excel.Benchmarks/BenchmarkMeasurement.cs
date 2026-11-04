@@ -4,9 +4,7 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 internal static class BenchmarkMeasurement {
     internal static BenchmarkMeasurementResult Measure(int warmupIterations, int measuredIterations, Func<int> action) {
-        if (action == null) {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(action);
 
         for (int i = 0; i < warmupIterations; i++) {
             action();
@@ -32,9 +30,7 @@ internal static class BenchmarkMeasurement {
     }
 
     internal static IReadOnlyList<BenchmarkMeasurementResult> MeasureGroup(int warmupIterations, int measuredIterations, IReadOnlyList<Func<int>> actions) {
-        if (actions == null) {
-            throw new ArgumentNullException(nameof(actions));
-        }
+        ArgumentNullException.ThrowIfNull(actions);
 
         if (actions.Count == 0) {
             return [];

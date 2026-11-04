@@ -14,7 +14,7 @@ public sealed class TesseractOcrEngineProvider : IOcrEngineProvider {
 
     /// <inheritdoc />
     public IOcrEngine Create(IReadOnlyDictionary<string, string> options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         var settings = new TesseractOcrEngineOptions();
         foreach (var option in options) {
             if (string.IsNullOrWhiteSpace(option.Value) || option.Value.Length > 4096)

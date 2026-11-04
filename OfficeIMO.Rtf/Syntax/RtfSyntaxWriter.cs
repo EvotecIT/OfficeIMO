@@ -8,7 +8,7 @@ public static class RtfSyntaxWriter {
     /// Serializes a syntax tree without applying semantic normalization.
     /// </summary>
     public static string Write(RtfSyntaxTree tree) {
-        if (tree == null) throw new ArgumentNullException(nameof(tree));
+        ArgumentNullException.ThrowIfNull(tree);
 
         var builder = new StringBuilder();
         builder.Append(tree.SourcePrefix);

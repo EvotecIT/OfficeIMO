@@ -13,7 +13,7 @@ public static class OfficeDocumentAssetNaming {
     /// <param name="assetId">Stable asset identifier.</param>
     /// <param name="extension">Suggested file extension with or without a leading dot.</param>
     public static string BuildFileName(string assetId, string? extension) {
-        if (assetId == null) throw new ArgumentNullException(nameof(assetId));
+        ArgumentNullException.ThrowIfNull(assetId);
 
         string stem = SanitizeStem(assetId);
         string normalizedExtension = NormalizeExtension(extension);

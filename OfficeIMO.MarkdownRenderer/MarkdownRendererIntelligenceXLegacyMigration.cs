@@ -15,9 +15,7 @@ public static class MarkdownRendererIntelligenceXLegacyMigration {
     /// Registers the legacy IX transcript compatibility helpers if they are not already present.
     /// </summary>
     public static void Apply(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddReaderTransformIfMissing(options, CachedToolEvidenceMarkerTransform);
         AddReaderTransformIfMissing(options, LegacyToolHeadingTransform);
@@ -27,9 +25,7 @@ public static class MarkdownRendererIntelligenceXLegacyMigration {
     /// Returns <see langword="true"/> when any IX legacy migration helper is present.
     /// </summary>
     public static bool IsApplied(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         var transforms = options.ReaderOptions.DocumentTransforms;
         for (var i = 0; i < transforms.Count; i++) {

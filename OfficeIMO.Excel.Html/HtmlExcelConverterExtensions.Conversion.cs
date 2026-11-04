@@ -15,7 +15,7 @@ public static partial class HtmlExcelConverterExtensions {
     /// <summary>Converts prepared HTML into a native workbook and returns the completed conversion report.</summary>
     public static ExcelDocument ToExcel(this HtmlConversionDocument document, HtmlExcelExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToExcelResult result = document.ConvertToExcelWithEvidence(options);
         ExcelDocument value = GetWorkbookOrThrow(result);

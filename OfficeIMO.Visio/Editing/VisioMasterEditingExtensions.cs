@@ -16,13 +16,9 @@ namespace OfficeIMO.Visio {
         /// <param name="resizeToMaster">Whether to resize the shape to the replacement master's default size.</param>
         /// <returns>The updated shape.</returns>
         public static VisioShape ReplaceMaster(this VisioPage page, VisioShape shape, string masterNameU, bool resizeToMaster = false) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             if (string.IsNullOrWhiteSpace(masterNameU)) {
                 throw new ArgumentException("Master NameU cannot be empty.", nameof(masterNameU));
@@ -41,17 +37,11 @@ namespace OfficeIMO.Visio {
         /// <param name="resizeToMaster">Whether to resize the shape to the replacement master's default size.</param>
         /// <returns>The updated shape.</returns>
         public static VisioShape ReplaceMaster(this VisioPage page, VisioShape shape, VisioMaster master, bool resizeToMaster = false) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
-            if (master == null) {
-                throw new ArgumentNullException(nameof(master));
-            }
+            ArgumentNullException.ThrowIfNull(master);
 
             ReplaceMasters(page, new[] { shape }, master, resizeToMaster, null);
             return shape;
@@ -66,15 +56,11 @@ namespace OfficeIMO.Visio {
         /// <param name="resizeToMaster">Whether to resize the shape to the stencil's default size.</param>
         /// <returns>The updated shape.</returns>
         public static VisioShape ReplaceMaster(this VisioPage page, VisioShape shape, VisioStencilShape stencil, bool resizeToMaster = false) {
-            if (stencil == null) {
-                throw new ArgumentNullException(nameof(stencil));
-            }
+            ArgumentNullException.ThrowIfNull(stencil);
 
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             EnsureShapeBelongsToPage(page, shape);
             ReplaceMasters(page, new[] { shape }, ResolveStencilMaster(page, stencil), resizeToMaster, stencil);
             return shape;
@@ -88,9 +74,7 @@ namespace OfficeIMO.Visio {
         /// <param name="resizeToMaster">Whether to resize each shape to the replacement master's default size.</param>
         /// <returns>The updated selection.</returns>
         public static VisioShapeSelection ReplaceMaster(this VisioShapeSelection selection, string masterNameU, bool resizeToMaster = false) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             VisioPage page = GetOwnerPage(selection);
             ReplaceMasters(page, selection.ToArray(), ResolveMaster(page, masterNameU), resizeToMaster, null);
@@ -106,12 +90,10 @@ namespace OfficeIMO.Visio {
         /// <param name="resizeToMaster">Whether to resize each shape to the replacement master's default size.</param>
         /// <returns>The updated selection.</returns>
         public static VisioShapeSelection ReplaceMaster(this VisioShapeSelection selection, VisioMaster master, bool resizeToMaster = false) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             VisioPage page = GetOwnerPage(selection);
-            if (master == null) throw new ArgumentNullException(nameof(master));
+            ArgumentNullException.ThrowIfNull(master);
             ReplaceMasters(page, selection.ToArray(), master, resizeToMaster, null);
 
             return selection;
@@ -125,12 +107,10 @@ namespace OfficeIMO.Visio {
         /// <param name="resizeToMaster">Whether to resize each shape to the stencil's default size.</param>
         /// <returns>The updated selection.</returns>
         public static VisioShapeSelection ReplaceMaster(this VisioShapeSelection selection, VisioStencilShape stencil, bool resizeToMaster = false) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             VisioPage page = GetOwnerPage(selection);
-            if (stencil == null) throw new ArgumentNullException(nameof(stencil));
+            ArgumentNullException.ThrowIfNull(stencil);
             ReplaceMasters(page, selection.ToArray(), ResolveStencilMaster(page, stencil), resizeToMaster, stencil);
 
             return selection;

@@ -63,7 +63,7 @@ internal sealed class OfficeImageExportBatchOperation<TOptions> where TOptions :
 
     /// <summary>Streams results to a consumer so callers can release each payload immediately.</summary>
     internal void ExportEach(OfficeImageExportConsumer consumer, CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         cancellationToken.ThrowIfCancellationRequested();
         TOptions effective = _options.CreateEffectiveImageExportOptions<TOptions>();
         using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(
@@ -105,7 +105,7 @@ internal sealed class OfficeImageExportBatchOperation<TOptions> where TOptions :
     internal async Task ExportEachAsync(
         OfficeImageExportAsyncConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         cancellationToken.ThrowIfCancellationRequested();
         TOptions effective = _options.CreateEffectiveImageExportOptions<TOptions>();
         using OfficeImageExportExecutionScope execution = OfficeImageExportExecutionScope.Start(

@@ -480,7 +480,7 @@ internal sealed partial class PstNdbReader {
         private long _decodedBytes;
 
         internal PstDecodedByteBudget(long maximumBytes) {
-            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             _maximumBytes = maximumBytes;
         }
 

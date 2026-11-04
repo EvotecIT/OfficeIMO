@@ -13,7 +13,7 @@ public static partial class OfficeDocumentStructuredExtractor {
         OfficeDocumentReadResult document,
         OfficeDocumentStructuredExtractionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         OfficeDocumentStructuredExtractionOptions effective = Normalize(options);
         var state = new ExtractionState(effective, cancellationToken);
         state.CopySourceDiagnostics(document.Diagnostics);

@@ -7,9 +7,7 @@ public sealed partial class RtfLosslessEditor {
     /// Adds or replaces a font-table entry by its RTF font identifier while preserving the rest of the RTF stream.
     /// </summary>
     public void SetFont(RtfFont font) {
-        if (font == null) {
-            throw new ArgumentNullException(nameof(font));
-        }
+        ArgumentNullException.ThrowIfNull(font);
 
         if (font.Id < 0) {
             throw new ArgumentOutOfRangeException(nameof(font), "RTF font identifiers cannot be negative.");

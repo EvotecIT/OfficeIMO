@@ -80,7 +80,7 @@ public abstract class HtmlConversionRouteCapabilityContract {
     }
 
     private static IReadOnlyList<string> ToStrings(IEnumerable<string> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         return values.Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
             .Distinct(StringComparer.Ordinal)
@@ -89,7 +89,7 @@ public abstract class HtmlConversionRouteCapabilityContract {
     }
 
     private static IReadOnlyList<HtmlSemanticFeature> ToFeatures(IEnumerable<HtmlSemanticFeature> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         return values.Distinct().OrderBy(value => value).ToList().AsReadOnly();
     }
 }

@@ -67,7 +67,7 @@ namespace OfficeIMO.Core.Internal {
 
         internal static OfficeBinaryRc4CryptoApiSession Open(byte[] encryptionHeader,
             string password) {
-            if (encryptionHeader == null) throw new ArgumentNullException(nameof(encryptionHeader));
+            ArgumentNullException.ThrowIfNull(encryptionHeader);
             ValidatePassword(password);
             ParsedHeader parsed = ParseEncryptionHeader(encryptionHeader);
             byte[] passwordHash = ComputePasswordHash(parsed.Salt, password);
@@ -93,7 +93,7 @@ namespace OfficeIMO.Core.Internal {
         internal void TransformInPlace(byte[] bytes, int offset, int length,
             uint blockNumber,
             CancellationToken cancellationToken = default) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             if (offset < 0 || length < 0 || offset > bytes.Length - length) {
                 throw new ArgumentOutOfRangeException(nameof(offset));
             }
@@ -223,7 +223,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static void ValidatePassword(string password) {
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
         }
 
         private static void ValidateKeySize(int keySizeBits) {

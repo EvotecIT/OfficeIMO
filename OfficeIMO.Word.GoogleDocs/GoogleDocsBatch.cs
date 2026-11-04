@@ -38,12 +38,12 @@ namespace OfficeIMO.Word.GoogleDocs {
         internal IReadOnlyList<string> TargetTabIds { get; set; } = Array.Empty<string>();
 
         internal void Add(GoogleDocsRequest request) {
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
             _requests.Add(request);
         }
 
         internal void AddSegment(GoogleDocsSegment segment) {
-            if (segment == null) throw new ArgumentNullException(nameof(segment));
+            ArgumentNullException.ThrowIfNull(segment);
             _segments.Add(segment);
         }
     }

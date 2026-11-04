@@ -32,8 +32,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static LegacyPptProjectionFingerprint Create(PresentationDocument document,
             LegacyPptProjectionMap projectionMap) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (projectionMap == null) throw new ArgumentNullException(nameof(projectionMap));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(projectionMap);
             EditableImageFingerprintScope editableImages =
                 EditableImageFingerprintScope.Create(document, projectionMap);
             var slides = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -294,8 +294,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
             internal EditableImageFingerprintScope Merge(
                 EditableImageFingerprintScope other) {
-                if (other == null) throw new ArgumentNullException(
-                    nameof(other));
+                ArgumentNullException.ThrowIfNull(other);
                 return new EditableImageFingerprintScope(
                     new HashSet<string>(_exclusiveImagePartUris.Concat(
                         other._exclusiveImagePartUris),

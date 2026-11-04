@@ -35,9 +35,7 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static OfficeDrawing RenderCore(OfficeChartSnapshot snapshot, bool useMinimumCanvas,
         ICollection<OfficeImageExportDiagnostic>? diagnostics) {
-        if (snapshot == null) {
-            throw new ArgumentNullException(nameof(snapshot));
-        }
+        ArgumentNullException.ThrowIfNull(snapshot);
         if (!IsPieChart(snapshot.ChartKind) && !IsDoughnutChart(snapshot.ChartKind) &&
             snapshot.Data.Series.Any(series => series.PointExplosions != null))
             throw new NotSupportedException("Point explosions require a pie or doughnut chart.");

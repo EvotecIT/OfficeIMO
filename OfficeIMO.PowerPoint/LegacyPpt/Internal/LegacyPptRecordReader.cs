@@ -19,9 +19,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal void Consume() => Consume(1);
 
         internal void Consume(int recordCount) {
-            if (recordCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(recordCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(recordCount);
             if (_recordsTraversed > _maximumRecordCount - recordCount) {
                 _wasExceeded = true;
                 throw CreateLimitException();
@@ -36,23 +34,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
     internal static class LegacyPptRecordReader {
         internal static LegacyPptRecord ReadSingle(byte[] source, int offset, LegacyPptImportOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return ReadSingle(source, offset, options,
                 new LegacyPptRecordTraversalBudget(options.MaxRecordCount));
         }
 
         internal static LegacyPptRecord ReadSingle(byte[] source, int offset,
             LegacyPptImportOptions options, LegacyPptRecordTraversalBudget budget) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (budget == null) throw new ArgumentNullException(nameof(budget));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(budget);
             return ReadSingle(source, offset, source.Length, options,
                 depth: 0, budget: budget);
         }
 
         internal static IReadOnlyList<LegacyPptRecord> ReadSequence(byte[] source, int offset, int length,
             LegacyPptImportOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return ReadSequence(source, offset, length, options,
                 new LegacyPptRecordTraversalBudget(options.MaxRecordCount));
         }
@@ -60,9 +58,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static IReadOnlyList<LegacyPptRecord> ReadSequence(byte[] source,
             int offset, int length, LegacyPptImportOptions options,
             LegacyPptRecordTraversalBudget budget) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (budget == null) throw new ArgumentNullException(nameof(budget));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(budget);
             if (offset < 0 || length < 0 || offset > source.Length - length) {
                 throw new InvalidDataException("The PowerPoint record sequence lies outside the stream.");
             }

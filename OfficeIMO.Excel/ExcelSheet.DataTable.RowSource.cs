@@ -12,8 +12,8 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<string> columnNames,
             IReadOnlyList<string> headers) {
             _table = table ?? throw new ArgumentNullException(nameof(table));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (headers == null) throw new ArgumentNullException(nameof(headers));
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(headers);
             if (columnNames.Count != headers.Count) {
                 throw new ArgumentException("Column and header counts must match.", nameof(headers));
             }

@@ -17,10 +17,10 @@ namespace OfficeIMO.Core.Internal {
         internal static IReadOnlyList<Entry> Decrypt(byte[] encrypted,
             OfficeBinaryRc4CryptoApiSession session, long maximumDecodedBytes,
             Action<bool, int>? beforeDecode = null, CancellationToken cancellationToken = default, int maximumEntries = 65536) {
-            if (encrypted == null) throw new ArgumentNullException(nameof(encrypted));
-            if (session == null) throw new ArgumentNullException(nameof(session));
-            if (maximumDecodedBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
-            if (maximumEntries < 1) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
+            ArgumentNullException.ThrowIfNull(encrypted);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumDecodedBytes);
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumEntries, 1);
             cancellationToken.ThrowIfCancellationRequested();
             if (encrypted.Length < 12) {
                 throw new InvalidDataException(

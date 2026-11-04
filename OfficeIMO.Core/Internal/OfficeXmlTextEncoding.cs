@@ -7,7 +7,7 @@ namespace OfficeIMO.Core.Internal;
 /// <summary>Decodes already-validated XML bytes using their declaration while allowing a BOM to take precedence.</summary>
 internal static class OfficeXmlTextEncoding {
     internal static string Decode(byte[] bytes, string? declaredEncoding) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
 
         Encoding encoding = DetectBomlessXmlEncoding(bytes) ?? new UTF8Encoding(false, true);
         if (!string.IsNullOrWhiteSpace(declaredEncoding)) {

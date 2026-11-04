@@ -51,7 +51,7 @@ internal sealed class HtmlArguments {
     private bool _hasBundleOption;
 
     internal static HtmlArguments Parse(string[] args) {
-        if (args == null) throw new ArgumentNullException(nameof(args));
+        ArgumentNullException.ThrowIfNull(args);
         if (args.Length == 0 || IsHelp(args[0])) return new HtmlArguments { Command = HtmlCommandKind.Help };
 
         var parsed = new HtmlArguments {

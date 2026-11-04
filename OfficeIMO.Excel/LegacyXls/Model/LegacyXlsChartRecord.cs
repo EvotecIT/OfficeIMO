@@ -87,9 +87,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             LegacyXlsChartSeriesFormat? seriesFormat = null,
             LegacyXlsChartClientColorPalette? clientColorPalette = null,
             LegacyXlsChartGelFrame? gelFrame = null) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             Kind = kind;
             RecordName = recordName ?? throw new ArgumentNullException(nameof(recordName));

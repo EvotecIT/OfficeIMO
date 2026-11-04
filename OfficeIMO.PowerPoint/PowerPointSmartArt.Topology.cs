@@ -103,7 +103,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointSmartArt UpdateTopology(
             IEnumerable<PowerPointSmartArtNode> nodes) {
-            if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+            ArgumentNullException.ThrowIfNull(nodes);
             if (!TryGetTopology(out PowerPointSmartArtTopology current,
                     out string diagnostic)) throw new NotSupportedException(diagnostic);
             List<PowerPointSmartArtNode> requested = nodes.ToList();

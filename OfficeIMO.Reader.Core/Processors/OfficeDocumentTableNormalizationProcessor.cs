@@ -36,7 +36,7 @@ public sealed class OfficeDocumentTableNormalizationProcessor : OfficeDocumentPr
     public override OfficeDocumentReadResult Process(
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         foreach (ReaderTable table in OfficeDocumentModelTraversal.TableInstances(document)) {
             context.CancellationToken.ThrowIfCancellationRequested();
             Normalize(table);

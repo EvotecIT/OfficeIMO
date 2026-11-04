@@ -54,7 +54,7 @@ public sealed partial class ConfluenceClient : IDisposable {
 
     /// <summary>Builds the exact create request without contacting Confluence.</summary>
     public static ConfluencePageWritePlan PlanCreatePage(ConfluencePageCreateRequest request) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         ValidateId(request.SpaceId, nameof(request.SpaceId));
         ValidateTitle(request.Title);
         ValidateBody(request.Body);
@@ -70,7 +70,7 @@ public sealed partial class ConfluenceClient : IDisposable {
 
     /// <summary>Builds the exact update request without contacting Confluence.</summary>
     public static ConfluencePageWritePlan PlanUpdatePage(ConfluencePageUpdateRequest request) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         ValidateId(request.PageId, nameof(request.PageId));
         ValidateTitle(request.Title);
         ValidateBody(request.Body);
@@ -114,7 +114,7 @@ public sealed partial class ConfluenceClient : IDisposable {
     private static void ValidateId(string value, string parameterName) { if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Confluence identifier is required.", parameterName); }
     private static void ValidateTitle(string value) { if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Page title is required.", nameof(value)); }
     private static void ValidateBody(ConfluencePageBody body) {
-        if (body == null) throw new ArgumentNullException(nameof(body));
+        ArgumentNullException.ThrowIfNull(body);
         if (string.IsNullOrWhiteSpace(body.Representation)) throw new ArgumentException("Page body representation is required.", nameof(body));
         if (body.Value == null) throw new ArgumentException("Page body value is required.", nameof(body));
     }

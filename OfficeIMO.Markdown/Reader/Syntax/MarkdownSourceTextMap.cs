@@ -55,9 +55,7 @@ internal sealed class MarkdownSourceTextMap {
         string text,
         int line,
         int startColumn) {
-        if (destination == null) {
-            throw new ArgumentNullException(nameof(destination));
-        }
+        ArgumentNullException.ThrowIfNull(destination);
         if (string.IsNullOrEmpty(text)) {
             return startColumn;
         }

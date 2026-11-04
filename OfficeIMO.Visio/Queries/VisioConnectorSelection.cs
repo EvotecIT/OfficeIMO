@@ -16,9 +16,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="connectors">Connectors included in the selection.</param>
         public VisioConnectorSelection(IEnumerable<VisioConnector> connectors) {
-            if (connectors == null) {
-                throw new ArgumentNullException(nameof(connectors));
-            }
+            ArgumentNullException.ThrowIfNull(connectors);
 
             _connectors = connectors.ToList();
         }
@@ -183,9 +181,7 @@ namespace OfficeIMO.Visio {
         /// <param name="schema">Shape Data schema to apply.</param>
         /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
         public VisioConnectorSelection ShapeData(VisioShapeDataSchema schema, bool overwriteValues = false) {
-            if (schema == null) {
-                throw new ArgumentNullException(nameof(schema));
-            }
+            ArgumentNullException.ThrowIfNull(schema);
 
             foreach (VisioConnector connector in _connectors) {
                 schema.ApplyTo(connector, overwriteValues);
@@ -199,9 +195,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="configure">Protection configuration delegate.</param>
         public VisioConnectorSelection Protect(Action<VisioProtection> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             foreach (VisioConnector connector in _connectors) {
                 configure(connector.Protection);

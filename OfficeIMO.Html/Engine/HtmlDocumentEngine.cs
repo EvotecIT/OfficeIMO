@@ -24,7 +24,7 @@ public sealed class HtmlDocumentEngine {
         string source,
         HtmlParseOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         HtmlParseOptions resolved = options?.Clone() ?? new HtmlParseOptions();
         resolved.Validate();
         return ParserProvider.ParseDocument(source, resolved, cancellationToken)
@@ -41,8 +41,8 @@ public sealed class HtmlDocumentEngine {
         HtmlElement contextElement,
         HtmlParseOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (contextElement == null) throw new ArgumentNullException(nameof(contextElement));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(contextElement);
         HtmlParseOptions resolved = options?.Clone() ?? new HtmlParseOptions();
         resolved.Validate();
         return ParserProvider.ParseFragment(source, contextElement, resolved, cancellationToken)

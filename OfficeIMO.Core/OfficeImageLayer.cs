@@ -40,9 +40,7 @@ internal sealed class OfficeImageLayer {
     /// Creates a positioned raster image layer.
     /// </summary>
     public static OfficeImageLayer FromRaster(OfficeRasterImage rasterImage, double x, double y, double width, double height) {
-        if (rasterImage == null) {
-            throw new System.ArgumentNullException(nameof(rasterImage));
-        }
+        System.ArgumentNullException.ThrowIfNull(rasterImage);
 
         return new OfficeImageLayer(x, y, width, height, rasterImage, null);
     }
@@ -51,9 +49,7 @@ internal sealed class OfficeImageLayer {
     /// Creates a positioned SVG layer from inner SVG markup.
     /// </summary>
     public static OfficeImageLayer FromSvgInner(string svgInnerContent, double x, double y, double width, double height) {
-        if (svgInnerContent == null) {
-            throw new System.ArgumentNullException(nameof(svgInnerContent));
-        }
+        System.ArgumentNullException.ThrowIfNull(svgInnerContent);
 
         return new OfficeImageLayer(x, y, width, height, null, svgInnerContent);
     }

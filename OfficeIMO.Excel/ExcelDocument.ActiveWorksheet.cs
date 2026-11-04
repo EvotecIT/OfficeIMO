@@ -79,9 +79,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="sheet">Worksheet to activate.</param>
         public void SetActiveWorksheet(ExcelSheet sheet) {
-            if (sheet == null) {
-                throw new ArgumentNullException(nameof(sheet));
-            }
+            ArgumentNullException.ThrowIfNull(sheet);
 
             if (!ReferenceEquals(sheet.Document, this)) {
                 throw new ArgumentException("Worksheet must belong to this workbook.", nameof(sheet));

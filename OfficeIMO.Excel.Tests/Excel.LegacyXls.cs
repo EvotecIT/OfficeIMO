@@ -3041,9 +3041,7 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildCompressedTextContinuePayload(string text) {
-                if (text == null) {
-                    throw new ArgumentNullException(nameof(text));
-                }
+                ArgumentNullException.ThrowIfNull(text);
 
                 byte[] payload = new byte[checked(text.Length + 1)];
                 payload[0] = 0;

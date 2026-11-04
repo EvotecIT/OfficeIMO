@@ -32,9 +32,9 @@ internal sealed partial class OfficeAv1BlockPreludeReader {
 
     internal OfficeAv1BlockPreludeReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence,
         OfficeAv1Tile tile, OfficeRasterDecodeOptions options) {
-        if (frame == null) throw new ArgumentNullException(nameof(frame));
-        if (sequence == null) throw new ArgumentNullException(nameof(sequence));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         _superblockUnits = sequence.Use128Superblock ? 32 : 16;
         _geometry = new OfficeAv1TileGeometry(frame,tile,_superblockUnits*4);
@@ -78,7 +78,7 @@ internal sealed partial class OfficeAv1BlockPreludeReader {
 
     internal OfficeAv1BlockPrelude Read(OfficeAv1SymbolReader symbols, OfficeAv1BlockRegion block) {
         Check();
-        if (symbols == null) throw new ArgumentNullException(nameof(symbols));
+        ArgumentNullException.ThrowIfNull(symbols);
         ValidateBlock(block);
         if (_pending) throw new InvalidOperationException("Complete the current AV1 leaf before reading another.");
         try {

@@ -15,7 +15,7 @@ public static partial class ProjectReportWorkflow {
 
     /// <summary>Creates a Word report with explicit chart and table selection.</summary>
     public static WordDocument CreateWord(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
-        if (view == null) throw new ArgumentNullException(nameof(view));
+        ArgumentNullException.ThrowIfNull(view);
         ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
         var document = WordDocument.Create();
@@ -63,7 +63,7 @@ public static partial class ProjectReportWorkflow {
 
     /// <summary>Creates a presentation with explicit chart and table selection.</summary>
     public static PowerPointDocument CreatePowerPoint(ProjectView view, ProjectOfficeReportOptions options, CancellationToken cancellationToken = default) {
-        if (view == null) throw new ArgumentNullException(nameof(view));
+        ArgumentNullException.ThrowIfNull(view);
         ValidateOfficeOptions(options);
         cancellationToken.ThrowIfCancellationRequested();
         var presentation = PowerPointDocument.Create();
@@ -80,7 +80,7 @@ public static partial class ProjectReportWorkflow {
 
     /// <summary>Creates native Excel cells for selected columns and numeric usage buckets, retaining editable values rather than images.</summary>
     public static ExcelDocument CreateExcel(ProjectView view, CancellationToken cancellationToken = default) {
-        if (view == null) throw new ArgumentNullException(nameof(view));
+        ArgumentNullException.ThrowIfNull(view);
         cancellationToken.ThrowIfCancellationRequested();
         ValidateExcelGrid(view);
         var document = ExcelDocument.Create();

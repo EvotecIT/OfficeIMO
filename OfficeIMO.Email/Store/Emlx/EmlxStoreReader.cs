@@ -28,7 +28,7 @@ internal sealed class EmlxStoreReader {
     }
 
     internal static bool HasEnvelopePrefix(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead || !stream.CanSeek) return false;
         long originalPosition = stream.Position;
         try {

@@ -58,7 +58,7 @@ public static partial class OneNoteImageExportExtensions {
 
     private static OfficeImageExportBatchOperation<OneNotePageBatchRenderingOptions> CreateOneNoteNotebookImageBatchOperation(
         OneNoteNotebook document, OneNotePageBatchRenderingOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<OneNotePageBatchRenderingOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => OneNoteImageExportEngine.ExportNotebook(document, encoding, effective),
             exportEach: (encoding, effective, consumer, token) => OneNoteImageExportEngine.ExportNotebook(document, encoding, effective, consumer, token));

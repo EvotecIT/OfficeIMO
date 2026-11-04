@@ -17,7 +17,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
 
     /// <summary>Snapshots the supported sample depth and reserves reusable scratch before any prediction.</summary>
     internal OfficeAv1IntraPredictor(int bitDepth,OfficeRasterDecodeOptions options) {
-        if(options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
         if(bitDepth!=8 && bitDepth!=10) throw new FormatException("Unsupported AV1 prediction bit depth.");
         _maximumSample=(1<<bitDepth)-1;_middle=1<<(bitDepth-1);

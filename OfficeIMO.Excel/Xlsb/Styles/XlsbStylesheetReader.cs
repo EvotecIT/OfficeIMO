@@ -33,10 +33,10 @@ namespace OfficeIMO.Excel.Xlsb.Styles {
             XlsbImportOptions options,
             XlsbWorkbook workbook,
             XlsbRecordReadBudget budget) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             if (string.IsNullOrWhiteSpace(partName)) throw new ArgumentNullException(nameof(partName));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(workbook);
 
             IReadOnlyList<XlsbRecord> records;
             using (var stream = new MemoryStream(bytes, writable: false)) {

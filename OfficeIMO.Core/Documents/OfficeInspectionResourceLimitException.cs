@@ -10,7 +10,7 @@ public sealed class OfficeInspectionResourceLimitException : IOException {
         : base($"{owner} inspection exceeds {limitName} ({maximum}).", innerException) {
         if (string.IsNullOrWhiteSpace(owner)) throw new ArgumentException("An inspection owner is required.", nameof(owner));
         if (string.IsNullOrWhiteSpace(limitName)) throw new ArgumentException("A limit name is required.", nameof(limitName));
-        if (maximum < 0) throw new ArgumentOutOfRangeException(nameof(maximum));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximum);
         Owner = owner; LimitName = limitName; Maximum = maximum;
     }
     /// <summary>The canonical bounded inspection family, such as content-safety or text-integrity.</summary>

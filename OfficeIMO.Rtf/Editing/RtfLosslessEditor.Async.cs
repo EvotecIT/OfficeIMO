@@ -8,7 +8,7 @@ public sealed partial class RtfLosslessEditor {
     /// Saves the edited syntax tree to a file without semantic normalization.
     /// </summary>
     public Task SaveLosslessAsync(string path, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         return RtfBytePreservingEncoding.WriteAllTextAsync(path, ToRtf(), cancellationToken);
     }
 
@@ -16,7 +16,7 @@ public sealed partial class RtfLosslessEditor {
     /// Saves the edited syntax tree to a stream without semantic normalization.
     /// </summary>
     public Task SaveLosslessAsync(Stream stream, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         return RtfBytePreservingEncoding.WriteToAsync(stream, ToRtf(), cancellationToken);
     }
 

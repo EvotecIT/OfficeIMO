@@ -11,14 +11,14 @@ public static partial class OneNoteMarkdownConverterExtensions {
         ConvertToMarkdownWithEvidence(notebook, options, out _);
 
     private static OneNoteMarkdownConversionResult ConvertToMarkdownWithEvidence(OneNoteSection section, OneNoteMarkdownExportOptions? options, out string text) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         OneNoteMarkdownExportOptions operation = CreateTrackedOptions(options, out HashSet<OneNoteBinaryElement> resolvedAssets);
         text = OneNoteMarkdownProjection.ToMarkdown(section, operation);
         return new OneNoteMarkdownConversionResult(MarkdownDocument.Parse(text), OneNoteMarkdownDiagnosticCollector.Collect(section, operation, resolvedAssets));
     }
 
     private static OneNoteMarkdownConversionResult ConvertToMarkdownWithEvidence(OneNoteNotebook notebook, OneNoteMarkdownExportOptions? options, out string text) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         OneNoteMarkdownExportOptions operation = CreateTrackedOptions(options, out HashSet<OneNoteBinaryElement> resolvedAssets);
         text = OneNoteMarkdownProjection.ToMarkdown(notebook, operation);
         return new OneNoteMarkdownConversionResult(MarkdownDocument.Parse(text), OneNoteMarkdownDiagnosticCollector.Collect(notebook, operation, resolvedAssets));

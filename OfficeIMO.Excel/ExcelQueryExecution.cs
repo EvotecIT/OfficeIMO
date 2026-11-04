@@ -79,8 +79,8 @@ namespace OfficeIMO.Excel {
         public ExcelQueryExecutionResult(
             IReadOnlyList<string> columnNames,
             IEnumerable<IReadOnlyList<object?>> rows) {
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(rows);
             ColumnNames = new ReadOnlyCollection<string>(columnNames.ToArray());
             Rows = rows;
         }

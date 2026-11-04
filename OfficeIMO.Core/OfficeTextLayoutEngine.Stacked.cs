@@ -36,9 +36,7 @@ public static partial class OfficeTextLayoutEngine {
         double minimumFontSize,
         Func<string?, double, double> measure,
         bool shrinkToFit, Func<string?, double, OfficeTextPaintBounds>? measurePaint) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         string value = NormalizeStackedText(text, out bool inputTruncated);
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
@@ -80,9 +78,7 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         bool shrinkToFit = true,
         double minimumFontSize = 1D) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         return LayoutStackedRichTextBlock(
             runs,
@@ -113,13 +109,9 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, string?, double> measure,
         bool shrinkToFit = true,
         double minimumFontSize = 1D) {
-        if (runs == null) {
-            throw new ArgumentNullException(nameof(runs));
-        }
+        ArgumentNullException.ThrowIfNull(runs);
 
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         IReadOnlyList<OfficeRichTextRun> normalizedRuns = NormalizeRichTextRuns(runs, out bool inputTruncated);
         IReadOnlyList<OfficeRichTextRun> elements = SplitRichTextElements(normalizedRuns, out bool elementLimitTruncated);

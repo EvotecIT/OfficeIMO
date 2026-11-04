@@ -532,7 +532,7 @@ namespace OfficeIMO.Visio.Fluent {
 
         /// <summary>Configures an existing shape selected by identifier.</summary>
         public VisioFluentPage GetShape(string id, Action<VisioFluentShape> configure) {
-            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
             configure(new VisioFluentShape(_page.GetShape(id)));
             return this;
         }

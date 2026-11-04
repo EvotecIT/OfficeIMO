@@ -29,9 +29,7 @@ namespace OfficeIMO.Excel {
         /// <param name="startRow">1-based starting row.</param>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly with CellValues or pre-flatten using known types.")]
         internal void InsertObjects<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(IEnumerable<T> items, bool includeHeaders = true, int startRow = 1) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             IReadOnlyList<T> rows = MaterializeObjectRowsBounded(items, includeHeaders, startRow);
             if (rows.Count == 0) {
@@ -128,9 +126,7 @@ namespace OfficeIMO.Excel {
         /// <param name="startRow">1-based starting row.</param>
         /// <param name="columns">Column headers and selectors.</param>
         internal void InsertObjects<T>(IEnumerable<T> items, bool includeHeaders, int startRow, params (string Header, Func<T, object?> Selector)[] columns) {
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
             if (columns == null || columns.Length == 0) {
                 throw new ArgumentException("At least one column selector is required.", nameof(columns));
             }

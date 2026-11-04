@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
         private readonly ExcelDocument _document;
 
         internal ExcelImage(Xdr.Picture picture, OpenXmlElement anchor, DrawingsPart drawingsPart, ExcelSheet sheet) {
-            if (anchor == null) throw new ArgumentNullException(nameof(anchor));
+            ArgumentNullException.ThrowIfNull(anchor);
             _drawingHandle = new ExcelDrawingHandle(picture, drawingsPart, sheet);
             _document = sheet.Document;
         }
@@ -206,8 +206,8 @@ namespace OfficeIMO.Excel {
         /// <param name="toOffsetX">Horizontal offset from the ending marker column.</param>
         /// <param name="toOffsetY">Vertical offset from the ending marker row.</param>
         public ExcelImage SetTwoCellEndingMarker(int toRow, int toColumn, OfficeLength toOffsetX = default, OfficeLength toOffsetY = default) {
-            if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
-            if (toColumn < 1) throw new ArgumentOutOfRangeException(nameof(toColumn));
+            ArgumentOutOfRangeException.ThrowIfLessThan(toRow, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(toColumn, 1);
             if (toOffsetX.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetX));
             if (toOffsetY.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(toOffsetY));
             return SetNativeTwoCellEndingMarker(toRow, toColumn, toOffsetX, toOffsetY);
@@ -215,8 +215,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Restores signed native marker offsets after an importing adapter has bounded its geometry.</summary>
         internal ExcelImage SetNativeTwoCellEndingMarker(int toRow, int toColumn, OfficeLength toOffsetX, OfficeLength toOffsetY) {
-            if (toRow < 1) throw new ArgumentOutOfRangeException(nameof(toRow));
-            if (toColumn < 1) throw new ArgumentOutOfRangeException(nameof(toColumn));
+            ArgumentOutOfRangeException.ThrowIfLessThan(toRow, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(toColumn, 1);
             if (_anchor is not Xdr.TwoCellAnchor anchor || anchor.ToMarker == null) {
                 throw new InvalidOperationException("Only two-cell anchored images expose an ending marker.");
             }

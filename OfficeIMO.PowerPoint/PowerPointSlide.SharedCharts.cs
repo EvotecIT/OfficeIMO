@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint {
         /// per-series combo kinds, and primary or secondary value axes where the selected families are compatible.
         /// </summary>
         public PowerPointChart AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions? options) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             var placement = options as PowerPointChartOptions;
             bool automatic = placement?.Left == null && placement?.Top == null && options?.Width == null && options?.Height == null;
             PowerPointLayoutBox defaults = placement?.Left is OfficeLength x && placement?.Top is OfficeLength y &&

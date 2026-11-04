@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         internal static LegacyXlsWorksheetProtectionPermissions ExtractPermissions(SheetProtection protection) {
-            if (protection == null) throw new ArgumentNullException(nameof(protection));
+            ArgumentNullException.ThrowIfNull(protection);
 
             return new LegacyXlsWorksheetProtectionPermissions(
                 allowEditObjects: !(protection.Objects?.Value ?? false),

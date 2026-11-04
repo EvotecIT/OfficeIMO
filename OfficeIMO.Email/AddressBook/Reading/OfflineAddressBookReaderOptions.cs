@@ -20,18 +20,18 @@ public sealed class OfflineAddressBookReaderOptions {
         int string8CodePage = 1252,
         bool retainRawPropertyBytes = true,
         int maxDirectoryEntries = 100_000) {
-        if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
-        if (maxDiscoveredFiles <= 0) throw new ArgumentOutOfRangeException(nameof(maxDiscoveredFiles));
-        if (maxDirectoryDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryDepth));
-        if (maxMetadataBytes < 16) throw new ArgumentOutOfRangeException(nameof(maxMetadataBytes));
-        if (maxPropertiesPerTable <= 0) throw new ArgumentOutOfRangeException(nameof(maxPropertiesPerTable));
-        if (maxRecordBytes < 5) throw new ArgumentOutOfRangeException(nameof(maxRecordBytes));
-        if (maxStringBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxStringBytes));
-        if (maxBinaryBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBinaryBytes));
-        if (maxValuesPerProperty <= 0) throw new ArgumentOutOfRangeException(nameof(maxValuesPerProperty));
-        if (maxDeclaredEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDeclaredEntries));
-        if (string8CodePage <= 0) throw new ArgumentOutOfRangeException(nameof(string8CodePage));
-        if (maxDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryEntries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxInputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDiscoveredFiles);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxDirectoryDepth);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxMetadataBytes, 16);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPropertiesPerTable);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxRecordBytes, 5);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxStringBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBinaryBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxValuesPerProperty);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDeclaredEntries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(string8CodePage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDirectoryEntries);
 
         MaxInputBytes = maxInputBytes;
         MaxDiscoveredFiles = maxDiscoveredFiles;

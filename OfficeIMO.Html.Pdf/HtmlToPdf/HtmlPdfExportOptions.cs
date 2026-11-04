@@ -114,7 +114,7 @@ public sealed class HtmlPdfExportOptions : HtmlRenderOptions, IHtmlPrintRenderOp
     public int MaxOutlinedTextCharactersPerRun {
         get => _maxOutlinedTextCharactersPerRun;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxOutlinedTextCharactersPerRun = value;
         }
     }
@@ -125,7 +125,7 @@ public sealed class HtmlPdfExportOptions : HtmlRenderOptions, IHtmlPrintRenderOp
     public int MaxOutlinedTextPathCommands {
         get => _maxOutlinedTextPathCommands;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxOutlinedTextPathCommands = value;
         }
     }

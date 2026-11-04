@@ -38,8 +38,8 @@ public static partial class BookManuscriptImporter {
 
     private static async Task<EpubManuscriptResult> ImportBytesCoreAsync(byte[] bytes, string extension, EpubManuscriptOptions options,
         HtmlConversionDocumentOptions? htmlOptions, string? fallbackTitle, CancellationToken cancellationToken) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentNullException.ThrowIfNull(options);
         if ((extension == null || string.IsNullOrWhiteSpace(extension))) throw new ArgumentException("A non-empty value is required.", nameof(extension));
         if (bytes.LongLength > 64L * 1024 * 1024) throw new InvalidDataException("The manuscript snapshot exceeds 64 MiB.");
         extension = "." + extension.TrimStart('.').ToLowerInvariant();

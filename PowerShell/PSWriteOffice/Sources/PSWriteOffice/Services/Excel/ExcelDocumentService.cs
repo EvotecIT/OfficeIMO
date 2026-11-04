@@ -113,7 +113,7 @@ internal static partial class ExcelDocumentService
     }
 
     public static void SaveDocument(ExcelDocument document, bool show, string? filePath, string? password = null, ExcelSaveOptions? saveOptions = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         EnsureExplicitPersistence(document);
         string? target = filePath ?? GetAssociatedPath(document);
         if (string.IsNullOrWhiteSpace(target)) throw new InvalidOperationException("No file path provided for save options.");

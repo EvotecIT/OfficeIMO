@@ -22,8 +22,8 @@ internal static class OfficeProvenanceZip {
         ReadValidatedMimetypeEntry(data, expectedValues, maximumEntries);
 
     internal static string ReadValidatedMimetypeEntry(byte[] data, IReadOnlyCollection<string> expectedValues, int maximumEntries) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (expectedValues == null) throw new ArgumentNullException(nameof(expectedValues));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(expectedValues);
         if (expectedValues.Count == 0 || expectedValues.Any(string.IsNullOrEmpty)) throw new ArgumentException("At least one expected mimetype value is required.", nameof(expectedValues));
         ValidateEntryCount(data, maximumEntries);
         byte[] expectedName = Encoding.ASCII.GetBytes("mimetype");
@@ -202,7 +202,7 @@ internal static class OfficeProvenanceZip {
         if (changes.Count == 0) return OfficeProvenanceBinary.CloneForOutput(data, options.EffectiveMaxOutputBytes);
 
         if (shouldReplacePackageMetadata != null) {
-            if (replacePackageMetadata == null) throw new ArgumentNullException(nameof(replacePackageMetadata));
+            ArgumentNullException.ThrowIfNull(replacePackageMetadata);
             foreach (ZipArchiveEntry entry in input.Entries) {
                 options.Limits.CancellationToken.ThrowIfCancellationRequested();
                 string entryName = entryMetadata[entry].Name;
@@ -411,9 +411,9 @@ internal static class OfficeProvenanceZip {
         long maximumReplacementBytes = long.MaxValue,
         long maximumOutputBytes = int.MaxValue,
         CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (shouldRemove == null) throw new ArgumentNullException(nameof(shouldRemove));
-        if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(shouldRemove);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExpandedBytes);
         using var inputStream = new MemoryStream(data, writable: false);
         using var input = new ZipArchive(inputStream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, input);
@@ -458,8 +458,8 @@ internal static class OfficeProvenanceZip {
         byte[] data,
         Func<string, bool> predicate,
         CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(predicate);
         using var stream = new MemoryStream(data, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: false);
         Dictionary<ZipArchiveEntry, OfficeProvenanceZipEntryMetadata> entryMetadata = GetEntryMetadata(data, archive);
@@ -474,7 +474,7 @@ internal static class OfficeProvenanceZip {
         byte[] data,
         int maximumEntries,
         CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
         ValidateEntryCount(data, maximumEntries);
         using var stream = new MemoryStream(data, writable: false);

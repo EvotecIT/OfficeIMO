@@ -19,17 +19,17 @@ internal static class OneNoteCrc32 {
     }
 
     internal static uint Compute(byte[] data) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         return Continue(0, data, 0, data.Length, OneNoteFileKind.Section);
     }
 
     internal static uint ComputeMso(byte[] data) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         return Continue(0, data, 0, data.Length, OneNoteFileKind.TableOfContents);
     }
 
     internal static uint Continue(uint crc, byte[] data, int offset, int count, OneNoteFileKind fileKind) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         if (offset < 0 || count < 0 || offset > data.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         if (fileKind == OneNoteFileKind.Section) return ContinueOne(crc, data, offset, count);
         if (fileKind == OneNoteFileKind.TableOfContents) return ContinueMso(crc, data, offset, count);

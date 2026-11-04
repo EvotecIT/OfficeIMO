@@ -70,10 +70,7 @@ public sealed partial class CsvDocument
     [RequiresUnreferencedCode("This compatibility overload discovers properties from runtime objects. For NativeAOT, write typed rows with explicit columns or add values directly.")]
     public static CsvDocument FromObjects(IEnumerable<object?> items, char delimiter = ',', CultureInfo? culture = null, Encoding? encoding = null)
     {
-        if (items == null)
-        {
-            throw new ArgumentNullException(nameof(items));
-        }
+        ArgumentNullException.ThrowIfNull(items);
 
         var list = items.ToList();
         if (list.Count == 0)
@@ -134,15 +131,9 @@ public sealed partial class CsvDocument
     [RequiresUnreferencedCode("This compatibility overload discovers properties from runtime objects. For NativeAOT, write typed rows with explicit columns or add values directly.")]
     public static void WriteObjects(TextWriter writer, IEnumerable<object?> items, CsvSaveOptions? options = null)
     {
-        if (writer == null)
-        {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
-        if (items == null)
-        {
-            throw new ArgumentNullException(nameof(items));
-        }
+        ArgumentNullException.ThrowIfNull(items);
 
         options ??= new CsvSaveOptions();
 
@@ -184,15 +175,9 @@ public sealed partial class CsvDocument
         CsvSaveOptions? options,
         CancellationToken cancellationToken)
     {
-        if (writer == null)
-        {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         options ??= new CsvSaveOptions();
         if (options.Append || options.NoClobber)
@@ -241,10 +226,7 @@ public sealed partial class CsvDocument
         {
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         options ??= new CsvSaveOptions();
         cancellationToken.ThrowIfCancellationRequested();
@@ -282,19 +264,13 @@ public sealed partial class CsvDocument
         bool leaveOpen,
         CancellationToken cancellationToken)
     {
-        if (destination is null)
-        {
-            throw new ArgumentNullException(nameof(destination));
-        }
+        ArgumentNullException.ThrowIfNull(destination);
 
         if (!destination.CanWrite)
         {
             throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         }
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         options ??= new CsvSaveOptions();
         if (options.Append || options.NoClobber)
@@ -319,10 +295,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("File path cannot be empty.", nameof(path));
         }
 
-        if (items == null)
-        {
-            throw new ArgumentNullException(nameof(items));
-        }
+        ArgumentNullException.ThrowIfNull(items);
 
         options ??= new CsvSaveOptions();
         WritePath(path, options, writer => WriteObjects(writer, items, options));
@@ -453,10 +426,7 @@ public sealed partial class CsvDocument
     /// </summary>
     public CsvDocument WithDateTimeFormats(params string[] formats)
     {
-        if (formats == null)
-        {
-            throw new ArgumentNullException(nameof(formats));
-        }
+        ArgumentNullException.ThrowIfNull(formats);
 
         _dateTimeFormats = formats.ToArray();
         return this;
@@ -494,10 +464,7 @@ public sealed partial class CsvDocument
     public CsvDocument AddRow(CsvRow row)
     {
         EnsureInMemory();
-        if (row is null)
-        {
-            throw new ArgumentNullException(nameof(row));
-        }
+        ArgumentNullException.ThrowIfNull(row);
 
         if (row.FieldCount != _header.Count)
         {
@@ -519,10 +486,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("Column name cannot be null or empty.", nameof(name));
         }
 
-        if (valueFactory is null)
-        {
-            throw new ArgumentNullException(nameof(valueFactory));
-        }
+        ArgumentNullException.ThrowIfNull(valueFactory);
 
         if (_header.Any(h => string.Equals(h, name, StringComparison.OrdinalIgnoreCase)))
         {
@@ -577,10 +541,7 @@ public sealed partial class CsvDocument
     public CsvDocument Filter(Func<CsvRow, bool> predicate)
     {
         EnsureInMemory();
-        if (predicate is null)
-        {
-            throw new ArgumentNullException(nameof(predicate));
-        }
+        ArgumentNullException.ThrowIfNull(predicate);
 
         _rows = _rows.Where(predicate).ToList();
         return this;
@@ -617,10 +578,7 @@ public sealed partial class CsvDocument
     /// </summary>
     public CsvDocument Transform(Func<CsvDocument, CsvDocument> transformer)
     {
-        if (transformer is null)
-        {
-            throw new ArgumentNullException(nameof(transformer));
-        }
+        ArgumentNullException.ThrowIfNull(transformer);
 
         return transformer(this);
     }
@@ -630,10 +588,7 @@ public sealed partial class CsvDocument
     /// </summary>
     public CsvDocument EnsureSchema(Action<CsvSchemaBuilder> buildAction)
     {
-        if (buildAction is null)
-        {
-            throw new ArgumentNullException(nameof(buildAction));
-        }
+        ArgumentNullException.ThrowIfNull(buildAction);
 
         var builder = new CsvSchemaBuilder();
         buildAction(builder);

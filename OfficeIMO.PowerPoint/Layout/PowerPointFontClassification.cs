@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Writes the classification that matches <paramref name="typeface" />, removing a stale one.</summary>
         internal static void Apply(A.TextFontType font, string typeface) {
-            if (font == null) throw new ArgumentNullException(nameof(font));
+            ArgumentNullException.ThrowIfNull(font);
             font.Typeface = typeface;
             if (typeface.StartsWith("+", StringComparison.Ordinal)) {
                 font.Panose = null;

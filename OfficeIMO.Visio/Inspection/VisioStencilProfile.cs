@@ -14,9 +14,7 @@ namespace OfficeIMO.Visio {
         /// Creates a deterministic stencil usage profile for the document.
         /// </summary>
         public static VisioStencilProfile CreateStencilProfile(this VisioDocument document) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             return document.Inspect().CreateStencilProfile();
         }
@@ -25,9 +23,7 @@ namespace OfficeIMO.Visio {
         /// Creates a deterministic stencil usage profile from an inspection snapshot.
         /// </summary>
         public static VisioStencilProfile CreateStencilProfile(this VisioInspectionSnapshot snapshot) {
-            if (snapshot == null) {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             return VisioStencilProfile.FromSnapshot(snapshot);
         }
@@ -166,9 +162,7 @@ namespace OfficeIMO.Visio {
         /// Creates a stencil profile from an inspection snapshot.
         /// </summary>
         public static VisioStencilProfile FromSnapshot(VisioInspectionSnapshot snapshot) {
-            if (snapshot == null) {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             Dictionary<string, IReadOnlyList<VisioInspectionMasterSnapshot>> masters = snapshot.Masters
                 .GroupBy(master => master.Id, StringComparer.OrdinalIgnoreCase)

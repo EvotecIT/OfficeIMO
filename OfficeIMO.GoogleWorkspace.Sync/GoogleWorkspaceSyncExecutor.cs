@@ -88,8 +88,8 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         /// <summary>Returns an outcome for every item unless configured to throw on cancellation or a precondition fails.</summary>
         /// <remarks>Conflicts never invoke the operation. Lossy items require both approval by ID and an accepting plan policy. The executor does not enforce the target's expected revision inside the caller's operation.</remarks>
         public static async Task<GoogleWorkspaceSyncApplyResult> ApplyAsync(GoogleWorkspaceSyncPlan plan, GoogleWorkspaceSyncOperation operation, GoogleWorkspaceSyncApplyOptions? options = null, CancellationToken cancellationToken = default) {
-            if (plan == null) throw new ArgumentNullException(nameof(plan));
-            if (operation == null) throw new ArgumentNullException(nameof(operation));
+            ArgumentNullException.ThrowIfNull(plan);
+            ArgumentNullException.ThrowIfNull(operation);
             options ??= new GoogleWorkspaceSyncApplyOptions();
             var approved = new HashSet<string>(options.ApprovedLossyItemIds, StringComparer.Ordinal);
             var results = new List<GoogleWorkspaceSyncItemResult>(plan.Items.Count);

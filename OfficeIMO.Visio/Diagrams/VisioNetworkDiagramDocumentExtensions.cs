@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic network diagram page and returns the document for chaining.
         /// </summary>
         public static VisioDocument NetworkDiagram(this VisioDocument document, string pageName, Action<VisioNetworkDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioNetworkDiagramBuilder builder = new VisioNetworkDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();
@@ -20,7 +20,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic network topology page and returns the document for chaining.
         /// </summary>
         public static VisioDocument NetworkTopologyDiagram(this VisioDocument document, string pageName, Action<VisioNetworkTopologyDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioNetworkTopologyDiagramBuilder builder = new VisioNetworkTopologyDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

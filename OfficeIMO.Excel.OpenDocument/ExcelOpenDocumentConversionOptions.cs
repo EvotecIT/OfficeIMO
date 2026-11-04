@@ -18,7 +18,7 @@ public sealed class ExcelOpenDocumentConversionOptions {
     public int MaximumColumns { get; set; } = 16_384;
 
     internal void Validate() {
-        if (MaximumExpandedCells < 1) throw new ArgumentOutOfRangeException(nameof(MaximumExpandedCells));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumExpandedCells, 1);
         if (MaximumRowLayoutRows < 1 || MaximumRowLayoutRows > 1_048_576)
             throw new ArgumentOutOfRangeException(nameof(MaximumRowLayoutRows));
         if (MaximumRows < 1 || MaximumRows > 1_048_576) throw new ArgumentOutOfRangeException(nameof(MaximumRows));

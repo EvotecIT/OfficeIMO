@@ -6,7 +6,7 @@ namespace OfficeIMO.OneNote;
 public static class OneNoteFileProbe {
     /// <summary>Reads a OneNote header from a file path.</summary>
     public static OneNoteFileHeader ReadHeader(string path, OneNoteReaderOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         var effectiveOptions = PrepareOptions(options);
         var file = new FileInfo(path);
@@ -22,7 +22,7 @@ public static class OneNoteFileProbe {
         string path,
         OneNoteReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         var effectiveOptions = PrepareOptions(options);
         var file = new FileInfo(path);
@@ -39,7 +39,7 @@ public static class OneNoteFileProbe {
     /// only through the physical header prefix.
     /// </summary>
     public static OneNoteFileHeader ReadHeader(Stream stream, OneNoteReaderOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         var effectiveOptions = PrepareOptions(options);
         long? length = TryGetLength(stream);
@@ -55,7 +55,7 @@ public static class OneNoteFileProbe {
         Stream stream,
         OneNoteReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         var effectiveOptions = PrepareOptions(options);
         long? length = TryGetLength(stream);

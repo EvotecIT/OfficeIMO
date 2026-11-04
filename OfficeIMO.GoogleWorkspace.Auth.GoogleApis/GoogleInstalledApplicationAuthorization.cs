@@ -56,9 +56,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         public static async Task<UserCredential> AuthorizeCredentialAsync(
             GoogleInstalledApplicationAuthorizationOptions options,
             CancellationToken cancellationToken = default) {
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             options.Validate();
             var initializer = new GoogleAuthorizationCodeFlow.Initializer {
@@ -84,7 +82,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
         public static async Task<GoogleApisCredentialSource> AuthorizeAsync(
             GoogleInstalledApplicationAuthorizationOptions options,
             CancellationToken cancellationToken = default) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             options.Validate();
             if (options.CredentialBindingResolver == null) {
                 throw new InvalidOperationException(

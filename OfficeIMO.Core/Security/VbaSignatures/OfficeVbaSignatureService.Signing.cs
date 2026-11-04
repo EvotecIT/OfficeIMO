@@ -16,8 +16,8 @@ internal static partial class OfficeVbaSignatureService {
         X509Certificate2 signingCertificate,
         OfficeVbaSigningOptions? options = null,
         IEnumerable<X509Certificate2>? certificateChain = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
-        if (signingCertificate == null) throw new ArgumentNullException(nameof(signingCertificate));
+        ArgumentNullException.ThrowIfNull(securityProvider);
+        ArgumentNullException.ThrowIfNull(signingCertificate);
         options ??= new OfficeVbaSigningOptions();
         ValidateOptions(options);
         ValidateSigningOptions(options);

@@ -13,11 +13,9 @@ public sealed class EmailStoreAssociatedDataOptions {
         if (folderId.HasValue && folderId.Value.IsEmpty) {
             throw new ArgumentException("The folder identifier cannot be empty.", nameof(folderId));
         }
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (maxDecodedPropertyBytesPerItem <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytesPerItem));
-        }
-        if (maxXmlBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxXmlBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedPropertyBytesPerItem);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxXmlBytes);
         FolderId = folderId;
         IncludeDescendants = includeDescendants;
         MaxItems = maxItems;

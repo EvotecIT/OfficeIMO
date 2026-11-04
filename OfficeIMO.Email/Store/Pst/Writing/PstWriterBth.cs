@@ -13,7 +13,7 @@ internal static class PstWriterBth {
 
     internal static void Complete(PstWriterHeap heap, byte[] header,
         int keySize, int valueSize, Stream leafRecords, long recordCount) {
-        if (heap == null) throw new ArgumentNullException(nameof(heap));
+        ArgumentNullException.ThrowIfNull(heap);
         if (header == null || header.Length < 8) throw new ArgumentException("A BTH header requires eight bytes.", nameof(header));
         if (leafRecords == null || !leafRecords.CanRead) {
             throw new ArgumentException("BTH leaf records require a readable stream.", nameof(leafRecords));

@@ -20,7 +20,7 @@ internal sealed class OfficeImageExportAsyncBuffer : IDisposable {
     private ExceptionDispatchInfo? _error;
 
     internal void Add(OfficeImageExportResult result, CancellationToken cancellationToken) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         _slots.Wait(cancellationToken);
         lock (_gate) {
             if (_completed) {

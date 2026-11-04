@@ -37,7 +37,7 @@ internal sealed class OfficeBatchPortableSettings {
     }.Clone();
 
     internal static OfficeBatchPortableSettings Capture(OfficeConversionOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.SourceFormat is { } format && (format == OfficeDocumentFormat.Unknown || !OfficeIMO.Internal.OfficeRuntimeCompatibility.IsDefined(format)))
             throw new ArgumentException("Choose a supported source format override.", nameof(options));
         var result = new OfficeBatchPortableSettings {

@@ -10,9 +10,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="shape">Shape to mark.</param>
         public static VisioShape MarkAsBackgroundSurface(this VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
             return shape;

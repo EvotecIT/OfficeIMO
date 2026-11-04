@@ -33,7 +33,7 @@ internal static class OneNoteBinary {
     }
 
     public static void EnsureRange(byte[] data, int offset, int length) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         if (offset < 0 || length < 0 || offset > data.Length - length) {
             throw new OneNoteFormatException(
                 "ONENOTE_TRUNCATED_STRUCTURE",

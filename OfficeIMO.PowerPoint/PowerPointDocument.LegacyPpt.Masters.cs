@@ -295,8 +295,8 @@ namespace OfficeIMO.PowerPoint {
             IDictionary<uint, uint>? projectedShapeIds = null,
             ICollection<LegacyPptDeferredProjection>?
                 deferredInteractions = null) {
-            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(ownerPart);
+            ArgumentNullException.ThrowIfNull(source);
             uint shapeId = nextShapeId++;
             OpenXmlElement? projected = source.Kind switch {
                 LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
@@ -323,7 +323,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal static bool CanCreateLegacyOpenXmlShape(
             LegacyPptShape source) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             return source.Kind switch {
                 LegacyPptShapeKind.TextBox or
                 LegacyPptShapeKind.Rectangle or

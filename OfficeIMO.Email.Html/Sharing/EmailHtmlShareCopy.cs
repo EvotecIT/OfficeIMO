@@ -27,7 +27,7 @@ public static class EmailHtmlShareCopy {
     public static EmailHtmlShareCopyResult Create(EmailDocument source, EmailShareCopyOptions? options = null,
         EmailIndexTextOptions? bodyOptions = null, OfficeContentCleanupSelection? cleanupSelection = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         var effective = (options ?? new EmailShareCopyOptions()).Clone();
         EmailIndexTextResult? body = null;

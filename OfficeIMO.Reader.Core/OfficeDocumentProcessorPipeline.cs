@@ -31,7 +31,7 @@ public sealed class OfficeDocumentProcessorPipeline {
         OfficeDocumentReadResult document,
         OfficeDocumentProcessingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         OfficeDocumentProcessorFailureBehavior failureBehavior = Normalize(options).FailureBehavior;
         var steps = new OfficeDocumentProcessorStepResult[_processors.Length];
         var retainedFailureDiagnostics = new List<OfficeDocumentDiagnostic>();
@@ -75,7 +75,7 @@ public sealed class OfficeDocumentProcessorPipeline {
         OfficeDocumentReadResult document,
         OfficeDocumentProcessingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         OfficeDocumentProcessorFailureBehavior failureBehavior = Normalize(options).FailureBehavior;
         var steps = new OfficeDocumentProcessorStepResult[_processors.Length];
         var retainedFailureDiagnostics = new List<OfficeDocumentDiagnostic>();

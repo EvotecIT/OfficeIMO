@@ -65,13 +65,13 @@ public sealed class OfficeLegacyImportLimits {
 
     /// <summary>Throws when a configured limit is outside the supported positive range.</summary>
     public void Validate() {
-        if (MaxInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-        if (MaxTextCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
-        if (MaxRecords < 1) throw new ArgumentOutOfRangeException(nameof(MaxRecords));
-        if (MaxItems < 1) throw new ArgumentOutOfRangeException(nameof(MaxItems));
-        if (MaxCompoundStreams < 1) throw new ArgumentOutOfRangeException(nameof(MaxCompoundStreams));
-        if (MaxResourceBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxResourceBytes));
-        if (MaxImagePixels < 1) throw new ArgumentOutOfRangeException(nameof(MaxImagePixels));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxInputBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTextCharacters, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxRecords, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxItems, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxCompoundStreams, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxResourceBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxImagePixels, 1);
     }
 }
 
@@ -89,7 +89,7 @@ public sealed class OfficeLegacyImportReport : OfficeConversionReport {
         if (string.IsNullOrWhiteSpace(sourceFormatId)) {
             throw new ArgumentException("Source format id cannot be empty.", nameof(sourceFormatId));
         }
-        if (recoveredItemCount < 0) throw new ArgumentOutOfRangeException(nameof(recoveredItemCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(recoveredItemCount);
 
         SourceFormatId = sourceFormatId.Trim();
         Quality = quality;

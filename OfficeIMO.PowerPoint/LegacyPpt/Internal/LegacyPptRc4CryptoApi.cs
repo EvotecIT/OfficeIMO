@@ -16,16 +16,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptDecodedStorageBudget decodedStorageBudget,
             CancellationToken cancellationToken,
             out int keySizeBits, out bool encryptedDocumentProperties) {
-            if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (recordBudget == null) {
-                throw new ArgumentNullException(nameof(recordBudget));
-            }
-            if (decodedStorageBudget == null) {
-                throw new ArgumentNullException(
-                    nameof(decodedStorageBudget));
-            }
+            ArgumentNullException.ThrowIfNull(sourceBytes);
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(recordBudget);
+            ArgumentNullException.ThrowIfNull(decodedStorageBudget);
             if (options.Password == null) {
                 throw new CryptographicException(
                     "The binary PowerPoint presentation is encrypted. Provide LegacyPptImportOptions.Password or use PowerPointDocument.LoadEncrypted.");
@@ -131,8 +126,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             string password, int keySizeBits = DefaultKeySizeBits,
             bool encryptDocumentProperties = true,
             bool allowUnencryptedCompoundStreams = false) {
-            if (plainBytes == null) throw new ArgumentNullException(nameof(plainBytes));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(plainBytes);
+            ArgumentNullException.ThrowIfNull(password);
             LegacyPptPackage package = LegacyPptPackage.Read(plainBytes,
                 new LegacyPptImportOptions());
             EnsureNoUnexpectedClearTextStreams(package.CompoundFile,

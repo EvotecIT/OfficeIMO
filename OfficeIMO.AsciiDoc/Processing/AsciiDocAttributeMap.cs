@@ -15,12 +15,12 @@ internal sealed class AsciiDocAttributeMap : IReadOnlyDictionary<string, string>
     private AsciiDocAttributeMap(Node? root) => _root = root;
 
     internal AsciiDocAttributeMap Set(string key, string value) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         return new AsciiDocAttributeMap(Set(_root, key, value));
     }
 
     internal AsciiDocAttributeMap Remove(string key) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         return new AsciiDocAttributeMap(Remove(_root, key));
     }
 
@@ -33,7 +33,7 @@ internal sealed class AsciiDocAttributeMap : IReadOnlyDictionary<string, string>
     public bool ContainsKey(string key) => TryGetValue(key, out _);
 
     public bool TryGetValue(string key, out string value) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         Node? node = _root;
         while (node != null) {
             int order = StringComparer.OrdinalIgnoreCase.Compare(key, node.Key);

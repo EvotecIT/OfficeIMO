@@ -12,7 +12,7 @@ internal sealed class PstWriterHeap {
     }
 
     internal uint Add(byte[] value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         HeapBlock block = _blocks[_blocks.Count - 1];
         if (!block.CanAdd(value.Length)) {
             int index = _blocks.Count;

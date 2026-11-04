@@ -42,7 +42,7 @@ public sealed class OfficeRasterDecodeOptions {
     public int FrameIndex {
         get => _frameIndex;
         set {
-            if (value < 0) throw new System.ArgumentOutOfRangeException(nameof(FrameIndex));
+            System.ArgumentOutOfRangeException.ThrowIfNegative(value, nameof(FrameIndex));
             _frameIndex = value;
         }
     }

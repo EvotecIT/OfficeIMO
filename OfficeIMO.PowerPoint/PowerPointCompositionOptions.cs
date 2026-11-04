@@ -12,13 +12,13 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Creates composition options for an already resolved deck design.</summary>
         public static PowerPointCompositionOptions FromDesign(PowerPointDeckDesign design) {
-            if (design == null) throw new ArgumentNullException(nameof(design));
+            ArgumentNullException.ThrowIfNull(design);
             return new PowerPointCompositionOptions(design, null);
         }
 
         /// <summary>Creates composition options that resolve a design from a reusable brief.</summary>
         public static PowerPointCompositionOptions FromBrief(PowerPointDesignBrief brief) {
-            if (brief == null) throw new ArgumentNullException(nameof(brief));
+            ArgumentNullException.ThrowIfNull(brief);
             return new PowerPointCompositionOptions(null, brief);
         }
 

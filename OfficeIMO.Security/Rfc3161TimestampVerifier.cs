@@ -17,8 +17,8 @@ public static class Rfc3161TimestampVerifier {
         long maxEncodedBytes = 16L * 1024 * 1024,
         int maxCertificates = 64) {
 #if NETSTANDARD2_0 || NET472
-        if (encodedToken == null) throw new ArgumentNullException(nameof(encodedToken));
-        if (timestampedData == null) throw new ArgumentNullException(nameof(timestampedData));
+        ArgumentNullException.ThrowIfNull(encodedToken);
+        ArgumentNullException.ThrowIfNull(timestampedData);
 #else
         ArgumentNullException.ThrowIfNull(encodedToken);
         ArgumentNullException.ThrowIfNull(timestampedData);

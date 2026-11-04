@@ -32,9 +32,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
             TimeSpan? fallbackTokenLifetime,
             string? account,
             GoogleWorkspaceCredentialBindingResolver? credentialBindingResolver) {
-            if (credential == null) {
-                throw new ArgumentNullException(nameof(credential));
-            }
+            ArgumentNullException.ThrowIfNull(credential);
 
             _credentialFactory = scopes => credential.IsCreateScopedRequired
                 ? credential.CreateScoped(scopes)
@@ -65,9 +63,7 @@ namespace OfficeIMO.GoogleWorkspace.Auth.GoogleApis {
             TimeSpan? fallbackTokenLifetime,
             string? account,
             GoogleWorkspaceCredentialBindingResolver? credentialBindingResolver) {
-            if (credential == null) {
-                throw new ArgumentNullException(nameof(credential));
-            }
+            ArgumentNullException.ThrowIfNull(credential);
 
             _credentialFactory = _ => credential;
             _fallbackTokenLifetime = ValidateLifetime(fallbackTokenLifetime);

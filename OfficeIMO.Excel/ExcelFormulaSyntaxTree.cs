@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Parses A1 formula references while preserving all other tokens verbatim.</summary>
         public static ExcelFormulaSyntaxTree Parse(string formula) {
-            if (formula == null) throw new ArgumentNullException(nameof(formula));
+            ArgumentNullException.ThrowIfNull(formula);
             var nodes = new List<ExcelFormulaSyntaxNode>();
             int cursor = 0;
             int textStart = 0;
@@ -205,7 +205,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Rewrites reference nodes once while preserving literals and all other syntax.</summary>
         public string Rewrite(Func<ExcelReference, ExcelReference?> rewriter, ExcelReferenceStyle outputStyle = ExcelReferenceStyle.A1, int anchorRow = 1, int anchorColumn = 1) {
-            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            ArgumentNullException.ThrowIfNull(rewriter);
             var builder = new StringBuilder(Text.Length);
             foreach (ExcelFormulaSyntaxNode node in _nodes) {
                 if (node is not ExcelFormulaReferenceSyntax referenceNode) {
@@ -229,7 +229,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Rewrites defined-name nodes while preserving all other formula syntax.</summary>
         public string RewriteNames(Func<string, string?> rewriter) {
-            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            ArgumentNullException.ThrowIfNull(rewriter);
             var builder = new StringBuilder(Text.Length);
             IReadOnlyList<ExcelSheet.FormulaLexicalBinding> lexicalBindings = ExcelSheet.GetFormulaLexicalBindings(Text);
             int nodeIndex = 0;
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Rewrites structured table-reference nodes while preserving all other formula syntax.</summary>
         public string RewriteStructuredReferences(Func<string?, string, string?> rewriter) {
-            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            ArgumentNullException.ThrowIfNull(rewriter);
             var builder = new StringBuilder(Text.Length);
             foreach (ExcelFormulaSyntaxNode node in _nodes) {
                 if (node is ExcelFormulaStructuredReferenceSyntax structured) {
@@ -259,7 +259,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Rewrites table identifiers in structured and bare table-reference nodes.</summary>
         public string RewriteTableNames(Func<string, string?> rewriter) {
-            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            ArgumentNullException.ThrowIfNull(rewriter);
             var builder = new StringBuilder(Text.Length);
             IReadOnlyList<ExcelSheet.FormulaLexicalBinding> lexicalBindings = ExcelSheet.GetFormulaLexicalBindings(Text);
             int nodeIndex = 0;
@@ -369,8 +369,8 @@ namespace OfficeIMO.Excel {
         internal static string RewriteStructuredColumns(
             string selector,
             IReadOnlyDictionary<string, string> renames) {
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            if (renames == null) throw new ArgumentNullException(nameof(renames));
+            ArgumentNullException.ThrowIfNull(selector);
+            ArgumentNullException.ThrowIfNull(renames);
             return RewriteStructuredSelector(selector, rawColumn => {
                 string decoded = DecodeStructuredColumnName(rawColumn);
                 foreach (KeyValuePair<string, string> rename in renames) {
@@ -385,8 +385,8 @@ namespace OfficeIMO.Excel {
         internal static bool ContainsStructuredColumn(
             string selector,
             IReadOnlyCollection<string> columnNames) {
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
+            ArgumentNullException.ThrowIfNull(selector);
+            ArgumentNullException.ThrowIfNull(columnNames);
             bool found = false;
             _ = RewriteStructuredSelector(selector, rawColumn => {
                 string decoded = DecodeStructuredColumnName(rawColumn);

@@ -12,7 +12,7 @@ internal static partial class OpenDocumentReaderAdapter {
 
     private static IEnumerable<ReaderChunk> ReadPathCore(string path, ReaderOptions? options, ReaderOpenDocumentOptions? openDocumentOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (!File.Exists(path)) throw new FileNotFoundException($"OpenDocument file '{path}' doesn't exist.", path);
         ReaderOptions effective = options ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, effective.MaxInputBytes);
@@ -29,7 +29,7 @@ internal static partial class OpenDocumentReaderAdapter {
 
     private static IEnumerable<ReaderChunk> ReadStreamCore(Stream stream, string? sourceName, ReaderOptions? options, ReaderOpenDocumentOptions? openDocumentOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         ReaderOptions effective = options ?? new ReaderOptions();
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(stream, effective.MaxInputBytes, cancellationToken, out bool ownsStream);

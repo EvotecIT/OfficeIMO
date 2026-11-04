@@ -16,7 +16,7 @@ public sealed class OfflineAddressBookSearchQuery {
         int progressInterval = 1_000,
         bool continueOnEntryError = true,
         OfflineAddressBookSearchCheckpoint? resumeFrom = null) {
-        if (terms == null) throw new ArgumentNullException(nameof(terms));
+        ArgumentNullException.ThrowIfNull(terms);
         const OfflineAddressBookSearchFields known = OfflineAddressBookSearchFields.All;
         if (fields == OfflineAddressBookSearchFields.None || (fields & ~known) != 0) {
             throw new ArgumentOutOfRangeException(nameof(fields));
@@ -27,13 +27,11 @@ public sealed class OfflineAddressBookSearchQuery {
         if (objectType.HasValue && !Enum.IsDefined(typeof(OfflineAddressBookObjectType), objectType.Value)) {
             throw new ArgumentOutOfRangeException(nameof(objectType));
         }
-        if (maxEntriesScanned <= 0) throw new ArgumentOutOfRangeException(nameof(maxEntriesScanned));
-        if (maxResults <= 0) throw new ArgumentOutOfRangeException(nameof(maxResults));
-        if (maxSearchableCharactersPerEntry <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxSearchableCharactersPerEntry));
-        }
-        if (snippetCharacters < 32) throw new ArgumentOutOfRangeException(nameof(snippetCharacters));
-        if (progressInterval <= 0) throw new ArgumentOutOfRangeException(nameof(progressInterval));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEntriesScanned);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxSearchableCharactersPerEntry);
+        ArgumentOutOfRangeException.ThrowIfLessThan(snippetCharacters, 32);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(progressInterval);
 
         string[] normalized = terms
             .Where(term => !string.IsNullOrWhiteSpace(term))

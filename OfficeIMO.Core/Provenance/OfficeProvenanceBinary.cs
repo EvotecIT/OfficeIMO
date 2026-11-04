@@ -8,7 +8,7 @@ namespace OfficeIMO.Provenance;
 
 internal static class OfficeProvenanceBinary {
     internal static byte[] ComputeSha256(byte[] data, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using IncrementalHash algorithm = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         const int chunkSize = 81920;
         int offset = 0;
@@ -23,7 +23,7 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static byte[] ReadBounded(Stream stream, long maximumBytes, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (maximumBytes <= 0 || maximumBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(maximumBytes), "The asset limit must be between 1 byte and Int32.MaxValue.");
         }
@@ -53,27 +53,27 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static void ValidateLimits(OfficeProvenanceOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.MaxAssetBytes <= 0 || options.MaxAssetBytes > int.MaxValue) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxAssetBytes));
         }
         if (options.MaxManifestBytes <= 0 || options.MaxManifestBytes > options.MaxAssetBytes) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxManifestBytes));
         }
-        if (options.MaxCarriers <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCarriers));
-        if (options.MaxContainerEntries <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxContainerEntries));
-        if (options.MaxExpandedContainerBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxExpandedContainerBytes));
-        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCarriers, nameof(options.MaxCarriers));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxContainerEntries, nameof(options.MaxContainerEntries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxExpandedContainerBytes, nameof(options.MaxExpandedContainerBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEmbeddedAssets, nameof(options.MaxEmbeddedAssets));
     }
 
     internal static void ValidateRemovalOptions(OfficeProvenanceRemovalOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         ValidateLimits(options.Limits);
         if (options.MaxOutputBytes.HasValue &&
             (options.MaxOutputBytes.Value <= 0 || options.MaxOutputBytes.Value > int.MaxValue)) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes));
         }
-        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEmbeddedAssets, nameof(options.MaxEmbeddedAssets));
         if (!Enum.IsDefined(typeof(OfficeIMO.OfficeSignatureMutationPolicy), options.SignatureMutationPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(options.SignatureMutationPolicy));
         }
@@ -90,7 +90,7 @@ internal static class OfficeProvenanceBinary {
     }
 
     internal static byte[] CloneForOutput(byte[] data, long maximumOutputBytes) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         EnsureOutputWithinLimit(data.LongLength, maximumOutputBytes);
         return (byte[])data.Clone();
     }

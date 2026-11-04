@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private const int AtomPrecedence = 10;
 
         internal static bool TryRead(byte[] tokens, out string? formulaText, XlsbWorkbook? workbook = null, int sheetIndex = -1) {
-            if (tokens == null) throw new ArgumentNullException(nameof(tokens));
+            ArgumentNullException.ThrowIfNull(tokens);
 
             formulaText = null;
             var stack = new Stack<FormulaExpression>();

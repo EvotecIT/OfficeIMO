@@ -8,7 +8,7 @@ namespace OfficeIMO.Workflows;
 public static class OfficeProvenanceSarif {
     /// <summary>Creates a SARIF run. Structural presence is evidence, not an authenticity or AI verdict.</summary>
     public static string Serialize(IReadOnlyList<OfficeProvenanceWorkflowResult> reports) {
-        if (reports == null) throw new ArgumentNullException(nameof(reports));
+        ArgumentNullException.ThrowIfNull(reports);
         var results = new JsonArray(); var artifacts = new JsonArray();
         foreach (OfficeProvenanceWorkflowResult report in reports) {
             int artifactIndex = artifacts.Count;

@@ -68,7 +68,7 @@ public sealed class HtmlElement : HtmlNode {
     /// <remarks>Use this overload when importing structural DOM state, including namespace-aware script mutations.</remarks>
     public void SetAttribute(HtmlAttribute replacement) {
         Document.EnsureMutable();
-        if (replacement == null) throw new ArgumentNullException(nameof(replacement));
+        ArgumentNullException.ThrowIfNull(replacement);
         int index = _attributes.FindIndex(attribute => attribute.NamespaceUri == replacement.NamespaceUri && attribute.LocalName == replacement.LocalName);
         if (index >= 0) _attributes[index] = replacement; else _attributes.Add(replacement);
         Document.Touch();

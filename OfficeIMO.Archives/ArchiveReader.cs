@@ -13,7 +13,7 @@ public static partial class ArchiveReader {
     /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
     public static IReadOnlyList<ArchiveEntryData> ReadZip(byte[] bytes, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         var limits = (options ?? new ArchiveReadOptions()).Limits();
         ArchiveLimits.Check(bytes.LongLength, limits.Input, nameof(ArchiveReadOptions.MaxInputBytes));
         using var source = new MemoryStream(bytes, writable: false);
@@ -26,7 +26,7 @@ public static partial class ArchiveReader {
     /// <exception cref="OfficeInspectionResourceLimitException">A configured or managed admission ceiling is exhausted.</exception>
     public static IReadOnlyList<ArchiveEntryData> ReadZip(Stream source, ArchiveReadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead) throw new ArgumentException("A readable ZIP stream is required.", nameof(source));
         var limits = (options ?? new ArchiveReadOptions()).Limits();
         cancellationToken.ThrowIfCancellationRequested();

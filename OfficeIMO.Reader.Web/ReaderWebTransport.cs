@@ -11,7 +11,7 @@ internal static class ReaderWebTransport {
         Func<string, long> resolveMaxResponseBytes,
         ReaderWebOptions options,
         CancellationToken cancellationToken) {
-        if (resolveMaxResponseBytes == null) throw new ArgumentNullException(nameof(resolveMaxResponseBytes));
+        ArgumentNullException.ThrowIfNull(resolveMaxResponseBytes);
         ReaderWebUriPolicy.Validate(uri, options);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(options.RequestTimeout);

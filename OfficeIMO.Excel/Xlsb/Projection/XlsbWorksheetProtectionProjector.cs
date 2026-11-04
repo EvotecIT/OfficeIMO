@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and compares classic XLSB worksheet protection.</summary>
     internal static class XlsbWorksheetProtectionProjector {
         internal static void Apply(ExcelSheet sheet, XlsbWorksheetProtection? source) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (source == null) return;
 
             Worksheet worksheet = sheet.WorksheetPart.Worksheet

@@ -64,7 +64,7 @@ internal static partial class OdfTextCodec {
 
     private static TextSnapshot DecodeNodes(IEnumerable<XNode> nodes, int maximumCharacters, Action? onVisit = null,
         Func<XElement, string, string?>? projectField = null, int? admissionMaximum = null) {
-        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+        ArgumentNullException.ThrowIfNull(nodes);
         var selected = new List<XNode>();
         foreach (XNode node in nodes) {
             if (selected.Count >= OdfTextTraversal.MaximumVisitedElements)

@@ -35,7 +35,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Updates the external target without replacing preview or OLE metadata.</summary>
         public PowerPointOleObject UpdateLink(Uri uri) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri) throw new ArgumentException("A linked OLE URI must be absolute.", nameof(uri));
             string id = OleObject.Id?.Value ?? throw new InvalidOperationException("The OLE object has no relationship.");
             ExternalRelationship relationship = _slidePart.ExternalRelationships

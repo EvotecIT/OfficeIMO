@@ -7,7 +7,7 @@ namespace OfficeIMO.IWork.Internal;
 /// <summary>Owns a validated immutable image payload shared by native document creators.</summary>
 internal sealed class IWorkNativeImageData {
     internal IWorkNativeImageData(byte[] data, string? accessibilityDescription, CancellationToken cancellationToken) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(data.Length)
             || !OfficeImageReader.TryIdentifyByContent(data, null, cancellationToken, out OfficeImageInfo info)

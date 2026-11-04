@@ -37,9 +37,7 @@ public static partial class OfficeTextLayoutEngine {
         string? text,
         double fontSize,
         Func<string?, double, double> measure) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         string bounded = LimitLayoutText(text ?? string.Empty);
         string value = LimitLayoutText(ExpandTabs(bounded));
@@ -62,9 +60,7 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         OfficeTextParagraphIndent? paragraphIndent,
         out bool clipped) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
         long measuredCharacters = 0;
@@ -237,9 +233,7 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="lines">Measured text lines.</param>
     /// <returns>The maximum <see cref="OfficeTextLine.Width"/> value, or zero for an empty set.</returns>
     public static double MeasureMaxLineWidth(IReadOnlyList<OfficeTextLine> lines) {
-        if (lines == null) {
-            throw new ArgumentNullException(nameof(lines));
-        }
+        ArgumentNullException.ThrowIfNull(lines);
 
         double max = 0D;
         for (int i = 0; i < lines.Count; i++) {
@@ -259,9 +253,7 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="clipped">Set to <c>true</c> when the returned line had to be shortened.</param>
     /// <returns>The measured line, possibly shortened with an ellipsis.</returns>
     public static OfficeTextLine TrimLineToWidth(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, out bool clipped) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
         string value = LimitLayoutText(ExpandTabs(bounded), out bool expandedTruncated);
@@ -289,9 +281,7 @@ public static partial class OfficeTextLayoutEngine {
     /// <param name="clipped">Set to <c>true</c> when the returned line had to be shortened.</param>
     /// <returns>The measured line, possibly shortened with a leading ellipsis.</returns>
     public static OfficeTextLine TrimLineStartToWidth(string? text, double fontSize, double maxWidth, Func<string?, double, double> measure, out bool clipped) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         string bounded = LimitLayoutText(text ?? string.Empty, out bool inputTruncated);
         string value = LimitLayoutText(ExpandTabs(bounded), out bool expandedTruncated);
@@ -400,9 +390,7 @@ public static partial class OfficeTextLayoutEngine {
         double minimumFontSize,
         Func<string?, double, double> measure,
         int iterations = 10) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
         double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
@@ -533,9 +521,7 @@ public static partial class OfficeTextLayoutEngine {
         bool shrinkToFit,
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent? paragraphIndent = null) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         string sourceText = text ?? string.Empty;
         string boundedText = LimitLayoutText(sourceText);
@@ -605,9 +591,7 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         OfficeTextParagraphIndent? paragraphIndent,
         Func<string?, double, OfficeTextPaintBounds>? measurePaint) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
         double minFontSize = Math.Min(resolvedFontSize, Math.Max(1D, NormalizePositive(minimumFontSize, 1D)));
@@ -699,13 +683,9 @@ public static partial class OfficeTextLayoutEngine {
         Func<string?, double, double> measure,
         bool alreadyClipped,
         OfficeTextOverflowBehavior overflowBehavior) {
-        if (lines == null) {
-            throw new ArgumentNullException(nameof(lines));
-        }
+        ArgumentNullException.ThrowIfNull(lines);
 
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         double resolvedFontSize = NormalizePositive(fontSize, 1D);
         double resolvedLineHeight = NormalizePositive(lineHeight, resolvedFontSize);

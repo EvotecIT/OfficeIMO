@@ -13,9 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int payloadLength,
             ushort? headerRecordType,
             ushort? headerFlags) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             Kind = kind;
             RecordOffset = recordOffset;

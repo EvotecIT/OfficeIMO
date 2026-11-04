@@ -21,7 +21,7 @@ internal static class OfficeDiagramDrawingRenderer {
     /// <param name="includeBackground">Whether to add the standalone white canvas background.</param>
     public static OfficeDrawing Render(OfficeDiagramSnapshot snapshot,
         bool includeBackground) {
-        if (snapshot == null) throw new ArgumentNullException(nameof(snapshot));
+        ArgumentNullException.ThrowIfNull(snapshot);
         return RenderScene(new DiagramScene(snapshot), includeBackground);
     }
 

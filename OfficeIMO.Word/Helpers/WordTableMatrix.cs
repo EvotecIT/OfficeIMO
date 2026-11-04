@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
         /// <param name="table">Table to map.</param>
         /// <returns>A matrix representing the table where each entry is a <see cref="WordTableCell"/>.</returns>
         internal static IEnumerable<IReadOnlyList<WordTableCell>> Map(WordTable table) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
 
             List<IReadOnlyList<WordTableCell>> result = new();
             foreach (WordTableRow row in table.Rows) {

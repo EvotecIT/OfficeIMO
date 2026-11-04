@@ -30,7 +30,7 @@ internal sealed class MimeReadCursor {
     }
 
     internal int Read(byte[] output, int offset, int count) {
-        if (output == null) throw new ArgumentNullException(nameof(output));
+        ArgumentNullException.ThrowIfNull(output);
         if (offset < 0 || count < 0 || offset > output.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         int requested = (int)Math.Min(count, Length - _position);
         int total = 0;

@@ -159,7 +159,7 @@ public sealed partial class OfficeImageMetadata {
 
     /// <summary>Reads image profiles and physical resolution from a supported encoded image.</summary>
     public static OfficeImageMetadata Read(byte[] encodedBytes, CancellationToken cancellationToken = default) {
-        if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
+        ArgumentNullException.ThrowIfNull(encodedBytes);
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(encodedBytes.Length)) throw new FormatException("Image bytes exceed the metadata-read limit.");
         cancellationToken.ThrowIfCancellationRequested();
         if (!OfficeImageReader.TryIdentifyByContent(encodedBytes, null, cancellationToken, out OfficeImageInfo info)) throw new FormatException("The image container is malformed or unsupported.");
@@ -188,8 +188,8 @@ public sealed partial class OfficeImageMetadata {
     public static byte[] Apply(byte[] encodedBytes, OfficeImageMetadata metadata, CancellationToken cancellationToken = default) => ApplyCore(encodedBytes, metadata, cancellationToken, 0L);
 
     internal static byte[] ApplyCore(byte[] encodedBytes, OfficeImageMetadata metadata, CancellationToken cancellationToken, long additionallyRetainedBytes, bool writeDensity = true) {
-        if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
-        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+        ArgumentNullException.ThrowIfNull(encodedBytes);
+        ArgumentNullException.ThrowIfNull(metadata);
         if (!OfficeRasterGuards.IsEncodedPayloadWithinLimits(encodedBytes.Length)) throw new FormatException("Image bytes exceed the metadata-edit limit.");
         cancellationToken.ThrowIfCancellationRequested();
         if (!OfficeImageReader.TryIdentifyByContent(encodedBytes, null, cancellationToken, out OfficeImageInfo info)) throw new FormatException("The image container is malformed or unsupported.");

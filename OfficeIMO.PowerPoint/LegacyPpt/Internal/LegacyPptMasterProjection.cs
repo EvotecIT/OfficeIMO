@@ -138,25 +138,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static string CreateThemeFingerprint(SlideMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return CreateThemeFingerprint(masterPart.ThemePart,
                 masterPart.SlideMaster?.ColorMap);
         }
 
         internal static string CreateThemeFingerprint(NotesMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return CreateThemeFingerprint(masterPart.ThemePart,
                 masterPart.NotesMaster?.ColorMap);
         }
 
         internal static string CreateThemeFingerprint(HandoutMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return CreateThemeFingerprint(masterPart.ThemePart,
                 masterPart.HandoutMaster?.ColorMap);
         }
 
         internal static string CreateThemeFingerprint(SlideLayoutPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             string theme = masterPart.ThemeOverridePart?.ThemeOverride?.OuterXml
                 ?? string.Empty;
             string colorMap = masterPart.SlideLayout?.ColorMapOverride?.OuterXml
@@ -173,25 +173,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(
             SlideMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return CreateClassicColorFingerprints(masterPart.ThemePart);
         }
 
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(
             NotesMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return CreateClassicColorFingerprints(masterPart.ThemePart);
         }
 
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(
             HandoutMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return CreateClassicColorFingerprints(masterPart.ThemePart);
         }
 
         internal static IReadOnlyList<string> CreateClassicColorFingerprints(
             SlideLayoutPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             DocumentFormat.OpenXml.Drawing.ColorScheme? colors = masterPart
                 .ThemeOverridePart?.ThemeOverride?.ColorScheme
                 ?? masterPart.SlideMasterPart?.ThemePart?.Theme?
@@ -223,16 +223,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static string CreateBackgroundFingerprint(
             SlideMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
                 masterPart.SlideMaster?.CommonSlideData?.Background);
         }
 
         internal static string CreateTextStylesFingerprint(
             SlideMasterPart masterPart) {
-            if (masterPart == null) {
-                throw new ArgumentNullException(nameof(masterPart));
-            }
+            ArgumentNullException.ThrowIfNull(masterPart);
             return (masterPart.SlideMaster?.TextStyles?.OuterXml
                     ?? string.Empty)
                 + LegacyPptTextProjection
@@ -242,21 +240,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static string CreateBackgroundFingerprint(
             NotesMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
                 masterPart.NotesMaster?.CommonSlideData?.Background);
         }
 
         internal static string CreateBackgroundFingerprint(
             HandoutMasterPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
                 masterPart.HandoutMaster?.CommonSlideData?.Background);
         }
 
         internal static string CreateBackgroundFingerprint(
             SlideLayoutPart masterPart) {
-            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            ArgumentNullException.ThrowIfNull(masterPart);
             return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
                 masterPart.SlideLayout?.CommonSlideData?.Background);
         }

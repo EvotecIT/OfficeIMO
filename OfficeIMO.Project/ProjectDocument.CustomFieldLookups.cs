@@ -6,7 +6,7 @@ public sealed partial class ProjectDocument {
     /// <summary>Returns a field's shared lookup table selected by Ltuid; null means the field uses no shared table.</summary>
     public ProjectOutlineCodeDefinition? GetCustomFieldLookupTable(ProjectCustomFieldDefinition definition) {
         EnsureNotDisposed();
-        if (definition == null) throw new ArgumentNullException(nameof(definition));
+        ArgumentNullException.ThrowIfNull(definition);
         CheckMember(definition);
         if (!CustomFields.Contains(definition)) throw new ArgumentException("The definition must belong to this document.", nameof(definition));
         if (definition.LookupTableGuid == null) return null;
@@ -18,8 +18,8 @@ public sealed partial class ProjectDocument {
     /// <summary>Assigns a flat shared lookup entry to a scalar task or resource field, retaining its value and identity.</summary>
     public void SetCustomFieldLookupValue(ProjectEntity entity, ProjectCustomFieldDefinition definition, ProjectOutlineCodeLookupValue lookup) {
         EnsureMutable();
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
-        if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(lookup);
         CheckMember(entity); CheckMember(lookup);
         var table = GetCustomFieldLookupTable(definition);
         if (table == null || !table.Values.Contains(lookup)) throw new ArgumentException("The entry must belong to the field's shared lookup table.", nameof(lookup));
@@ -41,9 +41,9 @@ public sealed partial class ProjectDocument {
     /// <summary>Assigns a modeled lookup entry to a qualified scalar task or resource field, retaining its value and lookup identity.</summary>
     public void SetCustomFieldLookupValue(ProjectEntity entity, ProjectCustomFieldDefinition definition, ProjectLookupValue lookup) {
         EnsureMutable();
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
-        if (definition == null) throw new ArgumentNullException(nameof(definition));
-        if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(definition);
+        ArgumentNullException.ThrowIfNull(lookup);
         entity.EnsureAttached(); definition.EnsureAttached(); lookup.EnsureAttached();
         if (entity.Document != this || definition.Document != this || lookup.Document != this || !CustomFields.Contains(definition) || !definition.LookupValues.Contains(lookup))
             throw new ArgumentException("Entity, definition, and lookup entry must be attached to this document and the selected lookup list.");

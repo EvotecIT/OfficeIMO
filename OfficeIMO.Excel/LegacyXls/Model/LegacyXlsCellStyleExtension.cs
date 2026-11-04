@@ -126,9 +126,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 throw new ArgumentException("The style extension record name cannot be empty.", nameof(recordName));
             }
 
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             RecordName = recordName;
             FormatIndex = formatIndex;

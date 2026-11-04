@@ -100,7 +100,7 @@ public sealed class HtmlRenderCapability {
     }
 
     private static IReadOnlyList<string> Normalize(IEnumerable<string> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         return values
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())

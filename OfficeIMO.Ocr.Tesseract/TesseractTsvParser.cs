@@ -4,7 +4,7 @@ namespace OfficeIMO.Ocr.Tesseract;
 
 internal static class TesseractTsvParser {
     internal static OcrResult Parse(string tsv, string? language) {
-        if (tsv == null) throw new ArgumentNullException(nameof(tsv));
+        ArgumentNullException.ThrowIfNull(tsv);
         string[] lines = tsv.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         int headerIndex = Array.FindIndex(lines, static line => !string.IsNullOrWhiteSpace(line));
         if (headerIndex < 0 || !lines[headerIndex].TrimStart('\uFEFF').StartsWith("level\tpage_num\tblock_num", StringComparison.Ordinal)) {

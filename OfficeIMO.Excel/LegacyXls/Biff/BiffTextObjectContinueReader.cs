@@ -13,13 +13,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private IReadOnlyList<LegacyXlsCommentFormattingRun>? _formattingRuns;
 
         internal BiffTextObjectContinueReader(int textCharacters, int formattingRunBytes) {
-            if (textCharacters < 0) {
-                throw new ArgumentOutOfRangeException(nameof(textCharacters));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(textCharacters);
 
-            if (formattingRunBytes < 0) {
-                throw new ArgumentOutOfRangeException(nameof(formattingRunBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(formattingRunBytes);
 
             _remainingCharacters = textCharacters;
             _remainingFormattingBytes = formattingRunBytes;

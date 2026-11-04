@@ -69,7 +69,7 @@ public static partial class EmailImageExportExtensions {
         OfficeImageExportConsumer consumer,
         EmailImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         EmailRenderPreparation preparation = Prepare(source, options);
         preparation.Document.ExportImages(
             format,
@@ -106,7 +106,7 @@ public static partial class EmailImageExportExtensions {
         OfficeImageExportAsyncConsumer consumer,
         EmailImageExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         EmailRenderPreparation preparation = Prepare(source, options);
         await preparation.Document.ExportImagesAsync(
             format,
@@ -123,7 +123,7 @@ public static partial class EmailImageExportExtensions {
     private static EmailRenderPreparation Prepare(
         EmailDocument source,
         EmailImageExportOptions? options) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         EmailImageExportOptions effective =
             options?.CloneEmail() ?? new EmailImageExportOptions();
         EmailBodyProjectionResult bodyProjection = EmailBodyProjection.Create(source,

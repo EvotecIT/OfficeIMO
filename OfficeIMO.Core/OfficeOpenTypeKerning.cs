@@ -97,7 +97,7 @@ internal sealed partial class OfficeOpenTypeKerning {
     internal static OfficeOpenTypeKerning FromReader(
         OfficeOpenTypeReader reader,
         OfficeFontVariationModel? variations = null) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         Func<int, int, int>? variationDelta = TryCreateGdefVariationEvaluator(
             reader,
             variations ?? OfficeFontVariationModel.None);
@@ -163,8 +163,8 @@ internal sealed partial class OfficeOpenTypeKerning {
         IReadOnlyList<int> scalars,
         CancellationToken cancellationToken = default,
         bool[]? synthesizedSpaces = null) {
-        if (glyphs == null) throw new ArgumentNullException(nameof(glyphs));
-        if (scalars == null) throw new ArgumentNullException(nameof(scalars));
+        ArgumentNullException.ThrowIfNull(glyphs);
+        ArgumentNullException.ThrowIfNull(scalars);
         if (glyphs.Count != scalars.Count) throw new ArgumentException("Glyph and scalar runs must have the same length.");
         if (synthesizedSpaces != null && synthesizedSpaces.Length != glyphs.Count)
             throw new ArgumentException("Synthesized-space flags must match the glyph run.", nameof(synthesizedSpaces));

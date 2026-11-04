@@ -19,7 +19,7 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) {
             return await Task.Run(() => ReadDirectoryBundle(path, options, cancellationToken).Chunks,
                 cancellationToken).ConfigureAwait(false);
@@ -102,7 +102,7 @@ internal static partial class DocumentReaderEngine {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return await ReadAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false);
     }
@@ -114,7 +114,7 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) {
             return await Task.Run(() => ReadDirectoryBundle(path, options, cancellationToken),
                 cancellationToken).ConfigureAwait(false);
@@ -195,7 +195,7 @@ internal static partial class DocumentReaderEngine {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return await ReadDocumentAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false);
     }
@@ -237,7 +237,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static void ValidateFilePath(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) {
             throw new IOException($"'{path}' is a directory. Use {nameof(ReadFolder)}(...) to ingest directories.");
         }
@@ -245,7 +245,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static void ValidateReadableStream(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
     }
 

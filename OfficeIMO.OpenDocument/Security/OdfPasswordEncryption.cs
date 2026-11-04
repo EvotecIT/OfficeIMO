@@ -14,7 +14,7 @@ internal static class OdfPasswordEncryption {
     private const int MaxPasswordBytes = 1024;
 
     internal static byte[] CreateStartKey(string password) {
-        if (password == null) throw new ArgumentNullException(nameof(password));
+        ArgumentNullException.ThrowIfNull(password);
         byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
         if (passwordBytes.Length == 0) throw new ArgumentException("An ODF encryption password cannot be empty.", nameof(password));
         if (passwordBytes.Length > MaxPasswordBytes) {

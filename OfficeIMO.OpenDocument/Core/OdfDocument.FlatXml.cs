@@ -41,7 +41,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Writes flat OpenDocument XML to a path and returns the serialized bytes with projection diagnostics.</summary>
     public OdfSaveResult SaveFlatXml(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         string fullPath = Path.GetFullPath(path);
         XDocument flat = ToFlatXml();
         byte[] bytes = OdfXmlCodec.Save(flat);
@@ -51,7 +51,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Loads a flat ODT, ODS, ODP, or ODG XML document.</summary>
     public static OdfDocument LoadFlatXml(Stream stream, OdfLoadOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Flat OpenDocument stream must be readable.", nameof(stream));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         byte[] bytes = OdfAdmission.ReadSnapshot(stream, effective.MaxPackageBytes);
@@ -61,7 +61,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Loads a flat ODT, ODS, ODP, or ODG XML document from a path.</summary>
     public static OdfDocument LoadFlatXml(string path, OdfLoadOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         string fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("Flat OpenDocument file does not exist.", fullPath);
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);

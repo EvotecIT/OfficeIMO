@@ -59,7 +59,7 @@ public static partial class OfficeDocumentReadResultJson {
     /// <param name="result">Read result to serialize.</param>
     /// <param name="indented">When true, writes indented JSON for diagnostics and fixtures.</param>
     public static string Serialize(OfficeDocumentReadResult result, bool indented = false) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         string schemaId = string.IsNullOrWhiteSpace(result.SchemaId)
             ? OfficeDocumentReadResultSchema.Id
             : result.SchemaId;
@@ -93,7 +93,7 @@ public static partial class OfficeDocumentReadResultJson {
     /// <exception cref="JsonException">The payload is not valid JSON or cannot be mapped to the transport model.</exception>
     /// <exception cref="OfficeDocumentReadResultSchemaException">The schema identifier or version is not supported.</exception>
     public static OfficeDocumentReadResult Deserialize(string json) {
-        if (json == null) throw new ArgumentNullException(nameof(json));
+        ArgumentNullException.ThrowIfNull(json);
 
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;

@@ -36,9 +36,9 @@ namespace OfficeIMO.Security {
             int maxParts = 10000,
             long maxPartBytes = 64L * 1024 * 1024,
             IOfficeSecurityProvider? securityProvider = null) {
-            if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
-            if (maxParts <= 0) throw new ArgumentOutOfRangeException(nameof(maxParts));
-            if (maxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxPartBytes));
+            ArgumentNullException.ThrowIfNull(packageBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxParts);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPartBytes);
             _securityProvider = securityProvider;
 
             _stream = new MemoryStream(packageBytes, writable: false);
@@ -85,7 +85,7 @@ namespace OfficeIMO.Security {
             if (!_entries.TryGetValue(normalized, out ZipArchiveEntry? entry)) {
                 throw new FileNotFoundException("The OPC package part was not found.", normalized);
             }
-            if (maxBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(maxBytes);
             if (entry.Length > maxBytes) {
                 throw new InvalidDataException("The OPC package part '" + normalized + "' exceeds the " + maxBytes + " byte limit.");
             }

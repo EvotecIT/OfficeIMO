@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Creates a native query-backed worksheet table without executing its command.</summary>
         public ExcelQueryBackedTableInfo AddQueryBackedTable(ExcelQueryBackedTableOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (string.IsNullOrWhiteSpace(options.ConnectionName)) throw new ArgumentNullException(nameof(options.ConnectionName));
             if (string.IsNullOrWhiteSpace(options.WorksheetName)) throw new ArgumentNullException(nameof(options.WorksheetName));
             if (string.IsNullOrWhiteSpace(options.TableName)) throw new ArgumentNullException(nameof(options.TableName));
@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
             ExcelQueryExecutionPolicy policy,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(connectionOrTableName)) throw new ArgumentNullException(nameof(connectionOrTableName));
-            if (host == null) throw new ArgumentNullException(nameof(host));
+            ArgumentNullException.ThrowIfNull(host);
             ExcelQueryExecutionPolicy effectivePolicy = SnapshotQueryExecutionPolicy(policy);
             ValidateQueryExecutionPolicy(effectivePolicy);
             ExcelQueryBackedTableInfo[] matches = GetQueryBackedTables().Where(item =>
@@ -200,7 +200,7 @@ namespace OfficeIMO.Excel {
             IExcelQueryExecutionHost host,
             ExcelQueryExecutionPolicy policy,
             CancellationToken cancellationToken = default) {
-            if (host == null) throw new ArgumentNullException(nameof(host));
+            ArgumentNullException.ThrowIfNull(host);
             ExcelQueryExecutionPolicy effectivePolicy = SnapshotQueryExecutionPolicy(policy);
             ValidateQueryExecutionPolicy(effectivePolicy);
             ExcelQueryBackedTableInfo[] sources = GetQueryBackedTables().ToArray();
@@ -330,7 +330,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ValidateQueryExecutionPolicy(ExcelQueryExecutionPolicy policy) {
-            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            ArgumentNullException.ThrowIfNull(policy);
             if (!policy.AllowExecution) throw new SecurityException("Query execution must be enabled explicitly by policy.");
             if (policy.MaximumRows < 0 || policy.MaximumColumns < 1 || policy.MaximumCells < 0 || policy.MaximumCharacters < 0) {
                 throw new ArgumentOutOfRangeException(nameof(policy), "Query execution budgets must be non-negative and allow at least one column.");
@@ -338,7 +338,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelQueryExecutionPolicy SnapshotQueryExecutionPolicy(ExcelQueryExecutionPolicy policy) {
-            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            ArgumentNullException.ThrowIfNull(policy);
             return new ExcelQueryExecutionPolicy {
                 AllowExecution = policy.AllowExecution,
                 AllowImportedCommands = policy.AllowImportedCommands,

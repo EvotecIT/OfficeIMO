@@ -54,7 +54,7 @@ public sealed class OutlookUserPropertyCollection : IReadOnlyCollection<OutlookU
 
     /// <summary>Creates or replaces a user property, inferring its Outlook field type.</summary>
     public OutlookUserProperty Set(string name, object value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         OutlookUserPropertyType type = InferType(value);
         return Set(name, value, type);
     }
@@ -66,7 +66,7 @@ public sealed class OutlookUserPropertyCollection : IReadOnlyCollection<OutlookU
     public OutlookUserProperty Set(string name, object value, OutlookUserPropertyType fieldType,
         bool allowTypeChange = false) {
         string validatedName = ValidateName(name);
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
 
         OutlookUserPropertyDefinitionCodec.ParseResult parsed = ParseDefinitions();
         OutlookUserPropertyDefinition? existingDefinition = parsed.Definitions.LastOrDefault(definition =>
@@ -93,7 +93,7 @@ public sealed class OutlookUserPropertyCollection : IReadOnlyCollection<OutlookU
     /// <summary>Creates or replaces a multiple-string keyword field.</summary>
     public OutlookUserProperty SetKeywords(string name, IEnumerable<string> values,
         bool allowTypeChange = false) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         string[] snapshot = values.Select(value => value ?? string.Empty).ToArray();
         return Set(name, snapshot, OutlookUserPropertyType.Keywords, allowTypeChange);
     }
@@ -177,7 +177,7 @@ public sealed class OutlookUserPropertyCollection : IReadOnlyCollection<OutlookU
             StringComparison.OrdinalIgnoreCase);
 
     private static string ValidateName(string name) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         if (name.Length == 0 || string.IsNullOrWhiteSpace(name)) {
             throw new ArgumentException("A user property name cannot be empty.", nameof(name));
         }

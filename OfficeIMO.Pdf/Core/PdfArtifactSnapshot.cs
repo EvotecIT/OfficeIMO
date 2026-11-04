@@ -57,13 +57,7 @@ public sealed class PdfArtifactInfo {
     }
 
     internal static PdfArtifactInfo FromDigest(long byteCount, string sha256, int? pageCount) {
-#if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegative(byteCount);
-#else
-        if (byteCount < 0) {
-            throw new ArgumentOutOfRangeException(nameof(byteCount));
-        }
-#endif
 
         Guard.NotNullOrWhiteSpace(sha256, nameof(sha256));
         return new PdfArtifactInfo(byteCount, sha256, pageCount);

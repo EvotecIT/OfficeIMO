@@ -10,8 +10,8 @@ namespace OfficeIMO.Core.Internal {
         internal static async Task WriteIfUnchangedAsync(string targetPath,
             Func<Stream, CancellationToken, Task> writer, Func<string, bool> destinationMatchesExpected,
             CancellationToken cancellationToken = default) {
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-            if (destinationMatchesExpected == null) throw new ArgumentNullException(nameof(destinationMatchesExpected));
+            ArgumentNullException.ThrowIfNull(writer);
+            ArgumentNullException.ThrowIfNull(destinationMatchesExpected);
             cancellationToken.ThrowIfCancellationRequested();
             string destination = GetFullTargetPath(targetPath);
             if (!destinationMatchesExpected(destination)) throw DestinationChanged();

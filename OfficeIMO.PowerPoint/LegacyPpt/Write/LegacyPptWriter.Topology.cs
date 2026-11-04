@@ -19,8 +19,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     throw new NotSupportedException(
                         $"The binary PowerPoint persist-directory format supports at most {MaxNativeMasterCount} slide masters; the presentation contains {masterCount}.");
                 }
-                if (slideCount < 0) throw new ArgumentOutOfRangeException(nameof(slideCount));
-                if (notesCount < 0) throw new ArgumentOutOfRangeException(nameof(notesCount));
+                ArgumentOutOfRangeException.ThrowIfNegative(slideCount);
+                ArgumentOutOfRangeException.ThrowIfNegative(notesCount);
 
                 MasterCount = masterCount;
                 MasterSlotCount = Math.Max(EmbeddedMasterSlotCount, masterCount);
@@ -107,10 +107,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal void EnsurePersistObjectCapacity(
                 int additionalPersistObjectCount) {
-                if (additionalPersistObjectCount < 0) {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(additionalPersistObjectCount));
-                }
+                ArgumentOutOfRangeException.ThrowIfNegative(additionalPersistObjectCount);
                 int total = checked(BasePersistObjectCount
                     + additionalPersistObjectCount);
                 if (total > MaxPersistObjectCount) {

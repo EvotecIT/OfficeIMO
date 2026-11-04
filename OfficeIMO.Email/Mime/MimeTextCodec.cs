@@ -94,7 +94,7 @@ internal static class MimeTextCodec {
     }
 
     internal static byte[] EncodeText(string text, string? charset) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         return ResolveStrictEncoding(charset).GetBytes(text);
     }
 

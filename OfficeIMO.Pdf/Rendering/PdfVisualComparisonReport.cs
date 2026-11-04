@@ -191,7 +191,7 @@ public sealed class PdfVisualComparisonReport {
 
         internal BoundedUtf8HtmlBuilder(long maximumOutputBytes) {
 #pragma warning disable CA1512 // ThrowIfLessThanOrEqual is unavailable on netstandard2.0 and net472.
-            if (maximumOutputBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumOutputBytes, 0L);
 #pragma warning restore CA1512
             _maximumOutputBytes = maximumOutputBytes;
             _builder = new StringBuilder((int)Math.Min(maximumOutputBytes, 4096L));

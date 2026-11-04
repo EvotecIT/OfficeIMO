@@ -16,7 +16,7 @@ public static class OfficeRasterFingerprinting {
     /// Recompute stored hashes when changing decoding or resampling implementations.
     /// </remarks>
     public static ulong DifferenceHash(OfficeRasterImage source, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OfficeRasterImage thumbnail = OfficeRasterFilters.Grayscale(OfficeRasterResampler.Resize(source, 9, 8,
             OfficeRasterResamplingMode.Bicubic, OfficeRasterResamplingColorSpace.EncodedSrgb, cancellationToken),
             OfficeRasterGrayscaleMode.Bt709, cancellationToken);

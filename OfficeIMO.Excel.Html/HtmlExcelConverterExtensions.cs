@@ -12,7 +12,7 @@ public static partial class HtmlExcelConverterExtensions {
     private const int ExcelFormulaCharacterLimit = 8_192;
 
     internal static HtmlToExcelResult ConvertToExcelWithEvidence(this HtmlConversionDocument document, HtmlExcelExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         const HtmlCssMediaContext mediaContext = HtmlCssMediaContext.Screen;
         IHtmlDocument adapterDocument = document.CreateNativeDocumentForConversion(mediaContext);
         HtmlExcelExportOptions resolved = options?.Clone() ?? new HtmlExcelExportOptions();

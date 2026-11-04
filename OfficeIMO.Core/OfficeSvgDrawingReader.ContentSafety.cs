@@ -17,7 +17,7 @@ public static partial class OfficeSvgDrawingReader {
         byte[] svgBytes,
         OfficeContentSafetyOptions? options = null,
         OfficeSvgDrawingReaderOptions? readerOptions = null) {
-        if (svgBytes == null) throw new ArgumentNullException(nameof(svgBytes));
+        ArgumentNullException.ThrowIfNull(svgBytes);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         SvgContentSafetyDocument document = LoadSvgContentSafetyDocument(svgBytes, effective, readerOptions);
         return InspectSvgContentSafetyDocument(document, svgBytes, effective, readerOptions, targets: null);
@@ -39,8 +39,8 @@ public static partial class OfficeSvgDrawingReader {
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
         OfficeSvgDrawingReaderOptions? readerOptions = null) {
-        if (svgBytes == null) throw new ArgumentNullException(nameof(svgBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(svgBytes);
+        ArgumentNullException.ThrowIfNull(selection);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
 

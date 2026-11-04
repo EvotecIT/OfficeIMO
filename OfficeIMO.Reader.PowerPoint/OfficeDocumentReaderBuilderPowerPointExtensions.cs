@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderPowerPointExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderPowerPointOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderPowerPointOptions configured = PowerPointReaderAdapter.Clone(options);
         builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

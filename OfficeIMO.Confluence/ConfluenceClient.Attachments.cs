@@ -29,7 +29,7 @@ public sealed partial class ConfluenceClient {
     public Task DownloadAttachmentAsync(string pageId, string attachmentId, Stream destination, CancellationToken cancellationToken = default) {
         ValidateId(pageId, nameof(pageId));
         ValidateId(attachmentId, nameof(attachmentId));
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         string uri = "/wiki/rest/api/content/" + Encode(pageId) + "/child/attachment/" + Encode(attachmentId) + "/download";
         return _transport.SendToStreamAsync(HttpMethod.Get, uri, destination, cancellationToken);
     }
@@ -37,7 +37,7 @@ public sealed partial class ConfluenceClient {
     /// <summary>Creates or versions an attachment through Confluence's multipart v1 endpoint.</summary>
     public async Task<IReadOnlyList<ConfluenceAttachment>> UploadAttachmentAsync(string pageId, ConfluenceAttachmentUpload upload, CancellationToken cancellationToken = default) {
         ValidateId(pageId, nameof(pageId));
-        if (upload == null) throw new ArgumentNullException(nameof(upload));
+        ArgumentNullException.ThrowIfNull(upload);
         if (string.IsNullOrWhiteSpace(upload.FileName)) throw new ArgumentException("Attachment file name is required.", nameof(upload));
         if (upload.Content == null) throw new ArgumentException("Attachment content is required.", nameof(upload));
         using var content = new MemoryStream(upload.Content, writable: false);
@@ -53,7 +53,7 @@ public sealed partial class ConfluenceClient {
     /// <summary>Creates or versions an attachment from a caller-owned stream.</summary>
     public async Task<IReadOnlyList<ConfluenceAttachment>> UploadAttachmentAsync(string pageId, ConfluenceAttachmentStreamUpload upload, CancellationToken cancellationToken = default) {
         ValidateId(pageId, nameof(pageId));
-        if (upload == null) throw new ArgumentNullException(nameof(upload));
+        ArgumentNullException.ThrowIfNull(upload);
         if (string.IsNullOrWhiteSpace(upload.FileName)) throw new ArgumentException("Attachment file name is required.", nameof(upload));
         if (upload.Content == null || !upload.Content.CanRead) throw new ArgumentException("A readable attachment content stream is required.", nameof(upload));
         string uri = "/wiki/rest/api/content/" + Encode(pageId) + "/child/attachment";

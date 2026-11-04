@@ -15,7 +15,7 @@ public partial class ExcelSheet {
     /// <param name="mode">Existing worksheet insertion execution mode.</param>
     public string FromXml(string xml, int startRow = 1, int startColumn = 1, bool includeHeaders = false,
         ExcelXmlTableOptions? options = null, ExcelExecutionMode? mode = null) {
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
         var resolved = (options ?? new ExcelXmlTableOptions()).Snapshot();
         using var table = XmlTables.ExcelXmlTableCodec.Read(xml, resolved);
         return InsertXmlTable(table, startRow, startColumn, includeHeaders, resolved, mode);

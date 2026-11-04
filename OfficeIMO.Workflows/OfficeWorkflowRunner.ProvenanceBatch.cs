@@ -9,7 +9,7 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeProvenanceWorkflowBatchOptions? options = null,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
+        ArgumentNullException.ThrowIfNull(requests);
         OfficeProvenanceWorkflowBatchOptions validatedOptions = (options ?? new OfficeProvenanceWorkflowBatchOptions()).CloneAndValidate();
         OfficeProvenanceWorkflowRequest[] materialized = MaterializeBatchRequests(
             requests,

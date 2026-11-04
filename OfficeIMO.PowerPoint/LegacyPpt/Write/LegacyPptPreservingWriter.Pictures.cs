@@ -27,10 +27,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal bool TryPrepareBackground(LegacyPptRecord sourceOwner,
                 LegacyPptWriter.LegacyPptWriterBackground background) {
-                if (sourceOwner == null) throw new ArgumentNullException(
-                    nameof(sourceOwner));
-                if (background == null) throw new ArgumentNullException(
-                    nameof(background));
+                ArgumentNullException.ThrowIfNull(sourceOwner);
+                ArgumentNullException.ThrowIfNull(background);
                 int? sourceStoreIndex = LegacyPptWriter
                     .ReadBackgroundPictureStoreIndex(sourceOwner);
                 if (!sourceStoreIndex.HasValue

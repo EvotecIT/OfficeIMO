@@ -9,7 +9,7 @@ namespace OfficeIMO.Word;
 public partial class WordChart {
     /// <summary>Replaces a point's fill/outline overrides. Null restores series/theme inheritance.</summary>
     public WordChart SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeChartPointStyle? style) {
-        if (seriesIndex < 0) throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
         var chart = _chartPart?.ChartSpace?.GetFirstChild<C.Chart>() ?? _chart;
         var series = chart?.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>()
             .Where(element => element.LocalName == "ser" && element.NamespaceUri == "http://schemas.openxmlformats.org/drawingml/2006/chart")

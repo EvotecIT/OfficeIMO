@@ -9,10 +9,10 @@ public sealed class ContentLineReaderOptions {
     public ContentLineReaderOptions(long maxInputBytes = 16L * 1024L * 1024L,
         int maxUnfoldedLineBytes = 1024 * 1024, int maxComponents = 100000,
         int maxProperties = 1000000, int maxNestingDepth = 32, Encoding? encoding = null) {
-        if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
-        if (maxUnfoldedLineBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxUnfoldedLineBytes));
-        if (maxComponents <= 0) throw new ArgumentOutOfRangeException(nameof(maxComponents));
-        if (maxProperties <= 0) throw new ArgumentOutOfRangeException(nameof(maxProperties));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxInputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxUnfoldedLineBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxComponents);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxProperties);
         if (maxNestingDepth <= 0 || maxNestingDepth > ContentLineComponent.MaximumTraversalDepth)
             throw new ArgumentOutOfRangeException(nameof(maxNestingDepth));
         MaxInputBytes = maxInputBytes;
@@ -45,8 +45,8 @@ public sealed class ContentLineWriterOptions {
     /// <summary>Creates a writer policy.</summary>
     public ContentLineWriterOptions(int foldAtOctets = 75, long maxOutputBytes = 16L * 1024L * 1024L,
         Encoding? encoding = null) {
-        if (foldAtOctets < 4) throw new ArgumentOutOfRangeException(nameof(foldAtOctets));
-        if (maxOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(foldAtOctets, 4);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxOutputBytes);
         FoldAtOctets = foldAtOctets;
         MaxOutputBytes = maxOutputBytes;
         Encoding = encoding ?? new UTF8Encoding(false);

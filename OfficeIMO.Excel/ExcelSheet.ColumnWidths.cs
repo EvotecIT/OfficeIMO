@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// <exception cref="ArgumentNullException">The width map is null.</exception>
         /// <exception cref="ArgumentOutOfRangeException">An index is outside the worksheet or a width is non-positive or non-finite.</exception>
         public void SetColumnWidths(IReadOnlyDictionary<int, ExcelColumnWidth> columnWidths) {
-            if (columnWidths == null) throw new ArgumentNullException(nameof(columnWidths));
+            ArgumentNullException.ThrowIfNull(columnWidths);
             var selected = columnWidths.OrderBy(pair => pair.Key).Select(pair => new KeyValuePair<int, double>(pair.Key, pair.Value.ToCharacters(this))).ToArray();
             foreach (var pair in selected) {
                 if (pair.Key < 1 || pair.Key > ExcelA1.MaxColumns || pair.Value <= 0D

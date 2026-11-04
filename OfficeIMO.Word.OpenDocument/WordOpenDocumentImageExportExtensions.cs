@@ -14,7 +14,7 @@ public static class WordOpenDocumentImageExportExtensions {
         WordImageExportOptions? imageOptions = null,
         WordOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         WordImageExportOptions effective =
             imageOptions?.Clone() ?? new WordImageExportOptions();
         OdfConversionResult<WordDocument> conversion =
@@ -52,8 +52,8 @@ public static class WordOpenDocumentImageExportExtensions {
         WordImageExportOptions? imageOptions = null,
         WordOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(consumer);
         WordImageExportOptions effective =
             imageOptions?.Clone() ?? new WordImageExportOptions();
         OdfConversionResult<WordDocument> conversion =

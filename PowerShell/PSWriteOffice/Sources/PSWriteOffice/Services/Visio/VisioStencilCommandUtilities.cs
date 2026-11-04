@@ -48,15 +48,9 @@ internal static class VisioStencilCommandUtilities
         VisioStencilPackageLoadOptions options,
         bool recursive)
     {
-        if (paths == null)
-        {
-            throw new ArgumentNullException(nameof(paths));
-        }
+        ArgumentNullException.ThrowIfNull(paths);
 
-        if (options == null)
-        {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         var packagePaths = new List<string>();
         var manifestPaths = new List<string>();

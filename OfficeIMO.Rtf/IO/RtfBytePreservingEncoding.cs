@@ -8,13 +8,13 @@ internal static class RtfBytePreservingEncoding {
     }
 
     public static async Task<string> ReadAllTextAsync(string path, CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
         return await ReadToEndAsync(stream, cancellationToken).ConfigureAwait(false);
     }
 
     public static string GetString(byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return FromBytes(bytes);
     }
 
@@ -47,7 +47,7 @@ internal static class RtfBytePreservingEncoding {
     }
 
     public static async Task WriteAllTextAsync(string path, string rtf, CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         byte[] bytes = ToBytes(rtf);
         await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
@@ -58,7 +58,7 @@ internal static class RtfBytePreservingEncoding {
     }
 
     public static async Task WriteToAsync(Stream stream, string rtf, CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         byte[] bytes = ToBytes(rtf);
         await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
@@ -83,7 +83,7 @@ internal static class RtfBytePreservingEncoding {
     }
 
     internal static byte[] ToBytes(string rtf) {
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
+        ArgumentNullException.ThrowIfNull(rtf);
 
         var bytes = new byte[rtf.Length];
         for (int i = 0; i < rtf.Length; i++) {
@@ -99,7 +99,7 @@ internal static class RtfBytePreservingEncoding {
     }
 
     internal static bool CanEncode(string rtf) {
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
+        ArgumentNullException.ThrowIfNull(rtf);
         for (int index = 0; index < rtf.Length; index++) {
             if (rtf[index] > byte.MaxValue) return false;
         }

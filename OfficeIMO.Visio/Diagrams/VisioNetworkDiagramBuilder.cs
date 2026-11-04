@@ -375,9 +375,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports zone records into the network diagram.</summary>
         public VisioNetworkDiagramBuilder Zones(IEnumerable<VisioNetworkZoneRecord> zones) {
-            if (zones == null) {
-                throw new ArgumentNullException(nameof(zones));
-            }
+            ArgumentNullException.ThrowIfNull(zones);
 
             foreach (VisioNetworkZoneRecord zone in zones) {
                 string normalizedId = RequireId(zone.Id, nameof(zones), "Zone id");
@@ -396,9 +394,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports node records into the network diagram.</summary>
         public VisioNetworkDiagramBuilder Nodes(IEnumerable<VisioNetworkNodeRecord> nodes) {
-            if (nodes == null) {
-                throw new ArgumentNullException(nameof(nodes));
-            }
+            ArgumentNullException.ThrowIfNull(nodes);
 
             foreach (VisioNetworkNodeRecord node in nodes) {
                 string normalizedId = RequireId(node.Id, nameof(nodes), "Node id");
@@ -421,9 +417,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports link records into the network diagram.</summary>
         public VisioNetworkDiagramBuilder Links(IEnumerable<VisioNetworkLinkRecord> links) {
-            if (links == null) {
-                throw new ArgumentNullException(nameof(links));
-            }
+            ArgumentNullException.ThrowIfNull(links);
 
             foreach (VisioNetworkLinkRecord link in links) {
                 string normalizedId = RequireId(link.Id, nameof(links), "Link id");
@@ -448,9 +442,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
         /// <summary>Imports callout records into the network diagram.</summary>
         public VisioNetworkDiagramBuilder Callouts(IEnumerable<VisioNetworkCalloutRecord> callouts) {
-            if (callouts == null) {
-                throw new ArgumentNullException(nameof(callouts));
-            }
+            ArgumentNullException.ThrowIfNull(callouts);
 
             foreach (VisioNetworkCalloutRecord callout in callouts) {
                 Action<VisioCalloutOptions>? configure = callout.CreateOptionsConfigurator();

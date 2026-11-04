@@ -21,7 +21,7 @@ internal static class PstTableContextWriter {
         IEnumerable<PstWriterTableRow> sourceRows, int codePage,
         IEnumerable<MapiProperty>? requiredColumns,
         Action<EmailStoreDiagnostic>? reportDiagnostic, string location) {
-        if (file == null) throw new ArgumentNullException(nameof(file));
+        ArgumentNullException.ThrowIfNull(file);
         if (sourceRows == null) sourceRows = Array.Empty<PstWriterTableRow>();
         if (requiredColumns == null) {
             throw new ArgumentNullException(nameof(requiredColumns),

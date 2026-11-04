@@ -13,15 +13,15 @@ public sealed class OfficeImageExportReport : OfficeConversionReport {
 
     /// <summary>Creates an aggregate report from result diagnostics.</summary>
     public OfficeImageExportReport(IEnumerable<OfficeImageExportResult> results) {
-        if (results == null) throw new ArgumentNullException(nameof(results));
+        ArgumentNullException.ThrowIfNull(results);
         OfficeImageExportResult[] snapshot = results.ToArray();
         ResultCount = snapshot.Length;
         _diagnostics = Array.AsReadOnly(snapshot.SelectMany(result => result.Diagnostics).ToArray());
     }
 
     internal OfficeImageExportReport(IEnumerable<OfficeImageExportDiagnostic> diagnostics, int resultCount) {
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
-        if (resultCount < 0) throw new ArgumentOutOfRangeException(nameof(resultCount));
+        ArgumentNullException.ThrowIfNull(diagnostics);
+        ArgumentOutOfRangeException.ThrowIfNegative(resultCount);
         ResultCount = resultCount;
         _diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
@@ -56,7 +56,7 @@ public sealed class OfficeImageExportReport : OfficeConversionReport {
 
     /// <summary>Applies an acceptance policy to this report.</summary>
     public OfficeImageExportReport Require(OfficeImageExportPolicy policy) {
-        if (policy == null) throw new ArgumentNullException(nameof(policy));
+        ArgumentNullException.ThrowIfNull(policy);
         policy.EnsureAccepted(_diagnostics);
         return this;
     }

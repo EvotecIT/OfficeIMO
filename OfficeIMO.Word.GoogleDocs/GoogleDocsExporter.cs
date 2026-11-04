@@ -15,13 +15,13 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         /// <summary>Inspects source features and fidelity risks without contacting Google.</summary>
         public GoogleDocsTranslationPlan BuildPlan(WordDocument document, GoogleDocsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return GoogleDocsPlanBuilder.Build(document, options ?? new GoogleDocsSaveOptions());
         }
 
         /// <summary>Compiles a Word snapshot into provider-neutral Docs requests without contacting Google.</summary>
         public GoogleDocsBatch BuildBatch(WordDocument document, GoogleDocsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return GoogleDocsBatchCompiler.Build(document, options ?? new GoogleDocsSaveOptions());
         }
 
@@ -32,8 +32,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspaceSession session,
             GoogleDocsSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(session);
 
             var effectiveOptions = options ?? new GoogleDocsSaveOptions();
             GoogleDocsBatch batch;

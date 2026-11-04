@@ -13,7 +13,7 @@ public sealed partial class BookProject {
         var result = new List<XElement>();
         foreach (var collection in options.Collections) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (collection == null) throw new ArgumentNullException(nameof(collection));
+            ArgumentNullException.ThrowIfNull(collection);
             var title = BuildOnixCollectionTitle(collection, cancellationToken, out var titleLevels);
             if (collection.SourceName != null || collection.Type == BookOnixCollectionType.Ascribed)
                 RequireOnixText(collection.SourceName!, nameof(collection.SourceName));
@@ -37,14 +37,14 @@ public sealed partial class BookProject {
 
     private static IReadOnlyList<XElement> BuildOnixCollectionIdentifiers(IReadOnlyList<BookOnixCollectionIdentifier> identifiers,
         IReadOnlyCollection<BookOnixCollectionLevel> titleLevels, CancellationToken cancellationToken) {
-        if (identifiers == null) throw new ArgumentNullException(nameof(identifiers));
+        ArgumentNullException.ThrowIfNull(identifiers);
         if (identifiers.Count > 16) throw new ArgumentException("At most 16 collection identifiers are supported.", nameof(identifiers));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         var schemes = new HashSet<(BookOnixCollectionIdentifierType Type, string? Name, BookOnixCollectionLevel? Level)>();
         foreach (var identifier in identifiers) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (identifier == null) throw new ArgumentNullException(nameof(identifier));
+            ArgumentNullException.ThrowIfNull(identifier);
             RequireOnixText(identifier.Value, nameof(identifier.Value));
             bool proprietary = identifier.Type == BookOnixCollectionIdentifierType.Proprietary;
             RequireOnixNamedScheme(proprietary, identifier.SchemeName, nameof(identifier.SchemeName));
@@ -79,14 +79,14 @@ public sealed partial class BookProject {
 
     private static IReadOnlyList<XElement> BuildOnixCollectionSequences(IReadOnlyList<BookOnixCollectionSequence> sequences,
         CancellationToken cancellationToken) {
-        if (sequences == null) throw new ArgumentNullException(nameof(sequences));
+        ArgumentNullException.ThrowIfNull(sequences);
         if (sequences.Count > 16) throw new ArgumentException("At most 16 collection sequences are supported.", nameof(sequences));
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         var kinds = new HashSet<(BookOnixCollectionSequenceType, string?)>();
         foreach (var sequence in sequences) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (sequence == null) throw new ArgumentNullException(nameof(sequence));
+            ArgumentNullException.ThrowIfNull(sequence);
             RequireOnixText(sequence.Number, nameof(sequence.Number));
             if (sequence.Number.Split('.').Any(part => part != "-" && (part.Length == 0 || part.Any(c => c < '0' || c > '9'))))
                 throw new ArgumentException("Collection positions must contain dot-separated ASCII integers or hyphens.", nameof(sequence.Number));

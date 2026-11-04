@@ -14,9 +14,7 @@ namespace OfficeIMO.Word {
 #pragma warning disable RS0026 // Same shape as MarkdownDocument.AddTable(object?, OfficeTableOptions?); a required options parameter would instead break RS0027 for the shipped typed overloads.
         public WordTable AddTable(IEnumerable<object?> items, OfficeTableOptions? options = null) {
 #pragma warning restore RS0026
-            if (items == null) {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             ObjectDataHelpers.ValidateTableAlignments(options);
             var list = items.ToList();

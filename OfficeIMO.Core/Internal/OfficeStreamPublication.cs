@@ -21,10 +21,10 @@ namespace OfficeIMO.Core.Internal {
             string? expectedFingerprint,
             long maximumBytes,
             CancellationToken cancellationToken) {
-            if (openRead == null) throw new ArgumentNullException(nameof(openRead));
-            if (openWrite == null) throw new ArgumentNullException(nameof(openWrite));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentNullException.ThrowIfNull(openRead);
+            ArgumentNullException.ThrowIfNull(openWrite);
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 1);
             if (bytes.LongLength > maximumBytes) throw new InvalidDataException("The output exceeds the configured size limit.");
             cancellationToken.ThrowIfCancellationRequested();
             if (expectedFingerprint != null) {
@@ -56,8 +56,8 @@ namespace OfficeIMO.Core.Internal {
 
         internal static async Task<string> ReadFingerprintAsync(
             Func<CancellationToken, Task<Stream>> openRead, long maximumBytes, CancellationToken cancellationToken) {
-            if (openRead == null) throw new ArgumentNullException(nameof(openRead));
-            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentNullException.ThrowIfNull(openRead);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
             using (Stream source = await openRead(cancellationToken).ConfigureAwait(false))
             using (SHA256 hash = SHA256.Create()) {

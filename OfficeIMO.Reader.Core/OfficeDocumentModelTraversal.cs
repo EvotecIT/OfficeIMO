@@ -50,7 +50,7 @@ internal static partial class OfficeDocumentModelTraversal {
         IEnumerable<OfficeDocumentBlock> candidates,
         Func<OfficeDocumentBlock, ReaderLocation?> locationSelector,
         IEnumerable<OfficeDocumentPage>? pages = null) {
-        if (locationSelector == null) throw new ArgumentNullException(nameof(locationSelector));
+        ArgumentNullException.ThrowIfNull(locationSelector);
         var seen = new HashSet<OfficeDocumentBlock>(ReferenceIdentityComparer<OfficeDocumentBlock>.Instance);
         var identities = new HashSet<string>(StringComparer.Ordinal);
         var ordered = new List<OfficeDocumentBlock>();

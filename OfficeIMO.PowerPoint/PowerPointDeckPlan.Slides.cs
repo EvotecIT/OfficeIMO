@@ -117,9 +117,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private protected static IReadOnlyList<T> Materialize<T>(IEnumerable<T> values, string name) {
-            if (values == null) {
-                throw new ArgumentNullException(name);
-            }
+            ArgumentNullException.ThrowIfNull(values, name);
 
             List<T> list = values.Where(value => value != null).ToList();
             if (list.Count == 0) {

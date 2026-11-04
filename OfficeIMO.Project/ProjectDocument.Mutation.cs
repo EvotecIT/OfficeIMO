@@ -2,7 +2,7 @@ namespace OfficeIMO.Project;
 
 public sealed partial class ProjectDocument {
     internal ProjectTask AddTask(ProjectTaskCollection collection, string name, bool summary) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         EnsureMutable(); CheckMember(collection.Parent);
         if (collection.Parent?.Uid == 0) throw new InvalidOperationException("The reserved project summary cannot own outline tasks. Add tasks to the document root collection.");
         var task = new ProjectTask(this, NextTaskUid()) { Name = name, Parent = collection.Parent, SourceSummary = summary };

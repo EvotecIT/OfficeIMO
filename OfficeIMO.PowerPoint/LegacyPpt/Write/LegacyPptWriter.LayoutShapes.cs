@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         internal static IReadOnlyList<PowerPointShape> ReadSlideShapesForWrite(
             PowerPointSlide slide, out string? unsupportedReason) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             unsupportedReason = null;
             PowerPointShape[] slideShapes = slide.Shapes.ToArray();
             if (!ShowsLayoutShapes(slide.SlidePart.Slide)) {
@@ -47,7 +47,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static IReadOnlyList<PowerPointShape>
             FlattenShapeTreeForWrite(IEnumerable<PowerPointShape> shapes,
                 int depth, out string? unsupportedReason) {
-            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            ArgumentNullException.ThrowIfNull(shapes);
             var result = new List<PowerPointShape>();
             unsupportedReason = null;
             foreach (PowerPointShape shape in shapes) {
@@ -79,7 +79,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static IReadOnlyList<PowerPointShape>
             ReadGroupChildrenForWrite(PowerPointGroupShape group,
                 out string? unsupportedReason) {
-            if (group == null) throw new ArgumentNullException(nameof(group));
+            ArgumentNullException.ThrowIfNull(group);
             unsupportedReason = null;
             if (group.OwnerPart == null) {
                 unsupportedReason = "The group shape has no owning package part for its nested content.";
@@ -147,7 +147,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool FollowsMasterObjects(PowerPointSlide slide,
             bool layoutIsIndependentMaster = false) {
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            ArgumentNullException.ThrowIfNull(slide);
             return slide.SlidePart.Slide?.ShowMasterShapes?.Value != false
                 && (layoutIsIndependentMaster
                     || slide.SlidePart.SlideLayoutPart?.SlideLayout?

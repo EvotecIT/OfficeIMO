@@ -45,7 +45,7 @@ public readonly struct OfficeLength : IEquatable<OfficeLength>, IComparable<Offi
 
     /// <summary>Parses an invariant number and optional pt, cm, mm, in, px or emu suffix. A bare number means points.</summary>
     public static OfficeLength Parse(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         if (TryParse(value, out OfficeLength result)) return result;
         throw new FormatException("Expected an invariant length such as 12pt, 2.5cm or 914400emu within the EMU range.");
     }

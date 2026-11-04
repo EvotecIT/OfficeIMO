@@ -201,7 +201,7 @@ namespace OfficeIMO.Access {
         /// <summary>Requests native stream output. The caller's position, length and ownership remain unchanged on unsupported output.</summary>
         public void Save(Stream stream, AccessSaveOptions? options = null, CancellationToken cancellationToken = default) {
             EnsureSaveAllowed();
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             AssessSave(options, cancellationToken).ThrowIfLoss();
             ValidateSourceIdentity(cancellationToken); cancellationToken.ThrowIfCancellationRequested();
             if (Inspection != null && _vbaMutation == null) OfficeStreamWriter.WriteAllBytes(stream, NativeDatabase!.Snapshot());

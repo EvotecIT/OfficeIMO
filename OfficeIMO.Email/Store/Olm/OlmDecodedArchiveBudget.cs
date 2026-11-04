@@ -7,12 +7,12 @@ internal sealed class OlmDecodedArchiveBudget {
     private long _decodedBytes;
 
     internal OlmDecodedArchiveBudget(long maximumBytes) {
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumBytes = maximumBytes;
     }
 
     internal void Add(long bytes) {
-        if (bytes < 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(bytes);
         if (bytes == 0) return;
         lock (_gate) {
             if (bytes > _maximumBytes - _decodedBytes) {
@@ -39,7 +39,7 @@ internal sealed class OlmDecodedEntryStream : Stream {
     internal OlmDecodedEntryStream(Stream inner, long maximumBytes,
         string limitName, OlmDecodedArchiveBudget aggregateBudget) {
         _inner = inner ?? throw new ArgumentNullException(nameof(inner));
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumBytes = maximumBytes;
         _limitName = limitName ?? throw new ArgumentNullException(nameof(limitName));
         _aggregateBudget = aggregateBudget ?? throw new ArgumentNullException(nameof(aggregateBudget));

@@ -8,7 +8,7 @@ namespace PSWriteOffice.Foundation;
 public static class OfficeSwitch {
     /// <summary>Returns null for an unbound switch, otherwise its explicit boolean value.</summary>
     public static bool? Get(IDictionary<string, object> boundParameters, string name) {
-        if (boundParameters == null) throw new ArgumentNullException(nameof(boundParameters));
+        ArgumentNullException.ThrowIfNull(boundParameters);
         if (!boundParameters.TryGetValue(name, out object? value)) return null;
         return LanguagePrimitives.IsTrue(value);
     }

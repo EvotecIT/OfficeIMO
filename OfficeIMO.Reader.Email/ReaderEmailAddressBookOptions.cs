@@ -23,7 +23,7 @@ public sealed class ReaderEmailAddressBookOptions {
     public int MaxEntries {
         get => _maxEntries;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxEntries = value;
         }
     }
@@ -41,7 +41,7 @@ public sealed class ReaderEmailAddressBookOptions {
     public int MaxMultiValueItems {
         get => _maxMultiValueItems;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxMultiValueItems = value;
         }
     }

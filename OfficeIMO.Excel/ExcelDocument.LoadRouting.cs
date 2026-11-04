@@ -14,9 +14,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath) {
-            if (bytes == null) {
-                throw new ArgumentNullException(nameof(bytes));
-            }
+            ArgumentNullException.ThrowIfNull(bytes);
 
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
                 return RouteCompoundDocument(bytes, encryptedLoad: false, filePath)

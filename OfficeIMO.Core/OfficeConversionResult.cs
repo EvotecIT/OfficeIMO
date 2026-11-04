@@ -7,7 +7,7 @@ namespace OfficeIMO;
 public class OfficeConversionResult<T> {
     /// <summary>Creates a result containing a non-null converted value and its report.</summary>
     public OfficeConversionResult(T value, OfficeConversionReport report) {
-        if (value is null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         Value = value;
         Report = report ?? throw new ArgumentNullException(nameof(report));
     }

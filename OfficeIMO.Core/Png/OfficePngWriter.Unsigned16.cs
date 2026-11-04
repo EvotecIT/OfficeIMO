@@ -12,9 +12,9 @@ public static partial class OfficePngWriter {
     /// The 8-bit OfficeRasterImage model cannot retain 16-bit source precision.</remarks>
     public static byte[] EncodeRgba64(int width, int height, ushort[] rgba,
         OfficePngEncodeOptions? options = null, CancellationToken cancellationToken = default) {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        if (rgba == null) throw new ArgumentNullException(nameof(rgba));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
+        ArgumentNullException.ThrowIfNull(rgba);
         if (rgba.LongLength != checked((long)width * height * 4)) throw new ArgumentException("RGBA sample count must match the dimensions.", nameof(rgba));
         options ??= new OfficePngEncodeOptions();
         ValidatePngEffort(options.Effort);

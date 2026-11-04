@@ -10,9 +10,9 @@ public sealed partial class ProjectDocument {
     public ProjectTask AddRecurringTask(string name, IEnumerable<DateTime> occurrenceStarts, ProjectDuration duration,
         ProjectTask? parent = null, ProjectCalendar? calendar = null, int maxOccurrences = 10000,
         CancellationToken cancellationToken = default) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
-        if (occurrenceStarts == null) throw new ArgumentNullException(nameof(occurrenceStarts));
-        if (duration.Value < 0) throw new ArgumentOutOfRangeException(nameof(duration));
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(occurrenceStarts);
+        ArgumentOutOfRangeException.ThrowIfLessThan(duration.Value, 0m, nameof(duration));
         if (maxOccurrences < 1 || maxOccurrences > 100000) throw new ArgumentOutOfRangeException(nameof(maxOccurrences));
         EnsureMutable(); CheckMember(parent); CheckMember(calendar);
         if (parent?.Uid == 0) throw new ArgumentException("The reserved project summary cannot own outline tasks.", nameof(parent));

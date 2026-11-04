@@ -70,8 +70,8 @@ namespace OfficeIMO.Word {
             WordComparisonOptions? options = null,
             string sourceLabel = "source",
             string targetLabel = "target") {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(target);
             return CompareStructureCore(source, target, sourceLabel, targetLabel, options);
         }
 

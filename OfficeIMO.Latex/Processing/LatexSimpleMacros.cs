@@ -104,12 +104,12 @@ public static class LatexSimpleMacroExpander {
         int maximumInputLength,
         int maximumTokenCount,
         IEnumerable<string>? verbatimEnvironmentNames) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
-        if (definitions == null) throw new ArgumentNullException(nameof(definitions));
-        if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
-        if (maximumOutputLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumOutputLength));
-        if (maximumInputLength < 1) throw new ArgumentOutOfRangeException(nameof(maximumInputLength));
-        if (maximumTokenCount < 1) throw new ArgumentOutOfRangeException(nameof(maximumTokenCount));
+        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(definitions);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumOutputLength, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumInputLength, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumTokenCount, 1);
         if (value.Length > maximumInputLength) {
             throw new ArgumentException("Simple macro expansion input exceeds maximumInputLength.", nameof(value));
         }

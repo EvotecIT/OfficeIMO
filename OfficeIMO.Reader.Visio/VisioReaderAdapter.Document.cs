@@ -8,7 +8,7 @@ internal static partial class VisioReaderAdapter {
     /// Reads a Visio file and returns the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(string visioPath, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
-        if (visioPath == null) throw new ArgumentNullException(nameof(visioPath));
+        ArgumentNullException.ThrowIfNull(visioPath);
         if (visioPath.Length == 0) throw new ArgumentException("Visio path cannot be empty.", nameof(visioPath));
         if (!File.Exists(visioPath)) throw new FileNotFoundException($"Visio file '{visioPath}' doesn't exist.", visioPath);
 
@@ -24,7 +24,7 @@ internal static partial class VisioReaderAdapter {
     /// Reads a Visio stream and returns the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(Stream visioStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
-        if (visioStream == null) throw new ArgumentNullException(nameof(visioStream));
+        ArgumentNullException.ThrowIfNull(visioStream);
         if (!visioStream.CanRead) throw new ArgumentException("Visio stream must be readable.", nameof(visioStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -55,7 +55,7 @@ internal static partial class VisioReaderAdapter {
     /// Converts an already loaded Visio document into the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadDocument(VisioDocument document, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderVisioOptions? visioOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveVisioOptions = ReaderVisioOptionsCloner.CloneOrDefault(visioOptions);

@@ -11,9 +11,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="selection">Selection to inspect.</param>
         public static VisioShapeBounds GetShapeBounds(this VisioShapeSelection selection) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             return ((IEnumerable<VisioShape>)selection).GetShapeBounds();
         }
@@ -24,9 +22,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Selection to align.</param>
         /// <param name="alignment">Horizontal alignment.</param>
         public static VisioShapeSelection Align(this VisioShapeSelection selection, VisioHorizontalAlignment alignment) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             VisioShapeBounds bounds = selection.GetShapeBounds();
             if (bounds.IsEmpty) {
@@ -53,9 +49,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Selection to align.</param>
         /// <param name="alignment">Vertical alignment.</param>
         public static VisioShapeSelection Align(this VisioShapeSelection selection, VisioVerticalAlignment alignment) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             VisioShapeBounds bounds = selection.GetShapeBounds();
             if (bounds.IsEmpty) {
@@ -82,9 +76,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Selection to distribute.</param>
         /// <param name="axis">Distribution axis.</param>
         public static VisioShapeSelection Distribute(this VisioShapeSelection selection, VisioDistributionAxis axis) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             List<VisioShape> unique = selection.Distinct().ToList();
             if (unique.Count < 3) {
@@ -147,9 +139,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Selection to relayout.</param>
         /// <param name="options">Layout options.</param>
         public static VisioShapeSelection RelayoutAsGrid(this VisioShapeSelection selection, VisioSelectionLayoutOptions? options) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             VisioSelectionLayoutOptions effectiveOptions = options ?? new VisioSelectionLayoutOptions();
             ValidateSelectionLayoutOptions(effectiveOptions);
@@ -209,9 +199,7 @@ namespace OfficeIMO.Visio {
         /// <param name="spacing">Horizontal spacing between shapes in inches.</param>
         /// <param name="routeInternalConnectors">Whether connectors whose endpoints are both selected should be rerouted orthogonally.</param>
         public static VisioShapeSelection RelayoutAsHorizontalStack(this VisioShapeSelection selection, double spacing = 0.5D, bool routeInternalConnectors = true) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             return selection.RelayoutAsGrid(selection.Count, spacing, 0D, routeInternalConnectors);
         }

@@ -41,7 +41,7 @@ public static partial class LegacyWordImporter {
 
     /// <summary>Detects a legacy-word source from bytes.</summary>
     public static LegacyWordDetection Detect(byte[] data, LegacyWordImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         LegacyWordImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy word input exceeds the configured byte limit.");
         cancellationToken.ThrowIfCancellationRequested();
@@ -64,7 +64,7 @@ public static partial class LegacyWordImporter {
 
     /// <summary>Imports legacy-word bytes into a normal editable <see cref="WordDocument"/>.</summary>
     public static LegacyWordImportResult Import(byte[] data, LegacyWordImportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         LegacyWordImportOptions effective = Prepare(options, options?.SourceName);
         if (data.Length > effective.Limits.MaxInputBytes) throw new InvalidDataException("Legacy word input exceeds the configured byte limit.");
         (ILegacyWordAdapter adapter, LegacyWordDetection detection) = SelectAdapter(data, effective, cancellationToken);

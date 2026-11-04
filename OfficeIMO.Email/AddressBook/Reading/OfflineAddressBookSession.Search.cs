@@ -11,7 +11,7 @@ public sealed partial class OfflineAddressBookSession {
         OfflineAddressBookSearchQuery query,
         IProgress<OfflineAddressBookSearchProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (query == null) throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
         ThrowIfDisposed();
         string durableSourceFingerprint = GetDurableSourceFingerprint(cancellationToken);
         query.ResumeFrom?.Validate(durableSourceFingerprint, query.Signature);

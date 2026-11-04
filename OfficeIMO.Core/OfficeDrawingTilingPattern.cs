@@ -37,14 +37,14 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
         double originY = 0D,
         int maximumTileCount = 16384,
         double opacity = 1D) {
-        if (tile == null) throw new ArgumentNullException(nameof(tile));
+        ArgumentNullException.ThrowIfNull(tile);
         if (tile.Width <= 0D || tile.Height <= 0D) throw new ArgumentException("Pattern tile dimensions must be positive.", nameof(tile));
         if (area.Width <= 0D || area.Height <= 0D) throw new ArgumentOutOfRangeException(nameof(area), "Pattern area dimensions must be positive.");
         HorizontalStep = ValidateStep(horizontalStep, nameof(horizontalStep));
         VerticalStep = ValidateStep(verticalStep, nameof(verticalStep));
         EnsureFinite(originX, nameof(originX));
         EnsureFinite(originY, nameof(originY));
-        if (maximumTileCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTileCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumTileCount);
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) throw new ArgumentOutOfRangeException(nameof(opacity));
 
         Transform = transform ?? OfficeTransform.Identity;
@@ -99,7 +99,7 @@ public sealed class OfficeDrawingTilingPattern : OfficeDrawingElement {
     public IReadOnlyList<OfficeTransform> GetTileTransforms() => GetTileTransforms(MaximumTileCount);
 
     internal IReadOnlyList<OfficeTransform> GetTileTransforms(int maximumTileCount) {
-        if (maximumTileCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTileCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumTileCount);
         Transform.TryInvert(out OfficeTransform inverse);
         OfficePoint topLeft = inverse.TransformPoint(new OfficePoint(Area.X, Area.Y));
         OfficePoint topRight = inverse.TransformPoint(new OfficePoint(Area.X + Area.Width, Area.Y));

@@ -83,7 +83,7 @@ public sealed partial class HtmlSiteBundle {
     /// Any explicitly supplied resolver remains the fallback, subject to the renderer's URL and byte limits.
     /// PDF callers use the owning PDF adapter so its embedded-package policy also applies.</summary>
     public HtmlRenderRequest CreateRenderRequest(HtmlRenderRequest request) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Encoder == HtmlRenderEncoder.Pdf) {
             throw new ArgumentException("Use the site-bundle PDF adapter for the Pdf encoder.", nameof(request));
         }

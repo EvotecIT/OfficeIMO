@@ -31,12 +31,12 @@ public sealed class OpmlLoadOptions {
     public int MaxAttributes { get; set; } = 500_000;
 
     internal void Validate() {
-        if (MaxInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-        if (MaxCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaxCharacters));
-        if (MaxDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxDepth));
-        if (MaxElements < 1) throw new ArgumentOutOfRangeException(nameof(MaxElements));
-        if (MaxOutlines < 1) throw new ArgumentOutOfRangeException(nameof(MaxOutlines));
-        if (MaxAttributes < 1) throw new ArgumentOutOfRangeException(nameof(MaxAttributes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxInputBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxCharacters, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxDepth, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxElements, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxOutlines, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxAttributes, 1);
     }
 }
 
@@ -54,7 +54,7 @@ public sealed class OpmlValidationOptions {
     public int MaxDetailedDiagnosticsPerCode { get; set; } = 100;
 
     internal void Validate() {
-        if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxDetailedDiagnosticsPerCode, 1);
     }
 }
 
@@ -70,8 +70,8 @@ public sealed class OpmlConversionOptions {
     internal void Validate() {
         if (MaxStructureDepth < 1 || MaxStructureDepth > OfficeDocumentModelStructureTraversal.MaximumSupportedDepth)
             throw new ArgumentOutOfRangeException(nameof(MaxStructureDepth));
-        if (MaxStructureNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxStructureNodes));
-        if (MaxDetailedDiagnosticsPerCode < 1) throw new ArgumentOutOfRangeException(nameof(MaxDetailedDiagnosticsPerCode));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxStructureNodes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxDetailedDiagnosticsPerCode, 1);
     }
 }
 

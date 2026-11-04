@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(2743200L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(1828800L)).ToEmus();
-            if (storage == null) throw new ArgumentNullException(nameof(storage));
+            ArgumentNullException.ThrowIfNull(storage);
             if (!storage.CanRead) {
                 throw new ArgumentException(
                     "OLE storage stream must be readable.", nameof(storage));
@@ -28,8 +28,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     "An OLE ProgID is required.", nameof(progId));
             }
-            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
             if (string.IsNullOrWhiteSpace(contentType)) {
                 throw new ArgumentException(
                     "An embedded-part content type is required.",
@@ -114,11 +114,11 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? OfficeLength.Emus(0L)).ToEmus();
             long nativeWidth = (width ?? OfficeLength.Emus(2743200L)).ToEmus();
             long nativeHeight = (height ?? OfficeLength.Emus(1828800L)).ToEmus();
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (!source.IsAbsoluteUri) throw new ArgumentException("A linked OLE URI must be absolute.", nameof(source));
             if (string.IsNullOrWhiteSpace(progId)) throw new ArgumentException("An OLE ProgID is required.", nameof(progId));
-            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
 
             uint shapeId = AllocateShapeIds(2);
             uint previewShapeId = shapeId + 1U;

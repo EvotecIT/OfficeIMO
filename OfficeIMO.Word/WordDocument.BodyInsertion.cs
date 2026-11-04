@@ -8,9 +8,7 @@ namespace OfficeIMO.Word {
         private OpenXmlElement? _lastAppendedBodyBlock;
 
         internal void AppendBlockToBody(OpenXmlElement element) {
-            if (element == null) {
-                throw new ArgumentNullException(nameof(element));
-            }
+            ArgumentNullException.ThrowIfNull(element);
 
             if (element.Parent != null) {
                 element.Remove();

@@ -16,8 +16,8 @@ internal static partial class OneNoteSemanticMapper {
     }
 
     internal static OneNoteListInfo MapListInfo(OneNoteRevisionStoreObject listNode, int level) {
-        if (listNode == null) throw new ArgumentNullException(nameof(listNode));
-        if (level < 0) throw new ArgumentOutOfRangeException(nameof(level));
+        ArgumentNullException.ThrowIfNull(listNode);
+        ArgumentOutOfRangeException.ThrowIfNegative(level);
 
         string format = ReadNumberListFormat(listNode);
         int marker = format.IndexOf('\uFFFD');

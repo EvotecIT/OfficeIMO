@@ -357,8 +357,8 @@ namespace OfficeIMO.Word {
         /// <param name="table">Table instance to insert.</param>
         /// <returns>The inserted <see cref="WordTable"/>.</returns>
         public WordTable InsertTableAfter(WordParagraph anchor, WordTable table) {
-            if (anchor is null) throw new ArgumentNullException(nameof(anchor));
-            if (table is null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(anchor);
+            ArgumentNullException.ThrowIfNull(table);
 
             anchor._paragraph.InsertAfterSelf(table._table);
             return table;
@@ -377,9 +377,8 @@ namespace OfficeIMO.Word {
 
             var body = _document.Body ?? throw new InvalidOperationException("Document body is missing.");
             var paragraphs = body.Elements<Paragraph>().ToList();
-            if (index < 0 || index > paragraphs.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(index, paragraphs.Count);
 
             if (index == paragraphs.Count) {
                 var sectPr = body.Elements<SectionProperties>().FirstOrDefault();
@@ -604,9 +603,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="index">Zero based index of the section to remove.</param>
         public void RemoveSection(int index) {
-            if (index < 0 || index >= this.Sections.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, this.Sections.Count);
 
             this.Sections[index].RemoveSection();
         }
@@ -617,9 +615,8 @@ namespace OfficeIMO.Word {
         /// <param name="index">Zero based index of the section to clone.</param>
         /// <returns>The cloned <see cref="WordSection"/>.</returns>
         public WordSection CloneSection(int index) {
-            if (index < 0 || index >= this.Sections.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, this.Sections.Count);
 
             return this.Sections[index].CloneSection();
         }

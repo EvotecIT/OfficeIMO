@@ -81,7 +81,7 @@ public static partial class EmailImageExportExtensions {
 
     private static OfficeImageExportOperation<EmailImageExportOptions> CreateImageExportOperation(
         EmailDocument document, EmailImageExportOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportOperation<EmailImageExportOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => document.ExportImage(encoding, effective, effective.PageIndex),
             exportWithCancellation: (encoding, effective, token) => document.ExportImage(encoding, effective, effective.PageIndex, token),

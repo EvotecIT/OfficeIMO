@@ -37,7 +37,7 @@ public sealed class EmailStoreEmlxWriter {
 
     /// <summary>Atomically writes one EMLX file using a bounded, owner-only staging file.</summary>
     public EmailWriteResult Write(EmailDocument document, string filePath) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         using EmlxArtifact artifact = Stage(document);
         if (!artifact.Result.HasErrors) OfficeFileCommit.Write(filePath, artifact.CopyTo);
         return artifact.Result;
@@ -45,7 +45,7 @@ public sealed class EmailStoreEmlxWriter {
 
     /// <summary>Writes one EMLX artifact to a caller-owned stream without closing it.</summary>
     public EmailWriteResult Write(EmailDocument document, Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         using EmlxArtifact artifact = Stage(document);
         if (!artifact.Result.HasErrors) OfficeStreamWriter.Write(stream, artifact.CopyTo);
@@ -55,7 +55,7 @@ public sealed class EmailStoreEmlxWriter {
     /// <summary>Asynchronously stages message and attachment I/O and atomically writes one EMLX file.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailDocument document, string filePath,
         CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         using EmlxArtifact artifact = await StageAsync(document, cancellationToken).ConfigureAwait(false);
         if (!artifact.Result.HasErrors) {
             await OfficeFileCommit.WriteAsync(filePath, artifact.CopyToAsync,
@@ -67,7 +67,7 @@ public sealed class EmailStoreEmlxWriter {
     /// <summary>Asynchronously writes to a caller-owned stream without closing it.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailDocument document, Stream stream,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         using EmlxArtifact artifact = await StageAsync(document, cancellationToken).ConfigureAwait(false);
         if (!artifact.Result.HasErrors) {
@@ -146,7 +146,7 @@ public sealed class EmailStoreEmlxWriter {
                 EmailArtifactSourceSelection.None, EmailConversionLossDisposition.Blocked, EmailAttachmentContentLifetime.NotAccessed));
 
     private byte[] PrepareMetadata(EmailDocument document, out List<EmailDiagnostic> diagnostics, out bool addSeparator) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         diagnostics = new List<EmailDiagnostic>();
         addSeparator = true;
         bool hasMetadata = document.Properties.ContainsKey("Emlx:RawMetadata") || document.Properties.ContainsKey("Emlx:Metadata") ||

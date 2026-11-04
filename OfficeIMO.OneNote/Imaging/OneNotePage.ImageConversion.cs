@@ -81,7 +81,7 @@ public static partial class OneNoteImageExportExtensions {
 
     private static OfficeImageExportOperation<OneNotePageRenderingOptions> CreateImageExportOperation(
         OneNotePage document, OneNotePageRenderingOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportOperation<OneNotePageRenderingOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => OneNotePageImageRenderer.Render(document, encoding, effective),
             exportWithCancellation: (encoding, effective, token) => OneNotePageImageRenderer.Render(document, encoding, effective, cancellationToken: token));

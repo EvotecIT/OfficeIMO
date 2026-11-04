@@ -34,7 +34,7 @@ namespace OfficeIMO.Excel {
             bool autoFilter = true,
             bool freezeHeaderRow = true,
             Action<ExcelTableVisualOptions>? visuals = null) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
 
             if (table.Rows.Count == 0) {
                 if (!string.IsNullOrWhiteSpace(title)) Section(title!);

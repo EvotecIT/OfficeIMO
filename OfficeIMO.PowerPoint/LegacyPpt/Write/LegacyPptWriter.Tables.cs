@@ -11,10 +11,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterFontCatalog fonts,
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out string? reason) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (fonts == null) throw new ArgumentNullException(nameof(fonts));
-            if (pictureBullets == null) throw new ArgumentNullException(
-                nameof(pictureBullets));
+            ArgumentNullException.ThrowIfNull(table);
+            ArgumentNullException.ThrowIfNull(fonts);
+            ArgumentNullException.ThrowIfNull(pictureBullets);
             if (table.Rows <= 0 || table.Columns <= 0
                 || table.Width.ToEmus() <= 0L || table.Height.ToEmus() <= 0L) {
                 reason = "A native binary table requires positive bounds, rows, and columns.";

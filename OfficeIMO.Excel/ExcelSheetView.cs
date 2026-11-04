@@ -18,8 +18,8 @@ namespace OfficeIMO.Excel {
         /// <param name="topRows">Number of rows at the top to freeze.</param>
         /// <param name="leftColumns">Number of columns on the left to freeze.</param>
         public ExcelSheetView Freeze(int topRows = 0, int leftColumns = 0) {
-            if (topRows < 0) throw new ArgumentOutOfRangeException(nameof(topRows));
-            if (leftColumns < 0) throw new ArgumentOutOfRangeException(nameof(leftColumns));
+            ArgumentOutOfRangeException.ThrowIfNegative(topRows);
+            ArgumentOutOfRangeException.ThrowIfNegative(leftColumns);
             _sheet.FreezeCore(topRows, leftColumns);
             return this;
         }

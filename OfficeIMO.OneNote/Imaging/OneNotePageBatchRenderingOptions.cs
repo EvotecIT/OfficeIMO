@@ -20,7 +20,7 @@ public sealed class OneNotePageBatchRenderingOptions : OneNotePageRenderingOptio
 
     internal void ValidateBatch() {
         Validate();
-        if (PageIndex < 0) throw new ArgumentOutOfRangeException(nameof(PageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(PageIndex);
         if (PageCount.HasValue && PageCount.Value < 1) throw new ArgumentOutOfRangeException(nameof(PageCount));
     }
 }

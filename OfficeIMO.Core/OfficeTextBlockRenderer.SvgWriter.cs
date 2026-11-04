@@ -78,13 +78,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle underlineStyle = OfficeTextDecorationStyle.None,
         OfficeTextDecorationStyle strikethroughStyle = OfficeTextDecorationStyle.None,
         OfficeTextBaseline baseline = OfficeTextBaseline.Normal) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
-        if (layout == null) {
-            throw new ArgumentNullException(nameof(layout));
-        }
+        ArgumentNullException.ThrowIfNull(layout);
 
         if (layout.Lines.Count == 0 || color.A == 0 || width <= 0D || height <= 0D) {
             return;

@@ -70,7 +70,7 @@ public sealed class AsciiDocElementAttributes {
 
     /// <summary>Gets the last named value using case-insensitive lookup.</summary>
     public string? GetNamedValue(string name) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         for (int index = Entries.Count - 1; index >= 0; index--) {
             AsciiDocElementAttribute entry = Entries[index];
             if (entry.Kind == AsciiDocElementAttributeKind.Named && string.Equals(entry.Name, name, StringComparison.OrdinalIgnoreCase)) {

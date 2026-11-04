@@ -136,7 +136,7 @@ internal static class OutlookUserPropertyDefinitionCodec {
 
     private static byte[] EncodeDefinition(string name, OutlookUserPropertyType fieldType, ushort version,
         int codePage) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         if (name.Length == 0) throw new ArgumentException("A user property requires a name.", nameof(name));
         if (name.Length > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(name));
         if (!CanCreate(fieldType)) {

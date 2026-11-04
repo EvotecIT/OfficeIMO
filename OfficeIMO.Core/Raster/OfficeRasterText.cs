@@ -15,7 +15,7 @@ public static class OfficeRasterText {
     /// <param name="options">Shared text and effect settings used by drawing.</param>
     /// <returns>Additional bytes to retain in a composed operation's working-set budget.</returns>
     public static long EstimateAdditionalWorkingBytes(int width, int height, OfficeRasterTextOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         OfficeRasterTextOptions settings = options.Clone();
         settings.Validate();
         return CalculateAdditionalWorkingBytes(width, height, settings);
@@ -33,7 +33,7 @@ public static class OfficeRasterText {
     /// <param name="cancellationToken">Observes cancellation during measurement and layout.</param>
     public static OfficeTextBlockLayout Measure(string? text, OfficeRasterTextOptions options,
         double? wrapWidth = null, CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterTextOptions settings = options.Clone();
         settings.Validate();
@@ -55,10 +55,8 @@ public static class OfficeRasterText {
     /// Cancellation can leave painted pixels.</remarks>
     public static void Draw(OfficeRasterImage target, string? text, double x, double y, double width, double height, OfficeColor color,
         OfficeRasterTextOptions options, CancellationToken cancellationToken = default) {
-        if (target == null) {
-            throw new ArgumentNullException(nameof(target));
-        }
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(target);
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeRasterTextOptions settings = options.Clone();
         settings.Validate();

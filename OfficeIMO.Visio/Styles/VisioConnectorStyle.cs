@@ -53,9 +53,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Applies this style to a connector.</summary>
         /// <param name="connector">Connector to update.</param>
         public void ApplyTo(VisioConnector connector) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             connector.LineColor = LineColor;
             connector.LineWeight = LineWeight;

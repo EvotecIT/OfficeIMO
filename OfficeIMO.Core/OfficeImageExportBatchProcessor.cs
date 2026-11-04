@@ -19,9 +19,9 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken = default,
         int? expectedOutputCount = null) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (producer == null) throw new ArgumentNullException(nameof(producer));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(producer);
+        ArgumentNullException.ThrowIfNull(consumer);
         options.ValidateImageExportOptions();
         ValidateExpectedOutputCount(options, expectedOutputCount);
         cancellationToken.ThrowIfCancellationRequested();
@@ -47,10 +47,10 @@ internal static class OfficeImageExportBatchProcessor {
         Action<OfficeImageExportConsumer, CancellationToken> producer,
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (resolveExpectedOutputCount == null) throw new ArgumentNullException(nameof(resolveExpectedOutputCount));
-        if (producer == null) throw new ArgumentNullException(nameof(producer));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(resolveExpectedOutputCount);
+        ArgumentNullException.ThrowIfNull(producer);
+        ArgumentNullException.ThrowIfNull(consumer);
         options.ValidateImageExportOptions();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -79,9 +79,9 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportAsyncConsumer consumer,
         CancellationToken cancellationToken = default,
         int? expectedOutputCount = null) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (producer == null) throw new ArgumentNullException(nameof(producer));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(producer);
+        ArgumentNullException.ThrowIfNull(consumer);
         options.ValidateImageExportOptions();
         ValidateExpectedOutputCount(options, expectedOutputCount);
         cancellationToken.ThrowIfCancellationRequested();
@@ -112,10 +112,10 @@ internal static class OfficeImageExportBatchProcessor {
         Func<OfficeImageExportAsyncConsumer, CancellationToken, Task> producer,
         OfficeImageExportAsyncConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (resolveExpectedOutputCount == null) throw new ArgumentNullException(nameof(resolveExpectedOutputCount));
-        if (producer == null) throw new ArgumentNullException(nameof(producer));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(resolveExpectedOutputCount);
+        ArgumentNullException.ThrowIfNull(producer);
+        ArgumentNullException.ThrowIfNull(consumer);
         options.ValidateImageExportOptions();
         cancellationToken.ThrowIfCancellationRequested();
 
@@ -146,8 +146,8 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportOptions options,
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(consumer);
         options.ValidateImageExportOptions();
         return CreateGuardedConsumerCore(options, consumer, cancellationToken, expectedOutputCount: null);
     }
@@ -161,8 +161,8 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportOptions options,
         OfficeImageExportAsyncConsumer consumer,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(consumer);
         options.ValidateImageExportOptions();
         return CreateGuardedAsyncConsumerCore(options, consumer, cancellationToken, expectedOutputCount: null);
     }
@@ -178,10 +178,10 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportConsumer consumer,
         CancellationToken cancellationToken = default,
         OfficeImageExportOptions? options = null) {
-        if (items == null) throw new ArgumentNullException(nameof(items));
-        if (render == null) throw new ArgumentNullException(nameof(render));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
-        if (maximumDegreeOfParallelism < 1) throw new ArgumentOutOfRangeException(nameof(maximumDegreeOfParallelism));
+        ArgumentNullException.ThrowIfNull(items);
+        ArgumentNullException.ThrowIfNull(render);
+        ArgumentNullException.ThrowIfNull(consumer);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDegreeOfParallelism, 1);
         if (options != null) {
             Run(
                 options,
@@ -234,9 +234,7 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportOptions options,
         int? expectedOutputCount) {
         if (!expectedOutputCount.HasValue) return;
-        if (expectedOutputCount.Value < 0) {
-            throw new ArgumentOutOfRangeException(nameof(expectedOutputCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(expectedOutputCount.Value, nameof(expectedOutputCount));
         if (expectedOutputCount.Value > options.MaximumOutputCount) {
             throw new OfficeImageExportBatchLimitException(
                 nameof(OfficeImageExportOptions.MaximumOutputCount),
@@ -270,7 +268,7 @@ internal static class OfficeImageExportBatchProcessor {
         return result => {
             lock (gate) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (result == null) throw new ArgumentNullException(nameof(result));
+                ArgumentNullException.ThrowIfNull(result);
                 result.Require(options.Policy);
                 int sequenceIndex = tracker.Count;
                 tracker.Add(result);
@@ -340,7 +338,7 @@ internal static class OfficeImageExportBatchProcessor {
         try {
             cancellationToken.ThrowIfCancellationRequested();
             invocationToken.ThrowIfCancellationRequested();
-            if (result == null) throw new ArgumentNullException(nameof(result));
+            ArgumentNullException.ThrowIfNull(result);
             result.Require(options.Policy);
             int sequenceIndex = tracker.Count;
             tracker.Add(result);

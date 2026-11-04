@@ -28,7 +28,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         internal string? ChartDataSheetName { get; set; }
 
         internal void Add(GoogleSheetsRequest request) {
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
             _requests.Add(request);
         }
     }

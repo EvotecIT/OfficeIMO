@@ -34,7 +34,7 @@ internal static class OfficeBatchReportSerializer {
 
     /// <summary>Serializes one NDJSON item event; oversized individual records are rejected.</summary>
     public static string SerializeItemEvent(OfficeBatchItemReport item) {
-        if (item == null) throw new ArgumentNullException(nameof(item));
+        ArgumentNullException.ThrowIfNull(item);
         if (!TryGetItemSize(item, OfficeBatchReportCollector.MaximumItemBytes, out _))
             throw new InvalidDataException("The batch item exceeds its observation limit.");
         return SerializeBounded(new OfficeBatchItemEvent(OfficeBatchReport.CurrentSchema, "item", item), Context.OfficeBatchItemEvent);
@@ -47,7 +47,7 @@ internal static class OfficeBatchReportSerializer {
     }
 
     internal static void Validate(OfficeBatchReport report) {
-        if (report == null) throw new ArgumentNullException(nameof(report));
+        ArgumentNullException.ThrowIfNull(report);
         if (report.Schema != OfficeBatchReport.CurrentSchema)
             throw new NotSupportedException("Unsupported batch report contract.");
         if (report.Summary == null || report.Items == null || report.Items.Count > OfficeBatchReportCollector.MaximumItems)
@@ -65,7 +65,7 @@ internal static class OfficeBatchReportSerializer {
     }
 
     private static void ValidateSummary(OfficeBatchSummary summary) {
-        if (summary == null) throw new ArgumentNullException(nameof(summary));
+        ArgumentNullException.ThrowIfNull(summary);
         if (summary.Selected < 0 || summary.Completed < 0 || summary.Reused < 0 || summary.Failed < 0 || summary.Skipped < 0 ||
             summary.Completed > summary.Selected || summary.Reused > summary.Completed || summary.Failed > summary.Selected - summary.Completed)
             throw new InvalidDataException("The batch report counts are invalid.");
@@ -73,7 +73,7 @@ internal static class OfficeBatchReportSerializer {
     }
 
     internal static void CheckJson(string json) {
-        if (json == null) throw new ArgumentNullException(nameof(json));
+        ArgumentNullException.ThrowIfNull(json);
         if (Encoding.UTF8.GetByteCount(json) > MaximumReportBytes) throw new InvalidDataException("The report exceeds its 20 MiB limit.");
         using var document = JsonDocument.Parse(json, new JsonDocumentOptions { MaxDepth = 32 });
         OfficeBatchJson.RejectDuplicates(document.RootElement);

@@ -42,21 +42,15 @@ namespace OfficeIMO.Visio {
         }
 
         internal static VisioRenderLabelLayout Create(VisioPage page, VisioRenderLayerVisibility layerVisibility) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             return new VisioRenderLabelLayout(page, layerVisibility, VisioRenderProjection.Create(page));
         }
 
         internal VisioRenderConnectorLabelPlacement Resolve(VisioConnector connector, IReadOnlyList<(double X, double Y)> path) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
-            if (path == null) {
-                throw new ArgumentNullException(nameof(path));
-            }
+            ArgumentNullException.ThrowIfNull(path);
 
             // Collision distances, clearances and scores share physical inches; callers retain drawing units.
             path = ToPhysicalPath(path);

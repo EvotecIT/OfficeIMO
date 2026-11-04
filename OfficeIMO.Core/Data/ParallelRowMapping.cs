@@ -92,9 +92,9 @@ public static class ParallelRowMappingExtensions {
         ParallelRowMappingOptions options,
         CancellationToken cancellationToken,
         Action<DbDataReader, object?[]>? captureValues = null) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (map is null) throw new ArgumentNullException(nameof(map));
-        if (options is null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(options);
         int degreeOfParallelism = options.GetDegreeOfParallelism();
         if (reader.FieldCount == 0) yield break;
         foreach (T row in EnumerateBatches(
@@ -124,7 +124,7 @@ public static class ParallelRowMappingExtensions {
         this DbDataReader reader,
         ParallelRowMappingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         return EnumerateAutomatic<T>(reader, options, cancellationToken);
     }
 
@@ -141,8 +141,8 @@ public static class ParallelRowMappingExtensions {
         Action<RowMapper<T>> configure,
         ParallelRowMappingOptions? options = null,
         CancellationToken cancellationToken = default) where T : new() {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(configure);
         return EnumerateExplicit(reader, configure, options, cancellationToken);
     }
 
@@ -163,8 +163,8 @@ public static class ParallelRowMappingExtensions {
         Func<IDataRecord, T> factory,
         ParallelRowMappingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(factory);
         return EnumerateFactory(reader, factory, options, cancellationToken);
     }
 
@@ -884,7 +884,7 @@ public static class ParallelRowMappingExtensions {
         public string GetName(int i) => _schema.Names[ValidateOrdinal(i)];
 
         public int GetOrdinal(string name) {
-            if (name is null) throw new ArgumentNullException(nameof(name));
+            ArgumentNullException.ThrowIfNull(name);
             for (int index = 0; index < _schema.Names.Length; index++) {
                 if (string.Equals(_schema.Names[index], name, StringComparison.Ordinal)) return index;
             }
@@ -900,7 +900,7 @@ public static class ParallelRowMappingExtensions {
         }
 
         public int GetValues(object[] values) {
-            if (values is null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             int count = Math.Min(values.Length, FieldCount);
             for (int index = 0; index < count; index++) values[index] = GetValue(index);
             return count;
@@ -939,9 +939,11 @@ public static class ParallelRowMappingExtensions {
             TValue[]? buffer,
             int bufferOffset,
             int length) {
-            if (fieldOffset < 0 || fieldOffset > source.LongLength) throw new ArgumentOutOfRangeException(nameof(fieldOffset));
+            ArgumentOutOfRangeException.ThrowIfNegative(fieldOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(fieldOffset, source.LongLength);
             if (buffer is null) return source.LongLength;
-            if (bufferOffset < 0 || bufferOffset > buffer.Length) throw new ArgumentOutOfRangeException(nameof(bufferOffset));
+            ArgumentOutOfRangeException.ThrowIfNegative(bufferOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(bufferOffset, buffer.Length);
             if (length < 0 || length > buffer.Length - bufferOffset) throw new ArgumentOutOfRangeException(nameof(length));
             int available = checked(source.Length - (int)fieldOffset);
             int copied = Math.Min(available, length);

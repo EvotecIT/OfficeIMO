@@ -143,7 +143,7 @@ internal static partial class RtfAnsiCodePage {
     }
 
     public static string DecodeBytes(int codePage, byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         // GetEncoding with explicit fallbacks clones the encoding on every call; decoding is thread-safe, so share one.
         return Encodings.GetOrAdd(codePage, static _ => Encoding.GetEncoding(
             _,

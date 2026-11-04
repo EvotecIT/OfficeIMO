@@ -12,7 +12,7 @@ public static class HtmlCssTokenizer {
     /// A canceled or budget-exhausted operation publishes no partial token list.
     /// </summary>
     public static IReadOnlyList<HtmlCssToken> Tokenize(string source, HtmlCssTokenizationOptions? options = null, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         HtmlCssTokenizationOptions effective = (options ?? new HtmlCssTokenizationOptions()).Clone();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();

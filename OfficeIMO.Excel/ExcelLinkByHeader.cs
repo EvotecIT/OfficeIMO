@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Links each cell to the URL built from its text.</summary>
         /// <param name="urlForCellText">Maps the cell text to a URL; a blank result skips the cell.</param>
         public static ExcelLinkTarget Url(Func<string, string> urlForCellText) {
-            if (urlForCellText == null) throw new ArgumentNullException(nameof(urlForCellText));
+            ArgumentNullException.ThrowIfNull(urlForCellText);
             return new ExcelLinkTarget(isUrl: true, urlForCellText, "A1");
         }
     }

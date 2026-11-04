@@ -39,17 +39,11 @@ namespace OfficeIMO.Visio {
         /// <param name="plan">Reviewed migration plan.</param>
         /// <param name="map">Migration map used to create the plan.</param>
         public static VisioStencilMigrationResult ApplyStencilMigration(this VisioDocument document, VisioStencilMigrationPlan plan, VisioStencilMigrationMap map) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
-            if (map == null) {
-                throw new ArgumentNullException(nameof(map));
-            }
+            ArgumentNullException.ThrowIfNull(map);
 
             List<ValidatedPlannedReplacement> validated = new();
             HashSet<string> applied = new(StringComparer.OrdinalIgnoreCase);
@@ -73,17 +67,11 @@ namespace OfficeIMO.Visio {
         /// <param name="plan">Reviewed migration plan.</param>
         /// <param name="map">Migration map used to create the plan.</param>
         public static VisioStencilMigrationResult ApplyStencilMigration(this VisioPage page, VisioStencilMigrationPlan plan, VisioStencilMigrationMap map) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
-            if (map == null) {
-                throw new ArgumentNullException(nameof(map));
-            }
+            ArgumentNullException.ThrowIfNull(map);
 
             List<ValidatedPlannedReplacement> validated = new();
             HashSet<string> applied = new(StringComparer.OrdinalIgnoreCase);
@@ -107,17 +95,11 @@ namespace OfficeIMO.Visio {
         /// <param name="plan">Reviewed migration plan.</param>
         /// <param name="map">Migration map used to create the plan.</param>
         public static VisioStencilMigrationResult ApplyStencilMigration(this VisioShapeSelection selection, VisioStencilMigrationPlan plan, VisioStencilMigrationMap map) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
-            if (plan == null) {
-                throw new ArgumentNullException(nameof(plan));
-            }
+            ArgumentNullException.ThrowIfNull(plan);
 
-            if (map == null) {
-                throw new ArgumentNullException(nameof(map));
-            }
+            ArgumentNullException.ThrowIfNull(map);
 
             if (selection.OwnerPage == null) {
                 throw new InvalidOperationException("This selection is not associated with a page. Apply the migration plan to the owning page or document instead.");

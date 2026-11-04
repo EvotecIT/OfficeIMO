@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         internal static LegacyXlsThemeColorResolver Create(ExcelDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return new LegacyXlsThemeColorResolver(document.WorkbookPartRoot);
         }
 

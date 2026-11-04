@@ -19,7 +19,7 @@ public sealed partial class MhtmlDocument {
     public MhtmlDocument(string html, IEnumerable<MhtmlResource>? resources = null,
         string? contentLocation = null, string? rootContentId = null, string? subject = null,
         HtmlConversionDocumentOptions? htmlOptions = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
         _resources = (resources ?? Enumerable.Empty<MhtmlResource>()).ToArray();
         ContentLocation = NormalizeOptional(contentLocation);
         RootContentId = NormalizeContentId(rootContentId);
@@ -35,7 +35,7 @@ public sealed partial class MhtmlDocument {
 
     private MhtmlDocument(EmailReadResult readResult, Uri? sourceBaseUri,
         HtmlConversionDocumentOptions? htmlOptions) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        ArgumentNullException.ThrowIfNull(readResult);
         if (readResult.HasErrors) throw CreateReadException(readResult.Diagnostics);
         _mimeDocument = readResult.Document;
         string? html = _mimeDocument.Body.Html;
@@ -188,7 +188,7 @@ public sealed partial class MhtmlDocument {
     /// </summary>
     public void ConfigureRenderOptions(HtmlRenderOptions options,
         MhtmlRemoteResourcePolicy? remoteResourcePolicy) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         remoteResourcePolicy ??= MhtmlRemoteResourcePolicy.CreateEmbeddedOnlyProfile();
         remoteResourcePolicy.ApplyLimits(options);
         options.ProjectSerializedShadowRoots ??= true;

@@ -17,9 +17,7 @@ namespace OfficeIMO.Visio {
         /// <param name="shapes">Shapes included in the selection.</param>
         /// <param name="ownerPage">Optional page that owns the selection.</param>
         public VisioShapeSelection(IEnumerable<VisioShape> shapes, VisioPage? ownerPage = null) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             _shapes = shapes.ToList();
             OwnerPage = ownerPage;
@@ -63,9 +61,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="textFactory">Factory returning text for each shape.</param>
         public VisioShapeSelection Text(Func<VisioShape, string?> textFactory) {
-            if (textFactory == null) {
-                throw new ArgumentNullException(nameof(textFactory));
-            }
+            ArgumentNullException.ThrowIfNull(textFactory);
 
             foreach (VisioShape shape in _shapes) {
                 shape.Text = textFactory(shape);
@@ -188,9 +184,7 @@ namespace OfficeIMO.Visio {
         /// <param name="schema">Shape Data schema to apply.</param>
         /// <param name="overwriteValues">Whether schema defaults should replace existing values.</param>
         public VisioShapeSelection ShapeData(VisioShapeDataSchema schema, bool overwriteValues = false) {
-            if (schema == null) {
-                throw new ArgumentNullException(nameof(schema));
-            }
+            ArgumentNullException.ThrowIfNull(schema);
 
             foreach (VisioShape shape in _shapes) {
                 schema.ApplyTo(shape, overwriteValues);
@@ -250,9 +244,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="configure">Protection configuration delegate.</param>
         public VisioShapeSelection Protect(Action<VisioShapeProtection> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             foreach (VisioShape shape in _shapes) {
                 configure(shape.Protection);

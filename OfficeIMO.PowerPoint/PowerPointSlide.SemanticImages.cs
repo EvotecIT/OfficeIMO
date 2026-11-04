@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Adds a semantic image with deterministic fit/fill behavior, focal-point crop, and alternative text.
         /// </summary>
         public PowerPointImage AddImage(PowerPointImageAsset asset, PowerPointLayoutBox bounds) {
-            if (asset == null) throw new ArgumentNullException(nameof(asset));
+            ArgumentNullException.ThrowIfNull(asset);
             asset.Validate();
             PowerPointImage picture = AddImage(asset.Path,bounds);
             picture.AltText = asset.AlternativeText;

@@ -16,8 +16,8 @@ internal static class VisioImageExportEngine {
         string? source = null,
         CancellationToken cancellationToken = default,
         OfficeImageExportEncodingBudget? encodingBudget = null) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         return OfficeImageExportExecutionScope.Run(
             options,

@@ -149,9 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
             out bool fullyTraversed,
             LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
-            if (payload == null) {
-                throw new ArgumentNullException(nameof(payload));
-            }
+            ArgumentNullException.ThrowIfNull(payload);
 
             var blips = new List<LegacyXlsDrawingBlipStoreEntry>();
             var shapes = new List<LegacyXlsDrawingShape>();
@@ -186,9 +184,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
             out bool fullyTraversed,
             LegacyXlsDecodedImageBudget? decodedImageBudget = null) {
-            if (payload == null) {
-                throw new ArgumentNullException(nameof(payload));
-            }
+            ArgumentNullException.ThrowIfNull(payload);
 
             var blips = new List<LegacyXlsDrawingBlipStoreEntry>();
             var shapes = new List<LegacyXlsDrawingShape>();

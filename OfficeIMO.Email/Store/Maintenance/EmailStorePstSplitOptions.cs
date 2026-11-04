@@ -18,12 +18,12 @@ public sealed class EmailStorePstSplitOptions {
         int maxNestedMessageDepth = 32,
         EmailSemanticComparisonOptions? verificationOptions = null,
         int maxVerificationIssues = 1000) {
-        if (maxEstimatedBytesPerPart <= 0) throw new ArgumentOutOfRangeException(nameof(maxEstimatedBytesPerPart));
-        if (unknownItemEstimateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(unknownItemEstimateBytes));
-        if (perItemOverheadBytes < 0) throw new ArgumentOutOfRangeException(nameof(perItemOverheadBytes));
-        if (maxParts <= 0) throw new ArgumentOutOfRangeException(nameof(maxParts));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (maxVerificationIssues <= 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationIssues));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEstimatedBytesPerPart);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(unknownItemEstimateBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(perItemOverheadBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxParts);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxVerificationIssues);
         if (query?.ContinuationToken != null) throw new ArgumentException(
             "A split query must start at the beginning; continuation tokens are not accepted.", nameof(query));
         Query = query;

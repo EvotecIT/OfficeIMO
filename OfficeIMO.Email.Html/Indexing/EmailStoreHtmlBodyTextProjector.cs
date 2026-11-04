@@ -21,8 +21,8 @@ public sealed class EmailStoreHtmlBodyTextProjector : IEmailStoreBodyTextProject
     /// <inheritdoc />
     public string Project(EmailDocument document, EmailStoreContentSearchFields bodyField, int maxCharacters,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (maxCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCharacters);
         cancellationToken.ThrowIfCancellationRequested();
         var view = new EmailDocument();
         switch (bodyField) {

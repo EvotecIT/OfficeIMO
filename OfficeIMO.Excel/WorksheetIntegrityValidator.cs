@@ -9,8 +9,8 @@ using DocumentFormat.OpenXml.Validation;
 namespace OfficeIMO.Excel {
     internal static class WorksheetIntegrityValidator {
         internal static void Validate(WorksheetPart worksheetPart, ExcelExecutionPolicy policy, string sheetName) {
-            if (worksheetPart == null) throw new ArgumentNullException(nameof(worksheetPart));
-            if (policy == null) throw new ArgumentNullException(nameof(policy));
+            ArgumentNullException.ThrowIfNull(worksheetPart);
+            ArgumentNullException.ThrowIfNull(policy);
 
             var mode = policy.WorksheetValidation;
             if (mode == ExcelWorksheetValidationMode.Disabled) {

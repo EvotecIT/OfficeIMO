@@ -30,7 +30,7 @@ public sealed class EmailHtmlContent {
 
     /// <summary>Writes <see cref="Html"/> to a caller-owned stream as UTF-8 without a byte order mark.</summary>
     public void WriteTo(Stream destination) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         using var writer = new StreamWriter(destination, new UTF8Encoding(false), 4096, leaveOpen: true);
         writer.Write(Html);
@@ -43,7 +43,7 @@ public static class EmailHtmlExporter {
     /// <summary>Exports a handle-free message with an operation-scoped full read.</summary>
     public static EmailHtmlExportResult Export(EmailMessage message, string path, bool includeAttachments = false,
         bool overwrite = false, CancellationToken cancellationToken = default) {
-        if (message == null) throw new ArgumentNullException(nameof(message));
+        ArgumentNullException.ThrowIfNull(message);
         return message.UseDocument(d => Export(d, path, includeAttachments, overwrite, cancellationToken), cancellationToken);
     }
 
@@ -51,8 +51,8 @@ public static class EmailHtmlExporter {
     /// <remarks>Every export uses a fresh asset directory, allowing atomic replacement of the HTML without changing an earlier copy's resources.</remarks>
     public static EmailHtmlExportResult Export(EmailDocument document, string path, bool includeAttachments = false,
         bool overwrite = false, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(path);
         string output = System.IO.Path.GetFullPath(path);
         if (!overwrite && File.Exists(output)) throw new IOException("The HTML destination already exists.");
         cancellationToken.ThrowIfCancellationRequested();
@@ -101,7 +101,7 @@ public static class EmailHtmlExporter {
 
     /// <summary>Creates self-contained HTML for a handle-free message with an operation-scoped full read.</summary>
     public static EmailHtmlContent ExportContent(EmailMessage message, CancellationToken cancellationToken = default) {
-        if (message == null) throw new ArgumentNullException(nameof(message));
+        ArgumentNullException.ThrowIfNull(message);
         return message.UseDocument(d => ExportContent(d, cancellationToken), cancellationToken);
     }
 
@@ -109,7 +109,7 @@ public static class EmailHtmlExporter {
     /// <remarks>Embedded body resources, such as <c>cid:</c> images, become <c>data:</c> URIs read within the projection budgets.
     /// Regular attachments are not included. Use <see cref="EmailHtmlContent.WriteTo(Stream)"/> to stream the result.</remarks>
     public static EmailHtmlContent ExportContent(EmailDocument document, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         EmailBodyProjectionResult projection = EmailBodyProjection.Create(document);
         var diagnostics = projection.Diagnostics.ToList();

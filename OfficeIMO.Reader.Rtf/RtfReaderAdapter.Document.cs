@@ -8,7 +8,7 @@ namespace OfficeIMO.Reader.Rtf;
 internal static partial class RtfReaderAdapter {
     /// <summary>Reads an RTF file into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(string rtfPath, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (rtfPath == null) throw new ArgumentNullException(nameof(rtfPath));
+        ArgumentNullException.ThrowIfNull(rtfPath);
         if (rtfPath.Length == 0) throw new ArgumentException("RTF path cannot be empty.", nameof(rtfPath));
         if (!File.Exists(rtfPath)) throw new FileNotFoundException($"RTF file '{rtfPath}' doesn't exist.", rtfPath);
         ReaderOptions effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -21,7 +21,7 @@ internal static partial class RtfReaderAdapter {
 
     /// <summary>Reads an RTF stream into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(Stream rtfStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (rtfStream == null) throw new ArgumentNullException(nameof(rtfStream));
+        ArgumentNullException.ThrowIfNull(rtfStream);
         if (!rtfStream.CanRead) throw new ArgumentException("RTF stream must be readable.", nameof(rtfStream));
         ReaderOptions effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderRtfOptions effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
@@ -41,8 +41,8 @@ internal static partial class RtfReaderAdapter {
 
     /// <summary>Converts a loaded RTF semantic document into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(RtfDocument document, string sourceName = "document.rtf", ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         ReaderRtfOptions effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "document.rtf");

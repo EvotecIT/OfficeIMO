@@ -4,8 +4,8 @@ namespace OfficeIMO.OpenDocument;
 public readonly struct OdfViewBox {
     /// <summary>Creates a local canvas. Coordinates are unitless; the shape's bounds determine its page size.</summary>
     public OdfViewBox(int x, int y, int width, int height) {
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         X = x; Y = y; Width = width; Height = height;
     }
     /// <summary>Local horizontal origin.</summary>

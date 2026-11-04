@@ -226,9 +226,7 @@ public sealed class OfficeTextShapingRequest {
         bool applyDefaultLatinLigatures = false,
         bool resolvedDirectionalRun = false) {
         Text = text ?? throw new ArgumentNullException(nameof(text));
-        if (fontData == null) {
-            throw new ArgumentNullException(nameof(fontData));
-        }
+        ArgumentNullException.ThrowIfNull(fontData);
         if (unitsPerEm <= 0) {
             throw new ArgumentOutOfRangeException(nameof(unitsPerEm), "Text shaping units per em must be positive.");
         }
@@ -349,9 +347,7 @@ public sealed class OfficeTextShapingResult {
         IReadOnlyList<int>? advanceAdjustments,
         OfficeTextDirection direction = OfficeTextDirection.Auto,
         IReadOnlyList<int>? logicalClusterStarts = null) {
-        if (glyphs == null) {
-            throw new ArgumentNullException(nameof(glyphs));
-        }
+        ArgumentNullException.ThrowIfNull(glyphs);
         if (direction != OfficeTextDirection.Auto &&
             direction != OfficeTextDirection.LeftToRight &&
             direction != OfficeTextDirection.RightToLeft &&

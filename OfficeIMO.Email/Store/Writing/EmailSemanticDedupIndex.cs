@@ -14,7 +14,7 @@ internal sealed class EmailSemanticDedupIndex : IDisposable {
     private bool _disposed;
 
     internal EmailSemanticDedupIndex(string destinationPath, int initialCapacity = 1024) {
-        if (initialCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(initialCapacity));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(initialCapacity);
         _capacity = NextPowerOfTwo(Math.Max(16, initialCapacity));
         string parent = Path.GetDirectoryName(Path.GetFullPath(destinationPath)) ?? Directory.GetCurrentDirectory();
         _directory = Path.Combine(parent,
@@ -144,7 +144,7 @@ internal sealed class EmailSemanticDedupIndex : IDisposable {
     }
 
     private static void EnsureDigest(byte[] digest) {
-        if (digest == null) throw new ArgumentNullException(nameof(digest));
+        ArgumentNullException.ThrowIfNull(digest);
         if (digest.Length != DigestLength) throw new ArgumentException("A SHA-256 digest is required.", nameof(digest));
     }
 

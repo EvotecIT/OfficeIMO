@@ -65,10 +65,10 @@ public sealed class PdfVisualComparisonOptions {
         if (Scale <= 0D || double.IsNaN(Scale) || double.IsInfinity(Scale)) throw new ArgumentOutOfRangeException(nameof(Scale));
         if (AllowedDifferenceRatio < 0D || AllowedDifferenceRatio > 1D || double.IsNaN(AllowedDifferenceRatio)) throw new ArgumentOutOfRangeException(nameof(AllowedDifferenceRatio));
         if (Alignment < PdfVisualPageAlignment.TopLeft || Alignment > PdfVisualPageAlignment.Center) throw new ArgumentOutOfRangeException(nameof(Alignment));
-        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-        if (MaxPixelsPerImage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPixelsPerImage));
-        if (MaxTotalPixels <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalPixels));
-        if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPixelsPerImage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalPixels);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalOutputBytes);
         if (IgnoredRegions.Count > 4096) {
             throw PdfReadLimitException.Create(PdfReadLimitKind.UnderstandingArtifacts, 4096, IgnoredRegions.Count);
         }

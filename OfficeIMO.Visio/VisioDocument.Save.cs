@@ -56,7 +56,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Saves the document once to a specified stream without changing the associated destination.</summary>
         public void Save(Stream stream) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
             ThrowIfInvalidForSave();
             SaveInternal(stream);
@@ -105,7 +105,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Asynchronously saves once to a caller-owned writable stream without changing the associated destination.</summary>
         public async Task SaveAsync(Stream stream, CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             cancellationToken.ThrowIfCancellationRequested();
             await OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(), cancellationToken)
                 .ConfigureAwait(false);

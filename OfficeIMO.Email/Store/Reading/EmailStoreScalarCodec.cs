@@ -67,8 +67,8 @@ internal static class EmailStoreScalarCodec {
     }
 
     internal static object? Deserialize(byte[] payload, Type declaredType) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
-        if (declaredType == null) throw new ArgumentNullException(nameof(declaredType));
+        ArgumentNullException.ThrowIfNull(payload);
+        ArgumentNullException.ThrowIfNull(declaredType);
         Type targetType = Nullable.GetUnderlyingType(declaredType) ?? declaredType;
         using (var stream = new MemoryStream(payload, writable: false))
         using (var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true)) {

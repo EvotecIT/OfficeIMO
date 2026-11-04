@@ -32,9 +32,7 @@ public sealed class MarkdownFencedCodeBlockRenderer {
             throw new ArgumentException("Renderer name is required.", nameof(name));
         }
 
-        if (languages == null) {
-            throw new ArgumentNullException(nameof(languages));
-        }
+        ArgumentNullException.ThrowIfNull(languages);
 
         RenderHtml = renderHtml ?? throw new ArgumentNullException(nameof(renderHtml));
 

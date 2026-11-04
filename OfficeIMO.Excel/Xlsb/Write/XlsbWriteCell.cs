@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal byte[]? SourceRecordData { get; }
 
         internal static XlsbWriteCell PreserveSource(XlsbCell source, uint? styleIndex = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             byte[] data = source.SourceRecordData ?? throw new InvalidDataException("The XLSB source cell has no preserved record payload.");
             if (styleIndex.HasValue && styleIndex.Value != source.StyleIndex) {
                 if (data.Length < 8 || styleIndex.Value > 0xFFFFFF) throw new InvalidDataException("Invalid native XLSB style reference.");

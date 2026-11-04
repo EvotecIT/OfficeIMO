@@ -9,8 +9,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static bool TryRead(byte[] bytes,
             LegacyPptImportOptions options, out OfficeCompoundFile? compound,
             out string? reason, bool preserveResourceLimits = false) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(options);
             int maxDirectoryEntries = Math.Max(1,
                 Math.Min(65536, options.MaxRecordCount));
             int maxStreamCount = Math.Max(1,

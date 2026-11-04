@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private const int BrtFilter = 167;
 
         internal static void Write(Stream output, AutoFilter? autoFilter, string sheetName) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (autoFilter == null) return;
             IReadOnlyList<XlsbGeneratedRecord> records = CreateRecords(autoFilter, sheetName);
             foreach (XlsbGeneratedRecord record in records) {

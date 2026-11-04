@@ -49,9 +49,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="shapeIds">Shape ids to relayout.</param>
         /// <param name="configureOptions">Option callback.</param>
         public VisioFluentPage RelayoutShapesAsGrid(IEnumerable<string> shapeIds, Action<VisioSelectionLayoutOptions> configureOptions) {
-            if (configureOptions == null) {
-                throw new ArgumentNullException(nameof(configureOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureOptions);
 
             VisioSelectionLayoutOptions options = new();
             configureOptions(options);
@@ -126,9 +124,7 @@ namespace OfficeIMO.Visio.Fluent {
             Action<VisioSelectionLayoutOptions> configureLayoutOptions,
             bool refitContainer = true,
             VisioContainerOptions? refitOptions = null) {
-            if (configureLayoutOptions == null) {
-                throw new ArgumentNullException(nameof(configureLayoutOptions));
-            }
+            ArgumentNullException.ThrowIfNull(configureLayoutOptions);
 
             VisioSelectionLayoutOptions options = new();
             configureLayoutOptions(options);

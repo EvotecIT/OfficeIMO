@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="action">The worksheet updates to execute.</param>
         public void Batch(Action<ExcelSheet> action) {
-            if (action == null) throw new ArgumentNullException(nameof(action));
+            ArgumentNullException.ThrowIfNull(action);
 
             if (Locking.IsNoLock) {
                 MaterializeDeferredDataSetImportIfNeeded();

@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Slicer cache metadata options.</param>
         /// <returns>Information identifying the added package part.</returns>
         public ExcelPackagePartInfo AddWorkbookSlicerCache(ExcelSlicerCacheOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return AddWorkbookPivotInteractionMetadata(options.ToXml(), ExcelPivotInteractionCacheKind.Slicer);
         }
 
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Timeline cache metadata options.</param>
         /// <returns>Information identifying the added package part.</returns>
         public ExcelPackagePartInfo AddWorkbookTimelineCache(ExcelTimelineCacheOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return AddWorkbookPivotInteractionMetadata(options.ToXml(), ExcelPivotInteractionCacheKind.Timeline);
         }
 
@@ -160,7 +160,7 @@ namespace OfficeIMO.Excel {
         /// <param name="targetExtension">Target extension for the generated package part.</param>
         /// <returns>Information identifying the added package part.</returns>
         public ExcelPackagePartInfo AddWorksheetMetadataPart(ExcelSheet sheet, string relationshipType, string contentType, string xml, string targetExtension = "xml") {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 throw new ArgumentException("Worksheet metadata can only be added to a worksheet owned by this workbook.", nameof(sheet));
             }
@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
         }
 
         private ExtendedPart AddMetadataPart(OpenXmlPartContainer container, string relationshipType, string contentType, string xml, string targetExtension) {
-            if (container == null) throw new ArgumentNullException(nameof(container));
+            ArgumentNullException.ThrowIfNull(container);
             if (string.IsNullOrWhiteSpace(relationshipType)) throw new ArgumentNullException(nameof(relationshipType));
             if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentNullException(nameof(contentType));
             if (string.IsNullOrWhiteSpace(xml)) throw new ArgumentNullException(nameof(xml));

@@ -4,7 +4,7 @@ namespace OfficeIMO.Email;
 public static class IcsComponentExtensions {
     /// <summary>Gets the first temporal property with the supplied name.</summary>
     public static IcsTemporalValue? GetTemporalValue(this ContentLineComponent component, string propertyName) {
-        if (component == null) throw new ArgumentNullException(nameof(component));
+        ArgumentNullException.ThrowIfNull(component);
         return IcsTemporalValue.TryParse(component.GetFirstProperty(propertyName), out IcsTemporalValue value)
             ? value
             : (IcsTemporalValue?)null;
@@ -13,7 +13,7 @@ public static class IcsComponentExtensions {
     /// <summary>Creates or replaces one temporal property without resolving TZID through the host OS.</summary>
     public static ContentLineProperty SetTemporalValue(this ContentLineComponent component, string propertyName,
         IcsTemporalValue value) {
-        if (component == null) throw new ArgumentNullException(nameof(component));
+        ArgumentNullException.ThrowIfNull(component);
         ContentLineProperty property = component.SetProperty(propertyName, string.Empty);
         value.ApplyTo(property);
         return property;
@@ -21,7 +21,7 @@ public static class IcsComponentExtensions {
 
     /// <summary>Parses every direct RRULE property.</summary>
     public static IEnumerable<IcsRecurrenceRule> GetRecurrenceRules(this ContentLineComponent component) {
-        if (component == null) throw new ArgumentNullException(nameof(component));
+        ArgumentNullException.ThrowIfNull(component);
         foreach (ContentLineProperty property in component.GetProperties("RRULE"))
             yield return IcsRecurrenceRule.Parse(property.Value);
     }
@@ -29,8 +29,8 @@ public static class IcsComponentExtensions {
     /// <summary>Adds an RRULE property.</summary>
     public static ContentLineProperty AddRecurrenceRule(this ContentLineComponent component,
         IcsRecurrenceRule rule) {
-        if (component == null) throw new ArgumentNullException(nameof(component));
-        if (rule == null) throw new ArgumentNullException(nameof(rule));
+        ArgumentNullException.ThrowIfNull(component);
+        ArgumentNullException.ThrowIfNull(rule);
         return component.AddProperty("RRULE", rule.ToString());
     }
 }

@@ -302,7 +302,7 @@ namespace OfficeIMO.Excel {
         /// <param name="style">When true, applies hyperlink styling (blue + underline).</param>
         /// <param name="tooltip">Optional ScreenTip text shown by spreadsheet applications.</param>
         public void SetInternalLink(int row, int column, ExcelSheet target, string a1, string? display, bool style, string? tooltip) {
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            ArgumentNullException.ThrowIfNull(target);
             if (string.IsNullOrWhiteSpace(a1)) throw new ArgumentNullException(nameof(a1));
             string loc = $"'{EscapeSheetNameForLink(target.Name)}'!{a1}";
             SetInternalLink(row, column, loc, display, style, tooltip);

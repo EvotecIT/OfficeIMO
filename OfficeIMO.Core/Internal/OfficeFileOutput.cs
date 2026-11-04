@@ -12,20 +12,14 @@ internal static class OfficeFileOutput
 
     internal static string WriteUnique(string directory, string fileName, byte[] bytes)
     {
-        if (bytes == null)
-        {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+        ArgumentNullException.ThrowIfNull(bytes);
 
         return WriteUnique(directory, fileName, temporaryPath => WriteTemporary(temporaryPath, bytes));
     }
 
     internal static string WriteUnique(string directory, string fileName, Action<string> writeTemporaryFile)
     {
-        if (writeTemporaryFile == null)
-        {
-            throw new ArgumentNullException(nameof(writeTemporaryFile));
-        }
+        ArgumentNullException.ThrowIfNull(writeTemporaryFile);
 
         Directory.CreateDirectory(directory);
         var safeName = GetSafeFileName(fileName);
@@ -61,20 +55,14 @@ internal static class OfficeFileOutput
 
     internal static void Write(string path, byte[] bytes, bool overwrite)
     {
-        if (bytes == null)
-        {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+        ArgumentNullException.ThrowIfNull(bytes);
 
         Write(path, overwrite, temporaryPath => WriteTemporary(temporaryPath, bytes));
     }
 
     internal static void Write(string path, bool overwrite, Action<string> writeTemporaryFile)
     {
-        if (writeTemporaryFile == null)
-        {
-            throw new ArgumentNullException(nameof(writeTemporaryFile));
-        }
+        ArgumentNullException.ThrowIfNull(writeTemporaryFile);
 
         var fullPath = Path.GetFullPath(path);
         var directory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();

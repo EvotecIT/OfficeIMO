@@ -22,7 +22,7 @@ internal sealed class OfficeOpenTypeGlyphFilter {
     }
 
     internal static OfficeOpenTypeGlyphFilter? TryCreate(byte[] data) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         try {
             OfficeOpenTypeReader? reader = OfficeOpenTypeReader.TryCreate(data);
             return reader == null ? null : new OfficeOpenTypeGlyphFilter(data, reader);

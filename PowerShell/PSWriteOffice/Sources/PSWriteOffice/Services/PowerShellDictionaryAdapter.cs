@@ -35,10 +35,7 @@ internal static class PowerShellDictionaryAdapter
             return false;
         }
 
-        if (maximumItems <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maximumItems));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumItems);
 
         if (value is PSObject psObject)
         {

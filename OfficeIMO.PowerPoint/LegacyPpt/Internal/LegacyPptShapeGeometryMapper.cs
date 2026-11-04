@@ -196,8 +196,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static void ApplyExactPresetAdjustments(ushort shapeType,
             OfficeArtShapeGeometry source, A.PresetGeometry target) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(target);
             if (shapeType is not 2 and not 23 || !source.AdjustmentValues[0].HasValue) return;
 
             long scaled = (long)Math.Round(source.AdjustmentValues[0]!.Value * (100000D / 21600D),

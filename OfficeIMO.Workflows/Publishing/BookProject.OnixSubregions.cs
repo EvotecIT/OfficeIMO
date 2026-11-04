@@ -15,7 +15,7 @@ public sealed partial class BookProject {
     }).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries), StringComparer.Ordinal);
 
     private static HashSet<string> ReadOnixSubregions(IReadOnlyList<string> regions) {
-        if (regions == null) throw new ArgumentNullException(nameof(regions));
+        ArgumentNullException.ThrowIfNull(regions);
         if (regions.Count > 250) throw new ArgumentException("A territory subregion list cannot exceed 250 codes.", nameof(regions));
         var result = new HashSet<string>(StringComparer.Ordinal);
         foreach (string code in regions) {

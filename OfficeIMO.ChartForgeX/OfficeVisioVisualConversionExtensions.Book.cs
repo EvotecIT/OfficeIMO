@@ -27,7 +27,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         IEnumerable<OfficeVisioVisualBookLink> links,
         OfficeVisioVisualBookOptions? bookOptions = null,
         OfficeVisioVisualOptions? options = null) {
-        if (links == null) throw new ArgumentNullException(nameof(links));
+        ArgumentNullException.ThrowIfNull(links);
         return CreateOfficeVisioBook(envelopes, links, bookOptions ?? new OfficeVisioVisualBookOptions(), options);
     }
 
@@ -36,7 +36,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
         IEnumerable<OfficeVisioVisualBookLink> links,
         OfficeVisioVisualBookOptions bookOptions,
         OfficeVisioVisualOptions? options) {
-        if (envelopes == null) throw new ArgumentNullException(nameof(envelopes));
+        ArgumentNullException.ThrowIfNull(envelopes);
         bookOptions.Validate();
         options ??= new OfficeVisioVisualOptions();
         var source = envelopes.ToList();

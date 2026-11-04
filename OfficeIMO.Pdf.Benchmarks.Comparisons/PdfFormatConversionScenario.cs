@@ -41,9 +41,7 @@ internal sealed record PdfFormatConversionScenario(
         PdfCore.PdfTextFallbackFeatures? textFallbacksOverride = null,
         int recordCount = PdfFormatConversionRecordManifest.RecordCount,
         PdfFormatConversionProfile profile = PdfFormatConversionProfile.Flat) {
-        if (recordCount < 1) {
-            throw new ArgumentOutOfRangeException(nameof(recordCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(recordCount, 1);
 
         byte[] source = kind switch {
             PdfFormatConversionKind.Docx => CreateDocx(recordCount, profile),

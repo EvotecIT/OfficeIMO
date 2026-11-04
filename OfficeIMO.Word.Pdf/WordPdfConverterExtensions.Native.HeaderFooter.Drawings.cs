@@ -80,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeHeaderFooterParagraphImage(List<NativeHeaderFooterImage> images, WordParagraph paragraph, global::OfficeIMO.OfficeAlignment? alignOverride, WordPdfExportOptions? options, string source) {
             global::OfficeIMO.OfficeAlignment align = alignOverride ?? ResolveNativeParagraphAlign(paragraph, allowJustify: false);
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
-            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             int imageCount = 0;
             void AddImage(WordImage image) {
                 options?.CancellationToken.ThrowIfCancellationRequested();

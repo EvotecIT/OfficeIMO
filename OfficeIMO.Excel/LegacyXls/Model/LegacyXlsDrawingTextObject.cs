@@ -15,9 +15,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int formulaByteCount,
             string? text = null,
             IReadOnlyList<LegacyXlsCommentFormattingRun>? formattingRuns = null) {
-            if (formulaByteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(formulaByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(formulaByteCount);
 
             RawOptions = rawOptions;
             HorizontalAlignment = (ushort)((rawOptions >> 1) & 0x0007);

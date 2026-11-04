@@ -17,7 +17,7 @@ public static partial class OfficeMathMarkup {
 
     /// <summary>Serializes an expression as presentation MathML.</summary>
     public static string ToMathMl(OfficeMathExpression expression, bool display = false) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
         var root = new XElement(MathMlNamespace + "math", ToMathMlElement(expression));
         if (display) root.SetAttributeValue("display", "block");
         return root.ToString(SaveOptions.DisableFormatting);
@@ -29,7 +29,7 @@ public static partial class OfficeMathMarkup {
     /// <summary>Parses presentation MathML with a hard nesting-depth limit.</summary>
     public static OfficeMathExpression FromMathMl(string mathMl, int maximumDepth) {
         if (string.IsNullOrWhiteSpace(mathMl)) throw new ArgumentException("MathML is required.", nameof(mathMl));
-        if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
         ValidateXmlDepth(mathMl, maximumDepth);
         XDocument document;
         try {
@@ -43,7 +43,7 @@ public static partial class OfficeMathMarkup {
 
     /// <summary>Serializes an expression as portable LaTeX math source.</summary>
     public static string ToLatex(OfficeMathExpression expression) {
-        if (expression == null) throw new ArgumentNullException(nameof(expression));
+        ArgumentNullException.ThrowIfNull(expression);
         var builder = new StringBuilder();
         AppendLatex(builder, expression);
         return builder.ToString();
@@ -54,8 +54,8 @@ public static partial class OfficeMathMarkup {
 
     /// <summary>Parses common LaTeX math constructs with a hard nesting-depth limit.</summary>
     public static OfficeMathExpression FromLatex(string latex, int maximumDepth) {
-        if (latex == null) throw new ArgumentNullException(nameof(latex));
-        if (maximumDepth < 1) throw new ArgumentOutOfRangeException(nameof(maximumDepth));
+        ArgumentNullException.ThrowIfNull(latex);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDepth, 1);
         return new LatexParser(latex, maximumDepth).Parse();
     }
 

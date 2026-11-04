@@ -14,16 +14,14 @@ namespace OfficeIMO.Excel {
         /// Imports selected or all worksheets from another workbook into this workbook.
         /// </summary>
         public ExcelWorkbookMergeResult MergeWorkbookFrom(ExcelDocument sourceDocument, ExcelWorkbookMergeOptions? options = null) {
-            if (sourceDocument == null) {
-                throw new ArgumentNullException(nameof(sourceDocument));
-            }
+            ArgumentNullException.ThrowIfNull(sourceDocument);
 
             options ??= new ExcelWorkbookMergeOptions();
-            if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
-            if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
-            if (options.MaxInCellImages <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImages));
-            if (options.MaxInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImageBytes));
-            if (options.MaxTotalInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalInCellImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDefinedNames, nameof(options.MaxDefinedNames));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDefinedNameCharacters, nameof(options.MaxDefinedNameCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInCellImages, nameof(options.MaxInCellImages));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInCellImageBytes, nameof(options.MaxInCellImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalInCellImageBytes, nameof(options.MaxTotalInCellImageBytes));
             var definedNameBudget = new DefinedNameCopyBudget(options.MaxDefinedNames, options.MaxDefinedNameCharacters);
             var inCellImageContext = new InCellImageCopyContext(
                 options.MaxInCellImages,

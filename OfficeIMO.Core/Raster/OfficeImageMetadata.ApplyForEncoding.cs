@@ -24,7 +24,7 @@ namespace OfficeIMO.Drawing {
 
         internal OfficeRasterEncodingResult ApplyForEncoding(byte[] encodedBytes, OfficeRasterEncodingOptions? options, long maximumEncodedBytes,
             CancellationToken cancellationToken, long additionallyRetainedBytes) {
-            if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
+            ArgumentNullException.ThrowIfNull(encodedBytes);
             ValidateEncodingCeiling(maximumEncodedBytes);
             cancellationToken.ThrowIfCancellationRequested();
             OfficeRasterEncodingOptions? effectiveOptions = options?.Clone();

@@ -11,9 +11,7 @@ public sealed partial class RtfLosslessEditor {
             throw new ArgumentOutOfRangeException(nameof(id), "RTF style identifiers cannot be negative.");
         }
 
-        if (name == null) {
-            throw new ArgumentNullException(nameof(name));
-        }
+        ArgumentNullException.ThrowIfNull(name);
 
         RtfGroup root = SetStyleName(_syntaxTree.Root, id, name, kind);
         _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);

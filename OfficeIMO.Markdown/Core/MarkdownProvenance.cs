@@ -11,7 +11,7 @@ public static class MarkdownProvenance {
         throwOnInvalidBytes: true);
     /// <summary>Inspects a Markdown string for structured and unstructured C2PA carriers.</summary>
     public static OfficeProvenanceReport Inspect(string markdown, OfficeProvenanceOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         options.CancellationToken.ThrowIfCancellationRequested();
@@ -39,7 +39,7 @@ public static class MarkdownProvenance {
     public static OfficeProvenanceRemovalResult Remove(
         string markdown,
         OfficeProvenanceRemovalOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
         options.Limits.CancellationToken.ThrowIfCancellationRequested();

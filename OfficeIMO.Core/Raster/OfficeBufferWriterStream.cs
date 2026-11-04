@@ -37,9 +37,9 @@ internal sealed class OfficeBufferWriterStream : Stream {
         throw new NotSupportedException();
 
     public override void Write(byte[] buffer, int offset, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentNullException.ThrowIfNull(buffer);
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (offset > buffer.Length - count) throw new ArgumentException("The buffer range is invalid.", nameof(buffer));
 
         while (count > 0) {

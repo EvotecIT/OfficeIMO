@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
             Func<OpenXmlPart, DataPartReferenceRelationship, bool>?
                 includeDataPartReferenceRelationship = null,
             bool includePackageProperties = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             HashSet<OpenXmlPart> parts = CollectParts(
                 document, MaximumPartCount, MaximumPartDepth, MaximumRelationshipCount);
             using var content = new FingerprintWriter(MaximumContentBytes, MaximumRelationshipCount);
@@ -124,10 +124,10 @@ namespace OfficeIMO.PowerPoint {
 
         internal static HashSet<OpenXmlPart> CollectParts(PresentationDocument document,
             int maximumPartCount, int maximumPartDepth, int maximumRelationshipCount) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (maximumPartCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPartCount));
-            if (maximumPartDepth < 0) throw new ArgumentOutOfRangeException(nameof(maximumPartDepth));
-            if (maximumRelationshipCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumRelationshipCount));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPartCount);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumPartDepth);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRelationshipCount);
             var parts = new HashSet<OpenXmlPart>();
             var scheduled = new HashSet<OpenXmlPart>();
             var pending = new Stack<(OpenXmlPart Part, int Depth)>();
@@ -172,7 +172,7 @@ namespace OfficeIMO.PowerPoint {
         internal static bool HasApplicationSignatureFlag(
             PresentationDocument document,
             long maximumXmlBytes = MaximumNormalizedXmlBytes) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             ExtendedFilePropertiesPart? propertiesPart = document.ExtendedFilePropertiesPart;
             if (propertiesPart == null) return false;
 
@@ -186,7 +186,7 @@ namespace OfficeIMO.PowerPoint {
         internal static bool HasSignatureAndEnsurePackageXmlWithinLimit(
             PresentationDocument document,
             long maximumXmlBytes = MaximumNormalizedXmlBytes) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             bool hasSignature = document.DigitalSignatureOriginPart != null ||
                 HasApplicationSignatureFlag(document, maximumXmlBytes);
             if (!hasSignature) return false;
@@ -203,8 +203,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static void EnsureStreamWithinLimit(Stream stream, long maximumBytes) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentNullException.ThrowIfNull(stream);
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumBytes, 0L);
             if (stream.CanSeek) {
                 long remaining = stream.Length - stream.Position;
                 if (remaining > maximumBytes) {
@@ -273,8 +273,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             internal void AppendXml(OpenXmlElement element, long maximumXmlBytes) {
-                if (element == null) throw new ArgumentNullException(nameof(element));
-                if (maximumXmlBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumXmlBytes));
+                ArgumentNullException.ThrowIfNull(element);
+                ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumXmlBytes, 0L);
                 using var xmlHash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
                 var xmlStream = new BoundedHashStream(xmlHash, maximumXmlBytes);
                 var settings = new XmlWriterSettings {
@@ -345,7 +345,7 @@ namespace OfficeIMO.PowerPoint {
             public override void Flush() { }
 
             public override void Write(byte[] buffer, int offset, int count) {
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (offset < 0 || count < 0 || offset > buffer.Length - count) {
                     throw new ArgumentOutOfRangeException();
                 }

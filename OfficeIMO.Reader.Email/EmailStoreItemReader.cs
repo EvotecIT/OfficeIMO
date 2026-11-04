@@ -28,8 +28,8 @@ public static class EmailStoreItemReader {
         ReaderOptions? readerOptions = null,
         ReaderEmailStoreOptions? emailStoreOptions = null,
         CancellationToken cancellationToken = default) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(path);
         var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         return reader.Scope(ReadCore(path, effective,
             ReaderEmailStoreOptionsCloner.CloneOrDefault(emailStoreOptions), cancellationToken), effective);
@@ -47,8 +47,8 @@ public static class EmailStoreItemReader {
         ReaderOptions? readerOptions = null,
         ReaderEmailStoreOptions? emailStoreOptions = null,
         CancellationToken cancellationToken = default) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(itemId)) throw new ArgumentException("Item id cannot be empty.", nameof(itemId));
         var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         return reader.Scope(ReadByIdCore(

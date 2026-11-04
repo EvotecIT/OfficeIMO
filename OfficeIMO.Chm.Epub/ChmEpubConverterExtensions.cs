@@ -73,7 +73,7 @@ public static class ChmEpubConverterExtensions {
 
     internal static async Task<EpubManuscriptResult> ConvertToEpubWithEvidenceAsync(this ChmDocument document,
         ChmEpubExportOptions? options, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         ChmConversionOptions configured = options?.ConversionOptions.Clone() ?? new ChmConversionOptions(); configured.EmbedImages = false;
         ChmConversionResult<HtmlConversionDocument> projected = document.ToHtmlDocumentResult(configured, cancellationToken);

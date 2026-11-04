@@ -6,7 +6,7 @@ internal static class MarkdownToLatexConverter {
     internal static MarkdownToLatexResult Convert(
         MarkdownDocument document,
         MarkdownLatexExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new MarkdownLatexExportOptions();
         Validate(options);
         var diagnostics = new List<LatexMarkdownConversionDiagnostic>();

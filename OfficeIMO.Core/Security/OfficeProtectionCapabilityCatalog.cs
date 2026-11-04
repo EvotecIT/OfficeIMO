@@ -22,8 +22,8 @@ public sealed class OfficeProtectionCapabilityCatalog {
     public OfficeProtectionCapabilityCatalog(string id, int schemaVersion,
         IEnumerable<OfficeProtectionCapability> capabilities) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
-        if (schemaVersion <= 0) throw new ArgumentOutOfRangeException(nameof(schemaVersion));
-        if (capabilities == null) throw new ArgumentNullException(nameof(capabilities));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
+        ArgumentNullException.ThrowIfNull(capabilities);
         OfficeProtectionCapability[] rows = capabilities.ToArray();
         if (rows.Length == 0) throw new ArgumentException("A capability catalog must contain at least one row.", nameof(capabilities));
         string[] duplicates = rows.GroupBy(row => row.Id, StringComparer.Ordinal)

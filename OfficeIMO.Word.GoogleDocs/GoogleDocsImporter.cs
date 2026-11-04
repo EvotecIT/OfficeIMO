@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDocsImportOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(documentId)) throw new ArgumentException("Document ID is required.", nameof(documentId));
-            if (session == null) throw new ArgumentNullException(nameof(session));
+            ArgumentNullException.ThrowIfNull(session);
             GoogleDocsImportOptions effective = options ?? new GoogleDocsImportOptions();
             ValidateOptions(effective);
             return effective.Mode == GoogleWorkspaceImportMode.DriveExport
@@ -233,11 +233,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         private static int ToByte(double value) => Math.Max(0, Math.Min(255, (int)Math.Round(value * 255d)));
 
         private static void ValidateOptions(GoogleDocsImportOptions options) {
-            if (options.MaxResponseBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxResponseBytes));
-            if (options.MaxTabs <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTabs));
-            if (options.MaxStructuralElements <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxStructuralElements));
-            if (options.MaxTableCells <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTableCells));
-            if (options.MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTextCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxResponseBytes, nameof(options.MaxResponseBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTabs, nameof(options.MaxTabs));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxStructuralElements, nameof(options.MaxStructuralElements));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTableCells, nameof(options.MaxTableCells));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTextCharacters, nameof(options.MaxTextCharacters));
         }
 
         private static void ValidateNativeResponse(

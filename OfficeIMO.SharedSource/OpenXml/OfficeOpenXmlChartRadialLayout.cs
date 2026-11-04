@@ -19,7 +19,7 @@ internal static class OfficeOpenXmlChartRadialLayout {
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartRadialLayout layout) {
-        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        ArgumentNullException.ThrowIfNull(layout);
         C.PlotArea plot = chart?.PlotArea ?? throw new InvalidOperationException("The chart has no plot area.");
         var layers = plot.ChildElements.OfType<OpenXmlCompositeElement>()
             .Where(element => element.LocalName.EndsWith("Chart", StringComparison.Ordinal)).ToList();

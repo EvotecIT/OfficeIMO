@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
         public System.Collections.Generic.IEqualityComparer<string> TableNameComparer {
             get => _tableNameComparer;
             set {
-                if (value == null) throw new System.ArgumentNullException(nameof(value));
+                System.ArgumentNullException.ThrowIfNull(value);
                 if (!object.ReferenceEquals(_tableNameComparer, value)) {
                     _tableNameComparer = value;
                     _tableNameCache = null; // rebuild lazily on next use with the new comparer

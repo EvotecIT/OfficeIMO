@@ -23,19 +23,19 @@ public sealed class EmailReaderOptions {
         int maxTnefAttributeCount = 100000,
         int maxAttachmentCount = 10000,
         bool includeEmbeddedMessages = true) {
-        if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
-        if (maxHeaderBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderBytes));
-        if (maxHeaderCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxHeaderCount));
-        if (maxPartCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxPartCount));
-        if (maxMimeDepth <= 0) throw new ArgumentOutOfRangeException(nameof(maxMimeDepth));
-        if (maxAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentBytes));
-        if (maxTotalAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalAttachmentBytes));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (maxCompoundDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxCompoundDirectoryEntries));
-        if (maxMapiPropertyCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxMapiPropertyCount));
-        if (maxDecodedPropertyBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytes));
-        if (maxTnefAttributeCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxTnefAttributeCount));
-        if (maxAttachmentCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxInputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxHeaderBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxHeaderCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPartCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMimeDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAttachmentBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTotalAttachmentBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCompoundDirectoryEntries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxMapiPropertyCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedPropertyBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTnefAttributeCount);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAttachmentCount);
 
         MaxInputBytes = maxInputBytes;
         MaxHeaderBytes = maxHeaderBytes;

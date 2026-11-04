@@ -3,8 +3,8 @@ namespace OfficeIMO.Email;
 internal static class OutlookMessageSemanticsProjection {
     internal static void Apply(EmailDocument document, MapiPropertyBag properties, int codePage,
         IList<EmailDiagnostic> diagnostics, string location) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (properties == null) throw new ArgumentNullException(nameof(properties));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(properties);
         EmailMessageMetadata metadata = document.MessageMetadata;
         ApplyFollowUp(metadata.FollowUp, properties);
         ApplyVoting(metadata.Voting, properties, codePage, diagnostics, location);

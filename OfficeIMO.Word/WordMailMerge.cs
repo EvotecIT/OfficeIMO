@@ -29,8 +29,8 @@ namespace OfficeIMO.Word {
         /// <param name="values">Dictionary with field names and values.</param>
         /// <param name="removeFields">Determines whether the field codes are removed after replacement.</param>
         public static void Execute(WordDocument document, IDictionary<string, string> values, bool removeFields = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(values);
 
             foreach (var root in EnumerateTemplateRoots(document)) {
                 ReplaceMergeFields(root, values, removeFields);
@@ -39,8 +39,8 @@ namespace OfficeIMO.Word {
 
         /// <summary>Replaces MERGEFIELD values and returns per-occurrence missing-value and formatting diagnostics.</summary>
         public static WordMailMergeExecutionReport ExecuteWithReport(WordDocument document, IDictionary<string, string> values, bool removeFields = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(values);
 
             var results = new List<WordMailMergeFieldResult>();
             foreach (var root in EnumerateTemplateRoots(document)) {
@@ -102,8 +102,8 @@ namespace OfficeIMO.Word {
             Func<int, IDictionary<string, string>, string> outputPathFactory) {
             if (string.IsNullOrWhiteSpace(templatePath)) throw new ArgumentException("Template path cannot be empty.", nameof(templatePath));
             if (!File.Exists(templatePath)) throw new FileNotFoundException("Template document was not found.", templatePath);
-            if (records == null) throw new ArgumentNullException(nameof(records));
-            if (outputPathFactory == null) throw new ArgumentNullException(nameof(outputPathFactory));
+            ArgumentNullException.ThrowIfNull(records);
+            ArgumentNullException.ThrowIfNull(outputPathFactory);
         }
 
         private static string PrepareBatchOutputPath(
@@ -128,8 +128,8 @@ namespace OfficeIMO.Word {
         /// <param name="removeFields">Determines whether field codes are removed after replacement.</param>
         /// <returns>The number of generated rows.</returns>
         public static int ExecuteTableRows(WordTable table, int templateRowIndex, IEnumerable<IDictionary<string, string>> rows, bool removeFields = true) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(table);
+            ArgumentNullException.ThrowIfNull(rows);
 
             var tableRows = table.Rows;
             if (templateRowIndex < 0 || templateRowIndex >= tableRows.Count) {
@@ -161,8 +161,8 @@ namespace OfficeIMO.Word {
         /// <param name="removeFields">Determines whether the field codes are removed after replacement.</param>
         /// <returns>Generated group and detail row counts.</returns>
         public static WordMailMergeTableRowGroupResult ExecuteTableRowGroups(WordTable table, int groupTemplateRowIndex, int detailTemplateRowIndex, IEnumerable<WordMailMergeTableRowGroup> groups, bool removeFields = true) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (groups == null) throw new ArgumentNullException(nameof(groups));
+            ArgumentNullException.ThrowIfNull(table);
+            ArgumentNullException.ThrowIfNull(groups);
 
             var tableRows = table.Rows;
             if (groupTemplateRowIndex < 0 || groupTemplateRowIndex >= tableRows.Count) {
@@ -212,8 +212,8 @@ namespace OfficeIMO.Word {
         /// <param name="removeFields">Determines whether field codes are removed after replacement.</param>
         /// <returns>The number of generated region instances.</returns>
         public static int ExecuteRepeatingBlocks(WordDocument document, IDictionary<string, IEnumerable<IDictionary<string, string>>> regions, bool removeFields = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (regions == null) throw new ArgumentNullException(nameof(regions));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(regions);
 
             return ExecuteRepeatingBlockRegions(document, ConvertFlatRegions(regions), removeFields);
         }
@@ -226,8 +226,8 @@ namespace OfficeIMO.Word {
         /// <param name="removeFields">Determines whether field codes are removed after replacement.</param>
         /// <returns>The number of generated region instances, including nested instances.</returns>
         public static int ExecuteRepeatingBlockRegions(WordDocument document, IDictionary<string, IEnumerable<WordMailMergeBlockData>> regions, bool removeFields = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (regions == null) throw new ArgumentNullException(nameof(regions));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(regions);
 
             int generated = 0;
             foreach (var root in EnumerateTemplateRoots(document)) {
@@ -245,8 +245,8 @@ namespace OfficeIMO.Word {
         /// <param name="removeMarkers">When true, matched marker paragraphs are removed from included blocks.</param>
         /// <returns>The number of conditional blocks processed.</returns>
         public static int ExecuteConditionalBlocks(WordDocument document, IDictionary<string, bool> conditions, bool removeMarkers = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (conditions == null) throw new ArgumentNullException(nameof(conditions));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(conditions);
 
             var conditionLookup = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, bool> condition in conditions) {
@@ -271,7 +271,7 @@ namespace OfficeIMO.Word {
         /// <param name="conditionNames">Optional supplied conditional block names. When provided, missing conditions are reported as issues.</param>
         /// <param name="repeatingBlockNames">Optional supplied repeated block names. When provided, missing repeated block rows are reported as issues.</param>
         public static WordMailMergeTemplateInspection InspectTemplate(WordDocument document, IEnumerable<string>? mergeFieldNames = null, IEnumerable<string>? conditionNames = null, IEnumerable<string>? repeatingBlockNames = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var issues = new List<WordMailMergeTemplateIssue>();
             var mergeFields = new List<string>();
@@ -354,8 +354,8 @@ namespace OfficeIMO.Word {
         /// <param name="mergeFieldNames">Supplied MERGEFIELD names.</param>
         /// <param name="conditionNames">Supplied conditional block names.</param>
         public static WordMailMergeTemplateInspection ValidateTemplate(WordDocument document, IEnumerable<string> mergeFieldNames, IEnumerable<string> conditionNames) {
-            if (mergeFieldNames == null) throw new ArgumentNullException(nameof(mergeFieldNames));
-            if (conditionNames == null) throw new ArgumentNullException(nameof(conditionNames));
+            ArgumentNullException.ThrowIfNull(mergeFieldNames);
+            ArgumentNullException.ThrowIfNull(conditionNames);
 
             return InspectTemplate(document, mergeFieldNames, conditionNames);
         }
@@ -368,9 +368,9 @@ namespace OfficeIMO.Word {
         /// <param name="conditionNames">Supplied conditional block names.</param>
         /// <param name="repeatingBlockNames">Supplied repeated block names.</param>
         public static WordMailMergeTemplateInspection ValidateTemplate(WordDocument document, IEnumerable<string> mergeFieldNames, IEnumerable<string> conditionNames, IEnumerable<string> repeatingBlockNames) {
-            if (mergeFieldNames == null) throw new ArgumentNullException(nameof(mergeFieldNames));
-            if (conditionNames == null) throw new ArgumentNullException(nameof(conditionNames));
-            if (repeatingBlockNames == null) throw new ArgumentNullException(nameof(repeatingBlockNames));
+            ArgumentNullException.ThrowIfNull(mergeFieldNames);
+            ArgumentNullException.ThrowIfNull(conditionNames);
+            ArgumentNullException.ThrowIfNull(repeatingBlockNames);
 
             return InspectTemplate(document, mergeFieldNames, conditionNames, repeatingBlockNames);
         }
@@ -380,7 +380,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Document containing bound content controls.</param>
         public static WordContentControlDataBindingResult RefreshContentControlDataBindings(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             return ExecuteContentControlDataBindingsCore(document, values: null, updateCustomXml: false);
         }
@@ -392,8 +392,8 @@ namespace OfficeIMO.Word {
         /// <param name="values">Values keyed by content-control alias, tag, XPath, or <c>storeItemId|XPath</c>.</param>
         /// <param name="updateCustomXml">When true, matching backing Custom XML nodes are updated with supplied values.</param>
         public static WordContentControlDataBindingResult ExecuteContentControlDataBindings(WordDocument document, IDictionary<string, string> values, bool updateCustomXml = true) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(values);
 
             return ExecuteContentControlDataBindingsCore(document, values, updateCustomXml);
         }

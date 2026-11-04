@@ -47,13 +47,9 @@ public sealed class OfficeDrawingGroup : OfficeDrawingElement {
         if (actualText != null && actualText.Length == 0) {
             throw new ArgumentException("Logical text cannot be empty.", nameof(actualText));
         }
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
+        ArgumentNullException.ThrowIfNull(drawing);
 
-        if (clipPath == null) {
-            throw new ArgumentNullException(nameof(clipPath));
-        }
+        ArgumentNullException.ThrowIfNull(clipPath);
 
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));

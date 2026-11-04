@@ -13,7 +13,7 @@ public static class OfficeDocumentReaderBuilderImageExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderImageOptions? imageOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderImageOptions registered = (imageOptions ?? new ReaderImageOptions()).CloneValidated();
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

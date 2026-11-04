@@ -20,8 +20,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions options,
             CancellationToken cancellationToken = default,
             string? sourceName = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
             if (!source.CanRead) {
                 throw new ArgumentException("Stream must be readable.",
                     nameof(source));
@@ -70,8 +70,8 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions options,
             CancellationToken cancellationToken = default,
             string? sourceName = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
             if (!source.CanRead) {
                 throw new ArgumentException("Stream must be readable.",
                     nameof(source));

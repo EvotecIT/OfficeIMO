@@ -24,7 +24,7 @@ internal static class HtmlCssCustomPropertyResolver {
 
     internal static bool TryResolve(string value, Func<string, string?> lookup, out string resolved,
         bool enforceLimits = true) {
-        if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+        ArgumentNullException.ThrowIfNull(lookup);
         return TryResolve(value ?? string.Empty, lookup, new HashSet<string>(StringComparer.Ordinal),
             new ResolutionBudget(enforceLimits), enforceLimits, 0, out resolved);
     }

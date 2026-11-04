@@ -11,7 +11,7 @@ public sealed partial class EpubPublication {
     /// Audio resources remain unchanged; their durations are caller declarations.
     /// </summary>
     public void ReplaceMediaOverlay(string overlayManifestId, EpubMediaOverlay overlay, CancellationToken cancellationToken = default) {
-        if (overlay == null) throw new ArgumentNullException(nameof(overlay));
+        ArgumentNullException.ThrowIfNull(overlay);
         cancellationToken.ThrowIfCancellationRequested();
         if (PackageVersion != "3.0") throw new NotSupportedException("Media-overlay authoring requires EPUB 3.");
         if (EpubVocabulary.Expand(Root, "media:duration") != OverlayVocabulary + "duration")

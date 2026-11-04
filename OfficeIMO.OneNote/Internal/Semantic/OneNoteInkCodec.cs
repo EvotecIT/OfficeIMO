@@ -54,7 +54,7 @@ internal static class OneNoteInkCodec {
     }
 
     internal static byte[] EncodeSignedVector(IReadOnlyList<long> values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         var data = new List<byte>();
         WriteVarUInt(data, checked((ulong)values.Count << 1));
         for (int index = 0; index < values.Count; index++) {
@@ -68,7 +68,7 @@ internal static class OneNoteInkCodec {
 
     // Each InkPath dimension starts with an absolute packet followed by signed deltas.
     internal static IReadOnlyList<long> DecodePacketValues(IReadOnlyList<long> encoded, int start, int count) {
-        if (encoded == null) throw new ArgumentNullException(nameof(encoded));
+        ArgumentNullException.ThrowIfNull(encoded);
         if (start < 0 || count < 0 || start > encoded.Count - count) throw new ArgumentOutOfRangeException(nameof(count));
         var values = new long[count];
         if (count == 0) return values;
@@ -90,7 +90,7 @@ internal static class OneNoteInkCodec {
     }
 
     internal static IReadOnlyList<long> EncodePacketValues(IReadOnlyList<long> values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         if (values.Count < 2) return values.ToArray();
         var encoded = new long[values.Count];
         encoded[0] = values[0];

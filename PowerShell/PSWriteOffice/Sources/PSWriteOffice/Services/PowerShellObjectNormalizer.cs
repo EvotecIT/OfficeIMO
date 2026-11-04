@@ -17,7 +17,7 @@ internal static partial class PowerShellObjectNormalizer
 
     public static IReadOnlyList<object?> NormalizeItems(IEnumerable<object?> items, PowerShellObjectNormalizerOptions? options = null)
     {
-        if (items == null) throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
 
         options ??= PowerShellObjectNormalizerOptions.Default;
         var result = items is ICollection<object?> collection
@@ -131,8 +131,8 @@ internal static partial class PowerShellObjectNormalizer
 
     public static bool TryProjectItemInto(object? item, string[] columns, object?[] values, PowerShellObjectNormalizerOptions? options = null)
     {
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(columns);
+        ArgumentNullException.ThrowIfNull(values);
         if (values.Length != columns.Length)
         {
             throw new ArgumentException("The value buffer length must match the column count.", nameof(values));
@@ -180,13 +180,8 @@ internal static partial class PowerShellObjectNormalizer
 
     public static bool TryProjectPSObjectIntoKnownColumns(object? item, string[] columns, object?[] values, PowerShellObjectNormalizerOptions? options = null)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(columns);
         ArgumentNullException.ThrowIfNull(values);
-#else
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
-        if (values == null) throw new ArgumentNullException(nameof(values));
-#endif
 
         if (values.Length != columns.Length)
         {
@@ -257,13 +252,8 @@ internal static partial class PowerShellObjectNormalizer
 
     public static bool TryProjectPSObjectTextIntoKnownColumns(object? item, string[] columns, string?[] values, PowerShellObjectNormalizerOptions? options = null)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(columns);
         ArgumentNullException.ThrowIfNull(values);
-#else
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
-        if (values == null) throw new ArgumentNullException(nameof(values));
-#endif
 
         if (values.Length != columns.Length)
         {

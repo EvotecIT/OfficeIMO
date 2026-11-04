@@ -163,12 +163,8 @@ namespace OfficeIMO.Verification.PowerPoint {
         internal static bool ValidateSlideImages(IReadOnlyList<string> imagePaths,
             int expectedSlideCount, IReadOnlyList<bool> slidesWithVisibleContent,
             out string message) {
-            if (expectedSlideCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(expectedSlideCount));
-            }
-            if (slidesWithVisibleContent == null) {
-                throw new ArgumentNullException(nameof(slidesWithVisibleContent));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(expectedSlideCount);
+            ArgumentNullException.ThrowIfNull(slidesWithVisibleContent);
             if (slidesWithVisibleContent.Count != expectedSlideCount) {
                 throw new ArgumentException(
                     "Visible-content flags must match the expected slide count.",
@@ -219,9 +215,9 @@ namespace OfficeIMO.Verification.PowerPoint {
         internal static bool HasExpectedVisibleContent(
             PowerPointDocument presentation, PowerPointSlide slide,
             PowerPointImageExportOptions options) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (slide == null) throw new ArgumentNullException(nameof(slide));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(slide);
+            ArgumentNullException.ThrowIfNull(options);
             if (slide.SmartArts.Any(smartArt => !smartArt.Hidden
                     && IsPotentiallyVisibleOnSlide(presentation, smartArt)
                     && !smartArt.TryGetOfficeDiagramSnapshot(out _))) {

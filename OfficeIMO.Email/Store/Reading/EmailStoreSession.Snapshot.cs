@@ -16,7 +16,7 @@ public sealed partial class EmailStoreSession {
     /// </summary>
     public static EmailStoreSession OpenSnapshot(string path, EmailStoreReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         using var source = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read,
             64 * 1024, FileOptions.SequentialScan);
         return OpenSnapshot(source, Path.GetFileName(path), options, cancellationToken: cancellationToken);
@@ -30,7 +30,7 @@ public sealed partial class EmailStoreSession {
     public static EmailStoreSession OpenSnapshot(Stream stream, string? sourceName = null,
         EmailStoreReaderOptions? options = null, bool leaveOpen = true,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The source must be readable.", nameof(stream));
         EmailStoreReaderOptions effective = options ?? EmailStoreReaderOptions.Default;
         long? originalPosition = stream.CanSeek ? stream.Position : (long?)null;

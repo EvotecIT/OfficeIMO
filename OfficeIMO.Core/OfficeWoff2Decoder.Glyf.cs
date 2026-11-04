@@ -295,8 +295,8 @@ internal static partial class OfficeWoff2Decoder {
     }
 
     internal static void ValidateCompositeGlyphReference(byte[] compositeStream, int componentOffset, int glyphCount) {
-        if (compositeStream == null) throw new ArgumentNullException(nameof(compositeStream));
-        if (glyphCount <= 0) throw new ArgumentOutOfRangeException(nameof(glyphCount));
+        ArgumentNullException.ThrowIfNull(compositeStream);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(glyphCount);
         EnsureAvailable(compositeStream, componentOffset, 4, "The transformed WOFF 2 composite stream is truncated.");
         int componentGlyphId = ReadUInt16(compositeStream, componentOffset + 2);
         if (componentGlyphId >= glyphCount) {

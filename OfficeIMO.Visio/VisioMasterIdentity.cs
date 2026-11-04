@@ -20,7 +20,7 @@ namespace OfficeIMO.Visio {
         }
 
         internal static IReadOnlyList<string> GetKeys(VisioAssets.MasterInfo master) {
-            if (master == null) throw new ArgumentNullException(nameof(master));
+            ArgumentNullException.ThrowIfNull(master);
 
             return new string?[] {
                     master.NameU,

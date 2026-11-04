@@ -8,7 +8,7 @@ internal static partial class OdfTextCodec {
         new("opendocument", name, maximum);
 
     internal static string Read(XElement element) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         XNode? first = element.FirstNode;
         if (first == null) return string.Empty;
         if (first is XText text && first.NextNode == null && !text.Value.Any(IsXmlSpace)) {
@@ -22,7 +22,7 @@ internal static partial class OdfTextCodec {
     }
 
     internal static string ReadNodes(IEnumerable<XNode> nodes) {
-        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+        ArgumentNullException.ThrowIfNull(nodes);
         return DecodeNodes(nodes, MaximumDecodedCharacters).Text;
     }
 
@@ -45,7 +45,7 @@ internal static partial class OdfTextCodec {
 
     /// <summary>Decodes inline fallback syntax while charging the caller's story-wide node budget.</summary>
     internal static string ReadNodes(IEnumerable<XNode> nodes, ref int remainingCharacters, ref int visitedNodes) {
-        if (nodes == null) throw new ArgumentNullException(nameof(nodes));
+        ArgumentNullException.ThrowIfNull(nodes);
         TextSnapshot snapshot;
         int visited = visitedNodes;
         try {
@@ -61,7 +61,7 @@ internal static partial class OdfTextCodec {
     }
 
     internal static string ReadJoined(IEnumerable<XElement> elements) {
-        if (elements == null) throw new ArgumentNullException(nameof(elements));
+        ArgumentNullException.ThrowIfNull(elements);
         var builder = new StringBuilder();
         bool first = true;
         int remaining = MaximumDecodedCharacters;
@@ -80,8 +80,8 @@ internal static partial class OdfTextCodec {
     }
 
     internal static string JoinBounded(IEnumerable<string> values, string separator = "\n") {
-        if (values == null) throw new ArgumentNullException(nameof(values));
-        if (separator == null) throw new ArgumentNullException(nameof(separator));
+        ArgumentNullException.ThrowIfNull(values);
+        ArgumentNullException.ThrowIfNull(separator);
         var builder = new StringBuilder();
         bool first = true;
         foreach (string value in values) {
@@ -98,13 +98,13 @@ internal static partial class OdfTextCodec {
     }
 
     internal static void Replace(XElement element, string? text) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         element.RemoveNodes();
         Append(element, text);
     }
 
     internal static void Append(XElement element, string? text) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         if (string.IsNullOrEmpty(text)) return;
 
         var plain = new StringBuilder();
@@ -147,7 +147,7 @@ internal static partial class OdfTextCodec {
         XElement element,
         OfficeIMO.Drawing.OfficeTextCase textCase,
         CultureInfo? culture = null) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         if (textCase == OfficeIMO.Drawing.OfficeTextCase.None) return;
 
         string source = ReadTransformText(element);
@@ -165,7 +165,7 @@ internal static partial class OdfTextCodec {
         IReadOnlyList<XElement> elements,
         OfficeIMO.Drawing.OfficeTextCase textCase,
         CultureInfo? culture = null) {
-        if (elements == null) throw new ArgumentNullException(nameof(elements));
+        ArgumentNullException.ThrowIfNull(elements);
         if (textCase == OfficeIMO.Drawing.OfficeTextCase.None || elements.Count == 0) return;
 
         var source = new StringBuilder();

@@ -100,21 +100,15 @@ namespace OfficeIMO.Security {
         }
 
         private static void ValidateArguments(byte[] key, byte[] iv, byte[] input, OfficeAesPadding padding) {
-            if (key == null) {
-                throw new ArgumentNullException(nameof(key));
-            }
+            ArgumentNullException.ThrowIfNull(key);
             if (key.Length != 16 && key.Length != 24 && key.Length != 32) {
                 throw new ArgumentException("AES keys must contain 16, 24, or 32 bytes.", nameof(key));
             }
-            if (iv == null) {
-                throw new ArgumentNullException(nameof(iv));
-            }
+            ArgumentNullException.ThrowIfNull(iv);
             if (iv.Length != BlockSize) {
                 throw new ArgumentException("AES-CBC initialization vectors must contain 16 bytes.", nameof(iv));
             }
-            if (input == null) {
-                throw new ArgumentNullException(nameof(input));
-            }
+            ArgumentNullException.ThrowIfNull(input);
             if (padding != OfficeAesPadding.None && padding != OfficeAesPadding.Pkcs7) {
                 throw new ArgumentOutOfRangeException(nameof(padding));
             }

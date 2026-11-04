@@ -26,4 +26,4 @@ Edit-OfficeExcelRow -Path '.\Readiness.xlsx' -Sheet Readiness -ScriptBlock {
 
 Open the workbook with `Get-OfficeExcel`, pipe it to `Add-OfficeExcelTableRow`, and close with `-Save`. Other targeted commands update cells, formulas, styles, links, print settings, visibility, active sheet, filters, comments, validation, and workbook metadata.
 
-The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/7fa01d150c47a5a42b8fa099ff2f560b375c9c47/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-UpdateExisting.ps1) combines workbook-wide text replacement with a header-aware row edit.
+The [update-existing recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-UpdateExisting.ps1) combines workbook-wide text replacement with a header-aware row edit.

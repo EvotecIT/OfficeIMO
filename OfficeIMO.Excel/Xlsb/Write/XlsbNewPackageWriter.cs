@@ -15,8 +15,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Stream destination,
             bool useSharedStrings = false,
             CancellationToken cancellationToken = default, long maximumBytes = int.MaxValue) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("The XLSB destination must be writable.", nameof(destination));
 
             ExcelSheet[] sheets = document.Sheets.ToArray();
@@ -55,9 +55,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Stream destination,
             CancellationToken cancellationToken,
             bool useSharedStrings = false) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("The XLSB destination must be writable.", nameof(destination));
 
             ExcelSheet? sheet = document.GetOrCreateDeferredDirectTabularSheet(source.SheetName);

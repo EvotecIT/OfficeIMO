@@ -43,7 +43,7 @@ internal sealed partial class OdfPackage {
     }
 
     internal static OdfPackage Load(string path, OdfLoadOptions? options, out string fullPath) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException($"OpenDocument file '{fullPath}' does not exist.", fullPath);
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
@@ -56,7 +56,7 @@ internal sealed partial class OdfPackage {
     }
 
     internal static OdfPackage Load(Stream stream, OdfLoadOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         byte[] bytes = OdfAdmission.ReadSnapshot(stream, effective.MaxPackageBytes);
@@ -64,7 +64,7 @@ internal sealed partial class OdfPackage {
     }
 
     internal static OdfPackage Load(byte[] packageBytes, OdfLoadOptions? options = null) {
-        if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+        ArgumentNullException.ThrowIfNull(packageBytes);
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         if (packageBytes.LongLength > effective.MaxPackageBytes) {
             throw OdfAdmission.Limit(nameof(OdfLoadOptions.MaxPackageBytes), effective.MaxPackageBytes);
@@ -249,7 +249,7 @@ internal sealed partial class OdfPackage {
     }
 
     internal void AddDiagnostic(OdfDiagnostic diagnostic) {
-        if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+        ArgumentNullException.ThrowIfNull(diagnostic);
         _diagnostics.Add(diagnostic);
     }
 

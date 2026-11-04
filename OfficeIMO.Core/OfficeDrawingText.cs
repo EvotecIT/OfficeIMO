@@ -91,9 +91,7 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
     }
 
     internal OfficeDrawingText(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, OfficeTextOverflowBehavior overflowBehavior, double? textAdvanceWidth, OfficeTextDecorationStyle underlineStyle, OfficeTextDecorationStyle strikethroughStyle, OfficeTextBaseline baseline, int baselineLevel, double baselineScale, double baselineOffset, OfficeColor? decorationColor = null, OfficeTextFeatureSettings? featureSettings = null, string? fontPalette = null, OfficeTextDirection textDirection = OfficeTextDirection.Auto) {
-        if (text == null) {
-            throw new ArgumentNullException(nameof(text));
-        }
+        ArgumentNullException.ThrowIfNull(text);
 
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));

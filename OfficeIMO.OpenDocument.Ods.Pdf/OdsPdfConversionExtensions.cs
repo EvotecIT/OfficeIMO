@@ -11,7 +11,7 @@ public static partial class OdsPdfConversionExtensions {
     /// <summary>Converts an ODS workbook to PDF and preserves diagnostics from both conversion stages.</summary>
     private static PdfCore.PdfDocumentConversionResult ConvertToPdfCore(this OdsDocument source, ExcelOpenDocumentConversionOptions? conversionOptions = null, ExcelPdf.ExcelPdfExportOptions? pdfOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OdfConversionResult<OfficeIMO.Excel.ExcelDocument> conversion = source.ConvertToExcelWithEvidence(conversionOptions);
         using (conversion.Value) {
             PdfCore.PdfDocumentConversionResult result = ExcelPdf.ExcelPdfConverterExtensions.ConvertToPdfWithEvidence(conversion.Value, pdfOptions, cancellationToken);
@@ -22,7 +22,7 @@ public static partial class OdsPdfConversionExtensions {
     /// <summary>Reconstructs an ODS workbook and preserves diagnostics from both table-conversion stages.</summary>
     private static PdfOdsConversionResult ConvertOdsCore(this PdfCore.PdfDocument source, PdfExcel.PdfExcelExportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PdfExcel.PdfExcelTableImportResult pdf = PdfExcel.PdfExcelTableConverterExtensions.ConvertToExcelWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdsDocument> ods = pdf.Value.ConvertToOpenDocumentWithEvidence(openDocumentOptions);
@@ -36,7 +36,7 @@ public static partial class OdsPdfConversionExtensions {
     /// <summary>Reconstructs an ODS workbook from a logical PDF model and preserves both stage reports.</summary>
     private static PdfOdsConversionResult ConvertOdsCore(this PdfCore.PdfDocumentReadResult source, PdfExcel.PdfExcelExportOptions? pdfOptions = null, ExcelOpenDocumentConversionOptions? openDocumentOptions = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         PdfExcel.PdfExcelTableImportResult pdf = PdfExcel.PdfExcelTableConverterExtensions.ConvertToExcelWithEvidence(source, pdfOptions, cancellationToken);
         using (pdf.Value) {
             OdfConversionResult<OdsDocument> ods = pdf.Value.ConvertToOpenDocumentWithEvidence(openDocumentOptions);

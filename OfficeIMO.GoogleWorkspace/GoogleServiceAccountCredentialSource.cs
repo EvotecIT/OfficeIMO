@@ -217,7 +217,7 @@ namespace OfficeIMO.GoogleWorkspace {
         }
 
         private static IReadOnlyList<string> NormalizeScopes(IEnumerable<string> scopes) {
-            if (scopes == null) throw new ArgumentNullException(nameof(scopes));
+            ArgumentNullException.ThrowIfNull(scopes);
 
             var normalizedScopes = scopes
                 .Where(scope => !string.IsNullOrWhiteSpace(scope))

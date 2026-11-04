@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             public override void Write(byte[] buffer, int offset, int count) {
                 ThrowIfDisposed();
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (offset < 0 || count < 0 || offset > buffer.Length - count) {
                     throw new ArgumentOutOfRangeException(nameof(count));
                 }

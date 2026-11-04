@@ -26,9 +26,7 @@ namespace OfficeIMO.SharedSource.IO {
         internal PooledUtf8TextWriter(Stream stream, Encoding encoding, int bufferSize, bool leaveOpen = false) {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
             _encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
-            if (bufferSize <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(bufferSize));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(bufferSize);
 
             _encoder = encoding.GetEncoder();
 #if NET8_0_OR_GREATER
@@ -108,9 +106,7 @@ namespace OfficeIMO.SharedSource.IO {
         }
 
         public override void Write(char[] buffer, int index, int count) {
-            if (buffer == null) {
-                throw new ArgumentNullException(nameof(buffer));
-            }
+            ArgumentNullException.ThrowIfNull(buffer);
             if (index < 0 || count < 0 || index > buffer.Length - count) {
                 throw new ArgumentOutOfRangeException(index < 0 ? nameof(index) : nameof(count));
             }

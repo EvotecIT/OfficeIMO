@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf.Writing;
 internal static partial class RtfDocumentWriter {
     public static string Write(RtfDocument document, RtfSaveOptions options, RtfConversionReport? report = null,
         bool semanticBaseline = false) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new RtfSaveOptions();
         RtfTableTraversalGuard.ValidateDocument(document);
         // The comparison string keeps the authored \uc setting in the header, but

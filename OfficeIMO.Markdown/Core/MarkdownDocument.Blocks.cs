@@ -27,7 +27,7 @@ public partial class MarkdownDocument {
     /// <param name="blocks">Blocks to append. Enumeration and null validation finish before the document changes.</param>
     /// <returns>A read-only snapshot of the added blocks in source order.</returns>
     public IReadOnlyList<IMarkdownBlock> AddRange(IEnumerable<IMarkdownBlock> blocks) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        ArgumentNullException.ThrowIfNull(blocks);
         IMarkdownBlock[] added = blocks.ToArray();
         if (added.Any(block => block == null)) throw new ArgumentException("Markdown blocks cannot contain null entries.", nameof(blocks));
         foreach (IMarkdownBlock block in added) {
@@ -44,7 +44,7 @@ public partial class MarkdownDocument {
     }
 
     private MarkdownDocument Append(IMarkdownBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         if (block is IFrontMatterMarkdownBlock frontMatter) {
             _frontMatter = frontMatter;
         } else {

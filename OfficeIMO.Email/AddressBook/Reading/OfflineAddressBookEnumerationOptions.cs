@@ -7,7 +7,7 @@ public sealed class OfflineAddressBookEnumerationOptions {
         string? addressListId = null,
         int maxEntries = int.MaxValue,
         bool continueOnEntryError = true) {
-        if (maxEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxEntries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEntries);
         AddressListId = string.IsNullOrWhiteSpace(addressListId) ? null : addressListId;
         MaxEntries = maxEntries;
         ContinueOnEntryError = continueOnEntryError;

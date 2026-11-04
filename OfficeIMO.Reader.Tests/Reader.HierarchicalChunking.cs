@@ -1404,7 +1404,8 @@ public sealed class ReaderHierarchicalChunkingTests {
 
         public OfficeDocumentBlock this[int index] {
             get {
-                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+                ArgumentOutOfRangeException.ThrowIfNegative(index);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
                 ReadCount++;
                 return _block;
             }
@@ -1430,7 +1431,8 @@ public sealed class ReaderHierarchicalChunkingTests {
 
         public OfficeDocumentPage this[int index] {
             get {
-                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+                ArgumentOutOfRangeException.ThrowIfNegative(index);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
                 ReadCount++;
                 return _page;
             }

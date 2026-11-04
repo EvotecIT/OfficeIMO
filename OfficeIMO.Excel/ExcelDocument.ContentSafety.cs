@@ -29,7 +29,7 @@ public partial class ExcelDocument {
         byte[] workbookBytes,
         string fileName = "workbook.xlsx",
         OfficeContentSafetyOptions? options = null) {
-        if (workbookBytes == null) throw new ArgumentNullException(nameof(workbookBytes));
+        ArgumentNullException.ThrowIfNull(workbookBytes);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(workbookBytes, effective, inspectZipPackage: true);
         using ExcelDocument document = LoadContentSafetyWorkbook(workbookBytes, fileName, readOnly: true);
@@ -42,8 +42,8 @@ public partial class ExcelDocument {
         OfficeContentCleanupSelection selection,
         string fileName = "workbook.xlsx",
         OfficeContentCleanupOptions? options = null) {
-        if (workbookBytes == null) throw new ArgumentNullException(nameof(workbookBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(workbookBytes);
+        ArgumentNullException.ThrowIfNull(selection);
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
 

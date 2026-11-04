@@ -11,7 +11,7 @@ public sealed class ContentLineParameter {
 
     /// <summary>Creates a parameter with one or more values.</summary>
     public ContentLineParameter(string name, params string[] values) : this(name) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         foreach (string value in values) _values.Add(value ?? throw new ArgumentNullException(nameof(values)));
     }
 

@@ -37,7 +37,8 @@ public abstract class HtmlCssSyntaxDocument {
     public IReadOnlyList<HtmlCssSyntaxDiagnostic> Diagnostics { get; }
     /// <summary>Maps an exact UTF-16 offset to a one-based line and column.</summary>
     public HtmlCssSourcePosition GetPosition(int offset) {
-        if (offset < 0 || offset > Source.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, Source.Length);
         int line = Array.BinarySearch(_lineStarts, offset);
         if (line < 0) line = ~line - 1;
         return new HtmlCssSourcePosition(offset, line + 1, offset - _lineStarts[line] + 1);

@@ -43,7 +43,7 @@ public sealed class DelegateOcrEngine : IOcrEngine {
 
     /// <inheritdoc />
     public Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         return _recognizeAsync(request, cancellationToken);
     }
 }

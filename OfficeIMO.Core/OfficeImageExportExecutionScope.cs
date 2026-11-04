@@ -40,8 +40,8 @@ internal sealed class OfficeImageExportExecutionScope : IDisposable {
         OfficeImageExportOptions options,
         CancellationToken callerCancellationToken,
         Func<CancellationToken, TResult> operation) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (operation == null) throw new ArgumentNullException(nameof(operation));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(operation);
         options.ValidateImageExportOptions();
         using var execution = Start(options.RenderTimeout, callerCancellationToken);
         try {

@@ -11,7 +11,7 @@ public sealed partial class EmailStoreSession {
     public EmailStoreMboxExportReport ExportToMbox(string destinationPath,
         EmailStoreMboxExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (destinationPath == null) throw new ArgumentNullException(nameof(destinationPath));
+        ArgumentNullException.ThrowIfNull(destinationPath);
         ThrowIfDisposed();
         EmailStoreMboxExportOptions effective = options ?? new EmailStoreMboxExportOptions();
         string destination = Path.GetFullPath(destinationPath);
@@ -120,7 +120,7 @@ public sealed partial class EmailStoreSession {
     public EmailStoreExportReport ExportToDirectory(string destinationDirectory,
         EmailStoreExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (destinationDirectory == null) throw new ArgumentNullException(nameof(destinationDirectory));
+        ArgumentNullException.ThrowIfNull(destinationDirectory);
         ThrowIfDisposed();
         EmailStoreExportOptions effective = options ?? new EmailStoreExportOptions();
         string root = Path.GetFullPath(destinationDirectory);

@@ -32,9 +32,7 @@ internal static class MarkdownInlineRenderBuiltInExtensions {
 
     /// <summary>Adds CommonMark-compatible markdown fallbacks for GFM-only inline constructs.</summary>
     public static void AddCommonMarkGfmInlineMarkdownFallbacks(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.InlineRenderExtensions, CommonMarkStrikethroughMarkdownName, typeof(StrikethroughInline), RenderHtmlFallback);
         AddIfMissing(options.InlineRenderExtensions, CommonMarkStrikethroughMarkdownName + ".Sequence", typeof(StrikethroughSequenceInline), RenderHtmlFallback);
@@ -51,18 +49,14 @@ internal static class MarkdownInlineRenderBuiltInExtensions {
 
     /// <summary>Adds a CommonMark-compatible markdown fallback for attributed inline nodes by emitting raw HTML.</summary>
     public static void AddCommonMarkAttributedInlineMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.InlineRenderExtensions, CommonMarkAttributedInlineMarkdownName, typeof(MarkdownInline), RenderAttributedHtmlFallback);
     }
 
     /// <summary>Adds GitHub-compatible markdown fallbacks for OfficeIMO-only inline constructs.</summary>
     public static void AddGitHubOfficeInlineMarkdownFallbacks(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.InlineRenderExtensions, GitHubHighlightMarkdownName, typeof(HighlightInline), RenderHtmlFallback);
         AddIfMissing(options.InlineRenderExtensions, GitHubHighlightMarkdownName + ".Sequence", typeof(HighlightSequenceInline), RenderHtmlFallback);
@@ -76,9 +70,7 @@ internal static class MarkdownInlineRenderBuiltInExtensions {
 
     /// <summary>Adds a GitHub-compatible markdown fallback for attributed inline nodes by emitting raw HTML.</summary>
     public static void AddGitHubAttributedInlineMarkdownFallback(MarkdownSaveOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         AddIfMissing(options.InlineRenderExtensions, GitHubAttributedInlineMarkdownName, typeof(MarkdownInline), RenderAttributedHtmlFallback);
     }
@@ -88,9 +80,7 @@ internal static class MarkdownInlineRenderBuiltInExtensions {
         string name,
         Type inlineType,
         MarkdownInlineMarkdownRenderer renderer) {
-        if (extensions == null) {
-            throw new ArgumentNullException(nameof(extensions));
-        }
+        ArgumentNullException.ThrowIfNull(extensions);
 
         if (extensions.Any(extension => string.Equals(extension.Name, name, StringComparison.OrdinalIgnoreCase))) {
             return;

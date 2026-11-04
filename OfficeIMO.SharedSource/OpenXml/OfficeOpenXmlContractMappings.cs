@@ -40,7 +40,7 @@ internal static class OfficeOpenXmlContractMappings {
         };
 
     internal static OfficeOpenXmlValidationError ToOfficeValidationError(this ValidationErrorInfo error) {
-        if (error == null) throw new ArgumentNullException(nameof(error));
+        ArgumentNullException.ThrowIfNull(error);
         return new OfficeOpenXmlValidationError(
             error.Id,
             error.ErrorType switch {

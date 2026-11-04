@@ -21,7 +21,7 @@ public sealed partial class BookProject {
         int sequence = 0;
         foreach (var title in titles) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(title);
             string level = OnixCollectionLevelCode(title.Level);
             if (!foundLevels.Add(title.Level))
                 throw new ArgumentException("Collection title levels must be distinct.", nameof(collection.TitleElements));

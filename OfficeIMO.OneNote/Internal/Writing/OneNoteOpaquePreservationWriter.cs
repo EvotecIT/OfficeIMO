@@ -6,9 +6,9 @@ internal static class OneNoteOpaquePreservationWriter {
         OneNoteWriteObjectSpace generated,
         IEnumerable<OneNoteOpaqueObject> preservedObjects,
         long maxPayloadBytes) {
-        if (generated == null) throw new ArgumentNullException(nameof(generated));
-        if (preservedObjects == null) throw new ArgumentNullException(nameof(preservedObjects));
-        if (maxPayloadBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxPayloadBytes));
+        ArgumentNullException.ThrowIfNull(generated);
+        ArgumentNullException.ThrowIfNull(preservedObjects);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxPayloadBytes, 1);
 
         var generatedById = generated.Objects
             .GroupBy(item => item.Id)

@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtClientAnchor = 0xF010;
 
         internal static bool CanWriteDocument(PowerPointDocument presentation) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             return TryBuildModifiedPersistObjects(presentation, out _, out _,
                     out _)
                 && LegacyPptPropertySetCodec.TryBuildReplacementStreams(
@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal static bool TryWriteDocument(PowerPointDocument presentation, out byte[] bytes) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             bytes = Array.Empty<byte>();
             if (!TryBuildModifiedPersistObjects(presentation,
                     out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,

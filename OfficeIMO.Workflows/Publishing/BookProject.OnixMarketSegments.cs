@@ -15,7 +15,7 @@ public sealed partial class BookProject {
         var territories = new List<OnixTerritory>();
         var elements = new List<XElement>();
         foreach (var segment in supply.MarketSegments) {
-            token.ThrowIfCancellationRequested(); if (segment == null) throw new ArgumentNullException(nameof(segment));
+            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(segment);
             if (segment.Restrictions == null) throw new ArgumentNullException("segment.Restrictions");
             var territory = ReadOnixTerritory(segment.Territory);
             if (!market.Covers(territory) || territories.Any(previous => previous.Overlaps(territory)))

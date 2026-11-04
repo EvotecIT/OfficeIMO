@@ -24,17 +24,11 @@ if (HasSwitch(args, "--help") || HasSwitch(args, "-h") || HasSwitch(args, "/?"))
     return;
 }
 
-if (rowCount <= 0) {
-    throw new ArgumentOutOfRangeException(nameof(rowCount));
-}
+ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
-if (warmupIterations <= 0) {
-    throw new ArgumentOutOfRangeException(nameof(warmupIterations));
-}
+ArgumentOutOfRangeException.ThrowIfNegativeOrZero(warmupIterations);
 
-if (measuredIterations <= 0) {
-    throw new ArgumentOutOfRangeException(nameof(measuredIterations));
-}
+ArgumentOutOfRangeException.ThrowIfNegativeOrZero(measuredIterations);
 
 var scenarioFilter = new HashSet<string>(scenarioFilters, StringComparer.OrdinalIgnoreCase);
 bool IncludeScenario(string name) => scenarioFilter.Count == 0 || scenarioFilter.Contains(name);

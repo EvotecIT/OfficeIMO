@@ -61,7 +61,7 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <param name="options">Session settings to snapshot.</param>
         /// <returns>Normalized immutable retry options.</returns>
         public static GoogleWorkspaceRetryOptions FromSessionOptions(GoogleWorkspaceSessionOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return new GoogleWorkspaceRetryOptions(options.MaxRetryCount, options.RetryBaseDelay, options.RetryMaxDelay, options);
         }
     }
@@ -167,9 +167,7 @@ namespace OfficeIMO.GoogleWorkspace {
             Func<HttpResponseMessage, CancellationToken, Task<TResult>>
                 responseHandler,
             Action<GoogleWorkspaceRetryEvent>? onRetry = null) {
-            if (responseHandler == null) {
-                throw new ArgumentNullException(nameof(responseHandler));
-            }
+            ArgumentNullException.ThrowIfNull(responseHandler);
             return SendCoreAsync(
                 client,
                 requestFactory,
@@ -197,7 +195,7 @@ namespace OfficeIMO.GoogleWorkspace {
             bool disposeFinalResponse,
             bool wrapMutationNoResponse,
             Action<GoogleWorkspaceRetryEvent>? onRetry) {
-            if (retryOptions == null) throw new ArgumentNullException(nameof(retryOptions));
+            ArgumentNullException.ThrowIfNull(retryOptions);
             int retryBudget = retryOptions.MaxRetryCount;
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             using var deadlineSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

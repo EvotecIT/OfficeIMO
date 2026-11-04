@@ -13,7 +13,7 @@ internal static partial class DocumentReaderEngine {
     /// Detects a file kind from extension and bounded content evidence.
     /// </summary>
     public static ReaderDetectionResult Detect(string path, ReaderDetectionOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) return DetectDirectoryBundle(path);
         ValidateFilePath(path);
         ReaderDetectionOptions effectiveOptions = NormalizeDetectionOptions(options);
@@ -52,7 +52,7 @@ internal static partial class DocumentReaderEngine {
         byte[] bytes,
         string? sourceName = null,
         ReaderDetectionOptions? options = null) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return Detect(stream, sourceName, options);
     }
@@ -65,7 +65,7 @@ internal static partial class DocumentReaderEngine {
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) return DetectDirectoryBundle(path);
         ValidateFilePath(path);
         ReaderDetectionOptions effectiveOptions = NormalizeDetectionOptions(options);
@@ -111,7 +111,7 @@ internal static partial class DocumentReaderEngine {
         string? sourceName = null,
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return await DetectAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false);
     }

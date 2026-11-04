@@ -14,7 +14,7 @@ public sealed partial class ProjectDocument {
     /// <summary>Applies a complete leveling proposal to its unchanged originating document.</summary>
     public void ApplyLeveling(ProjectLevelingResult result, CancellationToken cancellationToken = default) {
         EnsureMutable();
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         result.Report.ThrowIfErrors();
         if (result.Schedule.Document != this || result.Schedule.ModelRevision != Revision || _batchDepth != 0)
             throw new InvalidOperationException("The leveling proposal belongs to another document or a stale/in-progress revision.");

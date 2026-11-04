@@ -96,7 +96,7 @@ internal sealed class MboxStoreSessionBackend : IEmailStoreSessionBackend {
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, EmailStoreItemReadOptions options,
         CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         MboxItem item = GetItem(reference);
         EmailMailboxEntryReadResult entry;

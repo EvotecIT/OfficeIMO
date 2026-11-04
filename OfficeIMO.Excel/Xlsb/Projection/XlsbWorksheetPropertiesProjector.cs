@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and compares worksheet-level properties stored in BrtWsProp.</summary>
     internal static class XlsbWorksheetPropertiesProjector {
         internal static void Apply(ExcelSheet sheet, XlsbWorksheetProperties? source) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (source == null) return;
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");

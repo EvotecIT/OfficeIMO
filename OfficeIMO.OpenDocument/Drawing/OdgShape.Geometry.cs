@@ -77,7 +77,7 @@ public sealed partial class OdgShape {
         if (!radius.TryToPoints(out double points) || points < 0) throw new ArgumentOutOfRangeException(nameof(radius), "Corner radii must be finite nonnegative absolute lengths.");
     }
     internal static IReadOnlyList<OfficePathCommand> ParsePath(string? value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         if (value.Length > MaximumGeometryText) throw new InvalidDataException("Path data exceeds 1 MiB.");
         if (!OfficeSvgPathDataParser.TryParse(value, MaximumGeometryItems, out var commands, out bool exceeded))
             throw new InvalidDataException(exceeded ? "Path data exceeds 20,000 commands." : "Invalid or unsupported SVG path data.");
@@ -85,7 +85,7 @@ public sealed partial class OdgShape {
         return commands;
     }
     internal static string FormatCommands(IEnumerable<OfficePathCommand> commands) {
-        if (commands == null) throw new ArgumentNullException(nameof(commands));
+        ArgumentNullException.ThrowIfNull(commands);
         var snapshot = commands.Take(MaximumGeometryItems + 1).ToList();
         if (snapshot.Count > MaximumGeometryItems) throw new InvalidDataException("Path data exceeds 20,000 commands.");
         // The shared descriptor checks command order, finite coordinates and drawable content.
@@ -93,7 +93,7 @@ public sealed partial class OdgShape {
         return OfficeSvgFormatting.FormatEditablePathData(snapshot);
     }
     internal static string FormatPoints(IEnumerable<OfficePoint> points, bool closed) {
-        if (points == null) throw new ArgumentNullException(nameof(points));
+        ArgumentNullException.ThrowIfNull(points);
         var snapshot = points.Take(MaximumGeometryItems + 1).ToList();
         ValidatePointCount(snapshot.Count, closed);
         foreach (OfficePoint point in snapshot) {

@@ -80,15 +80,15 @@ public sealed class MhtmlRemoteResourcePolicy {
     }
 
     private void Validate() {
-        if (MaximumRedirects < 0) throw new ArgumentOutOfRangeException(nameof(MaximumRedirects));
-        if (MaximumResourceBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResourceBytes));
-        if (MaximumTotalResourceBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalResourceBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(MaximumRedirects);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumResourceBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalResourceBytes, 1);
         if (MaximumTotalResourceBytes < MaximumResourceBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaximumTotalResourceBytes),
                 "The total resource-byte limit must be at least the per-resource byte limit.");
         }
-        if (MaximumResourceCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResourceCount));
-        if (MaximumResourceRequests < 1) throw new ArgumentOutOfRangeException(nameof(MaximumResourceRequests));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumResourceCount, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumResourceRequests, 1);
         if (MaximumResourceRequests < MaximumResourceCount) {
             throw new ArgumentOutOfRangeException(nameof(MaximumResourceRequests),
                 "The resource-request limit must be at least the accepted-resource count limit.");

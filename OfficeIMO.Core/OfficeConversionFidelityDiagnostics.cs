@@ -8,7 +8,7 @@ namespace OfficeIMO;
 internal static class OfficeConversionFidelityDiagnostics {
     /// <summary>Flattens stage diagnostics without collapsing their loss categories.</summary>
     public static IReadOnlyList<OfficeDiagnostic> Flatten(IEnumerable<OfficeConversionReport> reports) {
-        if (reports == null) throw new ArgumentNullException(nameof(reports));
+        ArgumentNullException.ThrowIfNull(reports);
         var diagnostics = new List<OfficeDiagnostic>();
         foreach (OfficeConversionReport report in reports) {
             if (report == null) throw new ArgumentException("Conversion reports cannot contain null entries.", nameof(reports));
@@ -31,7 +31,7 @@ internal static class OfficeConversionFidelityDiagnostics {
 
     /// <summary>Creates a diagnostic from the shared native-format projection contract.</summary>
     public static OfficeDiagnostic From(OfficeConversionDiagnostic diagnostic, string source) {
-        if (diagnostic == null) throw new ArgumentNullException(nameof(diagnostic));
+        ArgumentNullException.ThrowIfNull(diagnostic);
         return new OfficeDiagnostic(
             diagnostic.Code,
             diagnostic.Severity switch {
@@ -47,7 +47,7 @@ internal static class OfficeConversionFidelityDiagnostics {
 
     /// <summary>Creates a diagnostic from a shared compatibility finding.</summary>
     public static OfficeDiagnostic From(OfficeCompatibilityFinding finding, string source) {
-        if (finding == null) throw new ArgumentNullException(nameof(finding));
+        ArgumentNullException.ThrowIfNull(finding);
         return new OfficeDiagnostic(
             finding.Code,
             finding.LossKind == OfficeConversionLossKind.None ? OfficeDiagnosticSeverity.Information : OfficeDiagnosticSeverity.Warning,

@@ -43,7 +43,7 @@ public static class OfficeInkRenderer {
     public static double GetEffectiveOpacity(
         OfficeInkStroke stroke,
         double highlighterOpacityFactor = OfficeInkRenderOptions.DefaultHighlighterOpacityFactor) {
-        if (stroke == null) throw new ArgumentNullException(nameof(stroke));
+        ArgumentNullException.ThrowIfNull(stroke);
         stroke.ValidateStyle();
         if (double.IsNaN(highlighterOpacityFactor) || double.IsInfinity(highlighterOpacityFactor) ||
             highlighterOpacityFactor < 0D || highlighterOpacityFactor > 1D) {
@@ -71,8 +71,8 @@ public static class OfficeInkRenderer {
         double offsetX = 0D,
         double offsetY = 0D,
         OfficeInkRenderOptions? options = null) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (ink == null) throw new ArgumentNullException(nameof(ink));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(ink);
         ValidateFinite(offsetX, nameof(offsetX));
         ValidateFinite(offsetY, nameof(offsetY));
         OfficeInkRenderOptions effective = options?.Clone() ?? new OfficeInkRenderOptions();

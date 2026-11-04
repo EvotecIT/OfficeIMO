@@ -12,7 +12,7 @@ public static partial class OfficeConverter {
 
     /// <summary>Registers an opt-in implementation of an existing catalog route. Built-in routes cannot be replaced.</summary>
     public static void Register(IOfficeConversionRoute route) {
-        if (route == null) throw new ArgumentNullException(nameof(route));
+        ArgumentNullException.ThrowIfNull(route);
         if (!OfficeConversionCapabilityCatalog.All.Any(capability => string.Equals(capability.Id, route.Id, StringComparison.OrdinalIgnoreCase)))
             throw new ArgumentException("Choose a route from the canonical conversion capability catalog.", nameof(route));
         if (BuiltinRouteIds.Contains(route.Id) || !Registrations.TryAdd(route.Id, route))
@@ -107,7 +107,7 @@ public static partial class OfficeConverter {
 
     private static async Task<OfficeConversionReport> ConvertStreamAsync(Stream source, OfficeDocumentFormat sourceFormat,
         Stream destination, OfficeDocumentFormat target, OfficeConversionOptions? options, string? outputPath, CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source)); if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(destination);
         if (!source.CanRead || !destination.CanWrite) throw new ArgumentException("Readable input and writable output streams are required.");
         if (ReferenceEquals(source, destination)) throw new ArgumentException("Input and output streams must be different.");
         if (source is FileStream inputFile && destination is FileStream outputFile && IsSameFile(inputFile, outputFile))

@@ -138,14 +138,14 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Fills a rectangle with a linear gradient.</summary>
     public void FillLinearGradientRectangle(double x, double y, double width, double height, OfficeLinearGradient gradient) {
-        if (gradient == null) throw new ArgumentNullException(nameof(gradient));
+        ArgumentNullException.ThrowIfNull(gradient);
         if (width <= 0D || height <= 0D) return;
         FillPolygonCore(RectanglePoints(x, y, width, height), gradient);
     }
 
     /// <summary>Fills a rectangle with a radial gradient.</summary>
     public void FillRadialGradientRectangle(double x, double y, double width, double height, OfficeRadialGradient gradient) {
-        if (gradient == null) throw new ArgumentNullException(nameof(gradient));
+        ArgumentNullException.ThrowIfNull(gradient);
         if (width <= 0D || height <= 0D) return;
         FillPolygonCore(RectanglePoints(x, y, width, height), gradient);
     }
@@ -275,9 +275,7 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Fills a polygon with a linear gradient fitted to the polygon bounds.</summary>
     public void FillLinearGradientPolygon(IReadOnlyList<OfficePoint> points, OfficeLinearGradient gradient) {
-        if (gradient == null) {
-            throw new ArgumentNullException(nameof(gradient));
-        }
+        ArgumentNullException.ThrowIfNull(gradient);
 
         if (points == null || points.Count < 3) {
             return;
@@ -288,13 +286,9 @@ public sealed partial class OfficeRasterCanvas {
 
     /// <summary>Fills a polygon with a radial gradient.</summary>
     public void FillRadialGradientPolygon(IReadOnlyList<OfficePoint> points, OfficeRadialGradient gradient) {
-        if (points == null) {
-            throw new ArgumentNullException(nameof(points));
-        }
+        ArgumentNullException.ThrowIfNull(points);
 
-        if (gradient == null) {
-            throw new ArgumentNullException(nameof(gradient));
-        }
+        ArgumentNullException.ThrowIfNull(gradient);
 
         if (points.Count < 3) {
             return;
@@ -539,7 +533,7 @@ public sealed partial class OfficeRasterCanvas {
 
     internal void DrawAffineImage(OfficeRasterImage image, OfficeTransform transform, double opacity, bool interpolate, bool antialiasBoundary = true) {
         transform = ScaleCoordinates(transform);
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between zero and one.");
         }

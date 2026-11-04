@@ -11,7 +11,7 @@ public sealed partial class ProjectDocument {
         EnsureNotDisposed();
         if (_batchDepth != 0) throw new InvalidOperationException("Finish the update scope before evaluating indicators.");
         if (!Enum.IsDefined(typeof(ProjectCustomFieldEntityKind), entityKind)) throw new ArgumentOutOfRangeException(nameof(entityKind));
-        if (rules == null) throw new ArgumentNullException(nameof(rules));
+        ArgumentNullException.ThrowIfNull(rules);
         var snapshot = new List<ProjectIndicatorRule>();
         foreach (var rule in rules) {
             cancellationToken.ThrowIfCancellationRequested();

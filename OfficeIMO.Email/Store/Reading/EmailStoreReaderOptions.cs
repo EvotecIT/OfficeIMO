@@ -46,7 +46,7 @@ public sealed class EmailStoreReaderOptions {
         PstPasswordEncoding = pstPasswordEncoding ?? Encoding.ASCII;
         IncludeAssociatedItems = includeAssociatedItems;
         IncludeOrphanedItems = includeOrphanedItems;
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
         MaxNestedMessageDepth = maxNestedMessageDepth;
         MaxArchiveEntries = Positive(maxArchiveEntries, nameof(maxArchiveEntries));
         MaxArchiveEntryBytes = Positive(maxArchiveEntryBytes, nameof(maxArchiveEntryBytes));

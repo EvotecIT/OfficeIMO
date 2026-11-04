@@ -14,7 +14,7 @@ public static class CsvMappingExtensions {
         this CsvDocument document,
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -33,8 +33,8 @@ public static class CsvMappingExtensions {
         Action<RowMapper<T>> configure,
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default) where T : new() {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(configure);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -53,8 +53,8 @@ public static class CsvMappingExtensions {
         Func<IDataRecord, T> factory,
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(factory);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -73,7 +73,7 @@ public static class CsvMappingExtensions {
         ParallelRowMappingOptions? parallelOptions = null,
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -93,8 +93,8 @@ public static class CsvMappingExtensions {
         ParallelRowMappingOptions? parallelOptions = null,
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default) where T : new() {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(configure);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();
@@ -114,8 +114,8 @@ public static class CsvMappingExtensions {
         ParallelRowMappingOptions? parallelOptions = null,
         CsvReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document is null) throw new ArgumentNullException(nameof(document));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(factory);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken, options?.CancellationToken ?? default);
         linked.Token.ThrowIfCancellationRequested();

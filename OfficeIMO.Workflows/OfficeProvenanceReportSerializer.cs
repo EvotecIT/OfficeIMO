@@ -20,8 +20,8 @@ public static class OfficeProvenanceReportSerializer {
     /// <summary>Creates a workflow result for already inspected memory-only bytes without reading a path.</summary>
     public static OfficeProvenanceWorkflowResult FromBuffer(string fileName, byte[] input, OfficeProvenanceReport inspection,
         OfficeProvenanceRemovalResult? removal = null) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
-        if (inspection == null) throw new ArgumentNullException(nameof(inspection));
+        ArgumentNullException.ThrowIfNull(input);
+        ArgumentNullException.ThrowIfNull(inspection);
         return new OfficeProvenanceWorkflowResult(Guid.NewGuid().ToString("N"),
             removal == null ? OfficeProvenanceWorkflowOperation.Inspect : OfficeProvenanceWorkflowOperation.Remove,
             OfficeWorkflowStatus.Completed, OfficeWorkflowFailureKind.None,

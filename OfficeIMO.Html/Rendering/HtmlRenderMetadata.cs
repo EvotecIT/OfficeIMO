@@ -45,7 +45,7 @@ public sealed class HtmlRenderMetadata {
     internal static HtmlRenderMetadata FromDocument(
         AngleSharp.Html.Dom.IHtmlDocument document,
         HtmlRenderTextDirection direction) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (AngleSharp.Dom.IElement meta in document.QuerySelectorAll("meta[name][content]")) {
             string? name = meta.GetAttribute("name")?.Trim();

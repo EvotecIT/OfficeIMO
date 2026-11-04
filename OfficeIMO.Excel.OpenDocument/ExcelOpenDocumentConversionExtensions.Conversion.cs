@@ -16,7 +16,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     /// <summary>Converts a workbook to an in-memory ODS spreadsheet; the LossPolicy option rejects loss and returns the completed conversion report.</summary>
     public static OdsDocument ToOpenDocument(this ExcelDocument source, ExcelOpenDocumentConversionOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence(options);
         OdsDocument value = result.Value;
@@ -77,7 +77,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
     /// <summary>Converts an ODS spreadsheet to an in-memory workbook; the LossPolicy option rejects loss and returns the completed conversion report.</summary>
     public static ExcelDocument ToExcel(this OdsDocument source, ExcelOpenDocumentConversionOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         OdfConversionResult<ExcelDocument> result = source.ConvertToExcelWithEvidence(options);
         ExcelDocument value = result.Value;

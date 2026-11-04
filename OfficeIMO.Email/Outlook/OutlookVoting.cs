@@ -12,7 +12,7 @@ public enum OutlookVoteSendBehavior {
 public sealed class OutlookVoteOption {
     /// <summary>Creates a voting option.</summary>
     public OutlookVoteOption(string displayName) {
-        if (displayName == null) throw new ArgumentNullException(nameof(displayName));
+        ArgumentNullException.ThrowIfNull(displayName);
         if (displayName.Length == 0) throw new ArgumentException("A voting option requires a display name.", nameof(displayName));
         DisplayName = displayName;
     }

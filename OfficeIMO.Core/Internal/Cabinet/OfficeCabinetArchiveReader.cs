@@ -28,7 +28,7 @@ internal static partial class OfficeCabinetArchiveReader {
         CancellationToken cancellationToken, Func<string, bool>? entryFilter,
         OfficeCabinetWorkBudget? workBudget, Action<string, long>? entryValidator) {
         expandedBytes = 0;
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The CAB stream must be readable.", nameof(stream));
         if (!stream.CanSeek) throw new ArgumentException("The CAB stream must be seekable.", nameof(stream));
         ValidateLimits(maxExpandedBytes, maxEntryBytes, maxEntries);
@@ -72,7 +72,7 @@ internal static partial class OfficeCabinetArchiveReader {
         long maxEntryBytes, int maxEntries, out long expandedBytes, CancellationToken cancellationToken,
         Func<string, bool>? entryFilter, OfficeCabinetWorkBudget? workBudget, Action<string, long>? entryValidator) {
         expandedBytes = 0;
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         ValidateLimits(maxExpandedBytes, maxEntryBytes, maxEntries);
         cancellationToken.ThrowIfCancellationRequested();
         return new Reader(data, maxExpandedBytes, maxEntryBytes, maxEntries,
@@ -80,9 +80,9 @@ internal static partial class OfficeCabinetArchiveReader {
     }
 
     private static void ValidateLimits(long maxExpandedBytes, long maxEntryBytes, int maxEntries) {
-        if (maxExpandedBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxExpandedBytes));
-        if (maxEntryBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxEntryBytes));
-        if (maxEntries < 1) throw new ArgumentOutOfRangeException(nameof(maxEntries));
+        ArgumentOutOfRangeException.ThrowIfNegative(maxExpandedBytes);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxEntryBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxEntries, 1);
     }
 
     private sealed partial class Reader {

@@ -6,7 +6,8 @@ public sealed partial class PublisherDocument {
     /// <summary>Exports one document page, selected by zero-based index, with combined source and rendering diagnostics.</summary>
     public OfficeConversionResult<string, PublisherConversionReport> ToSvgResult(int pageIndex = 0, PublisherSvgOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (pageIndex < 0 || pageIndex >= Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(pageIndex, Pages.Count);
         var settings = options ?? new PublisherSvgOptions();
         var images = new List<OfficeImageExportDiagnostic>();
         var codec = new OfficeRasterImageFallbackCodec(settings.ImageCodec, images, "page/" + pageIndex);

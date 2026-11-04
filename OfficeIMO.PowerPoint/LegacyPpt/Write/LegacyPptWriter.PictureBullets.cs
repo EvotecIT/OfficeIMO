@@ -16,10 +16,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord document,
             LegacyPptWriterPictureBulletCatalog catalog,
             bool replaceExisting, out byte[] bytes) {
-            if (document == null) throw new ArgumentNullException(
-                nameof(document));
-            if (catalog == null) throw new ArgumentNullException(
-                nameof(catalog));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(catalog);
             bytes = document.CopyRecordBytes();
             if (document.Version != 0x0F) return false;
             LegacyPptRecord[] infoLists = document.Children.Where(record =>
@@ -199,8 +197,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointDocument presentation,
             out LegacyPptWriterPictureBulletCatalog catalog,
             out string? reason) {
-            if (presentation == null) throw new ArgumentNullException(
-                nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             PresentationPart? presentationPart = presentation
                 .OpenXmlDocument.PresentationPart;
             if (presentationPart == null) {
@@ -216,8 +213,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PresentationPart presentationPart,
             out LegacyPptWriterPictureBulletCatalog catalog,
             out string? reason) {
-            if (presentationPart == null) throw new ArgumentNullException(
-                nameof(presentationPart));
+            ArgumentNullException.ThrowIfNull(presentationPart);
             var entries = new List<LegacyPptWriterPictureBulletEntry>();
             var byElement = new Dictionary<A.PictureBullet,
                 LegacyPptWriterPictureBulletEntry>();

@@ -117,7 +117,7 @@ public sealed partial class CsvDocument
     /// </remarks>
     public Task SaveAsync(Stream destination, CsvSaveOptions? options = null, CancellationToken cancellationToken = default)
     {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         cancellationToken.ThrowIfCancellationRequested();
         options = ResolveSaveOptions(options);
         if (options.Append || options.NoClobber)

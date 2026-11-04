@@ -29,8 +29,8 @@ internal static partial class OneNoteSemanticMapper {
     internal static OneNoteTag MapTagState(
         OneNotePropertySet state,
         Func<OneNoteExtendedGuid, OneNoteRevisionStoreObject?> resolveObject) {
-        if (state == null) throw new ArgumentNullException(nameof(state));
-        if (resolveObject == null) throw new ArgumentNullException(nameof(resolveObject));
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(resolveObject);
         uint status = ReadUInt32(state, ActionItemStatus) ?? 0;
         uint? actionItemType = ReadUInt32(state, ActionItemType);
         uint? shape = ReadUInt32(state, NoteTagShape);

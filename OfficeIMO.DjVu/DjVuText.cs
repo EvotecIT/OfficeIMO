@@ -34,8 +34,8 @@ public enum DjVuTextZoneKind {
 public readonly struct DjVuRectangle {
     /// <summary>Creates a rectangle. Width and height must be nonnegative.</summary>
     public DjVuRectangle(int x, int y, int width, int height) {
-        if (width < 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height < 0) throw new ArgumentOutOfRangeException(nameof(height));
+        ArgumentOutOfRangeException.ThrowIfNegative(width);
+        ArgumentOutOfRangeException.ThrowIfNegative(height);
         X = x; Y = y; Width = width; Height = height;
     }
     /// <summary>Left edge in native pixels.</summary>

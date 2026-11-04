@@ -6,7 +6,8 @@ namespace OfficeIMO.Drawing;
 public readonly struct OfficeFontUnicodeRange : IEquatable<OfficeFontUnicodeRange> {
     /// <summary>Creates an inclusive Unicode scalar range.</summary>
     public OfficeFontUnicodeRange(int start, int end) {
-        if (start < 0 || start > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(start));
+        ArgumentOutOfRangeException.ThrowIfNegative(start);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(start, 0x10FFFF);
         if (end < start || end > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(end));
         Start = start;
         End = end;

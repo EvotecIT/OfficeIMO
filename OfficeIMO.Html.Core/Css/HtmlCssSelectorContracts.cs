@@ -97,7 +97,7 @@ public sealed class HtmlCssSelector {
 
     /// <summary>Matches an element using only owned DOM state and observes cancellation while traversing the tree.</summary>
     public bool Matches(HtmlElement element, CancellationToken cancellationToken) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         return Matches(new OwnedSelectorElement(element), null, cancellationToken);
     }
 
@@ -191,7 +191,7 @@ public sealed class HtmlCssSelectorList {
     public bool Matches(HtmlElement element) => Matches(element, CancellationToken.None);
     /// <summary>Matches when any selector in the list matches, observing cancellation while traversing the tree.</summary>
     public bool Matches(HtmlElement element, CancellationToken cancellationToken) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         var adapted = new OwnedSelectorElement(element);
         var context = new HtmlCssSelectorMatchContext(null, cancellationToken);
         return Matches(adapted, context);
@@ -279,12 +279,12 @@ public sealed class HtmlCssSelectorOptions {
     };
 
     internal void Validate() {
-        if (MaxInputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters));
-        if (MaxTokens <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTokens));
-        if (MaxCompounds <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCompounds));
-        if (MaxSimpleSelectors <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSimpleSelectors));
-        if (MaxSelectors <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSelectors));
-        if (MaxNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNestingDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxInputCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTokens);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCompounds);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSimpleSelectors);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSelectors);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxNestingDepth);
     }
 }
 

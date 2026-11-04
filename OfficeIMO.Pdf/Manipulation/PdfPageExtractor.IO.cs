@@ -101,9 +101,7 @@ internal static partial class PdfPageExtractor {
     }
     
     private static PdfPageRange[] ValidatePageRangeArguments(PdfPageRange[]? pageRanges, string paramName) {
-        if (pageRanges is null) {
-            throw new ArgumentNullException(paramName);
-        }
+        ArgumentNullException.ThrowIfNull(pageRanges, paramName);
     
         if (pageRanges.Length == 0) {
             throw new ArgumentException("At least one page range must be specified.", paramName);

@@ -43,7 +43,7 @@ public sealed class ReaderEmailStoreOptions {
     public int MaxItems {
         get => _maxItems;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
             _maxItems = value;
         }
     }

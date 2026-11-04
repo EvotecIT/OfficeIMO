@@ -19,7 +19,7 @@ public sealed class ProcessOcrEngine : IOcrEngine {
 
     /// <inheritdoc />
     public async Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Payload == null || request.Payload.Length == 0) throw new ArgumentException("OCR request payload cannot be empty.", nameof(request));
         if (request.Payload.LongLength > _options.MaxInputBytes) throw new IOException("OCR request payload exceeds MaxInputBytes (" + _options.MaxInputBytes + ").");
         if (!Enum.IsDefined(typeof(OcrOperation), request.Operation)) throw new ArgumentOutOfRangeException(nameof(request.Operation));
@@ -138,7 +138,7 @@ public sealed class ProcessOcrEngine : IOcrEngine {
         internal OcrEngineCapabilities Capabilities { get; private set; } = new OcrEngineCapabilities();
 
         internal static OptionsSnapshot Create(ProcessOcrEngineOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (string.IsNullOrWhiteSpace(options.FileName)) throw new ArgumentException("OCR process filename cannot be empty.", nameof(options));
             if (string.IsNullOrEmpty(options.Id)) throw new ArgumentException("OCR process id cannot be empty.", nameof(options));
             if (options.Id.Length > OcrEngineRunner.MaximumEngineIdCharacters) {

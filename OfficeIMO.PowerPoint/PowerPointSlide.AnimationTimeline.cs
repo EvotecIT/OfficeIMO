@@ -121,7 +121,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private uint ValidateTimelineTarget(PowerPointShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             if (!ReferenceEquals(shape.OwnerSlide, this)) throw new ArgumentException("The animation target must belong to this slide.", nameof(shape));
             return shape.Id ?? throw new InvalidOperationException("The animation target has no shape identifier.");
         }

@@ -28,7 +28,7 @@ public sealed class OneNotePageReference {
 public static class OneNotePageTraversal {
     /// <summary>Enumerates a section's current pages in section order.</summary>
     public static IReadOnlyList<OneNotePageReference> Flatten(OneNoteSection section) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         var results = new List<OneNotePageReference>(section.Pages.Count);
         AddSection(section, section.Name, results, new HashSet<OneNotePage>(ReferenceComparer<OneNotePage>.Instance));
         return results.AsReadOnly();
@@ -38,10 +38,9 @@ public static class OneNotePageTraversal {
     public static IReadOnlyList<OneNotePageReference> Flatten(
         OneNoteNotebook notebook,
         int maxSectionGroupDepth = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (maxSectionGroupDepth < 0 || maxSectionGroupDepth > OneNoteWriterOptions.MaximumTraversalDepth) {
-            throw new ArgumentOutOfRangeException(nameof(maxSectionGroupDepth));
-        }
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxSectionGroupDepth);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maxSectionGroupDepth, OneNoteWriterOptions.MaximumTraversalDepth);
 
         var results = new List<OneNotePageReference>();
         var seenGroups = new HashSet<OneNoteSectionGroup>(ReferenceComparer<OneNoteSectionGroup>.Instance);

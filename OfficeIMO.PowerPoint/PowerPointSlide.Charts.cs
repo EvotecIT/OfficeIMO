@@ -62,9 +62,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointChart AddChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             return AddChartInternal(PowerPointChartKind.ClusteredColumn, data, left, top, width, height);
         }
@@ -218,9 +216,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointChart AddLineChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             return AddChartInternal(PowerPointChartKind.Line, data, left, top, width, height);
         }
@@ -374,9 +370,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointChart AddScatterChart(PowerPointScatterChartData data, long left = 0L, long top = 0L,
             long width = 5486400L, long height = 3200400L) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             return AddScatterChartInternal(data, left, top, width, height);
         }
@@ -530,9 +524,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointChart AddPieChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             return AddChartInternal(PowerPointChartKind.Pie, data, left, top, width, height);
         }
@@ -686,9 +678,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         internal PowerPointChart AddDoughnutChart(PowerPointChartData data, long left = 0L, long top = 0L, long width = 5486400L,
             long height = 3200400L) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             return AddChartInternal(PowerPointChartKind.Doughnut, data, left, top, width, height);
         }

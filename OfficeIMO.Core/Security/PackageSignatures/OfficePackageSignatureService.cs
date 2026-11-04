@@ -28,7 +28,7 @@ internal static class OfficePackageSignatureService {
         IOfficeSecurityProvider securityProvider,
         X509Certificate2 signingCertificate,
         OfficePackageSigningOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         options ??= new OfficePackageSigningOptions();
         options.ValidateBeforeCommit ??= (stagingPath, _, _) => {
             var validationOptions = new OfficePackageSignatureValidationOptions {
@@ -76,7 +76,7 @@ internal static class OfficePackageSignatureService {
     public static OfficePackageSignatureInfo Inspect(
         byte[] packageBytes,
         OfficePackageSignatureInspectionOptions? options = null) {
-        if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+        ArgumentNullException.ThrowIfNull(packageBytes);
         options ??= new OfficePackageSignatureInspectionOptions();
         options.Validate();
         if (packageBytes.LongLength > options.MaxPackageBytes) {
@@ -93,7 +93,7 @@ internal static class OfficePackageSignatureService {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficePackageSignatureValidationOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         options ??= new OfficePackageSignatureValidationOptions();
         options.Inspection.VerifyDigests = true;
         byte[] packageBytes = ReadPackage(filePath, options.Inspection);
@@ -105,8 +105,8 @@ internal static class OfficePackageSignatureService {
         byte[] packageBytes,
         IOfficeSecurityProvider securityProvider,
         OfficePackageSignatureValidationOptions? options = null) {
-        if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(packageBytes);
+        ArgumentNullException.ThrowIfNull(securityProvider);
         options ??= new OfficePackageSignatureValidationOptions();
         options.Inspection.VerifyDigests = true;
         options.Inspection.Validate();

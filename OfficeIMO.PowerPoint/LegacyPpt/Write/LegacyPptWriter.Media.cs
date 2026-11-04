@@ -13,10 +13,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadMedia(IEnumerable<PowerPointSlide> slides,
             uint firstObjectId, LegacyPptWriterSoundCatalog soundCatalog,
             out LegacyPptWriterMediaCatalog catalog, out string? reason) {
-            if (slides == null) throw new ArgumentNullException(nameof(slides));
-            if (soundCatalog == null) {
-                throw new ArgumentNullException(nameof(soundCatalog));
-            }
+            ArgumentNullException.ThrowIfNull(slides);
+            ArgumentNullException.ThrowIfNull(soundCatalog);
             catalog = new LegacyPptWriterMediaCatalog(firstObjectId);
             reason = null;
             foreach (PowerPointSlide slide in slides) {

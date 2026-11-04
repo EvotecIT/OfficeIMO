@@ -40,7 +40,7 @@ public sealed class IWorkKeynoteDocument {
     /// <summary>Writes a completed package at the stream's current position and leaves the stream open.</summary>
     /// <remarks>Encoding finishes before the first write. Cancellation or an I/O failure during copying can leave partial stream data.</remarks>
     public void Save(Stream destination, IWorkKeynoteWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         byte[] bytes = SaveBytes(options, cancellationToken);
         IWorkNativePackageWriter.Copy(bytes, destination, cancellationToken);
@@ -50,7 +50,7 @@ public sealed class IWorkKeynoteDocument {
     /// <remarks>Validation and encoding finish before staging. Cancellation and failed staging preserve the existing destination.</remarks>
     public void Save(string path, bool overwrite = false, IWorkKeynoteWriteOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
         byte[] bytes = SaveBytes(options, cancellationToken);
         OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken), cancellationToken,

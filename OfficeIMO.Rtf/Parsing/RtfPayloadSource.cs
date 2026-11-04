@@ -79,7 +79,7 @@ internal sealed class RtfPayloadSource {
         public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
         public override int Read(byte[] buffer, int offset, int count) {
             if (_disposed) throw new ObjectDisposedException(nameof(PayloadStream));
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(count));
             int written = 0;
             while (written < count && _fragment < _fragments.Length) {

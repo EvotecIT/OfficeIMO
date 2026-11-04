@@ -15,7 +15,7 @@ public partial class ExcelDocument {
 
     /// <summary>Inventories payloads within explicit count/member/aggregate/work ceilings without scanning unrequested bytes unless hashing is requested.</summary>
     public IReadOnlyList<OfficeEmbeddedPayloadInfo> GetEmbeddedPayloads(OfficeEmbeddedPayloadInspectionOptions options, CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         using OfficeEmbeddedPayloadInspection inspection = InspectEmbeddedPayloads(options, cancellationToken);
         return inspection.Payloads;
     }

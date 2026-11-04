@@ -180,11 +180,11 @@ public sealed class PdfAssemblyOptions {
     public PdfImageImportOptions ImageOptions { get; set; } = new();
 
     internal PdfAssemblyOptions CloneAndValidate() {
-        if (MaximumSourceCount < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSourceCount));
-        if (MaximumDiscoveredEntries < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDiscoveredEntries));
-        if (MaximumArchiveEntries < 1) throw new ArgumentOutOfRangeException(nameof(MaximumArchiveEntries));
-        if (MaximumArchiveEntryBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumArchiveEntryBytes));
-        if (MaximumArchiveBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumArchiveBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumSourceCount, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumDiscoveredEntries, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumArchiveEntries, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumArchiveEntryBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumArchiveBytes, 1);
         if (MaximumArchiveCompressionRatio < 1D || double.IsNaN(MaximumArchiveCompressionRatio) || double.IsInfinity(MaximumArchiveCompressionRatio)) {
             throw new ArgumentOutOfRangeException(nameof(MaximumArchiveCompressionRatio));
         }

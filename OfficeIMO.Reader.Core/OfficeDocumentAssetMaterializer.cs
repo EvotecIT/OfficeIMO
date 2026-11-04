@@ -77,7 +77,7 @@ public static class OfficeDocumentAssetMaterializer {
         string directoryPath,
         OfficeDocumentAssetMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Directory path cannot be empty.", nameof(directoryPath));
 
         OfficeDocumentAssetMaterializationOptions effectiveOptions = options ?? new OfficeDocumentAssetMaterializationOptions();
@@ -144,8 +144,8 @@ public static class OfficeDocumentAssetMaterializer {
         Action<OfficeDocumentAsset, Stream> writeAsset,
         OfficeDocumentAssetMaterializationOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
-        if (writeAsset == null) throw new ArgumentNullException(nameof(writeAsset));
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(writeAsset);
 
         OfficeDocumentAssetMaterializationOptions effectiveOptions = options ?? new OfficeDocumentAssetMaterializationOptions();
         var results = new List<OfficeDocumentMaterializedAsset>();

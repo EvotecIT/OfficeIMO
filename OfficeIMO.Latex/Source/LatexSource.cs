@@ -81,7 +81,8 @@ public sealed class LatexSourceText {
 
     /// <summary>Maps an offset to line and column.</summary>
     public LatexSourcePosition GetPosition(int offset) {
-        if (offset < 0 || offset > Text.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, Text.Length);
         int line = Array.BinarySearch(_lineStarts, offset);
         if (line < 0) line = ~line - 1;
         return new LatexSourcePosition(offset, line + 1, offset - _lineStarts[line] + 1);

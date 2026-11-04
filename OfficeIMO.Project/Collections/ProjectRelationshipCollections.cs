@@ -11,8 +11,8 @@ public sealed class ProjectDependencyCollection : IReadOnlyList<ProjectDependenc
     public ProjectDependency this[int index] => Items[index];
     /// <summary>Adds a local task dependency after checking identities and duplicate links.</summary>
     public ProjectDependency Add(ProjectTask predecessor, ProjectTask successor, ProjectDependencyType type = ProjectDependencyType.FinishToStart) {
-        if (predecessor == null) throw new ArgumentNullException(nameof(predecessor));
-        if (successor == null) throw new ArgumentNullException(nameof(successor));
+        ArgumentNullException.ThrowIfNull(predecessor);
+        ArgumentNullException.ThrowIfNull(successor);
         _document.EnsureMutable(); _document.CheckMember(predecessor); _document.CheckMember(successor);
         if (predecessor == successor) throw new ArgumentException("A task cannot depend on itself.");
         if (!Enum.IsDefined(typeof(ProjectDependencyType), type)) throw new ArgumentOutOfRangeException(nameof(type));
@@ -45,8 +45,8 @@ public sealed class ProjectAssignmentCollection : IReadOnlyList<ProjectAssignmen
     public ProjectAssignment this[int index] => Items[index];
     /// <summary>Adds an assignment between entities from this document.</summary>
     public ProjectAssignment Add(ProjectTask task, ProjectResource resource, ProjectUnits? units = null) {
-        if (task == null) throw new ArgumentNullException(nameof(task));
-        if (resource == null) throw new ArgumentNullException(nameof(resource));
+        ArgumentNullException.ThrowIfNull(task);
+        ArgumentNullException.ThrowIfNull(resource);
         _document.EnsureMutable(); _document.CheckMember(task); _document.CheckMember(resource);
         var key = ProjectDocument.PairKey(task.Uid, resource.Uid);
         if (_document.AssignmentPairs.Contains(key)) throw new ArgumentException("This resource is already assigned to the task.");

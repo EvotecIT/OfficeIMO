@@ -4,8 +4,8 @@ namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointDesignExtensions {
         internal static PowerPointSlide AddDesignerSlide(PowerPointDocument presentation,
             PowerPointDesignerSlideOptions options) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(options);
             return options.TemplateLayout == null
                 ? presentation.AddSlide()
                 : presentation.AddSlide(options.TemplateLayout);
@@ -18,9 +18,9 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointDeckComposer UseTemplateDesigner(this PowerPointDocument presentation,
             PowerPointTemplateInventory inventory, PowerPointTemplateLayoutMap layoutMap, string seed,
             string? purpose = null, int alternativeIndex = 0, bool applyTheme = false) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (inventory == null) throw new ArgumentNullException(nameof(inventory));
-            if (layoutMap == null) throw new ArgumentNullException(nameof(layoutMap));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(inventory);
+            ArgumentNullException.ThrowIfNull(layoutMap);
             PowerPointDesignBrief brief = inventory.CreateDesignBrief(seed, purpose);
             return new PowerPointDeckComposer(presentation, brief.CreateDesign(alternativeIndex), applyTheme,
                 layoutMap);

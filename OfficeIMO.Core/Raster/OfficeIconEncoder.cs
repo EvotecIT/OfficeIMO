@@ -10,7 +10,7 @@ public static class OfficeIconEncoder {
     public static byte[] Encode(IReadOnlyList<OfficeRasterImage> images, OfficeRasterEncodingOptions? options = null, CancellationToken cancellationToken = default) => Encode(images, options, cancellationToken, OfficeRasterGuards.MaximumEncodedBytes, 0L);
 
     internal static byte[] Encode(IReadOnlyList<OfficeRasterImage> images, OfficeRasterEncodingOptions? options, CancellationToken cancellationToken, long maximumEncodedBytes, long additionallyRetainedBytes) {
-        if (images == null) throw new ArgumentNullException(nameof(images));
+        ArgumentNullException.ThrowIfNull(images);
         if (images.Count < 1 || images.Count > 256) throw new ArgumentOutOfRangeException(nameof(images), "An icon must contain between one and 256 images.");
         var payloads = new byte[images.Count][]; long total = 6L + images.Count * 16L; long rasterBytes = images.Count * 64L;
         for (int i = 0; i < images.Count; i++) {

@@ -21,7 +21,7 @@ public static class ReaderTableExport {
     /// <param name="table">Table to serialize.</param>
     /// <param name="cancellationToken">Cancellation token checked while scanning and writing rows.</param>
     public static string ToCsv(this ReaderTable table, CancellationToken cancellationToken) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         cancellationToken.ThrowIfCancellationRequested();
 
         int columnCount = GetColumnCount(table, cancellationToken);
@@ -53,7 +53,7 @@ public static class ReaderTableExport {
     /// <param name="table">Table to serialize.</param>
     /// <param name="cancellationToken">Cancellation token checked while writing rows.</param>
     public static string ToMarkdownTable(this ReaderTable table, CancellationToken cancellationToken) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         cancellationToken.ThrowIfCancellationRequested();
 
         int columnCount = GetColumnCount(table, cancellationToken);
@@ -90,7 +90,7 @@ public static class ReaderTableExport {
     /// <param name="cancellationToken">Cancellation token checked while scanning and writing rows.</param>
     /// <param name="indented">When true, writes indented JSON.</param>
     public static string ToJson(this ReaderTable table, bool indented, CancellationToken cancellationToken) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
+        ArgumentNullException.ThrowIfNull(table);
         cancellationToken.ThrowIfCancellationRequested();
 
         int columnCount = GetColumnCount(table, cancellationToken);

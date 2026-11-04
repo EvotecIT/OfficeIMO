@@ -86,9 +86,7 @@ public sealed class RtfPdfExportOptions {
         if (DefaultImageHeight <= 0) {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageHeight), "Default image height must be greater than zero.");
         }
-        if (MaximumSystemFontFamilies < 0) {
-            throw new ArgumentOutOfRangeException(nameof(MaximumSystemFontFamilies));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(MaximumSystemFontFamilies);
 
         return new RtfPdfExportOptions {
             FailOnLoss = FailOnLoss,

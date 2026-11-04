@@ -5,7 +5,8 @@ public sealed partial class ProjectDocument {
     public ProjectEarnedValueResult AnalyzeEarnedValue(int baselineNumber = 0, DateTime? statusDate = null, int maxCalendarDays = 36600, CancellationToken cancellationToken = default) {
         EnsureNotDisposed();
         if (_batchDepth != 0) throw new InvalidOperationException("Finish the update scope before analyzing earned value.");
-        if (baselineNumber < 0 || baselineNumber > 10) throw new ArgumentOutOfRangeException(nameof(baselineNumber));
+        ArgumentOutOfRangeException.ThrowIfNegative(baselineNumber);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(baselineNumber, 10);
         if (maxCalendarDays < 1 || maxCalendarDays > 366000) throw new ArgumentOutOfRangeException(nameof(maxCalendarDays));
         DateTime status = statusDate ?? Settings.StatusDate ?? throw new InvalidOperationException("Earned value requires an explicit StatusDate.");
         ProjectCalendarMath.Local(status); Validate(cancellationToken).ThrowIfErrors();

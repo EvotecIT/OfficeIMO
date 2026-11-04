@@ -10,7 +10,7 @@ namespace OfficeIMO.Reader.Html;
 internal static partial class HtmlReaderAdapter {
     /// <summary>Reads an HTML file into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(string htmlPath, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (htmlPath == null) throw new ArgumentNullException(nameof(htmlPath));
+        ArgumentNullException.ThrowIfNull(htmlPath);
         if (htmlPath.Length == 0) throw new ArgumentException("HTML path cannot be empty.", nameof(htmlPath));
         if (!File.Exists(htmlPath)) throw new FileNotFoundException($"HTML file '{htmlPath}' doesn't exist.", htmlPath);
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
@@ -24,7 +24,7 @@ internal static partial class HtmlReaderAdapter {
 
     /// <summary>Reads an HTML stream into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadDocument(Stream htmlStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
+        ArgumentNullException.ThrowIfNull(htmlStream);
         if (!htmlStream.CanRead) throw new ArgumentException("HTML stream must be readable.", nameof(htmlStream));
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
         string logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName!.Trim();
@@ -42,8 +42,8 @@ internal static partial class HtmlReaderAdapter {
 
     /// <summary>Reads an HTML string into the shared rich document envelope.</summary>
     public static OfficeDocumentReadResult ReadContentDocument(string html, string sourceName = "document.html", ReaderOptions? readerOptions = null, ReaderHtmlOptions? htmlOptions = null, CancellationToken cancellationToken = default) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions effective = readerOptions ?? new ReaderOptions();
         string logicalSourceName = string.IsNullOrWhiteSpace(sourceName) ? "document.html" : sourceName.Trim();
         SourceMetadata source = BuildSourceMetadataFromHtmlString(logicalSourceName, html, effective.ComputeHashes);
@@ -51,9 +51,9 @@ internal static partial class HtmlReaderAdapter {
     }
 
     internal static OfficeDocumentReadResult ReadContentDocument(string html, SourceMetadata source, ReaderOptions readerOptions, ReaderHtmlOptions? htmlOptions, CancellationToken cancellationToken) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (readerOptions == null) throw new ArgumentNullException(nameof(readerOptions));
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(readerOptions);
         return BuildHtmlDocumentResult(html, source, readerOptions, htmlOptions, cancellationToken);
     }
 

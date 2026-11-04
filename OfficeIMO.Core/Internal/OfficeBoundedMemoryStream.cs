@@ -36,9 +36,9 @@ namespace OfficeIMO.Core.Internal {
         }
 
         public override void Write(byte[] buffer, int offset, int count) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-            if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentNullException.ThrowIfNull(buffer);
+            ArgumentOutOfRangeException.ThrowIfNegative(offset);
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             if (offset > buffer.Length - count) throw new ArgumentException("Offset and count exceed the buffer.");
             EnsureWrite(count);
             base.Write(buffer, offset, count);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Core.Internal {
             OfficeOutputLimit.Create($"The artifact exceeds the configured output limit of {maximumBytes} bytes.");
 
         private void EnsureWrite(int count) {
-            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
             long end;
             try { end = checked(Position + count); }
             catch (OverflowException) { throw CreateLimitException(_maximumBytes); }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private void EnsureLength(long value) {
-            if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
             if (value > _maximumBytes) throw CreateLimitException(_maximumBytes);
         }
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Core.Internal {
 
         private static int GetInitialCapacity(long maximumBytes, int capacityHint) {
             if (maximumBytes <= 0 || maximumBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
-            if (capacityHint < 0) throw new ArgumentOutOfRangeException(nameof(capacityHint));
+            ArgumentOutOfRangeException.ThrowIfNegative(capacityHint);
             return (int)Math.Min(maximumBytes, capacityHint);
         }
     }

@@ -22,7 +22,7 @@ internal sealed class EmailStorePstMerger {
 
     internal EmailStorePstMerger(IEnumerable<EmailStoreMergeSource> sources, string destinationPath,
         EmailStorePstMergeOptions options, CancellationToken cancellationToken) {
-        if (sources == null) throw new ArgumentNullException(nameof(sources));
+        ArgumentNullException.ThrowIfNull(sources);
         _sources = sources.ToArray();
         if (_sources.Length == 0) throw new ArgumentException("At least one merge source is required.", nameof(sources));
         if (_sources.Any(source => source == null)) throw new ArgumentException("A merge source cannot be null.", nameof(sources));

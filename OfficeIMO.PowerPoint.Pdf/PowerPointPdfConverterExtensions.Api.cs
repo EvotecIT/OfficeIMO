@@ -20,9 +20,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
 
     private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions options) {
-        if (presentation == null) {
-            throw new ArgumentNullException(nameof(presentation));
-        }
+        ArgumentNullException.ThrowIfNull(presentation);
 
         CancellationToken cancellationToken = options.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
@@ -78,9 +76,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// </summary>
     internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this PptCore.PowerPointDocument presentation, PowerPointPdfExportOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (presentation == null) {
-            throw new ArgumentNullException(nameof(presentation));
-        }
+        ArgumentNullException.ThrowIfNull(presentation);
 
         PowerPointPdfExportOptions operation = (options ?? new PowerPointPdfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;

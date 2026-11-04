@@ -347,9 +347,8 @@ internal static class PdfCffCharStringSubsetter {
         internal int TotalLength => EndOffset - StartOffset;
 
         internal CffObject GetObject(int index) {
-            if (index < 0 || index >= Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
 
             int start = checked(DataOffset + _offsets[index] - 1);
             int end = checked(DataOffset + _offsets[index + 1] - 1);

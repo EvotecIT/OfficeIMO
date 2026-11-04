@@ -59,7 +59,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportConsumer consumer,
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+            ArgumentNullException.ThrowIfNull(consumer);
             ExcelImageExportOptions resolved = NormalizeWorksheetOptions(options);
             ExportImagesCore(format, consumer, resolved, cancellationToken, null);
         }
@@ -114,7 +114,7 @@ namespace OfficeIMO.Excel {
         internal int GetImageExportResultCount(
             ExcelImageExportOptions options,
             CancellationToken cancellationToken = default) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             options.Validate();
             cancellationToken.ThrowIfCancellationRequested();
             return ResolveWorksheetImageRanges(options, allowMultipleResults: true, cancellationToken).Count;

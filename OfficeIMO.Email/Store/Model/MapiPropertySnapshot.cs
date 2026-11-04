@@ -4,7 +4,7 @@ namespace OfficeIMO.Email.Store;
 
 internal static class MapiPropertySnapshot {
     internal static MapiProperty Clone(MapiProperty source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         return new MapiProperty(source.PropertyId, source.PropertyType, CloneValue(source.Value),
             source.Flags, source.Name) {
             RawData = source.RawData == null ? null : (byte[])source.RawData.Clone()

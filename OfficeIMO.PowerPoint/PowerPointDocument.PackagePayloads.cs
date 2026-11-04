@@ -14,7 +14,7 @@ public sealed partial class PowerPointDocument {
     /// <summary>Inspects attached VBA metadata without executing code, within an explicit decoded-size limit.</summary>
     public OfficeVbaProjectInfo? InspectVbaProject(bool includeSha256 = false, long maxBytes = OfficeVbaProjectInfo.DefaultMaximumProjectBytes) {
         ThrowIfDisposed();
-        if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
         VbaProjectPart? part = _presentationPart.VbaProjectPart;
         return part == null ? null : OfficeOpenXmlPackagePayload.CreateVbaProjectInfo(part, includeSha256, maxBytes);
     }

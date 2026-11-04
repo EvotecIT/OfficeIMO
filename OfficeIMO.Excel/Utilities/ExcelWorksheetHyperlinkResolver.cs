@@ -17,9 +17,7 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         internal static Dictionary<string, ExcelHyperlinkInfo> BuildMap(WorksheetPart worksheetPart, int firstBoundRow, int firstBoundColumn, int lastBoundRow, int lastBoundColumn) {
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
 
             var worksheet = worksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
             var hyperlinks = worksheet.Elements<Hyperlinks>().FirstOrDefault();

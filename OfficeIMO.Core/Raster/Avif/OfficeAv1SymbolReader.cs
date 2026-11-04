@@ -22,10 +22,10 @@ internal sealed class OfficeAv1SymbolReader {
     internal OfficeAv1SymbolReader(byte[] bytes, int offset, int length, long maximumSymbols,
         bool disableCdfUpdate, CancellationToken cancellation = default) {
         cancellation.ThrowIfCancellationRequested();
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (offset < 0 || length < 1 || offset > bytes.Length - length || length > 128 * 1024 * 1024)
             throw new FormatException("Invalid AV1 entropy payload bounds.");
-        if (maximumSymbols < 1) throw new ArgumentOutOfRangeException(nameof(maximumSymbols));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumSymbols, 1);
         _bytes = bytes; _offset = offset; _lengthBits = checked(length * 8);
         _disableCdfUpdate = disableCdfUpdate; _cancellation = cancellation; _symbolsRemaining = maximumSymbols;
         int count = Math.Min(_lengthBits, 15);
@@ -35,7 +35,7 @@ internal sealed class OfficeAv1SymbolReader {
 
     /// <summary>Reads and optionally adapts a rising CDF of N probabilities followed by its saturating update count.</summary>
     internal int ReadSymbol(int[] cdf) {
-        if (cdf == null) throw new ArgumentNullException(nameof(cdf));
+        ArgumentNullException.ThrowIfNull(cdf);
         int count = cdf.Length - 1;
         Require(count >= 2 && count <= 16 && cdf[0] > 0 && cdf[count - 1] == 32768 && cdf[count] >= 0 && cdf[count] <= 32);
         int previous = 0;
@@ -50,7 +50,8 @@ internal sealed class OfficeAv1SymbolReader {
     internal bool ReadBool() => ReadCore(null, 2) != 0;
 
     internal int ReadLiteral(int count) {
-        if (count < 0 || count > 31) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 31);
         int value = 0;
         for (int i = 0; i < count; i++) value = (value << 1) | (ReadBool() ? 1 : 0);
         return value;

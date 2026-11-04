@@ -91,7 +91,7 @@ namespace OfficeIMO.GoogleWorkspace {
             string accessToken,
             DateTimeOffset expiresAt,
             GoogleWorkspaceCredentialBinding credentialBinding) {
-            if (credentialBinding == null) throw new ArgumentNullException(nameof(credentialBinding));
+            ArgumentNullException.ThrowIfNull(credentialBinding);
             return new GoogleWorkspaceAccessToken(accessToken, expiresAt, credentialBinding.Scopes,
                 credentialBinding.Account, credentialBinding);
         }

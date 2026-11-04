@@ -19,7 +19,7 @@ public static class PublisherDocumentReaderExtensions {
     public static OfficeDocumentReadResult ToOfficeDocumentReadResult(this PublisherDocument document,
         string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPublisherOptions? publisherOptions = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         ReaderPublisherOptions configured = (publisherOptions ?? new ReaderPublisherOptions()).Clone();

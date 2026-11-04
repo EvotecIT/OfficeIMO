@@ -17,12 +17,9 @@ public sealed class ReaderIWorkOptions {
     public bool IncludeImagePayloads { get; set; }
 
     internal ReaderIWorkOptions Clone() {
-        if (MaxTableColumns < 1 || MaxTableColumns > 16_384) {
-            throw new ArgumentOutOfRangeException(nameof(MaxTableColumns));
-        }
-        if (MaxProjectedTableCells < 1) {
-            throw new ArgumentOutOfRangeException(nameof(MaxProjectedTableCells));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTableColumns, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(MaxTableColumns, 16_384);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxProjectedTableCells, 1);
         return new ReaderIWorkOptions {
             ReadOptions = ReadOptions?.Clone(),
             MaxTableColumns = MaxTableColumns,

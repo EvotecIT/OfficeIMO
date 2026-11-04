@@ -119,7 +119,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Adds a slide using a layout selected from a template inventory.</summary>
         public PowerPointSlide AddSlide(PowerPointTemplateLayoutInfo layout) {
-            if (layout == null) throw new ArgumentNullException(nameof(layout));
+            ArgumentNullException.ThrowIfNull(layout);
             return AddSlide(layout.MasterIndex, layout.LayoutIndex);
         }
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.PowerPoint {
         ///     placeholder index, authored name, and bounds.
         /// </summary>
         public PowerPointTextBox AddTextToPlaceholder(PowerPointTemplatePlaceholderInfo placeholder, string text) {
-            if (placeholder == null) throw new ArgumentNullException(nameof(placeholder));
+            ArgumentNullException.ThrowIfNull(placeholder);
             if (!placeholder.Bounds.HasValue) {
                 throw new InvalidOperationException("Template placeholder '" + placeholder.Name +
                     "' does not define usable bounds.");

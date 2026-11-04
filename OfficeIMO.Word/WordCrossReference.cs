@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         /// <param name="type">Type of reference.</param>
         /// <returns>The created reference field.</returns>
         public static WordField AddCrossReference(WordParagraph paragraph, string referenceId, WordCrossReferenceType type) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             if (string.IsNullOrWhiteSpace(referenceId)) throw new ArgumentNullException(nameof(referenceId));
 
             var builder = new WordFieldBuilder(WordFieldType.Ref)

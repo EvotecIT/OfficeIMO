@@ -12,15 +12,15 @@ public sealed partial class RtfReadResult {
     /// <summary>Returns original-source payload descriptors under explicit limits. Optional hashes scan complete payloads within those limits.</summary>
     public IReadOnlyList<OfficeEmbeddedPayloadInfo> GetEmbeddedPayloads(OfficeEmbeddedPayloadInspectionOptions options,
         CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         using OfficeEmbeddedPayloadInspection inspection = InspectEmbeddedPayloads(options, cancellationToken);
         return inspection.Payloads;
     }
 
     /// <summary>Reads one complete original-source payload under an explicit decoded byte ceiling without activating an object.</summary>
     public Stream OpenEmbeddedPayload(string id, long maximumBytes, CancellationToken cancellationToken = default) {
-        if (id == null) throw new ArgumentNullException(nameof(id));
-        if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentNullException.ThrowIfNull(id);
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
         foreach (OfficeEmbeddedPayloadSource source in GetSourcePayloads(cancellationToken)) {
             if (source.Info.Id != id) continue;
             using var inspection = new OfficeEmbeddedPayloadInspection(new[] { source }, new OfficeEmbeddedPayloadInspectionOptions {

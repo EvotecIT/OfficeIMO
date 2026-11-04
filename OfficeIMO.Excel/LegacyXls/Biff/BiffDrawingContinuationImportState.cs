@@ -210,9 +210,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal bool Complete => _payload.Length >= RequiredLength;
 
             internal void Append(byte[] payload) {
-                if (payload == null) {
-                    throw new ArgumentNullException(nameof(payload));
-                }
+                ArgumentNullException.ThrowIfNull(payload);
 
                 int bytesNeeded = RequiredLength - checked((int)_payload.Length);
                 if (bytesNeeded <= 0) {

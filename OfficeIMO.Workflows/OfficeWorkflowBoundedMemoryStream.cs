@@ -7,7 +7,7 @@ internal sealed class OfficeWorkflowBoundedMemoryStream : MemoryStream {
     private readonly long _maximumBytes;
 
     internal OfficeWorkflowBoundedMemoryStream(long maximumBytes) {
-        if (maximumBytes <= 0L) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumBytes, 0L);
         _maximumBytes = maximumBytes;
     }
 
@@ -52,7 +52,7 @@ internal sealed class OfficeWorkflowBoundedMemoryStream : MemoryStream {
 #endif
 
     private void EnsureWriteWithinLimit(int count) {
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         long end;
         try {
             end = checked(Position + count);

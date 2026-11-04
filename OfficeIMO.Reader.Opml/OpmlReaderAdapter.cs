@@ -11,7 +11,7 @@ namespace OfficeIMO.Reader.Opml;
 
 internal static partial class OpmlReaderAdapter {
     internal static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? readerOptions = null, ReaderOpmlOptions? opmlOptions = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, reader.MaxInputBytes);
         ReaderOpmlOptions adapter = ReaderOpmlOptionsCloner.Clone(opmlOptions);
@@ -21,7 +21,7 @@ internal static partial class OpmlReaderAdapter {
     }
 
     internal static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderOpmlOptions? opmlOptions = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOpmlOptions adapter = ReaderOpmlOptionsCloner.Clone(opmlOptions);
         ApplyReaderLimit(adapter.ReadOptions, reader.MaxInputBytes);

@@ -19,7 +19,7 @@ public static partial class ReaderHierarchicalChunker {
         OfficeDocumentReadResult document,
         ReaderHierarchicalChunkingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ReaderHierarchicalChunkingOptions normalized = Normalize(options);
         int? knownInputCount = document.Chunks != null && document.Chunks.Count > 0
             ? document.Chunks.Count
@@ -39,7 +39,7 @@ public static partial class ReaderHierarchicalChunker {
         IEnumerable<ReaderChunk> chunks,
         ReaderHierarchicalChunkingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        ArgumentNullException.ThrowIfNull(chunks);
         return ChunkCore(
             chunks,
             new OfficeDocumentSource(),
@@ -109,15 +109,15 @@ public static partial class ReaderHierarchicalChunker {
 
     private static ReaderHierarchicalChunkingOptions Normalize(ReaderHierarchicalChunkingOptions? options) {
         ReaderHierarchicalChunkingOptions effective = (options ?? new ReaderHierarchicalChunkingOptions()).Clone();
-        if (effective.MaxTokens <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxTokens));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxTokens, nameof(effective.MaxTokens));
         if (effective.OverlapTokens < 0 || effective.OverlapTokens >= effective.MaxTokens) {
             throw new ArgumentOutOfRangeException(nameof(effective.OverlapTokens), "Overlap must be non-negative and smaller than MaxTokens.");
         }
-        if (effective.MaxInputChunks <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxInputChunks));
-        if (effective.MaxOutputChunks <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxOutputChunks));
-        if (effective.MaxHierarchyDepth <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxHierarchyDepth));
-        if (effective.MaxContextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxContextCharacters));
-        if (effective.TokenCounter == null) throw new ArgumentNullException(nameof(effective.TokenCounter));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxInputChunks, nameof(effective.MaxInputChunks));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxOutputChunks, nameof(effective.MaxOutputChunks));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxHierarchyDepth, nameof(effective.MaxHierarchyDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxContextCharacters, nameof(effective.MaxContextCharacters));
+        ArgumentNullException.ThrowIfNull(effective.TokenCounter, nameof(effective.TokenCounter));
         string counterId = effective.TokenCounter.Id;
         if (string.IsNullOrWhiteSpace(counterId) || !string.Equals(counterId, counterId.Trim(), StringComparison.Ordinal)) {
             throw new ArgumentException("Token counter id must be non-empty and normalized.", nameof(effective.TokenCounter));

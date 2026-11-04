@@ -26,7 +26,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Splits the region into equal columns separated by a gutter.</summary>
         public PowerPointLayoutBox[] SplitColumns(int columnCount, OfficeLength gutter) {
-            if (columnCount <= 0) throw new ArgumentOutOfRangeException(nameof(columnCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columnCount);
             if (gutter < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(gutter));
             long totalGutter = checked(gutter.ToEmus() * (columnCount - 1));
             if (totalGutter > Width.ToEmus()) throw new ArgumentOutOfRangeException(nameof(gutter), "Gutter exceeds available width.");
@@ -43,7 +43,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Splits the region into equal rows separated by a gutter.</summary>
         public PowerPointLayoutBox[] SplitRows(int rowCount, OfficeLength gutter) {
-            if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
             if (gutter < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(gutter));
             long totalGutter = checked(gutter.ToEmus() * (rowCount - 1));
             if (totalGutter > Height.ToEmus()) throw new ArgumentOutOfRangeException(nameof(gutter), "Gutter exceeds available height.");
@@ -60,8 +60,8 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Splits the region into an equal row and column grid.</summary>
         public PowerPointLayoutBox[,] SplitGrid(int rowCount, int columnCount, OfficeLength rowGutter, OfficeLength columnGutter) {
-            if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
-            if (columnCount <= 0) throw new ArgumentOutOfRangeException(nameof(columnCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columnCount);
             if (rowGutter < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(rowGutter));
             if (columnGutter < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(columnGutter));
             var grid = new PowerPointLayoutBox[rowCount, columnCount];
@@ -104,7 +104,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Applies the region's position and size to a shape.</summary>
         public void ApplyTo(PowerPointShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             shape.Bounds = this;
         }
     }

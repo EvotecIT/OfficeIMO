@@ -278,7 +278,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static int CountPackageParts(OpenXmlPartContainer container, Func<OpenXmlPart, bool> predicate) {
-            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return CountPackageParts(container, predicate, new HashSet<Uri>());
         }
@@ -594,7 +594,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string? GetOpenXmlAttributeValue(OpenXmlElement element, string localName) {
-            if (element == null) throw new ArgumentNullException(nameof(element));
+            ArgumentNullException.ThrowIfNull(element);
             if (string.IsNullOrWhiteSpace(localName)) throw new ArgumentException("Attribute name is required.", nameof(localName));
 
             var attribute = element.GetAttributes().FirstOrDefault(a => string.Equals(a.LocalName, localName, StringComparison.OrdinalIgnoreCase));

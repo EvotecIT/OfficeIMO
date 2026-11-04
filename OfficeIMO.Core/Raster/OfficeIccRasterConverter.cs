@@ -76,10 +76,10 @@ public static partial class OfficeIccRasterConverter {
         byte[] profileBytes,
         OfficeIccRasterConversionOptions? options,
         out OfficeRasterImage? image) {
-        if (deviceSamples == null) throw new ArgumentNullException(nameof(deviceSamples));
-        if (profileBytes == null) throw new ArgumentNullException(nameof(profileBytes));
-        if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        ArgumentNullException.ThrowIfNull(deviceSamples);
+        ArgumentNullException.ThrowIfNull(profileBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
         OfficeIccRasterConversionOptions effective = options ?? new OfficeIccRasterConversionOptions();
         if (effective.RenderingIntent < OfficeIccRenderingIntent.Perceptual ||
             effective.RenderingIntent > OfficeIccRenderingIntent.AbsoluteColorimetric) {

@@ -7,7 +7,7 @@ namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
     internal static string BuildPortableSourceId(string sourceKey) {
-        if (sourceKey == null) throw new ArgumentNullException(nameof(sourceKey));
+        ArgumentNullException.ThrowIfNull(sourceKey);
         // External identities are not filesystem paths, so their case must not vary by host OS.
         return "src:" + ComputeSha256Hex(sourceKey);
     }
@@ -18,7 +18,7 @@ internal static partial class DocumentReaderEngine {
         DateTime? lastWriteUtc,
         long? lengthBytes,
         bool computeHashes) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         if (string.IsNullOrWhiteSpace(sourceId)) throw new ArgumentException("Source ID cannot be empty.", nameof(sourceId));
 
         result.Source ??= new OfficeDocumentSource();

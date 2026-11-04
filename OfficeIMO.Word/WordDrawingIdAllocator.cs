@@ -12,12 +12,12 @@ namespace OfficeIMO.Word {
         private static readonly ConditionalWeakTable<WordprocessingDocument, ReservationState> _reservations = new();
 
         internal static uint Reserve(WordDocument document, uint count = 1U) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return Reserve(document._wordprocessingDocument, count);
         }
 
         internal static uint Reserve(WordprocessingDocument document, uint count = 1U) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             if (count == 0U) throw new ArgumentOutOfRangeException(nameof(count));
 
             ReservationState state = _reservations.GetOrCreateValue(document);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static uint Reserve(MainDocumentPart mainPart, uint count = 1U) {
-            if (mainPart == null) throw new ArgumentNullException(nameof(mainPart));
+            ArgumentNullException.ThrowIfNull(mainPart);
             if (mainPart.OpenXmlPackage is not WordprocessingDocument document) {
                 throw new InvalidOperationException("The main document part is not attached to a Wordprocessing document.");
             }
@@ -42,13 +42,13 @@ namespace OfficeIMO.Word {
         }
 
         internal static void Reassign(WordDocument document, OpenXmlElement root) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             Reassign(document._wordprocessingDocument, root);
         }
 
         internal static void Reassign(WordprocessingDocument document, OpenXmlElement root) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (root == null) throw new ArgumentNullException(nameof(root));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(root);
 
             OpenXmlElement[] elements = root.Descendants().Where(IsTracked).ToArray();
             if (elements.Length == 0) return;

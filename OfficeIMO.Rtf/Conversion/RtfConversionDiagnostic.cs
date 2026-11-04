@@ -12,7 +12,7 @@ public sealed class RtfConversionDiagnostic {
         string? feature = null,
         int count = 1,
         string? detail = null) {
-        if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
         Severity = severity;
         Code = code ?? throw new ArgumentNullException(nameof(code));
         Message = message ?? throw new ArgumentNullException(nameof(message));

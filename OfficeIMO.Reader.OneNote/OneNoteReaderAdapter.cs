@@ -30,8 +30,8 @@ internal static partial class OneNoteReaderAdapter {
         string sourceName = "section.one",
         ReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(null);
         var source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
@@ -45,9 +45,9 @@ internal static partial class OneNoteReaderAdapter {
         string sourceName = "section.one",
         ReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
-        if (oneNoteOptions == null) throw new ArgumentNullException(nameof(oneNoteOptions));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(section);
+        ArgumentNullException.ThrowIfNull(oneNoteOptions);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
         var source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
@@ -60,8 +60,8 @@ internal static partial class OneNoteReaderAdapter {
         string sourceName = "notebook.onepkg",
         ReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(null);
         SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
@@ -75,9 +75,9 @@ internal static partial class OneNoteReaderAdapter {
         string sourceName = "notebook.onepkg",
         ReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        if (oneNoteOptions == null) throw new ArgumentNullException(nameof(oneNoteOptions));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(notebook);
+        ArgumentNullException.ThrowIfNull(oneNoteOptions);
+        ArgumentNullException.ThrowIfNull(sourceName);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderOneNoteOptions native = ReaderOneNoteOptionsCloner.CloneOrDefault(oneNoteOptions);
         SourceInfo source = SourceInfo.ForLogicalName(NormalizeSourceName(sourceName));
@@ -89,7 +89,7 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions? readerOptions,
         ReaderOneNoteOptions? oneNoteOptions,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("OneNote path cannot be empty.", nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("OneNote file does not exist.", path);
 
@@ -119,7 +119,7 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions? readerOptions,
         ReaderOneNoteOptions? oneNoteOptions,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("OneNote stream must be readable.", nameof(stream));
 
         ReaderOptions reader = readerOptions ?? new ReaderOptions();

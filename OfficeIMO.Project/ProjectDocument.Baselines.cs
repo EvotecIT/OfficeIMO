@@ -24,9 +24,10 @@ public sealed partial class ProjectDocument {
     /// <summary>Captures task, assignment and resource baseline totals and curves from a current calculated schedule. Existing baselines require explicit overwrite.</summary>
     public void CaptureBaseline(ProjectScheduleResult schedule, int baselineNumber = 0, bool overwrite = false, int maxIntervals = 1_000_000, CancellationToken cancellationToken = default) {
         EnsureMutable();
-        if (schedule == null) throw new ArgumentNullException(nameof(schedule));
-        if (baselineNumber < 0 || baselineNumber > 10) throw new ArgumentOutOfRangeException(nameof(baselineNumber));
-        if (maxIntervals < 1) throw new ArgumentOutOfRangeException(nameof(maxIntervals));
+        ArgumentNullException.ThrowIfNull(schedule);
+        ArgumentOutOfRangeException.ThrowIfNegative(baselineNumber);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(baselineNumber, 10);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxIntervals, 1);
         if (_batchDepth != 0 || schedule.Document != this || schedule.ModelRevision != Revision)
             throw new InvalidOperationException("Baseline capture requires a schedule for the current document revision.");
         if (!schedule.CalculatedAssignments) throw new ArgumentException("Baseline capture requires CalculateAssignments.", nameof(schedule));

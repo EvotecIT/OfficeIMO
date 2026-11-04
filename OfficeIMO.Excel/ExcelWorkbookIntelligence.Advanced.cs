@@ -316,8 +316,8 @@ namespace OfficeIMO.Excel {
         /// Compares this workbook with another workbook using configurable structural, value, style, table, comment, and metadata checks.
         /// </summary>
         public ExcelWorkbookDiffReport CompareWorkbook(ExcelDocument other, ExcelWorkbookDiffOptions options) {
-            if (other == null) throw new ArgumentNullException(nameof(other));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(other);
+            ArgumentNullException.ThrowIfNull(options);
             int maxDifferences = Math.Max(1, options.MaxDifferences);
             var differences = new List<ExcelWorkbookDifference>();
             var otherSheets = other.Sheets.ToDictionary(sheet => sheet.Name, StringComparer.OrdinalIgnoreCase);
@@ -393,7 +393,7 @@ namespace OfficeIMO.Excel {
         /// Validates all workbook template markers against a dictionary of values before applying the template.
         /// </summary>
         public ExcelTemplateBindingReport ValidateTemplateBindings(IDictionary<string, object?> values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             return new ExcelTemplateBindingReport(InspectTemplate(values));
         }
 
@@ -402,7 +402,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Object-model template inspection walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public ExcelTemplateBindingReport ValidateTemplateBindings(object model) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
             return new ExcelTemplateBindingReport(InspectTemplate(model));
         }
 
@@ -411,7 +411,7 @@ namespace OfficeIMO.Excel {
         /// OfficeIMO writes metadata only; it does not execute Power Query M or contact external systems.
         /// </summary>
         public ExcelPowerQueryMetadataResult AddPowerQueryMetadata(ExcelPowerQueryMetadataOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             string name = string.IsNullOrWhiteSpace(options.Name) ? "OfficeIMOQuery" : options.Name.Trim();
             string commandText = options.CommandText ?? string.Empty;
             string? worksheetName = null;

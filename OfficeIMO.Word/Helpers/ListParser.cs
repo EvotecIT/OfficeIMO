@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
         /// or bulleted (<c>false</c>).
         /// </returns>
         public static Dictionary<int, bool> GetListTypes(MainDocumentPart mainPart) {
-            if (mainPart == null) throw new ArgumentNullException(nameof(mainPart));
+            ArgumentNullException.ThrowIfNull(mainPart);
 
             Dictionary<int, bool> listTypes = new();
             NumberingDefinitionsPart? numberingPart = mainPart.NumberingDefinitionsPart;
@@ -62,8 +62,8 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to evaluate.</param>
         /// <param name="mainPart">Main document part.</param>
         public static bool IsBullet(Paragraph paragraph, MainDocumentPart mainPart) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (mainPart == null) throw new ArgumentNullException(nameof(mainPart));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(mainPart);
 
             var numProps = paragraph.ParagraphProperties?.NumberingProperties;
             Int32Value? numberingIdValue = numProps?.NumberingId?.Val?.Value;
@@ -82,8 +82,8 @@ namespace OfficeIMO.Word {
         /// <param name="paragraph">Paragraph to evaluate.</param>
         /// <param name="mainPart">Main document part.</param>
         public static bool IsOrdered(Paragraph paragraph, MainDocumentPart mainPart) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (mainPart == null) throw new ArgumentNullException(nameof(mainPart));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(mainPart);
 
             var numProps = paragraph.ParagraphProperties?.NumberingProperties;
             Int32Value? numberingIdValue = numProps?.NumberingId?.Val?.Value;

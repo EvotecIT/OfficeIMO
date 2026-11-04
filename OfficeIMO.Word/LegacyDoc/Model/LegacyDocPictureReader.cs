@@ -14,9 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             int supportedStoryCharacterCount,
             int maximumDecodedImageBytes) {
-            if (maximumDecodedImageBytes <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumDecodedImageBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDecodedImageBytes);
             if (dataStream.Length == 0 || supportedStoryCharacterCount <= 0) {
                 return LegacyDocPictureReadResult.Empty;
             }

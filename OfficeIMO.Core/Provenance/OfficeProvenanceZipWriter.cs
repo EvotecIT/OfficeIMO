@@ -33,8 +33,8 @@ internal static class OfficeProvenanceZipWriter {
         byte[]? archiveComment = null,
         long maximumOutputBytes = int.MaxValue,
         CancellationToken cancellationToken = default) {
-        if (entries == null) throw new ArgumentNullException(nameof(entries));
-        if (maximumExpandedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumExpandedBytes));
+        ArgumentNullException.ThrowIfNull(entries);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExpandedBytes);
         archiveComment ??= Array.Empty<byte>();
         if (archiveComment.Length > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(archiveComment));
         var records = new List<OfficeProvenanceZipRecord>(entries.Count);
@@ -296,7 +296,7 @@ internal sealed class OfficeProvenanceZipWriteEntry {
         byte[] comment,
         Func<Stream> open) {
         Name = name ?? throw new ArgumentNullException(nameof(name));
-        if (expectedLength < 0) throw new ArgumentOutOfRangeException(nameof(expectedLength));
+        ArgumentOutOfRangeException.ThrowIfNegative(expectedLength);
         ExpectedLength = expectedLength;
         Compress = compress;
         LastWriteTime = lastWriteTime;

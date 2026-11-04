@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel.Html;
 /// </summary>
 public static partial class ExcelHtmlConverterExtensions {
     internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this ExcelDocument workbook, ExcelHtmlExportOptions? options = null) {
-        if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+        ArgumentNullException.ThrowIfNull(workbook);
         ExcelHtmlExportOptions operation = (options ?? new ExcelHtmlExportOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();
@@ -22,7 +22,7 @@ public static partial class ExcelHtmlConverterExtensions {
     }
 
     internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this ExcelSheet sheet, ExcelHtmlExportOptions? options = null) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         ExcelHtmlExportOptions operation = (options ?? new ExcelHtmlExportOptions()).Clone();
         operation.Validate();
         var diagnostics = new List<HtmlDiagnostic>();

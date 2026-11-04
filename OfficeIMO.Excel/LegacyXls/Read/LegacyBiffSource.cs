@@ -16,7 +16,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         private bool _disposed;
 
         internal LegacyBiffSource(Stream stream, CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead || !stream.CanSeek) {
                 stream.Dispose();
                 throw new ArgumentException("A BIFF source must be readable and seekable.", nameof(stream));

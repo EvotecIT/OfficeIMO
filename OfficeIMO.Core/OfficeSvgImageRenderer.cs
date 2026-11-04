@@ -52,9 +52,7 @@ internal static partial class OfficeSvgImageRenderer {
         bool flipHorizontal = false,
         bool flipVertical = false,
         string? preserveAspectRatio = null) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         if (string.IsNullOrEmpty(href) || width <= 0D || height <= 0D) {
             return builder;
@@ -114,9 +112,7 @@ internal static partial class OfficeSvgImageRenderer {
         OfficeImagePlacement? clipRectangle = null,
         string? preserveAspectRatio = null,
         System.Threading.CancellationToken cancellationToken = default) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
@@ -270,9 +266,7 @@ internal static partial class OfficeSvgImageRenderer {
         Action<XmlWriter>? writeAdditionalAttributes = null,
         string? clipPathId = null,
         OfficeImagePlacement? clipRectangle = null) {
-        if (writer == null) {
-            throw new ArgumentNullException(nameof(writer));
-        }
+        ArgumentNullException.ThrowIfNull(writer);
 
         if (string.IsNullOrEmpty(href) || projection.Width <= 0D || projection.Height <= 0D) {
             return;
@@ -367,9 +361,7 @@ internal static partial class OfficeSvgImageRenderer {
             throw new ArgumentException("Content type is required.", nameof(contentType));
         }
 
-        if (bytes == null) {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+        ArgumentNullException.ThrowIfNull(bytes);
 
         return "data:" + contentType + ";base64," + Convert.ToBase64String(bytes);
     }
@@ -412,7 +404,7 @@ internal static partial class OfficeSvgImageRenderer {
         int maximumCharacters,
         CancellationToken cancellationToken,
         out string dataUri) {
-        if (maximumCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maximumCharacters));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumCharacters, 1);
         cancellationToken.ThrowIfCancellationRequested();
         dataUri = string.Empty;
         if (bytes == null || bytes.Length == 0) {

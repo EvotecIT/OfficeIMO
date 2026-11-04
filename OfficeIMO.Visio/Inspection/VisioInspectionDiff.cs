@@ -19,13 +19,9 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Compares two snapshots.</summary>
         public static VisioInspectionDiff Compare(VisioInspectionSnapshot expected, VisioInspectionSnapshot actual) {
-            if (expected == null) {
-                throw new ArgumentNullException(nameof(expected));
-            }
+            ArgumentNullException.ThrowIfNull(expected);
 
-            if (actual == null) {
-                throw new ArgumentNullException(nameof(actual));
-            }
+            ArgumentNullException.ThrowIfNull(actual);
 
             SortedDictionary<string, string> expectedLines = ToLineMap(expected.ToText());
             SortedDictionary<string, string> actualLines = ToLineMap(actual.ToText());

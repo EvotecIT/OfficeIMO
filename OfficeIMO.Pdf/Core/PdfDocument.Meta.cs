@@ -497,13 +497,7 @@ public sealed partial class PdfDocument : IDisposable {
         Guard.NotNull(input, nameof(input));
         Guard.NotNull(pdf, nameof(pdf));
         cancellationToken.ThrowIfCancellationRequested();
-#if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegative(outputPageCount);
-#else
-        if (outputPageCount < 0) {
-            throw new ArgumentOutOfRangeException(nameof(outputPageCount));
-        }
-#endif
 
         PdfLoadOptions effectiveReadOptions = PdfLoadOptions.ForGeneratedOutput(
             readOptions ?? ReadOptions, inputBytes, pdf);

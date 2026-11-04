@@ -34,7 +34,7 @@ namespace OfficeIMO.Word {
 
         /// <summary>Creates an independent options snapshot.</summary>
         public WordImageExportOptions Clone() {
-            if (LayoutOptions == null) throw new ArgumentNullException(nameof(LayoutOptions));
+            ArgumentNullException.ThrowIfNull(LayoutOptions);
             WordImageExportOptions clone = CopyImageExportOptionsTo(new WordImageExportOptions());
             clone.LayoutOptions = LayoutOptions.Clone();
             clone.PageIndex = PageIndex;
@@ -45,8 +45,8 @@ namespace OfficeIMO.Word {
 
         internal void Validate() {
             ValidateImageExportOptions();
-            if (LayoutOptions == null) throw new ArgumentNullException(nameof(LayoutOptions));
-            if (PageIndex < 0) throw new ArgumentOutOfRangeException(nameof(PageIndex));
+            ArgumentNullException.ThrowIfNull(LayoutOptions);
+            ArgumentOutOfRangeException.ThrowIfNegative(PageIndex);
             if (PageCount.HasValue && PageCount.Value < 1) throw new ArgumentOutOfRangeException(nameof(PageCount));
         }
 

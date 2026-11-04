@@ -146,9 +146,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
 
-            if (readOptions == null) {
-                throw new ArgumentNullException(nameof(readOptions));
-            }
+            ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
             var stream = File.OpenRead(path);
@@ -172,9 +170,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (string.IsNullOrWhiteSpace(path)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(path));
             }
-            if (readOptions == null) {
-                throw new ArgumentNullException(nameof(readOptions));
-            }
+            ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
             var stream = File.OpenRead(path);
@@ -201,17 +197,13 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Stream stream,
             ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
+            ArgumentNullException.ThrowIfNull(stream);
 
             if (!stream.CanRead) {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
             }
 
-            if (readOptions == null) {
-                throw new ArgumentNullException(nameof(readOptions));
-            }
+            ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
             byte[] bytes = OfficeStreamReader.ReadAllBytes(
@@ -228,12 +220,8 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             byte[] bytes,
             ExcelReaderOptions readOptions,
             CancellationToken cancellationToken = default) {
-            if (bytes == null) {
-                throw new ArgumentNullException(nameof(bytes));
-            }
-            if (readOptions == null) {
-                throw new ArgumentNullException(nameof(readOptions));
-            }
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentNullException.ThrowIfNull(readOptions);
 
             cancellationToken.ThrowIfCancellationRequested();
             if (bytes.LongLength > readOptions.MaxInputBytes) {

@@ -29,10 +29,10 @@ internal sealed partial class OfficeAv1FrameReconstructor : IOfficeAv1TileConsum
 
     private OfficeAv1FrameReconstructor(byte[] bytes,OfficeAv1StillSequence sequence,
         OfficeAv1StillFrame frame,OfficeRasterDecodeOptions options,OfficeAv1ReconstructionStage stage) {
-        if(bytes==null) throw new ArgumentNullException(nameof(bytes));
-        if(sequence==null) throw new ArgumentNullException(nameof(sequence));
-        if(frame==null) throw new ArgumentNullException(nameof(frame));
-        if(options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
         if((sequence.BitDepth!=8 && sequence.BitDepth!=10) || frame.BitDepth!=sequence.BitDepth)
             throw new FormatException("Invalid or inconsistent AV1 reconstruction bit depth.");

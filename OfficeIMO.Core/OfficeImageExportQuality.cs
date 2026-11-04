@@ -16,7 +16,7 @@ public enum OfficeImageExportQuality {
 public static class OfficeImageExportQualityExtensions {
     /// <summary>Sets target density without changing fonts, format, layout, or safety limits. Clear TargetDpi to use Scale directly, or use the fluent WithScale method.</summary>
     public static T UseQuality<T>(this T options, OfficeImageExportQuality quality) where T : OfficeImageExportOptions {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.TargetDpi = quality switch {
             OfficeImageExportQuality.Preview => 96D,
             OfficeImageExportQuality.Screen => 192D,

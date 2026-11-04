@@ -8,8 +8,8 @@ internal static class EmailStoreReaderProjection {
         EmailStoreReadResult readResult,
         string sourceName,
         CancellationToken cancellationToken) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(readResult);
+        ArgumentNullException.ThrowIfNull(sourceName);
 
         var documents = new List<EmailDocument>();
         var logicalPaths = new List<string?>();
@@ -51,9 +51,9 @@ internal static class EmailStoreReaderProjection {
         string sourceName,
         ReaderEmailStoreOptions adapterOptions,
         CancellationToken cancellationToken) {
-        if (session == null) throw new ArgumentNullException(nameof(session));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
-        if (adapterOptions == null) throw new ArgumentNullException(nameof(adapterOptions));
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(sourceName);
+        ArgumentNullException.ThrowIfNull(adapterOptions);
 
         EmailStoreInspectionReport inspection = session.Inspect();
         var documents = new List<EmailDocument>();
@@ -143,8 +143,8 @@ internal static class EmailStoreReaderProjection {
     internal static OfficeDocumentReadResult EnrichResult(
         OfficeDocumentReadResult result,
         EmailStoreProjection projection) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
-        if (projection == null) throw new ArgumentNullException(nameof(projection));
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(projection);
         string storeFormat = projection.StoreFormat.ToString();
         result.CapabilitiesUsed = result.CapabilitiesUsed
             .Concat(new[] {

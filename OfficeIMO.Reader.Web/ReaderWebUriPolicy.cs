@@ -2,7 +2,7 @@ namespace OfficeIMO.Reader.Web;
 
 internal static class ReaderWebUriPolicy {
     internal static void Validate(Uri uri, ReaderWebOptions options) {
-        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        ArgumentNullException.ThrowIfNull(uri);
         if (!uri.IsAbsoluteUri) {
             throw new ReaderWebPolicyException(uri, "Reader Web requires an absolute URI.");
         }

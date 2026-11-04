@@ -15,9 +15,7 @@ namespace OfficeIMO.Visio {
         /// <param name="minimumWidth">Minimum resulting width in inches.</param>
         /// <param name="minimumHeight">Minimum resulting height in inches.</param>
         public static VisioShape ResizeToText(this VisioShape shape, OfficeFontInfo? fontInfo = null, double horizontalPadding = DefaultHorizontalPadding, double verticalPadding = DefaultVerticalPadding, double minimumWidth = 0.5D, double minimumHeight = 0.3D) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             ValidateTextResizeArguments(horizontalPadding, verticalPadding, minimumWidth, minimumHeight);
             (double width, double height) = MeasureTextBox(
@@ -47,9 +45,7 @@ namespace OfficeIMO.Visio {
         /// <param name="minimumWidth">Minimum resulting width in inches.</param>
         /// <param name="minimumHeight">Minimum resulting height in inches.</param>
         public static VisioShapeSelection ResizeToText(this VisioShapeSelection selection, OfficeFontInfo? fontInfo = null, double horizontalPadding = DefaultHorizontalPadding, double verticalPadding = DefaultVerticalPadding, double minimumWidth = 0.5D, double minimumHeight = 0.3D) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             foreach (VisioShape shape in selection) {
                 shape.ResizeToText(fontInfo, horizontalPadding, verticalPadding, minimumWidth, minimumHeight);
@@ -69,9 +65,7 @@ namespace OfficeIMO.Visio {
         /// <param name="minimumHeight">Minimum resulting label height in inches.</param>
         /// <param name="maximumWidth">Optional maximum label width in inches. Text wraps by words when supplied.</param>
         public static VisioConnector ResizeLabelToText(this VisioConnector connector, OfficeFontInfo? fontInfo = null, double horizontalPadding = 0.12D, double verticalPadding = 0.06D, double minimumWidth = 0.45D, double minimumHeight = 0.22D, double? maximumWidth = null) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             ValidateTextResizeArguments(horizontalPadding, verticalPadding, minimumWidth, minimumHeight);
             if (maximumWidth.HasValue && maximumWidth.Value <= 0) {
@@ -105,9 +99,7 @@ namespace OfficeIMO.Visio {
         /// <param name="minimumHeight">Minimum resulting label height in inches.</param>
         /// <param name="maximumWidth">Optional maximum label width in inches. Text wraps by words when supplied.</param>
         public static VisioConnectorSelection ResizeLabelsToText(this VisioConnectorSelection selection, OfficeFontInfo? fontInfo = null, double horizontalPadding = 0.12D, double verticalPadding = 0.06D, double minimumWidth = 0.45D, double minimumHeight = 0.22D, double? maximumWidth = null) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             foreach (VisioConnector connector in selection) {
                 connector.ResizeLabelToText(fontInfo, horizontalPadding, verticalPadding, minimumWidth, minimumHeight, maximumWidth);

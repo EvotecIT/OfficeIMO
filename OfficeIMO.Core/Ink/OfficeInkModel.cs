@@ -198,7 +198,7 @@ public sealed class OfficeInkStroke {
 
     /// <summary>Creates a stroke from sampled points.</summary>
     public OfficeInkStroke(IEnumerable<OfficeInkPoint> points) : this() {
-        if (points == null) throw new ArgumentNullException(nameof(points));
+        ArgumentNullException.ThrowIfNull(points);
         _points.AddRange(points);
     }
 
@@ -422,7 +422,7 @@ public sealed class OfficeInkDocument {
 
     /// <summary>Adds a stroke and returns this document.</summary>
     public OfficeInkDocument Add(OfficeInkStroke stroke) {
-        if (stroke == null) throw new ArgumentNullException(nameof(stroke));
+        ArgumentNullException.ThrowIfNull(stroke);
         _strokes.Add(stroke);
         return this;
     }
@@ -430,7 +430,7 @@ public sealed class OfficeInkDocument {
     /// <summary>Removes the first matching stroke.</summary>
     /// <returns>True when the stroke was present.</returns>
     public bool Remove(OfficeInkStroke stroke) {
-        if (stroke == null) throw new ArgumentNullException(nameof(stroke));
+        ArgumentNullException.ThrowIfNull(stroke);
         return _strokes.Remove(stroke);
     }
 

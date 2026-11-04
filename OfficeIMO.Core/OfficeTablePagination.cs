@@ -24,10 +24,10 @@ internal static class OfficeTablePagination {
     /// </summary>
     public static IReadOnlyList<OfficeTablePage> Paginate(IReadOnlyList<double> rowHeights, double availableHeight,
         double headerHeight, int maximumPages = 1000, CancellationToken cancellationToken = default) {
-        if (rowHeights == null) throw new ArgumentNullException(nameof(rowHeights));
+        ArgumentNullException.ThrowIfNull(rowHeights);
         if (!Finite(availableHeight) || availableHeight <= 0 || !Finite(headerHeight) || headerHeight < 0 || headerHeight > availableHeight)
             throw new ArgumentOutOfRangeException(nameof(availableHeight), "The repeated header must fit inside a positive page height.");
-        if (maximumPages < 1) throw new ArgumentOutOfRangeException(nameof(maximumPages));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumPages, 1);
         var pages = new List<OfficeTablePage>();
         int offset = 0, count = 0; double height = headerHeight;
         for (int i = 0; i < rowHeights.Count; i++) {

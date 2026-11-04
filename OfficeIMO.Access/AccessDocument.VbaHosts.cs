@@ -1,7 +1,7 @@
 namespace OfficeIMO.Access {
     public sealed partial class AccessDocument {
         internal void SetCodeBehind(AccessApplicationObject host, string source, OfficeVbaWriteOptions? options, CancellationToken cancellation) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             EnsureMutationAllowed(); cancellation.ThrowIfCancellationRequested();
             ValidateVbaHost(host);
             AccessNativeDatabase native = _vbaMutation?.ReadProjection ?? NativeDatabase

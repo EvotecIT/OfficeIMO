@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document">Word document associated with the settings.</param>
         public WordCompatibilitySettings(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             _document = document;
             _wordprocessingDocument = document._wordprocessingDocument ?? throw new InvalidOperationException("The document does not contain an associated WordprocessingDocument instance.");

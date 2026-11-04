@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public IReadOnlyList<GoogleSheetsCellData> Cells => _cells;
 
         internal void AddCell(GoogleSheetsCellData cell) {
-            if (cell == null) throw new ArgumentNullException(nameof(cell));
+            ArgumentNullException.ThrowIfNull(cell);
             _cells.Add(cell);
         }
     }

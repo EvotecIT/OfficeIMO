@@ -13,7 +13,7 @@ public sealed partial class OdfStyleRepository {
     /// <summary>Creates a named dash pattern shared by shapes that reference it.</summary>
     public OdfStrokeDash CreateStrokeDash(string name, OdfStrokeDashPattern pattern) {
         ValidateStyleName(name);
-        if (pattern == null) throw new ArgumentNullException(nameof(pattern));
+        ArgumentNullException.ThrowIfNull(pattern);
         if (FindStrokeDash(name) != null) throw new InvalidOperationException("A stroke-dash named '" + name + "' already exists.");
         var element = new XElement(OdfNamespaces.Draw + "stroke-dash", new XAttribute(OdfNamespaces.Draw + "name", name));
         OdfStrokeDash.WritePattern(element, pattern);

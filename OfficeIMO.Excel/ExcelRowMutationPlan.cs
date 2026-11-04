@@ -50,9 +50,9 @@ namespace OfficeIMO.Excel {
                     nameof(MaximumScannedCharacters),
                     "The mutation-plan character budget must be positive.");
             }
-            if (MaximumAffectedCells < 1) throw new ArgumentOutOfRangeException(nameof(MaximumAffectedCells));
-            if (MaximumSnapshotCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaximumSnapshotCharacters));
-            if (MaximumDiagnostics < 1) throw new ArgumentOutOfRangeException(nameof(MaximumDiagnostics));
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumAffectedCells, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumSnapshotCharacters, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaximumDiagnostics, 1);
 
             return new ExcelMutationPlanOptions {
                 MaximumScannedElements = MaximumScannedElements,

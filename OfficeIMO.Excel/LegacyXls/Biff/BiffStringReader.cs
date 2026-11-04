@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static string ReadShortByteString(byte[] bytes, ref int offset, Encoding encoding) {
-            if (encoding is null) throw new ArgumentNullException(nameof(encoding));
+            ArgumentNullException.ThrowIfNull(encoding);
             if (offset >= bytes.Length) throw new InvalidDataException("Unexpected end of BIFF short byte string.");
             int charCount = bytes[offset++];
             return ReadByteStringBody(bytes, ref offset, charCount, encoding);

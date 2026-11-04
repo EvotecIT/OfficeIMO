@@ -32,8 +32,8 @@ public static class PowerPointOpenDocumentImageExportExtensions {
         PowerPointImageExportOptions? imageOptions = null,
         PowerPointOpenDocumentConversionOptions? conversionOptions = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(consumer);
         PowerPointImageExportOptions effective =
             imageOptions?.Clone() ??
             new PowerPointImageExportOptions();

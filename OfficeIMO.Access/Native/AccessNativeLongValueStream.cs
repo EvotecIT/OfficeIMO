@@ -33,7 +33,7 @@ namespace OfficeIMO.Access {
         public override long Position { get { Check(); return _position; } set => throw new NotSupportedException(); }
         public override int Read(byte[] buffer, int offset, int count) => ReadCore(buffer, offset, count, default);
         private int ReadCore(byte[] buffer, int offset, int count, CancellationToken cancellation) {
-            if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+            ArgumentNullException.ThrowIfNull(buffer);
             if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
             Check(); cancellation.ThrowIfCancellationRequested(); int total = 0;
             while (count > 0 && _position < _length) {

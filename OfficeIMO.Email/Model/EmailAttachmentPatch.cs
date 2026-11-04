@@ -36,29 +36,29 @@ public sealed class EmailAttachmentPatch {
 
     /// <summary>Stages an attachment append.</summary>
     public EmailAttachmentPatch Add(EmailAttachment attachment) {
-        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        ArgumentNullException.ThrowIfNull(attachment);
         _changes.Add(new EmailAttachmentPatchChange(EmailAttachmentPatchOperation.Add, null, attachment));
         return this;
     }
 
     /// <summary>Stages removal at the current zero-based index.</summary>
     public EmailAttachmentPatch RemoveAt(int index) {
-        if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         _changes.Add(new EmailAttachmentPatchChange(EmailAttachmentPatchOperation.RemoveAt, index, null));
         return this;
     }
 
     /// <summary>Stages replacement at the current zero-based index.</summary>
     public EmailAttachmentPatch ReplaceAt(int index, EmailAttachment attachment) {
-        if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
-        if (attachment == null) throw new ArgumentNullException(nameof(attachment));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentNullException.ThrowIfNull(attachment);
         _changes.Add(new EmailAttachmentPatchChange(EmailAttachmentPatchOperation.ReplaceAt, index, attachment));
         return this;
     }
 
     /// <summary>Validates every operation against the collection state produced by preceding operations.</summary>
     public void Validate(IList<EmailAttachment> attachments) {
-        if (attachments == null) throw new ArgumentNullException(nameof(attachments));
+        ArgumentNullException.ThrowIfNull(attachments);
         if (attachments.IsReadOnly && _changes.Count > 0)
             throw new NotSupportedException("The attachment collection is read-only.");
         int count = attachments.Count;
@@ -82,7 +82,7 @@ public sealed class EmailAttachmentPatch {
 
     /// <summary>Applies all operations only after the complete ordered patch has passed validation.</summary>
     public void Apply(IList<EmailAttachment> attachments) {
-        if (attachments == null) throw new ArgumentNullException(nameof(attachments));
+        ArgumentNullException.ThrowIfNull(attachments);
         Validate(attachments);
         foreach (EmailAttachmentPatchChange change in _changes) {
             switch (change.Operation) {

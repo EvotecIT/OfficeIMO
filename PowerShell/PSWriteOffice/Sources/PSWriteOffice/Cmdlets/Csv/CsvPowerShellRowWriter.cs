@@ -57,10 +57,7 @@ internal sealed class CsvPowerShellRowWriter
 
     public void WriteDataReaderRows(DbDataReader reader, bool asHashtable, PSCmdlet cmdlet)
     {
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         var header = new string[reader.FieldCount];
         for (var index = 0; index < header.Length; index++)

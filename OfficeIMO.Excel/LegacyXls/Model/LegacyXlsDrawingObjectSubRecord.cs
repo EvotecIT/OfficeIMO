@@ -11,13 +11,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int offset,
             ushort declaredLength,
             int availableLength) {
-            if (offset < 0) {
-                throw new ArgumentOutOfRangeException(nameof(offset));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(offset);
 
-            if (availableLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(availableLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(availableLength);
 
             SubRecordType = subRecordType;
             SubRecordTypeKey = $"SubRecordType:0x{subRecordType:X4}";

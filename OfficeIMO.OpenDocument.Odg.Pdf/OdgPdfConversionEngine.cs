@@ -6,7 +6,7 @@ namespace OfficeIMO.OpenDocument.Odg.Pdf;
 
 internal static class OdgPdfConversionEngine {
     internal static PdfDocumentConversionResult Convert(OdgDocument source, OdgPdfExportOptions? options, CancellationToken token) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         token.ThrowIfCancellationRequested();
         OdgPdfExportOptions operation = (options ?? new OdgPdfExportOptions()).Snapshot();
         var pdfReport = new PdfConversionReport();

@@ -86,9 +86,7 @@ public sealed class MarkdownHtmlBlockConverter {
 
     /// <summary>Attempts to create blocks from the supplied HTML element conversion context.</summary>
     public IReadOnlyList<IMarkdownBlock>? TryConvert(MarkdownHtmlBlockConversionContext context) {
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         return _convert(context);
     }

@@ -11,7 +11,7 @@ public sealed partial class OdgDocument {
     /// <exception cref="NotSupportedException">Content or default-style inheritance cannot be transferred without changing its meaning.</exception>
     /// <exception cref="InvalidDataException">A required master, layout, style, resource or reference is missing or ambiguous.</exception>
     public OdgPage ImportPage(OdgDocument source, int sourceIndex, string? name = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (ReferenceEquals(this, source)) throw new ArgumentException("Use ClonePage for copies within this drawing.", nameof(source));
         if (source.Version > Version) throw new NotSupportedException("Drawing import requires a destination using the source ODF version or newer.");
         OdgPage page = source.Pages.ElementAtOrDefault(sourceIndex) ?? throw new ArgumentOutOfRangeException(nameof(sourceIndex));

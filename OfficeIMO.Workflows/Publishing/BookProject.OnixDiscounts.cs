@@ -11,7 +11,7 @@ public sealed partial class BookProject {
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>();
         foreach (BookOnixDiscount discount in price.Discounts) {
-            if (discount == null) throw new ArgumentNullException(nameof(discount));
+            ArgumentNullException.ThrowIfNull(discount);
             string kind = discount.Kind switch {
                 BookOnixDiscountKind.Rising => "01", BookOnixDiscountKind.RisingCumulative => "02",
                 BookOnixDiscountKind.Progressive => "03", BookOnixDiscountKind.ProgressiveCumulative => "04",

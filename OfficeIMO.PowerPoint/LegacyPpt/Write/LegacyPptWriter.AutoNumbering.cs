@@ -115,8 +115,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildShapePpt9BinaryTagRecord(
             byte[] style9Record) {
-            if (style9Record == null) throw new ArgumentNullException(
-                nameof(style9Record));
+            ArgumentNullException.ThrowIfNull(style9Record);
             byte[] tagName = BuildRecord(version: 0, instance: 0,
                 RecordCString, Encoding.Unicode.GetBytes(Ppt9TagName));
             byte[] data = BuildRecord(version: 0, instance: 0,

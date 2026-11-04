@@ -149,7 +149,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             internal void ReleaseCharacters(long characters) {
-                if (characters < 0) throw new ArgumentOutOfRangeException(nameof(characters));
+                ArgumentOutOfRangeException.ThrowIfNegative(characters);
                 _minimumOutputCharacters = Math.Max(0, _minimumOutputCharacters - characters);
             }
         }

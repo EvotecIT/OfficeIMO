@@ -41,9 +41,9 @@ namespace OfficeIMO.Processes.Internal {
             ProcessStartInfo startInfo,
             Action prepareContainment,
             Func<IntPtr, bool> assignSuspendedProcess) {
-            if (startInfo == null) throw new ArgumentNullException(nameof(startInfo));
-            if (prepareContainment == null) throw new ArgumentNullException(nameof(prepareContainment));
-            if (assignSuspendedProcess == null) throw new ArgumentNullException(nameof(assignSuspendedProcess));
+            ArgumentNullException.ThrowIfNull(startInfo);
+            ArgumentNullException.ThrowIfNull(prepareContainment);
+            ArgumentNullException.ThrowIfNull(assignSuspendedProcess);
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 throw new PlatformNotSupportedException("Suspended process containment is available on Windows only.");
             }

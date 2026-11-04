@@ -18,7 +18,7 @@ public sealed class OfficeScanCleanupOptions {
     public long MaximumDiagnosticCharacters { get; set; } = 8L * 1024L * 1024L;
     internal OfficeScanCleanupOptions Snapshot() {
         if (!AcknowledgeRasterOutput) throw new ArgumentException("Acknowledge the raster-only scan output before saving.");
-        if (Preparation == null) throw new ArgumentNullException(nameof(Preparation));
+        ArgumentNullException.ThrowIfNull(Preparation);
         if (PageSelector is not null && Preparation.ReadOptions.PageSelection is not null)
             throw new ArgumentException("Choose a page selector or an absolute preparation selection, not both.");
         if (ExpectedSourceSha256 != null && (ExpectedSourceSha256.Length != 64 || ExpectedSourceSha256.Any(character => !Uri.IsHexDigit(character))))

@@ -56,7 +56,7 @@ public class MapiPropertyKey {
 
     /// <summary>Returns whether a property has this key's canonical identity, without checking its wire type.</summary>
     public bool MatchesIdentity(MapiProperty property) {
-        if (property == null) throw new ArgumentNullException(nameof(property));
+        ArgumentNullException.ThrowIfNull(property);
         if (Name == null) return property.Name == null && property.PropertyId == PropertyId;
         return property.Name != null && Name.Equals(property.Name);
     }
@@ -80,7 +80,7 @@ public class MapiPropertyKey {
     public override string ToString() => CanonicalName;
 
     private static string ValidateCanonicalName(string canonicalName) {
-        if (canonicalName == null) throw new ArgumentNullException(nameof(canonicalName));
+        ArgumentNullException.ThrowIfNull(canonicalName);
         if (string.IsNullOrWhiteSpace(canonicalName)) {
             throw new ArgumentException("A MAPI property key requires a canonical name.", nameof(canonicalName));
         }

@@ -6,7 +6,7 @@ namespace OfficeIMO.Security;
 
 internal static class OfficePackageFileSnapshot {
     internal static void CopyBounded(string sourcePath, string destinationPath, long maxBytes) {
-        if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
         var info = new FileInfo(sourcePath);
         if (!info.Exists) throw new FileNotFoundException("The package file does not exist.", sourcePath);
         if (info.Length > maxBytes) throw new InvalidDataException("The package exceeds the configured byte limit.");
@@ -16,7 +16,7 @@ internal static class OfficePackageFileSnapshot {
     }
 
     internal static string ComputeSha256(string path, long maxBytes) {
-        if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxBytes);
         var info = new FileInfo(path);
         if (!info.Exists) throw new FileNotFoundException("The package file does not exist.", path);
         if (info.Length > maxBytes) throw new InvalidDataException("The package exceeds the configured byte limit.");

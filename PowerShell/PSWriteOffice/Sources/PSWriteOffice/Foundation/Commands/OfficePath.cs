@@ -43,7 +43,7 @@ public static class OfficePath {
 
     /// <summary>Resolves existing input items through the current PowerShell provider; an optional reporter retains valid wildcard matches when other items are rejected.</summary>
     public static IReadOnlyList<string> ResolveInput(SessionState session, string path, bool literal, bool allowDirectory = false, Action<Exception, string>? reportItemError = null) {
-        if (session == null) throw new ArgumentNullException(nameof(session));
+        ArgumentNullException.ThrowIfNull(session);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An input path is required.", nameof(path));
         var result = new List<string>();
         if (literal) {

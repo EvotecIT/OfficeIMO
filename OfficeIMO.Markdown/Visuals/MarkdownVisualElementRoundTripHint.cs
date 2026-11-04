@@ -118,9 +118,7 @@ public sealed class MarkdownVisualElementRoundTripHint {
 
     /// <summary>Attempts to create a semantic fenced block from the supplied visual-host context.</summary>
     public SemanticFencedBlock? TryCreateBlock(MarkdownVisualElementRoundTripContext context) {
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         return _transform(context);
     }

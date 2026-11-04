@@ -4,7 +4,7 @@ namespace OfficeIMO.IWork.Internal;
 internal sealed class IWorkNativeTableData {
     internal IWorkNativeTableData(IWorkTableData data, float left, float top, float width, float height,
         string name, string fontName, float fontSize, IWorkColor color) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         IWorkCreationValidation.ValidateFinite(left, nameof(left));
         IWorkCreationValidation.ValidateFinite(top, nameof(top));
         IWorkCreationValidation.ValidatePositive(width, nameof(width));

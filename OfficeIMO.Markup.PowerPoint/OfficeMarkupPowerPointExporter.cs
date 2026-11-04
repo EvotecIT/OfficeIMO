@@ -42,13 +42,9 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         OfficeMarkupDocument document,
         MarkupPowerPointExportOptions options,
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (document.Profile != OfficeMarkupProfile.Presentation) {
             throw new InvalidOperationException("PowerPoint export requires the Presentation OfficeIMO markup profile.");

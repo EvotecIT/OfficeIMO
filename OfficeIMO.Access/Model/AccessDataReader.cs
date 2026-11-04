@@ -55,7 +55,7 @@ namespace OfficeIMO.Access {
         public override object GetValue(int ordinal) { Column(ordinal); return AccessTable.CopyValue(_cursor.GetValue(ordinal, _cancellation)) ?? DBNull.Value; }
         /// <inheritdoc />
         public override int GetValues(object[] values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             int count = Math.Min(values.Length, FieldCount); for (int i = 0; i < count; i++) values[i] = GetValue(i); return count;
         }
         /// <inheritdoc />
@@ -108,7 +108,8 @@ namespace OfficeIMO.Access {
         /// <inheritdoc />
         public override long GetBytes(int ordinal, long dataOffset, byte[]? buffer, int bufferOffset, int length) {
             using Stream stream = GetStream(ordinal);
-            if (dataOffset < 0 || dataOffset > stream.Length) throw new ArgumentOutOfRangeException(nameof(dataOffset));
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, stream.Length);
             if (buffer == null) return stream.Length;
             if (bufferOffset < 0 || length < 0 || bufferOffset > buffer.Length - length) throw new ArgumentOutOfRangeException(nameof(bufferOffset));
             byte[] skip = new byte[checked((int)Math.Min(dataOffset, 8192))]; long remaining = dataOffset;
@@ -120,7 +121,8 @@ namespace OfficeIMO.Access {
         /// <inheritdoc />
         public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) => CopyRange(GetString(ordinal).ToCharArray(), dataOffset, buffer, bufferOffset, length);
         private static long CopyRange<T>(T[] source, long dataOffset, T[]? buffer, int bufferOffset, int length) {
-            if (dataOffset < 0 || dataOffset > source.LongLength) throw new ArgumentOutOfRangeException(nameof(dataOffset));
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, source.LongLength);
             if (buffer == null) return source.LongLength;
             if (bufferOffset < 0 || length < 0 || bufferOffset > buffer.Length - length) throw new ArgumentOutOfRangeException(nameof(bufferOffset));
             int count = (int)Math.Min(source.LongLength - dataOffset, length);

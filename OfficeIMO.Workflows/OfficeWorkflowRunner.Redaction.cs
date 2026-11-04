@@ -13,7 +13,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         PdfRedactionWorkflowRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         PdfRedactionWorkflowRequest executionRequest = SnapshotRedactionRequest(request);
         PreparedRedactionResult prepared;
         try {
@@ -52,7 +52,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         OfficePublicationPolicy? manifestConflictPolicy,
         IProgress<OfficeWorkflowProgress>? progress,
         CancellationToken cancellationToken) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
+        ArgumentNullException.ThrowIfNull(requests);
         const int absoluteMaximumBatchItems = 10_000;
         var snapshots = new List<PdfRedactionWorkflowRequest>();
         int configuredMaximum = absoluteMaximumBatchItems;
@@ -462,7 +462,7 @@ public sealed partial class OfficeWorkflowRunner : IPdfRedactionWorkflowRunner {
         if (request.Recipe.SignaturePolicy != PdfRedactionSignaturePolicy.CreateAndSignDerivative && (request.OutputSigner is not null || request.OutputSignatureOptions is not null)) throw new ArgumentException("Output signer settings require CreateAndSignDerivative.");
         if (request.Recipe.Rules is null || request.Recipe.Regions is null) throw new ArgumentException("Recipe rule and region collections cannot be null.");
         if (!string.Equals(request.Recipe.Schema, PdfRedactionRecipe.CurrentSchema, StringComparison.Ordinal)) throw new ArgumentException("Unsupported redaction recipe schema.");
-        if (request.Recipe.RegexTimeoutMilliseconds <= 0) throw new ArgumentOutOfRangeException(nameof(request.Recipe.RegexTimeoutMilliseconds));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(request.Recipe.RegexTimeoutMilliseconds, nameof(request.Recipe.RegexTimeoutMilliseconds));
         if (request.Recipe.Rules.Count > request.Limits.MaximumRules) throw new RedactionWorkflowException("Recipe rule count exceeds the configured limit.");
         if (request.Limits.MaximumInputBytes <= 0 || request.Limits.MaximumOutputBytes <= 0 || request.Limits.MaximumEvidenceBytes <= 0 || request.Limits.MaximumBatchPreparedBytes <= 0 || request.Limits.MaximumRules <= 0 || request.Limits.MaximumRuleCharacters <= 0 || request.Limits.MaximumAreas <= 0 || request.Limits.MaximumGeometryPoints <= 0 || request.Limits.MaximumCandidates <= 0 || request.Limits.MaximumBatchItems <= 0 || request.Limits.MaximumConcurrency <= 0 || request.Limits.MaximumConcurrency > 32) throw new ArgumentOutOfRangeException(nameof(request.Limits));
         long ruleCharacters = 0;

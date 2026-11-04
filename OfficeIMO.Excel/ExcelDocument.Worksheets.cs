@@ -85,7 +85,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal void RenameWorksheet(ExcelSheet sheet, string worksheetName, ExcelSheetNameValidationMode validationMode) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
 
             Locking.ExecuteWrite(EnsureLock(), () => {
                 string currentName = sheet.Name;

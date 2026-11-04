@@ -36,10 +36,10 @@ namespace OfficeIMO.Excel {
         public ExcelChartDataRange(string sheetName, int startRow, int startColumn, int categoryCount, int seriesCount, bool hasHeaderRow, ExcelChartDataOrientation orientation) {
             if (string.IsNullOrWhiteSpace(sheetName)) throw new ArgumentNullException(nameof(sheetName));
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
-            if (categoryCount <= 0) throw new ArgumentOutOfRangeException(nameof(categoryCount));
-            if (seriesCount <= 0) throw new ArgumentOutOfRangeException(nameof(seriesCount));
-            if (startRow > MaxExcelRows) throw new ArgumentOutOfRangeException(nameof(startRow));
-            if (startColumn >= MaxExcelColumns) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(categoryCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(seriesCount);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(startRow, MaxExcelRows);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(startColumn, MaxExcelColumns);
             if (!Enum.IsDefined(typeof(ExcelChartDataOrientation), orientation)) throw new ArgumentOutOfRangeException(nameof(orientation));
 
             if (orientation == ExcelChartDataOrientation.Vertical) {

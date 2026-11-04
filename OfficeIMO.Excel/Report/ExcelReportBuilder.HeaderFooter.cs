@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
                                            CancellationToken cancellationToken = default) {
             if (width.HasValue && width.Value <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(width));
             if (height.HasValue && height.Value <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(height));
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
             Sheet.SetHeaderCore(leftText, centerText, rightText);
             Sheet.SetHeaderImageCore(position, remote.ToBytes(), remote.ContentType, width, height);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
                                            CancellationToken cancellationToken = default) {
             if (width.HasValue && width.Value <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(width));
             if (height.HasValue && height.Value <= OfficeLength.Zero) throw new System.ArgumentOutOfRangeException(nameof(height));
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(url, remoteImageOptions, cancellationToken).ConfigureAwait(false);
             Sheet.SetFooterCore(leftText, centerText, rightText);
             Sheet.SetFooterImageCore(position, remote.ToBytes(), remote.ContentType, width, height);

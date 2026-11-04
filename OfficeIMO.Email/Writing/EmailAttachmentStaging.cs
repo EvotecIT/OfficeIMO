@@ -14,7 +14,7 @@ internal sealed class EmailAttachmentStaging : IDisposable {
     internal static async Task<EmailAttachmentStaging> CreateAsync(EmailDocument document,
         long maximumBytes, CancellationToken cancellationToken, Action<int>? bytesRead = null,
         int maxDepth = 16, int maxAttachments = int.MaxValue, bool includeTaskPayload = false) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var staging = new EmailAttachmentStaging();
         try {
             var visited = new HashSet<EmailDocument>(DocumentReferenceComparer.Instance);

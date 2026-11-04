@@ -18,7 +18,7 @@ public sealed class InvoiceReadResult {
     public byte[] GetOriginalBytes() => (byte[])_source.Clone();
     /// <summary>Writes the edited model. By default, any unmapped source data blocks rewriting.</summary>
     public byte[] Write(InvoiceXmlOptions options, bool allowUnmappedDataLoss = false) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (!HasCompleteMapping && !allowUnmappedDataLoss)
             throw new InvalidDataException("Rewriting would discard unmapped source data. Inspect UnmappedData and explicitly accept that loss before writing.");
         return InvoiceSerializer.Write(Invoice, options);
@@ -41,8 +41,8 @@ public sealed class InvoiceConversionResult {
 public static class InvoiceConverter {
     /// <summary>Converts only when the source mapping, model and target contract are complete; bounded diagnostics retain the highest omitted severity.</summary>
     public static InvoiceConversionResult Convert(byte[] xml, InvoiceXmlOptions target) {
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
-        if (target == null) throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(xml);
+        ArgumentNullException.ThrowIfNull(target);
         InvoiceReadResult source;
         try { source = InvoiceParser.Read(xml); }
         catch (Exception exception) when (exception is InvalidDataException || exception is System.Xml.XmlException) {

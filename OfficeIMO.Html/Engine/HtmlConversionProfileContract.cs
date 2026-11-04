@@ -51,9 +51,7 @@ public sealed class HtmlConversionProfileContract {
     public IReadOnlyList<string> DiagnosticGuarantees { get; }
 
     private static IReadOnlyList<string> ToReadOnlyList(IEnumerable<string> values, string parameterName) {
-        if (values == null) {
-            throw new ArgumentNullException(parameterName);
-        }
+        ArgumentNullException.ThrowIfNull(values, parameterName);
 
         return values.Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())

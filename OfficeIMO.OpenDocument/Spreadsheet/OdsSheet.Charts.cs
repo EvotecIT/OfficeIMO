@@ -8,8 +8,8 @@ public sealed partial class OdsSheet {
         IReadOnlyList<OdsChartSeries> series, long anchorRow, long anchorColumn,
         OdfRect bounds, string? title = null, string? name = null) {
         if (!Enum.IsDefined(typeof(OdsChartType), type)) throw new ArgumentOutOfRangeException(nameof(type));
-        if (anchorRow < 0) throw new ArgumentOutOfRangeException(nameof(anchorRow));
-        if (anchorColumn < 0) throw new ArgumentOutOfRangeException(nameof(anchorColumn));
+        ArgumentOutOfRangeException.ThrowIfNegative(anchorRow);
+        ArgumentOutOfRangeException.ThrowIfNegative(anchorColumn);
         if (series == null || series.Count < 1 || series.Count > 16)
             throw new ArgumentException("A chart requires one to sixteen series.", nameof(series));
         if (type == OdsChartType.Pie && series.Count != 1)

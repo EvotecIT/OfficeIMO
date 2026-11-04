@@ -8,7 +8,8 @@ internal sealed class EndNoteCancellableTextReader : TextReader {
 
     internal EndNoteCancellableTextReader(string value, CancellationToken cancellationToken, int startPosition = 0) {
         _value = value ?? throw new ArgumentNullException(nameof(value));
-        if (startPosition < 0 || startPosition > value.Length) throw new ArgumentOutOfRangeException(nameof(startPosition));
+        ArgumentOutOfRangeException.ThrowIfNegative(startPosition);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(startPosition, value.Length);
         _position = startPosition;
         _cancellationToken = cancellationToken;
     }
@@ -24,9 +25,10 @@ internal sealed class EndNoteCancellableTextReader : TextReader {
     }
 
     public override int Read(char[] buffer, int index, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
-        if (index < 0 || index > buffer.Length) throw new ArgumentOutOfRangeException(nameof(index));
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentNullException.ThrowIfNull(buffer);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, buffer.Length);
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         if (buffer.Length - index < count) throw new ArgumentException("The buffer range is invalid.");
         _cancellationToken.ThrowIfCancellationRequested();
         if (_position >= _value.Length) return 0;

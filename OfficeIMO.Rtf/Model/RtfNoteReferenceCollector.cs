@@ -3,7 +3,7 @@ namespace OfficeIMO.Rtf;
 /// <summary>Collects note references across the complete semantic block and inline tree.</summary>
 internal static class RtfNoteReferenceCollector {
     public static HashSet<RtfNote> Collect(RtfDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         var notes = new HashSet<RtfNote>();
         CollectBlocks(document.Blocks, notes);
         foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
@@ -20,7 +20,7 @@ internal static class RtfNoteReferenceCollector {
     }
 
     public static int CountHeaderFooterReferences(RtfDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         int count = 0;
         foreach (RtfHeaderFooter headerFooter in document.HeaderFooters) {
             foreach (RtfParagraph paragraph in headerFooter.Paragraphs) {

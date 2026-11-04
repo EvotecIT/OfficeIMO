@@ -20,13 +20,9 @@ internal static class OfficeSparklineRenderer {
         IReadOnlyList<double> values,
         OfficeSparklineKind kind,
         OfficeSparklineStyle? style = null) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
-        if (values == null) {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         if (values.Count == 0 || width <= 0D || height <= 0D) {
             return;
@@ -56,13 +52,9 @@ internal static class OfficeSparklineRenderer {
         IReadOnlyList<double> values,
         OfficeSparklineKind kind,
         OfficeSparklineStyle? style = null) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
-        if (values == null) {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         if (values.Count == 0 || width <= 0D || height <= 0D) {
             return builder;

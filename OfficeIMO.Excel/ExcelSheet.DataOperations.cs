@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
         internal void ApplyAutoFilterValueCriteria(string range, uint columnId, IEnumerable<string> values) {
             MaterializeDeferredAutoFilterWorkbook();
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             range = ValidateAutoFilterColumnOffset(range, columnId);
             List<string> filterValues = BuildDistinctFilterValues(values);
 

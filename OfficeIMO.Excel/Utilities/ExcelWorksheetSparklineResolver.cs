@@ -6,9 +6,7 @@ using OfficeReferenceSequence = DocumentFormat.OpenXml.Office.Excel.ReferenceSeq
 namespace OfficeIMO.Excel.Utilities {
     internal static class ExcelWorksheetSparklineResolver {
         internal static IReadOnlyList<ExcelWorksheetSparklineInfo> FindSparklines(WorksheetPart worksheetPart) {
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
 
             if (worksheetPart.Worksheet == null) {
                 return Array.Empty<ExcelWorksheetSparklineInfo>();

@@ -12,7 +12,7 @@ public sealed partial class EmailStoreSession {
         string destinationDirectory,
         EmailStoreRecoveryExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (destinationDirectory == null) throw new ArgumentNullException(nameof(destinationDirectory));
+        ArgumentNullException.ThrowIfNull(destinationDirectory);
         ThrowIfDisposed();
         EmailStoreRecoveryExportOptions effective = options ??
             new EmailStoreRecoveryExportOptions();

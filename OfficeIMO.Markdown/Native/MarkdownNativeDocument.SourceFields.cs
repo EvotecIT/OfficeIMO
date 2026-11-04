@@ -70,9 +70,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native block source field.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeBlockSourceField field, string replacementMarkdown) {
-        if (field == null) {
-            throw new ArgumentNullException(nameof(field));
-        }
+        ArgumentNullException.ThrowIfNull(field);
 
         return CreateReplaceEdit(
             field.SourceSpan,

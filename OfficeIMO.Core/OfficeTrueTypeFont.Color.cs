@@ -124,7 +124,7 @@ public sealed partial class OfficeTrueTypeFont {
         bool[]? synthesizedSpaces = null) {
         paintedLayers = new List<OfficeColorGlyphContours>();
         if (_colorGlyphs == null || glyphs.Length == 0) return false;
-        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
 
         double scale = ScaleFor(fontSize);
         if (direction == OfficeTextDirection.TopToBottom) {

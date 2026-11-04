@@ -16,7 +16,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     /// <summary>Converts a Word document to an in-memory ODT text document; the LossPolicy option rejects loss and returns the completed conversion report.</summary>
     public static OdtDocument ToOpenDocument(this WordDocument source, WordOpenDocumentConversionOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         OdfConversionResult<OdtDocument> result = source.ConvertToOpenDocumentWithEvidence(options);
         OdtDocument value = result.Value;
@@ -77,7 +77,7 @@ public static partial class WordOpenDocumentConversionExtensions {
     /// <summary>Converts an ODT text document to an in-memory Word document; the LossPolicy option rejects loss and returns the completed conversion report.</summary>
     public static WordDocument ToWord(this OdtDocument source, WordOpenDocumentConversionOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         OdfConversionResult<WordDocument> result = source.ConvertToWordWithEvidence(options);
         WordDocument value = result.Value;

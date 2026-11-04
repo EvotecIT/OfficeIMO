@@ -11,9 +11,7 @@ namespace OfficeIMO.Visio {
         /// <param name="selection">Connector selection.</param>
         /// <param name="waypoints">Absolute page coordinates between start and end.</param>
         public static VisioConnectorSelection RouteThrough(this VisioConnectorSelection selection, params VisioConnectorWaypoint[] waypoints) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             foreach (VisioConnector connector in selection) {
                 connector.RouteThrough(waypoints);
@@ -29,9 +27,7 @@ namespace OfficeIMO.Visio {
         /// <param name="style">Orthogonal route orientation.</param>
         /// <param name="offset">Optional offset applied to the center routing lane.</param>
         public static VisioConnectorSelection RouteOrthogonal(this VisioConnectorSelection selection, VisioConnectorRouteStyle style = VisioConnectorRouteStyle.Auto, double offset = 0D) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             foreach (VisioConnector connector in selection) {
                 connector.RouteOrthogonal(style, offset);
@@ -61,13 +57,9 @@ namespace OfficeIMO.Visio {
         /// <param name="obstacles">Shapes that selected connectors should avoid.</param>
         /// <param name="options">Routing options controlling padding, lane search, and whether zones/containers count as obstacles.</param>
         public static VisioConnectorSelection RouteOrthogonalAroundShapes(this VisioConnectorSelection selection, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             VisioConnectorRoutingOptions routingOptions = options;
             if (options.AvoidConnectorCrossings && options.ConnectorCrossingReferences == null) {
@@ -87,9 +79,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="selection">Connector selection.</param>
         public static VisioConnectorSelection ClearRoutes(this VisioConnectorSelection selection) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             foreach (VisioConnector connector in selection) {
                 connector.ClearRoute();
@@ -108,9 +98,7 @@ namespace OfficeIMO.Visio {
         /// <param name="width">Label text box width in page units.</param>
         /// <param name="height">Label text box height in page units.</param>
         public static VisioConnectorSelection PlaceLabels(this VisioConnectorSelection selection, double position = 0.5D, double offsetX = 0D, double offsetY = 0D, double width = 1.25D, double height = 0.3D) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             foreach (VisioConnector connector in selection) {
                 connector.PlaceLabel(position, offsetX, offsetY, width, height);

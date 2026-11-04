@@ -10,9 +10,9 @@ namespace PSWriteOffice.Foundation;
 internal static class OfficeBatch {
     internal static async Task RunAsync<T>(IEnumerable<T> inputs, Func<T, CancellationToken, Task<object?>> worker,
         int throttleLimit, CancellationToken cancellationToken, IAsyncCmdletPipeline pipeline, string activity, string diagnosticCode) {
-        if (throttleLimit < 1) throw new ArgumentOutOfRangeException(nameof(throttleLimit));
-        if (inputs == null) throw new ArgumentNullException(nameof(inputs));
-        if (worker == null) throw new ArgumentNullException(nameof(worker));
+        ArgumentOutOfRangeException.ThrowIfLessThan(throttleLimit, 1);
+        ArgumentNullException.ThrowIfNull(inputs);
+        ArgumentNullException.ThrowIfNull(worker);
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         using var iterator = inputs.GetEnumerator();
         var pending = new List<Task<Outcome<T>>>();

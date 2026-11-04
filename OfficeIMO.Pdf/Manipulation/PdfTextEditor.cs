@@ -8,11 +8,7 @@ internal static partial class PdfTextEditor {
         byte[] pdf,
         IReadOnlyList<(int PageNumber, PdfTextSpan Span)> targets,
         PdfLoadOptions? readOptions) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(targets);
-#else
-        if (targets == null) throw new ArgumentNullException(nameof(targets));
-#endif
         if (targets.Count == 0) return pdf.ToArray();
         PageSpanKey[] keys = targets.Select(item => new PageSpanKey(item.PageNumber, item.Span)).ToArray();
         PdfRedactionArea[] areas = keys.Select(key => {
@@ -33,13 +29,8 @@ internal static partial class PdfTextEditor {
         IReadOnlyList<(int PageNumber, PdfTextSpan Span)> removals,
         IReadOnlyList<(int PageNumber, PdfTextSpan Span, int Start, int Length)> textEdits,
         PdfLoadOptions? readOptions) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(removals);
         ArgumentNullException.ThrowIfNull(textEdits);
-#else
-        if (removals == null) throw new ArgumentNullException(nameof(removals));
-        if (textEdits == null) throw new ArgumentNullException(nameof(textEdits));
-#endif
         if (textEdits.Count == 0) return RemoveExactContentSafetySpans(pdf, removals, readOptions);
         var rewrites = new Dictionary<PageSpanKey, List<SpanTextEdit>>();
         foreach (var edit in textEdits) {

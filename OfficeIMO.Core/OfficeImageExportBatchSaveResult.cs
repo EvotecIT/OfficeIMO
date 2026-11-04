@@ -10,7 +10,7 @@ internal sealed class OfficeImageExportBatchSaveResult {
     private readonly ReadOnlyCollection<OfficeImageExportSavedFile> _files;
 
     internal OfficeImageExportBatchSaveResult(IEnumerable<OfficeImageExportSavedFile> files) {
-        if (files == null) throw new ArgumentNullException(nameof(files));
+        ArgumentNullException.ThrowIfNull(files);
         OfficeImageExportSavedFile[] snapshot = files.ToArray();
         _files = Array.AsReadOnly(snapshot);
         Report = new OfficeImageExportReport(

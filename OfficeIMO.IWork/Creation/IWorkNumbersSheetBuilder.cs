@@ -18,7 +18,7 @@ public sealed class IWorkNumbersSheetBuilder {
     public IWorkNumbersTable AddTable(IWorkTableData data, string name = "Table 1", float leftPoints = 0,
         float topPoints = 0, float columnWidthPoints = 100, float rowHeightPoints = 24,
         string fontName = "Arial", float fontSizePoints = 12, string color = "000000") {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         IWorkCreationValidation.ValidatePositive(columnWidthPoints, nameof(columnWidthPoints));
         IWorkCreationValidation.ValidatePositive(rowHeightPoints, nameof(rowHeightPoints));
         if (_tables.Any(table => string.Equals(table.Name, name, StringComparison.OrdinalIgnoreCase)))

@@ -50,9 +50,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Applies this style to a shape.</summary>
         /// <param name="shape">Shape to update.</param>
         public void ApplyTo(VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             shape.FillColor = FillColor;
             shape.LineColor = LineColor;

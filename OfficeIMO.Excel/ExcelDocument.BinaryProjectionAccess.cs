@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
         /// receive the same package access and save guards as callers loading an Open XML workbook.
         /// </summary>
         private static ExcelDocument ReopenProjectedWorkbookReadOnly(ExcelDocument projectedDocument) {
-            if (projectedDocument == null) throw new ArgumentNullException(nameof(projectedDocument));
+            ArgumentNullException.ThrowIfNull(projectedDocument);
 
             byte[] packageBytes;
             try {

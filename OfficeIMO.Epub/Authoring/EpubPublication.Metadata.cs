@@ -24,7 +24,7 @@ public sealed partial class EpubPublication {
     public string? Creator {
         get => RequireSection("metadata").Element(Dc + "creator")?.Value;
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             SetDc("creator", value);
         }
     }

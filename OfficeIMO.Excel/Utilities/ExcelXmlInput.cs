@@ -9,7 +9,7 @@ namespace OfficeIMO.Excel.Utilities;
 internal static class ExcelXmlInput {
     internal static XElement Read(Stream input, int maxBytes, int maxDepth, int maxElements, CancellationToken cancellation,
         XName? guardedElement = null, int maximumGuardedElements = int.MaxValue) {
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
         if (!input.CanRead) throw new ArgumentException("Input must be readable.", nameof(input));
         using var bytes = new MemoryStream(); var buffer = new byte[8192]; int count;
         while ((count = input.Read(buffer, 0, (int)Math.Min(buffer.Length, (long)maxBytes - bytes.Length + 1))) != 0) {

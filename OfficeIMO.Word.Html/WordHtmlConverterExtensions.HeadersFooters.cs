@@ -17,8 +17,8 @@ public static partial class WordHtmlConverterExtensions {
         HtmlConversionDocument htmlDocument,
         HtmlWordExportOptions? options = null,
         WordSection? section = null) {
-        if (header == null) throw new ArgumentNullException(nameof(header));
-        if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
+        ArgumentNullException.ThrowIfNull(header);
+        ArgumentNullException.ThrowIfNull(htmlDocument);
         WordSection target = ResolveHtmlStorySection(header, section);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
@@ -39,8 +39,8 @@ public static partial class WordHtmlConverterExtensions {
         HtmlWordExportOptions? options = null,
         WordSection? section = null,
         CancellationToken cancellationToken = default) {
-        if (header == null) throw new ArgumentNullException(nameof(header));
-        if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
+        ArgumentNullException.ThrowIfNull(header);
+        ArgumentNullException.ThrowIfNull(htmlDocument);
         cancellationToken.ThrowIfCancellationRequested();
         WordSection target = ResolveHtmlStorySection(header, section);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
@@ -64,8 +64,8 @@ public static partial class WordHtmlConverterExtensions {
         HtmlConversionDocument htmlDocument,
         HtmlWordExportOptions? options = null,
         WordSection? section = null) {
-        if (footer == null) throw new ArgumentNullException(nameof(footer));
-        if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
+        ArgumentNullException.ThrowIfNull(footer);
+        ArgumentNullException.ThrowIfNull(htmlDocument);
         WordSection target = ResolveHtmlStorySection(footer, section);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
@@ -86,8 +86,8 @@ public static partial class WordHtmlConverterExtensions {
         HtmlWordExportOptions? options = null,
         WordSection? section = null,
         CancellationToken cancellationToken = default) {
-        if (footer == null) throw new ArgumentNullException(nameof(footer));
-        if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
+        ArgumentNullException.ThrowIfNull(footer);
+        ArgumentNullException.ThrowIfNull(htmlDocument);
         cancellationToken.ThrowIfCancellationRequested();
         WordSection target = ResolveHtmlStorySection(footer, section);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);

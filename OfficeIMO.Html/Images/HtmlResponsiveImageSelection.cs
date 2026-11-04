@@ -89,8 +89,8 @@ public static class HtmlResponsiveImageSelector {
 
     internal static HtmlResponsiveImageSelection Select(IReadOnlyList<HtmlSrcSetCandidate> candidates,
         string? sizes, string? defaultSource, HtmlResponsiveImageSelectionOptions options) {
-        if (candidates == null) throw new ArgumentNullException(nameof(candidates));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(candidates);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         bool hasWidth = false;
         bool hasDensity = false;

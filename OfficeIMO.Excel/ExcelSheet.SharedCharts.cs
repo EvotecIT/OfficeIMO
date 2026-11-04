@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
         /// and primary or secondary axis assignments.
         /// </summary>
         public ExcelChart AddChart(OfficeChartType chartKind, OfficeChartData data, OfficeChartOptions? options) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             ExcelChartData excelData = ToExcelChartData(data, chartKind);
             var placement = options as ExcelChartOptions;
             ExcelChart chart = AddChart(excelData, placement?.Row ?? 1, placement?.Column ?? 1,

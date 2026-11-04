@@ -17,7 +17,7 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
     /// <summary>Creates a store under a host-selected local directory. Admission is bounded across processes.</summary>
     public OfficeWorkflowOutputRecoveryStore(string directory, long maximumRetainedBytes = 1024L * 1024 * 1024) {
         DirectoryPath = OfficeStorageIdentity.GetLocalPath(directory) ?? throw new ArgumentException("Recovery requires a local directory.", nameof(directory));
-        if (maximumRetainedBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumRetainedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumRetainedBytes, 1);
         MaximumRetainedBytes = maximumRetainedBytes;
     }
 
@@ -208,7 +208,7 @@ public sealed partial class OfficeWorkflowOutputRecoveryStore {
     }
 
     private string ValidateRecordDirectory(OfficeWorkflowOutputRecovery record) {
-        if (record == null) throw new ArgumentNullException(nameof(record));
+        ArgumentNullException.ThrowIfNull(record);
         if (!Guid.TryParseExact(record.Id, "N", out _)) throw new ArgumentException("The recovery identifier is invalid.", nameof(record));
         string directory = Path.Combine(DirectoryPath, Prefix + record.Id);
         EnsureRegularDirectory(directory);

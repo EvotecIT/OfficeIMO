@@ -36,7 +36,7 @@ internal sealed class VerificationManifestWriter : IDisposable {
     internal static VerificationManifestWriter? TryCreate(string? destinationPath,
         bool overwrite, EmailSemanticComparisonOptions semanticOptions) {
         if (destinationPath == null) return null;
-        if (semanticOptions == null) throw new ArgumentNullException(nameof(semanticOptions));
+        ArgumentNullException.ThrowIfNull(semanticOptions);
         byte[]? semanticKey = semanticOptions.CopyDigestKey();
         if (semanticKey == null) {
             throw new InvalidOperationException(

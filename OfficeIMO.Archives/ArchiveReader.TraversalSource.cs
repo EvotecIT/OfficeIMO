@@ -16,7 +16,7 @@ public static partial class ArchiveReader {
     /// </summary>
     public static void ValidateZipSource(Stream zipStream, ArchiveTraversalOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
+        ArgumentNullException.ThrowIfNull(zipStream);
         if (!zipStream.CanRead || !zipStream.CanSeek) {
             throw new ArgumentException("ZIP source must be readable and seekable for preflight validation.", nameof(zipStream));
         }

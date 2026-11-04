@@ -101,7 +101,7 @@ internal static partial class OfficeArchiveSafety {
 
     internal static byte[] ReadEntryBytes(Stream source,
         long declaredLength, long maximumLength, CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         if (declaredLength < 0 || declaredLength > maximumLength
             || maximumLength < 0 || declaredLength > int.MaxValue) {
@@ -158,20 +158,20 @@ internal static partial class OfficeArchiveSafety {
     internal static ZipCentralDirectoryScanResult ScanZipCentralDirectoryForExtraction(
         Stream source, long archiveLength, int entryLimit, ICollection<ZipCentralDirectoryRecord> records,
         CancellationToken cancellationToken = default) {
-        if (records == null) throw new ArgumentNullException(nameof(records));
+        ArgumentNullException.ThrowIfNull(records);
         return ScanZipCentralDirectory(source, archiveLength, entryLimit, cancellationToken, records);
     }
 
     private static ZipCentralDirectoryScanResult ScanZipCentralDirectory(
         Stream source, long archiveLength, int entryLimit,
         CancellationToken cancellationToken, ICollection<ZipCentralDirectoryRecord>? records) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead || !source.CanSeek) throw new ArgumentException(
             "ZIP central-directory inspection requires a readable seekable stream.", nameof(source));
         if (archiveLength < 0 || archiveLength > source.Length - source.Position) {
             throw new ArgumentOutOfRangeException(nameof(archiveLength));
         }
-        if (entryLimit < 0) throw new ArgumentOutOfRangeException(nameof(entryLimit));
+        ArgumentOutOfRangeException.ThrowIfNegative(entryLimit);
 
         long originalPosition = source.Position;
         try {
@@ -396,7 +396,7 @@ internal static partial class OfficeArchiveSafety {
     internal static ZipCentralDirectoryScanResult ScanZipCentralDirectory(
         byte[] bytes, int archiveOffset, int archiveLength,
         int entryLimit) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (archiveOffset < 0 || archiveLength < 0 || archiveOffset > bytes.Length - archiveLength)
             throw new ArgumentOutOfRangeException(nameof(archiveOffset));
         using var source = new MemoryStream(bytes, archiveOffset, archiveLength, writable: false);

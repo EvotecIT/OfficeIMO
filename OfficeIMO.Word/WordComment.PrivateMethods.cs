@@ -8,8 +8,8 @@ namespace OfficeIMO.Word {
     // A wrapper for Word document comments.
     public partial class WordComment {
         private WordComment(WordDocument document, Comment comment, CommentEx? commentEx) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(comment);
 
             _document = document;
             _comment = comment;
@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static string GetNewId(WordDocument document, Comments comments) {
-            if (comments == null) throw new ArgumentNullException(nameof(comments));
+            ArgumentNullException.ThrowIfNull(comments);
 
             int maxId = comments.Descendants<Comment>()
                 .Select(e => e.Id?.Value)
@@ -49,7 +49,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static Comments GetCommentsPart(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             MainDocumentPart mainPart = GetMainDocumentPart(document);
             WordprocessingCommentsPart commentsPart = mainPart.WordprocessingCommentsPart ?? mainPart.AddNewPart<WordprocessingCommentsPart>();
@@ -58,7 +58,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static CommentsEx GetCommentsExPart(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             MainDocumentPart mainPart = GetMainDocumentPart(document);
             WordprocessingCommentsExPart commentsExPart = mainPart.WordprocessingCommentsExPart ?? mainPart.AddNewPart<WordprocessingCommentsExPart>();
@@ -67,8 +67,8 @@ namespace OfficeIMO.Word {
         }
 
         internal static CommentEx? FindCommentExForComment(Comment comment, IReadOnlyList<CommentEx> commentsEx, int fallbackIndex) {
-            if (comment == null) throw new ArgumentNullException(nameof(comment));
-            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+            ArgumentNullException.ThrowIfNull(comment);
+            ArgumentNullException.ThrowIfNull(commentsEx);
 
             string? paraId = GetCommentParagraphId(comment);
             if (!string.IsNullOrWhiteSpace(paraId)) {
@@ -84,7 +84,7 @@ namespace OfficeIMO.Word {
 
         internal static Dictionary<string, CommentEx> IndexCommentExByParagraphId(
             IReadOnlyList<CommentEx> commentsEx) {
-            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+            ArgumentNullException.ThrowIfNull(commentsEx);
 
             var indexed = new Dictionary<string, CommentEx>(StringComparer.Ordinal);
             foreach (CommentEx commentEx in commentsEx) {
@@ -101,9 +101,9 @@ namespace OfficeIMO.Word {
         internal static CommentEx? FindCommentExForComment(Comment comment,
             IReadOnlyList<CommentEx> commentsEx, IReadOnlyDictionary<string, CommentEx> commentsExByParagraphId,
             int fallbackIndex) {
-            if (comment == null) throw new ArgumentNullException(nameof(comment));
-            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
-            if (commentsExByParagraphId == null) throw new ArgumentNullException(nameof(commentsExByParagraphId));
+            ArgumentNullException.ThrowIfNull(comment);
+            ArgumentNullException.ThrowIfNull(commentsEx);
+            ArgumentNullException.ThrowIfNull(commentsExByParagraphId);
 
             string? paraId = GetCommentParagraphId(comment);
             if (!string.IsNullOrWhiteSpace(paraId)) {
@@ -118,7 +118,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static string? GetCommentParagraphId(Comment comment) {
-            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            ArgumentNullException.ThrowIfNull(comment);
 
             return comment.Elements<Paragraph>()
                 .Select(paragraph => paragraph.ParagraphId?.Value)
@@ -126,7 +126,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static string GetNewParaId(CommentsEx commentsEx, Comments? comments = null) {
-            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+            ArgumentNullException.ThrowIfNull(commentsEx);
 
             var existing = commentsEx
                 .Descendants<CommentEx>()
@@ -159,9 +159,9 @@ namespace OfficeIMO.Word {
         }
 
         private static string EnsureCommentParaId(WordComment comment, Comments comments, CommentsEx commentsEx) {
-            if (comment == null) throw new ArgumentNullException(nameof(comment));
-            if (comments == null) throw new ArgumentNullException(nameof(comments));
-            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+            ArgumentNullException.ThrowIfNull(comment);
+            ArgumentNullException.ThrowIfNull(comments);
+            ArgumentNullException.ThrowIfNull(commentsEx);
 
             WordCommentIdentityPlan identities = WordCommentIdentityPlan.Prepare(comments, commentsEx);
             identities.Apply(commentsEx);

@@ -7,9 +7,7 @@ public sealed partial class RtfLosslessEditor {
     /// Adds or replaces a file-table reference in the root <c>filetbl</c> destination while preserving the rest of the RTF stream.
     /// </summary>
     public void SetFileReference(RtfFileReference fileReference) {
-        if (fileReference == null) {
-            throw new ArgumentNullException(nameof(fileReference));
-        }
+        ArgumentNullException.ThrowIfNull(fileReference);
 
         if (fileReference.Id < 0) {
             throw new ArgumentOutOfRangeException(nameof(fileReference), "File reference id cannot be negative.");

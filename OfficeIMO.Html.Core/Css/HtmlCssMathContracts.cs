@@ -185,11 +185,11 @@ public sealed class HtmlCssMathOptions {
     };
 
     internal void Validate() {
-        if (MaxInputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxInputCharacters));
-        if (MaxTokens <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTokens));
-        if (MaxNestingDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNestingDepth));
-        if (MaxOperations <= 0) throw new ArgumentOutOfRangeException(nameof(MaxOperations));
-        if (MaxArguments <= 0) throw new ArgumentOutOfRangeException(nameof(MaxArguments));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxInputCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTokens);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxNestingDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxOperations);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxArguments);
     }
 }
 

@@ -33,11 +33,7 @@ public sealed partial class PdfInvoiceDocument {
 
     /// <summary>Creates an independent snapshot for a document type in <see cref="InvoiceDocumentTypes"/>. Later edits to the supplied invoice cannot change its PDF or XML.</summary>
     public static PdfInvoiceDocument Create(Invoice invoice, InvoiceXmlOptions contract, InvoicePdfLayoutOptions? layout = null) {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(contract);
-#else
-        if (contract == null) throw new ArgumentNullException(nameof(contract));
-#endif
         if (contract.Syntax != InvoiceSyntax.Cii)
             throw new NotSupportedException("Factur-X PDF authoring requires a CII output contract.");
         return new PdfInvoiceDocument(InvoiceSerializer.Write(invoice, contract), contract, layout ?? new InvoicePdfLayoutOptions());

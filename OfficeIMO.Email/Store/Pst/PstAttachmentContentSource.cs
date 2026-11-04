@@ -64,12 +64,12 @@ internal sealed class PstAttachmentAggregateBudget {
     private long _totalBytes;
 
     internal PstAttachmentAggregateBudget(long maximumBytes) {
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumBytes = maximumBytes;
     }
 
     internal void Add(long bytes) {
-        if (bytes < 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(bytes);
         if (bytes == 0) return;
         lock (_gate) {
             if (bytes > _maximumBytes - _totalBytes) {

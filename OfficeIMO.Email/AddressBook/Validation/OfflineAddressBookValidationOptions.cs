@@ -15,10 +15,10 @@ public sealed class OfflineAddressBookValidationOptions {
         if (!Enum.IsDefined(typeof(OfflineAddressBookValidationMode), mode)) {
             throw new ArgumentOutOfRangeException(nameof(mode));
         }
-        if (maxEntriesPerAddressList <= 0) throw new ArgumentOutOfRangeException(nameof(maxEntriesPerAddressList));
-        if (maxChecksumBytesPerFile <= 0) throw new ArgumentOutOfRangeException(nameof(maxChecksumBytesPerFile));
-        if (progressEntryInterval <= 0) throw new ArgumentOutOfRangeException(nameof(progressEntryInterval));
-        if (progressByteInterval <= 0) throw new ArgumentOutOfRangeException(nameof(progressByteInterval));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEntriesPerAddressList);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxChecksumBytesPerFile);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(progressEntryInterval);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(progressByteInterval);
         Mode = mode;
         ValidateChecksum = validateChecksum;
         AddressListId = string.IsNullOrWhiteSpace(addressListId) ? null : addressListId;

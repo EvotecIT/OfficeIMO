@@ -32,13 +32,9 @@ public sealed class MarkdownFenceOptionSchema {
             throw new ArgumentException("Schema name is required.", nameof(name));
         }
 
-        if (languages == null) {
-            throw new ArgumentNullException(nameof(languages));
-        }
+        ArgumentNullException.ThrowIfNull(languages);
 
-        if (definitions == null) {
-            throw new ArgumentNullException(nameof(definitions));
-        }
+        ArgumentNullException.ThrowIfNull(definitions);
 
         Id = id.Trim();
         Name = name.Trim();

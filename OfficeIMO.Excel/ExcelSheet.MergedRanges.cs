@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="maximumRanges">Maximum merge records inspected.</param>
         public IReadOnlyList<ExcelMergedRangeInfo> GetMergedRanges(int maximumRanges) {
-            if (maximumRanges <= 0) throw new ArgumentOutOfRangeException(nameof(maximumRanges));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRanges);
             MergeCells? merges = WorksheetRoot.GetFirstChild<MergeCells>();
             if (merges == null) {
                 return Array.Empty<ExcelMergedRangeInfo>();

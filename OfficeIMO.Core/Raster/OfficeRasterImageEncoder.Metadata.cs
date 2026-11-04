@@ -12,8 +12,8 @@ namespace OfficeIMO.Drawing {
         public static OfficeRasterEncodingResult EncodeWithMetadata(OfficeRasterImage image, OfficeImageExportFormat format,
             OfficeImageMetadata metadata, OfficeRasterEncodingOptions? options = null, long maximumEncodedBytes = 134217728L,
             CancellationToken cancellationToken = default) {
-            if (image == null) throw new ArgumentNullException(nameof(image));
-            if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+            ArgumentNullException.ThrowIfNull(image);
+            ArgumentNullException.ThrowIfNull(metadata);
             OfficeImageMetadata.ValidateEncodingCeiling(maximumEncodedBytes);
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageMetadata snapshot = metadata.Clone();
@@ -33,8 +33,8 @@ namespace OfficeIMO.Drawing {
         public static OfficeRasterEncodingResult EncodeWithMetadata(OfficeRasterFrames frames, OfficeImageExportFormat format,
             OfficeImageMetadata metadata, OfficeRasterEncodingOptions? options = null, long maximumEncodedBytes = 134217728L,
             CancellationToken cancellationToken = default) {
-            if (frames == null) throw new ArgumentNullException(nameof(frames));
-            if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+            ArgumentNullException.ThrowIfNull(frames);
+            ArgumentNullException.ThrowIfNull(metadata);
             if (frames.Count == 1) return EncodeWithMetadata(frames[0].Image, format, metadata, options, maximumEncodedBytes, cancellationToken);
             if (format != OfficeImageExportFormat.Tiff && format != OfficeImageExportFormat.Icon) throw new NotSupportedException("Multiple frames require TIFF pages, icon entries, or an animation encoder.");
             OfficeImageMetadata.ValidateEncodingCeiling(maximumEncodedBytes);

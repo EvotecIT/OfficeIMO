@@ -3,8 +3,8 @@ namespace OfficeIMO.Email;
 internal static class EmailConversionAnalyzer {
     internal static EmailConversionReport Analyze(EmailDocument document, EmailFileFormat targetFormat,
         EmailWriterOptions options, bool preservesAppleMailMetadata = false) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
 
         var diagnostics = new List<EmailDiagnostic>();
         bool reusesSource = (options.UsePreservedRawSource || document.Protection.IsProtected) &&

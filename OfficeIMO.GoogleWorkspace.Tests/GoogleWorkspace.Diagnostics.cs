@@ -808,7 +808,7 @@ namespace OfficeIMO.Tests {
             private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
 
             public FakeHttpMessageHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) {
-                if (handler == null) throw new ArgumentNullException(nameof(handler));
+                ArgumentNullException.ThrowIfNull(handler);
                 _handler = (request, _) => handler(request);
             }
 

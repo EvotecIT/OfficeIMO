@@ -23,9 +23,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort recordType,
             int payloadLength,
             string? detailCode) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             Kind = kind;
             Code = code ?? throw new ArgumentNullException(nameof(code));

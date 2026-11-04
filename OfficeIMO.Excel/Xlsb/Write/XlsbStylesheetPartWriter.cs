@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Create(stylesheet ?? ExcelDocument.CreateDefaultStylesheet(), out cellFormatCount, maximumBytes);
 
         internal static byte[] Create(Stylesheet stylesheet, out int cellFormatCount, long maximumBytes = int.MaxValue) {
-            if (stylesheet == null) throw new ArgumentNullException(nameof(stylesheet));
+            ArgumentNullException.ThrowIfNull(stylesheet);
             ValidateUnsupportedCollections(stylesheet);
 
             NumberingFormat[] numberFormats = stylesheet.NumberingFormats?.Elements<NumberingFormat>().ToArray()
@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         internal static XlsbGeneratedRecord CreateFontRecord(Font font) {
-            if (font == null) throw new ArgumentNullException(nameof(font));
+            ArgumentNullException.ThrowIfNull(font);
             string name = font.FontName?.Val?.Value ?? "Calibri";
             double size = font.FontSize?.Val?.Value ?? 11D;
             if (string.IsNullOrWhiteSpace(name) || name.Length > 31 || size <= 0D || size > 409.55D) {
@@ -269,7 +269,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         internal static XlsbGeneratedRecord CreateCellFormatRecord(CellFormat format, bool isStyleFormat = false) {
-            if (format == null) throw new ArgumentNullException(nameof(format));
+            ArgumentNullException.ThrowIfNull(format);
             using var payload = new MemoryStream(16);
             WriteUInt16(payload, isStyleFormat ? ushort.MaxValue : ToUInt16(format.FormatId?.Value ?? 0U, "parent style"));
             ushort numberFormatId = ToUInt16(format.NumberFormatId?.Value ?? 0U, "number format");

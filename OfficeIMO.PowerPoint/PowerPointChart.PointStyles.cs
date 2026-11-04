@@ -24,13 +24,13 @@ public partial class PowerPointChart {
 
     /// <summary>Replaces a point's fill/outline overrides. Null restores series/theme inheritance.</summary>
     public PowerPointChart SetDataPointStyle(int seriesIndex, uint pointIndex, OfficeChartPointStyle? style) {
-        if (seriesIndex < 0) throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
         var part = GetChartPart();
         var chartSpace = part.ChartSpace ?? throw new InvalidOperationException("Chart content is missing.");
         var series = chartSpace.Descendants<DocumentFormat.OpenXml.OpenXmlCompositeElement>()
             .Where(element => element.LocalName == "ser" && element.NamespaceUri == "http://schemas.openxmlformats.org/drawingml/2006/chart")
             .OrderBy(element => element.GetFirstChild<C.Index>()?.Val?.Value ?? uint.MaxValue).ToList();
-        if (seriesIndex >= series.Count) throw new ArgumentOutOfRangeException(nameof(seriesIndex));
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(seriesIndex, series.Count);
         OfficeOpenXmlChartPointStyles.ApplyPoint(series[seriesIndex], pointIndex, style);
         chartSpace.Save();
         return this;

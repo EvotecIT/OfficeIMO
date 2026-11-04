@@ -8,7 +8,7 @@ public static partial class WordHtmlConverterExtensions {
     /// <summary>Imports a prepared shared HTML document into Word and returns structured evidence.</summary>
     internal static HtmlToWordResult ConvertToWordWithEvidence(this HtmlConversionDocument document, HtmlWordExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         HtmlToWordConverter.ValidateDocumentLimits(
             document.CreateSourceDocumentForConversion(), resolved);
@@ -21,7 +21,7 @@ public static partial class WordHtmlConverterExtensions {
         this HtmlConversionDocument document,
         HtmlWordExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(document, options);
         resolved.ConversionReport.AddRange(document.Diagnostics);

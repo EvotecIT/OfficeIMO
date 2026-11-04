@@ -10,7 +10,7 @@ public sealed partial class IWorkNativeEditSession {
     public void MoveKeynoteImage(IWorkObjectIdentity identity, float leftPoints, float topPoints,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (identity == null) throw new ArgumentNullException(nameof(identity));
+        ArgumentNullException.ThrowIfNull(identity);
         IWorkCreationValidation.ValidateFinite(leftPoints, nameof(leftPoints));
         IWorkCreationValidation.ValidateFinite(topPoints, nameof(topPoints));
         if (leftPoints < 0) throw new ArgumentOutOfRangeException(nameof(leftPoints));
@@ -25,7 +25,7 @@ public sealed partial class IWorkNativeEditSession {
     public void ResizeKeynoteImage(IWorkObjectIdentity identity, float widthPoints, float heightPoints,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (identity == null) throw new ArgumentNullException(nameof(identity));
+        ArgumentNullException.ThrowIfNull(identity);
         IWorkCreationValidation.ValidatePositive(widthPoints, nameof(widthPoints));
         IWorkCreationValidation.ValidatePositive(heightPoints, nameof(heightPoints));
         UpdateKeynoteImage(identity, null, null, widthPoints, heightPoints, cancellationToken);

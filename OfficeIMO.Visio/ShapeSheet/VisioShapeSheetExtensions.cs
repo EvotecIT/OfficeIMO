@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Returns source-preserved ShapeSheet sections, including native text rows with current typed edits.</summary>
         public static IReadOnlyList<VisioShapeSheetSection> GetShapeSheetSections(
             this VisioShape shape) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             return ReadSections(shape.PreservedNonGeometrySections, shape.CharacterSectionSource,
                 shape.ParagraphSectionSource, shape.TextStyle);
         }
@@ -17,7 +17,7 @@ namespace OfficeIMO.Visio {
         /// <summary>Returns source-preserved ShapeSheet sections, including native text rows with current typed edits.</summary>
         public static IReadOnlyList<VisioShapeSheetSection> GetShapeSheetSections(
             this VisioConnector connector) {
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
+            ArgumentNullException.ThrowIfNull(connector);
             return ReadSections(connector.PreservedNonGeometrySections, connector.CharacterSectionSource,
                 connector.ParagraphSectionSource, connector.TextStyle);
         }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Visio {
         /// Complex text rows remain native-owned and are not replaced by global typed formatting.</remarks>
         public static VisioShape SetShapeSheetSection(this VisioShape shape,
             VisioShapeSheetSection section) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             SetSection(shape.PreservedNonGeometrySections, shape.PreservedShapeChildren,
                 entry => entry.RawElement, entry => entry.Token, element => new VisioShape.PreservedShapeChildEntry(element), section);
             if (TextSectionKind(section.Name) is bool character) {
@@ -45,7 +45,7 @@ namespace OfficeIMO.Visio {
         /// Complex text rows remain native-owned and are not replaced by global typed formatting.</remarks>
         public static VisioConnector SetShapeSheetSection(this VisioConnector connector,
             VisioShapeSheetSection section) {
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
+            ArgumentNullException.ThrowIfNull(connector);
             SetSection(connector.PreservedNonGeometrySections, connector.PreservedShapeChildren,
                 entry => entry.RawElement, entry => entry.Token, element => new VisioConnector.PreservedShapeChildEntry(element), section);
             if (TextSectionKind(section.Name) is bool character) {
@@ -60,7 +60,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Removes a source-preserved section and clears any typed formatting owned by that text section.</summary>
         public static bool RemoveShapeSheetSection(this VisioShape shape, string name) {
-            if (shape == null) throw new ArgumentNullException(nameof(shape));
+            ArgumentNullException.ThrowIfNull(shape);
             bool removed = RemoveSection(shape.PreservedNonGeometrySections, shape.PreservedShapeChildren, entry => entry.RawElement, name);
             if (TextSectionKind(name) is bool character) {
                 removed |= (character ? shape.CharacterSectionSource : shape.ParagraphSectionSource) != null;
@@ -77,7 +77,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Removes a source-preserved section and clears any typed formatting owned by that text section.</summary>
         public static bool RemoveShapeSheetSection(this VisioConnector connector, string name) {
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
+            ArgumentNullException.ThrowIfNull(connector);
             bool removed = RemoveSection(connector.PreservedNonGeometrySections, connector.PreservedShapeChildren, entry => entry.RawElement, name);
             if (TextSectionKind(name) is bool character) {
                 removed |= (character ? connector.CharacterSectionSource : connector.ParagraphSectionSource) != null;
@@ -137,7 +137,7 @@ namespace OfficeIMO.Visio {
         private static void SetSection<T>(IList<XElement> sections, IList<T> childOrder,
             Func<T, XElement?> rawElement, Func<T, string?> token, Func<XElement, T> createEntry,
             VisioShapeSheetSection section) {
-            if (section == null) throw new ArgumentNullException(nameof(section));
+            ArgumentNullException.ThrowIfNull(section);
             string? name = section.Name;
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Section name cannot be empty.", nameof(section));
             for (int index = 0; index < sections.Count; index++) {

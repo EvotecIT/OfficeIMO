@@ -22,14 +22,14 @@ public sealed class HtmlRenderPageSet {
 
     /// <summary>Returns one selected zero-based page.</summary>
     public static HtmlRenderPageSet Page(int pageIndex) {
-        if (pageIndex < 0) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(pageIndex);
         return new HtmlRenderPageSet(HtmlRenderPageSetMode.Selected, pageIndex, 1);
     }
 
     /// <summary>Returns a bounded range of pages as separate ordered surfaces.</summary>
     public static HtmlRenderPageSet Pages(int firstPageIndex, int pageCount) {
-        if (firstPageIndex < 0) throw new ArgumentOutOfRangeException(nameof(firstPageIndex));
-        if (pageCount <= 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(firstPageIndex);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageCount);
         return new HtmlRenderPageSet(HtmlRenderPageSetMode.Range, firstPageIndex, pageCount);
     }
 
@@ -37,7 +37,7 @@ public sealed class HtmlRenderPageSet {
     public static HtmlRenderPageSet Stitched() => new(HtmlRenderPageSetMode.Stitched, 0, null);
 
     internal IReadOnlyList<HtmlRenderPage> Select(IReadOnlyList<HtmlRenderPage> pages) {
-        if (pages == null) throw new ArgumentNullException(nameof(pages));
+        ArgumentNullException.ThrowIfNull(pages);
         if (pages.Count == 0) throw new ArgumentException("At least one rendered page is required.", nameof(pages));
         if (Mode == HtmlRenderPageSetMode.Separate || Mode == HtmlRenderPageSetMode.Stitched) {
             return pages;
@@ -50,7 +50,7 @@ public sealed class HtmlRenderPageSet {
     }
 
     internal IReadOnlyList<int> SelectIndices(int pageCount) {
-        if (pageCount <= 0) throw new ArgumentOutOfRangeException(nameof(pageCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageCount);
         if (Mode == HtmlRenderPageSetMode.Separate || Mode == HtmlRenderPageSetMode.Stitched) {
             return Enumerable.Range(0, pageCount).ToList().AsReadOnly();
         }

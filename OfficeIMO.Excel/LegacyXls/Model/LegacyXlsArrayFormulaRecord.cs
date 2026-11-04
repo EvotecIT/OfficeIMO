@@ -16,14 +16,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int recordOffset,
             ushort recordType,
             int payloadLength) {
-            if (firstRow <= 0) throw new ArgumentOutOfRangeException(nameof(firstRow));
-            if (firstColumn <= 0) throw new ArgumentOutOfRangeException(nameof(firstColumn));
-            if (lastRow < firstRow) throw new ArgumentOutOfRangeException(nameof(lastRow));
-            if (lastColumn < firstColumn) throw new ArgumentOutOfRangeException(nameof(lastColumn));
-            if (formulaTokenByteCount < 0) throw new ArgumentOutOfRangeException(nameof(formulaTokenByteCount));
-            if (formulaExtraByteCount < 0) throw new ArgumentOutOfRangeException(nameof(formulaExtraByteCount));
-            if (matchedFormulaCellCount < 0) throw new ArgumentOutOfRangeException(nameof(matchedFormulaCellCount));
-            if (payloadLength < 0) throw new ArgumentOutOfRangeException(nameof(payloadLength));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstRow);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstColumn);
+            ArgumentOutOfRangeException.ThrowIfLessThan(lastRow, firstRow);
+            ArgumentOutOfRangeException.ThrowIfLessThan(lastColumn, firstColumn);
+            ArgumentOutOfRangeException.ThrowIfNegative(formulaTokenByteCount);
+            ArgumentOutOfRangeException.ThrowIfNegative(formulaExtraByteCount);
+            ArgumentOutOfRangeException.ThrowIfNegative(matchedFormulaCellCount);
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             FirstRow = firstRow;
             FirstColumn = firstColumn;

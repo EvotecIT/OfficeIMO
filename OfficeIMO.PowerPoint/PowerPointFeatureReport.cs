@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint {
         private readonly List<PowerPointFeatureFinding> _features = new();
 
         internal PowerPointFeatureReport(IReadOnlyList<PowerPointFeatureFinding> features) {
-            if (features == null) throw new ArgumentNullException(nameof(features));
+            ArgumentNullException.ThrowIfNull(features);
             _features.AddRange(features);
         }
 
@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="featureNames">Feature names to match, for example <c>VBA macros</c> or <c>Digital signatures</c>.</param>
         public IReadOnlyList<PowerPointFeatureFinding> FindFeatures(IEnumerable<string> featureNames) {
-            if (featureNames == null) throw new ArgumentNullException(nameof(featureNames));
+            ArgumentNullException.ThrowIfNull(featureNames);
             var names = new HashSet<string>(featureNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase);
             if (names.Count == 0) return Array.Empty<PowerPointFeatureFinding>();
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="supportLevels">Support levels to match.</param>
         public IReadOnlyList<PowerPointFeatureFinding> FindFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
-            if (supportLevels == null) throw new ArgumentNullException(nameof(supportLevels));
+            ArgumentNullException.ThrowIfNull(supportLevels);
             if (supportLevels.Length == 0) return Array.Empty<PowerPointFeatureFinding>();
 
             var levels = new HashSet<OfficeFeatureSupportLevel>(supportLevels);
@@ -572,9 +572,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal IReadOnlyList<string> DescribeUnsafeCustomShowStructure(
             LegacyPptWriter.LegacyPptWriterSoundCatalog soundCatalog) {
-            if (soundCatalog == null) {
-                throw new ArgumentNullException(nameof(soundCatalog));
-            }
+            ArgumentNullException.ThrowIfNull(soundCatalog);
             CustomShowList? list = PresentationRoot.CustomShowList;
             if (list == null) return Array.Empty<string>();
 

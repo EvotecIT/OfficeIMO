@@ -20,9 +20,7 @@ internal static class OfficeDataBarRenderer {
         double ratio,
         OfficeColor color,
         double verticalInset = 2D) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
         OfficeDataBarGeometry bar = Resolve(x, y, width, height, startRatio, ratio, verticalInset);
         if (bar.Width <= 0D) {
@@ -45,9 +43,7 @@ internal static class OfficeDataBarRenderer {
         double ratio,
         OfficeColor color,
         double verticalInset = 2D) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         OfficeDataBarGeometry bar = Resolve(x, y, width, height, startRatio, ratio, verticalInset);
         if (bar.Width <= 0D) {

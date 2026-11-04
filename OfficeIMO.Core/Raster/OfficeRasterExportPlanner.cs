@@ -62,10 +62,10 @@ public static class OfficeRasterExportPlanner {
         OfficeImageExportOptions options,
         long rendererMaximumPixels,
         string? source = null) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (!format.IsRaster()) throw new ArgumentException("A raster output format is required.", nameof(format));
         options.ValidateImageExportOptions();
-        if (rendererMaximumPixels < 1L) throw new ArgumentOutOfRangeException(nameof(rendererMaximumPixels));
+        ArgumentOutOfRangeException.ThrowIfLessThan(rendererMaximumPixels, 1L);
 
         long maximumPixels = Math.Min(
             Math.Min(options.MaximumRasterPixels, rendererMaximumPixels),

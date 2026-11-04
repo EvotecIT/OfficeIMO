@@ -7,7 +7,7 @@ namespace OfficeIMO.DjVu.Pdf;
 
 internal static class DjVuPdfConversionEngine {
     internal static PdfDocumentConversionResult Convert(DjVuDocument document, DjVuPdfExportOptions? options, CancellationToken token) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         token.ThrowIfCancellationRequested();
         var settings = (options ?? new DjVuPdfExportOptions()).Clone();
         if (settings.OcrEngine != null) throw new InvalidOperationException("An explicit OCR engine requires ToPdfAsync, SaveAsPdfAsync or another asynchronous conversion entrypoint.");
@@ -15,7 +15,7 @@ internal static class DjVuPdfConversionEngine {
     }
 
     internal static async Task<PdfDocumentConversionResult> ConvertAsync(DjVuDocument document, DjVuPdfExportOptions? options, CancellationToken token) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         token.ThrowIfCancellationRequested();
         var settings = (options ?? new DjVuPdfExportOptions()).Clone();
         var pages = Select(document, settings, token);

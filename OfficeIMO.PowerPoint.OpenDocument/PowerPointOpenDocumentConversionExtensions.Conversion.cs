@@ -16,7 +16,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     /// <summary>Converts a presentation to an in-memory ODP presentation; the LossPolicy option rejects loss and returns the completed conversion report.</summary>
     public static OdpPresentation ToOpenDocument(this PowerPointDocument source, PowerPointOpenDocumentConversionOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         OdfConversionResult<OdpPresentation> result = source.ConvertToOpenDocumentWithEvidence(options);
         OdpPresentation value = result.Value;
@@ -77,7 +77,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     /// <summary>Converts an ODP presentation to an in-memory presentation; the LossPolicy option rejects loss and returns the completed conversion report.</summary>
     public static PowerPointDocument ToPowerPoint(this OdpPresentation source, PowerPointOpenDocumentConversionOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         cancellationToken.ThrowIfCancellationRequested();
         OdfConversionResult<PowerPointDocument> result = source.ConvertToPowerPointWithEvidence(options);
         PowerPointDocument value = result.Value;

@@ -26,7 +26,7 @@ public sealed partial class XpsFixedDocument {
     }
     /// <summary>Inserts another reference to a page owned by this package. The page and its relative resource base are shared.</summary>
     public void InsertPage(int index, XpsPage page) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         if (page.Document != Owner) throw new ArgumentException("The page belongs to another package.", nameof(page));
         XpsDocument.CheckIndex(index, Markup.Elements().Count(), true);
         InsertPageCore(index, page, false);
@@ -50,7 +50,7 @@ public sealed partial class XpsFixedDocument {
     /// <summary>Moves one page reference to another fixed document in this package, retaining reference metadata and the page's resource base.</summary>
     /// <remarks>Repeated sequence references to either fixed document observe the change. Use MovePage for moves within one document.</remarks>
     public void MovePageTo(int sourceIndex, XpsFixedDocument destination, int destinationIndex) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (destination.Owner != Owner || destination == this) throw new ArgumentException("Choose a different fixed document in this package.", nameof(destination));
         XpsDocument.CheckIndex(sourceIndex, Markup.Elements().Count(), false);
         XpsDocument.CheckIndex(destinationIndex, destination.Markup.Elements().Count(), true);

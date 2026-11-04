@@ -303,7 +303,7 @@ namespace OfficeIMO.Excel {
         /// <summary>Downloads an image under an explicit remote-network policy and sets it as the section picture.</summary>
         public Task SetImageFromUrlAsync(string url, OfficeRemoteImageLoadOptions remoteImageOptions, OfficeLength? width = null,
             OfficeLength? height = null, CancellationToken cancellationToken = default) {
-            if (remoteImageOptions == null) throw new ArgumentNullException(nameof(remoteImageOptions));
+            ArgumentNullException.ThrowIfNull(remoteImageOptions);
             return SetImageFromUrlCoreAsync(url, remoteImageOptions, width, height, cancellationToken);
         }
 

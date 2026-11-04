@@ -134,7 +134,7 @@ public sealed partial class OpmlDocument {
         OfficeDocumentModel model,
         OpmlVersion? version,
         OpmlConversionOptions? options) {
-        if (model == null) throw new ArgumentNullException(nameof(model));
+        ArgumentNullException.ThrowIfNull(model);
         options ??= new OpmlConversionOptions();
         options.Validate();
         IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(

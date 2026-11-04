@@ -105,9 +105,7 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new ArgumentException("Recipe name cannot be null or empty.", nameof(name));
             }
-            if (directions == null) {
-                throw new ArgumentNullException(nameof(directions));
-            }
+            ArgumentNullException.ThrowIfNull(directions);
 
             List<PowerPointDesignDirection> directionList = new();
             foreach (PowerPointDesignDirection direction in directions) {

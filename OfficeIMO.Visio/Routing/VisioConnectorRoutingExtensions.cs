@@ -14,9 +14,7 @@ namespace OfficeIMO.Visio {
         /// <param name="connector">Connector to route.</param>
         /// <param name="waypoints">Absolute page coordinates between start and end.</param>
         public static VisioConnector RouteThrough(this VisioConnector connector, params VisioConnectorWaypoint[] waypoints) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             return connector.RouteThrough((IEnumerable<VisioConnectorWaypoint>)waypoints);
         }
@@ -28,13 +26,9 @@ namespace OfficeIMO.Visio {
         /// <param name="connector">Connector to route.</param>
         /// <param name="waypoints">Absolute page coordinates between start and end.</param>
         public static VisioConnector RouteThrough(this VisioConnector connector, IEnumerable<VisioConnectorWaypoint> waypoints) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
-            if (waypoints == null) {
-                throw new ArgumentNullException(nameof(waypoints));
-            }
+            ArgumentNullException.ThrowIfNull(waypoints);
 
             var replacement = new List<VisioConnectorWaypoint>();
             foreach (VisioConnectorWaypoint waypoint in waypoints) {
@@ -63,9 +57,7 @@ namespace OfficeIMO.Visio {
         /// <param name="style">Orthogonal route orientation.</param>
         /// <param name="offset">Optional offset applied to the center routing lane.</param>
         public static VisioConnector RouteOrthogonal(this VisioConnector connector, VisioConnectorRouteStyle style = VisioConnectorRouteStyle.Auto, double offset = 0D) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             VisioConnectorEndpoints.Resolve(connector, out double startX, out double startY, out double endX, out double endY);
 
@@ -84,9 +76,7 @@ namespace OfficeIMO.Visio {
         /// <param name="connector">Self-connector to route.</param>
         /// <param name="clearance">Clearance outside the shape bounds, in page units.</param>
         public static VisioConnector RouteSelfLoop(this VisioConnector connector, double clearance = 0.35D) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
             if (connector.From == null || !ReferenceEquals(connector.From, connector.To)) {
                 throw new ArgumentException("Self-loop routing requires the same source and target shape.", nameof(connector));
             }
@@ -124,17 +114,11 @@ namespace OfficeIMO.Visio {
         /// <param name="obstacles">Shapes that the route should avoid. Source and target shapes are ignored.</param>
         /// <param name="options">Routing options controlling padding, lane search, and whether zones/containers count as obstacles.</param>
         public static VisioConnector RouteOrthogonalAroundShapes(this VisioConnector connector, IEnumerable<VisioShape> obstacles, VisioConnectorRoutingOptions options) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
-            if (obstacles == null) {
-                throw new ArgumentNullException(nameof(obstacles));
-            }
+            ArgumentNullException.ThrowIfNull(obstacles);
 
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             double padding = options.Padding;
             int maxLanes = options.MaxLanes;
@@ -206,13 +190,9 @@ namespace OfficeIMO.Visio {
         /// <param name="page">Page whose connectors should be rerouted.</param>
         /// <param name="options">Routing options controlling padding, lane search, and whether zones/containers count as obstacles.</param>
         public static VisioPage RouteConnectorsOrthogonalAroundShapes(this VisioPage page, VisioConnectorRoutingOptions options) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (options.PageOptimizationPasses < 1) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Page optimization pass count must be at least one.");
@@ -255,9 +235,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="connector">Connector to reset.</param>
         public static VisioConnector ClearRoute(this VisioConnector connector) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             connector.Waypoints.Clear();
             connector.Kind = ConnectorKind.Dynamic;
@@ -275,9 +253,7 @@ namespace OfficeIMO.Visio {
         /// <param name="width">Label text box width in page units.</param>
         /// <param name="height">Label text box height in page units.</param>
         public static VisioConnector PlaceLabel(this VisioConnector connector, double position = 0.5D, double offsetX = 0D, double offsetY = 0D, double width = 1.25D, double height = 0.3D) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             connector.LabelPlacement = VisioConnectorLabelPlacement.Along(position, offsetX, offsetY, width, height);
             return connector;
@@ -292,9 +268,7 @@ namespace OfficeIMO.Visio {
         /// <param name="width">Label text box width in page units.</param>
         /// <param name="height">Label text box height in page units.</param>
         public static VisioConnector PlaceLabelAt(this VisioConnector connector, double pinX, double pinY, double width = 1.25D, double height = 0.3D) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             connector.LabelPlacement = VisioConnectorLabelPlacement.At(pinX, pinY, width, height);
             return connector;

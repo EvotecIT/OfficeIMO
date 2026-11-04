@@ -5,8 +5,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects and compares workbook calculation properties.</summary>
     internal static class XlsbCalculationPropertiesProjector {
         internal static void Apply(ExcelDocument document, XlsbCalculationProperties source) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(source);
             CalculationProperties properties = Create(source);
             OpenXmlWorkbookElementOrder.InsertInOrder(document.WorkbookRoot, properties);
         }

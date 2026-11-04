@@ -13,7 +13,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
         IOfficeSecurityProvider securityProvider,
         CmsVerificationOptions? options = null) {
 #if NETSTANDARD2_0 || NET472
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
 #else
         ArgumentNullException.ThrowIfNull(securityProvider);
 #endif
@@ -27,7 +27,7 @@ public sealed class PdfCmsSignatureCryptographyProvider : IPdfSignatureCryptogra
     /// <inheritdoc />
     public PdfSignatureCryptographicResult Verify(PdfSignatureCryptographyInput input) {
 #if NETSTANDARD2_0 || NET472
-        if (input == null) throw new ArgumentNullException(nameof(input));
+        ArgumentNullException.ThrowIfNull(input);
 #else
         ArgumentNullException.ThrowIfNull(input);
 #endif

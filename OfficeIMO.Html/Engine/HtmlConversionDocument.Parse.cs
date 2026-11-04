@@ -10,9 +10,7 @@ public sealed partial class HtmlConversionDocument {
 
     /// <summary>Parses inert HTML with explicit cooperative cancellation.</summary>
     public static HtmlConversionDocument Parse(string html, HtmlConversionDocumentOptions? options, CancellationToken cancellationToken) {
-        if (html == null) {
-            throw new ArgumentNullException(nameof(html));
-        }
+        ArgumentNullException.ThrowIfNull(html);
 
         HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
@@ -59,7 +57,7 @@ public sealed partial class HtmlConversionDocument {
 
     /// <summary>Captures an owned tree with cooperative cancellation during validation, cloning, projection and serialization.</summary>
     public static HtmlConversionDocument FromDocument(Dom.HtmlDocument document, HtmlConversionDocumentOptions? options, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlConversionDocumentOptions resolved = options?.Clone() ?? new HtmlConversionDocumentOptions();
         resolved.Validate();
         cancellationToken.ThrowIfCancellationRequested();
@@ -74,7 +72,7 @@ public sealed partial class HtmlConversionDocument {
 
     /// <summary>Edits an independent source snapshot and retains this conversion's trust, resource and fidelity options.</summary>
     public HtmlConversionDocument Edit(Action<Dom.HtmlDocument> edit) {
-        if (edit == null) throw new ArgumentNullException(nameof(edit));
+        ArgumentNullException.ThrowIfNull(edit);
         Dom.HtmlDocument clone = Document.CloneAttached();
         try { edit(clone); return FromDocument(clone, _options); }
         finally { clone.Freeze(); }

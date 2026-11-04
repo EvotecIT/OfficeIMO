@@ -12,8 +12,8 @@ internal static class OneNotePageImageRenderer {
         string? source = null,
         CancellationToken cancellationToken = default,
         OfficeImageExportEncodingBudget? encodingBudget = null) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(page);
+        ArgumentNullException.ThrowIfNull(options);
         return OfficeImageExportExecutionScope.Run(
             options,
             cancellationToken,
@@ -117,7 +117,7 @@ internal static class OneNotePageImageRenderer {
         double height,
         OfficeImageExportFormat format,
         OneNotePageRenderingOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         OneNotePageRenderingOptions effective = options.Clone();
         effective.Validate();
         return OfficeRasterExportPlanner.Resolve(width, height, format, effective).Limit;

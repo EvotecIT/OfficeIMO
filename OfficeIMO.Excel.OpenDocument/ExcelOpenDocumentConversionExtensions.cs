@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.OpenDocument;
 public static partial class ExcelOpenDocumentConversionExtensions {
     internal static OdfConversionResult<OdsDocument> ConvertToOpenDocumentWithEvidence(this ExcelDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
         ExcelWorkbookInfo snapshot = source.Inspect();
@@ -395,7 +395,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
 
     internal static OdfConversionResult<ExcelDocument> ConvertToExcelWithEvidence(this OdsDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
         ExcelDocument target = ExcelDocument.Create(new MemoryStream());

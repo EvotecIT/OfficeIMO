@@ -608,7 +608,7 @@ public sealed partial class DocBookDocument {
         DocBookDocumentKind? kind = null,
         DocBookProfile? profile = null,
         DocBookConversionOptions? options = null) {
-        if (model == null) throw new ArgumentNullException(nameof(model));
+        ArgumentNullException.ThrowIfNull(model);
         options ??= new DocBookConversionOptions();
         options.Validate();
         IReadOnlyList<OfficeDocumentModelNode> structureNodes = OfficeDocumentModelStructureTraversal.ValidateAndFlatten(

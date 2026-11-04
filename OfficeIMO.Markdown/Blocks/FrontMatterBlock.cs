@@ -97,7 +97,7 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
     /// Creates front matter from a typed object using public readable properties.
     /// </summary>
     public static FrontMatterBlock FromObject<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(T data) {
-        if (data is null) throw new ArgumentNullException(nameof(data));        
+        ArgumentNullException.ThrowIfNull(data);
         FrontMatterBlock fm = new FrontMatterBlock();
         if (data is IEnumerable<KeyValuePair<string, object?>> dict) {
             foreach (KeyValuePair<string, object?> kv in dict) fm._entries.Add(new Entry(kv.Key, kv.Value));

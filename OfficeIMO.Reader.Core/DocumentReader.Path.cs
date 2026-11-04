@@ -11,7 +11,7 @@ internal static partial class DocumentReaderEngine {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) return ReadDirectoryBundle(path, options, cancellationToken).Chunks;
         ValidateFilePath(path);
         ReaderOptions effective = NormalizeOptions(options);
@@ -160,7 +160,7 @@ internal static partial class DocumentReaderEngine {
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default,
         Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         ReaderSourceDocument[] documents = Directory.Exists(path) && !IsRegisteredDirectoryBundle(path)
             ? ReadFolderDocumentsCore(path, folderOptions, options,
                 includeSkippedWarningChunks: true, onProgress, cancellationToken, read).ToArray()
@@ -211,7 +211,7 @@ internal static partial class DocumentReaderEngine {
         Action<ReaderProgress>? onProgress,
         CancellationToken cancellationToken,
         Func<string, ReaderOptions?, CancellationToken, OfficeDocumentReadResult>? read = null) {
-        if (folderPath == null) throw new ArgumentNullException(nameof(folderPath));
+        ArgumentNullException.ThrowIfNull(folderPath);
         if (!Directory.Exists(folderPath)) throw new DirectoryNotFoundException($"Directory '{folderPath}' does not exist.");
         ReaderFolderOptions effectiveFolder = NormalizeFolderOptions(folderOptions);
         HashSet<string> allowedExtensions = NormalizeExtensions(effectiveFolder.Extensions);

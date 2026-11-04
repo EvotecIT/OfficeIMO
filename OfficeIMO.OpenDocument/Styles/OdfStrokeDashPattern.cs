@@ -11,7 +11,8 @@ public sealed class OdfStrokeDashPattern {
     /// <param name="roundCaps">Use round caps when the shape has no explicit cap override.</param>
     public OdfStrokeDashPattern(int dashCount, OdfLength dashLength, OdfLength distance,
         int secondDashCount = 0, OdfLength? secondDashLength = null, bool roundCaps = false) {
-        if (dashCount < 0 || dashCount > 1024) throw new ArgumentOutOfRangeException(nameof(dashCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(dashCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(dashCount, 1024);
         if (secondDashCount < 0 || secondDashCount > 1024 || dashCount + secondDashCount is < 1 or > 1024)
             throw new ArgumentOutOfRangeException(nameof(secondDashCount));
         ValidateMetric(dashLength, false, nameof(dashLength));

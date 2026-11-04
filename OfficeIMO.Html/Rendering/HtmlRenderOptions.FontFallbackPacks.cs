@@ -13,8 +13,8 @@ public static class HtmlRenderFontFallbackPackExtensions {
         OfficeFontFallbackPack pack,
         OfficeRenderingProfileApplyMode mode = OfficeRenderingProfileApplyMode.Replace)
         where TOptions : HtmlRenderOptions {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (pack == null) throw new ArgumentNullException(nameof(pack));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(pack);
         options.UseRenderingProfile(pack.CreateRenderingProfile(), mode);
         options.DefaultFontFamily = pack.DefaultFamilyNames;
         return options;

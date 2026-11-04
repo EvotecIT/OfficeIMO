@@ -14,7 +14,7 @@ public sealed partial class ProjectView {
 
     /// <summary>Measures and renders with the same supplied font faces and shaping profile. The original view remains immutable and can be rendered concurrently.</summary>
     public IReadOnlyList<ProjectViewPage> Render(OfficeRenderingProfile typography, CancellationToken cancellationToken = default) {
-        if (typography == null) throw new ArgumentNullException(nameof(typography));
+        ArgumentNullException.ThrowIfNull(typography);
         return new ProjectView(this, typography).Render(cancellationToken);
     }
 

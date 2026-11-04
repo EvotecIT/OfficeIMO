@@ -43,7 +43,7 @@ public sealed partial class OfficeVbaProject {
     /// <summary>Loads a detached project with aggregate input, compound-stream, and expanded-source limits.</summary>
     /// <exception cref="InvalidDataException">The project is malformed or its persisted text encoding is invalid or unavailable.</exception>
     public static OfficeVbaProject Load(byte[] projectBytes, OfficeVbaReadOptions? options = null) {
-        if (projectBytes == null) throw new ArgumentNullException(nameof(projectBytes));
+        ArgumentNullException.ThrowIfNull(projectBytes);
         options ??= new OfficeVbaReadOptions();
         ValidateLimits(options.MaximumProjectBytes, options.MaximumExpandedBytes);
         if (projectBytes.Length > options.MaximumProjectBytes) throw new InvalidDataException("The VBA project exceeds the configured input byte limit.");
@@ -128,7 +128,7 @@ public sealed partial class OfficeVbaProject {
 
     /// <summary>Adds a host-owned module whose VB_Base class identity is supplied by the document adapter.</summary>
     public OfficeVbaModule AddDocumentModule(string name, string source, Guid baseClassId) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (baseClassId == Guid.Empty) throw new ArgumentException("A host document requires its base-class identity.", nameof(baseClassId));
         return AddDocumentModuleWithIdentity(name, source, "0" + baseClassId.ToString("B").ToUpperInvariant());
     }
@@ -186,8 +186,10 @@ public sealed partial class OfficeVbaProject {
         EnsureEditable();
         OfficeVbaText.ValidateIdentifier(name, 128);
         if (typeLibraryId == Guid.Empty) throw new ArgumentException("A type library identity is required.", nameof(typeLibraryId));
-        if (majorVersion < 0 || majorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(majorVersion));
-        if (minorVersion < 0 || minorVersion > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(minorVersion));
+        ArgumentOutOfRangeException.ThrowIfNegative(majorVersion);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(majorVersion, ushort.MaxValue);
+        ArgumentOutOfRangeException.ThrowIfNegative(minorVersion);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(minorVersion, ushort.MaxValue);
         if (path == null || path.IndexOfAny(new[] { '#', '\r', '\n', '\0' }) >= 0) throw new ArgumentException("The type-library path cannot contain reference separators.", nameof(path));
         string identity = typeLibraryId.ToString("B").ToUpperInvariant();
         OfficeVbaReference? existing = _references.FirstOrDefault(reference =>

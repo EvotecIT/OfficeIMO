@@ -72,9 +72,10 @@ public sealed class OfficeTextIntegrityFinding {
         int textLength,
         int codePoint,
         string location = "Text") {
-        if (textOffset < 0) throw new ArgumentOutOfRangeException(nameof(textOffset));
-        if (textLength <= 0) throw new ArgumentOutOfRangeException(nameof(textLength));
-        if (codePoint < 0 || codePoint > 0x10FFFF) throw new ArgumentOutOfRangeException(nameof(codePoint));
+        ArgumentOutOfRangeException.ThrowIfNegative(textOffset);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(textLength);
+        ArgumentOutOfRangeException.ThrowIfNegative(codePoint);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(codePoint, 0x10FFFF);
         if (string.IsNullOrWhiteSpace(location)) throw new ArgumentException("A finding location is required.", nameof(location));
         Kind = kind;
         Risk = risk;
@@ -170,7 +171,7 @@ public static class OfficeTextIntegrityInspector {
         OfficeTextIntegrityOptions? options,
         string location,
         CancellationToken cancellationToken) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         options ??= new OfficeTextIntegrityOptions();
         Validate(options);
         if (text.Length > options.MaxCharacters) {
@@ -420,8 +421,8 @@ public static class OfficeTextIntegrityCleaner {
     /// same code point. The method has no blanket-cleaning default.
     /// </summary>
     public static string RemoveSelected(string text, IEnumerable<OfficeTextIntegrityFinding> findings) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (findings == null) throw new ArgumentNullException(nameof(findings));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(findings);
         OfficeTextIntegrityFinding[] ordered = findings.OrderBy(item => item.TextOffset).ToArray();
         int previousEnd = 0;
         foreach (OfficeTextIntegrityFinding finding in ordered) {

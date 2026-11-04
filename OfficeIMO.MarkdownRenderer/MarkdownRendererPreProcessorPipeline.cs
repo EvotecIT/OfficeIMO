@@ -15,9 +15,7 @@ public static class MarkdownRendererPreProcessorPipeline {
         string? markdown,
         MarkdownRendererOptions options,
         ICollection<MarkdownRendererPreProcessorDiagnostic>? diagnostics = null) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return MarkdownRenderer.ApplyPreParseProcessing(markdown, options, diagnostics);
     }

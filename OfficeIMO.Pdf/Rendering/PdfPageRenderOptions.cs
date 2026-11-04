@@ -52,11 +52,11 @@ public sealed class PdfPageRenderOptions : OfficeImageExportOptions {
         if (Format < global::OfficeIMO.Drawing.OfficeImageExportFormat.Png || Format > global::OfficeIMO.Drawing.OfficeImageExportFormat.Svg) throw new ArgumentOutOfRangeException(nameof(Format));
         if (Dpi.HasValue && !IsPositiveFinite(Dpi.Value)) throw new ArgumentOutOfRangeException(nameof(Dpi), Dpi, "DPI must be positive and finite.");
         if (ThumbnailMaxDimension.HasValue && ThumbnailMaxDimension.Value <= 0) throw new ArgumentOutOfRangeException(nameof(ThumbnailMaxDimension));
-        if (MaxPages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPages));
-        if (MaxOutputBytesPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytesPerPage));
-        if (MaxTotalOutputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalOutputBytes));
-        if (MaxDiagnosticsPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticsPerPage));
-        if (MaxDiagnosticCharactersPerPage <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnosticCharactersPerPage));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxOutputBytesPerPage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalOutputBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDiagnosticsPerPage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxDiagnosticCharactersPerPage);
     }
 
     private static bool IsPositiveFinite(double value) => value > 0D && !double.IsNaN(value) && !double.IsInfinity(value);

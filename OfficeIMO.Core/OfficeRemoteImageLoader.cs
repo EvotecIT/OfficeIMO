@@ -48,7 +48,7 @@ internal static class OfficeRemoteImageLoader {
         Uri uri,
         OfficeRemoteImageLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        ArgumentNullException.ThrowIfNull(uri);
         ValidateHttpUri(uri, nameof(uri));
 
         OfficeRemoteImageLoadOptions.Snapshot snapshot =
@@ -267,8 +267,8 @@ internal static class OfficeRemoteImageLoader {
     }
 
     internal static HttpRequestMessage CreatePinnedRequest(Uri originalUri, IPAddress address) {
-        if (originalUri == null) throw new ArgumentNullException(nameof(originalUri));
-        if (address == null) throw new ArgumentNullException(nameof(address));
+        ArgumentNullException.ThrowIfNull(originalUri);
+        ArgumentNullException.ThrowIfNull(address);
 
         var pinned = new UriBuilder(originalUri) { Host = address.ToString() }.Uri;
         var request = new HttpRequestMessage(HttpMethod.Get, pinned);

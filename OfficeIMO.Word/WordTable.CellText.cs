@@ -15,7 +15,7 @@ public partial class WordTable {
     /// <param name="bold">Whether the new run is bold.</param>
     /// <returns>The current table for fluent use.</returns>
     public WordTable SetCellText(int rowIndex, int columnIndex, string? text, bool bold = false) {
-        if (columnIndex < 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
         List<TableRow> rows = GetRowElements();
         if ((uint)rowIndex >= (uint)rows.Count) throw new ArgumentOutOfRangeException(nameof(rowIndex));
         TableCell? cell = WordTableContent.Cells(rows[rowIndex]).ElementAtOrDefault(columnIndex);

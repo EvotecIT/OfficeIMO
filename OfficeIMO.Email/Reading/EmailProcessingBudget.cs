@@ -49,7 +49,7 @@ internal sealed class EmailProcessingBudget {
     internal int TnefAttributeCount { get; private set; }
 
     internal void CountInput(long bytes) {
-        if (bytes < 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(bytes);
         long total = checked(InputBytes + bytes);
         Ensure(nameof(EmailReaderOptions.MaxInputBytes), total, _limits.MaxInputBytes);
         InputBytes = total;

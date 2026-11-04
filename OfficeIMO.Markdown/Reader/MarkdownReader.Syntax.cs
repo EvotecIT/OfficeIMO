@@ -5,9 +5,7 @@ internal static partial class MarkdownReader {
         new MarkdownSyntaxNode(MarkdownSyntaxKind.Document, MarkdownBlockSyntaxBuilder.GetAggregateSpan(children), children: children, associatedObject: document);
 
     private static MarkdownSyntaxNode DetachOriginalSyntaxAssociations(MarkdownSyntaxNode node) {
-        if (node == null) {
-            throw new ArgumentNullException(nameof(node));
-        }
+        ArgumentNullException.ThrowIfNull(node);
 
         if (node.Children.Count == 0) {
             return new MarkdownSyntaxNode(
@@ -38,9 +36,7 @@ internal static partial class MarkdownReader {
         MarkdownDocument document,
         IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null,
         MarkdownSourceSpan? frontMatterSpan = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var children = new List<MarkdownSyntaxNode>(document.TopLevelBlocks.Count);
         if (document.DocumentHeader != null) {
@@ -175,9 +171,7 @@ internal static partial class MarkdownReader {
     }
 
     private static MarkdownSyntaxNode NormalizeFinalSyntaxTreeSpans(MarkdownSyntaxNode node) {
-        if (node == null) {
-            throw new ArgumentNullException(nameof(node));
-        }
+        ArgumentNullException.ThrowIfNull(node);
 
         IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
         if (node.Children.Count > 0) {
@@ -201,9 +195,7 @@ internal static partial class MarkdownReader {
     }
 
     private static MarkdownSyntaxNode NormalizeFinalSyntaxTreeChild(MarkdownSourceSpan? parentSpan, MarkdownSyntaxNode child) {
-        if (child == null) {
-            throw new ArgumentNullException(nameof(child));
-        }
+        ArgumentNullException.ThrowIfNull(child);
 
         var normalizedSpan = child.SourceSpan;
         if (parentSpan.HasValue && normalizedSpan.HasValue && !parentSpan.Value.Contains(normalizedSpan.Value)) {

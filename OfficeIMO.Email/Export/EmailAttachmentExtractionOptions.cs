@@ -14,10 +14,11 @@ public sealed class EmailAttachmentExtractionOptions {
         int maxAttachments = 1000, long maxAttachmentBytes = 64L * 1024 * 1024,
         long maxTotalBytes = 256L * 1024 * 1024, int maxDepth = 4, bool recurseEmbeddedMessages = false,
         bool includeInline = true, bool includeHidden = false) {
-        if (maxAttachments <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachments));
-        if (maxAttachmentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttachmentBytes));
-        if (maxTotalBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalBytes));
-        if (maxDepth < 0 || maxDepth > 32) throw new ArgumentOutOfRangeException(nameof(maxDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAttachments);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxAttachmentBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTotalBytes);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxDepth);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maxDepth, 32);
         MaxAttachments = maxAttachments; MaxAttachmentBytes = maxAttachmentBytes; MaxTotalBytes = maxTotalBytes;
         MaxDepth = maxDepth; RecurseEmbeddedMessages = recurseEmbeddedMessages;
         IncludeInline = includeInline; IncludeHidden = includeHidden;

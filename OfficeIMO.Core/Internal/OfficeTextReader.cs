@@ -69,7 +69,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         private static void Validate(Stream source, int? maximum) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             if (!source.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(source));
             if (maximum.HasValue && maximum.Value < 0) throw new ArgumentOutOfRangeException(nameof(maximum));
         }

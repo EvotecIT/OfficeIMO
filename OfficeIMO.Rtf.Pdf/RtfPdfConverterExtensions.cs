@@ -9,7 +9,7 @@ public static partial class RtfPdfConverterExtensions {
         this RtfDocument document,
         RtfPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfPdfExportOptions operation = (options ?? new RtfPdfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;
         PdfCore.PdfDocument pdf = RtfPdfConverter.Convert(document, operation);

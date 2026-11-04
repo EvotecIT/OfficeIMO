@@ -9,7 +9,7 @@ public static partial class OneNotePageRenderer {
 
     /// <summary>Creates a Drawing scene and structured rendering diagnostics for a page.</summary>
     public static OneNotePageVisualSnapshot CreateSnapshot(OneNotePage page, OneNotePageRenderingOptions? options = null) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         OneNotePageRenderingOptions effective = options?.Clone() ?? new OneNotePageRenderingOptions();
         effective.Validate();
         var diagnostics = new List<OfficeImageExportDiagnostic>();

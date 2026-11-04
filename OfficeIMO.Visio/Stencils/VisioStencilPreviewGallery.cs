@@ -187,7 +187,7 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         internal static void ValidateOptions(VisioStencilPreviewGalleryOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (string.IsNullOrWhiteSpace(options.PreviewDirectoryName)) throw new ArgumentException("Preview directory name cannot be null or whitespace.", nameof(options));
             if (Path.IsPathRooted(options.PreviewDirectoryName)) throw new ArgumentException("Preview directory name must be relative.", nameof(options));
             if (ContainsParentSegment(options.PreviewDirectoryName)) throw new ArgumentException("Preview directory name cannot contain parent directory segments.", nameof(options));

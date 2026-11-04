@@ -249,7 +249,7 @@ public abstract partial class OdfDocument {
         Stream stream,
         OdfLoadOptions? options,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
         OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         try {

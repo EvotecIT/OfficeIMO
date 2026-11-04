@@ -34,7 +34,7 @@ public sealed class HtmlCssNamespaceContext {
 
     /// <summary>Reads valid top-level @namespace declarations from an owned stylesheet.</summary>
     public static HtmlCssNamespaceContext FromStyleSheet(HtmlCssStyleSheet styleSheet) {
-        if (styleSheet == null) throw new ArgumentNullException(nameof(styleSheet));
+        ArgumentNullException.ThrowIfNull(styleSheet);
         string? defaultNamespace = null;
         var prefixes = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (HtmlCssRule rule in styleSheet.Rules) {

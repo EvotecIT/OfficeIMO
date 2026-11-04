@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
         public WordSignatureValidationReport ValidateSignatures(
             IOfficeSecurityProvider securityProvider,
             WordSignatureValidationOptions? options = null) {
-            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+            ArgumentNullException.ThrowIfNull(securityProvider);
             options ??= new WordSignatureValidationOptions();
             OfficePackageSignatureValidator.ValidateOptions(options);
             var originPart = _wordprocessingDocument.DigitalSignatureOriginPart;
@@ -267,7 +267,7 @@ namespace OfficeIMO.Word {
             IOfficeSecurityProvider securityProvider,
             X509Certificate2 certificate,
             WordPackageSigningOptions? options = null) {
-            if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+            ArgumentNullException.ThrowIfNull(securityProvider);
             WordPackageSigningOptions effectiveOptions = options ?? new WordPackageSigningOptions();
             WordSignatureValidationReport? validationReport = null;
             string? createdSignaturePartUri = null;

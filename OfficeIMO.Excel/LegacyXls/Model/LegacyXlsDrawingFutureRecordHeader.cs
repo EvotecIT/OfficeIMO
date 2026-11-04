@@ -14,9 +14,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? firstColumn,
             ushort? lastColumn,
             int streamByteCount) {
-            if (streamByteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(streamByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(streamByteCount);
 
             WrappedRecordType = wrappedRecordType;
             Flags = flags;

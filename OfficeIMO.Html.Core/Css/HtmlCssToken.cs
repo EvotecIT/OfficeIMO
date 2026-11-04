@@ -80,7 +80,7 @@ public readonly struct HtmlCssToken {
     public bool IsIdentifierHash { get; }
     /// <summary>Reads the exact authored token text from the source used to tokenize it.</summary>
     public string GetText(string source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         return source.Substring(Offset, Length);
     }
 }

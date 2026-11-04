@@ -17,13 +17,9 @@ internal static partial class PowerPointSlideImageRenderer {
         PowerPointImageExportOptions options,
         CancellationToken cancellationToken = default,
         OfficeImageExportEncodingBudget? encodingBudget = null, PowerPointSlideVisualInfo? preparedSnapshot = null) {
-        if (slide == null) {
-            throw new ArgumentNullException(nameof(slide));
-        }
+        ArgumentNullException.ThrowIfNull(slide);
 
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return OfficeImageExportExecutionScope.Run(
             options,
@@ -113,8 +109,8 @@ internal static partial class PowerPointSlideImageRenderer {
 
     internal static PowerPointSlideVisualInfo CreateSnapshot(PowerPointSlide slide, PowerPointImageExportOptions options,
         CancellationToken cancellationToken = default, PowerPointEmbeddedImageReadBudget? imageBudget = null) {
-        if (slide == null) throw new ArgumentNullException(nameof(slide));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(slide);
+        ArgumentNullException.ThrowIfNull(options);
         return OfficeImageExportExecutionScope.Run(options, cancellationToken, token => {
             token.ThrowIfCancellationRequested();
             options.Validate();

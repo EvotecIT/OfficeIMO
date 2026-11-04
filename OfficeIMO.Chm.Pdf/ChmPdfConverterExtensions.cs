@@ -12,7 +12,7 @@ public static partial class ChmPdfConverterExtensions {
 
     internal static async Task<PdfDocumentConversionResult> ConvertToPdfWithEvidenceAsync(this ChmDocument document, ChmPdfExportOptions? exportOptions,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ChmConversionOptions? options = exportOptions?.ConversionOptions;
         HtmlPdfExportOptions? pdfOptions = exportOptions?.PdfOptions;
         ChmConversionOptions configured = options?.Clone() ?? new ChmConversionOptions();

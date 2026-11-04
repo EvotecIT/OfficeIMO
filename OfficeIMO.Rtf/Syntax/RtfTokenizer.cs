@@ -17,7 +17,7 @@ public static class RtfTokenizer {
     /// Tokenizes RTF content using the configured resource limits and cancellation token.
     /// </summary>
     public static RtfTokenizeResult Tokenize(string rtf, RtfLoadOptions? options, CancellationToken cancellationToken = default) {
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
+        ArgumentNullException.ThrowIfNull(rtf);
 
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         var limits = new RtfReadLimitGuard(readOptions, cancellationToken);

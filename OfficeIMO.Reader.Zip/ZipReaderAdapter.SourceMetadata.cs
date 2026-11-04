@@ -43,7 +43,7 @@ namespace OfficeIMO.Reader.Zip {
             long uncompressedLength,
             DateTimeOffset lastWriteTime,
             bool computeHashes) {
-            if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+            ArgumentNullException.ThrowIfNull(chunk);
 
             chunk.Location.Path = virtualPath;
             chunk.SourceId = BuildSourceId(virtualPath);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Reader.Zip {
             long? sourceLengthBytes,
             DateTimeOffset? sourceLastWriteTime,
             bool computeHashes) {
-            if (chunk == null) throw new ArgumentNullException(nameof(chunk));
+            ArgumentNullException.ThrowIfNull(chunk);
 
             chunk.Location.Path = sourcePath;
             chunk.SourceId = BuildSourceId(sourcePath);

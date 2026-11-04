@@ -2,7 +2,7 @@ namespace OfficeIMO.Bibliography;
 
 internal static class BibliographyWriter {
     internal static BibliographyWriteResult Write(BibliographyDocument document, BibliographyWriteOptions? options, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new BibliographyWriteOptions();
         options.Validate();
         cancellationToken.ThrowIfCancellationRequested();

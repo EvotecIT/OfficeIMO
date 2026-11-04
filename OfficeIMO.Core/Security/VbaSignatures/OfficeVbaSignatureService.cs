@@ -27,7 +27,7 @@ internal static partial class OfficeVbaSignatureService {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeVbaSignatureInspectionOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         return InspectCore(filePath, securityProvider, options ?? new OfficeVbaSignatureInspectionOptions());
     }
 
@@ -36,7 +36,7 @@ internal static partial class OfficeVbaSignatureService {
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeVbaSignatureInspectionOptions? options = null) {
-        if (securityProvider == null) throw new ArgumentNullException(nameof(securityProvider));
+        ArgumentNullException.ThrowIfNull(securityProvider);
         options ??= new OfficeVbaSignatureInspectionOptions();
         OfficeVbaSignatureInfo info = Inspect(filePath, securityProvider, options);
         var findings = new List<OfficeVbaSignatureFinding>(info.Findings);
@@ -412,12 +412,12 @@ internal static partial class OfficeVbaSignatureService {
     }
 
     private static void ValidateOptions(OfficeVbaSignatureInspectionOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.Package.Validate();
-        if (options.MaxMacroProjectBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxMacroProjectBytes));
-        if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
-        if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
-        if (options.MaxRelationships <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxMacroProjectBytes, nameof(options.MaxMacroProjectBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatureBytes, nameof(options.MaxSignatureBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalSignatureBytes, nameof(options.MaxTotalSignatureBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxRelationships, nameof(options.MaxRelationships));
     }
 
     private static XDocument LoadXml(byte[] bytes) {

@@ -89,7 +89,7 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static RtfUserProperty ToRtfUserProperty(string name, WordCustomProperty property) {
-        if (property == null) throw new ArgumentNullException(nameof(property));
+        ArgumentNullException.ThrowIfNull(property);
 
         switch (property.PropertyType) {
             case WordCustomPropertyType.DateTime:

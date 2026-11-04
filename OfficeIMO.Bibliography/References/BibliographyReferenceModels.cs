@@ -23,12 +23,12 @@ public sealed class BibliographyReferenceOptions {
 
     internal BibliographyReferenceOptions Snapshot() {
         var copy = (BibliographyReferenceOptions)MemberwiseClone();
-        if (copy.MaxItems <= 0) throw new ArgumentOutOfRangeException(nameof(MaxItems));
-        if (copy.MaxReferences <= 0) throw new ArgumentOutOfRangeException(nameof(MaxReferences));
-        if (copy.MaxDepth < 0) throw new ArgumentOutOfRangeException(nameof(MaxDepth));
-        if (copy.MaxValues <= 0) throw new ArgumentOutOfRangeException(nameof(MaxValues));
-        if (copy.MaxExpandedCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxExpandedCharacters));
-        if (copy.MaxDiagnostics <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDiagnostics));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxItems, nameof(MaxItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxReferences, nameof(MaxReferences));
+        ArgumentOutOfRangeException.ThrowIfNegative(copy.MaxDepth, nameof(MaxDepth));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxValues, nameof(MaxValues));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxExpandedCharacters, nameof(MaxExpandedCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxDiagnostics, nameof(MaxDiagnostics));
         return copy;
     }
 }

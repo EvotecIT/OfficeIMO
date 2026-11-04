@@ -57,7 +57,7 @@ public static class HtmlPdfAccessibilityValidator {
     /// the operation's retained source evidence instead of recomputing source styles.
     /// </remarks>
     public static HtmlPdfAccessibilityValidationResult Validate(HtmlConversionDocument sourceDocument, byte[] pdfBytes) {
-        if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
+        ArgumentNullException.ThrowIfNull(sourceDocument);
         HtmlPdfAccessibilityValidationResult artifactResult = Validate(pdfBytes);
         var issues = new List<HtmlPdfAccessibilityIssue>(artifactResult.Issues);
         var document = sourceDocument.CreateNativeDocumentForConversion(HtmlCssMediaContext.Print);
@@ -76,7 +76,7 @@ public static class HtmlPdfAccessibilityValidator {
     /// </remarks>
     public static HtmlPdfAccessibilityValidationResult Validate(HtmlPdfRenderRequestResult rendered,
         CancellationToken cancellationToken = default) {
-        if (rendered == null) throw new ArgumentNullException(nameof(rendered));
+        ArgumentNullException.ThrowIfNull(rendered);
         cancellationToken.ThrowIfCancellationRequested();
         int missingNames = rendered.RenderResult.Document.SourceImagesMissingNames
             ?? throw new InvalidOperationException("The render result does not retain source accessibility evidence.");
@@ -94,7 +94,7 @@ public static class HtmlPdfAccessibilityValidator {
 
     /// <summary>Validates language, tag roots, parent-tree evidence, hierarchy links, marked content, tables, lists, links, and figure alternate text.</summary>
     public static HtmlPdfAccessibilityValidationResult Validate(byte[] pdfBytes) {
-        if (pdfBytes == null) throw new ArgumentNullException(nameof(pdfBytes));
+        ArgumentNullException.ThrowIfNull(pdfBytes);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdfBytes);
         var issues = new List<HtmlPdfAccessibilityIssue>();
         if (string.IsNullOrWhiteSpace(info.CatalogLanguage)) {

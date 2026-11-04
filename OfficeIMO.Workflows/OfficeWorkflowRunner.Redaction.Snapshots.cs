@@ -104,7 +104,7 @@ public sealed partial class OfficeWorkflowRunner {
         internal PreparedByteBudget(long capacity) => _available = capacity;
 
         internal PreparedByteReservation Reserve(long bytes) {
-            if (bytes < 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(bytes);
             lock (_gate) {
                 if (bytes > _available) {
                     throw new RedactionWorkflowException("Atomic batch preparation would exceed the configured aggregate prepared-byte budget.");
@@ -129,7 +129,8 @@ public sealed partial class OfficeWorkflowRunner {
         internal PreparedByteReservation(PreparedByteBudget owner, long bytes) { _owner = owner; _bytes = bytes; }
 
         internal void Resize(long bytes) {
-            if (bytes < 0 || bytes > _bytes) throw new ArgumentOutOfRangeException(nameof(bytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(bytes);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(bytes, _bytes);
             long released = _bytes - bytes;
             _bytes = bytes;
             _owner?.Release(released);

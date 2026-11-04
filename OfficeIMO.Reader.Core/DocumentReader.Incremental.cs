@@ -37,7 +37,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     internal static IEnumerable<ReaderChunk> EnumerateChunks(Stream stream, string? name, ReaderOptions options, CancellationToken token) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         string sourceName = NormalizeLogicalSourceName(name, "memory");
         // Forward-only extraction is selected only by an exact registered extension.

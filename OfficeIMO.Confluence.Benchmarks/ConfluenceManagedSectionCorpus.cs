@@ -8,7 +8,7 @@ internal static class ConfluenceManagedSectionCorpusFactory {
     internal const string SectionId = "benchmark-report";
 
     internal static ConfluenceManagedSectionCorpus Create(int pageCharacters) {
-        if (pageCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(pageCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageCharacters);
         string start = OfficeIMO.Confluence.ConfluenceManagedSection.StartMarker(SectionId);
         string end = OfficeIMO.Confluence.ConfluenceManagedSection.EndMarker(SectionId);
         string paragraph = "<p>Representative Confluence storage content with stable text and links.</p>\n";

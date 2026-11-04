@@ -17,7 +17,7 @@ public static partial class MapiKnownProperties {
 
     /// <summary>Finds a published key by canonical name.</summary>
     public static MapiPropertyKey? Find(string canonicalName) {
-        if (canonicalName == null) throw new ArgumentNullException(nameof(canonicalName));
+        ArgumentNullException.ThrowIfNull(canonicalName);
         return Known.Value.FirstOrDefault(key => string.Equals(key.CanonicalName, canonicalName,
             StringComparison.OrdinalIgnoreCase));
     }
@@ -35,7 +35,7 @@ public static partial class MapiKnownProperties {
 
     /// <summary>Finds a published key matching a retained MAPI property's identity and wire type.</summary>
     public static MapiPropertyKey? Find(MapiProperty property) {
-        if (property == null) throw new ArgumentNullException(nameof(property));
+        ArgumentNullException.ThrowIfNull(property);
         return Known.Value.FirstOrDefault(key => key.Matches(property));
     }
 
@@ -46,7 +46,7 @@ public static partial class MapiKnownProperties {
 
     /// <summary>Finds a published string named-property key.</summary>
     public static MapiPropertyKey? Find(Guid propertySet, string name) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         return Known.Value.FirstOrDefault(key => key.Name?.PropertySet == propertySet &&
             string.Equals(key.Name.Name, name, StringComparison.OrdinalIgnoreCase));
     }

@@ -34,13 +34,13 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
         OcrReviewPolicy? reviewPolicy = null, TimeSpan? timeout = null, int maximumSpans = 100_000,
         int maximumTextCharacters = 1_000_000, long maximumInputBytes = 25L * 1024 * 1024) {
         Id = OcrEngineRunner.ValidateEngineId(id, nameof(id));
-        if (attempts == null) throw new ArgumentNullException(nameof(attempts));
+        ArgumentNullException.ThrowIfNull(attempts);
         if (attempts.Count < 1 || attempts.Count > 4) throw new ArgumentOutOfRangeException(nameof(attempts));
         _timeout = timeout ?? TimeSpan.FromMinutes(1);
         if (_timeout <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(timeout));
-        if (maximumSpans < 1) throw new ArgumentOutOfRangeException(nameof(maximumSpans));
-        if (maximumTextCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maximumTextCharacters));
-        if (maximumInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumInputBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumSpans, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumTextCharacters, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumInputBytes, 1);
         _engines = new OcrEngineExecution[attempts.Count]; _names = new string[attempts.Count];
         for (int index = 0; index < attempts.Count; index++) {
             OcrRecognitionAttempt item = attempts[index] ?? throw new ArgumentException("An attempt cannot be null.", nameof(attempts));
@@ -67,7 +67,7 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
 
     /// <inheritdoc />
     public async Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Operation == OcrOperation.DetectOrientation) {
             ValidateInput(request, cancellationToken);
             Stopwatch clock = Stopwatch.StartNew();
@@ -85,7 +85,7 @@ public sealed partial class AdaptiveOcrEngine : IOcrEngine {
 
     /// <summary>Recognizes text and returns content-free attempt, uncertainty, disagreement, and selection evidence.</summary>
     public async Task<AdaptiveOcrResult> RecognizeWithReviewAsync(OcrRequest request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Operation != OcrOperation.RecognizeText) throw new ArgumentOutOfRangeException(nameof(request.Operation));
         ValidateInput(request, cancellationToken);
         Stopwatch clock = Stopwatch.StartNew();

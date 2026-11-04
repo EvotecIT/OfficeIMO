@@ -16,9 +16,7 @@ internal static class ExcelBenchmarkSnapshotRunner {
         if (string.IsNullOrWhiteSpace(outputPath)) {
             throw new ArgumentException("Output path must not be empty.", nameof(outputPath));
         }
-        if (rowCount <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(rowCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 
         var rows = ExcelBenchmarkScenarioFactory.CreateSalesRecords(rowCount);
         var workbookBytes = ExcelBenchmarkScenarioFactory.CreateWorkbookBytes(rows);

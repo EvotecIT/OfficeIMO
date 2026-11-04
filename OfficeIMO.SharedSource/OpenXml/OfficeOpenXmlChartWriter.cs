@@ -30,7 +30,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static void PopulateSharedChart(ChartPart chartPart, string embeddedRelId, OfficeChartData data,
             OfficeChartType defaultKind, OfficeTheme? theme = null) {
-            if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
+            ArgumentNullException.ThrowIfNull(chartPart);
             ValidateSharedChartData(data, defaultKind);
 
             C.ChartSpace chartSpace = new();
@@ -62,7 +62,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static void UpdateSharedChartData(ChartPart chartPart, OfficeChartData data,
             OfficeChartType defaultKind, OfficeTheme? theme = null) {
-            if (chartPart == null) throw new ArgumentNullException(nameof(chartPart));
+            ArgumentNullException.ThrowIfNull(chartPart);
             ValidateSharedChartData(data, defaultKind);
 
             C.ChartSpace chartSpace = chartPart.ChartSpace ??

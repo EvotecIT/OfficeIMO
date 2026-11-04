@@ -13,7 +13,7 @@ namespace OfficeIMO.Mhtml;
 public static partial class MhtmlPdfConverterExtensions {
     internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this MhtmlDocument document, HtmlPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return Task.Run(() => document.ConvertToPdfWithEvidenceAsync(options, cancellationToken))
             .GetAwaiter()
             .GetResult();
@@ -23,7 +23,7 @@ public static partial class MhtmlPdfConverterExtensions {
         this MhtmlDocument document,
         HtmlPdfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument
             .ConvertToPdfWithEvidenceAsync(PrepareMhtmlOptions(document, options), cancellationToken)
@@ -36,8 +36,8 @@ public static partial class MhtmlPdfConverterExtensions {
         this MhtmlDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(request);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlPdfExportOptions options = PrepareMhtmlOptions(document, new HtmlPdfExportOptions(request.Options));
         PdfCore.PdfDocumentConversionResult result = await document.HtmlDocument

@@ -12,8 +12,8 @@ namespace OfficeIMO.PowerPoint {
         /// <returns>The resolved plan, design, rendered slides, and preflight report.</returns>
         public PowerPointCompositionResult Compose(PowerPointDeckPlan plan, PowerPointCompositionOptions options) {
             ThrowIfDisposed();
-            if (plan == null) throw new ArgumentNullException(nameof(plan));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(plan);
+            ArgumentNullException.ThrowIfNull(options);
 
             PowerPointDeckPlan resolvedPlan = options.ExpandContinuations
                 ? plan.WithContinuations(options.Continuation)
@@ -58,8 +58,8 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<PowerPointDeckPlanSlideRenderSummary> PreviewComposition(
             PowerPointDeckPlan plan, PowerPointCompositionOptions options) {
             ThrowIfDisposed();
-            if (plan == null) throw new ArgumentNullException(nameof(plan));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(plan);
+            ArgumentNullException.ThrowIfNull(options);
 
             PowerPointDeckPlan resolvedPlan = options.ExpandContinuations
                 ? plan.WithContinuations(options.Continuation)

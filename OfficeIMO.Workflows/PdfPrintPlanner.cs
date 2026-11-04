@@ -166,7 +166,7 @@ public static class PdfPrintPlanner {
     /// <remarks>The document's authenticated permission policy governs printing. The request input path identifies
     /// the original source and may be a provider URI; its password and permission policy do not reopen the document.</remarks>
     public static PdfPrintPlan Create(PdfDocument document, PdfPrintPlanRequest request, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return CreateAsync(request, (_, _, _) => Task.FromResult(document), cancellationToken).GetAwaiter().GetResult();
     }
 
@@ -191,8 +191,8 @@ public static class PdfPrintPlanner {
         PdfPrintPlanRequest request,
         Func<string, PdfLoadOptions, CancellationToken, Task<PdfDocument>> loadDocument,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
-        if (loadDocument == null) throw new ArgumentNullException(nameof(loadDocument));
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentNullException.ThrowIfNull(loadDocument);
         cancellationToken.ThrowIfCancellationRequested();
         if ((request.InputPath == null || string.IsNullOrWhiteSpace(request.InputPath))) throw new ArgumentException("Input path cannot be empty.", nameof(request));
         if (request.PagesPerSheet is not 1 and not 2 and not 4 and not 6 and not 9) throw new ArgumentOutOfRangeException(nameof(request.PagesPerSheet));

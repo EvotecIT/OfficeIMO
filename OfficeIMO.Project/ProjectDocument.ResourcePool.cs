@@ -9,9 +9,9 @@ public sealed partial class ProjectDocument {
     public ProjectResourcePoolResult AnalyzeResourcePool(IEnumerable<ProjectResourcePoolBinding> bindings,
         int maxIntervals = 1_000_000, int maxBindings = 10_000, CancellationToken cancellationToken = default) {
         EnsureNotDisposed();
-        if (bindings == null) throw new ArgumentNullException(nameof(bindings));
-        if (maxIntervals < 1) throw new ArgumentOutOfRangeException(nameof(maxIntervals));
-        if (maxBindings < 1) throw new ArgumentOutOfRangeException(nameof(maxBindings));
+        ArgumentNullException.ThrowIfNull(bindings);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxIntervals, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxBindings, 1);
         if (HasActiveUpdate) throw new InvalidOperationException("Pool analysis requires completed document updates.");
         long revision = Revision;
         var selected = new List<ProjectResourcePoolBinding>();

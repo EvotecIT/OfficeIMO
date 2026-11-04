@@ -16,7 +16,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="options">Extraction options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (Directory.Exists(path)) return ReadDirectoryBundle(path, options, cancellationToken);
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
@@ -47,7 +47,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="options">Extraction options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName = null, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         ReaderOptions opt = NormalizeOptions(options);
@@ -138,7 +138,7 @@ internal static partial class DocumentReaderEngine {
     /// <param name="options">Extraction options.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     public static OfficeDocumentReadResult ReadDocument(byte[] bytes, string? sourceName = null, ReaderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var ms = new MemoryStream(bytes, writable: false);
         return ReadDocument(ms, sourceName, options, cancellationToken);
     }

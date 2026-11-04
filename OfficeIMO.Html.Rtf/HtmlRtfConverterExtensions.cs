@@ -8,9 +8,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlRtfConverterExtensions {
 
     private static string ToHtmlCore(RtfDocument document, RtfHtmlExportOptions effectiveOptions) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         HtmlConversionProfileContracts.Get(effectiveOptions.SharedProfile);
         effectiveOptions.DocumentOutput.Validate();

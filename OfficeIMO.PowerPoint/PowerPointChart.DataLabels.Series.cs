@@ -17,9 +17,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false,
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -44,9 +42,7 @@ namespace OfficeIMO.PowerPoint {
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -69,9 +65,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true,
             OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesIndex, showValue: enabled, showCategoryName: false, showSeriesName: false,
@@ -85,9 +79,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true,
             OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesName, showValue: enabled, showCategoryName: false, showSeriesName: false,
@@ -101,9 +93,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -123,9 +113,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -145,9 +133,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -167,9 +153,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelShapeStyle(string seriesName, string? fillColor = null, string? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -189,9 +173,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null,
             OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -211,9 +193,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = true, string? lineColor = null,
             OfficeLength? lineWidth = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -232,9 +212,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the data label separator for a series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelSeparator(int seriesIndex, string? separator) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (separator != null && string.IsNullOrWhiteSpace(separator)) {
                 throw new ArgumentException("Separator cannot be empty.", nameof(separator));
             }
@@ -255,9 +233,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Sets the data label separator for a series by name.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelSeparator(string seriesName, string? separator, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (separator != null && string.IsNullOrWhiteSpace(separator)) {
                 throw new ArgumentException("Separator cannot be empty.", nameof(separator));
             }
@@ -278,12 +254,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies a reusable data label template to a series by index.
         /// </summary>
         public PowerPointChart SetSeriesDataLabelTemplate(int seriesIndex, PowerPointChartDataLabelTemplate template) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (template == null) {
-                throw new ArgumentNullException(nameof(template));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentNullException.ThrowIfNull(template);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 ApplyDataLabelTemplate(series, template);
@@ -302,12 +274,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointChart SetSeriesDataLabelTemplate(string seriesName, PowerPointChartDataLabelTemplate template,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (template == null) {
-                throw new ArgumentNullException(nameof(template));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentNullException.ThrowIfNull(template);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplyDataLabelTemplate(series, template);
@@ -325,9 +293,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes series-level data label settings by series index.
         /// </summary>
         public PowerPointChart ClearSeriesDataLabels(int seriesIndex) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, RemoveDataLabels);
 
@@ -343,9 +309,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes series-level data label settings by series name.
         /// </summary>
         public PowerPointChart ClearSeriesDataLabels(string seriesName, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, RemoveDataLabels);
 

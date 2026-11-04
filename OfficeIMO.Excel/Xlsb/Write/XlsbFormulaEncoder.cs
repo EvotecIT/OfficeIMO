@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal static bool TryEncode(string formulaText, LegacyXlsFormulaNameIndex names, int sheetIndex, Func<ushort, ushort>? mapExternal,
             out byte[] formulaPayload, out string? reason, bool arrayFormula = false) {
             formulaPayload = Array.Empty<byte>();
-            if (formulaText == null) throw new ArgumentNullException(nameof(formulaText));
+            ArgumentNullException.ThrowIfNull(formulaText);
         if (formulaText.Length > MaximumFormulaCharacters) {
                 reason = $"Formula text exceeds the supported limit of {MaximumFormulaCharacters} characters.";
             return false;

@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Google {
         }
 
         public static void PrintExportFailure(GoogleWorkspaceExportException exception) {
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(exception);
 
             foreach (var entry in exception.ToDiagnosticEntries()) {
                 string failureKind = entry.FailureKind.HasValue

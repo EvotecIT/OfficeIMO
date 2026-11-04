@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static GoogleSheetsApiTableRowsPropertiesPayload? BuildTableRowsProperties(GoogleSheetsAddTableRequest table) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             var headerColorStyle = BuildColorStyle(table.HeaderColorArgb);
             var firstBandColorStyle = BuildColorStyle(table.FirstBandColorArgb);
             var secondBandColorStyle = BuildColorStyle(table.SecondBandColorArgb);

@@ -11,8 +11,8 @@ namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceInfo source, bool computeHashes) {
-        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(chunk);
+        ArgumentNullException.ThrowIfNull(source);
         ReaderReadScope.Current?.Budget?.AddChunk(chunk);
         chunk.Location ??= new ReaderLocation();
         chunk.Location.Path ??= source.Path;

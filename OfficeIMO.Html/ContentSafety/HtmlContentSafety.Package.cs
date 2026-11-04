@@ -101,7 +101,7 @@ public static partial class HtmlContentSafety {
         OfficeContentCleanupSelection selection,
         OfficeContentSafetyOptions? options,
         CancellationToken cancellationToken) {
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(selection);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         effective.Validate();
         ValidateAggregatePackageText(parts, effective);

@@ -29,7 +29,7 @@ internal static class OfficeTextSearch {
         options?.MatchCase == true ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
 
     internal static void ValidateSearchText(string text, string parameterName) {
-        if (text == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(text, parameterName);
         if (text.Length == 0) throw new ArgumentException("Search text cannot be empty.", parameterName);
     }
 

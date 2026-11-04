@@ -15,7 +15,7 @@ public sealed class AsciiDocDocumentAttributes {
 
     /// <summary>Applies an assignment or unset, optionally resolving value references against the preceding snapshot.</summary>
     public AsciiDocDocumentAttributes Apply(AsciiDocAttributeEntry entry, bool expandReferences = false) {
-        if (entry == null) throw new ArgumentNullException(nameof(entry));
+        ArgumentNullException.ThrowIfNull(entry);
         if (entry.IsUnset) return new AsciiDocDocumentAttributes(_values.Remove(entry.Name));
         string value = expandReferences ? AsciiDocAttributeSubstitutor.Substitute(entry.Value, this).Value : entry.Value;
         return new AsciiDocDocumentAttributes(_values.Set(entry.Name, value));
@@ -29,13 +29,13 @@ public sealed class AsciiDocDocumentAttributes {
 
     /// <summary>Tests whether an attribute is set.</summary>
     public bool Contains(string name) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         return _values.ContainsKey(name);
     }
 
     /// <summary>Gets an attribute value when set.</summary>
     public bool TryGetValue(string name, out string value) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         return _values.TryGetValue(name, out value!);
     }
 

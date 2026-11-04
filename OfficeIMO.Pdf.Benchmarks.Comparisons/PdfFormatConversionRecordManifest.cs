@@ -7,9 +7,7 @@ internal static class PdfFormatConversionRecordManifest {
     internal const string Description = "Deterministic account conversion evidence";
 
     internal static IReadOnlyList<string> CreateRequiredText(string heading, int recordCount = RecordCount, string? structureMarker = null) {
-        if (recordCount < 1) {
-            throw new ArgumentOutOfRangeException(nameof(recordCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(recordCount, 1);
 
         var required = new List<string>(3 + (recordCount * 4)) {
             heading,

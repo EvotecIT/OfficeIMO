@@ -18,13 +18,9 @@ public static class MarkdownReaderOptionsExtensions {
     /// Applies a renderer plugin's reader-side contract to markdown reader options.
     /// </summary>
     public static void ApplyPlugin(this MarkdownLoadOptions options, MarkdownRendererPlugin plugin) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (plugin == null) {
-            throw new ArgumentNullException(nameof(plugin));
-        }
+        ArgumentNullException.ThrowIfNull(plugin);
 
         var state = ReaderStates.GetOrCreateValue(options);
         if (!state.PluginIds.Add(plugin.Id)) {
@@ -38,13 +34,9 @@ public static class MarkdownReaderOptionsExtensions {
     /// Returns <see langword="true"/> when a renderer plugin's reader-side contract has already been applied.
     /// </summary>
     public static bool HasPlugin(this MarkdownLoadOptions options, MarkdownRendererPlugin plugin) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (plugin == null) {
-            throw new ArgumentNullException(nameof(plugin));
-        }
+        ArgumentNullException.ThrowIfNull(plugin);
 
         var state = ReaderStates.GetOrCreateValue(options);
         return state.PluginIds.Contains(plugin.Id) || plugin.ReaderContractMatches(options);
@@ -54,13 +46,9 @@ public static class MarkdownReaderOptionsExtensions {
     /// Applies a renderer feature pack's reader-side contract to markdown reader options.
     /// </summary>
     public static void ApplyFeaturePack(this MarkdownLoadOptions options, MarkdownRendererFeaturePack featurePack) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (featurePack == null) {
-            throw new ArgumentNullException(nameof(featurePack));
-        }
+        ArgumentNullException.ThrowIfNull(featurePack);
 
         var state = ReaderStates.GetOrCreateValue(options);
         if (!state.FeaturePackIds.Add(featurePack.Id)) {
@@ -74,13 +62,9 @@ public static class MarkdownReaderOptionsExtensions {
     /// Returns <see langword="true"/> when a renderer feature pack's reader-side contract has already been applied.
     /// </summary>
     public static bool HasFeaturePack(this MarkdownLoadOptions options, MarkdownRendererFeaturePack featurePack) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
-        if (featurePack == null) {
-            throw new ArgumentNullException(nameof(featurePack));
-        }
+        ArgumentNullException.ThrowIfNull(featurePack);
 
         var state = ReaderStates.GetOrCreateValue(options);
         return state.FeaturePackIds.Contains(featurePack.Id) || featurePack.ReaderContractMatches(options);

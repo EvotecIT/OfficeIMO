@@ -11,13 +11,14 @@ internal static class OdsRepeatModel {
     }
 
     internal static void Set(XElement element, XName attribute, long value) {
-        if (value < 1) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
         element.SetAttributeValue(attribute, value == 1 ? (long?)null : value);
     }
 
     internal static XElement Split(XElement element, XName repeatAttribute, long offset) {
         long count = Read(element, repeatAttribute);
-        if (offset < 0 || offset >= count) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(offset, count);
         if (count == 1) return element;
 
         var replacements = new List<XElement>(3);
@@ -40,7 +41,7 @@ internal static class OdsRepeatModel {
     }
 
     internal static OdfRepeatedElementPosition Resolve(IReadOnlyList<XElement> elements, XName repeatAttribute, long logicalIndex) {
-        if (logicalIndex < 0) throw new ArgumentOutOfRangeException(nameof(logicalIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(logicalIndex);
         long start = 0;
         foreach (XElement element in elements) {
             long repeat = Read(element, repeatAttribute);

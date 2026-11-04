@@ -146,9 +146,7 @@ namespace OfficeIMO.PowerPoint {
 
         private uint AllocateShapeIds(int count) {
             EnsureShapesLoaded();
-            if (count <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(count));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(count);
             ulong lastShapeId = (ulong)_nextShapeId
                 + unchecked((uint)count) - 1UL;
             if (_shapeIdsExhausted || lastShapeId > uint.MaxValue) {

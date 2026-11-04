@@ -102,7 +102,7 @@ internal sealed class EmailStoreExportPathBuilder {
 
     internal static string SanitizeSegmentByUtf8Bytes(string? value, int maximumLength,
         int maximumBytes, string fallback) {
-        if (maximumBytes < 1) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumBytes, 1);
         if (string.IsNullOrWhiteSpace(value)) return fallback;
         var builder = new StringBuilder(Math.Min(value!.Length, maximumLength));
         int bytes = 0;
@@ -129,7 +129,7 @@ internal sealed class EmailStoreExportPathBuilder {
     }
 
     internal static string GetStableHash(string value) {
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         ulong hash = 14695981039346656037UL;
         foreach (byte item in Encoding.UTF8.GetBytes(value)) {
             hash ^= item;

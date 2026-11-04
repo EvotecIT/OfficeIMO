@@ -10,7 +10,7 @@ public sealed class EmailStoreEnumerationOptions {
         bool includeOrphanedItems = false,
         int maxItems = int.MaxValue,
         bool includeRegularItems = true) {
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
         if (!includeRegularItems && !includeAssociatedItems) {
             throw new ArgumentException("At least one regular or associated item scope must be included.");
         }

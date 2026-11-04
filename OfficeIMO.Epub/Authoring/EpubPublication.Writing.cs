@@ -122,7 +122,7 @@ public sealed partial class EpubPublication {
     }
     /// <summary>Writes a staged complete artifact to a caller-owned stream. Seekable streams are replaced and rewound.</summary>
     public EpubWriteReport Save(Stream stream, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         EpubWriteResult result = Write(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeStreamWriter.Write(stream, destination => WritePayload(destination, result.Bytes, cancellationToken));
@@ -142,7 +142,7 @@ public sealed partial class EpubPublication {
     }
     /// <summary>Asynchronously writes a staged artifact without closing the destination stream.</summary>
     public async Task<EpubWriteReport> SaveAsync(Stream stream, EpubSaveOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         EpubWriteResult result = Write(options, cancellationToken);
         await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
         return result.Report;

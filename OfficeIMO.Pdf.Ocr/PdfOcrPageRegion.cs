@@ -4,7 +4,7 @@ namespace OfficeIMO.Pdf.Ocr;
 public sealed class PdfOcrPageRegion {
     /// <summary>Creates a nonempty rectangle inside one one-based page.</summary>
     public PdfOcrPageRegion(int pageNumber, double x, double y, double width, double height) {
-        if (pageNumber < 1) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageNumber, 1);
         if (!Finite(x) || !Finite(y) || !Finite(width) || !Finite(height) || x < 0 || y < 0 ||
             width <= 0 || height <= 0 || x + width > 1 || y + height > 1)
             throw new ArgumentException("OCR regions must be nonempty normalized rectangles inside the visual page.");

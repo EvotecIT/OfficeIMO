@@ -12,9 +12,7 @@ namespace OfficeIMO.PowerPoint {
         //     Represents a chart on a slide.
         public partial class PowerPointChart : PowerPointShape {
         private PowerPointChart SetAxisTitle<TAxis>(string title, Func<TAxis, bool>? predicate = null) where TAxis : OpenXmlCompositeElement {
-            if (title == null) {
-                throw new ArgumentNullException(nameof(title));
-            }
+            ArgumentNullException.ThrowIfNull(title);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();

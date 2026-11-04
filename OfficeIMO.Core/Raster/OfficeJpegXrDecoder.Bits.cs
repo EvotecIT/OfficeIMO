@@ -22,7 +22,8 @@ internal static partial class OfficeJpegXrDecoder {
         internal int ByteOffset => _offset;
         internal long BitOffset => (long)_offset * 8 + (_remaining == 0 ? 0 : 8 - _remaining);
         internal uint Read(int count) {
-            if (count < 0 || count > 32) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
             if ((_reads++ & 1023) == 0) _cancellation.ThrowIfCancellationRequested();
             uint value = 0;
             while (count != 0) {

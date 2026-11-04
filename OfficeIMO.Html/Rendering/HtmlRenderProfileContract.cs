@@ -80,7 +80,7 @@ public sealed class HtmlRenderProfileContract {
     }
 
     private static IReadOnlyList<T> Snapshot<T>(IEnumerable<T> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         return values.Distinct().ToList().AsReadOnly();
     }
 }

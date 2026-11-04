@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
             out uint customShowId,
             out bool returnsToSlide,
             out string? reason) {
-            if (hyperlink == null) throw new ArgumentNullException(nameof(hyperlink));
+            ArgumentNullException.ThrowIfNull(hyperlink);
             customShowId = 0;
             returnsToSlide = false;
             reason = null;

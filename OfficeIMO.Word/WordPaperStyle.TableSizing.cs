@@ -15,8 +15,8 @@ public sealed partial class WordPaperStyle {
     /// </remarks>
     /// <exception cref="InvalidOperationException">The header minima exceed the available width, or the table has merged or irregular rows.</exception>
     public void FitTableColumnsToHeaders(WordTable table, params int[] relativeWidths) {
-        if (table == null) throw new ArgumentNullException(nameof(table));
-        if (relativeWidths == null) throw new ArgumentNullException(nameof(relativeWidths));
+        ArgumentNullException.ThrowIfNull(table);
+        ArgumentNullException.ThrowIfNull(relativeWidths);
         List<WordTableRow> rows = table.Rows;
         int count = rows.Count == 0 ? 0 : rows[0].Cells.Count;
         if (count == 0) throw new InvalidOperationException("Header-aware sizing requires a populated header row.");

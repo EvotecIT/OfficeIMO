@@ -20,7 +20,7 @@ public sealed class EmailStoreSearchReport {
 public sealed partial class EmailStoreSession {
     /// <summary>Searches lightweight summaries and reports scan/result limits. Use content search for durable resumable batches.</summary>
     public EmailStoreSearchReport SearchWithReport(EmailStoreQuery query, CancellationToken cancellationToken = default) {
-        if (query == null) throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
         ThrowIfDisposed();
         var enumeration = new EmailStoreEnumerationOptions(query.FolderId, query.IncludeDescendants,
             query.IncludeAssociatedItems, query.IncludeOrphanedItems,

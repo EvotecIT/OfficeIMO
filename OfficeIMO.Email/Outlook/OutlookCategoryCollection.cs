@@ -15,7 +15,7 @@ public sealed class OutlookCategoryCollection : IList<string> {
 
     /// <summary>Replaces the collection, optionally removing case-insensitive duplicates.</summary>
     public void ReplaceWith(IEnumerable<string> categories, bool removeDuplicates = true) {
-        if (categories == null) throw new ArgumentNullException(nameof(categories));
+        ArgumentNullException.ThrowIfNull(categories);
         string[] replacement = categories.Select(Validate).ToArray();
         _items.Clear();
         foreach (string category in replacement) {
@@ -38,7 +38,7 @@ public sealed class OutlookCategoryCollection : IList<string> {
 
     /// <summary>Returns whether the collection contains a category using the requested comparison.</summary>
     public bool Contains(string category, StringComparer comparer) {
-        if (comparer == null) throw new ArgumentNullException(nameof(comparer));
+        ArgumentNullException.ThrowIfNull(comparer);
         string normalized = Validate(category);
         return _items.Any(existing => comparer.Equals(existing, normalized));
     }
@@ -85,7 +85,7 @@ public sealed class OutlookCategoryCollection : IList<string> {
     }
 
     private static string Validate(string category) {
-        if (category == null) throw new ArgumentNullException(nameof(category));
+        ArgumentNullException.ThrowIfNull(category);
         string normalized = category.Trim();
         if (normalized.Length == 0) throw new ArgumentException("A category name cannot be empty.", nameof(category));
         return normalized;

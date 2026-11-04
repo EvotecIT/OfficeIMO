@@ -12,7 +12,7 @@ namespace OfficeIMO.Reader;
 public static class OfficeDocumentAssetHash {
     /// <summary>Hashes the remaining stream bytes while observing cancellation. Leaves the stream open at the consumed position.</summary>
     public static string ComputeSha256Hex(Stream stream, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         using var sha = SHA256.Create();
         var buffer = new byte[81920];
         while (true) {
@@ -33,7 +33,7 @@ public static class OfficeDocumentAssetHash {
     /// </summary>
     /// <param name="payload">Asset payload bytes.</param>
     public static string ComputeSha256Hex(byte[] payload) {
-        if (payload == null) throw new ArgumentNullException(nameof(payload));
+        ArgumentNullException.ThrowIfNull(payload);
 
         using var sha = SHA256.Create();
         byte[] hash = sha.ComputeHash(payload);
@@ -51,7 +51,7 @@ public static class OfficeDocumentAssetHash {
     /// <param name="asset">Asset to validate.</param>
     /// <param name="actualHash">Computed SHA-256 hash when validation could run.</param>
     public static bool PayloadHashMatches(this OfficeDocumentAsset asset, out string? actualHash) {
-        if (asset == null) throw new ArgumentNullException(nameof(asset));
+        ArgumentNullException.ThrowIfNull(asset);
 
         byte[]? payload = asset.PayloadBytes;
         if (payload == null || payload.Length == 0 || string.IsNullOrWhiteSpace(asset.PayloadHash)) {

@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal bool TryInsertOwnedDataTableAsDeferredDirectSave(DataTable table, int startRow, bool includeHeaders, string range) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             if (string.IsNullOrEmpty(range)) {
                 return false;
             }
@@ -32,9 +32,9 @@ namespace OfficeIMO.Excel {
             int startRow,
             bool includeHeaders,
             string range) {
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(rows);
             if (string.IsNullOrEmpty(range)) {
                 return false;
             }
@@ -69,9 +69,9 @@ namespace OfficeIMO.Excel {
             string range,
             bool includeCellReferences = true,
             bool valuesMatchColumnTypes = false) {
-            if (columnNames == null) throw new ArgumentNullException(nameof(columnNames));
-            if (columnTypes == null) throw new ArgumentNullException(nameof(columnTypes));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(columnNames);
+            ArgumentNullException.ThrowIfNull(columnTypes);
+            ArgumentNullException.ThrowIfNull(values);
             if (string.IsNullOrEmpty(range)) {
                 return false;
             }

@@ -111,7 +111,7 @@ public readonly struct IcsTemporalValue : IEquatable<IcsTemporalValue> {
 
     /// <summary>Applies this value and its VALUE/TZID parameters to a property.</summary>
     public void ApplyTo(ContentLineProperty property) {
-        if (property == null) throw new ArgumentNullException(nameof(property));
+        ArgumentNullException.ThrowIfNull(property);
         RemoveParameter(property, "VALUE");
         RemoveParameter(property, "TZID");
         switch (Kind) {

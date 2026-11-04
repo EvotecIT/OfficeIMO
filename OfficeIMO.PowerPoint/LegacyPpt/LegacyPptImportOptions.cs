@@ -42,15 +42,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public string? Password { get; set; }
 
         internal void Validate() {
-            if (MaxInputBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxInputBytes));
-            if (MaxRecordCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxRecordCount));
-            if (MaxSlideCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxSlideCount));
-            if (MaxRecordDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxRecordDepth));
-            if (MaxMasterCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxMasterCount));
-            if (MaxConnectorRuleCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxConnectorRuleCount));
-            if (MaxCommentCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxCommentCount));
-            if (MaxTextStyle9EntryCount < 1) throw new ArgumentOutOfRangeException(nameof(MaxTextStyle9EntryCount));
-            if (MaxDecodedStorageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxDecodedStorageBytes));
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxInputBytes, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxRecordCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxSlideCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxRecordDepth, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxMasterCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxConnectorRuleCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxCommentCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxTextStyle9EntryCount, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(MaxDecodedStorageBytes, 1);
         }
     }
 }

@@ -20,8 +20,8 @@ public sealed partial class CsvDocument
         CsvWriteParallelOptions? parallelOptions = null,
         CancellationToken cancellationToken = default)
     {
-        if (writer == null) throw new ArgumentNullException(nameof(writer));
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(writer);
+        ArgumentNullException.ThrowIfNull(reader);
         options ??= new CsvSaveOptions();
         if (options.Append || options.NoClobber)
         {
@@ -47,7 +47,7 @@ public sealed partial class CsvDocument
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         options ??= new CsvSaveOptions();
         cancellationToken.ThrowIfCancellationRequested();
         WritePath(
@@ -73,9 +73,9 @@ public sealed partial class CsvDocument
         bool leaveOpen = true,
         CancellationToken cancellationToken = default)
     {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         options ??= new CsvSaveOptions();
         if (options.Append || options.NoClobber)
         {

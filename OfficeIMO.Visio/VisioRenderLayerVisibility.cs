@@ -12,7 +12,7 @@ internal sealed class VisioRenderLayerVisibility {
     private readonly VisioLayerRenderMode _mode;
 
     internal VisioRenderLayerVisibility(VisioPage page, VisioLayerRenderMode mode) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         if (!Enum.IsDefined(typeof(VisioLayerRenderMode), mode)) throw new ArgumentOutOfRangeException(nameof(mode));
         _mode = mode;
 
@@ -25,13 +25,13 @@ internal sealed class VisioRenderLayerVisibility {
 
     /// <summary>Whether the shape's own geometry, artwork and text participate in this render.</summary>
     internal bool IsVisible(VisioShape shape) {
-        if (shape == null) throw new ArgumentNullException(nameof(shape));
+        ArgumentNullException.ThrowIfNull(shape);
         return IsVisible(shape.LayerNames);
     }
 
     /// <summary>Whether the connector participates, independently of its endpoint shapes.</summary>
     internal bool IsVisible(VisioConnector connector) {
-        if (connector == null) throw new ArgumentNullException(nameof(connector));
+        ArgumentNullException.ThrowIfNull(connector);
         return IsVisible(connector.LayerNames);
     }
 

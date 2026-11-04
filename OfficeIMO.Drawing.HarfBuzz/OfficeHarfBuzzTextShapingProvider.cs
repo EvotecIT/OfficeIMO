@@ -32,7 +32,7 @@ public sealed class OfficeHarfBuzzTextShapingProvider : IOfficeTextShapingProvid
 
     /// <inheritdoc />
     public OfficeTextShapingResult? ShapeText(OfficeTextShapingRequest request) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         request.CancellationToken.ThrowIfCancellationRequested();
         if (request.Text.Length == 0) return null;
         byte[] fontData = request.FontDataForShaping;

@@ -29,7 +29,7 @@ public sealed class OdfGradient {
             }
         }
         set {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             EnsureTwoColorDefinition();
             WritePattern(_element, value);
             XElement[] stops = _element.Elements().ToArray();

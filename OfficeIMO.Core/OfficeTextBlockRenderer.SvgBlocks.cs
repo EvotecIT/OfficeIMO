@@ -33,13 +33,9 @@ public static partial class OfficeTextBlockRenderer {
         double rotationCenterX = 0D,
         double rotationCenterY = 0D,
         bool centerLineInLineHeight = true) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
-        if (layout == null) {
-            throw new ArgumentNullException(nameof(layout));
-        }
+        ArgumentNullException.ThrowIfNull(layout);
 
         if (layout.Lines.Count == 0 || width <= 0D || height <= 0D) {
             return builder;
@@ -194,13 +190,9 @@ public static partial class OfficeTextBlockRenderer {
         OfficeTextDecorationStyle strikethroughStyle,
         OfficeTextBaseline baseline,
         OfficeColor? decorationColor = null) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
-        if (layout == null) {
-            throw new ArgumentNullException(nameof(layout));
-        }
+        ArgumentNullException.ThrowIfNull(layout);
 
         if (layout.Lines.Count == 0 || color.A == 0 || width <= 0D || height <= 0D) {
             return builder;

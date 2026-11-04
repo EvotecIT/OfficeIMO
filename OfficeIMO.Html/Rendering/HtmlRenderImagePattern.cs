@@ -37,7 +37,7 @@ public sealed class HtmlRenderImagePattern : HtmlRenderVisual {
             linkUri: null,
             source,
             layoutY) {
-        if (maximumTileCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTileCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumTileCount);
         if (layout.EstimatedTileCount > maximumTileCount) throw new ArgumentException("Image pattern exceeds the configured tile-count limit.", nameof(layout));
         _data = data ?? throw new ArgumentNullException(nameof(data));
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType;

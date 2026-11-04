@@ -47,7 +47,7 @@ public static class CmsSignedDataVerifier {
         byte[] detachedContent,
         CmsVerificationOptions? options = null) {
 #if NETSTANDARD2_0 || NET472
-        if (detachedContent == null) throw new ArgumentNullException(nameof(detachedContent));
+        ArgumentNullException.ThrowIfNull(detachedContent);
 #else
         ArgumentNullException.ThrowIfNull(detachedContent);
 #endif
@@ -61,7 +61,7 @@ public static class CmsSignedDataVerifier {
         CmsVerificationOptions options,
         CertificateValidationPurpose signerCertificatePurpose) {
 #if NETSTANDARD2_0 || NET472
-        if (detachedContent == null) throw new ArgumentNullException(nameof(detachedContent));
+        ArgumentNullException.ThrowIfNull(detachedContent);
 #else
         ArgumentNullException.ThrowIfNull(detachedContent);
 #endif
@@ -76,7 +76,7 @@ public static class CmsSignedDataVerifier {
         TimestampVerificationBudget timestampBudget,
         CertificateValidationPurpose signerCertificatePurpose) {
 #if NETSTANDARD2_0 || NET472
-        if (detachedContent == null) throw new ArgumentNullException(nameof(detachedContent));
+        ArgumentNullException.ThrowIfNull(detachedContent);
 #else
         ArgumentNullException.ThrowIfNull(detachedContent);
 #endif
@@ -92,7 +92,7 @@ public static class CmsSignedDataVerifier {
         TimestampVerificationBudget? timestampBudget,
         CertificateUsagePurpose signerCertificatePurpose) {
 #if NETSTANDARD2_0 || NET472
-        if (encodedCms == null) throw new ArgumentNullException(nameof(encodedCms));
+        ArgumentNullException.ThrowIfNull(encodedCms);
 #else
         ArgumentNullException.ThrowIfNull(encodedCms);
 #endif
@@ -739,7 +739,7 @@ public static class CmsSignedDataVerifier {
 
     internal static void ValidateOptions(CmsVerificationOptions options) {
 #if NETSTANDARD2_0 || NET472
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
 #else
         ArgumentNullException.ThrowIfNull(options);
 #endif

@@ -55,7 +55,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         /// <summary>Captures the source presentation's current content hashes and optional observed remote revision.</summary>
         /// <remarks>Persist the checkpoint only at a point where it accurately represents the synchronized baseline.</remarks>
         public static GoogleSlidesSyncCheckpoint CreateCheckpoint(PowerPointDocument presentation, string? revisionId = null, long? driveVersion = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             var checkpoint = new GoogleSlidesSyncCheckpoint { HashFormatVersion = CurrentHashFormatVersion, RevisionId = revisionId, DriveVersion = driveVersion };
             foreach (KeyValuePair<string, string> pair in Hashes(presentation)) checkpoint.ContentHashes[pair.Key] = pair.Value;
             return checkpoint;

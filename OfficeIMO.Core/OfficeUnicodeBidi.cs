@@ -55,7 +55,7 @@ internal static class OfficeUnicodeBidi {
 
     /// <summary>Resolves levels. <paramref name="paragraphLevel"/> is 0, 1 or null for P2–P3.</summary>
     internal static Paragraph Resolve(int[] scalars, int? paragraphLevel, CancellationToken cancellationToken = default) {
-        if (scalars == null) throw new ArgumentNullException(nameof(scalars));
+        ArgumentNullException.ThrowIfNull(scalars);
         int length = scalars.Length;
         var original = new OfficeBidiClass[length];
         for (int index = 0; index < length; index++) original[index] = GetClass(scalars[index]);

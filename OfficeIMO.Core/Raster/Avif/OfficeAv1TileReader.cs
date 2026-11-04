@@ -25,8 +25,8 @@ internal sealed class OfficeAv1TileReader {
 
     internal OfficeAv1TileReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence,
         OfficeAv1Tile tile, OfficeRasterDecodeOptions options) {
-        if(sequence==null) throw new ArgumentNullException(nameof(sequence));
-        if(options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         _geometry=new OfficeAv1TileGeometry(frame,tile,sequence.Use128Superblock?128:64);
         _geometry.EnsurePixelBudget(options.MaximumDecodedPixels);
@@ -64,8 +64,8 @@ internal sealed class OfficeAv1TileReader {
 
     /// <summary>Consumes the bounded tile once. CompleteTile is called only after the mandatory trailing bits pass.</summary>
     internal void Read(byte[] bytes, IOfficeAv1TileConsumer consumer) {
-        if(bytes==null) throw new ArgumentNullException(nameof(bytes));
-        if(consumer==null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentNullException.ThrowIfNull(consumer);
         if(_started) throw new InvalidOperationException("The AV1 tile reader cannot be resumed or reused.");
         _started=true; _cancellation.ThrowIfCancellationRequested();
         if(bytes.Length>_maximumEncodedBytes) throw new FormatException("AV1 tile input exceeds the encoded-byte limit.");

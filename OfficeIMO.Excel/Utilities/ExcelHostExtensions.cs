@@ -14,7 +14,7 @@ internal static class ExcelHostExtensions
     /// </summary>
     public static ExcelSheet GetOrCreateSheet(this ExcelDocument document, string? name, ExcelSheetNameValidationMode validationMode)
     {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         var sheetsCollection = document.Sheets ?? new List<ExcelSheet>();
 

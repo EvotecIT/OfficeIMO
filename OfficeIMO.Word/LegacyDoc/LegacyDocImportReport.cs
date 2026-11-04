@@ -8,7 +8,7 @@ namespace OfficeIMO.Word.LegacyDoc {
     /// </summary>
     internal sealed class LegacyDocImportReport {
         internal LegacyDocImportReport(LegacyDocDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             ParagraphCount = document.Paragraphs.Count;
             CharacterCount = document.Text.Length;

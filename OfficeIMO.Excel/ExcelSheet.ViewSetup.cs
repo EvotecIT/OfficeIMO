@@ -203,7 +203,7 @@ namespace OfficeIMO.Excel {
 
         internal void SetWorksheetSelection(string activeCell, IReadOnlyList<string> selectedRanges, PaneValues? pane = null, bool save = true) {
             if (string.IsNullOrWhiteSpace(activeCell)) throw new ArgumentNullException(nameof(activeCell));
-            if (selectedRanges == null) throw new ArgumentNullException(nameof(selectedRanges));
+            ArgumentNullException.ThrowIfNull(selectedRanges);
 
             string sequenceOfReferences = selectedRanges.Count == 0
                 ? activeCell

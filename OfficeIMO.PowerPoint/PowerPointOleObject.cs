@@ -74,9 +74,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Copies the complete embedded OLE compound storage to a stream.</summary>
         public void CopyDataTo(Stream destination) {
-            if (destination == null) {
-                throw new ArgumentNullException(nameof(destination));
-            }
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) {
                 throw new ArgumentException(
                     "Destination stream must be writable.", nameof(destination));
@@ -97,7 +95,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Replaces the embedded storage while retaining its relationship and content type.
         /// </summary>
         public void UpdateData(Stream storage) {
-            if (storage == null) throw new ArgumentNullException(nameof(storage));
+            ArgumentNullException.ThrowIfNull(storage);
             if (!storage.CanRead) {
                 throw new ArgumentException(
                     "OLE storage stream must be readable.", nameof(storage));

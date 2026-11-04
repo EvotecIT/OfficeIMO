@@ -51,7 +51,7 @@ internal static class OfficeArtBlipStoreEntryWriter {
 
     private static PreparedBlip PrepareBlip(byte[] imageBytes,
         string contentType) {
-        if (imageBytes == null) throw new ArgumentNullException(nameof(imageBytes));
+        ArgumentNullException.ThrowIfNull(imageBytes);
         if (imageBytes.Length == 0) {
             throw new ArgumentException("Image data cannot be empty.",
                 nameof(imageBytes));

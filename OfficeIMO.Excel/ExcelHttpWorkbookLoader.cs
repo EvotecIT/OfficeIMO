@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken = default,
             long? maximumBytes = null,
             bool sourceLimitIsPackageSize = false) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
 
             var snapshot = ExcelLoadOptionsSnapshot.Create(options, maximumBytes, sourceLimitIsPackageSize);
             ValidateScheme(uri, snapshot.SchemePolicy);

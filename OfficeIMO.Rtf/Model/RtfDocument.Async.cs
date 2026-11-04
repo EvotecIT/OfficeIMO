@@ -22,7 +22,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Asynchronously loads RTF from a stream with lossless syntax and diagnostics.</summary>
     public static async Task<RtfReadResult> LoadResultAsync(Stream stream, RtfLoadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         byte[] bytes = await RtfBytePreservingEncoding.ReadBytesToEndAsync(stream, readOptions.Limits.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         string rtf = DecodeInput(bytes, encoding);

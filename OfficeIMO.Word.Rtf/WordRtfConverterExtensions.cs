@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Rtf;
 /// </summary>
 public static partial class WordRtfConverterExtensions {
     internal static RtfDocument ConvertToRtfDocument(this WordDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         RtfDocument rtf = RtfDocument.Create();
         CopyDocumentInfo(document, rtf);

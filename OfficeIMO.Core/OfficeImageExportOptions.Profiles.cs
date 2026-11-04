@@ -16,8 +16,8 @@ public static class OfficeImageExportOptionsExtensions {
         OfficeRenderingProfile profile,
         OfficeRenderingProfileApplyMode mode = OfficeRenderingProfileApplyMode.Replace)
         where TOptions : OfficeImageExportOptions {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (profile == null) throw new ArgumentNullException(nameof(profile));
+        ArgumentNullException.ThrowIfNull(options);
+        ArgumentNullException.ThrowIfNull(profile);
         if (mode != OfficeRenderingProfileApplyMode.Replace
             && mode != OfficeRenderingProfileApplyMode.Overlay) {
             throw new ArgumentOutOfRangeException(nameof(mode));

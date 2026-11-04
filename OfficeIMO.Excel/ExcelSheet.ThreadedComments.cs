@@ -70,7 +70,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="options">Threaded comment options.</param>
         public ExcelThreadedCommentResult AddThreadedComment(ExcelThreadedCommentOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             return AddThreadedComments(new[] { options })[0];
         }
 
@@ -81,7 +81,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Comment options, captured before package mutation.</param>
         /// <returns>Results in input order.</returns>
         public IReadOnlyList<ExcelThreadedCommentResult> AddThreadedComments(IEnumerable<ExcelThreadedCommentOptions> options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             var prepared = new List<(string Address, string Text, string Author, string Id, string? ParentId, DateTime Date, bool Done)>();
             foreach (ExcelThreadedCommentOptions item in options) {
                 if (item == null) throw new ArgumentException("Comment options cannot contain null.", nameof(options));

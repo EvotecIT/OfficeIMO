@@ -19,7 +19,7 @@ namespace OfficeIMO.Core.Internal {
         private const uint DifSect = 0xfffffffc;
 
         internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams, Guid? rootClassId = null) {
-            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            ArgumentNullException.ThrowIfNull(streams);
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
             OfficeCompoundWriterLayout layout = OfficeCompoundWriterLayout.Create(streams);
@@ -32,9 +32,9 @@ namespace OfficeIMO.Core.Internal {
         internal static void Write(Stream output, IReadOnlyList<OfficeCompoundStream> streams,
             Guid? rootClassId = null, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (!output.CanWrite) throw new ArgumentException("The compound output must be writable.", nameof(output));
-            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            ArgumentNullException.ThrowIfNull(streams);
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
             Write(output, OfficeCompoundWriterLayout.Create(streams), rootClassId, cancellationToken);
         }
@@ -64,8 +64,8 @@ namespace OfficeIMO.Core.Internal {
             long maxOutputBytes, CancellationToken cancellationToken) {
             cancellationToken.ThrowIfCancellationRequested();
             if (maxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (replacementStreams == null) throw new ArgumentNullException(nameof(replacementStreams));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(replacementStreams);
             var removals = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             if (removedPaths != null) {
                 foreach (string path in removedPaths) {
@@ -206,7 +206,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static long GetSerializedLength(IReadOnlyList<OfficeCompoundStream> streams) {
-            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            ArgumentNullException.ThrowIfNull(streams);
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
             return GetSerializedLength(OfficeCompoundWriterLayout.Create(streams));
@@ -646,7 +646,7 @@ namespace OfficeIMO.Core.Internal {
 
         internal OfficeCompoundStream(string name, long length, Func<Stream> openRead) {
             Name = name ?? throw new ArgumentNullException(nameof(name));
-            if (length < 0) throw new ArgumentOutOfRangeException(nameof(length));
+            ArgumentOutOfRangeException.ThrowIfNegative(length);
             _bytes = null;
             _byteOffset = 0;
             _byteCount = 0;

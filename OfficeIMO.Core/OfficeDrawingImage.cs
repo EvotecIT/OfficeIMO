@@ -31,9 +31,7 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
         new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity, interpolate, useDataSnapshot: false);
 
     internal OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool interpolate, bool useDataSnapshot) {
-        if (bytes == null) {
-            throw new ArgumentNullException(nameof(bytes));
-        }
+        ArgumentNullException.ThrowIfNull(bytes);
 
         if (bytes.Length == 0) {
             throw new ArgumentException("Image bytes cannot be empty.", nameof(bytes));

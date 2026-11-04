@@ -15,7 +15,7 @@ public static partial class ProjectReportWorkflow {
     /// <summary>Streams image results under one shared deadline and batch budget. Already delivered pages remain delivered if a later page fails.</summary>
     public static void ExportImages(this ProjectView view, OfficeImageExportFormat format, OfficeImageExportConsumer consumer,
         ProjectImageExportOptions? options = null, CancellationToken cancellationToken = default) {
-        if (view == null) throw new ArgumentNullException(nameof(view)); if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(view); ArgumentNullException.ThrowIfNull(consumer);
         var effective = options?.Snapshot() ?? new ProjectImageExportOptions();
         OfficeImageExportBatchProcessor.Run(effective, (emit, token) => {
             var typography = new OfficeRenderingProfile("project-images", effective.Fonts, effective.TextShapingProvider,

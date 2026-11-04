@@ -20,10 +20,9 @@ internal readonly struct OfficeDiagramNodeBounds {
 internal static class OfficeDiagramLayoutGeometry {
     internal static OfficeDiagramNodeBounds GetPyramidNodeBounds(
         int nodeCount, int nodeIndex, double width, double height) {
-        if (nodeCount < 1) throw new ArgumentOutOfRangeException(nameof(nodeCount));
-        if (nodeIndex < 0 || nodeIndex >= nodeCount) {
-            throw new ArgumentOutOfRangeException(nameof(nodeIndex));
-        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(nodeCount, 1);
+        ArgumentOutOfRangeException.ThrowIfNegative(nodeIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(nodeIndex, nodeCount);
         if (double.IsNaN(width) || double.IsInfinity(width) || width <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(width));
         }

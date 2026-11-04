@@ -7,7 +7,7 @@ public static class OfficeDocumentReaderBuilderDjVuExtensions {
     /// <summary>Registers bounded path and stream ingestion for .djvu and .djv.</summary>
     public static OfficeDocumentReaderBuilder AddDjVuHandler(this OfficeDocumentReaderBuilder builder,
         ReaderDjVuOptions? options = null, bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         var snapshot = (options ?? new ReaderDjVuOptions()).Clone();
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "DjVu Reader Adapter",

@@ -131,7 +131,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="packagePaths">Package paths to load.</param>
         /// <param name="options">Load options applied to every package.</param>
         public static VisioStencilCatalog LoadMany(IEnumerable<string> packagePaths, VisioStencilPackageLoadOptions? options = null) {
-            if (packagePaths == null) throw new ArgumentNullException(nameof(packagePaths));
+            ArgumentNullException.ThrowIfNull(packagePaths);
 
             options ??= new VisioStencilPackageLoadOptions();
             VisioStencilCatalogBuilder builder = new(string.IsNullOrWhiteSpace(options.CatalogName) ? "Visio Packages" : options.CatalogName!);

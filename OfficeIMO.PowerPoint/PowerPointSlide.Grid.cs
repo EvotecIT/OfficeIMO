@@ -35,21 +35,11 @@ namespace OfficeIMO.PowerPoint {
         public void ArrangeShapesInGrid(IEnumerable<PowerPointShape> shapes, PowerPointLayoutBox bounds, int columns,
             int rows, OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
-            if (columns <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(columns));
-            }
-            if (rows <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(rows));
-            }
-            if (gutterX < OfficeLength.Zero) {
-                throw new ArgumentOutOfRangeException(nameof(gutterX));
-            }
-            if (gutterY < OfficeLength.Zero) {
-                throw new ArgumentOutOfRangeException(nameof(gutterY));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
+            ArgumentOutOfRangeException.ThrowIfLessThan(gutterX, OfficeLength.Zero);
+            ArgumentOutOfRangeException.ThrowIfLessThan(gutterY, OfficeLength.Zero);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {
@@ -163,9 +153,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void ArrangeShapesInGridAuto(IEnumerable<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             PowerPointShapeGridOptions? options) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {

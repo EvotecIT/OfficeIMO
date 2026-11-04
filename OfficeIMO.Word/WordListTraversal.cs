@@ -83,12 +83,8 @@ namespace OfficeIMO.Word {
         /// <param name="maximumNestingDepth">Maximum allowed list nesting depth.</param>
         /// <returns>Sequence of events describing lists and paragraphs.</returns>
         public static IEnumerable<WordListEvent> Traverse(WordprocessingDocument document, int maximumNestingDepth) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
-            if (maximumNestingDepth <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(maximumNestingDepth));
-            }
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumNestingDepth);
 
             Dictionary<int, bool> listTypes = GetListTypes(document);
             Stack<(int numId, bool ordered)> listStack = new Stack<(int numId, bool ordered)>();

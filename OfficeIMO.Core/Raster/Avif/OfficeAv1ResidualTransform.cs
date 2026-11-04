@@ -17,8 +17,8 @@ internal sealed class OfficeAv1ResidualTransform {
     private readonly CancellationToken _cancellation;
 
     internal OfficeAv1ResidualTransform(OfficeAv1StillFrame frame,OfficeRasterDecodeOptions options) {
-        if(frame==null) throw new ArgumentNullException(nameof(frame));
-        if(options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(frame);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();options.CancellationToken.ThrowIfCancellationRequested();
         const long context=ContextBytes; // scratch, snapshots, fixed facts and array/object overhead
         if(options.RetainedManagedBytes>OfficeRasterGuards.MaximumDecodedBytes-context)
@@ -48,7 +48,7 @@ internal sealed class OfficeAv1ResidualTransform {
 
     /// <summary>Returns dequantized inverse-transform residuals, with FLIPADST paint orientation applied.</summary>
     internal OfficeAv1ResidualBlock Reconstruct(OfficeAv1Coefficients coefficients,OfficeAv1BlockPrelude prelude) {
-        if(coefficients==null) throw new ArgumentNullException(nameof(coefficients));
+        ArgumentNullException.ThrowIfNull(coefficients);
         _cancellation.ThrowIfCancellationRequested();
         var block=coefficients.Block;int plane=block.Plane,type=(int)coefficients.Type;
         if((uint)plane>=3 || (uint)prelude.SegmentId>=8 || (uint)prelude.CurrentQIndex>255)

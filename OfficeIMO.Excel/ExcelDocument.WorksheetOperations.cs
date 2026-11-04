@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
         public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode = ExcelSheetNameValidationMode.Sanitize) {
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(sourceSheet);
             if (!ReferenceEquals(sourceSheet.Document, this)) {
                 throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorksheetFrom to copy between workbooks.", nameof(sourceSheet));
             }
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         }
 
         private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, ExcelSheetNameValidationMode validationMode) {
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(sourceSheet);
             if (!ReferenceEquals(sourceSheet.Document, this)) {
                 throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorksheetFrom to copy between workbooks.", nameof(sourceSheet));
             }
@@ -94,14 +94,14 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Copy strategy options.</param>
         /// <returns>The copied worksheet.</returns>
         public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, ExcelSheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
-            if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
+            ArgumentNullException.ThrowIfNull(sourceDocument);
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
             options ??= new ExcelWorksheetCopyOptions();
-            if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
-            if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
-            if (options.MaxInCellImages <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImages));
-            if (options.MaxInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImageBytes));
-            if (options.MaxTotalInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalInCellImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDefinedNames, nameof(options.MaxDefinedNames));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDefinedNameCharacters, nameof(options.MaxDefinedNameCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInCellImages, nameof(options.MaxInCellImages));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInCellImageBytes, nameof(options.MaxInCellImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalInCellImageBytes, nameof(options.MaxTotalInCellImageBytes));
             if (ReferenceEquals(sourceDocument, this) && options.CopyMode != ExcelWorksheetCopyMode.Values) {
                 ExcelSheet sourceSheet = GetSheet(sourceSheetName);
                 var inCellImageContext = new InCellImageCopyContext(
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
         /// Reorders a worksheet using a zero-based target index.
         /// </summary>
         public void ReorderWorksheet(ExcelSheet sheet, int targetIndex) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (!ReferenceEquals(sheet.Document, this)) {
                 throw new ArgumentException("Worksheet must belong to this workbook.", nameof(sheet));
             }
@@ -176,8 +176,8 @@ namespace OfficeIMO.Excel {
         /// This is a workbook operation over worksheet values; callers own any data shaping or relational joins before writing.
         /// </summary>
         public ExcelWorksheetMergeResult MergeWorksheets(ExcelSheet targetSheet, ExcelSheet sourceSheet, ExcelWorksheetMergeOptions? options = null) {
-            if (targetSheet == null) throw new ArgumentNullException(nameof(targetSheet));
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(targetSheet);
+            ArgumentNullException.ThrowIfNull(sourceSheet);
             if (!ReferenceEquals(targetSheet.Document, this)) {
                 throw new ArgumentException("Target worksheet must belong to this workbook.", nameof(targetSheet));
             }
@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel {
             }
 
             options ??= new ExcelWorksheetMergeOptions();
-            if (options.BlankRowsBefore < 0) throw new ArgumentOutOfRangeException(nameof(options.BlankRowsBefore));
+            ArgumentOutOfRangeException.ThrowIfNegative(options.BlankRowsBefore, nameof(options.BlankRowsBefore));
 
             string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.GetUsedRangeA1() : options.SourceRange!;
             var sourceBounds = ParseRangeOrCell(sourceRange);
@@ -243,8 +243,8 @@ namespace OfficeIMO.Excel {
         /// Compares the used ranges of two worksheets.
         /// </summary>
         public IReadOnlyList<ExcelRangeDifference> CompareWorksheets(ExcelSheet leftSheet, ExcelSheet rightSheet, ExcelRangeCompareOptions? options = null) {
-            if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
-            if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
+            ArgumentNullException.ThrowIfNull(leftSheet);
+            ArgumentNullException.ThrowIfNull(rightSheet);
             return CompareRanges(leftSheet, leftSheet.GetUsedRangeA1(), rightSheet, rightSheet.GetUsedRangeA1(), options);
         }
 
@@ -257,8 +257,8 @@ namespace OfficeIMO.Excel {
             ExcelSheet rightSheet,
             string rightRange,
             ExcelRangeCompareOptions? options = null) {
-            if (leftSheet == null) throw new ArgumentNullException(nameof(leftSheet));
-            if (rightSheet == null) throw new ArgumentNullException(nameof(rightSheet));
+            ArgumentNullException.ThrowIfNull(leftSheet);
+            ArgumentNullException.ThrowIfNull(rightSheet);
             if (string.IsNullOrWhiteSpace(leftRange)) throw new ArgumentNullException(nameof(leftRange));
             if (string.IsNullOrWhiteSpace(rightRange)) throw new ArgumentNullException(nameof(rightRange));
 

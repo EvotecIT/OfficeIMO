@@ -1,7 +1,7 @@
 namespace OfficeIMO.Excel {
     internal static class ExcelHeaderNameHelper {
         internal static string[] BuildUniqueHeaders(int columnCount, Func<int, string?> headerFactory, bool normalizeHeaders) {
-            if (headerFactory == null) throw new ArgumentNullException(nameof(headerFactory));
+            ArgumentNullException.ThrowIfNull(headerFactory);
 
             var headers = new string[columnCount];
             var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);

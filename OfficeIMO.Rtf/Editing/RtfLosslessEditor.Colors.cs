@@ -11,9 +11,7 @@ public sealed partial class RtfLosslessEditor {
             throw new ArgumentOutOfRangeException(nameof(index), "RTF color table indexes are one-based.");
         }
 
-        if (color == null) {
-            throw new ArgumentNullException(nameof(color));
-        }
+        ArgumentNullException.ThrowIfNull(color);
 
         RtfGroup root = SetColor(_syntaxTree.Root, index, color);
         _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);

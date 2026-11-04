@@ -11,7 +11,7 @@ internal sealed class OfficeArtProperty {
     public OfficeArtProperty(int index, ushort rawOperationId, uint value,
         int? availableComplexDataLength = null, string? complexText = null,
         byte[]? complexData = null) {
-        if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         if (availableComplexDataLength < 0) {
             throw new ArgumentOutOfRangeException(nameof(availableComplexDataLength));
         }

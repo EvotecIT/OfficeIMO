@@ -8,7 +8,7 @@ namespace OfficeIMO.Security {
         private long _consumedBytes;
 
         internal OfficePackageCertificateByteBudget(long maximumBytes) {
-            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             _maximumBytes = maximumBytes;
         }
 

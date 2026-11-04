@@ -134,13 +134,9 @@ internal static class PdfPngTestImages {
     }
 
     internal static byte[] CreateRgbPng(int width, int height) {
-        if (width <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(width));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
 
-        if (height <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(height));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height);
 
         using var ms = CreatePng();
         var header = new byte[] {
@@ -275,9 +271,7 @@ internal static class PdfPngTestImages {
     }
 
     internal static byte[] CreateWidePackedGrayscalePng(int width, bool includeTransparency = false) {
-        if (width <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(width));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width);
 
         using var ms = CreatePng();
         var header = new byte[] {

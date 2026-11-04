@@ -175,15 +175,9 @@ public sealed partial class CsvRowWriter : IDisposable
     public void WriteRow(IReadOnlyList<string> columns, IReadOnlyList<object?> values)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (values == null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         ValidateProjectedValueCount(columns, values.Count);
         EnsureColumns(columns);
@@ -217,15 +211,9 @@ public sealed partial class CsvRowWriter : IDisposable
     public void WriteRow(IReadOnlyList<string> columns, object?[] values)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (values == null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         ValidateProjectedValueCount(columns, values.Length);
         EnsureColumns(columns);
@@ -245,15 +233,9 @@ public sealed partial class CsvRowWriter : IDisposable
     public void WriteTextRow(IReadOnlyList<string> columns, string?[] values)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (values == null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         ValidateProjectedValueCount(columns, values.Length);
         EnsureColumns(columns);
@@ -272,14 +254,7 @@ public sealed partial class CsvRowWriter : IDisposable
     public void WriteRow(object?[] values)
     {
         ThrowIfDisposed();
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(values);
-#else
-        if (values == null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
-#endif
 
         if (_columns == null)
         {
@@ -307,10 +282,7 @@ public sealed partial class CsvRowWriter : IDisposable
         Func<TState, int, object?> valueAccessor)
     {
         ThrowIfDisposed();
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         if (_columns == null)
         {
@@ -336,14 +308,7 @@ public sealed partial class CsvRowWriter : IDisposable
     public void WriteTextRow(string?[] values)
     {
         ThrowIfDisposed();
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(values);
-#else
-        if (values == null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
-#endif
 
         if (_columns == null)
         {
@@ -391,15 +356,9 @@ public sealed partial class CsvRowWriter : IDisposable
         Func<TState, int, string?> valueAccessor)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         ValidateProjectedValueCount(columns, valueCount);
         EnsureColumns(columns);
@@ -420,10 +379,7 @@ public sealed partial class CsvRowWriter : IDisposable
         Func<TState, int, string?> valueAccessor)
     {
         ThrowIfDisposed();
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         if (_columns == null)
         {
@@ -453,15 +409,9 @@ public sealed partial class CsvRowWriter : IDisposable
         Func<TState, int, object?> valueAccessor)
     {
         ThrowIfDisposed();
-        if (columns == null)
-        {
-            throw new ArgumentNullException(nameof(columns));
-        }
+        ArgumentNullException.ThrowIfNull(columns);
 
-        if (valueAccessor == null)
-        {
-            throw new ArgumentNullException(nameof(valueAccessor));
-        }
+        ArgumentNullException.ThrowIfNull(valueAccessor);
 
         ValidateProjectedValueCount(columns, valueCount);
         EnsureColumns(columns);

@@ -77,9 +77,7 @@ public sealed class OfficeChartSnapshot {
         OfficeChartData data, OfficeLength width, OfficeLength height,
         OfficeChartStyle? style, OfficeChartLayout? layout,
         double bubbleScalePercent, OfficeChartBubbleSizeMode bubbleSizeMode, OfficeChartRadialLayout radialLayout) {
-        if (data == null) {
-            throw new ArgumentNullException(nameof(data));
-        }
+        ArgumentNullException.ThrowIfNull(data);
 
         ValidatePositiveLength(width, nameof(width));
         ValidatePositiveLength(height, nameof(height));

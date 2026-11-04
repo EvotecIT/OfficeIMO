@@ -137,10 +137,7 @@ public sealed partial class CsvDocument
         Func<string, bool> isHeaderCandidate,
         int maxCommentContinuationLines)
     {
-        if (maxCommentContinuationLines <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(maxCommentContinuationLines));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCommentContinuationLines);
 
         var pendingLines = new Queue<string>();
         while (TryReadDelimiterDetectionLine(reader, pendingLines, out var line))

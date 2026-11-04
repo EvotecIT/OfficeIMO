@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
         /// <param name="advanced">Whether to use advanced field representation.</param>
         /// <returns>The created field.</returns>
         public static WordField AddField(WordParagraph paragraph, WordFieldCode fieldCode, WordFieldFormat? wordFieldFormat = null, string? customFormat = null, bool advanced = false) {
-            if (fieldCode == null) throw new ArgumentNullException(nameof(fieldCode));
+            ArgumentNullException.ThrowIfNull(fieldCode);
 
             var parameters = fieldCode.GetParameters();
             return AddField(paragraph, fieldCode.FieldType, wordFieldFormat, customFormat, advanced, parameters);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
         /// <param name="advanced">Whether to use advanced field representation.</param>
         /// <returns>The created field.</returns>
         public static WordField AddField(WordParagraph paragraph, WordFieldBuilder builder, bool advanced = false) {
-            if (builder == null) throw new ArgumentNullException(nameof(builder));
+            ArgumentNullException.ThrowIfNull(builder);
 
             var parameters = builder.GetParameters();
             return AddField(paragraph, builder.FieldType, builder.Format, builder.CustomFormat, advanced, parameters);

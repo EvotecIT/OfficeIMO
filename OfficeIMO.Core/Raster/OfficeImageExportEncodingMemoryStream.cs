@@ -18,7 +18,7 @@ internal sealed class OfficeImageExportEncodingMemoryStream : MemoryStream {
         CancellationToken cancellationToken,
         long retainedManagedBytes) {
         _budget = budget ?? throw new ArgumentNullException(nameof(budget));
-        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(retainedManagedBytes, 0L);
         _cancellationToken = cancellationToken;
         _retainedManagedBytes = retainedManagedBytes;
     }

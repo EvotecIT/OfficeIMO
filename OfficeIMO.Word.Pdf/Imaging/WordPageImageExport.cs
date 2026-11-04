@@ -30,7 +30,7 @@ internal static class WordPageImageExport {
 
     internal static void RenderPages(WordDocument document, OfficeImageExportFormat format,
         WordImageExportOptions options, OfficeImageExportConsumer consumer, CancellationToken cancellationToken = default) {
-        if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(consumer);
         PdfCore.PdfDocumentConversionResult? conversion = null;
         PdfCore.PdfImageExportEngine.ExportEach(
             token => {

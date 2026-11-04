@@ -41,7 +41,7 @@ namespace OfficeIMO.Archives {
             Check(amount, maximum - used, name, maximum); used += amount;
         }
         private static void Check(long amount, long remaining, string name, long? maximum = null) {
-            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
+            ArgumentOutOfRangeException.ThrowIfNegative(amount);
             if (amount > remaining) throw ArchiveLimits.Exceeded("Operation." + name, maximum ?? remaining);
         }
         private sealed class State {

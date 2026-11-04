@@ -10,7 +10,7 @@ public static class OfficeDocumentReaderBuilderAsciiDocExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderAsciiDocOptions? asciiDocOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderAsciiDocOptions registered = ReaderAsciiDocOptionsCloner.Clone(asciiDocOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,

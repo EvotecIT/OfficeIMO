@@ -304,7 +304,7 @@ namespace OfficeIMO.Word {
                 .Select(column => global::OfficeIMO.OfficeLength.Emus(checked((long)int.Parse(column.Width!.Value!, System.Globalization.CultureInfo.InvariantCulture) * 635)))
                 .ToList() ?? new List<global::OfficeIMO.OfficeLength>();
             set {
-                if (value == null) throw new ArgumentNullException(nameof(value));
+                ArgumentNullException.ThrowIfNull(value);
                 // Validate the complete update before replacing the native grid.
                 var columns = value.Select(width => new GridColumn {
                     Width = WordTableWidth.Length(width).ToNativeValue().ToString(System.Globalization.CultureInfo.InvariantCulture)
@@ -326,7 +326,7 @@ namespace OfficeIMO.Word {
         public List<WordTableWidth?> ColumnWidth {
             get => Rows.Count == 0 ? new List<WordTableWidth?>() : Rows[0].Cells.Select(cell => cell.Width).ToList();
             set {
-                if (value == null) throw new ArgumentNullException(nameof(value));
+                ArgumentNullException.ThrowIfNull(value);
                 if (Rows.Any(row => row.Cells.Count < value.Count))
                     throw new ArgumentException("Column preferences exceed a row's physical cell count.", nameof(value));
                 bool suppressed = _suppressGridRefresh;
@@ -344,7 +344,7 @@ namespace OfficeIMO.Word {
         public List<OfficeLength?> RowHeight {
             get => Rows.Select(row => row.Height).ToList();
             set {
-                if (value == null) throw new ArgumentNullException(nameof(value));
+                ArgumentNullException.ThrowIfNull(value);
                 if (value.Count > Rows.Count)
                     throw new ArgumentException("Row heights exceed the table's row count.", nameof(value));
                 foreach (OfficeLength? height in value) {

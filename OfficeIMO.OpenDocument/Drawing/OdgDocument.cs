@@ -68,8 +68,10 @@ public sealed partial class OdgDocument : OdfDocument {
     /// <summary>Moves a page to a zero-based position.</summary>
     public void MovePage(int sourceIndex, int destinationIndex) {
         var pages = DrawingBody.Elements(OdfNamespaces.Draw + "page").ToList();
-        if (sourceIndex < 0 || sourceIndex >= pages.Count) throw new ArgumentOutOfRangeException(nameof(sourceIndex));
-        if (destinationIndex < 0 || destinationIndex >= pages.Count) throw new ArgumentOutOfRangeException(nameof(destinationIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(sourceIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(sourceIndex, pages.Count);
+        ArgumentOutOfRangeException.ThrowIfNegative(destinationIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(destinationIndex, pages.Count);
         XElement page = pages[sourceIndex]; page.Remove(); pages.RemoveAt(sourceIndex);
         if (destinationIndex == pages.Count) DrawingBody.Add(page); else pages[destinationIndex].AddBeforeSelf(page);
         MarkPartDirty("content.xml");

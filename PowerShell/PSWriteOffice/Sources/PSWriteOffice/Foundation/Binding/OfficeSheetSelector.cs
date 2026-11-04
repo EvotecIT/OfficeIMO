@@ -36,8 +36,8 @@ public sealed class OfficeSheetSelector {
 
     /// <summary>Resolves against the format's sheet collection, checking membership and position.</summary>
     public T Resolve<T>(IReadOnlyList<T> sheets, Func<T, string> getName) where T : class {
-        if (sheets == null) throw new ArgumentNullException(nameof(sheets));
-        if (getName == null) throw new ArgumentNullException(nameof(getName));
+        ArgumentNullException.ThrowIfNull(sheets);
+        ArgumentNullException.ThrowIfNull(getName);
         if (Position.HasValue) {
             if (Position.Value <= sheets.Count) return sheets[Position.Value - 1];
         } else {

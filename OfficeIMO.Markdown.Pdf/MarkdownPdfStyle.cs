@@ -620,13 +620,9 @@ public sealed partial class MarkdownPdfStyle {
     internal MarkdownPdfFigureStyle FigureStyleSnapshot => (_figureStyle ?? Plain()._figureStyle ?? MarkdownPdfFigureStyle.Plain()).Clone();
 
     internal void ApplyPageDecorations(PdfCore.PdfDocument pdf, PdfCore.PdfCreateOptions options) {
-        if (pdf == null) {
-            throw new ArgumentNullException(nameof(pdf));
-        }
+        ArgumentNullException.ThrowIfNull(pdf);
 
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         _pageDecoration?.Apply(pdf, options);
     }

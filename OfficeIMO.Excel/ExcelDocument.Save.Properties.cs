@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel {
             }
 
             public byte[] ApplyTo(byte[] packageBytes, ExcelSaveOptions? options) {
-                if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+                ArgumentNullException.ThrowIfNull(packageBytes);
                 if (packageBytes.Length == 0) return packageBytes;
 
                 try {

@@ -57,9 +57,7 @@ public sealed class MarkdownPdfPageDecoration {
 
     /// <summary>Adds a reusable page background shape.</summary>
     public MarkdownPdfPageDecoration AddBackgroundShape(PdfCore.PdfPageBackgroundShape shape) {
-        if (shape == null) {
-            throw new ArgumentNullException(nameof(shape));
-        }
+        ArgumentNullException.ThrowIfNull(shape);
 
         _backgroundShapes ??= new List<PdfCore.PdfPageBackgroundShape>();
         _backgroundShapes.Add(shape.Clone());
@@ -82,13 +80,9 @@ public sealed class MarkdownPdfPageDecoration {
     };
 
     internal void Apply(PdfCore.PdfDocument pdf, PdfCore.PdfCreateOptions options) {
-        if (pdf == null) {
-            throw new ArgumentNullException(nameof(pdf));
-        }
+        ArgumentNullException.ThrowIfNull(pdf);
 
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         if (BackgroundColor.HasValue && ShouldApplyBackgroundColor(options)) {
             pdf.Background(BackgroundColor.Value);

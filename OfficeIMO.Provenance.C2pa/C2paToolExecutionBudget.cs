@@ -25,11 +25,7 @@ internal sealed class C2paToolExecutionBudget {
     }
 
     internal T RunInterpretation<T>(Func<CancellationToken, T> interpretation) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(interpretation);
-#else
-        if (interpretation is null) throw new ArgumentNullException(nameof(interpretation));
-#endif
         TimeSpan remaining = GetRemainingTimeout();
         using var interpretationCancellation = CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken);
         Task<T> work = Task.Run(() => interpretation(interpretationCancellation.Token), CancellationToken.None);

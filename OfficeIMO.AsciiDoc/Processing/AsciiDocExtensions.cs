@@ -77,8 +77,8 @@ public sealed class AsciiDocExtensionRegistry {
 
     /// <summary>Registers or replaces a custom directive processor.</summary>
     public AsciiDocExtensionRegistry RegisterDirective(string name, IAsciiDocDirectiveProcessor processor) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
-        if (processor == null) throw new ArgumentNullException(nameof(processor));
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(processor);
         if (!AsciiDocText.IsMacroName(name)) throw new ArgumentException("Invalid directive name.", nameof(name));
         if (IsReserved(name)) throw new ArgumentException("Built-in preprocessing directives cannot be replaced.", nameof(name));
         _directives[name] = processor;

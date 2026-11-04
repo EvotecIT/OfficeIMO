@@ -81,7 +81,7 @@ public class ProjectCollection<T> : IReadOnlyList<T> where T : ProjectObject {
     public bool Remove(T item) {
         Document.EnsureMutable();
         _owner?.EnsureAttached();
-        if (item == null) throw new ArgumentNullException(nameof(item));
+        ArgumentNullException.ThrowIfNull(item);
         if (!Items.Contains(item)) return false;
         Items.Remove(item);
         item.Attached = false;

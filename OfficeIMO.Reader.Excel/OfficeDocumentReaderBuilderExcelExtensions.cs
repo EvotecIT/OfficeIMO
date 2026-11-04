@@ -12,7 +12,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderExcelOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderExcelOptions configured = ExcelReaderAdapter.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
@@ -55,7 +55,7 @@ public static class OfficeDocumentReaderBuilderExcelExtensions {
         global::OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions? importOptions = null,
         ReaderExcelOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderExcelOptions configured = ExcelReaderAdapter.Clone(options);
         global::OfficeIMO.Excel.Legacy.LegacySpreadsheetImportOptions? configuredImport = LegacySpreadsheetReaderAdapter.Clone(importOptions);
         long legacyMaxInputBytes = configuredImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes;

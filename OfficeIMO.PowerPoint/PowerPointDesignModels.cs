@@ -403,9 +403,7 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointAutoLayoutStrategy LayoutStrategy { get; set; } = PowerPointAutoLayoutStrategy.ContentFirst;
 
         internal int Pick(int choices, string salt) {
-            if (choices <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(choices));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(choices);
 
             string value = LayoutStrategy == PowerPointAutoLayoutStrategy.ContentFirst
                 ? string.Join("|", Seed ?? string.Empty, Mood, Density, VisualStyle, salt)

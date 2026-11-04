@@ -15,9 +15,7 @@ public readonly struct MarkdownBlockParseResult {
     /// Creates a block parse result for one or more blocks.
     /// </summary>
     public MarkdownBlockParseResult(IReadOnlyList<IMarkdownBlock> blocks, int consumedLineCount) {
-        if (blocks == null) {
-            throw new ArgumentNullException(nameof(blocks));
-        }
+        ArgumentNullException.ThrowIfNull(blocks);
 
         if (blocks.Count == 0) {
             throw new ArgumentException("At least one block must be returned.", nameof(blocks));

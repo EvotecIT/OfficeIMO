@@ -14,9 +14,7 @@ namespace OfficeIMO.Visio {
         internal const string HeadingStyle = "msvSDHeadingStyle";
 
         internal static void Apply(VisioShape container, VisioContainerOptions options, VisioMeasurementUnit unit) {
-            if (container == null) {
-                throw new ArgumentNullException(nameof(container));
-            }
+            ArgumentNullException.ThrowIfNull(container);
 
             Validate(options);
 
@@ -47,9 +45,7 @@ namespace OfficeIMO.Visio {
         }
 
         internal static VisioContainerOptions CreateOptionsFrom(VisioShape container, VisioMeasurementUnit unit) {
-            if (container == null) {
-                throw new ArgumentNullException(nameof(container));
-            }
+            ArgumentNullException.ThrowIfNull(container);
 
             VisioContainerOptions options = new() {
                 FillColor = container.FillColor,
@@ -76,9 +72,7 @@ namespace OfficeIMO.Visio {
         }
 
         internal static void Validate(VisioContainerOptions options) {
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (!IsFiniteNonNegative(options.Margin)) {
                 throw new ArgumentOutOfRangeException(nameof(options.Margin), "Container margin must be a finite non-negative number.");

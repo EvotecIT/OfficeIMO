@@ -17,11 +17,11 @@ public sealed class IWorkNumbersWriteOptions {
         var copy = new IWorkNumbersWriteOptions { MaxSheets = MaxSheets, MaxTables = MaxTables,
             MaxTableCells = MaxTableCells, MaxTextCharacters = MaxTextCharacters,
             MaxPackageBytes = MaxPackageBytes };
-        if (copy.MaxSheets <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSheets));
-        if (copy.MaxTables <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTables));
-        if (copy.MaxTableCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTableCells));
-        if (copy.MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
-        if (copy.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxSheets, nameof(MaxSheets));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTables, nameof(MaxTables));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTableCells, nameof(MaxTableCells));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTextCharacters, nameof(MaxTextCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxPackageBytes, nameof(MaxPackageBytes));
         return copy;
     }
 }

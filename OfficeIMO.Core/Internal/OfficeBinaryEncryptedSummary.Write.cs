@@ -9,9 +9,9 @@ namespace OfficeIMO.Core.Internal {
         /// <summary>Encodes the shared Office binary stream/storage container with independent RC4 block keys.</summary>
         internal static byte[] Encrypt(IReadOnlyList<Entry> entries, OfficeBinaryRc4CryptoApiSession session,
             long maximumBytes = int.MaxValue, CancellationToken cancellationToken = default) {
-            if (entries == null) throw new ArgumentNullException(nameof(entries));
-            if (session == null) throw new ArgumentNullException(nameof(session));
-            if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentNullException.ThrowIfNull(entries);
+            ArgumentNullException.ThrowIfNull(session);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
             if (entries.Count > 65536) throw new InvalidDataException("Encrypted summary has too many entries.");
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             long required = 12;

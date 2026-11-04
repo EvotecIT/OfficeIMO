@@ -20,7 +20,7 @@ public class OfficeConversionReport {
     /// <param name="diagnostics">Completed-stage diagnostics, or null for none.</param>
     public OfficeConversionReport(string source, string target, string? outputPath = null, long itemsWritten = 0,
         TimeSpan elapsed = default, IEnumerable<OfficeDiagnostic>? diagnostics = null) : this(source, target) {
-        if (itemsWritten < 0) throw new ArgumentOutOfRangeException(nameof(itemsWritten));
+        ArgumentOutOfRangeException.ThrowIfNegative(itemsWritten);
         if (elapsed < TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(elapsed));
         var snapshot = diagnostics == null ? new List<OfficeDiagnostic>() : new List<OfficeDiagnostic>(diagnostics);
         if (snapshot.Any(d => d == null)) throw new ArgumentException("Diagnostics cannot contain null entries.", nameof(diagnostics));

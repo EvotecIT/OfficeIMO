@@ -21,7 +21,7 @@ public static class EmailMapiProjection {
         EmailReaderOptions? options = null,
         string? location = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         var diagnostics = new List<EmailDiagnostic>();
         var state = new MsgParserState(options ?? EmailReaderOptions.Default, diagnostics, cancellationToken);

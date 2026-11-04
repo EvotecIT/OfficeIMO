@@ -80,7 +80,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int MaximumHyperlinkTooltipLengthExclusive = 256;
 
         internal static XlsbWorkbook Load(byte[] packageBytes, XlsbImportOptions? options = null) {
-            if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
+            ArgumentNullException.ThrowIfNull(packageBytes);
             XlsbImportOptions resolved = options ?? new XlsbImportOptions();
             resolved.Validate();
             CancellationToken cancellationToken = resolved.CancellationToken;

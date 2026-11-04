@@ -16,7 +16,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     /// <summary>Converts prepared HTML into a native presentation and returns the completed conversion report.</summary>
     public static PptCore.PowerPointDocument ToPowerPoint(this HtmlConversionDocument document, HtmlPowerPointExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToPowerPointResult result = document.ConvertToPowerPointWithEvidence(options);
         PptCore.PowerPointDocument value = GetPresentationOrThrow(result);

@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects BIFF12 formatting collections without changing their cell-format indices.</summary>
     internal static class XlsbStylesheetProjector {
         internal static void Install(ExcelDocument document, XlsbStylesheet source) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(source);
 
             WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
                 ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         }
 
         internal static Stylesheet Create(XlsbStylesheet source) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             var stylesheet = new Stylesheet();
 
             if (source.NumberFormats.Count > 0) {

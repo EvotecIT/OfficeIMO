@@ -58,7 +58,7 @@ internal sealed class PstWriterItemJournal : IDisposable {
     }
 
     internal PstWriterItemSortedReader OpenSorted(int maximumRecordsInMemory) {
-        if (maximumRecordsInMemory <= 0) throw new ArgumentOutOfRangeException(nameof(maximumRecordsInMemory));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRecordsInMemory);
         Flush(durable: false);
         List<string> runs = CreateRuns(maximumRecordsInMemory);
         var ownedRuns = new HashSet<string>(runs, StringComparer.Ordinal);

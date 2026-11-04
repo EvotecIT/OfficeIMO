@@ -3,7 +3,7 @@ namespace OfficeIMO.Html;
 internal static partial class HtmlConversionInputGuard {
     // Validate attached input before cloning or native projection; detached editing history is not conversion input.
     internal static Dom.HtmlDocument CaptureOwnedTree(Dom.HtmlDocument document, HtmlConversionLimits limits, CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         limits.Validate();
         var tracker = HtmlDomLimitTracker.Create(limits.MaxHtmlNodes, limits.MaxHtmlDepth);
         long characters = 0;

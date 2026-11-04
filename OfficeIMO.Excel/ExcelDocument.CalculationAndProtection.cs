@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
             _formulaDependencyMutationVersions.Snapshot());
 
         internal void RestoreFormulaMutationState(FormulaMutationState state) {
-            if (state == null) throw new ArgumentNullException(nameof(state));
+            ArgumentNullException.ThrowIfNull(state);
             Interlocked.Exchange(ref _formulaInputMutationVersion, state.InputMutationVersion);
             Interlocked.Exchange(ref _formulaAuthoredMutationVersion, state.AuthoredMutationVersion);
             RestoreFormulaMutationDictionary(_formulaRecalculationVersions, state.RecalculationVersions);

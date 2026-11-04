@@ -21,7 +21,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Sets an embedded WAV or AIFF transition sound from a file.</summary>
         public void SetTransitionSound(string audioPath, bool loop = false) {
-            if (audioPath == null) throw new ArgumentNullException(nameof(audioPath));
+            ArgumentNullException.ThrowIfNull(audioPath);
             if (!File.Exists(audioPath)) {
                 throw new FileNotFoundException("Audio file not found.", audioPath);
             }

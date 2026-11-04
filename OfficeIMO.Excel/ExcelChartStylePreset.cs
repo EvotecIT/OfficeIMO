@@ -15,8 +15,8 @@ namespace OfficeIMO.Excel {
         /// Creates a preset that uses built-in chart style/color resources.
         /// </summary>
         public ExcelChartStylePreset(int styleId = 251, int colorStyleId = 10) {
-            if (styleId <= 0) throw new ArgumentOutOfRangeException(nameof(styleId));
-            if (colorStyleId <= 0) throw new ArgumentOutOfRangeException(nameof(colorStyleId));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(styleId);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(colorStyleId);
             StyleId = styleId;
             ColorStyleId = colorStyleId;
         }
@@ -26,8 +26,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChartStylePreset(string styleXml, string colorStyleXml, int styleId = 251, int colorStyleId = 10)
             : this(styleId, colorStyleId) {
-            if (styleXml == null) throw new ArgumentNullException(nameof(styleXml));
-            if (colorStyleXml == null) throw new ArgumentNullException(nameof(colorStyleXml));
+            ArgumentNullException.ThrowIfNull(styleXml);
+            ArgumentNullException.ThrowIfNull(colorStyleXml);
             StyleXmlBytes = Encoding.UTF8.GetBytes(styleXml);
             ColorXmlBytes = Encoding.UTF8.GetBytes(colorStyleXml);
         }
@@ -37,8 +37,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChartStylePreset(byte[] styleXmlBytes, byte[] colorStyleXmlBytes, int styleId = 251, int colorStyleId = 10)
             : this(styleId, colorStyleId) {
-            if (styleXmlBytes == null) throw new ArgumentNullException(nameof(styleXmlBytes));
-            if (colorStyleXmlBytes == null) throw new ArgumentNullException(nameof(colorStyleXmlBytes));
+            ArgumentNullException.ThrowIfNull(styleXmlBytes);
+            ArgumentNullException.ThrowIfNull(colorStyleXmlBytes);
             StyleXmlBytes = (byte[])styleXmlBytes.Clone();
             ColorXmlBytes = (byte[])colorStyleXmlBytes.Clone();
         }

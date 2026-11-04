@@ -8,8 +8,8 @@ public sealed class OfficeChartRadialLayout {
     /// <param name="firstSliceAngleDegrees">Clockwise rotation from the top, from zero through 360 degrees.</param>
     /// <param name="doughnutHolePercent">Inner diameter as a percentage of outer diameter, from 10 through 90.</param>
     public OfficeChartRadialLayout(int firstSliceAngleDegrees = 0, int doughnutHolePercent = 50) {
-        if (firstSliceAngleDegrees < 0 || firstSliceAngleDegrees > 360)
-            throw new ArgumentOutOfRangeException(nameof(firstSliceAngleDegrees));
+        ArgumentOutOfRangeException.ThrowIfNegative(firstSliceAngleDegrees);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(firstSliceAngleDegrees, 360);
         if (doughnutHolePercent < 10 || doughnutHolePercent > 90)
             throw new ArgumentOutOfRangeException(nameof(doughnutHolePercent));
         FirstSliceAngleDegrees = firstSliceAngleDegrees;

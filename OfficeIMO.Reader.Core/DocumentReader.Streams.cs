@@ -90,7 +90,7 @@ internal static partial class DocumentReaderEngine {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         return Read(stream, sourceName, options, cancellationToken).ToArray();
     }

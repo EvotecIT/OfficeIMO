@@ -16,9 +16,7 @@ public static class MarkdownRendererIntelligenceXAdapter {
     /// if they are not already present.
     /// </summary>
     public static void Apply(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         options.ApplyPlugin(Plugin);
     }
@@ -27,9 +25,7 @@ public static class MarkdownRendererIntelligenceXAdapter {
     /// Returns <see langword="true"/> when any IntelligenceX alias fence registration is present.
     /// </summary>
     public static bool IsApplied(MarkdownRendererOptions options) {
-        if (options == null) {
-            throw new ArgumentNullException(nameof(options));
-        }
+        ArgumentNullException.ThrowIfNull(options);
 
         return options.HasPlugin(Plugin);
     }

@@ -17,8 +17,8 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="options">Optional gallery layout and visual options.</param>
         /// <returns>The stencil instance shapes placed in the gallery.</returns>
         public static IReadOnlyList<VisioShape> AddStencilGallery(this VisioPage page, VisioStencilCatalog catalog, VisioStencilGalleryOptions? options = null) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(catalog);
 
             VisioStencilGalleryOptions effectiveOptions = options ?? new VisioStencilGalleryOptions();
             ValidateOptions(effectiveOptions);

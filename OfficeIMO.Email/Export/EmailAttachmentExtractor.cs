@@ -21,8 +21,8 @@ public static class EmailAttachmentExtractor {
     /// <summary>Asynchronously stages source content and exports attachments under the same bounds as <see cref="Extract"/>.</summary>
     public static async Task<EmailAttachmentExtractionResult> ExtractAsync(EmailDocument document, string destinationDirectory,
         EmailAttachmentExtractionOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (destinationDirectory == null) throw new ArgumentNullException(nameof(destinationDirectory));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(destinationDirectory);
         cancellationToken.ThrowIfCancellationRequested();
         var effective = options ?? new EmailAttachmentExtractionOptions();
         var selected = effective.SelectedAttachmentIndexes == null ? null : new HashSet<int>(effective.SelectedAttachmentIndexes);

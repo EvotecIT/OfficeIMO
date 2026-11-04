@@ -23,13 +23,8 @@ namespace OfficeIMO.Core.Internal {
         /// final write. Cancellation may leave an emitted prefix; the caller owns publication and rollback.
         /// </summary>
         internal static void CopyBytes(Stream destination, byte[] bytes, CancellationToken cancellationToken) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
             EnsureWritable(destination);
             cancellationToken.ThrowIfCancellationRequested();
             if (!cancellationToken.CanBeCanceled) {
@@ -52,13 +47,8 @@ namespace OfficeIMO.Core.Internal {
         /// writing and rewound after a successful write; non-seekable streams are written at their current position.
         /// </summary>
         public static void WriteAllBytes(Stream destination, byte[] bytes) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
             WriteBuffer(destination, bytes, 0, bytes.Length);
         }
 
@@ -68,7 +58,7 @@ namespace OfficeIMO.Core.Internal {
         /// rejects resizing fails before its existing bytes are overwritten.
         /// </summary>
         public static void WriteAllBytes(Stream destination, ArraySegment<byte> bytes) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             byte[]? buffer = bytes.Array;
             if (buffer == null) throw new ArgumentException("The buffer segment must contain an array.", nameof(bytes));
             WriteBuffer(destination, buffer, bytes.Offset, bytes.Count);
@@ -88,13 +78,8 @@ namespace OfficeIMO.Core.Internal {
         /// producer succeeds. This preserves existing contents when validation fails before output begins.
         /// </summary>
         public static void Write(Stream destination, Action<Stream> writer) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(writer);
-#else
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-#endif
             EnsureWritable(destination);
             long originalPosition = PositionForDirectWrite(destination);
             try {
@@ -116,13 +101,8 @@ namespace OfficeIMO.Core.Internal {
             Stream destination,
             byte[] bytes,
             CancellationToken cancellationToken = default) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
             EnsureWritable(destination);
             cancellationToken.ThrowIfCancellationRequested();
             PrepareDestination(destination);
@@ -145,13 +125,8 @@ namespace OfficeIMO.Core.Internal {
             Action<Stream> writer,
             CancellationToken cancellationToken = default,
             bool commitIsNonCancellable = false) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(writer);
-#else
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-#endif
             EnsureWritable(destination);
             cancellationToken.ThrowIfCancellationRequested();
             long originalPosition = PositionForDirectWrite(destination);
@@ -181,13 +156,8 @@ namespace OfficeIMO.Core.Internal {
             Stream destination,
             Func<Stream, CancellationToken, Task> writer,
             CancellationToken cancellationToken = default) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destination);
             ArgumentNullException.ThrowIfNull(writer);
-#else
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-#endif
             EnsureWritable(destination);
             cancellationToken.ThrowIfCancellationRequested();
             long originalPosition = PositionForDirectWrite(destination);

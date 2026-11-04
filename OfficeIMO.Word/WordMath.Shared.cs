@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
         private const string OfficeImoTokenKindAttribute = "kind";
 
         internal static OfficeMathExpression ToExpression(OpenXmlElement element) {
-            if (element == null) throw new ArgumentNullException(nameof(element));
+            ArgumentNullException.ThrowIfNull(element);
             if (element is M.Text text) return ClassifyToken(text);
 
             switch (element.LocalName) {
@@ -80,7 +80,7 @@ namespace OfficeIMO.Word {
         }
 
         internal static string ToOmml(OfficeMathExpression expression, bool display) {
-            if (expression == null) throw new ArgumentNullException(nameof(expression));
+            ArgumentNullException.ThrowIfNull(expression);
             var officeMath = new XElement(
                 OmmlNamespace + "oMath",
                 new XAttribute(XNamespace.Xmlns + "m", OmmlNamespace),

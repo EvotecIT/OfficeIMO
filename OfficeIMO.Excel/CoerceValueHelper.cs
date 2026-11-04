@@ -38,9 +38,7 @@ internal static class CoerceValueHelper {
         Func<string, CellValue> sharedStringHandler,
         Func<DateTimeOffset, DateTime>? dateTimeOffsetStrategy = null,
         ExcelDateSystem dateSystem = ExcelDateSystem.NineteenHundred) {
-        if (sharedStringHandler is null) {
-            throw new ArgumentNullException(nameof(sharedStringHandler));
-        }
+        ArgumentNullException.ThrowIfNull(sharedStringHandler);
 
         dateTimeOffsetStrategy ??= DefaultDateTimeOffsetStrategy;
 
@@ -93,13 +91,9 @@ internal static class CoerceValueHelper {
         Func<DateTimeOffset, DateTime> dateTimeOffsetStrategy,
         ExcelDateSystem dateSystem,
         string? paramName) {
-        if (sharedStringHandler is null) {
-            throw new ArgumentNullException(nameof(sharedStringHandler));
-        }
+        ArgumentNullException.ThrowIfNull(sharedStringHandler);
 
-        if (dateTimeOffsetStrategy is null) {
-            throw new ArgumentNullException(nameof(dateTimeOffsetStrategy));
-        }
+        ArgumentNullException.ThrowIfNull(dateTimeOffsetStrategy);
 
         return TryConvertDateTimeOffset(
                 value,
@@ -152,9 +146,7 @@ internal static class CoerceValueHelper {
         (CloneCellValue(EmptyStringTemplate), CellValues.String);
 
     internal static (CellValue, CellValues) HandleSharedString(string text, Func<string, CellValue> sharedStringHandler, string? paramName = null) {
-        if (sharedStringHandler is null) {
-            throw new ArgumentNullException(nameof(sharedStringHandler));
-        }
+        ArgumentNullException.ThrowIfNull(sharedStringHandler);
 
         ValidateSharedStringLength(text, paramName ?? nameof(text));
         return (sharedStringHandler(text), CellValues.SharedString);

@@ -12,7 +12,7 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     private const int MaximumPreflightInspections = 100_000;
 
     internal bool CanApply(OfficeTextFeatureSettings settings, CancellationToken cancellationToken = default) {
-        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        ArgumentNullException.ThrowIfNull(settings);
         cancellationToken.ThrowIfCancellationRequested();
         try {
             return CanApplyCore(settings, cancellationToken);

@@ -53,7 +53,7 @@ public sealed class PdfBookmarkEditSession {
         if (parentId != null && Contains(node, parentId)) throw new InvalidOperationException("A bookmark cannot be moved below itself or one of its descendants.");
         oldSiblings.RemoveAt(oldIndex); List<PdfBookmarkNode> target = GetChildren(parentId); if (index < 0) index = target.Count;
         #pragma warning disable CA1512 // ThrowIfGreaterThan is unavailable on every target framework.
-        if (index > target.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, target.Count);
         #pragma warning restore CA1512
         target.Insert(index, node); return this;
     }

@@ -45,7 +45,7 @@ public static partial class OfficeDocumentReadResultExtensions {
     public static IReadOnlyList<OfficeDocumentPageMarkdown> GetPageMarkdown(
         this OfficeDocumentReadResult document,
         OfficeDocumentPageMarkdownOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         OfficeDocumentPageMarkdownOptions effective = options ?? new OfficeDocumentPageMarkdownOptions();
         int total = document.GetTotalPageCount();
         OfficeDocumentPageProvenance provenance = document.GetPageProvenance();

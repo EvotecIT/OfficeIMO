@@ -10,7 +10,7 @@ public sealed partial class EpubPublication {
     /// validation remains part of Write/Preflight; this operation does not certify accessibility.
     /// </summary>
     public void AddNote(EpubNoteOptions options, CancellationToken cancellationToken = default) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         cancellationToken.ThrowIfCancellationRequested();
         if (PackageVersion != "3.0") throw new NotSupportedException("Semantic note authoring requires EPUB 3.");
         RequireText(options.SourceManifestId, nameof(options.SourceManifestId));

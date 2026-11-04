@@ -2,7 +2,7 @@ namespace OfficeIMO.Html;
 
 public static partial class HtmlRtfConverterExtensions {
     internal static HtmlToRtfResult ConvertToRtfWithEvidence(this HtmlConversionDocument document, HtmlRtfExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         HtmlRtfExportOptions resolved = (options ?? new HtmlRtfExportOptions()).Clone();
         HtmlUrlPolicy requestedHyperlinkPolicy = resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
         HtmlUrlPolicy requestedResourcePolicy = resolved.ResourceUrlPolicy ?? requestedHyperlinkPolicy;
@@ -281,7 +281,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     internal static RtfToHtmlResult ConvertToHtmlWithEvidence(this RtfDocument document, RtfHtmlExportOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         RtfHtmlExportOptions resolved = (options ?? new RtfHtmlExportOptions()).Clone();
         string html = ToHtmlCore(document, resolved);
         return new RtfToHtmlResult(html, resolved.HtmlDiagnostics, resolved.Diagnostics.AsReadOnly(), resolved.ConversionReport);

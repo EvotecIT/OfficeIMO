@@ -11,7 +11,7 @@ public static class OdfDocumentReaderExtensions {
     public static OfficeDocumentReadResult ReadDocument(this OdfDocument document, string? sourceName = null,
         ReaderOptions? options = null, ReaderOpenDocumentOptions? formatOptions = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         ReaderOptions effective = DocumentReaderEngine.NormalizeOptions(options);
         ReaderOpenDocumentOptions format = (formatOptions ?? new ReaderOpenDocumentOptions()).Clone();

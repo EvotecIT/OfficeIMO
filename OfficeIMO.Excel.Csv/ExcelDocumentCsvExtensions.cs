@@ -14,8 +14,8 @@ public static class ExcelDocumentCsvExtensions {
         CsvDocument csv,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(csv);
         cancellationToken.ThrowIfCancellationRequested();
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         using DbDataReader reader = csv.CreateDataReader(resolved.ReaderOptions);
@@ -28,7 +28,7 @@ public static class ExcelDocumentCsvExtensions {
         string path,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
@@ -42,7 +42,7 @@ public static class ExcelDocumentCsvExtensions {
         Stream stream,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenReader(stream, loadOptions);
@@ -58,8 +58,8 @@ public static class ExcelDocumentCsvExtensions {
         string text,
         ExcelCsvImportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(text);
         ExcelCsvImportOptions resolved = ResolveOptions(options);
         using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
         using DbDataReader reader = CsvDocument.OpenReader(
@@ -73,7 +73,7 @@ public static class ExcelDocumentCsvExtensions {
         ExcelCsvImportOptions? options = null,
         ExcelCreateOptions? createOptions = null,
         CancellationToken cancellationToken = default) {
-        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        ArgumentNullException.ThrowIfNull(csv);
         ExcelDocument document = ExcelDocument.Create(createOptions);
         try {
             document.ImportCsv(csv, options, cancellationToken);
@@ -91,7 +91,7 @@ public static class ExcelDocumentCsvExtensions {
         ExcelCsvImportOptions? importOptions = null,
         ExcelSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
-        if (csv == null) throw new ArgumentNullException(nameof(csv));
+        ArgumentNullException.ThrowIfNull(csv);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
         document.SaveAsync(path, saveOptions, cancellationToken).GetAwaiter().GetResult();
@@ -104,8 +104,8 @@ public static class ExcelDocumentCsvExtensions {
         ExcelCsvImportOptions? importOptions = null,
         ExcelSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
-        if (csv == null) throw new ArgumentNullException(nameof(csv));
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(csv);
+        ArgumentNullException.ThrowIfNull(stream);
         using ExcelDocument document = csv.ToExcelDocument(importOptions, cancellationToken: cancellationToken);
         document.SaveAsync(stream, saveOptions, cancellationToken).GetAwaiter().GetResult();
     }

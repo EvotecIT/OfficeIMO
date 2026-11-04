@@ -16,8 +16,8 @@ public sealed class WorkbenchArtifactStore {
     }
 
     internal WorkbenchArtifactStore(int maximumArtifacts, long maximumRetainedBytes) {
-        if (maximumArtifacts <= 0) throw new ArgumentOutOfRangeException(nameof(maximumArtifacts));
-        if (maximumRetainedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumRetainedBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumArtifacts);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumRetainedBytes);
         _maximumArtifacts = maximumArtifacts;
         _maximumRetainedBytes = maximumRetainedBytes;
     }

@@ -267,9 +267,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal Dictionary<string, int> GetSharedStringIndices(IEnumerable<string> texts, bool assumeDistinct = false) {
-            if (texts == null) {
-                throw new ArgumentNullException(nameof(texts));
-            }
+            ArgumentNullException.ThrowIfNull(texts);
 
             int capacity = texts is ICollection<string> collection ? collection.Count : 0;
             if (capacity == 0 && texts is ICollection<string>) {
@@ -314,9 +312,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal int[] GetSharedStringIndexArray(IReadOnlyList<string> texts, bool assumeDistinct = false) {
-            if (texts == null) {
-                throw new ArgumentNullException(nameof(texts));
-            }
+            ArgumentNullException.ThrowIfNull(texts);
 
             if (texts.Count == 0) {
                 return Array.Empty<int>();

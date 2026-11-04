@@ -7,7 +7,7 @@ internal static class OfficeMathTextTransform {
     // MathML Core section 4.2 and appendix C.1. This is a scalar mapping, not a
     // font-style request, normalization or a transformation of multi-letter names.
     internal static string MathAuto(string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         if (text.Length != 1) return text;
         int scalar = text[0];
         int mapped;

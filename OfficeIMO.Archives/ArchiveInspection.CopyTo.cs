@@ -12,11 +12,12 @@ namespace OfficeIMO.Archives {
         /// Cancellation or I/O failure during the final copy can leave a verified prefix; the caller owns output rollback.
         /// The destination is left open. This operation does not make input snapshots lazy or bound process peak memory.</summary>
         public void CopyTo(int ordinal, Stream destination, CancellationToken cancellationToken = default) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            ArgumentNullException.ThrowIfNull(destination);
             if (!destination.CanWrite) throw new ArgumentException("A writable destination is required.", nameof(destination));
             lock (_gate) {
                 ThrowIfDisposed(); cancellationToken.ThrowIfCancellationRequested();
-                if (ordinal < 0 || ordinal >= Entries.Count) throw new ArgumentOutOfRangeException(nameof(ordinal));
+                ArgumentOutOfRangeException.ThrowIfNegative(ordinal);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(ordinal, Entries.Count);
                 var entry = Entries[ordinal];
                 if (entry.Diagnostic != null) throw new NotSupportedException(entry.Diagnostic.Code + ": " + entry.Diagnostic.Message);
                 ArchiveLimits.Check(entry.Length, _limits.TemporaryBytes, nameof(ArchiveInspectionOptions.MaxTemporaryBytes));

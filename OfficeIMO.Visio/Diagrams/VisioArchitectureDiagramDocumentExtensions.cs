@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic architecture diagram page and returns the document for chaining.
         /// </summary>
         public static VisioDocument ArchitectureDiagram(this VisioDocument document, string pageName, Action<VisioArchitectureDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioArchitectureDiagramBuilder builder = new VisioArchitectureDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

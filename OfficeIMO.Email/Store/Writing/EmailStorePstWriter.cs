@@ -108,7 +108,7 @@ public sealed class EmailStorePstWriter : IDisposable {
     public string AddItem(string folderId, EmailDocument document, bool isAssociated = false,
         CancellationToken cancellationToken = default) {
         ThrowIfUnavailable();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return _core.AddItem(folderId, document, isAssociated, cancellationToken);
     }
 

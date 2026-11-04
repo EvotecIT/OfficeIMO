@@ -22,9 +22,7 @@ public sealed partial class HtmlRenderPage {
         HtmlCssRunningStringPageContext? runningStrings = null,
         HtmlRenderMargins? margins = null,
         HtmlRenderPrintProductionSettings? printProduction = null) {
-        if (pageNumber <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(pageNumber));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
 
         if (width <= 0D || height <= 0D || double.IsNaN(width) || double.IsNaN(height) || double.IsInfinity(width) || double.IsInfinity(height)) {
             throw new ArgumentOutOfRangeException(nameof(width), "Rendered page dimensions must be finite positive numbers.");

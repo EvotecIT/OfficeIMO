@@ -25,8 +25,8 @@ internal sealed partial class OfficeAv1CopyMotionReader {
 
     internal OfficeAv1CopyMotionReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence, OfficeAv1Tile tile,
         OfficeRasterDecodeOptions options) {
-        if (sequence==null) throw new ArgumentNullException(nameof(sequence));
-        if (options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         _geometry=new OfficeAv1TileGeometry(frame,tile,sequence.Use128Superblock?128:64);
         _geometry.EnsurePixelBudget(options.MaximumDecodedPixels);
@@ -42,7 +42,7 @@ internal sealed partial class OfficeAv1CopyMotionReader {
     /// <summary>Reads motion only for copy leaves; an ordinary intra leaf consumes no symbols.</summary>
     internal OfficeAv1CopyMotion Read(OfficeAv1SymbolReader symbols, OfficeAv1BlockRegion block, OfficeAv1IntraModes modes) {
         Check();
-        if (symbols==null) throw new ArgumentNullException(nameof(symbols));
+        ArgumentNullException.ThrowIfNull(symbols);
         _geometry.Validate(block);
         if (_pending) throw new InvalidOperationException("Complete the current AV1 copy leaf before reading another.");
         bool chroma=!_monochrome && !(block.Height==4 && (block.MiRow&1)==0) && !(block.Width==4 && (block.MiCol&1)==0);

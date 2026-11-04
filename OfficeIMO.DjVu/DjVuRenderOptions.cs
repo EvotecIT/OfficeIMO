@@ -31,8 +31,8 @@ public sealed class DjVuRenderOptions {
         if (copy.Dpi.HasValue && (copy.Dpi.Value < 1 || copy.Dpi.Value > 6000)) throw new ArgumentOutOfRangeException(nameof(Dpi));
         if (copy.Gamma < 0.3 || copy.Gamma > 5 || double.IsNaN(copy.Gamma)) throw new ArgumentOutOfRangeException(nameof(Gamma));
         if (copy.MaxPixels <= 0 || copy.MaxPixels > 50_000_000) throw new ArgumentOutOfRangeException(nameof(MaxPixels));
-        if (copy.MaxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxBytes));
-        if (copy.MaxMaskPaintSamples <= 0) throw new ArgumentOutOfRangeException(nameof(MaxMaskPaintSamples));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxBytes, nameof(MaxBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxMaskPaintSamples, nameof(MaxMaskPaintSamples));
         if (!Enum.IsDefined(typeof(OfficeRasterResamplingMode), copy.Resampling)) throw new ArgumentOutOfRangeException(nameof(Resampling));
         if (copy.Background.A != 255) throw new ArgumentException("DjVu page rendering requires an opaque background.", nameof(Background));
         return copy;

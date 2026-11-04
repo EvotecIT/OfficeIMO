@@ -43,7 +43,7 @@ public sealed class OcrEngineExecution {
         TimeSpan timeout,
         OcrResultCaptureLimits captureLimits,
         CancellationToken cancellationToken) {
-        if (captureLimits == null) throw new ArgumentNullException(nameof(captureLimits));
+        ArgumentNullException.ThrowIfNull(captureLimits);
         return OcrEngineRunner.RecognizeAsync(this, request, timeout, cancellationToken, captureLimits);
     }
 
@@ -55,7 +55,7 @@ public sealed class OcrEngineExecution {
     /// its prompt cancellation and timeout behavior.</remarks>
     public Task<OcrResult> RecognizeAttachedAsync(OcrRequest request, TimeSpan timeout,
         OcrResultCaptureLimits captureLimits, CancellationToken cancellationToken = default) {
-        if (captureLimits == null) throw new ArgumentNullException(nameof(captureLimits));
+        ArgumentNullException.ThrowIfNull(captureLimits);
         return OcrEngineRunner.RecognizeAsync(this, request, timeout, cancellationToken, captureLimits,
             awaitProviderSettlement: true);
     }

@@ -462,7 +462,7 @@ namespace OfficeIMO.Word.Pdf {
             List<PdfCore.PdfTableCellImage>? images = null;
             var inlineImages = new Dictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>();
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
-            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             foreach (WordParagraph paragraph in EnumerateNativeTableCellParagraphs(cell)) {
                 int imageCount = 0;
                 W.Paragraph? paragraphElement = paragraph._paragraph;
@@ -778,7 +778,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static bool RenderNativeParagraphImages(INativePdfFlow pdf, WordParagraph paragraph, IReadOnlyList<WordParagraph> runs, global::OfficeIMO.OfficeAlignment align, WordPdfExportOptions? options, PdfCore.PdfParagraphStyle anchorStyle, int groupedImageCount, NativeObjectParagraphSpacing? paragraphSpacing, IReadOnlyDictionary<DocumentFormat.OpenXml.OpenXmlElement, PdfCore.PdfTextRun>? inlineImages = null, WordSection? anchorSection = null) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
-            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             var positions = paragraph._paragraph!.Descendants().Select((element, index) => (element, index))
                 .ToDictionary(pair => pair.element, pair => pair.index);
             var images = new List<(WordImage Image, int Position)>();

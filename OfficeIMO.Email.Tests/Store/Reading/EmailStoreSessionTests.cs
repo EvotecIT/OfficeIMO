@@ -531,7 +531,8 @@ public sealed class EmailStoreSessionTests {
         public override long Position {
             get => _position;
             set {
-                if (value < 0 || value > _length) throw new ArgumentOutOfRangeException(nameof(value));
+                ArgumentOutOfRangeException.ThrowIfNegative(value);
+                ArgumentOutOfRangeException.ThrowIfGreaterThan(value, _length);
                 _position = value;
             }
         }

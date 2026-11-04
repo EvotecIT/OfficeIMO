@@ -3,7 +3,7 @@ namespace OfficeIMO.OneNote;
 /// <summary>Centralizes recursive traversal of the current semantic page content tree.</summary>
 internal static class OneNoteElementTraversal {
     internal static IEnumerable<OneNoteElement> Enumerate(OneNotePage page) {
-        if (page == null) throw new ArgumentNullException(nameof(page));
+        ArgumentNullException.ThrowIfNull(page);
         foreach (OneNoteElement element in page.DirectContent) {
             foreach (OneNoteElement nested in Enumerate(element)) yield return nested;
         }
@@ -13,7 +13,7 @@ internal static class OneNoteElementTraversal {
     }
 
     internal static IEnumerable<OneNoteElement> Enumerate(OneNoteElement element) {
-        if (element == null) throw new ArgumentNullException(nameof(element));
+        ArgumentNullException.ThrowIfNull(element);
         yield return element;
         if (element is OneNoteOutline outline) {
             foreach (OneNoteElement child in outline.Children) {

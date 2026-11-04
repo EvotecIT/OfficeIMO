@@ -9,7 +9,7 @@ namespace OfficeIMO.Core.Internal {
     internal static class OfficeVbaCompression {
         /// <summary>Writes native-compatible MS-OVBA literal/copy chunks without changing source bytes.</summary>
         internal static byte[] Compress(byte[] source) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             using MemoryStream output = new MemoryStream();
             output.WriteByte(1);
             int position = 0;
@@ -99,7 +99,7 @@ namespace OfficeIMO.Core.Internal {
             out byte[] output, out string detail, CancellationToken cancellationToken = default) {
             output = Array.Empty<byte>();
             cancellationToken.ThrowIfCancellationRequested();
-            if (remainingExpandedBytes < 0) throw new ArgumentOutOfRangeException(nameof(remainingExpandedBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(remainingExpandedBytes);
             if (input.Length == 0 || input[0] != 0x01) {
                 detail = "The MS-OVBA compressed container signature is missing.";
                 return false;

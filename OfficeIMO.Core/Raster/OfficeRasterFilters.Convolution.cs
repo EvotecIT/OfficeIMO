@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 public static partial class OfficeRasterFilters {
     /// <summary>Applies a normalized Gaussian kernel in premultiplied RGBA space; sigma is measured in pixels.</summary>
     public static OfficeRasterImage GaussianBlur(OfficeRasterImage source, double sigma = 3D, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         CalculateGaussianAdditionalWorkingBytes(source.Width, source.Height, sigma, false, out int radius);
         var weights = new double[radius * 2 + 1];
         double sum = 0D;
@@ -17,7 +17,7 @@ public static partial class OfficeRasterFilters {
 
     /// <summary>Applies a Gaussian unsharp mask with unit strength while retaining the original alpha.</summary>
     public static OfficeRasterImage GaussianSharpen(OfficeRasterImage source, double sigma = 3D, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         // Smooth owns float scratch as well as its output; the final color pass runs after that scratch is released.
         CalculateGaussianAdditionalWorkingBytes(source.Width, source.Height, sigma, true, out _);
         OfficeRasterImage blurred = GaussianBlur(source, sigma, cancellationToken);
@@ -29,7 +29,7 @@ public static partial class OfficeRasterFilters {
 
     /// <summary>Applies a square box blur with a radius in pixels and premultiplied-alpha sampling.</summary>
     public static OfficeRasterImage BoxBlur(OfficeRasterImage source, int radius = 7, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         CalculateBoxBlurAdditionalWorkingBytes(source.Width, source.Height, radius);
         var weights = new double[radius * 2 + 1];
         for (int i = 0; i < weights.Length; i++) weights[i] = 1D / weights.Length;
@@ -41,7 +41,7 @@ public static partial class OfficeRasterFilters {
     public static OfficeRasterImage BokehBlur(OfficeRasterImage source, int radius = 5, double gamma = 3D, CancellationToken cancellationToken = default) {
         ValidateRadius(radius, 32, nameof(radius));
         ValidateAmount(gamma, nameof(gamma), .1D, 10D);
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         int size = radius * 2 + 1;
         var kernel = new double[size * size];
         for (int y = -radius; y <= radius; y++) for (int x = -radius; x <= radius; x++) {
@@ -60,7 +60,7 @@ public static partial class OfficeRasterFilters {
     private static OfficeRasterImage ConvolveCore(OfficeRasterImage source, double[] kernel, int kernelWidth, int kernelHeight,
         bool normalize, double gamma, CancellationToken cancellationToken, bool cloneKernel = true) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (kernel == null) throw new ArgumentNullException(nameof(kernel));
+        ArgumentNullException.ThrowIfNull(kernel);
         if (kernelWidth <= 0 || kernelWidth > 65 || (kernelWidth & 1) == 0) throw new ArgumentOutOfRangeException(nameof(kernelWidth));
         if (kernelHeight <= 0 || kernelHeight > 65 || (kernelHeight & 1) == 0) throw new ArgumentOutOfRangeException(nameof(kernelHeight));
         if (kernel.Length != kernelWidth * kernelHeight) throw new ArgumentException("Kernel dimensions do not match its coefficient count.", nameof(kernel));
@@ -99,7 +99,7 @@ public static partial class OfficeRasterFilters {
 
     private static OfficeRasterImage Smooth(OfficeRasterImage source, double[] weights, CancellationToken token) {
         token.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         CalculateSmoothingAdditionalWorkingBytes(source.Width, source.Height, weights.Length, false);
         float[] intermediate = new float[source.PixelBuffer.Length];
         var result = new OfficeRasterImage(source.Width, source.Height);

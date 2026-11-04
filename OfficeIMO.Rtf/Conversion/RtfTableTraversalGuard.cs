@@ -7,7 +7,7 @@ internal static class RtfTableTraversalGuard {
     internal const int MaximumDepth = 64;
 
     internal static void ValidateDocument(RtfDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
 
         var pending = new Stack<TableFrame>();
         PushTables(document.Blocks, 1, pending);

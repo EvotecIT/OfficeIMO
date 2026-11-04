@@ -345,9 +345,7 @@ public sealed class MarkdownRendererOptions {
     /// Applies a fenced-block renderer plugin without duplicating existing language registrations.
     /// </summary>
     public void ApplyPlugin(MarkdownRendererPlugin plugin) {
-        if (plugin == null) {
-            throw new ArgumentNullException(nameof(plugin));
-        }
+        ArgumentNullException.ThrowIfNull(plugin);
 
         plugin.Apply(this);
     }
@@ -356,9 +354,7 @@ public sealed class MarkdownRendererOptions {
     /// Returns <see langword="true"/> when the supplied plugin has already registered any of its languages.
     /// </summary>
     public bool HasPlugin(MarkdownRendererPlugin plugin) {
-        if (plugin == null) {
-            throw new ArgumentNullException(nameof(plugin));
-        }
+        ArgumentNullException.ThrowIfNull(plugin);
 
         return plugin.IsApplied(this);
     }
@@ -367,9 +363,7 @@ public sealed class MarkdownRendererOptions {
     /// Applies a host-level feature pack once.
     /// </summary>
     public void ApplyFeaturePack(MarkdownRendererFeaturePack featurePack) {
-        if (featurePack == null) {
-            throw new ArgumentNullException(nameof(featurePack));
-        }
+        ArgumentNullException.ThrowIfNull(featurePack);
 
         featurePack.Apply(this);
     }
@@ -378,9 +372,7 @@ public sealed class MarkdownRendererOptions {
     /// Returns <see langword="true"/> when the supplied host-level feature pack has already been applied.
     /// </summary>
     public bool HasFeaturePack(MarkdownRendererFeaturePack featurePack) {
-        if (featurePack == null) {
-            throw new ArgumentNullException(nameof(featurePack));
-        }
+        ArgumentNullException.ThrowIfNull(featurePack);
 
         return featurePack.IsApplied(this);
     }
@@ -389,9 +381,7 @@ public sealed class MarkdownRendererOptions {
     /// Registers a fence option schema once.
     /// </summary>
     public void ApplyFenceOptionSchema(MarkdownFenceOptionSchema schema) {
-        if (schema == null) {
-            throw new ArgumentNullException(nameof(schema));
-        }
+        ArgumentNullException.ThrowIfNull(schema);
 
         if (HasFenceOptionSchema(schema)) {
             return;
@@ -404,9 +394,7 @@ public sealed class MarkdownRendererOptions {
     /// Returns <see langword="true"/> when the supplied fence option schema is already registered.
     /// </summary>
     public bool HasFenceOptionSchema(MarkdownFenceOptionSchema schema) {
-        if (schema == null) {
-            throw new ArgumentNullException(nameof(schema));
-        }
+        ArgumentNullException.ThrowIfNull(schema);
 
         for (int i = 0; i < _fenceOptionSchemas.Count; i++) {
             if (string.Equals(_fenceOptionSchemas[i].Id, schema.Id, StringComparison.OrdinalIgnoreCase)) {

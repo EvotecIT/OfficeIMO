@@ -36,9 +36,7 @@ public static partial class OfficeSvgFormatting {
 
     private static StringBuilder AppendPathData(StringBuilder builder, IReadOnlyList<OfficePathCommand> commands, double offsetX, double offsetY, bool preservePrecision, bool suppressEmptyClosure = false) {
         string Number(double value) => preservePrecision ? value.ToString("R", CultureInfo.InvariantCulture) : FormatNumber(value);
-        if (commands == null) {
-            throw new ArgumentNullException(nameof(commands));
-        }
+        ArgumentNullException.ThrowIfNull(commands);
 
         bool subpathHasDraw = false;
         for (int i = 0; i < commands.Count; i++) {

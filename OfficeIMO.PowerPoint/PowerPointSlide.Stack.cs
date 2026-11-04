@@ -274,9 +274,7 @@ namespace OfficeIMO.PowerPoint {
         private void StackShapesInternal(IEnumerable<PowerPointShape> shapes, PowerPointShapeStackDirection direction,
             PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment,
             PowerPointShapeStackJustify justify, bool clampSpacingToBounds, bool scaleToFitBounds, bool preserveAspect) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
             if (spacingEmus < 0) {
                 throw new ArgumentOutOfRangeException("spacing");
             }

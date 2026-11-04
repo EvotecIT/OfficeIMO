@@ -24,11 +24,7 @@ internal static partial class ObjectDataHelpers
 #endif
     public static IReadOnlyList<string> GetColumnNames(object item)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(item);
-#else
-        if (item == null) throw new ArgumentNullException(nameof(item));
-#endif
 
         if (item is Dictionary<string, object?> dictionary)
         {
@@ -67,11 +63,7 @@ internal static partial class ObjectDataHelpers
     /// </summary>
     public static bool IsDictionaryLike(object item)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(item);
-#else
-        if (item == null) throw new ArgumentNullException(nameof(item));
-#endif
 
         return item is Dictionary<string, object?>
             || item is IReadOnlyDictionary<string, object?>
@@ -87,13 +79,8 @@ internal static partial class ObjectDataHelpers
 #endif
     public static object? GetValue(object item, string column)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(column);
-#else
-        if (item == null) throw new ArgumentNullException(nameof(item));
-        if (column == null) throw new ArgumentNullException(nameof(column));
-#endif
 
         if (item is Dictionary<string, object?> dictionary)
         {
@@ -140,13 +127,8 @@ internal static partial class ObjectDataHelpers
 #endif
     internal static bool TryCreatePropertyProjector(object item, IReadOnlyList<string> columns, out Func<object, object?[], bool>? projector)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(columns);
-#else
-        if (item == null) throw new ArgumentNullException(nameof(item));
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
-#endif
 
         projector = null;
         if (IsDictionaryLike(item))
@@ -165,13 +147,8 @@ internal static partial class ObjectDataHelpers
 #endif
     internal static bool TryCreatePropertyTextProjector(object item, IReadOnlyList<string> columns, out Func<object, string?[], CultureInfo, bool>? projector)
     {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(item);
         ArgumentNullException.ThrowIfNull(columns);
-#else
-        if (item == null) throw new ArgumentNullException(nameof(item));
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
-#endif
 
         projector = null;
         if (IsDictionaryLike(item))
@@ -458,11 +435,7 @@ internal static partial class ObjectDataHelpers
                     return false;
                 }
 
-#if NET6_0_OR_GREATER
                 ArgumentNullException.ThrowIfNull(values);
-#else
-                if (values == null) throw new ArgumentNullException(nameof(values));
-#endif
 
                 if (values.Length != accessors.Length)
                 {
@@ -487,13 +460,8 @@ internal static partial class ObjectDataHelpers
                     return false;
                 }
 
-#if NET6_0_OR_GREATER
                 ArgumentNullException.ThrowIfNull(values);
                 ArgumentNullException.ThrowIfNull(culture);
-#else
-                if (values == null) throw new ArgumentNullException(nameof(values));
-                if (culture == null) throw new ArgumentNullException(nameof(culture));
-#endif
 
                 if (values.Length != accessors.Length)
                 {

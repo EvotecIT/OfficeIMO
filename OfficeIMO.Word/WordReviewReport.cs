@@ -58,9 +58,7 @@ namespace OfficeIMO.Word {
         /// <param name="review">Review metadata returned by <see cref="WordDocument.InspectReview()"/>.</param>
         /// <param name="actions">Optional accept/reject operation reports to include.</param>
         public static WordReviewReport From(WordReviewInfo review, params WordRevisionOperationReport[] actions) {
-            if (review == null) {
-                throw new ArgumentNullException(nameof(review));
-            }
+            ArgumentNullException.ThrowIfNull(review);
 
             return new WordReviewReport(review, actions ?? Array.Empty<WordRevisionOperationReport>());
         }

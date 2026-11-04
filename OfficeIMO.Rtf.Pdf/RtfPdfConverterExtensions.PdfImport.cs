@@ -15,7 +15,7 @@ public static partial class RtfPdfConverterExtensions {
         this PdfCore.PdfDocument document,
         PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadForRtf(document, options, cancellationToken).ToRtfDocumentResult(options, cancellationToken);
     }
 
@@ -25,7 +25,7 @@ public static partial class RtfPdfConverterExtensions {
         string path,
         PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadForRtf(document, options, cancellationToken).SaveAsRtf(path, options, cancellationToken);
     }
 
@@ -35,7 +35,7 @@ public static partial class RtfPdfConverterExtensions {
         Stream stream,
         PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadForRtf(document, options, cancellationToken).SaveAsRtf(stream, options, cancellationToken);
     }
 
@@ -46,7 +46,7 @@ public static partial class RtfPdfConverterExtensions {
         PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadForRtf(document, options, cancellationToken).SaveAsRtfAsync(path, options, cancellationToken);
     }
 
@@ -57,7 +57,7 @@ public static partial class RtfPdfConverterExtensions {
         PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadForRtf(document, options, cancellationToken).SaveAsRtfAsync(stream, options, cancellationToken);
     }
 
@@ -78,7 +78,7 @@ public static partial class RtfPdfConverterExtensions {
         this PdfCore.PdfDocumentReadResult document,
         PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         PdfRtfExportOptions operation = (options ?? new PdfRtfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;
         RtfDocument value = PdfRtfConverter.Convert(document, operation);
@@ -104,7 +104,7 @@ public static partial class RtfPdfConverterExtensions {
         Stream stream,
         PdfRtfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
         PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -131,7 +131,7 @@ public static partial class RtfPdfConverterExtensions {
         Stream stream,
         PdfRtfExportOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         PdfRtfConversionResult result = document.ToRtfDocumentResult(options, cancellationToken);

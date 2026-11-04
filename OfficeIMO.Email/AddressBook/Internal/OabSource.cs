@@ -34,10 +34,10 @@ internal sealed class OabSource {
     }
 
     internal static OabSource FromStream(Stream stream, string sourceName) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("OAB stream must be readable.", nameof(stream));
         if (!stream.CanSeek) throw new ArgumentException("OAB stream must be seekable for lazy record access.", nameof(stream));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(sourceName);
         long offset = stream.Position;
         return new OabSource(sourceName, stream, offset, checked(stream.Length - offset));
     }

@@ -7,7 +7,7 @@ internal sealed class PstDecodedObjectBudget {
     private readonly long _maximumBytes;
 
     internal PstDecodedObjectBudget(long maximumBytes) {
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumBytes = maximumBytes;
     }
 
@@ -16,7 +16,7 @@ internal sealed class PstDecodedObjectBudget {
     internal long RemainingBytes => _maximumBytes - ConsumedBytes;
 
     internal void Add(long bytes) {
-        if (bytes < 0) throw new ArgumentOutOfRangeException(nameof(bytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(bytes);
         if (bytes > RemainingBytes) {
             long actual = bytes > long.MaxValue - ConsumedBytes
                 ? long.MaxValue

@@ -19,7 +19,7 @@ namespace OfficeIMO.Excel {
             OfficeImageExportConsumer consumer,
             ExcelImageExportOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (consumer == null) throw new ArgumentNullException(nameof(consumer));
+            ArgumentNullException.ThrowIfNull(consumer);
             ExcelImageExportOptions resolved = NormalizeWorkbookOptions(options);
             var plan = new List<ExcelWorksheetImageExportPlan>();
             var encodingBudget = new OfficeImageExportEncodingBudget(resolved.MaximumTotalEncodedBytes);

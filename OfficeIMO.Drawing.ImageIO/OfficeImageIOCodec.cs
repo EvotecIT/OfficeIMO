@@ -17,10 +17,10 @@ public sealed class OfficeImageIOCodec : IOfficeRasterImageCodec, IOfficeRasterI
     /// <param name="maximumDecodedPixels">Maximum pixels per tile, from 1 through 50,000,000.</param>
     /// <param name="maximumEncodedBytes">Maximum input bytes, from 1 through 128 MiB.</param>
     public OfficeImageIOCodec(long maximumDecodedPixels = MaximumPixels, int maximumEncodedBytes = MaximumBytes) {
-        if (maximumDecodedPixels < 1 || maximumDecodedPixels > MaximumPixels)
-            throw new ArgumentOutOfRangeException(nameof(maximumDecodedPixels));
-        if (maximumEncodedBytes < 1 || maximumEncodedBytes > MaximumBytes)
-            throw new ArgumentOutOfRangeException(nameof(maximumEncodedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumDecodedPixels, 1L);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maximumDecodedPixels, MaximumPixels);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumEncodedBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(maximumEncodedBytes, MaximumBytes);
         _maximumDecodedPixels = maximumDecodedPixels;
         _maximumEncodedBytes = maximumEncodedBytes;
     }

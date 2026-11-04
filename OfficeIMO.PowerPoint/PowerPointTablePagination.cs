@@ -114,8 +114,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointPaginatedTableResult AddTableSlides<T>(IEnumerable<T> data,
             IEnumerable<PowerPointTableColumn<T>> columns, PowerPointTablePaginationOptions? options = null) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
-            if (columns == null) throw new ArgumentNullException(nameof(columns));
+            ArgumentNullException.ThrowIfNull(data);
+            ArgumentNullException.ThrowIfNull(columns);
 
             List<T> rows = data.ToList();
             if (rows.Count == 0) {

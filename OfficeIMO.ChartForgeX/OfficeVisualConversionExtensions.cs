@@ -15,7 +15,7 @@ public static class OfficeVisualConversionExtensions {
     public static OfficeVisualConversionResult ToOfficeVisual(
         this VisualArtifact artifact,
         OfficeVisualConversionOptions? options = null) {
-        if (artifact == null) throw new ArgumentNullException(nameof(artifact));
+        ArgumentNullException.ThrowIfNull(artifact);
         options ??= new OfficeVisualConversionOptions();
         string svg = artifact.ToSvg(options.RenderOptions);
         byte[] svgBytes = Encoding.UTF8.GetBytes(svg);
@@ -102,7 +102,7 @@ public static class OfficeVisualConversionExtensions {
     public static OfficeVisualConversionResult ToOfficeVisual(
         this OfficeVisualSource source,
         OfficeVisualConversionOptions? options = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options ??= new OfficeVisualConversionOptions();
         byte[] svgBytes = source.GetSvgBytes();
         OfficeSvgDrawingReaderOptions readerOptions = CreateReaderOptions(options);

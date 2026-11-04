@@ -69,7 +69,7 @@ namespace OfficeIMO.Drawing {
             OfficeImageInfo imageInfo,
             long maximumTranscodePixels,
             out string? unsupportedReason) {
-            if (imageInfo == null) throw new System.ArgumentNullException(nameof(imageInfo));
+            System.ArgumentNullException.ThrowIfNull(imageInfo);
             if (maximumTranscodePixels < 1) throw new System.ArgumentOutOfRangeException(nameof(maximumTranscodePixels));
 
             unsupportedReason = null;

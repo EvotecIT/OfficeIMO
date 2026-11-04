@@ -19,7 +19,7 @@ internal static partial class OfficeImageMetadataInspector {
         OfficeImageFormat format,
         long retainedManagedBytes,
         CancellationToken cancellationToken) {
-        if (retainedManagedBytes < 0L) throw new ArgumentOutOfRangeException(nameof(retainedManagedBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(retainedManagedBytes, 0L);
         cancellationToken.ThrowIfCancellationRequested();
         var snapshot = new OfficeImageMetadataSnapshot();
         if (OfficeImageOrientationNormalizer.TryRead(data, cancellationToken, out OfficeImageOrientation orientation)) {

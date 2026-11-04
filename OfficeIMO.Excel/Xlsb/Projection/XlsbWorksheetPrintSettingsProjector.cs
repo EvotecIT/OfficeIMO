@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
             XlsbPageMargins? margins,
             XlsbPageSetup? pageSetup,
             XlsbHeaderFooter? headerFooter) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             if (options != null) worksheet.Append(Create(options));

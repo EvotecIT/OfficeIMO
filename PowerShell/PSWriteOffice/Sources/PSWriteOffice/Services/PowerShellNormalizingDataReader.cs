@@ -59,10 +59,7 @@ internal sealed class PowerShellNormalizingDataReader : IDataReader
 
     public int GetValues(object[] values)
     {
-        if (values == null)
-        {
-            throw new ArgumentNullException(nameof(values));
-        }
+        ArgumentNullException.ThrowIfNull(values);
 
         var count = Math.Min(values.Length, FieldCount);
         for (var index = 0; index < count; index++)

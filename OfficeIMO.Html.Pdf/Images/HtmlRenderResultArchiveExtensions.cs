@@ -19,7 +19,7 @@ public static class HtmlRenderResultArchiveExtensions {
     public static HtmlRenderArchiveResult ExportArchive(this HtmlRenderResult result,
         HtmlRenderArchiveOptions? archiveOptions = null,
         CancellationToken cancellationToken = default) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         cancellationToken.ThrowIfCancellationRequested();
         if (result.Request.Encoder != HtmlRenderEncoder.Png && result.Request.Encoder != HtmlRenderEncoder.Svg) {
             throw new InvalidOperationException("HTML render archives require an explicit PNG or SVG render encoder.");

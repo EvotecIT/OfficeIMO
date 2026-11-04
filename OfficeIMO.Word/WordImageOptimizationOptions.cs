@@ -37,8 +37,8 @@ public sealed class WordImageOptimizationOptions {
         if (Mode < OfficeImageOptimizationMode.Downsample || Mode > OfficeImageOptimizationMode.DownsampleAndRecompress)
             throw new ArgumentOutOfRangeException(nameof(Mode));
         if (MaxImageBytes <= 0 || MaxImageBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxImageBytes));
-        if (MaxStagedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStagedBytes));
-        if (MaxPackageParts <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageParts));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxStagedBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPackageParts);
         if (ResamplingMode < OfficeRasterResamplingMode.NearestNeighbor || ResamplingMode > OfficeRasterResamplingMode.Lanczos3)
             throw new ArgumentOutOfRangeException(nameof(ResamplingMode));
         if (MetadataPolicy < OfficeImageMetadataPolicy.Preserve || MetadataPolicy > OfficeImageMetadataPolicy.SelectiveCopy)

@@ -395,9 +395,7 @@ public sealed partial class OfficeDrawing {
         AddClippedImageCore(bytes, contentType, projection, interpolate, clipX, clipY, clipPath, alternativeText, opacity, useDataSnapshot: true);
 
     private OfficeDrawing AddClippedImageCore(byte[] bytes, string? contentType, OfficeImageProjection projection, bool interpolate, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText, double opacity, bool useDataSnapshot) {
-        if (clipPath == null) {
-            throw new ArgumentNullException(nameof(clipPath));
-        }
+        ArgumentNullException.ThrowIfNull(clipPath);
 
         ValidateFiniteNonNegative(clipX, nameof(clipX));
         ValidateFiniteNonNegative(clipY, nameof(clipY));
@@ -412,9 +410,7 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Adds text clipped by a drawing-local clipping path.</summary>
     public OfficeDrawing AddClippedText(string text, double x, double y, double width, double height, double clipX, double clipY, OfficeClipPath clipPath, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
-        if (clipPath == null) {
-            throw new ArgumentNullException(nameof(clipPath));
-        }
+        ArgumentNullException.ThrowIfNull(clipPath);
 
         ValidateFiniteNonNegative(clipX, nameof(clipX));
         ValidateFiniteNonNegative(clipY, nameof(clipY));
@@ -485,9 +481,7 @@ public sealed partial class OfficeDrawing {
         OfficeTextAlignment alignment = OfficeTextAlignment.Left,
         double? lineHeight = null,
         double? textAdvanceWidth = null) {
-        if (clipPath == null) {
-            throw new ArgumentNullException(nameof(clipPath));
-        }
+        ArgumentNullException.ThrowIfNull(clipPath);
 
         ValidateFiniteNonNegative(clipX, nameof(clipX));
         ValidateFiniteNonNegative(clipY, nameof(clipY));
@@ -573,7 +567,7 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Adds another drawing as one affine-transformed, isolated opacity group.</summary>
     public OfficeDrawing AddEffectDrawing(OfficeDrawing drawing, OfficeTransform transform, double opacity = 1D) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        ArgumentNullException.ThrowIfNull(drawing);
         Fonts.AddRange(drawing.Fonts);
         _elements.Add(new OfficeDrawingEffectGroup(drawing, transform, opacity));
         return this;
@@ -586,7 +580,7 @@ public sealed partial class OfficeDrawing {
         OfficeBlendMode blendMode,
         OfficeDrawingSoftMask? softMask = null,
         double opacity = 1D) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        ArgumentNullException.ThrowIfNull(drawing);
         Fonts.AddRange(drawing.Fonts);
         if (softMask != null) Fonts.AddRange(softMask.InnerDrawing.Fonts);
         _elements.Add(new OfficeDrawingEffectGroup(drawing, transform, blendMode, softMask, opacity));
@@ -624,13 +618,9 @@ public sealed partial class OfficeDrawing {
     }
 
     private OfficeDrawing AddClippedDrawingCore(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY, OfficeImageFrameTransform? frameTransform) {
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
+        ArgumentNullException.ThrowIfNull(drawing);
 
-        if (clipPath == null) {
-            throw new ArgumentNullException(nameof(clipPath));
-        }
+        ArgumentNullException.ThrowIfNull(clipPath);
 
         ValidateFiniteNonNegative(x, nameof(x));
         ValidateFiniteNonNegative(y, nameof(y));
@@ -652,8 +642,8 @@ public sealed partial class OfficeDrawing {
     }
 
     internal OfficeDrawing AddClippedDrawingForRendering(OfficeDrawing drawing, double x, double y, OfficeClipPath clipPath, double contentOffsetX, double contentOffsetY) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
-        if (clipPath == null) throw new ArgumentNullException(nameof(clipPath));
+        ArgumentNullException.ThrowIfNull(drawing);
+        ArgumentNullException.ThrowIfNull(clipPath);
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));
         ValidateFinite(contentOffsetX, nameof(contentOffsetX));
@@ -664,9 +654,7 @@ public sealed partial class OfficeDrawing {
     }
 
     private OfficeDrawing AddDrawingCore(OfficeDrawing drawing, double x, double y, OfficeImageFrameTransform? frameTransform, bool allowOverflow) {
-        if (drawing == null) {
-            throw new ArgumentNullException(nameof(drawing));
-        }
+        ArgumentNullException.ThrowIfNull(drawing);
 
         if (allowOverflow) {
             ValidateFinite(x, nameof(x));

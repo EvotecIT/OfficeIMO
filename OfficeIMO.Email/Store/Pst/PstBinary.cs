@@ -65,7 +65,7 @@ internal static class PstBinary {
     }
 
     private static void EnsureWrite(byte[] bytes, int offset, int count) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (offset < 0 || count < 0 || offset > bytes.Length - count) {
             throw new ArgumentOutOfRangeException(nameof(offset));
         }

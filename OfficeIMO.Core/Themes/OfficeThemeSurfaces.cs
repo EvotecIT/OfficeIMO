@@ -32,7 +32,7 @@ public sealed class OfficeThemeSurfaces {
     /// background) composited over the background.
     /// </summary>
     public static OfficeThemeSurfaces FromPalette(OfficeThemePalette palette, OfficeColor surface, OfficeColor rule) {
-        if (palette == null) throw new ArgumentNullException(nameof(palette));
+        ArgumentNullException.ThrowIfNull(palette);
         OfficeColor background = palette.Background;
         double status = IsDark(background) ? 0.18 : 0.12;
         return new OfficeThemeSurfaces(surface, rule, Tint(palette.Accent1, background, 0.10),

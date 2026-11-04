@@ -168,13 +168,8 @@ internal static partial class TextContentParser {
         internal TextOutputBudget(int maxActualTextCharacters, int maxDecodedTextCharacters,
             PdfReadLimitKind actualTextLimitKind = PdfReadLimitKind.ActualTextCharacters,
             PdfReadLimitKind decodedTextLimitKind = PdfReadLimitKind.DecodedTextCharacters) {
-#if NET8_0_OR_GREATER
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
             ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
-#else
-            if (maxActualTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxActualTextCharacters));
-            if (maxDecodedTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedTextCharacters));
-#endif
             _maxActualTextCharacters = maxActualTextCharacters;
             _maxDecodedTextCharacters = maxDecodedTextCharacters;
             _actualTextLimitKind = actualTextLimitKind;
@@ -365,17 +360,8 @@ internal static partial class TextContentParser {
         Action<DrawingActualTextScope>? onCompletedDrawingActualText = null,
         Func<string, bool>? usesTwoByteGlyphCodesForResource = null,
         int initialStrokeLineCap = 0) {
-#if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActualTextCharacters);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedTextCharacters);
-#else
-        if (maxActualTextCharacters <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxActualTextCharacters));
-        }
-        if (maxDecodedTextCharacters <= 0) {
-            throw new ArgumentOutOfRangeException(nameof(maxDecodedTextCharacters));
-        }
-#endif
 
         textOutputBudget ??= new TextOutputBudget(maxActualTextCharacters, maxDecodedTextCharacters);
         textClippingBudget ??= new PdfTextClippingBudget();

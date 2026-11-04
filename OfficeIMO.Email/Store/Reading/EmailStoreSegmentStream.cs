@@ -7,7 +7,7 @@ internal sealed class EmailStoreSegmentStream : Stream {
     private readonly long _length;
     private long _position;
     internal EmailStoreSegmentStream(Stream source, long start, long length) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (!source.CanRead || !source.CanSeek) throw new ArgumentException("A readable seekable source is required.", nameof(source));
         if (start < 0 || length < 0 || start > source.Length - length) throw new ArgumentOutOfRangeException(nameof(length));
         _source = source;
@@ -21,12 +21,13 @@ internal sealed class EmailStoreSegmentStream : Stream {
     public override long Position {
         get => _position;
         set {
-            if (value < 0 || value > _length) throw new ArgumentOutOfRangeException(nameof(value));
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, _length);
             _position = value;
         }
     }
     public override int Read(byte[] buffer, int offset, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException();
         int bounded = (int)Math.Min(count, _length - _position);
         if (bounded == 0) return 0;

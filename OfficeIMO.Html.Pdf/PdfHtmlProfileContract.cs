@@ -77,7 +77,7 @@ public sealed class PdfHtmlProfileContract {
     public IReadOnlyList<string> RendererBoundaries { get; }
 
     private static IReadOnlyList<string> Snapshot(IReadOnlyList<string> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         return new ReadOnlyCollection<string>(new List<string>(values));
     }
 }

@@ -248,11 +248,7 @@ internal static class CertificateChainValidator {
         X509Certificate2 certificate,
         IEnumerable<X509Certificate2> issuerCandidates,
         int maxIssuerSignatureChecks) {
-#if NET8_0_OR_GREATER
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxIssuerSignatureChecks);
-#else
-        if (maxIssuerSignatureChecks <= 0) throw new ArgumentOutOfRangeException(nameof(maxIssuerSignatureChecks));
-#endif
         var certificates = issuerCandidates
             .Prepend(certificate)
             .GroupBy(static candidate => candidate.Thumbprint ?? Convert.ToBase64String(candidate.GetCertHash()),

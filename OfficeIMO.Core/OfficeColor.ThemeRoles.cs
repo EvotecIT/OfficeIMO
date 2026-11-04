@@ -78,7 +78,7 @@ public readonly partial struct OfficeColor {
 
     /// <summary>Resolves a role to a literal RGBA color using the supplied theme; literals are returned unchanged.</summary>
     public OfficeColor Resolve(OfficeTheme theme) {
-        if (theme == null) throw new ArgumentNullException(nameof(theme));
+        ArgumentNullException.ThrowIfNull(theme);
         OfficeThemePalette palette = theme.Palette;
         return Role switch {
             OfficeColorRole.Accent1 => palette.Accent1, OfficeColorRole.Accent2 => palette.Accent2,

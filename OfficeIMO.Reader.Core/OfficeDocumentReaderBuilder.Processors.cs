@@ -21,7 +21,7 @@ public sealed partial class OfficeDocumentReaderBuilder {
 
     /// <summary>Replaces configured processors with a snapshot of an existing pipeline.</summary>
     public OfficeDocumentReaderBuilder UseProcessorPipeline(OfficeDocumentProcessorPipeline pipeline) {
-        if (pipeline == null) throw new ArgumentNullException(nameof(pipeline));
+        ArgumentNullException.ThrowIfNull(pipeline);
         _processorPipelineBuilder.Clear().AddRange(pipeline.Processors);
         return this;
     }

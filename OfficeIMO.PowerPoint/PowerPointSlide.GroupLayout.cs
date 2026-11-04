@@ -14,10 +14,8 @@ namespace OfficeIMO.PowerPoint {
 
         internal IReadOnlyList<PowerPointShape> GetGroupChildren(PowerPointGroupShape groupShape,
             int maximumChildren) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
-            if (maximumChildren < 0) throw new ArgumentOutOfRangeException(nameof(maximumChildren));
+            ArgumentNullException.ThrowIfNull(groupShape);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumChildren);
 
             GroupShape group = groupShape.GroupShape;
             var children = new List<PowerPointShape>();
@@ -49,9 +47,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal IEnumerable<PowerPointShape> EnumerateShapesDeep(IEnumerable<PowerPointShape> shapes,
             bool includeHidden, int maximumShapeCount, int maximumGroupDepth) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             var stack = new Stack<(IEnumerator<PowerPointShape> Enumerator, int Depth, bool CountOnMove)>();
             stack.Push((shapes.GetEnumerator(), 0, true));
@@ -121,9 +117,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="groupShape">Group whose native child coordinate space is inspected.</param>
         /// <returns>The native child region, or the selection bounds when no complete child transform exists.</returns>
         public PowerPointLayoutBox GetGroupChildBounds(PowerPointGroupShape groupShape) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             IReadOnlyList<PowerPointShape> children = GetGroupChildren(groupShape);
             return GetGroupChildBounds(groupShape, children);
@@ -133,9 +127,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Aligns child shapes within the group's bounds.
         /// </summary>
         public void AlignGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeAlignment alignment) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count == 0) {
@@ -149,9 +141,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Distributes child shapes within the group's bounds.
         /// </summary>
         public void DistributeGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count < 2) {
@@ -166,9 +156,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void DistributeGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution,
             PowerPointShapeAlignment crossAxisAlignment) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count < 2) {
@@ -188,9 +176,7 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeGroupChildrenWithSpacing(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution,
             OfficeLength spacing, bool center = false) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count < 2) {
@@ -209,9 +195,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void DistributeGroupChildrenWithSpacing(PowerPointGroupShape groupShape, PowerPointShapeDistribution distribution,
             PowerPointShapeSpacingOptions? options) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count < 2) {
@@ -229,9 +213,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="spacing">Nonnegative distance between adjacent shapes.</param>
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void StackGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeStackDirection direction, OfficeLength spacing) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count == 0) {
@@ -249,9 +231,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void StackGroupChildren(PowerPointGroupShape groupShape, PowerPointShapeStackDirection direction,
             PowerPointShapeStackOptions? options) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count == 0) {
@@ -275,9 +255,7 @@ namespace OfficeIMO.PowerPoint {
         public void ArrangeGroupChildrenInGrid(PowerPointGroupShape groupShape, int columns, int rows,
             OfficeLength gutterX = default, OfficeLength gutterY = default, bool resizeToCell = true,
             PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count == 0) {
@@ -299,9 +277,7 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void ArrangeGroupChildrenInGridAuto(PowerPointGroupShape groupShape, OfficeLength gutterX = default, OfficeLength gutterY = default,
             bool resizeToCell = true, PowerPointShapeGridFlow flow = PowerPointShapeGridFlow.RowMajor) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count == 0) {
@@ -318,9 +294,7 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="groupShape">Group whose children are arranged in their native child coordinate space.</param>
         /// <param name="options">Layout settings, or null to use the default settings.</param>
         public void ArrangeGroupChildrenInGridAuto(PowerPointGroupShape groupShape, PowerPointShapeGridOptions? options) {
-            if (groupShape == null) {
-                throw new ArgumentNullException(nameof(groupShape));
-            }
+            ArgumentNullException.ThrowIfNull(groupShape);
 
             List<PowerPointShape> children = GetGroupChildren(groupShape).ToList();
             if (children.Count == 0) {

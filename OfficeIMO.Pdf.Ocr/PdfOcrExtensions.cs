@@ -11,7 +11,7 @@ public static partial class PdfOcrExtensions {
     /// Provider orientation detection is not performed. Source bytes remain unchanged.</summary>
     public static Task<PdfScanPreview> PreviewScanAsync(this PdfDocument document, int pageNumber,
         PdfOcrMergeOptions? options = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return PdfOcr.PreviewScanAsync(document.GetBytesForOperation(cancellationToken), pageNumber,
             options?.Clone() ?? new PdfOcrMergeOptions(), document.ReadOptions, cancellationToken);
     }
@@ -25,7 +25,7 @@ public static partial class PdfOcrExtensions {
         IOcrEngine engine,
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return PdfOcr.RecognizeAndMergeAsync(
             document.GetBytesForOperation(cancellationToken),
             engine,
@@ -54,8 +54,8 @@ public static partial class PdfOcrExtensions {
         IOcrEngine engine,
         PdfOcrMergeOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(engine);
         cancellationToken.ThrowIfCancellationRequested();
         PdfDocument snapshot = PdfDocument.Load(document.GetBytesForOperation(cancellationToken), document.ReadOptions);
         PdfOcrMergeOptions effectiveOptions = options?.Clone() ?? new PdfOcrMergeOptions();

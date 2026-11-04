@@ -9,9 +9,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Replaces the textbox content with rich text parsed from a small Markdown subset.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> SetMarkdown(string markdown) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
+            ArgumentNullException.ThrowIfNull(markdown);
 
             TextBody textBody = EnsureTextBody();
             string[] discardedSoundIds = PowerPointEmbeddedSound
@@ -29,9 +27,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Appends rich text parsed from a small Markdown subset to the textbox.
         /// </summary>
         public IReadOnlyList<PowerPointParagraph> AddMarkdown(string markdown) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
+            ArgumentNullException.ThrowIfNull(markdown);
 
             TextBody textBody = EnsureTextBody();
             A.Paragraph? templateParagraph = textBody.Elements<A.Paragraph>().FirstOrDefault();

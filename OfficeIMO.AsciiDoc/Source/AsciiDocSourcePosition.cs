@@ -6,9 +6,9 @@ namespace OfficeIMO.AsciiDoc;
 public readonly struct AsciiDocSourcePosition : IEquatable<AsciiDocSourcePosition> {
     /// <summary>Creates a source position.</summary>
     public AsciiDocSourcePosition(int offset, int line, int column) {
-        if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
-        if (line < 1) throw new ArgumentOutOfRangeException(nameof(line));
-        if (column < 1) throw new ArgumentOutOfRangeException(nameof(column));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfLessThan(line, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(column, 1);
 
         Offset = offset;
         Line = line;

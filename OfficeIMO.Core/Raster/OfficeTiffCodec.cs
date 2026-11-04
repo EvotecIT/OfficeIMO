@@ -70,7 +70,7 @@ public static partial class OfficeTiffCodec {
 
     /// <summary>Encodes a single RGBA image as a little-endian baseline TIFF.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficeTiffEncodeOptions? options = null) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         OfficeTiffEncodeOptions effective = options ?? new OfficeTiffEncodeOptions();
         ValidateOptions(effective);
 

@@ -108,7 +108,7 @@ public readonly struct ProjectWork : IEquatable<ProjectWork> {
         internal DecodedTicks(long ticks) { Value = ticks; }
     }
     /// <summary>Creates an amount of work in minutes.</summary>
-    public ProjectWork(decimal minutes) { if (minutes < 0) throw new ArgumentOutOfRangeException(nameof(minutes)); Minutes = minutes; _decoded = null; }
+    public ProjectWork(decimal minutes) { ArgumentOutOfRangeException.ThrowIfLessThan(minutes, 0m); Minutes = minutes; _decoded = null; }
     private ProjectWork(decimal minutes, long ticks) : this(minutes) { _decoded = new DecodedTicks(ticks); }
     internal static ProjectWork FromTicks(long ticks) {
         var work = new ProjectWork(ticks / (decimal)TimeSpan.TicksPerMinute);
@@ -173,7 +173,7 @@ public readonly struct ProjectWork : IEquatable<ProjectWork> {
 
 /// <summary>Assignment allocation, where 100 percent is one full resource unit.</summary>
 public readonly struct ProjectUnits : IEquatable<ProjectUnits> {
-    private ProjectUnits(decimal value) { if (value < 0) throw new ArgumentOutOfRangeException(nameof(value)); Value = value; }
+    private ProjectUnits(decimal value) { ArgumentOutOfRangeException.ThrowIfLessThan(value, 0m); Value = value; }
     /// <summary>Fractional units; 1 means 100 percent.</summary>
     public decimal Value { get; }
     /// <summary>Creates allocation from a percent such as 50 or 100.</summary>

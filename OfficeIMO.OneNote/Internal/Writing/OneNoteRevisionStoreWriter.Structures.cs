@@ -42,7 +42,7 @@ internal sealed class OneNoteDesktopFileNodeList : IOneNoteDesktopReferenceTarge
     }
 
     internal void Write(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         long start = stream.Position;
         long end = checked(start + Length);
         FssHttpStreamObjectWriter.WriteUInt64(stream, 0xA4567AB1F5F7F4C4UL);

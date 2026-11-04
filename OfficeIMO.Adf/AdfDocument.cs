@@ -65,7 +65,7 @@ public sealed class AdfDocument {
 
     /// <summary>Validates ADF structure with explicit resource limits and cancellation.</summary>
     public AdfValidationResult Validate(AdfProcessingOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         return options is AdfValidationOptions validation ? Validate(validation) : AdfValidator.Validate(this, options);
     }
 
@@ -74,7 +74,7 @@ public sealed class AdfDocument {
 
     /// <summary>Validates against the selected contract with cancellation during graph and rule traversal.</summary>
     public AdfValidationResult Validate(AdfValidationOptions options, CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.MaximumSchemaEvaluations < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumSchemaEvaluations must be positive.");
         using var linked = options.CancellationToken.CanBeCanceled && cancellationToken.CanBeCanceled && options.CancellationToken != cancellationToken
             ? CancellationTokenSource.CreateLinkedTokenSource(options.CancellationToken, cancellationToken) : null;
@@ -158,7 +158,7 @@ public sealed class AdfNode {
     /// <summary>Sets a custom attribute using source-generated JSON metadata.</summary>
     public AdfNode SetAttribute<T>(string name, T value, JsonTypeInfo<T> typeInfo) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
-        if (typeInfo == null) throw new ArgumentNullException(nameof(typeInfo));
+        ArgumentNullException.ThrowIfNull(typeInfo);
         Attributes[name] = JsonSerializer.SerializeToElement(value, typeInfo).Clone();
         return this;
     }
@@ -220,7 +220,7 @@ public sealed class AdfMark {
     /// <summary>Sets a custom mark attribute using source-generated JSON metadata.</summary>
     public AdfMark SetAttribute<T>(string name, T value, JsonTypeInfo<T> typeInfo) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Attribute name is required.", nameof(name));
-        if (typeInfo == null) throw new ArgumentNullException(nameof(typeInfo));
+        ArgumentNullException.ThrowIfNull(typeInfo);
         Attributes[name] = JsonSerializer.SerializeToElement(value, typeInfo).Clone();
         return this;
     }

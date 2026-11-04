@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public ExcelConditionalFormattingInfo AddConditionalFormattingRule(
             ExcelConditionalFormattingInfo definition) {
-            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            ArgumentNullException.ThrowIfNull(definition);
             string range = ValidateConditionalFormattingRange(definition.Range);
             ValidateConditionalFormattingDefinition(definition, validateFormulas: true, validateVisual: true, validateStyle: true, allowUnknownType: false, updatingExisting: false);
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
@@ -61,7 +61,7 @@ namespace OfficeIMO.Excel {
         /// Unknown attributes and child elements are retained.
         /// </summary>
         public void UpdateConditionalFormattingRule(ExcelConditionalFormattingInfo rule) {
-            if (rule == null) throw new ArgumentNullException(nameof(rule));
+            ArgumentNullException.ThrowIfNull(rule);
             string range = ValidateConditionalFormattingRange(rule.Range);
             bool replaceFormulas = !string.Equals(
                 rule.ProjectedFormulaSignature,
@@ -121,7 +121,7 @@ namespace OfficeIMO.Excel {
             ExcelConditionalFormattingInfo rule,
             string targetRange,
             int? priority = null) {
-            if (rule == null) throw new ArgumentNullException(nameof(rule));
+            ArgumentNullException.ThrowIfNull(rule);
             string range = ValidateConditionalFormattingRange(targetRange);
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             ExcelConditionalFormattingInfo? result = null;
@@ -170,7 +170,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Removes one attached conditional-formatting rule.</summary>
         public void RemoveConditionalFormattingRule(ExcelConditionalFormattingInfo rule) {
-            if (rule == null) throw new ArgumentNullException(nameof(rule));
+            ArgumentNullException.ThrowIfNull(rule);
             WriteLock(() => {
                 OpenXmlElement backing = RequireAttachedConditionalFormattingRule(rule);
                 OpenXmlElement? container = backing.Parent;
@@ -189,7 +189,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public void ReorderConditionalFormattingRules(
             IReadOnlyList<ExcelConditionalFormattingInfo> orderedRules) {
-            if (orderedRules == null) throw new ArgumentNullException(nameof(orderedRules));
+            ArgumentNullException.ThrowIfNull(orderedRules);
             WriteLock(() => {
                 List<OpenXmlElement> current = EnumerateAttachedConditionalFormattingRules().ToList();
                 if (current.Count != orderedRules.Count) {
@@ -677,7 +677,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetConditionalFormattingPriority(OpenXmlElement rule, int priority) {
-            if (priority <= 0) throw new ArgumentOutOfRangeException(nameof(priority));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(priority);
             if (rule is ConditionalFormattingRule standard) standard.Priority = priority;
             else if (rule is X14.ConditionalFormattingRule extension) extension.Priority = priority;
             else throw new InvalidOperationException("The conditional-formatting rule type is unsupported.");

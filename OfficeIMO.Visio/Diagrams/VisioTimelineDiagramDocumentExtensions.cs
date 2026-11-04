@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic timeline page and returns the document for chaining.
         /// </summary>
         public static VisioDocument TimelineDiagram(this VisioDocument document, string pageName, Action<VisioTimelineDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioTimelineDiagramBuilder builder = new VisioTimelineDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

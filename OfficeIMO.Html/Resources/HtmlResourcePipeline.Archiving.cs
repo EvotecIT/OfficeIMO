@@ -36,9 +36,9 @@ public static partial class HtmlResourcePipeline {
     /// <summary>Bounds staged URL replacements and final source before constructing a rewritten stylesheet.</summary>
     internal static string RewriteCssResourceUrls(string css, Func<string, HtmlResourceKind, string> rewrite,
         bool includeFragmentReferences, long maximumOutputCharacters) {
-        if (css == null) throw new ArgumentNullException(nameof(css));
-        if (rewrite == null) throw new ArgumentNullException(nameof(rewrite));
-        if (maximumOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputCharacters));
+        ArgumentNullException.ThrowIfNull(css);
+        ArgumentNullException.ThrowIfNull(rewrite);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOutputCharacters);
         maximumOutputCharacters = Math.Min(maximumOutputCharacters, int.MaxValue);
         if (css.Length > maximumOutputCharacters) throw OutputLimit();
         // Analyze a length-preserving mask, then edit the original source. Comments can

@@ -227,9 +227,7 @@ internal static partial class MarkdownReader {
     }
 
     private static void SynchronizeOwnedSyntaxCaches(MarkdownSyntaxNode node) {
-        if (node == null) {
-            throw new ArgumentNullException(nameof(node));
-        }
+        ArgumentNullException.ThrowIfNull(node);
 
         switch (node.AssociatedObject) {
             case DefinitionListBlock definitionList:

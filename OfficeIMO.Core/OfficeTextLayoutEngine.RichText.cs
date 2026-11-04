@@ -65,9 +65,7 @@ public static partial class OfficeTextLayoutEngine {
         double minimumFontSize,
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent? paragraphIndent = null) {
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         return LayoutRichTextBlock(
             runs,
@@ -183,7 +181,7 @@ public static partial class OfficeTextLayoutEngine {
         OfficeTextOverflowBehavior overflowBehavior,
         OfficeTextParagraphIndent? paragraphIndent,
         CancellationToken cancellationToken) {
-        if (measure == null) throw new ArgumentNullException(nameof(measure));
+        ArgumentNullException.ThrowIfNull(measure);
         return LayoutStyledRichTextBlock(runs, maxWidth, maxHeight, lineHeightFactor,
             (text, size, family, _) => measure(text, size, family), wrap, shrinkToFit,
             minimumFontSize, overflowBehavior, paragraphIndent, cancellationToken);
@@ -250,13 +248,9 @@ public static partial class OfficeTextLayoutEngine {
         Func<OfficeRichTextSegment, double, OfficeTextPaintBounds?>? measureSegmentPaint = null,
         OfficeRichTextHyphenation? hyphenation = null, double hyphenationScale = 1D) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (runs == null) {
-            throw new ArgumentNullException(nameof(runs));
-        }
+        ArgumentNullException.ThrowIfNull(runs);
 
-        if (measure == null) {
-            throw new ArgumentNullException(nameof(measure));
-        }
+        ArgumentNullException.ThrowIfNull(measure);
 
         IReadOnlyList<OfficeRichTextRun> normalizedRuns =
             NormalizeRichTextRuns(runs, out bool inputTruncated, cancellationToken);

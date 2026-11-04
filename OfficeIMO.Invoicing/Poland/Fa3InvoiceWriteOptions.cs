@@ -50,7 +50,7 @@ public sealed class Fa3InvoiceAnnotations {
 public sealed class Fa3FiscalAmounts {
     /// <summary>Creates immutable national amount declarations with at most thirteen distinct VAT buckets.</summary>
     public Fa3FiscalAmounts(decimal total, IEnumerable<Fa3TaxSummary> taxes) {
-        if (taxes == null) throw new ArgumentNullException(nameof(taxes));
+        ArgumentNullException.ThrowIfNull(taxes);
         List<Fa3TaxSummary> snapshot = taxes.Take(14).ToList();
         if (snapshot.Count > 13 || snapshot.Any(item => item == null))
             throw new ArgumentException("Supply at most thirteen non-null national VAT buckets.", nameof(taxes));
@@ -78,7 +78,7 @@ public sealed class Fa3Order {
     public Fa3Order(decimal total, IEnumerable<InvoiceLine> lines) : this(total, lines, null, null) { }
 
     private Fa3Order(decimal total, IEnumerable<InvoiceLine> lines, decimal? previousTotal, IEnumerable<decimal?>? differenceTaxAmounts) {
-        if (lines == null) throw new ArgumentNullException(nameof(lines));
+        ArgumentNullException.ThrowIfNull(lines);
         List<InvoiceLine> snapshot = lines.Take(10_001).ToList();
         if (snapshot.Count == 0 || snapshot.Count > 10_000 || snapshot.Any(item => item == null))
             throw new ArgumentException("Supply one to 10,000 non-null order lines.", nameof(lines));

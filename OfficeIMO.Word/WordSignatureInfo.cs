@@ -302,7 +302,7 @@ namespace OfficeIMO.Word {
             long maxTotalCertificateBytes = 64L * 1024 * 1024,
             bool verifyDigests = true,
             IOfficeSecurityProvider? securityProvider = null) {
-            if (package == null) throw new ArgumentNullException(nameof(package));
+            ArgumentNullException.ThrowIfNull(package);
 
             return WordSignatureInfo.FromPackageInfo(
                 OfficePackageSignatureInspector.Inspect(

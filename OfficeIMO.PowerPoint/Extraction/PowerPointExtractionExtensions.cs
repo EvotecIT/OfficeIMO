@@ -45,7 +45,7 @@ public static class PowerPointExtractionExtensions {
         PowerPointExtractChunkingOptions? chunking = null,
         string? sourcePath = null,
         CancellationToken cancellationToken = default) {
-        if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        ArgumentNullException.ThrowIfNull(presentation);
         var snapshot = new PowerPointExtractOptions {
             IncludeNotes = extract?.IncludeNotes ?? true,
             IncludeTables = extract?.IncludeTables ?? true,

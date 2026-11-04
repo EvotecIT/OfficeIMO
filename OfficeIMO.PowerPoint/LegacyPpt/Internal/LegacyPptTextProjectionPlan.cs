@@ -22,7 +22,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private int _lastInteractionPosition = -1;
 
         internal LegacyPptTextProjectionPlan(LegacyPptTextBody source) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
             _paragraphRuns = source.ParagraphRuns.OrderBy(run => run.Start)
                 .ToArray();
             _characterRuns = source.CharacterRuns.OrderBy(run => run.Start)

@@ -7,9 +7,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private const string ThemeEntryPath = "theme/theme/theme1.xml";
 
         internal static bool TryExtractThemeXml(LegacyXlsThemeRecord themeRecord, out string? themeXml) {
-            if (themeRecord == null) {
-                throw new ArgumentNullException(nameof(themeRecord));
-            }
+            ArgumentNullException.ThrowIfNull(themeRecord);
 
             themeXml = null;
             if (!themeRecord.HasThemeBytes) {

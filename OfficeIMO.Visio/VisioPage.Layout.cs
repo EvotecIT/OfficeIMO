@@ -286,9 +286,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="backgroundPage">Background page to apply.</param>
         public VisioPage SetBackgroundPage(VisioPage backgroundPage) {
-            if (backgroundPage == null) {
-                throw new ArgumentNullException(nameof(backgroundPage));
-            }
+            ArgumentNullException.ThrowIfNull(backgroundPage);
 
             if (ReferenceEquals(backgroundPage, this)) {
                 throw new InvalidOperationException("A page cannot use itself as a background.");

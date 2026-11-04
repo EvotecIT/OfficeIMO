@@ -32,16 +32,16 @@ public sealed class IWorkKeynoteWriteOptions {
             MaxDecodedImageBytes = MaxDecodedImageBytes,
             MaxTextCharacters = MaxTextCharacters, MaxPackageBytes = MaxPackageBytes
         };
-        if (copy.MaxSlides <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSlides));
-        if (copy.MaxTextBoxes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextBoxes));
-        if (copy.MaxTextRuns <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextRuns));
-        if (copy.MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
-        if (copy.MaxImages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxImages));
-        if (copy.MaxTables <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTables));
-        if (copy.MaxTableCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTableCells));
-        if (copy.MaxEncodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxEncodedImageBytes));
-        if (copy.MaxDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedImageBytes));
-        if (copy.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxSlides, nameof(MaxSlides));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTextBoxes, nameof(MaxTextBoxes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTextRuns, nameof(MaxTextRuns));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTextCharacters, nameof(MaxTextCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxImages, nameof(MaxImages));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTables, nameof(MaxTables));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTableCells, nameof(MaxTableCells));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxEncodedImageBytes, nameof(MaxEncodedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxDecodedImageBytes, nameof(MaxDecodedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxPackageBytes, nameof(MaxPackageBytes));
         return copy;
     }
 }

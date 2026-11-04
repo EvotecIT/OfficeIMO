@@ -103,7 +103,7 @@ public static partial class OfficeDocumentReadResultExtensions {
         string query,
         OfficeDocumentSearchOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (string.IsNullOrEmpty(query)) throw new ArgumentException("Search query cannot be empty.", nameof(query));
 
         OfficeDocumentSearchOptions effective = options ?? new OfficeDocumentSearchOptions();

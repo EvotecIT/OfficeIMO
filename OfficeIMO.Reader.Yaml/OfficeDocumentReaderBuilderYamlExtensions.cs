@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderYamlExtensions {
         this OfficeDocumentReaderBuilder builder,
         YamlReadOptions? yamlOptions = null,
         bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(yamlOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

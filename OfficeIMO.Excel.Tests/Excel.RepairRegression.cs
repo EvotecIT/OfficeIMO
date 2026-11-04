@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests
         }
 
         private static string ColumnName(int columnIndex) {
-            if (columnIndex <= 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columnIndex);
             int dividend = columnIndex;
             var name = new System.Text.StringBuilder();
             while (dividend > 0) {

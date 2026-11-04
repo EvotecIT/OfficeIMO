@@ -7,7 +7,7 @@ public static class OfficeDocumentReaderBuilderXpsExtensions {
     /// <summary>Registers bounded path and stream ingestion for .xps and .oxps.</summary>
     public static OfficeDocumentReaderBuilder AddXpsHandler(this OfficeDocumentReaderBuilder builder,
         ReaderXpsOptions? options = null, bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         var snapshot = (options ?? new ReaderXpsOptions()).Clone();
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "XPS Reader Adapter",

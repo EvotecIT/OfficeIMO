@@ -42,8 +42,8 @@ internal static class OabV4RecordReader {
         IReadOnlyList<OfflineAddressBookPropertyDefinition> definitions,
         OfflineAddressBookReaderOptions options,
         string location) {
-        if (envelope == null) throw new ArgumentNullException(nameof(envelope));
-        if (definitions == null) throw new ArgumentNullException(nameof(definitions));
+        ArgumentNullException.ThrowIfNull(envelope);
+        ArgumentNullException.ThrowIfNull(definitions);
         int presenceBytes = checked((definitions.Count + 7) / 8);
         if (envelope.Body.Length < presenceBytes) {
             throw new InvalidDataException(string.Concat("OAB record presence array is truncated at ", location, "."));

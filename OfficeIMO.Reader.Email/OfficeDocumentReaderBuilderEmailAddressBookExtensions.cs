@@ -12,7 +12,7 @@ public static class OfficeDocumentReaderBuilderEmailAddressBookExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderEmailAddressBookOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderEmailAddressBookOptions registeredOptions =
             ReaderEmailAddressBookOptionsCloner.CloneOrDefault(options);
         OfflineAddressBookReaderOptions addressBookOptions =

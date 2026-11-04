@@ -28,7 +28,7 @@ public sealed class TesseractOcrSession {
         string mediaType,
         string? sourceName = null,
         CancellationToken cancellationToken = default) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         if (image.Length == 0) throw new ArgumentException("OCR image payload cannot be empty.", nameof(image));
         if (string.IsNullOrWhiteSpace(mediaType)) throw new ArgumentException("OCR image media type cannot be empty.", nameof(mediaType));
         return _engine.RecognizeAsync(new OcrRequest {

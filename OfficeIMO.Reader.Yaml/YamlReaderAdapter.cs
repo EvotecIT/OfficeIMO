@@ -10,7 +10,7 @@ internal static class YamlReaderAdapter {
     /// Reads YAML content from a path with representation-model-aware chunking.
     /// </summary>
     public static IEnumerable<ReaderChunk> Read(string path, ReaderOptions? readerOptions = null, YamlReadOptions? yamlOptions = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -28,7 +28,7 @@ internal static class YamlReaderAdapter {
     /// Reads YAML content from a stream with representation-model-aware chunking.
     /// </summary>
     public static IEnumerable<ReaderChunk> Read(Stream stream, string? sourceName = null, ReaderOptions? readerOptions = null, YamlReadOptions? yamlOptions = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -870,8 +870,8 @@ internal static class YamlReaderAdapter {
     }
 
     private static void UpdateSourceMetadataFromSeekableStream(SourceMetadata source, Stream stream, bool computeHash) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(stream);
 
         try {
             if (stream.CanSeek) {
@@ -887,8 +887,8 @@ internal static class YamlReaderAdapter {
     }
 
     private static ReaderChunk EnrichChunk(ReaderChunk chunk, SourceMetadata source, bool computeHashes) {
-        if (chunk == null) throw new ArgumentNullException(nameof(chunk));
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(chunk);
+        ArgumentNullException.ThrowIfNull(source);
 
         chunk.SourceId ??= source.SourceId;
         chunk.SourceHash ??= source.SourceHash;

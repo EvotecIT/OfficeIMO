@@ -42,7 +42,8 @@ internal sealed class PdfForwardOnlyObjectStore : IPdfObjectStore {
         set {
             ThrowIfUnavailable();
             Guard.NotNull(value, nameof(value));
-            if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
             if (_materialized[index]) {
                 throw new InvalidOperationException("A forward-only PDF object cannot be emitted more than once.");
             }

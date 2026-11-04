@@ -21,7 +21,7 @@ internal sealed class MarkdownInlineSourceMap {
         _points = Array.Empty<MarkdownSourcePoint?>();
         _tokenSpans = Array.Empty<MarkdownSourceSpan?>();
         _tokenLiterals = Array.Empty<string?>();
-        if (sourceTextMap == null) throw new ArgumentNullException(nameof(sourceTextMap));
+        ArgumentNullException.ThrowIfNull(sourceTextMap);
         var startPoint = sourceTextMap.CreatePoint(absoluteLine, startColumn);
         _singleLineText = text ?? string.Empty;
         _singleLineTextLength = _singleLineText.Length;

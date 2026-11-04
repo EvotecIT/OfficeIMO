@@ -2,8 +2,8 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
     /// <summary>Reads bounded BIFF12 scalar encodings shared by workbook and worksheet records.</summary>
     internal static class XlsbBinaryValueReader {
         internal static string? ReadNullableWideString(XlsbBinaryCursor cursor, int maxCharacters) {
-            if (cursor == null) throw new ArgumentNullException(nameof(cursor));
-            if (maxCharacters < 0) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+            ArgumentNullException.ThrowIfNull(cursor);
+            ArgumentOutOfRangeException.ThrowIfNegative(maxCharacters);
             uint count = cursor.ReadUInt32();
             if (count == uint.MaxValue) return null;
             if (count > maxCharacters) {
@@ -19,8 +19,8 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         internal static bool ReadUInt32Boolean(XlsbBinaryCursor cursor, XlsbRecord record, string fieldName) {
-            if (cursor == null) throw new ArgumentNullException(nameof(cursor));
-            if (record == null) throw new ArgumentNullException(nameof(record));
+            ArgumentNullException.ThrowIfNull(cursor);
+            ArgumentNullException.ThrowIfNull(record);
             uint value = cursor.ReadUInt32();
             if (value > 1U) {
                 throw new InvalidDataException($"The record at offset {record.Offset} contains invalid Boolean {fieldName} value {value}.");

@@ -5,7 +5,7 @@ public sealed class OdfFeatureFinding {
     /// <summary>Creates a feature finding.</summary>
     public OdfFeatureFinding(string name, OdfFeatureSupport support, string? partPath = null, int count = 1) {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Feature name cannot be empty.", nameof(name));
-        if (count < 1) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfLessThan(count, 1);
         Name = name;
         Support = support;
         PartPath = partPath;

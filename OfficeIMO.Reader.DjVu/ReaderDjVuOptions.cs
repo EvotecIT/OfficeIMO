@@ -36,9 +36,9 @@ public sealed class ReaderDjVuOptions {
         copy.PageNumbers = PageNumbers == null ? null : Array.AsReadOnly(PageNumbers.ToArray());
         if (!Enum.IsDefined(typeof(ReaderDjVuImageMode), ImageMode)) throw new ArgumentOutOfRangeException(nameof(ImageMode));
         if (RenderOptions.Region.HasValue || !RenderOptions.ApplyRotation) throw new ArgumentException("Reader page images require the complete, display-oriented page.", nameof(RenderOptions));
-        if (MaxPageImages < 0) throw new ArgumentOutOfRangeException(nameof(MaxPageImages));
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxPageImages);
         if (MaxPageImageBytes <= 0 || MaxPageImageBytes > 128L * 1024 * 1024) throw new ArgumentOutOfRangeException(nameof(MaxPageImageBytes));
-        if (MaxTotalPageImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTotalPageImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxTotalPageImageBytes);
         return copy;
     }
 }

@@ -51,7 +51,7 @@ namespace OfficeIMO.Visio {
             this VisioPage page, VisioShape target,
             VisioDataGraphic definition) {
             ValidateTarget(page, target);
-            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            ArgumentNullException.ThrowIfNull(definition);
             VisioDataGraphicExtensions.ValidateDataGraphic(definition);
             List<(VisioShape Shape, int Index)> previous = page.GetDataGraphic(target)
                 .Shapes.Select(shape => (shape, page.Shapes.IndexOf(shape)))
@@ -77,8 +77,8 @@ namespace OfficeIMO.Visio {
             this VisioPage page, string id, string title,
             VisioDataGraphic definition, double pinX, double pinY,
             double width = 2.4D) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            if (definition == null) throw new ArgumentNullException(nameof(definition));
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(definition);
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Legend id cannot be empty.", nameof(id));
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Legend title cannot be empty.", nameof(title));
             if (definition.Items.Count == 0) throw new ArgumentException("A legend requires at least one data-graphic item.", nameof(definition));
@@ -144,8 +144,8 @@ namespace OfficeIMO.Visio {
         }
 
         private static void ValidateTarget(VisioPage page, VisioShape target) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            ArgumentNullException.ThrowIfNull(page);
+            ArgumentNullException.ThrowIfNull(target);
             if (!page.AllShapes().Contains(target)) throw new InvalidOperationException("The data graphic target must belong to the page.");
         }
     }

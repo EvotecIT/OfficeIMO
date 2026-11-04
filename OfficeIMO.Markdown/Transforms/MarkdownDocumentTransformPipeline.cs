@@ -31,13 +31,9 @@ internal static class MarkdownDocumentTransformPipeline {
     public static MarkdownDocument Apply(MarkdownDocument document, IEnumerable<IMarkdownDocumentTransform>? transforms,
         MarkdownDocumentTransformContext context, System.Threading.CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         if (transforms == null) {
             return document;

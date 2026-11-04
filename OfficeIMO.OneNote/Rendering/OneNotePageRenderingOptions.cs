@@ -72,7 +72,7 @@ public class OneNotePageRenderingOptions : OfficeImageExportOptions {
 
     internal void Validate() {
         ValidateImageExportOptions();
-        if (MaxImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxImageBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxImageBytes, 1);
         ValidatePositive(MaximumImageDimensionPoints, nameof(MaximumImageDimensionPoints));
         ValidatePositive(AutomaticPageWidthPoints, nameof(AutomaticPageWidthPoints));
         ValidatePositive(AutomaticPageHeightPoints, nameof(AutomaticPageHeightPoints));

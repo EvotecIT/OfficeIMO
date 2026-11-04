@@ -15,20 +15,20 @@ public sealed partial class OfficeWorkflowRunner {
         IOcrEngine engine, IProgress<OfficeWorkflowProgress>? progress = null,
         IProgress<OfficeOcrSessionResult>? resultsProgress = null, CancellationToken cancellationToken = default,
         IReadOnlyList<string>? protectedOutputPaths = null, IReadOnlyList<OfficeWorkflowProtectedSource>? protectedInputs = null) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
-        if (engine == null) throw new ArgumentNullException(nameof(engine));
+        ArgumentNullException.ThrowIfNull(requests);
+        ArgumentNullException.ThrowIfNull(engine);
         if (protectedOutputPaths?.Count > MaximumBatchRequestCount) throw new ArgumentException("The protected output list exceeds the session item limit.");
         string[] retainedOutputs = protectedOutputPaths?.Select(OfficeStorageIdentity.Normalize).ToArray() ?? [];
         if (protectedInputs?.Count > MaximumBatchRequestCount) throw new ArgumentException("The protected input list exceeds the session item limit.");
         var retainedInputs = protectedInputs?.Select(input => {
-            if (input == null) throw new ArgumentNullException(nameof(input));
+            ArgumentNullException.ThrowIfNull(input);
             return (Location: input.Location, Stream: input.InputStream);
         }).ToArray() ?? [];
         var batch = new List<OfficeOcrSessionRequest>();
         foreach (var request in requests) {
             cancellationToken.ThrowIfCancellationRequested();
             if (batch.Count >= MaximumBatchRequestCount) throw new ArgumentException("The OCR session exceeds the batch item limit.");
-            if (request == null) throw new ArgumentNullException(nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
             batch.Add(SnapshotOcrSessionItem(request));
         }
         if (batch.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count() != batch.Count)

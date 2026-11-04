@@ -174,7 +174,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Binary value.</param>
         public WordCustomProperty(byte[] value) {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             this.PropertyType = WordCustomPropertyType.Binary;
             this.Value = (byte[])value.Clone();
         }

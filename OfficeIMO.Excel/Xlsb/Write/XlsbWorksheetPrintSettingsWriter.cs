@@ -18,7 +18,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             PageSetup? pageSetup,
             HeaderFooter? headerFooter,
             string sheetName) {
-            if (output == null) throw new ArgumentNullException(nameof(output));
+            ArgumentNullException.ThrowIfNull(output);
             if (options != null) XlsbRecordWriter.Write(output, BrtPrintOptions, CreatePrintOptionsPayload(options, sheetName));
             if (margins != null) XlsbRecordWriter.Write(output, BrtMargins, CreateMarginsPayload(margins, sheetName));
             if (pageSetup != null) XlsbRecordWriter.Write(output, BrtPageSetup, CreatePageSetupPayload(pageSetup, sheetName));

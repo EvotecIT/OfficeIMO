@@ -13,7 +13,7 @@ internal static partial class EpubReader {
     /// </summary>
     public static EpubDocument Read(string epubPath, EpubLoadOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (epubPath == null) throw new ArgumentNullException(nameof(epubPath));
+        ArgumentNullException.ThrowIfNull(epubPath);
         if (epubPath.Length == 0) throw new ArgumentException("EPUB path cannot be empty.", nameof(epubPath));
         if (!File.Exists(epubPath)) throw new FileNotFoundException($"EPUB file '{epubPath}' doesn't exist.", epubPath);
 
@@ -25,7 +25,7 @@ internal static partial class EpubReader {
     /// Reads an EPUB document from a stream.
     /// </summary>
     public static EpubDocument Read(Stream epubStream, EpubLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
+        ArgumentNullException.ThrowIfNull(epubStream);
         if (!epubStream.CanRead) throw new IOException("EPUB stream must be readable.");
 
         EpubLoadOptions effective = Normalize(options);
@@ -46,7 +46,7 @@ internal static partial class EpubReader {
         Stream epubStream,
         EpubLoadOptions? options,
         CancellationToken cancellationToken) {
-        if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
+        ArgumentNullException.ThrowIfNull(epubStream);
         if (!epubStream.CanRead) throw new IOException("EPUB stream must be readable.");
 
         EpubLoadOptions effective = Normalize(options);
@@ -72,7 +72,7 @@ internal static partial class EpubReader {
         byte[] bytes,
         EpubLoadOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         cancellationToken.ThrowIfCancellationRequested();
         EpubLoadOptions effective = Normalize(options);
         if (bytes.LongLength > effective.MaxPackageBytes) {

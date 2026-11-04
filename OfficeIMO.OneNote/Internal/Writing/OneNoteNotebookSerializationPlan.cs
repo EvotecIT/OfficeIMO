@@ -12,7 +12,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
     internal IReadOnlyList<OneNoteCabinetEntry> Entries => _entries.AsReadOnly();
 
     internal static OneNoteNotebookSerializationPlan Create(OneNoteNotebook notebook, OneNoteWriterOptions options) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: true);
         var plan = new OneNoteNotebookSerializationPlan(options);
@@ -33,7 +33,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
     }
 
     internal static byte[] CreateRootTableOfContents(OneNoteNotebook notebook, OneNoteWriterOptions options) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: false);
         Guid rootId = EnsureIdentity(notebook.Id);

@@ -35,7 +35,7 @@ public sealed class OfficeImageExportPolicy {
 
     /// <summary>Throws when the diagnostics violate this policy.</summary>
     public void EnsureAccepted(IEnumerable<OfficeImageExportDiagnostic> diagnostics) {
-        if (diagnostics == null) throw new ArgumentNullException(nameof(diagnostics));
+        ArgumentNullException.ThrowIfNull(diagnostics);
 
         OfficeImageExportDiagnostic[] rejected = diagnostics.Where(IsRejected).ToArray();
         if (rejected.Length == 0) return;

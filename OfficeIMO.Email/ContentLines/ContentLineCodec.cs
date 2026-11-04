@@ -8,8 +8,8 @@ internal enum ContentLineParameterEncoding {
 internal static class ContentLineCodec {
     internal static IReadOnlyList<ContentLineComponent> Parse(byte[] bytes, ContentLineReaderOptions options,
         bool decodeRfc6868Parameters = true) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentNullException.ThrowIfNull(options);
         if (bytes.LongLength > options.MaxInputBytes)
             throw new InvalidDataException("The content-line document exceeds the configured byte limit.");
         return Parse(options.Encoding.GetString(bytes), options, decodeRfc6868Parameters);
@@ -17,8 +17,8 @@ internal static class ContentLineCodec {
 
     internal static IReadOnlyList<ContentLineComponent> Parse(string text, ContentLineReaderOptions options,
         bool decodeRfc6868Parameters = true) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(options);
         if (options.Encoding.GetByteCount(text) > options.MaxInputBytes)
             throw new InvalidDataException("The content-line document exceeds the configured byte limit.");
 
@@ -68,8 +68,8 @@ internal static class ContentLineCodec {
 
     internal static byte[] Serialize(IEnumerable<ContentLineComponent> components, ContentLineWriterOptions options,
         Func<ContentLineComponent, ContentLineParameterEncoding>? parameterEncoding = null) {
-        if (components == null) throw new ArgumentNullException(nameof(components));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(components);
+        ArgumentNullException.ThrowIfNull(options);
         var output = new StringBuilder();
         long outputBytes = 0;
         var active = new HashSet<ContentLineComponent>();

@@ -38,13 +38,13 @@ namespace OfficeIMO.Excel {
             OfficeLength chartWidth = width ?? OfficeLength.Pixels(520);
             OfficeLength chartHeight = height ?? OfficeLength.Pixels(320);
             OfficeLength gap = horizontalGap ?? OfficeLength.Pixels(48);
-            if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row));
-            if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(row);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(column);
             if (chartWidth <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(width));
             if (chartHeight <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
-            if (chartsPerRow <= 0) throw new ArgumentOutOfRangeException(nameof(chartsPerRow));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chartsPerRow);
             if (gap < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(horizontalGap));
-            if (verticalGapRows < 0) throw new ArgumentOutOfRangeException(nameof(verticalGapRows));
+            ArgumentOutOfRangeException.ThrowIfNegative(verticalGapRows);
 
             _startRow = row;
             _startColumn = column;

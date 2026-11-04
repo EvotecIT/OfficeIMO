@@ -59,7 +59,7 @@ public sealed class AsciiDocRootedFileIncludeResolver : IAsciiDocIncludeResolver
 
     /// <summary>Creates a resolver. URI, absolute, escaping, and symbolic-link targets are denied.</summary>
     public AsciiDocRootedFileIncludeResolver(string rootDirectory) {
-        if (rootDirectory == null) throw new ArgumentNullException(nameof(rootDirectory));
+        ArgumentNullException.ThrowIfNull(rootDirectory);
         string fullRoot = Path.GetFullPath(rootDirectory);
         string pathRoot = Path.GetPathRoot(fullRoot) ?? string.Empty;
         _root = fullRoot.Length > pathRoot.Length
@@ -79,7 +79,7 @@ public sealed class AsciiDocRootedFileIncludeResolver : IAsciiDocIncludeResolver
 
     /// <inheritdoc />
     public AsciiDocIncludeResult? Resolve(AsciiDocIncludeRequest request) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Target.Length == 0 || request.Target.IndexOf('\0') >= 0 || Path.IsPathRooted(request.Target)) return null;
         if (Uri.TryCreate(request.Target, UriKind.Absolute, out Uri? uri) && uri.IsAbsoluteUri) return null;
 

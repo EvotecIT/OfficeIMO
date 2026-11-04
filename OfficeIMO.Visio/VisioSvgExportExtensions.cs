@@ -108,7 +108,7 @@ namespace OfficeIMO.Visio {
             VisioDocument document,
             VisioSvgSaveOptions? options,
             CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
             if (document.Pages.Count == 0) {
                 throw new InvalidOperationException("The document does not contain any pages to export.");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Visio {
             VisioPage page,
             VisioSvgSaveOptions? options,
             CancellationToken cancellationToken = default) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
+            ArgumentNullException.ThrowIfNull(page);
             VisioSvgSaveOptions resolved = options?.Clone() ?? new VisioSvgSaveOptions();
             var canonical = new VisioImageExportOptions {
                 Scale = resolved.PixelsPerInch / 96D,

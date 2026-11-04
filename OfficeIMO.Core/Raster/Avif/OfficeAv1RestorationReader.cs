@@ -19,8 +19,8 @@ internal sealed class OfficeAv1RestorationReader {
 
     internal OfficeAv1RestorationReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence,
         OfficeAv1Tile tile, OfficeRasterDecodeOptions options) {
-        if(sequence==null) throw new ArgumentNullException(nameof(sequence));
-        if(options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         _geometry=new OfficeAv1TileGeometry(frame,tile,sequence.Use128Superblock?128:64);
         _geometry.EnsurePixelBudget(options.MaximumDecodedPixels);
@@ -53,8 +53,8 @@ internal sealed class OfficeAv1RestorationReader {
     internal void ReadSuperblock(OfficeAv1SymbolReader symbols, int row, int col, IOfficeAv1TileConsumer consumer) {
         _cancellation.ThrowIfCancellationRequested();
         if(_failed) throw new FormatException("The AV1 restoration context has failed.");
-        if(symbols==null) throw new ArgumentNullException(nameof(symbols));
-        if(consumer==null) throw new ArgumentNullException(nameof(consumer));
+        ArgumentNullException.ThrowIfNull(symbols);
+        ArgumentNullException.ThrowIfNull(consumer);
         if(row!=_nextRow || col!=_nextCol || row>=_geometry.Tile.MiRowEnd)
             throw new FormatException("Invalid AV1 restoration superblock order.");
         try {

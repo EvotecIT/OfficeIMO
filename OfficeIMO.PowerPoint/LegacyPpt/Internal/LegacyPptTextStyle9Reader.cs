@@ -16,8 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 pictureBullets = null,
             bool malformedContainer = false,
             int maximumEntryCount = 100_000) {
-            if (textBody == null) throw new ArgumentNullException(
-                nameof(textBody));
+            ArgumentNullException.ThrowIfNull(textBody);
             if (styleRecord == null) {
                 return malformedContainer
                     ? textBody.WithPpt9Formatting(textBody.ParagraphRuns,

@@ -24,7 +24,7 @@ public static partial class OfficeContentInstructionDetector {
     }
 
     private static IReadOnlyList<string> DetectPlainText(string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         if (text.Length == 0) return Array.Empty<string>();
         string normalized = Normalize(text);
         var signals = new List<string>();

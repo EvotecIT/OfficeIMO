@@ -39,7 +39,7 @@ internal static partial class WordListStyles {
     /// <param name="abstractNum">The abstract numbering definition to compare.</param>
     /// <returns>The matching <see cref="WordListStyle"/> or <see cref="WordListStyle.Custom"/> when no match is found.</returns>
     internal static WordListStyle MatchStyle(AbstractNum abstractNum) {
-        if (abstractNum == null) throw new ArgumentNullException(nameof(abstractNum));
+        ArgumentNullException.ThrowIfNull(abstractNum);
 
         var templateCode = abstractNum.GetFirstChild<TemplateCode>()?.Val?.Value;
         return templateCode switch {
@@ -68,9 +68,7 @@ internal static partial class WordListStyles {
     /// <param name="orderedNumberId">Returns the numbering identifier for ordered lists.</param>
     /// <returns>A <see cref="Numbering"/> instance containing the definitions.</returns>
     internal static Numbering CreateDefaultNumberingDefinitions(WordprocessingDocument document, out int bulletNumberId, out int orderedNumberId) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         InitializeAbstractNumberId(document);
 
@@ -112,9 +110,7 @@ internal static partial class WordListStyles {
     internal static void InitializeAbstractNumberId(WordprocessingDocument document) {
         // Find the highest AbstractNumberId currently in use
 
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var mainPart = document.MainDocumentPart;
         if (mainPart == null) {

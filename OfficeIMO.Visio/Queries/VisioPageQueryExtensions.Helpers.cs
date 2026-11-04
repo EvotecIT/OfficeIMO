@@ -16,17 +16,13 @@ namespace OfficeIMO.Visio {
         private static VisioShapeBounds GetPageShapeBounds(VisioShape shape) => shape.GetPageShapeBounds();
 
         private static IReadOnlyList<VisioShape> FilterShapes(VisioPage page, Func<VisioShape, bool> predicate) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             return page.AllShapes().Where(predicate).ToList();
         }
 
         private static IReadOnlyList<VisioConnector> FilterConnectors(VisioPage page, Func<VisioConnector, bool> predicate) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             return page.Connectors.Where(predicate).ToList();
         }
@@ -39,9 +35,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool MatchesShape(VisioShape? candidate, VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             return ReferenceEquals(candidate, shape);
         }
@@ -87,13 +81,9 @@ namespace OfficeIMO.Visio {
         }
 
         private static void EnsureShapeBelongsToPage(VisioPage page, VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (!page.AllShapes().Contains(shape)) {
                 throw new InvalidOperationException("The shape must belong to the page.");

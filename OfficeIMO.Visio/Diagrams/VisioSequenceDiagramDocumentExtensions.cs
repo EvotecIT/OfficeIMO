@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds a semantic sequence diagram page and returns the document for chaining.
         /// </summary>
         public static VisioDocument SequenceDiagram(this VisioDocument document, string pageName, Action<VisioSequenceDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioSequenceDiagramBuilder builder = new VisioSequenceDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

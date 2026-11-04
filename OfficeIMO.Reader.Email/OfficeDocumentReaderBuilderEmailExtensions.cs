@@ -21,7 +21,7 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderEmailOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderEmailOptions configured = EmailArtifactReaderAdapter.Clone(options);
         builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO,
@@ -94,7 +94,7 @@ public static class OfficeDocumentReaderBuilderEmailExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderEmailHandlersOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         return builder
             .AddEmailHandler(options?.Artifacts, replaceExisting)
             .AddMhtmlHandler(options?.Mhtml, replaceExisting)

@@ -166,7 +166,7 @@ public sealed class DocBookNode {
 
     /// <summary>Adds an extension element without claiming typed vocabulary support.</summary>
     public DocBookNode AddExtension(XName name, string? text = null) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         var element = new XElement(name);
         if (text != null) element.Value = text;
         Element.Add(element); _document.MarkModified();

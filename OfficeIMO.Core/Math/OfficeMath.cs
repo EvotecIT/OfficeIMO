@@ -77,7 +77,7 @@ public static class OfficeMath {
 
     /// <summary>Creates multiple separated expressions inside one delimiter pair.</summary>
     public static OfficeMathExpression DelimiterList(string left, string right, string separator, params OfficeMathExpression[] items) {
-        if (items == null) throw new ArgumentNullException(nameof(items));
+        ArgumentNullException.ThrowIfNull(items);
         if (items.Length == 0) throw new ArgumentException("At least one delimiter-list item is required.", nameof(items));
         return Create(OfficeMathKind.DelimiterList, character: left, secondaryCharacter: right,
             separatorCharacter: separator, children: Required(items));
@@ -122,7 +122,7 @@ public static class OfficeMath {
     public static OfficeMathExpression Phantom(OfficeMathExpression content) => Create(OfficeMathKind.Phantom, children: Required(content));
 
     private static OfficeMathExpression Token(OfficeMathKind kind, string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         return Create(kind, text: text);
     }
 

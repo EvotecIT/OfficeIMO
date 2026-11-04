@@ -9,7 +9,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// Adds an automatically laid out generic graph page and returns the document for chaining.
         /// </summary>
         public static VisioDocument GraphDiagram(this VisioDocument document, string pageName, Action<VisioGraphDiagramBuilder> configure) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioGraphDiagramBuilder builder = new VisioGraphDiagramBuilder(document, pageName);
             configure?.Invoke(builder);
             builder.Build();

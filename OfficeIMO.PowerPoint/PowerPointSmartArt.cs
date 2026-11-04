@@ -516,9 +516,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public string GetNodeText(int index) {
             var (_, ns, textBodies, _) = LoadNodeTextBodiesWithPart();
-            if (index < 0 || index >= textBodies.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, textBodies.Count);
 
             return ReadNodeText(textBodies[index], ns.a);
         }
@@ -536,9 +535,8 @@ namespace OfficeIMO.PowerPoint {
             }
             var (xdoc, ns, textBodies, dataPart) =
                 LoadNodeTextBodiesWithPart();
-            if (index < 0 || index >= textBodies.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, textBodies.Count);
 
             bool updateCachedDrawing = TryPrepareCachedNodeTextEdit(xdoc, textBodies[index], normalizedText,
                 out DiagramPersistLayoutPart? persistPart, out XDocument? persistDocument);

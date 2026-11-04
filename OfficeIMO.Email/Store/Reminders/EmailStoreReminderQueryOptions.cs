@@ -14,9 +14,9 @@ public sealed class EmailStoreReminderQueryOptions {
         long maxDecodedPropertyBytesPerItem = 4 * 1024 * 1024,
         bool continueOnError = true) {
         if (folderId.HasValue && folderId.Value.IsEmpty) throw new ArgumentException("The folder identifier cannot be empty.", nameof(folderId));
-        if (maxItemsScanned <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemsScanned));
-        if (maxResults <= 0) throw new ArgumentOutOfRangeException(nameof(maxResults));
-        if (maxDecodedPropertyBytesPerItem <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedPropertyBytesPerItem));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemsScanned);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxResults);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedPropertyBytesPerItem);
         FolderId = folderId;
         IncludeDescendants = includeDescendants;
         IncludeInactive = includeInactive;

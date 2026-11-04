@@ -24,7 +24,7 @@ public sealed class EmailStoreExportOptions {
             throw new ArgumentException(
                 "Store directory export supports EML, MSG, OFT, or TNEF output.", nameof(format));
         }
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
         Format = format;
         FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;
         IncludeDescendants = includeDescendants;

@@ -137,7 +137,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Replaces the speaker notes with paragraphs that can be further styled through their typed runs.</summary>
         public IReadOnlyList<PowerPointParagraph> SetParagraphs(IEnumerable<string> paragraphs) {
-            if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+            ArgumentNullException.ThrowIfNull(paragraphs);
 
             NotesSlide notesSlide = NotesSlide;
             NotesSlidePart notesPart = _slidePart.NotesSlidePart

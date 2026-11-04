@@ -233,9 +233,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Applies a reusable data label template to all supported chart labels.
         /// </summary>
         public PowerPointChart SetDataLabelTemplate(PowerPointChartDataLabelTemplate template) {
-            if (template == null) {
-                throw new ArgumentNullException(nameof(template));
-            }
+            ArgumentNullException.ThrowIfNull(template);
 
             return ApplyToAllDataLabels(labels => {
                 ApplyDataLabelTemplate(labels, template);

@@ -14,8 +14,8 @@ public sealed partial class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame
     /// <param name="frames">One through 4096 frames in display or page order, with at most 50 million aggregate pixels.</param>
     /// <param name="playCount">Total animation plays; zero means infinite. Static images and pages use one.</param>
     public OfficeRasterFrames(IEnumerable<OfficeRasterFrame> frames, int playCount = 1) {
-        if (frames == null) throw new ArgumentNullException(nameof(frames));
-        if (playCount < 0) throw new ArgumentOutOfRangeException(nameof(playCount));
+        ArgumentNullException.ThrowIfNull(frames);
+        ArgumentOutOfRangeException.ThrowIfNegative(playCount);
         var collected = new List<OfficeRasterFrame>();
         long pixels = 0;
         foreach (OfficeRasterFrame frame in frames) {
@@ -53,8 +53,8 @@ public sealed partial class OfficeRasterFrames : IReadOnlyList<OfficeRasterFrame
     public OfficeRasterFrames Transform(Func<OfficeRasterImage, OfficeRasterImage> transform,
         Func<OfficeRasterImage, (int Width, int Height)>? outputSize = null,
         CancellationToken cancellationToken = default, long additionalRetainedBytes = 0) {
-        if (transform == null) throw new ArgumentNullException(nameof(transform));
-        if (additionalRetainedBytes < 0) throw new ArgumentOutOfRangeException(nameof(additionalRetainedBytes));
+        ArgumentNullException.ThrowIfNull(transform);
+        ArgumentOutOfRangeException.ThrowIfNegative(additionalRetainedBytes);
         cancellationToken.ThrowIfCancellationRequested();
         if (additionalRetainedBytes > OfficeRasterGuards.MaximumDecodedBytes) {
             throw new ArgumentException("The additional retained storage exceeds the aggregate retained-memory limit.", nameof(additionalRetainedBytes));

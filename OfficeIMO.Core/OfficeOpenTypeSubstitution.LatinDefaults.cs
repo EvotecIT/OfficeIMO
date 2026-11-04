@@ -155,8 +155,8 @@ internal sealed partial class OfficeOpenTypeSubstitution {
     /// lookup changes the run first. Tables whose features, lookups or coverage cannot be read are treated as applicable.
     /// </remarks>
     internal bool DeclinedLatinDefaultLookupMayApply(ICollection<int> glyphIds, OfficeTextFeatureSettings settings, CancellationToken cancellationToken) {
-        if (glyphIds == null) throw new ArgumentNullException(nameof(glyphIds));
-        if (settings == null) throw new ArgumentNullException(nameof(settings));
+        ArgumentNullException.ThrowIfNull(glyphIds);
+        ArgumentNullException.ThrowIfNull(settings);
         try {
             int[]? features = GetLatinDefaultFeatureIndexes(out int requiredFeature);
             if (features == null) return true;

@@ -16,7 +16,7 @@ public static partial class ArchiveReader {
     /// Enumerates ZIP entries from a path.
     /// </summary>
     public static IReadOnlyList<ArchiveEntryDescriptor> EnumerateZip(string zipPath, ArchiveTraversalOptions? options = null) {
-        if (zipPath == null) throw new ArgumentNullException(nameof(zipPath));
+        ArgumentNullException.ThrowIfNull(zipPath);
         if (zipPath.Length == 0) throw new ArgumentException("ZIP path cannot be empty.", nameof(zipPath));
         if (!File.Exists(zipPath)) throw new FileNotFoundException($"ZIP file '{zipPath}' doesn't exist.", zipPath);
 
@@ -35,7 +35,7 @@ public static partial class ArchiveReader {
     /// Traverses ZIP entries from a path and returns accepted entries with warnings.
     /// </summary>
     public static ArchiveTraversalResult TraverseZip(string zipPath, ArchiveTraversalOptions? options = null) {
-        if (zipPath == null) throw new ArgumentNullException(nameof(zipPath));
+        ArgumentNullException.ThrowIfNull(zipPath);
         if (zipPath.Length == 0) throw new ArgumentException("ZIP path cannot be empty.", nameof(zipPath));
         if (!File.Exists(zipPath)) throw new FileNotFoundException($"ZIP file '{zipPath}' doesn't exist.", zipPath);
 
@@ -53,7 +53,7 @@ public static partial class ArchiveReader {
     /// <summary>Traverses a ZIP source with a physical-entry preflight and cooperative cancellation.</summary>
     public static ArchiveTraversalResult TraverseZip(Stream zipStream, ArchiveTraversalOptions? options,
         CancellationToken cancellationToken) {
-        if (zipStream == null) throw new ArgumentNullException(nameof(zipStream));
+        ArgumentNullException.ThrowIfNull(zipStream);
         if (!zipStream.CanRead) throw new IOException("ZIP stream must be readable.");
 
         var effective = Normalize(options);
@@ -79,7 +79,7 @@ public static partial class ArchiveReader {
     /// Names retain the decoding policy applied when the archive was opened.</summary>
     public static ArchiveTraversalResult TraverseZip(ZipArchive archive, ArchiveTraversalOptions? options,
         CancellationToken cancellationToken) {
-        if (archive == null) throw new ArgumentNullException(nameof(archive));
+        ArgumentNullException.ThrowIfNull(archive);
 
         var effective = Normalize(options);
         return TraverseZipCore(archive, effective, cancellationToken);
@@ -104,7 +104,7 @@ public static partial class ArchiveReader {
     /// Metadata acceptance does not verify member content; use inspection.OpenRead or ReadMembers for payloads.</summary>
     public static ArchiveTraversalResult TraverseZip(ArchiveInspection inspection, ArchiveTraversalOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (inspection == null) throw new ArgumentNullException(nameof(inspection));
+        ArgumentNullException.ThrowIfNull(inspection);
         if (inspection.Format != ArchiveFormat.Zip) throw new ArgumentException("A ZIP inspection is required.", nameof(inspection));
         var entries = new List<TraversalEntry>();
         foreach (var entry in inspection.Entries) {

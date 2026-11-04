@@ -64,7 +64,7 @@ public sealed class ReaderWebOptions {
         if (MaxConcurrentRequests < 1 || MaxConcurrentRequests > 64) {
             throw new ArgumentOutOfRangeException(nameof(MaxConcurrentRequests));
         }
-        if (AllowedHosts == null) throw new ArgumentNullException(nameof(AllowedHosts));
+        ArgumentNullException.ThrowIfNull(AllowedHosts);
 
         string[] allowedHosts = AllowedHosts
             .Select(NormalizeAllowedHost)

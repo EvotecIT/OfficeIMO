@@ -12,9 +12,9 @@ internal static partial class DocumentReaderEngine {
         ProcessedChunkAggregateSnapshot aggregateSnapshot,
         bool computeHashes,
         CancellationToken cancellationToken) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceFallback == null) throw new ArgumentNullException(nameof(sourceFallback));
-        if (aggregateSnapshot == null) throw new ArgumentNullException(nameof(aggregateSnapshot));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(sourceFallback);
+        ArgumentNullException.ThrowIfNull(aggregateSnapshot);
 
         IReadOnlyList<ReaderChunk> chunks = document.Chunks ?? Array.Empty<ReaderChunk>();
         OfficeDocumentSource documentSource = document.Source ?? new OfficeDocumentSource();
@@ -90,7 +90,7 @@ internal static partial class DocumentReaderEngine {
     }
 
     internal static ProcessedChunkAggregateSnapshot CaptureProcessedChunkAggregates(OfficeDocumentReadResult document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         IReadOnlyList<ReaderChunk> chunks = document.Chunks ?? Array.Empty<ReaderChunk>();
         IReadOnlyList<OfficeDocumentBlock> blocks = document.Blocks ?? Array.Empty<OfficeDocumentBlock>();
         bool chunkDerived = chunks.Count == blocks.Count;

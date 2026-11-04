@@ -19,8 +19,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static void Apply(PowerPointDocument presentation,
             LegacyPptPackage package) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (package == null) throw new ArgumentNullException(nameof(package));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(package);
             ClearMappedProperties(presentation.OpenXmlDocument);
             if (TryReadSections(package, OfficeOlePropertySetWriter
                     .SummaryInformationStreamName, out IReadOnlyList<
@@ -59,8 +59,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static LegacyPptPropertySetProjection CreateProjection(
             PowerPointDocument presentation, LegacyPptPackage package) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (package == null) throw new ArgumentNullException(nameof(package));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(package);
             bool summarySafe = CanRewriteSummary(package);
             bool documentSummarySafe = CanRewriteDocumentSummary(package);
             return new LegacyPptPropertySetProjection(

@@ -2,8 +2,8 @@ namespace OfficeIMO.OneNote;
 
 internal static class OneNoteFileHeaderReader {
     public static OneNoteFileHeader Read(byte[] prefix, long? actualFileLength, OneNoteReaderOptions options) {
-        if (prefix == null) throw new ArgumentNullException(nameof(prefix));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(prefix);
+        ArgumentNullException.ThrowIfNull(options);
         if (prefix.Length >= 4 && prefix[0] == (byte)'M' && prefix[1] == (byte)'S' && prefix[2] == (byte)'C' && prefix[3] == (byte)'F') {
             return new OneNoteFileHeader {
                 FileKind = OneNoteFileKind.NotebookPackage,

@@ -107,7 +107,7 @@ namespace OfficeIMO.Visio {
             VisioDocument document,
             VisioPngSaveOptions? options,
             CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             VisioPngSaveOptions resolved = options ?? new VisioPngSaveOptions();
             if (document.Pages.Count == 0) {
                 throw new InvalidOperationException("The document does not contain any pages to export.");
@@ -124,7 +124,7 @@ namespace OfficeIMO.Visio {
             VisioPage page,
             VisioPngSaveOptions? options,
             CancellationToken cancellationToken = default) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
+            ArgumentNullException.ThrowIfNull(page);
             VisioPngSaveOptions resolved = options ?? new VisioPngSaveOptions();
             using CancellationTokenSource linkedCancellation =
                 CancellationTokenSource.CreateLinkedTokenSource(

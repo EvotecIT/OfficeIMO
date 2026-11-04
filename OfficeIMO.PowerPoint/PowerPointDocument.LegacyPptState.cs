@@ -135,7 +135,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal void MarkLoadedFromOpenXml(byte[] originalPackageBytes) {
-            if (originalPackageBytes == null) throw new ArgumentNullException(nameof(originalPackageBytes));
+            ArgumentNullException.ThrowIfNull(originalPackageBytes);
             _legacyPptPackage = null;
             _openXmlOriginalPackageBytes = OfficeCompatibilitySourceCarrier.ContainsPackageCarrier(originalPackageBytes)
                 ? (byte[])originalPackageBytes.Clone()

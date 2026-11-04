@@ -60,7 +60,7 @@ public sealed class PdfHtmlExportSummary {
         string unsupportedScope) {
         Profile = profile;
         ProfileId = profileId;
-        if (pageNumbers == null) throw new ArgumentNullException(nameof(pageNumbers));
+        ArgumentNullException.ThrowIfNull(pageNumbers);
         PageNumbers = new ReadOnlyCollection<int>(new List<int>(pageNumbers));
         SourcePageCount = sourcePageCount;
         RenderedPageCount = renderedPageCount;

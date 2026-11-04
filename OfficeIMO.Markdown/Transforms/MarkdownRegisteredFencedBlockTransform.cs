@@ -12,9 +12,7 @@ public sealed class MarkdownRegisteredFencedBlockTransform : IMarkdownDocumentTr
     /// using the supplied registered fenced-block extensions.
     /// </summary>
     public MarkdownRegisteredFencedBlockTransform(IEnumerable<MarkdownFencedBlockExtension> extensions) {
-        if (extensions == null) {
-            throw new ArgumentNullException(nameof(extensions));
-        }
+        ArgumentNullException.ThrowIfNull(extensions);
 
         var registered = new List<MarkdownFencedBlockExtension>();
         foreach (var extension in extensions) {
@@ -28,9 +26,7 @@ public sealed class MarkdownRegisteredFencedBlockTransform : IMarkdownDocumentTr
 
     /// <inheritdoc />
     public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         if (_extensions.Count == 0 || !ContainsUpgradeableCodeBlock(document)) {
             return document;

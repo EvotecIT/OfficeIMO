@@ -389,7 +389,7 @@ internal static class PdfLinearizationFileAssembler {
 
     #pragma warning disable CA1512 // ThrowIfNegative is unavailable on netstandard2.0 and net472.
     private static string Fixed(long value) {
-        if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
         string text = value.ToString(CultureInfo.InvariantCulture);
         if (text.Length > FixedIntegerWidth) throw new NotSupportedException("Linearized PDF offset exceeds the supported fixed-width field.");
         return text.PadRight(FixedIntegerWidth, ' ');

@@ -25,10 +25,10 @@ public static partial class OfficeContentInstructionDetector {
     /// Decoding is inspection-only; nested encodings and arbitrary obfuscation are not evaluated.</summary>
     public static OfficeContentInstructionAnalysis Analyze(string text, int maxCharacters = 1000000,
         int maxDecodedCharacters = 32768, int maxEncodedCandidates = 32) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (maxCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
-        if (maxDecodedCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maxDecodedCharacters));
-        if (maxEncodedCandidates <= 0) throw new ArgumentOutOfRangeException(nameof(maxEncodedCandidates));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDecodedCharacters);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxEncodedCandidates);
         return Analyze(text, maxCharacters, new OfficeContentInstructionBudget(maxDecodedCharacters, maxEncodedCandidates));
     }
 

@@ -12,7 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         public override int GetOrdinal(string name) {
-            if (name == null) throw new ArgumentNullException(nameof(name));
+            ArgumentNullException.ThrowIfNull(name);
             if (_ordinals.TryGetValue(name, out int ordinal)) return ordinal;
             throw new IndexOutOfRangeException($"Column '{name}' was not found.");
         }
@@ -40,7 +40,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         public override int GetValues(object[] values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             int count = Math.Min(values.Length, FieldCount);
             for (int index = 0; index < count; index++) values[index] = GetValue(index);
             return count;
@@ -163,7 +163,8 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private static long CopySegment<T>(T[] source, long dataOffset, T[]? destination, int destinationOffset, int length) {
-            if (dataOffset < 0 || dataOffset > source.Length) throw new ArgumentOutOfRangeException(nameof(dataOffset));
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, source.Length);
             if (destination == null) return source.Length;
             int count = Math.Min(source.Length - checked((int)dataOffset), length);
             Array.Copy(source, checked((int)dataOffset), destination, destinationOffset, count);

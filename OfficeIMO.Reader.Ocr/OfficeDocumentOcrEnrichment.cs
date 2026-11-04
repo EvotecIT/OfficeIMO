@@ -127,8 +127,8 @@ public static partial class OfficeDocumentOcrEnrichmentExtensions {
     /// <param name="options">Optional enrichment behavior.</param>
     /// <returns>An enriched read result plus observable merge counters.</returns>
     public static OfficeDocumentOcrEnrichmentResult ApplyOcrResults(this OfficeDocumentReadResult result, IEnumerable<OfficeDocumentOcrTextResult> ocrResults, OfficeDocumentOcrEnrichmentOptions? options = null) {
-        if (result == null) throw new ArgumentNullException(nameof(result));
-        if (ocrResults == null) throw new ArgumentNullException(nameof(ocrResults));
+        ArgumentNullException.ThrowIfNull(result);
+        ArgumentNullException.ThrowIfNull(ocrResults);
 
         OfficeDocumentOcrEnrichmentOptions effectiveOptions = options ?? new OfficeDocumentOcrEnrichmentOptions();
         OfficeDocumentOcrTextResult[] suppliedResults = ocrResults

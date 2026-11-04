@@ -23,14 +23,16 @@ public sealed class AsciiDocSourceText {
 
     /// <summary>Creates a half-open span from zero-based offsets.</summary>
     public AsciiDocSourceSpan CreateSpan(int startOffset, int endOffset) {
-        if (startOffset < 0 || startOffset > Text.Length) throw new ArgumentOutOfRangeException(nameof(startOffset));
+        ArgumentOutOfRangeException.ThrowIfNegative(startOffset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(startOffset, Text.Length);
         if (endOffset < startOffset || endOffset > Text.Length) throw new ArgumentOutOfRangeException(nameof(endOffset));
         return new AsciiDocSourceSpan(GetPosition(startOffset), GetPosition(endOffset));
     }
 
     /// <summary>Maps a zero-based source offset to a one-based line and column.</summary>
     public AsciiDocSourcePosition GetPosition(int offset) {
-        if (offset < 0 || offset > Text.Length) throw new ArgumentOutOfRangeException(nameof(offset));
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(offset, Text.Length);
 
         int lineIndex = FindLineIndex(offset);
         return new AsciiDocSourcePosition(offset, lineIndex + 1, offset - _lineStarts[lineIndex] + 1);

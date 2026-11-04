@@ -16,7 +16,7 @@ public static partial class WordRtfConverterExtensions {
     /// <summary>Converts a Word document to the semantic RTF model and returns the completed conversion report.</summary>
     public static RtfDocument ToRtf(this WordDocument document, WordRtfExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         RtfConversionResult<RtfDocument> result = document.ConvertToRtfWithEvidence();
         RtfDocument value = result.Value;
@@ -77,7 +77,7 @@ public static partial class WordRtfConverterExtensions {
     /// <summary>Converts a semantic RTF document to a Word document and returns the completed conversion report.</summary>
     public static WordDocument ToWord(this RtfDocument document, RtfWordExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         RtfConversionResult<WordDocument> result = document.ConvertToWordWithEvidence();
         WordDocument value = result.Value;
@@ -138,7 +138,7 @@ public static partial class WordRtfConverterExtensions {
     /// <summary>Converts a parsed RTF read result, including its read diagnostics, to a Word document and returns the completed conversion report.</summary>
     public static WordDocument ToWord(this RtfReadResult readResult, RtfWordExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        ArgumentNullException.ThrowIfNull(readResult);
         cancellationToken.ThrowIfCancellationRequested();
         RtfConversionResult<WordDocument> result = readResult.ConvertToWordWithEvidence(options?.SourcePath);
         WordDocument value = result.Value;

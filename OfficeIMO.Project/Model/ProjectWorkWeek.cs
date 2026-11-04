@@ -18,7 +18,7 @@ public sealed class ProjectWorkWeek : ProjectObject {
     /// <summary>Replaces one weekday's intervals. No intervals means non-working.</summary>
     public ProjectWeekDay SetWorkingDay(DayOfWeek day, params ProjectWorkingTime[] times) {
         if (!Enum.IsDefined(typeof(DayOfWeek), day)) throw new ArgumentOutOfRangeException(nameof(day));
-        if (times == null) throw new ArgumentNullException(nameof(times));
+        ArgumentNullException.ThrowIfNull(times);
         EnsureAttached();
         var item = WeekDays.FirstOrDefault(d => d.Day == day) ?? WeekDays.Add();
         item.Day = day; item.IsWorking = times.Length != 0;

@@ -162,9 +162,7 @@ public sealed class PowerPointPdfExportOptions {
     public PowerPointPdfExportOptions UseRenderingProfile(
         DrawingCore.OfficeRenderingProfile profile,
         DrawingCore.OfficeRenderingProfileApplyMode mode = DrawingCore.OfficeRenderingProfileApplyMode.Replace) {
-        if (profile == null) {
-            throw new ArgumentNullException(nameof(profile));
-        }
+        ArgumentNullException.ThrowIfNull(profile);
         if (mode != DrawingCore.OfficeRenderingProfileApplyMode.Replace
             && mode != DrawingCore.OfficeRenderingProfileApplyMode.Overlay) {
             throw new ArgumentOutOfRangeException(nameof(mode));
@@ -279,8 +277,8 @@ public sealed class PowerPointPdfExportOptions {
     }
 
     internal PowerPointPdfExportOptions CloneForConversion() {
-        if (MaximumEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumEmbeddedImageBytes));
-        if (MaximumTotalEmbeddedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaximumTotalEmbeddedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumEmbeddedImageBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaximumTotalEmbeddedImageBytes);
         var clone = (PowerPointPdfExportOptions)MemberwiseClone();
         clone._pdfOptions = PdfOptions?.CreateDocumentSnapshot(useThemeDefaults: false);
         clone.EmbeddedImageBytesRead = 0;

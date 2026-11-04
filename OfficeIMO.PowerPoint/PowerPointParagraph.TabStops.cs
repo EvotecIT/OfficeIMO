@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Replaces up to 32 explicit tab stops. An empty sequence removes locally configured stops.</summary>
         public PowerPointParagraph SetTabStops(IEnumerable<PowerPointTabStop> tabStops) {
-            if (tabStops == null) throw new ArgumentNullException(nameof(tabStops));
+            ArgumentNullException.ThrowIfNull(tabStops);
             var list = new A.TabStopList();
             foreach (PowerPointTabStop tab in tabStops) {
                 if (list.ChildElements.Count == MaximumTabStops)

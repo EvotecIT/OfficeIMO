@@ -330,7 +330,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Applies imported theme tokens to every master in a target presentation.</summary>
         public void ApplyBrandTo(PowerPointDocument presentation) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             PowerPointTemplateMasterInfo master = _masters.FirstOrDefault()
                 ?? throw new InvalidOperationException("Template inventory has no slide masters.");
             if (!string.IsNullOrWhiteSpace(master.ThemeName)) {

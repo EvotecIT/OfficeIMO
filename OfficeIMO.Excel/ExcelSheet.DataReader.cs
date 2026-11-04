@@ -74,9 +74,9 @@ namespace OfficeIMO.Excel {
             bool createTable = true,
             bool autoFit = false,
             CancellationToken ct = default) {
-            if (reader == null) throw new ArgumentNullException(nameof(reader));
-            if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
-            if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            ArgumentNullException.ThrowIfNull(reader);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startRow, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startColumn, 1);
             if (reader.FieldCount < 1) throw new ArgumentException("Data reader must expose at least one field.", nameof(reader));
             ct.ThrowIfCancellationRequested();
 

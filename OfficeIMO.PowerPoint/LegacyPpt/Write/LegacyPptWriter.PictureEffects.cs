@@ -7,7 +7,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadPictureEffects(A.Blip blip,
             out LegacyPptWriterPictureEffects effects,
             out string? reason) {
-            if (blip == null) throw new ArgumentNullException(nameof(blip));
+            ArgumentNullException.ThrowIfNull(blip);
             A.LuminanceEffect? luminance = null;
             bool grayscale = false;
             bool biLevel = false;

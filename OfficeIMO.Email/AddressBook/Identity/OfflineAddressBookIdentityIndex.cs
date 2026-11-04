@@ -40,7 +40,7 @@ public sealed class OfflineAddressBookIdentityIndex {
     public OfflineAddressBookIdentityResolution Resolve(string identity,
         string? addressType = null,
         OfflineAddressBookIdentityResolutionOptions? options = null) {
-        if (identity == null) throw new ArgumentNullException(nameof(identity));
+        ArgumentNullException.ThrowIfNull(identity);
         OfflineAddressBookIdentityResolutionOptions effective = options ??
             new OfflineAddressBookIdentityResolutionOptions();
         IdentityLookup lookup = IdentityLookup.Create(identity, addressType, effective);
@@ -77,7 +77,7 @@ public sealed class OfflineAddressBookIdentityIndex {
     /// <summary>Resolves an <see cref="EmailAddress"/>, honoring its Outlook address type when present.</summary>
     public OfflineAddressBookIdentityResolution Resolve(EmailAddress address,
         OfflineAddressBookIdentityResolutionOptions? options = null) {
-        if (address == null) throw new ArgumentNullException(nameof(address));
+        ArgumentNullException.ThrowIfNull(address);
         string identity = !string.IsNullOrWhiteSpace(address.Address) ? address.Address! :
             !string.IsNullOrWhiteSpace(address.RawValue) ? address.RawValue! :
             address.DisplayName ?? throw new ArgumentException("The address has no identity value.", nameof(address));

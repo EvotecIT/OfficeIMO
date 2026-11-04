@@ -19,9 +19,7 @@ public sealed class OfficeDrawingShape : OfficeDrawingElement {
 
     /// <summary>Creates a positioned shape.</summary>
     public OfficeDrawingShape(OfficeShape shape, double x, double y) {
-        if (shape is null) {
-            throw new ArgumentNullException(nameof(shape));
-        }
+        ArgumentNullException.ThrowIfNull(shape);
 
         ValidateFinite(x, nameof(x));
         ValidateFinite(y, nameof(y));

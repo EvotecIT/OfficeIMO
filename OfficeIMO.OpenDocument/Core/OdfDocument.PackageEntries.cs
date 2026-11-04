@@ -10,7 +10,7 @@ public abstract partial class OdfDocument {
 
     /// <summary>Normalizes a package reference through the native owner without fetching or resolving filesystem targets.</summary>
     public static string NormalizePackageEntryPath(string reference) {
-        if (reference == null) throw new ArgumentNullException(nameof(reference));
+        ArgumentNullException.ThrowIfNull(reference);
         return OdfPackagePath.NormalizeHref(reference);
     }
 
@@ -30,7 +30,7 @@ public abstract partial class OdfDocument {
     /// <summary>Returns an already-loaded entry within an explicit byte ceiling, checked before creating its defensive copy. External links are never resolved.</summary>
     public byte[] GetPackageEntryBytes(string path, long maximumBytes) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Package entry path cannot be empty.", nameof(path));
-        if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
         string normalized = OdfPackagePath.NormalizeHref(path);
         if (normalized.Length == 0) throw new ArgumentException("Package entry path cannot be empty.", nameof(path));
         OdfPackageEntry entry = Package.GetRequiredEntry(normalized);

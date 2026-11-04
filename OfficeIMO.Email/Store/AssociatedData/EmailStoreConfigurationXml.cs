@@ -5,8 +5,8 @@ namespace OfficeIMO.Email.Store;
 
 internal static class EmailStoreConfigurationXml {
     internal static XDocument Parse(byte[] bytes, int maximumBytes, string description) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentNullException.ThrowIfNull(bytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         if (bytes.Length > maximumBytes) {
             throw new EmailStoreLimitExceededException(nameof(maximumBytes), bytes.Length, maximumBytes);
         }

@@ -110,9 +110,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void SetGuides(IEnumerable<PowerPointGuideInfo> guides) {
             ThrowIfDisposed();
-            if (guides == null) {
-                throw new ArgumentNullException(nameof(guides));
-            }
+            ArgumentNullException.ThrowIfNull(guides);
 
             CommonSlideViewProperties common = EnsureCommonSlideViewProperties();
             GuideList guideList = common.GuideList ??= new GuideList();

@@ -33,7 +33,7 @@ public static class HtmlCssSelectorParser {
     }
 
     private static Prepared Prepare(string selector, HtmlCssSelectorOptions? options, CancellationToken cancellationToken) {
-        if (selector == null) throw new ArgumentNullException(nameof(selector));
+        ArgumentNullException.ThrowIfNull(selector);
         HtmlCssSelectorOptions effective = (options ?? new HtmlCssSelectorOptions()).Clone();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();

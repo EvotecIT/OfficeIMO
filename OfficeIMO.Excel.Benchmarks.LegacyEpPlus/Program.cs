@@ -17,9 +17,7 @@ const string LibraryName = "EPPlus 4.5.3.3";
 string outputPath = ParseOutputPath(args)
     ?? Path.Combine("Docs", "benchmarks", "officeimo.excel.legacy-epplus-comparison.json");
 int rowCount = ParseRowCount(args);
-if (rowCount <= 0) {
-    throw new ArgumentOutOfRangeException(nameof(rowCount));
-}
+ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
 int warmupIterations = ParsePositiveOption(args, "--warmup", "--warmups") ?? WarmupIterations;
 int measuredIterations = ParsePositiveOption(args, "--iterations", "--measured-iterations", "--samples") ?? MeasuredIterations;
 var scenarioFilter = BuildScenarioFilter(ParseOptionValues(args, "--scenario", "--scenarios"));
@@ -1348,9 +1346,7 @@ static string[] ParseOptionValues(string[] args, params string[] optionNames) {
 
 internal sealed class BenchmarkMeasurement {
     internal static BenchmarkMeasurementResult Measure(int warmupIterations, int measuredIterations, Func<int> action) {
-        if (action == null) {
-            throw new ArgumentNullException(nameof(action));
-        }
+        ArgumentNullException.ThrowIfNull(action);
 
         for (int i = 0; i < warmupIterations; i++) {
             action();

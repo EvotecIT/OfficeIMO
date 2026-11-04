@@ -65,7 +65,7 @@ namespace OfficeIMO.Core.Internal {
                     error = "The file does not start with the OLE compound document signature.";
                     return false;
                 }
-                if (options == null) throw new ArgumentNullException(nameof(options));
+                ArgumentNullException.ThrowIfNull(options);
 
                 var streams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
                 ushort majorVersion = ReadUInt16(bytes, 26);
@@ -679,10 +679,10 @@ namespace OfficeIMO.Core.Internal {
         internal OfficeCompoundReadOptions(int maxDirectoryEntries = 65536, int maxStreamCount = 32768,
             long maxStreamBytes = 256L * 1024L * 1024L, long maxTotalStreamBytes = 512L * 1024L * 1024L,
             Action<string, long>? streamSizeValidator = null, bool preserveResourceLimits = false) {
-            if (maxDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryEntries));
-            if (maxStreamCount <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreamCount));
-            if (maxStreamBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxStreamBytes));
-            if (maxTotalStreamBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxTotalStreamBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDirectoryEntries);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxStreamCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxStreamBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxTotalStreamBytes);
             MaxDirectoryEntries = maxDirectoryEntries;
             MaxStreamCount = maxStreamCount;
             MaxStreamBytes = maxStreamBytes;

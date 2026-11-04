@@ -23,7 +23,7 @@ internal static class OfficeBoundedStreamReader {
         CancellationToken cancellationToken,
         out byte[] bytes,
         out long retainedManagedBytes) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("The source stream must be readable.", nameof(stream));
         if (maximumBytes < 1 || maximumBytes > OfficeRasterGuards.MaximumEncodedBytes) {
             throw new ArgumentOutOfRangeException(nameof(maximumBytes));

@@ -12,7 +12,7 @@ public sealed class OfficeVisualSource {
 
     /// <summary>Initializes a portable SVG source.</summary>
     public OfficeVisualSource(byte[] svgBytes) {
-        if (svgBytes == null) throw new ArgumentNullException(nameof(svgBytes));
+        ArgumentNullException.ThrowIfNull(svgBytes);
         if (svgBytes.Length == 0) throw new ArgumentException("SVG payload cannot be empty.", nameof(svgBytes));
         _svgBytes = (byte[])svgBytes.Clone();
     }

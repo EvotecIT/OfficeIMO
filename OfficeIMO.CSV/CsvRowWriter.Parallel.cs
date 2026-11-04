@@ -29,10 +29,7 @@ public sealed partial class CsvRowWriter
         CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        if (reader == null)
-        {
-            throw new ArgumentNullException(nameof(reader));
-        }
+        ArgumentNullException.ThrowIfNull(reader);
 
         parallelOptions ??= new CsvWriteParallelOptions();
         int degreeOfParallelism = parallelOptions.GetDegreeOfParallelism();

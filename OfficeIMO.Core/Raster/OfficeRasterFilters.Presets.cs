@@ -7,7 +7,7 @@ public static partial class OfficeRasterFilters {
     /// <summary>Blends the outer elliptical image region toward a color, retaining source alpha; the center remains unchanged.</summary>
     public static OfficeRasterImage Vignette(OfficeRasterImage source, OfficeColor? color = null, double amount = 1D, CancellationToken cancellationToken = default) {
         ValidateAmount(amount, nameof(amount), maximum: 1D);
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OfficeColor tint = color ?? OfficeColor.Black;
         return Map(source, (c, x, y) => VignettePixel(c, tint, amount, x, y, source.Width, source.Height), cancellationToken);
     }
@@ -18,7 +18,7 @@ public static partial class OfficeRasterFilters {
 
     /// <summary>Applies a saturated, green-biased film-style preset with dark elliptical edges, retaining alpha.</summary>
     public static OfficeRasterImage Lomograph(OfficeRasterImage source, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         return Map(source, (c, x, y) => {
             double gray = Luminance(c);
             OfficeColor film = Rgb(gray + (c.R - gray) * 1.3D, gray + (c.G - gray) * 1.3D + 10D, gray + (c.B - gray) * 1.3D - 8D, c.A);
@@ -28,7 +28,7 @@ public static partial class OfficeRasterFilters {
 
     /// <summary>Applies a faded warm instant-film-style preset with gentle edge tint, retaining alpha.</summary>
     public static OfficeRasterImage Polaroid(OfficeRasterImage source, CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         return Map(source, (c, x, y) => {
             OfficeColor film = Rgb(c.R * .85D + 30D, c.G * .82D + 25D, c.B * .78D + 20D, c.A);
             return VignettePixel(film, OfficeColor.FromRgb(65, 45, 30), .35D, x, y, source.Width, source.Height);

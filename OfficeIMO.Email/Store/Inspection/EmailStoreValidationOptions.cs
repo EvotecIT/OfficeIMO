@@ -17,10 +17,10 @@ public sealed class EmailStoreValidationOptions {
         if (!Enum.IsDefined(typeof(EmailStoreValidationMode), mode)) {
             throw new ArgumentOutOfRangeException(nameof(mode));
         }
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (maxStructuralPages <= 0) throw new ArgumentOutOfRangeException(nameof(maxStructuralPages));
-        if (maxStructuralBlocks <= 0) throw new ArgumentOutOfRangeException(nameof(maxStructuralBlocks));
-        if (maxStructuralBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxStructuralBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxStructuralPages);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxStructuralBlocks);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxStructuralBytes);
         Mode = mode;
         FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;
         IncludeDescendants = includeDescendants;

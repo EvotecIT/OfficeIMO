@@ -136,7 +136,7 @@ namespace OfficeIMO.Visio.Diagrams {
         /// </summary>
         public VisioGraphClusterRecord(string id, string text, IEnumerable<string> nodeIds) {
             if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Cluster id cannot be null or whitespace.", nameof(id));
-            if (nodeIds == null) throw new ArgumentNullException(nameof(nodeIds));
+            ArgumentNullException.ThrowIfNull(nodeIds);
 
             Id = id;
             Text = text ?? string.Empty;

@@ -19,7 +19,7 @@ public static partial class HtmlProvenance {
 
     /// <summary>Inspects embedded and external C2PA carriers plus supported embedded image data URIs.</summary>
     public static OfficeProvenanceReport Inspect(string html, OfficeProvenanceOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
         options ??= new OfficeProvenanceOptions();
         return InspectCore(html, options, enforceUtf8Size: true, documentUri: null);
     }
@@ -180,7 +180,7 @@ public static partial class HtmlProvenance {
 
     /// <summary>Removes selected HTML provenance and provenance in supported embedded image data URIs.</summary>
     public static OfficeProvenanceRemovalResult Remove(string html, OfficeProvenanceRemovalOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
         options ??= new OfficeProvenanceRemovalOptions();
         return RemoveCore(html, options, enforceUtf8Size: true, outputEncoding: null, outputHadPreamble: false);
     }

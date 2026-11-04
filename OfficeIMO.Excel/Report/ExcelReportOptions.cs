@@ -14,8 +14,8 @@ public sealed class ExcelReportOptions {
     internal string SectionHeaderFillHex => (SectionHeaderFill ?? Theme.Palette.Accent1).Resolve(Theme).ToRgbHex();
     internal string KeyFillHex => (KeyFill ?? Theme.Palette.Background).Resolve(Theme).ToRgbHex();
     internal ExcelReportOptions Snapshot() {
-        if (Theme == null) throw new ArgumentNullException(nameof(Theme));
-        if (DefaultSpacingRows < 0) throw new ArgumentOutOfRangeException(nameof(DefaultSpacingRows));
+        ArgumentNullException.ThrowIfNull(Theme);
+        ArgumentOutOfRangeException.ThrowIfNegative(DefaultSpacingRows);
         return (ExcelReportOptions)MemberwiseClone();
     }
 }

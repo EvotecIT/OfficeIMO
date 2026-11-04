@@ -59,7 +59,7 @@ public sealed class OfficeRasterContentSafetyOptions {
     public long MaximumOutputBytes { get; set; } = 128L * 1024L * 1024L;
 
     internal Snapshot Capture() {
-        if (Inspection == null) throw new ArgumentNullException(nameof(Inspection));
+        ArgumentNullException.ThrowIfNull(Inspection);
         var inspection = new OfficeContentSafetyOptions {
             MaxInputBytes = Inspection.MaxInputBytes,
             MaxPackageEntries = Inspection.MaxPackageEntries,
@@ -89,9 +89,8 @@ public sealed class OfficeRasterContentSafetyOptions {
         if (MaximumRegionComparisons <= 0L || MaximumRegionComparisons > 100_000_000L) {
             throw new ArgumentOutOfRangeException(nameof(MaximumRegionComparisons));
         }
-        if (MaximumTinyTextHeightPixels < 0 || MaximumTinyTextHeightPixels > 1024) {
-            throw new ArgumentOutOfRangeException(nameof(MaximumTinyTextHeightPixels));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(MaximumTinyTextHeightPixels);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(MaximumTinyTextHeightPixels, 1024);
         if (OcrTimeout <= TimeSpan.Zero || OcrTimeout > TimeSpan.FromHours(1)) {
             throw new ArgumentOutOfRangeException(nameof(OcrTimeout));
         }
@@ -100,9 +99,8 @@ public sealed class OfficeRasterContentSafetyOptions {
             MinimumOcrConfidenceForRedaction < 0D || MinimumOcrConfidenceForRedaction > 1D) {
             throw new ArgumentOutOfRangeException(nameof(MinimumOcrConfidenceForRedaction));
         }
-        if (RedactionPaddingPixels < 0 || RedactionPaddingPixels > 1024) {
-            throw new ArgumentOutOfRangeException(nameof(RedactionPaddingPixels));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(RedactionPaddingPixels);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(RedactionPaddingPixels, 1024);
         if (RedactionColor.A != byte.MaxValue) {
             throw new ArgumentException("Raster redaction requires a fully opaque color.", nameof(RedactionColor));
         }

@@ -7,7 +7,7 @@ namespace OfficeIMO.Html;
 public static class HtmlRenderArchiveManifestJsonWriter {
     /// <summary>Serializes a typed archive manifest with stable ordering.</summary>
     public static string ToJson(HtmlRenderArchiveManifest manifest) {
-        if (manifest == null) throw new ArgumentNullException(nameof(manifest));
+        ArgumentNullException.ThrowIfNull(manifest);
         var builder = new StringBuilder();
         builder.AppendLine("{");
         String(builder, 1, "schemaId", HtmlRenderArchiveManifest.SchemaId, true);

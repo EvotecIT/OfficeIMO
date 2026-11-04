@@ -9,9 +9,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const uint CodePagePropertyId = 1;
 
         internal static void AddDocumentProperties(OfficeCompoundFile compoundFile, LegacyDocDocument document, LegacyDocImportOptions options) {
-            if (compoundFile == null) throw new ArgumentNullException(nameof(compoundFile));
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(compoundFile);
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(options);
 
             if (TryGetStream(compoundFile.Streams, SummaryInformationStreamName, out byte[]? summaryStream)) {
                 TryReadSummaryInformation(summaryStream!, document);

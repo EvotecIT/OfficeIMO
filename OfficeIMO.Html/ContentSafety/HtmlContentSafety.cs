@@ -18,7 +18,7 @@ namespace OfficeIMO.Html;
 public static partial class HtmlContentSafety {
     /// <summary>Inspects HTML using OfficeIMO's computed CSS cascade.</summary>
     public static OfficeContentSafetyReport Inspect(string html, OfficeContentSafetyOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+        ArgumentNullException.ThrowIfNull(html);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateText(html, effective);
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html);
@@ -38,8 +38,8 @@ public static partial class HtmlContentSafety {
         string html,
         OfficeContentCleanupSelection selection,
         OfficeContentSafetyOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
+        ArgumentNullException.ThrowIfNull(html);
+        ArgumentNullException.ThrowIfNull(selection);
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateText(html, effective);
         HtmlConversionDocument conversion = HtmlConversionDocument.Parse(html);

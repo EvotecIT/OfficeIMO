@@ -62,7 +62,7 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <param name="report">Report to convert.</param>
         /// <returns>A snapshot preserving notice order and metadata.</returns>
         public static IReadOnlyList<GoogleWorkspaceDiagnosticEntry> ToDiagnosticEntries(this TranslationReport report) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(report);
 
             return report.Notices
                 .Select(notice => new GoogleWorkspaceDiagnosticEntry(
@@ -81,7 +81,7 @@ namespace OfficeIMO.GoogleWorkspace {
         /// <param name="exception">Export failure to convert.</param>
         /// <returns>A leading export-failure entry followed by the report notices.</returns>
         public static IReadOnlyList<GoogleWorkspaceDiagnosticEntry> ToDiagnosticEntries(this GoogleWorkspaceExportException exception) {
-            if (exception == null) throw new ArgumentNullException(nameof(exception));
+            ArgumentNullException.ThrowIfNull(exception);
 
             var entries = new List<GoogleWorkspaceDiagnosticEntry> {
                 new GoogleWorkspaceDiagnosticEntry(
@@ -116,7 +116,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public static void Emit(
             GoogleWorkspaceSessionOptions? sessionOptions,
             GoogleWorkspaceDiagnosticEntry entry) {
-            if (entry == null) throw new ArgumentNullException(nameof(entry));
+            ArgumentNullException.ThrowIfNull(entry);
             sessionOptions?.DiagnosticSink?.Invoke(entry);
         }
 
@@ -133,7 +133,7 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationAction action = TranslationAction.None,
             int count = 1,
             string? targetId = null) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(report);
 
             report.Add(severity, feature, message, path, code, action, count, targetId);
             Emit(sessionOptions, new GoogleWorkspaceDiagnosticEntry(severity, feature, message, path, failureKind, code, action, count, targetId));
@@ -152,7 +152,7 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationAction action = TranslationAction.None,
             int count = 1,
             string? targetId = null) {
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(report);
 
             if (report.Notices.Any(n =>
                 n.Severity == severity

@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
         /// <param name="byHeader">Mapping of table header names to the totals function that should be applied for each column.</param>
         public void SetTableTotals(string range, System.Collections.Generic.Dictionary<string, ExcelTableTotalsFunction> byHeader) {
             if (string.IsNullOrWhiteSpace(range)) throw new System.ArgumentNullException(nameof(range));
-            if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
+            System.ArgumentNullException.ThrowIfNull(byHeader);
 
             SetTableTotalsCore(range, byHeader, throwIfMissing: false);
         }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel {
         /// <param name="byHeader">Mapping of table header names to totals functions.</param>
         public void SetTableTotalsByName(string tableName, System.Collections.Generic.IDictionary<string, ExcelTableTotalsFunction> byHeader) {
             if (string.IsNullOrWhiteSpace(tableName)) throw new System.ArgumentNullException(nameof(tableName));
-            if (byHeader == null) throw new System.ArgumentNullException(nameof(byHeader));
+            System.ArgumentNullException.ThrowIfNull(byHeader);
 
             SetTableTotalsCore(tableName, byHeader, throwIfMissing: true);
         }

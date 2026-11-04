@@ -48,7 +48,7 @@ internal sealed class PstDataTree {
 
     internal PstDataTree(Func<IEnumerable<byte[]>> blockFactory, int cacheCapacity) {
         _blockFactory = blockFactory ?? throw new ArgumentNullException(nameof(blockFactory));
-        if (cacheCapacity <= 0) throw new ArgumentOutOfRangeException(nameof(cacheCapacity));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cacheCapacity);
         _cacheCapacity = cacheCapacity;
     }
 
@@ -64,7 +64,7 @@ internal sealed class PstDataTree {
     }
 
     internal byte[] GetBlock(int index) {
-        if (index < 0) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
         if (_materializedBlocks != null) {
             if (index >= _materializedBlocks.Count) {
                 throw new InvalidDataException("A PST data-tree block index is out of range.");

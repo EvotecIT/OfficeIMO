@@ -200,7 +200,7 @@ public sealed class OfficeFontProgramLoadResult {
         int decodedByteCount,
         byte[]? staticOpenTypeData = null) {
         Program = program ?? throw new ArgumentNullException(nameof(program));
-        if (decodedByteCount <= 0) throw new ArgumentOutOfRangeException(nameof(decodedByteCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(decodedByteCount);
         DecodedByteCount = decodedByteCount;
         _staticOpenTypeData = staticOpenTypeData == null ? null : (byte[])staticOpenTypeData.Clone();
     }

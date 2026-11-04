@@ -97,9 +97,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Showcase path cannot be null or whitespace.", nameof(showcasePath));
             }
 
-            if (packageFiles == null) {
-                throw new ArgumentNullException(nameof(packageFiles));
-            }
+            ArgumentNullException.ThrowIfNull(packageFiles);
 
             string root = Path.GetFullPath(showcasePath);
             IReadOnlyList<VisioShowcaseArtifact> packages = packageFiles

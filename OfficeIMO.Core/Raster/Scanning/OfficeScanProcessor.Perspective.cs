@@ -17,8 +17,8 @@ public static partial class OfficeScanProcessor {
     /// <remarks>Dimensions follow the longer opposing source edges. This operation does not detect page corners automatically.</remarks>
     public static OfficeScanPerspectiveResult CorrectPerspective(OfficeRasterImage source, OfficeScanPerspectiveOptions options,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(options);
         var settings = options.Clone(); settings.Validate(); cancellationToken.ThrowIfCancellationRequested();
         int width = Math.Max(1, (int)Math.Ceiling(Math.Max(Length(settings.TopLeft, settings.TopRight), Length(settings.BottomLeft, settings.BottomRight))));
         int height = Math.Max(1, (int)Math.Ceiling(Math.Max(Length(settings.TopLeft, settings.BottomLeft), Length(settings.TopRight, settings.BottomRight))));

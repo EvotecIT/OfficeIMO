@@ -9,8 +9,8 @@ public sealed class EmailStoreRecoveryOptions {
         bool includeAssociatedItems = false,
         int maxItemsScanned = 1_000_000,
         int maxRecoveredItems = 10_000) {
-        if (maxItemsScanned <= 0) throw new ArgumentOutOfRangeException(nameof(maxItemsScanned));
-        if (maxRecoveredItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxRecoveredItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItemsScanned);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxRecoveredItems);
         FolderId = string.IsNullOrWhiteSpace(folderId) ? null : folderId;
         IncludeDescendants = includeDescendants;
         IncludeAssociatedItems = includeAssociatedItems;

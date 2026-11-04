@@ -114,7 +114,7 @@ namespace OfficeIMO.Word {
             internal long MaximumBytes { get; private set; }
 
             internal void SetMaximumBytes(long maximumBytes) {
-                if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
                 if (Length > maximumBytes) {
                     throw new SignatureValidationSnapshotResourceException(
                         "The current OPC package exceeds the " + maximumBytes +

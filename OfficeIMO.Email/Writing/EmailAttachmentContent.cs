@@ -3,7 +3,7 @@ namespace OfficeIMO.Email;
 internal static class EmailAttachmentContent {
     internal static byte[]? ReadOrNull(EmailAttachment attachment, long maximumBytes, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
         if (attachment.Content != null && !EmailAttachmentStreamScope.HasStagedContent(attachment)) {
             if (attachment.Content.LongLength > maximumBytes) throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), attachment.Content.LongLength, maximumBytes);
             return attachment.Content;

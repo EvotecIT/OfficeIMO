@@ -49,7 +49,7 @@ public sealed class OfficeSecurityProvider : IOfficeSecurityProvider {
     /// <inheritdoc />
     public ICmsVerificationSession CreateCmsVerificationSession(CmsVerificationOptions options) {
 #if NETSTANDARD2_0 || NET472
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
 #else
         ArgumentNullException.ThrowIfNull(options);
 #endif

@@ -54,7 +54,8 @@ public sealed class OfficeTextFeatureSettings : IEquatable<OfficeTextFeatureSett
     /// <summary>Returns a new immutable selection with one feature value added or replaced.</summary>
     public OfficeTextFeatureSettings With(string tag, int value) {
         ValidateTag(tag, nameof(tag));
-        if (value < 0 || value > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(value, ushort.MaxValue);
         var updated = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (KeyValuePair<string, int> feature in _features) updated[feature.Key] = feature.Value;
         updated[tag] = value;

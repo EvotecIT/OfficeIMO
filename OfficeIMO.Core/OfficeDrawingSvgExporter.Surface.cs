@@ -54,7 +54,7 @@ public static partial class OfficeDrawingSvgExporter {
         string? resourceIdPrefix,
         CancellationToken cancellationToken,
         int? maximumCharacters) {
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        ArgumentNullException.ThrowIfNull(drawing);
         cancellationToken.ThrowIfCancellationRequested();
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
@@ -150,8 +150,8 @@ public static partial class OfficeDrawingSvgExporter {
         string? resourceIdPrefix,
         long maximumUtf8Bytes,
         CancellationToken cancellationToken) {
-        if (maximumUtf8Bytes < 1L) throw new ArgumentOutOfRangeException(nameof(maximumUtf8Bytes));
-        if (drawing == null) throw new ArgumentNullException(nameof(drawing));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumUtf8Bytes, 1L);
+        ArgumentNullException.ThrowIfNull(drawing);
         if (double.IsNaN(scale) || double.IsInfinity(scale) || scale <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(scale), "Scale must be a positive finite value.");
         }

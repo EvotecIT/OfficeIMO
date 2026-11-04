@@ -20,7 +20,7 @@ public sealed class LatexWriterOptions {
 internal static class LatexWriter {
     /// <summary>Writes a document.</summary>
     internal static string Write(LatexDocument document, LatexWriterOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new LatexWriterOptions();
         string lineEnding = options.LineEnding ?? document.Source.PreferredLineEnding;
         ValidateLineEnding(lineEnding);

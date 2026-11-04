@@ -13,9 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             int recordOffset,
             ushort recordType,
             int payloadLength) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             Kind = kind;
             RecordName = recordName ?? throw new ArgumentNullException(nameof(recordName));
@@ -723,9 +721,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         internal void SetCalculatedItemFormulaTokenStream(ushort tokenByteCount, int trailingByteCount) {
-            if (trailingByteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(trailingByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(trailingByteCount);
 
             CalculatedItemFormulaTokenByteCount = tokenByteCount;
             CalculatedItemFormulaTrailingByteCount = trailingByteCount;
@@ -735,9 +731,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         internal void SetCalculatedFieldFormulaTokenStream(int tokenByteCount) {
-            if (tokenByteCount <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(tokenByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(tokenByteCount);
 
             CalculatedFieldFormulaTokenByteCount = tokenByteCount;
             CalculatedItemFormulaPayloadKind = "CalculatedFieldFormulaTokens";

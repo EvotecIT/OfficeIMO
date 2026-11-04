@@ -15,8 +15,8 @@
     "familyCount": 3,
     "formatCount": 28,
     "capabilityCount": 137,
-    "packageCount": 79,
-    "operationCount": 1438
+    "packageCount": 80,
+    "operationCount": 1442
   },
   "fidelityStates": [
     {
@@ -5033,6 +5033,63 @@
               "label": "Supported",
               "description": "Implemented and backed by named evidence.",
               "count": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "OfficeIMO.Publisher",
+      "slug": "publisher",
+      "capabilityCount": 4,
+      "formats": [
+        "Publisher.Native"
+      ],
+      "sourceCatalogs": [
+        "OfficeIMO.NativeLifecycle"
+      ],
+      "operations": [
+        {
+          "id": "Create",
+          "states": [
+            {
+              "id": "Unsupported",
+              "label": "Unsupported",
+              "description": "The operation is not implemented.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Edit",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Preserve",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
+            }
+          ]
+        },
+        {
+          "id": "Read",
+          "states": [
+            {
+              "id": "Partial",
+              "label": "Partial",
+              "description": "A bounded subset is implemented with explicit limits.",
+              "count": 1
             }
           ]
         }

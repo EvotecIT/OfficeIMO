@@ -15,7 +15,7 @@ public sealed partial class IWorkNativeEditSession {
 
     private void ReplaceNativeParagraphText(IWorkSourceDocument view, IWorkTextContent content, int paragraph,
         string text, bool allowDecimalLists, CancellationToken cancellationToken) {
-        if (paragraph > content.Paragraphs.Count) throw new ArgumentOutOfRangeException(nameof(paragraph));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(paragraph, content.Paragraphs.Count);
         var selected = content.Paragraphs[paragraph - 1];
         if (selected.ListMarkerKind != IWorkListMarkerKind.None
                 && (!allowDecimalLists || !IWorkDecimalListLayout.TryResolve(selected, out _, out _))

@@ -27,9 +27,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort parameterFlagCount,
             int parameterFlagByteCount,
             bool hasCompleteParameterFlags) {
-            if (parameterFlagByteCount < 0) {
-                throw new ArgumentOutOfRangeException(nameof(parameterFlagByteCount));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(parameterFlagByteCount);
 
             RecordOffset = recordOffset;
             RecordType = recordType;

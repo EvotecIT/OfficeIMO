@@ -8,9 +8,7 @@ namespace OfficeIMO.Visio {
         private static readonly Regex TokenPattern = new("[a-z0-9]+", RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
         internal static string? GetKey(VisioShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             if (ShouldSkip(shape)) {
                 return null;

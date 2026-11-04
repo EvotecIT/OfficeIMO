@@ -8,7 +8,7 @@ internal static class EpubFontObfuscation {
 
     internal static bool TryDeobfuscate(byte[] data, EpubEncryptionKind kind, string? identifier,
         out byte[] result, out string? error) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         result = Array.Empty<byte>();
         error = null;
         byte[]? key;

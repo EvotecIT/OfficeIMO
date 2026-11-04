@@ -15,9 +15,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             uint themeVersion,
             string themeVersionName,
             byte[]? themeBytes) {
-            if (payloadLength < 0) {
-                throw new ArgumentOutOfRangeException(nameof(payloadLength));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(payloadLength);
 
             RecordOffset = recordOffset;
             RecordType = recordType;

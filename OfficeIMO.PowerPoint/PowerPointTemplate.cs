@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Inspects the template-capable structure already loaded by a presentation.</summary>
         public static PowerPointTemplateInventory Inspect(PowerPointDocument presentation) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             return presentation.InspectTemplate();
         }
 

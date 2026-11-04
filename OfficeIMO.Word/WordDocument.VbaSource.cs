@@ -13,7 +13,7 @@ public partial class WordDocument {
 
     /// <summary>Applies a native source project while preserving Word's VBA data and requiring explicit signature removal.</summary>
     public void SetVbaProject(OfficeVbaProject project, OfficeVbaWriteOptions? options = null) {
-        if (project == null) throw new ArgumentNullException(nameof(project));
+        ArgumentNullException.ThrowIfNull(project);
         options ??= new OfficeVbaWriteOptions();
         if (project.Modules.Any(module => module.Kind == OfficeVbaModuleKind.Document
             && !(OfficeIMO.Core.Internal.OfficeVbaText.GetBaseIdentity(module.Source) is string identity

@@ -25,11 +25,11 @@ public sealed class ChmConversionOptions {
         return copy;
     }
     internal void Validate() {
-        if (MaxHtmlNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxHtmlNodes));
-        if (MaxTopics < 1) throw new ArgumentOutOfRangeException(nameof(MaxTopics));
-        if (MaxTotalHtmlCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaxTotalHtmlCharacters));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxHtmlNodes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTopics, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTotalHtmlCharacters, 1);
         if (MaxOutputBytes < 1 || MaxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(MaxOutputBytes));
-        if (MaxEmbeddedImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxEmbeddedImageBytes));
-        if (MaxTotalEmbeddedImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxTotalEmbeddedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxEmbeddedImageBytes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTotalEmbeddedImageBytes, 1);
     }
 }

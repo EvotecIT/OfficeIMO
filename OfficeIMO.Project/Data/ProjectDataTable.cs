@@ -85,8 +85,8 @@ public sealed class ProjectDataTable {
     /// <summary>Copies headers and rows, rejecting inconsistent widths and enforcing row/cell bounds.</summary>
     public ProjectDataTable(IEnumerable<string> headers, IEnumerable<IReadOnlyList<string?>> rows, int maxRows = 100000,
         int maxCells = 2000000, int maxCellCharacters = 32767) {
-        if (headers == null) throw new ArgumentNullException(nameof(headers));
-        if (rows == null) throw new ArgumentNullException(nameof(rows));
+        ArgumentNullException.ThrowIfNull(headers);
+        ArgumentNullException.ThrowIfNull(rows);
         if (maxRows < 1 || maxCells < 1 || maxCellCharacters < 1) throw new ArgumentOutOfRangeException(nameof(maxRows));
         var names = headers.Take(65).ToArray();
         if (names.Length == 0 || names.Length > 64 || names.Any(string.IsNullOrWhiteSpace) || names.Distinct(StringComparer.Ordinal).Count() != names.Length
@@ -113,7 +113,7 @@ public sealed class ProjectMappedTable {
     public ProjectMappedTable(ProjectDataKind kind, ProjectDataTable table, IEnumerable<ProjectDataColumn> columns) {
         if (!Enum.IsDefined(typeof(ProjectDataKind), kind)) throw new ArgumentOutOfRangeException(nameof(kind));
         Kind = kind; Table = table ?? throw new ArgumentNullException(nameof(table));
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
+        ArgumentNullException.ThrowIfNull(columns);
         var copy = columns.Take(65).ToArray();
         if (copy.Length == 0 || copy.Length > 64 || copy.Any(c => c == null) || copy.Select(c => c.Field).Distinct().Count() != copy.Length
             || copy.Select(c => c.Header).Distinct(StringComparer.Ordinal).Count() != copy.Length) throw new ArgumentException("Mappings must be distinct and bounded.", nameof(columns));
@@ -162,7 +162,7 @@ public sealed class ProjectDataExportResult {
 
     /// <summary>Returns a new projection with selected, reordered or renamed columns for one table. Omitted fields are added to the loss notices; imports still enforce their required mappings.</summary>
     public ProjectDataExportResult WithColumns(ProjectDataKind kind, IEnumerable<ProjectDataColumn> columns) {
-        if (columns == null) throw new ArgumentNullException(nameof(columns));
+        ArgumentNullException.ThrowIfNull(columns);
         var selected = columns.Take(65).ToArray();
         if (selected.Length == 0 || selected.Length > 64 || selected.Any(c => c == null)
             || selected.Select(c => c.Field).Distinct().Count() != selected.Length || selected.Select(c => c.Header).Distinct(StringComparer.Ordinal).Count() != selected.Length)

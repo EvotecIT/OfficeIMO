@@ -36,7 +36,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? legacyImportOptions,
         bool routeWordForDos,
         bool replaceExisting) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderWordOptions configured = WordReaderAdapter.Clone(options);
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? configuredLegacyImport = LegacyWordReaderAdapter.Clone(legacyImportOptions);
         long legacyMaxInputBytes = configuredLegacyImport?.Limits.MaxInputBytes ?? new global::OfficeIMO.OfficeLegacyImportLimits().MaxInputBytes;
@@ -75,7 +75,7 @@ public static class OfficeDocumentReaderBuilderWordExtensions {
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? importOptions = null,
         ReaderWordOptions? options = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderWordOptions configured = WordReaderAdapter.Clone(options);
         global::OfficeIMO.Word.Legacy.LegacyWordImportOptions? configuredImport = LegacyWordReaderAdapter.Clone(importOptions);
         return builder.AddHandler(new ReaderHandlerRegistration {

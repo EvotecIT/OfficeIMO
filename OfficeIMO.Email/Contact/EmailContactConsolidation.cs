@@ -8,7 +8,7 @@ public static class EmailContactConsolidation {
     public static EmailContactReviewResult Review(IEnumerable<EmailContactSource> sources,
         EmailContactReviewOptions? options = null, OfflineAddressBookIdentityIndex? directory = null,
         CancellationToken cancellationToken = default) {
-        if (sources == null) throw new ArgumentNullException(nameof(sources));
+        ArgumentNullException.ThrowIfNull(sources);
         var policy = options ?? new EmailContactReviewOptions();
         var cards = new List<(string Id, ContentLineComponent Card)>();
         var parents = new List<int>(); var identities = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
@@ -55,8 +55,9 @@ public static class EmailContactConsolidation {
     /// </summary>
     public static VCardDocument Consolidate(EmailContactReviewResult review, int groupIndex,
         IReadOnlyDictionary<string, int>? choices = null, CancellationToken cancellationToken = default) {
-        if (review == null) throw new ArgumentNullException(nameof(review));
-        if (groupIndex < 0 || groupIndex >= review.Groups.Count) throw new ArgumentOutOfRangeException(nameof(groupIndex));
+        ArgumentNullException.ThrowIfNull(review);
+        ArgumentOutOfRangeException.ThrowIfNegative(groupIndex);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(groupIndex, review.Groups.Count);
         EmailContactReviewGroup group = review.Groups[groupIndex];
         var fieldKeys = new HashSet<string>(group.Fields.Select(field => field.Key), StringComparer.Ordinal);
         if (choices != null && choices.Keys.Any(key => !fieldKeys.Contains(key)))

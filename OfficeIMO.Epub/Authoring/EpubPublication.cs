@@ -102,7 +102,7 @@ public sealed partial class EpubPublication {
 
     /// <summary>Loads all bounded entries for editing without conflating retained package content with extracted chapters.</summary>
     public static EpubPublication Load(Stream stream, EpubPublicationLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         EpubPublicationLoadOptions effective = SnapshotLoadOptions(options);
         byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, cancellationToken, effective.MaxInputBytes);
         return LoadBytes(bytes, effective, cancellationToken);
@@ -118,7 +118,7 @@ public sealed partial class EpubPublication {
 
     /// <summary>Asynchronously loads a caller-owned stream for editing.</summary>
     public static async Task<EpubPublication> LoadAsync(Stream stream, EpubPublicationLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         EpubPublicationLoadOptions effective = SnapshotLoadOptions(options);
         byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, effective.MaxInputBytes).ConfigureAwait(false);
         return LoadBytes(bytes, effective, cancellationToken);

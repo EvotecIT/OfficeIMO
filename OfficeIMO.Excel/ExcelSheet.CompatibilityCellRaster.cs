@@ -8,7 +8,7 @@ public partial class ExcelSheet {
         IReadOnlyList<string> argbPixels,
         int width,
         int height) {
-        if (argbPixels == null) throw new ArgumentNullException(nameof(argbPixels));
+        ArgumentNullException.ThrowIfNull(argbPixels);
         if (width <= 0 || width > 256) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0 || height > 65536) throw new ArgumentOutOfRangeException(nameof(height));
         if (argbPixels.Count != checked(width * height)) {

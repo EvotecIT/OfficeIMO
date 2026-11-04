@@ -11,7 +11,7 @@ public static partial class OfficeScanProcessor {
     /// <exception cref="OfficeScanProcessingLimitException">A configured pixel, buffer, or analysis-work limit cannot be met.</exception>
     public static OfficeScanProcessingResult Process(OfficeRasterImage source, OfficeScanProcessingOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         OfficeScanProcessingOptions effective = (options ?? new OfficeScanProcessingOptions()).Clone();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();

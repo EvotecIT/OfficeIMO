@@ -10,11 +10,7 @@ public abstract partial class OdfDocument {
         byte[] documentBytes,
         OfficeContentSafetyOptions? options = null,
         OdfLoadOptions? loadOptions = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(documentBytes);
-#else
-        if (documentBytes == null) throw new ArgumentNullException(nameof(documentBytes));
-#endif
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(documentBytes, effective, inspectZipPackage: true);
         using var stream = new MemoryStream(documentBytes, writable: false);
@@ -38,13 +34,8 @@ public abstract partial class OdfDocument {
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
         OdfLoadOptions? loadOptions = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(documentBytes);
         ArgumentNullException.ThrowIfNull(selection);
-#else
-        if (documentBytes == null) throw new ArgumentNullException(nameof(documentBytes));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
-#endif
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentSafetyReport before = InspectContentSafety(documentBytes, options.Inspection, loadOptions);

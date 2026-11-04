@@ -47,7 +47,7 @@ internal static class ExcelExtractionExtensions {
         ExcelExtractChunkingOptions? chunking = null,
         string? sourcePath = null,
         CancellationToken cancellationToken = default) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         if (string.IsNullOrWhiteSpace(sheetName)) throw new ArgumentNullException(nameof(sheetName));
 
         extract ??= new ExcelExtractOptions();

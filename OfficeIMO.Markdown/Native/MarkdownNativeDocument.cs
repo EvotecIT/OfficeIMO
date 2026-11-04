@@ -75,9 +75,7 @@ public sealed partial class MarkdownNativeDocument {
         MarkdownParseInfo parseResult,
         string? sourceMarkdown = null,
         MarkdownNativeDocumentSourceKind sourceKind = MarkdownNativeDocumentSourceKind.ReaderInput) {
-        if (parseResult == null) {
-            throw new ArgumentNullException(nameof(parseResult));
-        }
+        ArgumentNullException.ThrowIfNull(parseResult);
 
         var blocks = new List<MarkdownNativeBlock>();
         var diagnostics = new List<MarkdownNativeDiagnostic>();
@@ -260,9 +258,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native block.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeBlock block, string replacementMarkdown) {
-        if (block == null) {
-            throw new ArgumentNullException(nameof(block));
-        }
+        ArgumentNullException.ThrowIfNull(block);
 
         if (!block.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native block does not have a source span.");
@@ -276,9 +272,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native inline.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeInline inline, string replacementMarkdown) {
-        if (inline == null) {
-            throw new ArgumentNullException(nameof(inline));
-        }
+        ArgumentNullException.ThrowIfNull(inline);
 
         if (!inline.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native inline does not have a source span.");
@@ -292,9 +286,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces the source-backed content span of a native list item.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeListItem listItem, string replacementMarkdown) {
-        if (listItem == null) {
-            throw new ArgumentNullException(nameof(listItem));
-        }
+        ArgumentNullException.ThrowIfNull(listItem);
 
         if (!listItem.ContentSourceSpan.HasValue) {
             throw new InvalidOperationException("The native list item does not have a source-backed content span.");
@@ -308,9 +300,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a paragraph owned by a native list item.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeListItemParagraph paragraph, string replacementMarkdown) {
-        if (paragraph == null) {
-            throw new ArgumentNullException(nameof(paragraph));
-        }
+        ArgumentNullException.ThrowIfNull(paragraph);
 
         if (!paragraph.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native list item paragraph does not have a source span.");
@@ -324,9 +314,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownReferenceLinkDefinition referenceDefinition, string replacementMarkdown) {
-        if (referenceDefinition == null) {
-            throw new ArgumentNullException(nameof(referenceDefinition));
-        }
+        ArgumentNullException.ThrowIfNull(referenceDefinition);
 
         if (!referenceDefinition.SourceSpan.HasValue) {
             throw new InvalidOperationException("The reference definition does not have a source span.");
@@ -337,9 +325,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native table cell.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeTableCell tableCell, string replacementMarkdown) {
-        if (tableCell == null) {
-            throw new ArgumentNullException(nameof(tableCell));
-        }
+        ArgumentNullException.ThrowIfNull(tableCell);
 
         if (!tableCell.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native table cell does not have a source span.");
@@ -353,9 +339,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native table row payload.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeTableRow tableRow, string replacementMarkdown) {
-        if (tableRow == null) {
-            throw new ArgumentNullException(nameof(tableRow));
-        }
+        ArgumentNullException.ThrowIfNull(tableRow);
 
         if (!tableRow.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native table row does not have a source span.");
@@ -369,9 +353,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list group.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListGroup definitionGroup, string replacementMarkdown) {
-        if (definitionGroup == null) {
-            throw new ArgumentNullException(nameof(definitionGroup));
-        }
+        ArgumentNullException.ThrowIfNull(definitionGroup);
 
         if (!definitionGroup.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native definition-list group does not have a source span.");
@@ -385,9 +367,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list term.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListTerm definitionTerm, string replacementMarkdown) {
-        if (definitionTerm == null) {
-            throw new ArgumentNullException(nameof(definitionTerm));
-        }
+        ArgumentNullException.ThrowIfNull(definitionTerm);
 
         if (!definitionTerm.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native definition-list term does not have a source span.");
@@ -401,9 +381,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list definition body.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListDefinition definition, string replacementMarkdown) {
-        if (definition == null) {
-            throw new ArgumentNullException(nameof(definition));
-        }
+        ArgumentNullException.ThrowIfNull(definition);
 
         if (!definition.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native definition-list definition does not have a source span.");
@@ -417,9 +395,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces source-backed inline metadata.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeInlineMetadata metadata, string replacementMarkdown) {
-        if (metadata == null) {
-            throw new ArgumentNullException(nameof(metadata));
-        }
+        ArgumentNullException.ThrowIfNull(metadata);
 
         if (!metadata.SourceSpan.HasValue) {
             throw new InvalidOperationException("The native inline metadata does not have a source span.");
@@ -433,9 +409,7 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces document-level source trivia.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeSourceTrivia trivia, string replacementMarkdown) {
-        if (trivia == null) {
-            throw new ArgumentNullException(nameof(trivia));
-        }
+        ArgumentNullException.ThrowIfNull(trivia);
 
         return CreateReplaceEdit(trivia.SourceSpan, replacementMarkdown);
     }

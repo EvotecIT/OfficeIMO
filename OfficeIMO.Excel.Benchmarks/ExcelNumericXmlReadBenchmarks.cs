@@ -52,8 +52,8 @@ public class ExcelNumericXmlReadBenchmarks {
     public void Setup() {
         if (Coordinates is not ("Explicit" or "ImplicitRows" or "ImplicitRowsAndCells"))
             throw new ArgumentOutOfRangeException(nameof(Coordinates));
-        if (ReadRowCount < 0 || ReadRowCount > RowCount)
-            throw new ArgumentOutOfRangeException(nameof(ReadRowCount));
+        ArgumentOutOfRangeException.ThrowIfNegative(ReadRowCount);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(ReadRowCount, RowCount);
         _readRowCount = ReadRowCount == 0 ? RowCount : ReadRowCount;
         if (Api == "UsedRange" && _readRowCount != RowCount)
             throw new InvalidOperationException("UsedRange always selects the full worksheet.");

@@ -160,9 +160,9 @@ namespace OfficeIMO.Excel {
         }
 
         internal bool TryInsertTabularRowSourceForDeferredMaterialization(IExcelSheetTabularRowSource source, int startRow = 1, int startColumn = 1, bool includeHeaders = true, CancellationToken ct = default, bool preserveMissingValues = true) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
-            if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startRow, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startColumn, 1);
 
             int columnCount = source.ColumnCount;
             int rowsCount = source.RowCount + (includeHeaders ? 1 : 0);

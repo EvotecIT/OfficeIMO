@@ -100,8 +100,8 @@ public sealed class PdfPrinterService : IPdfPrinterService {
 
     /// <inheritdoc />
     public Task<PdfPrintSubmission> SubmitAsync(PdfPreparedPrintDocument document, PdfPrintDeliveryOptions options, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(options);
         PdfPrintDeliveryOptions snapshot = options.Snapshot();
         if (document.Sheets.Count == 0) throw new ArgumentException("There are no prepared print sheets.", nameof(document));
         cancellationToken.ThrowIfCancellationRequested();

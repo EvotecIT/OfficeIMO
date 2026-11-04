@@ -60,7 +60,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Updates a linked media URI without rewriting the frame or timing tree.</summary>
         public PowerPointMedia UpdateLink(Uri uri) {
-            if (uri == null) throw new ArgumentNullException(nameof(uri));
+            ArgumentNullException.ThrowIfNull(uri);
             if (!uri.IsAbsoluteUri) throw new ArgumentException(
                 "A linked media URI must be absolute.", nameof(uri));
             string id = MediaReferenceId ?? throw new InvalidOperationException("The media frame has no file relationship.");
@@ -95,7 +95,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Updates native playback, trim, and fade metadata in place.</summary>
         public PowerPointMedia SetPlaybackOptions(PowerPointMediaPlaybackOptions options) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             if (options.VolumePercent < 0 || options.VolumePercent > 100)
                 throw new ArgumentOutOfRangeException(nameof(options), "Volume must be between zero and 100 percent.");
             if (options.TrimStartMilliseconds.HasValue && options.TrimEndMilliseconds.HasValue &&

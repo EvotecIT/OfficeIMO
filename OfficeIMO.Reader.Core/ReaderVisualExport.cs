@@ -15,7 +15,7 @@ public static class ReaderVisualExport {
     /// <param name="visual">Visual to serialize.</param>
     /// <param name="indented">When true, writes indented JSON for diagnostics and fixtures.</param>
     public static string ToJson(this ReaderVisual visual, bool indented = false) {
-        if (visual == null) throw new ArgumentNullException(nameof(visual));
+        ArgumentNullException.ThrowIfNull(visual);
 
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { Indented = indented })) {
@@ -59,7 +59,7 @@ public static class ReaderVisualExport {
     /// </summary>
     /// <param name="visual">Visual whose kind and language should be inspected.</param>
     public static string GetPayloadExtension(ReaderVisual visual) {
-        if (visual == null) throw new ArgumentNullException(nameof(visual));
+        ArgumentNullException.ThrowIfNull(visual);
 
         string language = NormalizeToken(visual.Language);
         if (language.Length == 0) {

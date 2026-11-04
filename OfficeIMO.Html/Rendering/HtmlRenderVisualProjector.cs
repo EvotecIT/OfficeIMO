@@ -14,7 +14,7 @@ internal sealed class HtmlRenderVisualProjector {
     private int _materializedVisuals;
 
     internal HtmlRenderVisualProjector(int maximumVisuals, CancellationToken cancellationToken, bool navigationAlreadyPageOwned = false) {
-        if (maximumVisuals <= 0) throw new ArgumentOutOfRangeException(nameof(maximumVisuals));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumVisuals);
         _maximumVisuals = maximumVisuals;
         _cancellationToken = cancellationToken;
         _navigationAlreadyPageOwned = navigationAlreadyPageOwned;
@@ -28,7 +28,7 @@ internal sealed class HtmlRenderVisualProjector {
         double height,
         double outputX,
         double outputY) {
-        if (visuals == null) throw new ArgumentNullException(nameof(visuals));
+        ArgumentNullException.ThrowIfNull(visuals);
         var projected = new List<HtmlRenderVisual>();
         double right = sourceX + width;
         double bottom = sourceY + height;

@@ -29,7 +29,7 @@ public readonly struct AsciiDocSourceSpan : IEquatable<AsciiDocSourceSpan> {
 
     /// <summary>Extracts this span from the source text.</summary>
     public string Slice(string source) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (End.Offset > source.Length) throw new ArgumentOutOfRangeException(nameof(source), "The source is shorter than the span.");
         return source.Substring(Start.Offset, Length);
     }

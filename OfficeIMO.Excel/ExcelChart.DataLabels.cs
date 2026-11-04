@@ -226,9 +226,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelShapeStyle(int seriesIndex, OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -248,9 +246,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelShapeStyle(string seriesName, OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -328,9 +324,7 @@ namespace OfficeIMO.Excel {
         /// Configures data label leader lines for a series by index.
         /// </summary>
         public ExcelChart SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -350,9 +344,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = true, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -383,9 +375,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true, OfficeChartDataLabelPosition? position = null,
             OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             var resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesIndex, showValue: enabled, showCategoryName: false, showSeriesName: false,
                 showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false);
@@ -397,9 +387,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true, OfficeChartDataLabelPosition? position = null,
             OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             var resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
             SetSeriesDataLabels(seriesName, showValue: enabled, showCategoryName: false, showSeriesName: false,
                 showLegendKey: false, showPercent: false, position: resolvedPosition, numberFormat: null, sourceLinked: false,
@@ -412,9 +400,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, OfficeColor? color = null, string? fontName = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateDataLabelTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -434,9 +420,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null,
             bool? italic = null, OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             ValidateDataLabelTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -455,12 +439,8 @@ namespace OfficeIMO.Excel {
         /// Applies a reusable data label template to a series by index.
         /// </summary>
         public ExcelChart SetSeriesDataLabelTemplate(int seriesIndex, ExcelChartDataLabelTemplate template) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (template == null) {
-                throw new ArgumentNullException(nameof(template));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentNullException.ThrowIfNull(template);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 ApplyDataLabelTemplate(series, template);
@@ -479,12 +459,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelTemplate(string seriesName, ExcelChartDataLabelTemplate template,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (template == null) {
-                throw new ArgumentNullException(nameof(template));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentNullException.ThrowIfNull(template);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplyDataLabelTemplate(series, template);
@@ -505,12 +481,8 @@ namespace OfficeIMO.Excel {
             bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null,
             bool? showPercent = null, bool? showBubbleSize = null,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -533,12 +505,8 @@ namespace OfficeIMO.Excel {
             bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null,
             bool? showLegendKey = null, bool? showPercent = null, bool? showBubbleSize = null,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (pointIndices == null) {
-                throw new ArgumentNullException(nameof(pointIndices));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentNullException.ThrowIfNull(pointIndices);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -593,12 +561,8 @@ namespace OfficeIMO.Excel {
             bool? showPercent = null, bool? showBubbleSize = null,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -623,12 +587,8 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex,
             OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             OfficeColor? color = null, string? fontName = null) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             ValidateDataLabelTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -650,12 +610,8 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex,
             OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
             OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             ValidateDataLabelTextStyle(fontSize, color, fontName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -677,12 +633,8 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesDataLabelShapeStyleForPoint(int seriesIndex, int pointIndex,
             OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
@@ -705,12 +657,8 @@ namespace OfficeIMO.Excel {
             OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
             ValidateDataLabelShapeStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
@@ -787,9 +735,7 @@ namespace OfficeIMO.Excel {
         /// Sets the separator for data labels in a series by index.
         /// </summary>
         public ExcelChart SetSeriesDataLabelSeparator(int seriesIndex, string? separator) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 ApplyDataLabelSeparator(EnsureDataLabels(series), separator);
@@ -807,9 +753,7 @@ namespace OfficeIMO.Excel {
         /// Sets the separator for data labels in a series by name.
         /// </summary>
         public ExcelChart SetSeriesDataLabelSeparator(string seriesName, string? separator, bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplyDataLabelSeparator(EnsureDataLabels(series), separator);
@@ -827,12 +771,8 @@ namespace OfficeIMO.Excel {
         /// Sets the separator for a specific data label point by series index.
         /// </summary>
         public ExcelChart SetSeriesDataLabelSeparatorForPoint(int seriesIndex, int pointIndex, string? separator) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
@@ -852,12 +792,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelSeparatorForPoint(string seriesName, int pointIndex, string? separator,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
-            if (pointIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(pointIndex));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
+            ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
@@ -878,9 +814,7 @@ namespace OfficeIMO.Excel {
         public ExcelChart SetSeriesDataLabels(int seriesIndex, bool showValue = true, bool showCategoryName = false,
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false) {
-            if (seriesIndex < 0) {
-                throw new ArgumentOutOfRangeException(nameof(seriesIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -905,9 +839,7 @@ namespace OfficeIMO.Excel {
             bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false,
             OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool sourceLinked = false,
             bool ignoreCase = true) {
-            if (seriesName == null) {
-                throw new ArgumentNullException(nameof(seriesName));
-            }
+            ArgumentNullException.ThrowIfNull(seriesName);
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }

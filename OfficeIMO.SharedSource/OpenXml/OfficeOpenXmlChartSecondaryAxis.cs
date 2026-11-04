@@ -42,7 +42,7 @@ internal static class OfficeOpenXmlChartSecondaryAxis {
     }
 
     internal static void Apply(C.Chart? chart, OfficeChartValueAxisLayout layout) {
-        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        ArgumentNullException.ThrowIfNull(layout);
         var axis = Resolve(chart?.PlotArea) ?? throw new InvalidOperationException("The chart has no referenced secondary value axis.");
         var scaling = axis.GetFirstChild<C.Scaling>() ?? new C.Scaling();
         if (scaling.Parent == null) axis.AddChild(scaling, true);

@@ -122,7 +122,7 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         /// <summary>Reads each feed to its new start token without advancing a failed source in the returned checkpoint.</summary>
         /// <remarks>The input checkpoint is cloned. Missing tokens are initialized at the current cursor. A source's changes are included only when all of its pages succeed; source-initialization failures and cancellation propagate.</remarks>
         public async Task<GoogleWorkspaceChangeReadResult> ReadAsync(GoogleWorkspaceSyncCheckpoint checkpoint, GoogleWorkspaceChangeReadOptions? options = null, CancellationToken cancellationToken = default) {
-            if (checkpoint == null) throw new ArgumentNullException(nameof(checkpoint));
+            ArgumentNullException.ThrowIfNull(checkpoint);
             options ??= new GoogleWorkspaceChangeReadOptions();
             if (options.MaxPagesPerSource < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxPagesPerSource));
             if (options.MaxChangesPerSource < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxChangesPerSource));

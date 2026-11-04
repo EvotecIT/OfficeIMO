@@ -10,7 +10,7 @@ public static partial class EmailEvidenceWorkflow {
     /// <summary>Creates an evidence bundle from one persisted EML/MSG/OFT/TNEF message, with a SHA-256 over the same open source.</summary>
     public static EmailEvidenceResult Create(string sourcePath, EmailEvidenceOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (sourcePath == null) throw new ArgumentNullException(nameof(sourcePath));
+        ArgumentNullException.ThrowIfNull(sourcePath);
         var effective = options ?? new EmailEvidenceOptions(); effective.Validate();
         using var stream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read, FileShare.Read);
         if (stream.Length > effective.ReaderOptions.MaxInputBytes)
@@ -29,7 +29,7 @@ public static partial class EmailEvidenceWorkflow {
     /// <remarks>Uses the store's durable fingerprint and reports graph truncation and unresolved parent identities. No payload is extracted to disk.</remarks>
     public static EmailEvidenceResult CreateConversation(EmailStoreSession session, EmailStoreItemId selectedItem,
         EmailEvidenceOptions? options = null, CancellationToken cancellationToken = default) {
-        if (session == null) throw new ArgumentNullException(nameof(session));
+        ArgumentNullException.ThrowIfNull(session);
         var effective = options ?? new EmailEvidenceOptions(); effective.Validate();
         string fingerprint = session.GetDurableSourceFingerprint(cancellationToken);
         var graph = session.BuildConversationGraph(new EmailConversationGraphOptions(maxItems: effective.MaxItemsScanned,

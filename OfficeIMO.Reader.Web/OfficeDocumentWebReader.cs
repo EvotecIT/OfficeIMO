@@ -38,7 +38,7 @@ public sealed class OfficeDocumentWebReader {
         string? sourceName = null,
         ReaderOptions? readerOptions = null,
         CancellationToken cancellationToken = default) {
-        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        ArgumentNullException.ThrowIfNull(uri);
         ReaderWebUriPolicy.Validate(uri, _options);
         string? normalizedSourceName = ReaderWebTransport.NormalizeExplicitSourceName(sourceName);
         await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);

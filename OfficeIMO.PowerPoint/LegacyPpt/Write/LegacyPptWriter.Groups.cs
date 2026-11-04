@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointGroupShape group,
             out IReadOnlyList<PowerPointShape> children,
             out string? reason) {
-            if (group == null) throw new ArgumentNullException(nameof(group));
+            ArgumentNullException.ThrowIfNull(group);
             children = ReadGroupChildrenForWrite(group, out reason);
             if (reason != null) return false;
             P.GroupShapeProperties? properties = group.GroupShape
@@ -171,9 +171,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildPreservedGroupCoordinateRecord(
             LegacyPptRecord prototype, PowerPointGroupShape group) {
-            if (prototype == null) throw new ArgumentNullException(
-                nameof(prototype));
-            if (group == null) throw new ArgumentNullException(nameof(group));
+            ArgumentNullException.ThrowIfNull(prototype);
+            ArgumentNullException.ThrowIfNull(group);
             if (prototype.Type != OfficeArtFspgr
                 || prototype.PayloadLength < 16) {
                 throw new InvalidDataException(

@@ -19,7 +19,7 @@ public sealed partial class ProjectDocument {
     public void ApplySchedule(ProjectScheduleResult result, CancellationToken cancellationToken = default) => ApplyScheduleCore(result, cancellationToken);
     private void ApplyScheduleCore(ProjectScheduleResult result, CancellationToken cancellationToken, Action? additionalUpdates = null) {
         EnsureMutable();
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(result);
         if (_batchDepth != 0 || result.Document != this || result.ModelRevision != Revision)
             throw new InvalidOperationException("The schedule belongs to another document or a stale/in-progress revision.");
         result.Report.ThrowIfErrors();

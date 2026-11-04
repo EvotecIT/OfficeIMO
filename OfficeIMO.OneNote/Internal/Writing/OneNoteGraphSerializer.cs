@@ -7,8 +7,8 @@ internal static class OneNoteGraphSerializer {
         OneNoteWriterOptions options,
         OneNoteStorageFormat sourceStorageFormat = OneNoteStorageFormat.Unknown,
         long? maxOutputBytes = null) {
-        if (graph == null) throw new ArgumentNullException(nameof(graph));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(graph);
+        ArgumentNullException.ThrowIfNull(options);
         long outputLimit = maxOutputBytes ?? options.MaxOutputBytes;
         if (outputLimit < 1 || outputLimit > options.MaxOutputBytes) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
 

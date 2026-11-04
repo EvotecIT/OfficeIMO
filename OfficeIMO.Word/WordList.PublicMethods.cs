@@ -116,9 +116,7 @@ namespace OfficeIMO.Word {
         /// ]]></code>
         /// </example>
         public void SetStartNumberingValue(int value, int level = 0) {
-            if (level < 0) {
-                throw new ArgumentOutOfRangeException(nameof(level));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(level);
 
             var levels = Numbering.Levels;
             var targetLevel = levels.FirstOrDefault(l => l._level.LevelIndex?.Value == level)
@@ -267,7 +265,7 @@ namespace OfficeIMO.Word {
 #pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
         public static WordList AddCustomBulletList(WordDocument document, char symbol, string fontFamily, OfficeIMO.OfficeColor? color, global::OfficeIMO.OfficeLength? fontSize = null) {
 #pragma warning restore RS0026
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var list = document.AddList(WordListStyle.Custom);
 
@@ -338,7 +336,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">Parent document where the list will be added.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomList(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var list = document.AddList(WordListStyle.Custom);
             list.Numbering.RemoveAllLevels();
@@ -353,8 +351,8 @@ namespace OfficeIMO.Word {
         /// <param name="fileName">File name used to determine the image type.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddPictureBulletList(WordDocument document, Stream imageStream, string fileName) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (imageStream == null) throw new ArgumentNullException(nameof(imageStream));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(imageStream);
 
             var numberingPart = document._wordprocessingDocument?.MainDocumentPart?.NumberingDefinitionsPart;
             if (numberingPart == null) {
@@ -415,7 +413,7 @@ namespace OfficeIMO.Word {
 #pragma warning disable RS0026 // Existing overload shape; only the colour parameter type changed.
         public WordListLevel AddListLevel(int levelIndex, char symbol, string fontFamily, OfficeIMO.OfficeColor? color, global::OfficeIMO.OfficeLength? fontSize = null) {
 #pragma warning restore RS0026
-            if (levelIndex < 1) throw new ArgumentOutOfRangeException(nameof(levelIndex));
+            ArgumentOutOfRangeException.ThrowIfLessThan(levelIndex, 1);
 
             var currentCount = this.Numbering.Levels.Count;
             if (currentCount > 0 && levelIndex > currentCount + 1) {

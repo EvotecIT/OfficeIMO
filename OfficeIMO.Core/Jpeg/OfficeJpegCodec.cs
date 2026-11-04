@@ -41,7 +41,7 @@ public static partial class OfficeJpegCodec {
 
     /// <summary>Decodes JPEG bytes into an RGBA image.</summary>
     public static OfficeRasterImage Decode(byte[] encodedBytes, OfficeJpegDecodeOptions options = default) {
-        if (encodedBytes == null) throw new ArgumentNullException(nameof(encodedBytes));
+        ArgumentNullException.ThrowIfNull(encodedBytes);
         byte[] pixels = OfficeJpegReader.DecodeRgba32(encodedBytes, out int width, out int height, options);
         return OfficeRasterImage.FromOwnedRgba32(width, height, pixels);
     }
@@ -84,7 +84,7 @@ public static partial class OfficeJpegCodec {
 
     /// <summary>Encodes an RGBA image as JPEG bytes.</summary>
     public static byte[] Encode(OfficeRasterImage image, OfficeJpegEncodeOptions? options = null) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         OfficeJpegEncodeOptions effectiveOptions = options ?? new OfficeJpegEncodeOptions();
         byte[] rgba = image.PixelBuffer;
         if (HasTransparency(rgba)) {

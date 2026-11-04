@@ -30,8 +30,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelDocument document,
             XlsbWorkbook sourceWorkbook,
             byte[]? sourcePartBytes, long maximumBytes = int.MaxValue) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sourceWorkbook == null) throw new ArgumentNullException(nameof(sourceWorkbook));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sourceWorkbook);
 
             Stylesheet? current = document.WorkbookPartRoot.WorkbookStylesPart?.Stylesheet;
             if (sourceWorkbook.Stylesheet == null) {

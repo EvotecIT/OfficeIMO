@@ -25,7 +25,7 @@ internal sealed class EndNoteBoundedStringWriter : TextWriter {
     }
 
     public override void Write(char[] buffer, int index, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         while (count > 0) {
             _cancellationToken.ThrowIfCancellationRequested();
             int length = Math.Min(ChunkSize, count);

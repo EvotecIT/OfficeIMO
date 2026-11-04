@@ -16,7 +16,7 @@ public sealed partial class ProjectDocument {
     /// <summary>Assigns a hierarchical lookup value to a task or resource outline-code field, validating masks and selection restrictions before mutation.</summary>
     public void SetOutlineCodeValue(ProjectEntity entity, string fieldId, ProjectOutlineCodeLookupValue value) {
         EnsureMutable();
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(value);
         var fields = OutlineSelections(entity, fieldId);
         var table = FindOutlineTable(fieldId);
         if (value.Document != this || !value.Attached || !table.Values.Contains(value))
@@ -31,8 +31,8 @@ public sealed partial class ProjectDocument {
     }
 
     private ProjectCollection<ProjectCustomFieldValue> OutlineSelections(ProjectEntity entity, string fieldId) {
-        if (entity == null) throw new ArgumentNullException(nameof(entity));
-        if (fieldId == null) throw new ArgumentNullException(nameof(fieldId));
+        ArgumentNullException.ThrowIfNull(entity);
+        ArgumentNullException.ThrowIfNull(fieldId);
         CheckMember(entity);
         uint first = entity is ProjectTask ? 188744096u : entity is ProjectResource ? 205521174u : 0u;
         if (first == 0 || !uint.TryParse(fieldId, NumberStyles.None, CultureInfo.InvariantCulture, out uint id) || id < first || id > first + 18 || (id - first) % 2 != 0)

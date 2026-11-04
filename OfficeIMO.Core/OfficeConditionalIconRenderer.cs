@@ -15,9 +15,7 @@ internal static partial class OfficeConditionalIconRenderer {
     /// Draws a conditional-formatting icon on a raster canvas.
     /// </summary>
     public static void DrawRaster(OfficeRasterCanvas canvas, double x, double y, double size, OfficeConditionalIconKind kind, double scale = 1D) {
-        if (canvas == null) {
-            throw new ArgumentNullException(nameof(canvas));
-        }
+        ArgumentNullException.ThrowIfNull(canvas);
 
         if (size <= 0D || kind == OfficeConditionalIconKind.None) {
             return;
@@ -84,9 +82,7 @@ internal static partial class OfficeConditionalIconRenderer {
     /// Appends SVG markup for a conditional-formatting icon.
     /// </summary>
     public static StringBuilder AppendSvg(StringBuilder builder, double x, double y, double size, OfficeConditionalIconKind kind, double scale = 1D) {
-        if (builder == null) {
-            throw new ArgumentNullException(nameof(builder));
-        }
+        ArgumentNullException.ThrowIfNull(builder);
 
         if (size <= 0D || kind == OfficeConditionalIconKind.None) {
             return builder;

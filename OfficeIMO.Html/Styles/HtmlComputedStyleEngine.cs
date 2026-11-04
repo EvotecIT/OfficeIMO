@@ -430,9 +430,7 @@ public static partial class HtmlComputedStyleEngine {
         bool includePseudoElements,
         bool includeCascadeTraces,
         HtmlConversionLimits? limits) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var budget = new HtmlCssProcessingBudget(limits, MatchProviderSelectorFragment,
             new DocumentSelectorPresence(document).CanMatch);

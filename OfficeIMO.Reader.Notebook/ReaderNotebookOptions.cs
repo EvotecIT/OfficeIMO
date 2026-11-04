@@ -22,11 +22,11 @@ public sealed class ReaderNotebookOptions {
 
     internal ReaderNotebookOptions CloneValidated() {
         if (MaxCells < 1 || MaxCells > 100_000) throw new ArgumentOutOfRangeException(nameof(MaxCells));
-        if (MaxOutputsPerCell < 0 || MaxOutputsPerCell > 10_000) throw new ArgumentOutOfRangeException(nameof(MaxOutputsPerCell));
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxOutputsPerCell);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(MaxOutputsPerCell, 10_000);
         if (MaxCellCharacters < 1 || MaxCellCharacters > 16_000_000) throw new ArgumentOutOfRangeException(nameof(MaxCellCharacters));
-        if (MaxOutputCharactersPerCell < 0 || MaxOutputCharactersPerCell > 16_000_000) {
-            throw new ArgumentOutOfRangeException(nameof(MaxOutputCharactersPerCell));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(MaxOutputCharactersPerCell);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(MaxOutputCharactersPerCell, 16_000_000);
         return new ReaderNotebookOptions {
             IncludeCodeCells = IncludeCodeCells,
             IncludeOutputs = IncludeOutputs,

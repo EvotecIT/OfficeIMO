@@ -282,7 +282,7 @@ namespace OfficeIMO.Word {
             private readonly long _maxCharacters;
 
             internal BoundedStringBuilder(long maxCharacters) {
-                if (maxCharacters < 0) throw new ArgumentOutOfRangeException(nameof(maxCharacters));
+                ArgumentOutOfRangeException.ThrowIfNegative(maxCharacters);
                 _maxCharacters = maxCharacters;
             }
 
@@ -304,7 +304,7 @@ namespace OfficeIMO.Word {
             }
 
             internal BoundedStringBuilder Insert(int index, string value) {
-                if (value == null) throw new ArgumentNullException(nameof(value));
+                ArgumentNullException.ThrowIfNull(value);
                 EnsureCapacity(value.Length);
                 _builder.Insert(index, value);
                 return this;

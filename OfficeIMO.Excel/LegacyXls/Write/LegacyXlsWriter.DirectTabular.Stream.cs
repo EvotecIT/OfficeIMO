@@ -103,7 +103,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             public override void Write(byte[] buffer, int offset, int count) {
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (offset < 0 || count < 0 || buffer.Length - offset < count) {
                     throw new ArgumentOutOfRangeException(offset < 0 ? nameof(offset) : nameof(count));
                 }

@@ -58,11 +58,11 @@ public sealed class VisioDrawingOptions {
     internal VisioDrawingOptions Snapshot() {
         if (SourceName != null && string.IsNullOrWhiteSpace(SourceName)) throw new ArgumentException("Source name cannot be empty.", nameof(SourceName));
         if (!Enum.IsDefined(typeof(VisioLayerRenderMode), LayerMode)) throw new ArgumentOutOfRangeException(nameof(LayerMode));
-        if (MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(MaximumPages));
-        if (MaximumShapes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumShapes));
-        if (MaximumGeometryPoints < 1) throw new ArgumentOutOfRangeException(nameof(MaximumGeometryPoints));
-        if (MaximumTotalImagePixels < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalImagePixels));
-        if (MaximumTotalImageBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaximumTotalImageBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPages, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumShapes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumGeometryPoints, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalImagePixels, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumTotalImageBytes, 1);
         return Clone();
     }
 }

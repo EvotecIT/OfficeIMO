@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf.Word;
 /// <summary>Immutable diagnostics from one semantic PDF-to-Word conversion.</summary>
 public sealed class PdfWordConversionReport : OfficeConversionReport {
     internal PdfWordConversionReport(PdfCore.PdfConversionReport report) {
-        if (report == null) throw new ArgumentNullException(nameof(report));
+        ArgumentNullException.ThrowIfNull(report);
         Warnings = Array.AsReadOnly(report.Warnings.ToArray());
     }
 

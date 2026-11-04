@@ -46,7 +46,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
     public static OfficeDocumentReaderBuilder AddAllOfficeIMOHandlers(
         this OfficeDocumentReaderBuilder builder,
         ReaderAllOptions? options = null) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
 
         ReaderAllOptions configured = options ?? new ReaderAllOptions();
         ReaderOneNoteOptions oneNoteOptions = configured.OneNote ?? new ReaderOneNoteOptions {

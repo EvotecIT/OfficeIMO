@@ -94,7 +94,7 @@ public sealed class OdsValidationConditionSyntax {
 
     /// <summary>Creates an explicit-list validation condition.</summary>
     public static OdsValidationConditionSyntax CreateList(IEnumerable<string> values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         var list = new List<string>();
         foreach (string? value in values) list.Add(value ?? string.Empty);
         if (list.Count == 0) throw new ArgumentException("At least one list value is required.", nameof(values));

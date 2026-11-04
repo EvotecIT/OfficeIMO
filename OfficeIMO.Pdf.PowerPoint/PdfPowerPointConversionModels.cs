@@ -224,7 +224,7 @@ public sealed class PdfPowerPointConversionReport : OfficeConversionReport {
         VisualPages = Array.AsReadOnly((visualPages ?? throw new ArgumentNullException(nameof(visualPages))).ToArray());
         EditablePages = Array.Empty<PdfPowerPointEditablePageEntry>();
         SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
-        if (failedVisualScope == null) throw new ArgumentNullException(nameof(failedVisualScope));
+        ArgumentNullException.ThrowIfNull(failedVisualScope);
         bool hasFailedVisualPages = VisualPages.Any(static page => !page.Succeeded);
         _hasOmittedPageContent = SourceScope.DocumentActionCount > 0 ||
             SourceScope.PageActionCount > 0 ||

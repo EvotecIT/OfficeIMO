@@ -6,8 +6,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
     /// <summary>Projects common XLSB defined names onto the normal workbook model.</summary>
     internal static class XlsbDefinedNameProjector {
         internal static void Apply(ExcelDocument document, IReadOnlyList<XlsbDefinedName> sourceNames) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sourceNames == null) throw new ArgumentNullException(nameof(sourceNames));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sourceNames);
 
             DefinedNames? targetNames = null;
             foreach (XlsbDefinedName source in sourceNames) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
         }
 
         internal static bool Matches(DefinedNames? actual, IReadOnlyList<XlsbDefinedName> expectedNames) {
-            if (expectedNames == null) throw new ArgumentNullException(nameof(expectedNames));
+            ArgumentNullException.ThrowIfNull(expectedNames);
             XlsbDefinedName[] expected = expectedNames
                 .Where(name => !string.IsNullOrWhiteSpace(name.FormulaText))
                 .ToArray();

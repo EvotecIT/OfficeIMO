@@ -8,7 +8,7 @@ namespace OfficeIMO.Drawing {
         /// A planning failure or cancellation leaves this sequence's pixels unchanged.</remarks>
         public OfficeRasterFrames Resize(OfficeRasterResizeOptions options, CancellationToken cancellationToken = default,
             long additionalRetainedBytes = 0) {
-            if (options == null) throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             var captured = new OfficeRasterResizeOptions {
                 Width = options.Width, Height = options.Height, Fit = options.Fit,
                 ResamplingMode = options.ResamplingMode, ColorSpace = options.ColorSpace
@@ -22,7 +22,7 @@ namespace OfficeIMO.Drawing {
         /// Frames may have different source dimensions. All dimensions and combined retained and temporary storage are validated before mapping.</remarks>
         public OfficeRasterFrames Resize(int percentage, CancellationToken cancellationToken = default,
             long additionalRetainedBytes = 0) {
-            if (percentage <= 0) throw new ArgumentOutOfRangeException(nameof(percentage));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(percentage);
             return ResizeFrames(source => {
                 long width = Math.Max(1L, (long)source.Width * percentage / 100L);
                 long height = Math.Max(1L, (long)source.Height * percentage / 100L);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Drawing {
 
         private OfficeRasterFrames ResizeFrames(Func<OfficeRasterImage, OfficeRasterResizePlan> createPlan,
             CancellationToken cancellationToken, long additionalRetainedBytes) {
-            if (additionalRetainedBytes < 0) throw new ArgumentOutOfRangeException(nameof(additionalRetainedBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(additionalRetainedBytes);
             if (additionalRetainedBytes > OfficeRasterGuards.MaximumDecodedBytes) throw new ArgumentException("Additional retained storage exceeds the managed image limit.", nameof(additionalRetainedBytes));
             cancellationToken.ThrowIfCancellationRequested();
             var plans = new OfficeRasterResizePlan[Count];

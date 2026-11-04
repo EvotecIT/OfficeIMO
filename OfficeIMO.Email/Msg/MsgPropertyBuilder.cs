@@ -12,7 +12,7 @@ internal sealed class MsgPropertyBuilder {
     internal IReadOnlyList<MapiProperty> Properties => _properties;
 
     internal void Set(MapiPropertyKey key, object? value) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         if (value == null) {
             _bag.Remove(key);
             if (!key.IsNamed && (key.PreferredType == MapiPropertyType.Object ||
@@ -29,7 +29,7 @@ internal sealed class MsgPropertyBuilder {
     }
 
     internal void Set(MapiPropertyKey key, MapiPropertyType wireType, object? value, uint? flags) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         if (value == null) {
             if (wireType == MapiPropertyType.Object || wireType == MapiPropertyType.Null) {
                 _bag.SetNull(key, wireType, flags);
@@ -42,7 +42,7 @@ internal sealed class MsgPropertyBuilder {
     }
 
     internal void SetDefault(MapiPropertyKey key, object value) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         if (_bag.FindRaw(key) != null) return;
         _bag.SetValue(key, value);
     }

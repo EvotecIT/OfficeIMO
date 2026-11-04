@@ -32,7 +32,7 @@ public sealed class IWorkTableData {
     /// <summary>Sets a finite number with an immutable explicit decimal, percentage or scientific format.</summary>
     /// <remarks>Formatting changes display, not the stored numeric value. Automatic, currency, temporal and custom formats are not supported by native creation.</remarks>
     public IWorkTableData SetNumber(int row, int column, double value, IWorkNumberFormat numberFormat) {
-        if (numberFormat == null) throw new ArgumentNullException(nameof(numberFormat));
+        ArgumentNullException.ThrowIfNull(numberFormat);
         numberFormat.ValidateNativeNumericCreation();
         if (double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(value), "A finite number is required.");
         return Set(row, column, IWorkCellKind.Number, value, numberFormat);

@@ -5,7 +5,7 @@ public static partial class OfficeConverter {
     public static Task<OfficeBatchReport> ConvertAsync(IEnumerable<string> sources, string outputDirectory,
         OfficeDocumentFormat target, OfficeBatchOptions? options = null, IProgress<OfficeBatchItemReport>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (sources == null) throw new ArgumentNullException(nameof(sources));
+        ArgumentNullException.ThrowIfNull(sources);
         OfficeBatchOptions settings = SelectBatchTarget(options ?? new(), outputDirectory, target);
         string[] paths = sources.Take(checked(settings.MaximumFiles + 1)).ToArray();
         return ConvertAsync(settings with { InputPaths = paths }, progress, cancellationToken);
@@ -27,7 +27,7 @@ public static partial class OfficeConverter {
     /// <summary>Runs a portable batch definition, retaining bounded observations and complete counts.</summary>
     public static async Task<OfficeBatchReport> ConvertAsync(OfficeBatchOptions options,
         IProgress<OfficeBatchItemReport>? progress, CancellationToken cancellationToken) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         var collector = new OfficeBatchReportCollector();
         DateTimeOffset started = DateTimeOffset.UtcNow;
         OfficeBatchOptions settings = options with { ConversionOptions = options.ConversionOptions.Snapshot() };

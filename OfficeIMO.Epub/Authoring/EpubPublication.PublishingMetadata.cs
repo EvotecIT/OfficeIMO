@@ -20,7 +20,7 @@ public sealed partial class EpubPublication {
     /// Existing collections remain intact. Requires EPUB 3 and an unused package identifier.
     /// </summary>
     public void AddCollection(string id, EpubCollectionMetadata collection) {
-        if (collection == null) throw new ArgumentNullException(nameof(collection));
+        ArgumentNullException.ThrowIfNull(collection);
         RequirePublishingMetadataId(id);
         ValidatePublishingName(collection.Name, collection.FileAs, collection.Language);
         string kind = collection.Kind switch {
@@ -28,7 +28,7 @@ public sealed partial class EpubPublication {
             EpubCollectionKind.Set => "set",
             _ => throw new ArgumentOutOfRangeException(nameof(collection.Kind))
         };
-        if (collection.Position == null) throw new ArgumentNullException(nameof(collection.Position));
+        ArgumentNullException.ThrowIfNull(collection.Position, nameof(collection.Position));
         string position = string.Join(".", collection.Position.Select(value => value.ToString(CultureInfo.InvariantCulture)));
         var member = new XElement(Opf + "meta", new XAttribute("id", id),
             new XAttribute("property", "belongs-to-collection"), collection.Name);
@@ -40,10 +40,10 @@ public sealed partial class EpubPublication {
     }
 
     private void AddContributorRecord(string elementName, string id, EpubContributorMetadata contributor) {
-        if (contributor == null) throw new ArgumentNullException(nameof(contributor));
+        ArgumentNullException.ThrowIfNull(contributor);
         RequirePublishingMetadataId(id);
         ValidatePublishingName(contributor.Name, contributor.FileAs, contributor.Language);
-        if (contributor.MarcRoles == null) throw new ArgumentNullException(nameof(contributor.MarcRoles));
+        ArgumentNullException.ThrowIfNull(contributor.MarcRoles, nameof(contributor.MarcRoles));
         string[] roles = contributor.MarcRoles.Select(role => {
             if (role == null || role.Length != 3 || role.Any(value => value < 'a' || value > 'z'))
                 throw new ArgumentException("MARC relator codes require three lowercase ASCII letters.", nameof(contributor.MarcRoles));

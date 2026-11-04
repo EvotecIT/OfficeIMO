@@ -23,8 +23,8 @@ internal static class HtmlInteractionLayoutEngine {
         Uri? baseUri,
         Func<Uri, string?>? stylesheetResolver,
         CancellationToken token) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (target == null) throw new ArgumentNullException(nameof(target));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(target);
         token.ThrowIfCancellationRequested();
         var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxInputCharacters = maximumCharacters;

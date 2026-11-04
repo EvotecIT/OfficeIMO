@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Replaces the embedded audio or video payload.</summary>
         public void UpdateData(Stream media) {
-            if (media == null) throw new ArgumentNullException(nameof(media));
+            ArgumentNullException.ThrowIfNull(media);
             if (!media.CanRead) {
                 throw new ArgumentException("Media stream must be readable.",
                     nameof(media));

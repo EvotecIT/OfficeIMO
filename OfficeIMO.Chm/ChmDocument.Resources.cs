@@ -3,7 +3,7 @@ namespace OfficeIMO.Chm;
 public sealed partial class ChmDocument {
     /// <summary>Creates a private virtual URI for an archive topic or resource. It does not identify a filesystem or network location.</summary>
     public Uri GetTopicUri(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         string canonical = ChmPaths.DirectoryPath(path);
         if (canonical.StartsWith("::", StringComparison.Ordinal)) throw new ArgumentException("A content path is required.", nameof(path));
         return new Uri("chm://archive" + string.Join("/", canonical.Split('/').Select(Uri.EscapeDataString)));
@@ -28,7 +28,7 @@ public sealed partial class ChmDocument {
 
     /// <summary>Configures bounded rendering with this book's virtual base and archive-only resolver.</summary>
     public void ConfigureRenderOptions(HtmlRenderOptions options, string topicPath) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.BaseUri = GetTopicUri(topicPath);
         options.ResourceUrlPolicy = (options.ResourceUrlPolicy ?? options.UrlPolicy).Clone();
         options.ResourceUrlPolicy.AllowedUrlSchemes.Add("chm");

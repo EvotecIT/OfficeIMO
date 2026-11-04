@@ -53,7 +53,7 @@ internal static class OfficeFontContainerDecoder {
         openTypeData = Array.Empty<byte>();
         format = Detect(data);
         error = null;
-        if (maximumDecodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDecodedBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDecodedBytes);
         if (data == null || data.Length == 0) {
             error = "Font data is empty.";
             return false;

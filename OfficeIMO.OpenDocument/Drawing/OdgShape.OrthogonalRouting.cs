@@ -47,7 +47,7 @@ public sealed partial class OdgShape {
     /// </summary>
     public void RouteOrthogonalAroundShapes(IEnumerable<OdgShape> obstacles, bool respectEscapeDirections, double padding = 6, int maxLanes = 12) {
         RequireConnector();
-        if (obstacles == null) throw new ArgumentNullException(nameof(obstacles));
+        ArgumentNullException.ThrowIfNull(obstacles);
         if (!Finite(padding) || padding < 0) throw new ArgumentOutOfRangeException(nameof(padding));
         if (maxLanes < 0 || maxLanes > 32) throw new ArgumentOutOfRangeException(nameof(maxLanes), "Lane count must be between 0 and 32.");
         OdgShape[] shapes = obstacles.Take(4097).ToArray();

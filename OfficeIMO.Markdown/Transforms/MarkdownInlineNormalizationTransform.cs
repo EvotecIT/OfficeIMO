@@ -24,13 +24,9 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
 
     /// <inheritdoc />
     public MarkdownDocument Transform(MarkdownDocument document, MarkdownDocumentTransformContext context) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
-        if (context == null) {
-            throw new ArgumentNullException(nameof(context));
-        }
+        ArgumentNullException.ThrowIfNull(context);
 
         var rewritten = RewriteBlockList(document.Blocks, out _);
         document.ReplaceBlocks(rewritten);

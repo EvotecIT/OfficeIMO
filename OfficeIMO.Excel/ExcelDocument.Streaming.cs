@@ -18,7 +18,7 @@ public partial class ExcelDocument {
 
     /// <summary>Creates a bounded-memory XLSX writer over a writable stream, including non-seekable streams.</summary>
     public static ExcelWorkbookWriter CreateWriter(Stream stream, ExcelWriterOptions? options = null, OfficeTheme? theme = null, bool leaveOpen = false) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
         return new ExcelWorkbookWriter(new StreamingWorkbook(stream, CreateStreamingOptions(options), theme ?? OfficeTheme.Modern, leaveOpen));
     }
@@ -68,9 +68,9 @@ public partial class ExcelDocument {
                 throw new InvalidOperationException("Complete the current table before writing another table.");
             try {
                 if (_failed) throw new InvalidOperationException("A failed streaming workbook cannot accept more tables.");
-                if (rows == null) throw new ArgumentNullException(nameof(rows));
-                if (headers == null) throw new ArgumentNullException(nameof(headers));
-                if (writeRow == null) throw new ArgumentNullException(nameof(writeRow));
+                ArgumentNullException.ThrowIfNull(rows);
+                ArgumentNullException.ThrowIfNull(headers);
+                ArgumentNullException.ThrowIfNull(writeRow);
                 if (headers.Count == 0 || headers.Count > ExcelA1.MaxColumns)
                     throw new ArgumentException("Supply between one and 16384 column headers.", nameof(headers));
                 ValidateTabularHeaders(headers);

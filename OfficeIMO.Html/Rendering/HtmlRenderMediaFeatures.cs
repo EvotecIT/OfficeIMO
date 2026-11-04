@@ -52,8 +52,8 @@ public sealed class HtmlRenderMediaFeatures {
         ValidateEnum(AnyPointer, nameof(AnyPointer));
         ValidateEnum(Hover, nameof(Hover));
         ValidateEnum(AnyHover, nameof(AnyHover));
-        if (ColorBitsPerComponent < 0) throw new ArgumentOutOfRangeException(nameof(ColorBitsPerComponent));
-        if (MonochromeBitsPerPixel < 0) throw new ArgumentOutOfRangeException(nameof(MonochromeBitsPerPixel));
+        ArgumentOutOfRangeException.ThrowIfNegative(ColorBitsPerComponent);
+        ArgumentOutOfRangeException.ThrowIfNegative(MonochromeBitsPerPixel);
         if (ResolutionDpi <= 0D || double.IsNaN(ResolutionDpi) || double.IsInfinity(ResolutionDpi)) {
             throw new ArgumentOutOfRangeException(nameof(ResolutionDpi));
         }

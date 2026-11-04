@@ -29,11 +29,7 @@ namespace OfficeIMO.Core.Internal {
 
         private static void WriteCore(string targetPath, Action<Stream> writer, CancellationToken cancellationToken,
             ConflictPolicy conflictPolicy, bool requireAtomicReplacement) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(writer);
-#else
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-#endif
 
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
@@ -57,21 +53,13 @@ namespace OfficeIMO.Core.Internal {
 
         /// <summary>Atomically writes a completed byte array to a destination path.</summary>
         public static void WriteAllBytes(string targetPath, byte[] bytes, ConflictPolicy conflictPolicy = ConflictPolicy.Replace) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
             Write(targetPath, stream => stream.Write(bytes, 0, bytes.Length), conflictPolicy);
         }
 
         /// <summary>Writes completed bytes to a same-directory staging file for a later atomic commit.</summary>
         public static string StageAllBytes(string targetPath, byte[] bytes) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
             EnsureTargetDirectory(targetPath);
             string fullTargetPath = GetFullTargetPath(targetPath);
             string temporaryPath = string.Empty;
@@ -94,11 +82,7 @@ namespace OfficeIMO.Core.Internal {
             byte[] bytes,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace,
             CancellationToken cancellationToken = default) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
 
             EnsureTargetDirectory(targetPath);
             string temporaryPath = string.Empty;
@@ -125,11 +109,7 @@ namespace OfficeIMO.Core.Internal {
             string targetPath,
             byte[] bytes,
             CancellationToken cancellationToken = default) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(bytes);
-#else
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-#endif
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
             string fullTargetPath = GetFullTargetPath(targetPath);
@@ -158,11 +138,7 @@ namespace OfficeIMO.Core.Internal {
             Action<Stream> writer,
             ConflictPolicy conflictPolicy = ConflictPolicy.Replace,
             CancellationToken cancellationToken = default) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(writer);
-#else
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-#endif
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
             string temporaryPath = string.Empty;
@@ -191,11 +167,7 @@ namespace OfficeIMO.Core.Internal {
 
         private static async Task WriteCoreAsync(string targetPath, Func<Stream, CancellationToken, Task> writer,
             ConflictPolicy conflictPolicy, CancellationToken cancellationToken, bool requireAtomicReplacement) {
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(writer);
-#else
-            if (writer == null) throw new ArgumentNullException(nameof(writer));
-#endif
             cancellationToken.ThrowIfCancellationRequested();
             EnsureTargetDirectory(targetPath);
             string temporaryPath = string.Empty;
@@ -349,11 +321,7 @@ namespace OfficeIMO.Core.Internal {
             if (string.IsNullOrWhiteSpace(temporaryPath)) {
                 throw new ArgumentException("Temporary path cannot be empty.", nameof(temporaryPath));
             }
-#if NET6_0_OR_GREATER
             ArgumentNullException.ThrowIfNull(destinationMatchesExpected);
-#else
-            if (destinationMatchesExpected == null) throw new ArgumentNullException(nameof(destinationMatchesExpected));
-#endif
 
             string fullTargetPath = GetFullTargetPath(targetPath);
             EnsureDestinationWritable(fullTargetPath);

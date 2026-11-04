@@ -18,7 +18,7 @@ public static partial class OfficeTiffCodec {
 
     internal static byte[] EncodePages(IReadOnlyList<OfficeRasterImage> pages,
         OfficeTiffEncodeOptions? options, CancellationToken cancellationToken, long maximumEncodedBytes, long additionallyRetainedBytes) {
-        if (pages == null) throw new ArgumentNullException(nameof(pages));
+        ArgumentNullException.ThrowIfNull(pages);
         if (pages.Count < 1 || pages.Count > 1024) throw new ArgumentOutOfRangeException(nameof(pages));
         cancellationToken.ThrowIfCancellationRequested();
         OfficeTiffEncodeOptions effective = options ?? new OfficeTiffEncodeOptions();

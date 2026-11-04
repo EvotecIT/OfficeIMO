@@ -51,7 +51,7 @@ public static partial class ProjectReportWorkflow {
 
     private static OfficeImageExportBatchOperation<ProjectImageExportOptions> CreateProjectViewImageBatchOperation(
         ProjectView document, ProjectImageExportOptions options) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return new OfficeImageExportBatchOperation<ProjectImageExportOptions>(options, options.Format, options.FileConflictPolicy,
             (encoding, effective) => document.ExportImages(encoding, effective),
             exportEach: (encoding, effective, consumer, token) => document.ExportImages(encoding, consumer, effective, token));

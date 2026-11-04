@@ -17,7 +17,7 @@ internal static partial class MarkdownReader {
     /// Parses Markdown text into a <see cref="MarkdownDocument"/> with typed blocks and basic inlines.
     /// </summary>
     public static MarkdownDocument Parse(string markdown, MarkdownLoadOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new MarkdownLoadOptions();
 
         // Without document transforms the syntax captured by ParseInternal already describes
@@ -61,7 +61,7 @@ internal static partial class MarkdownReader {
     /// source spans, or trivia are required.
     /// </summary>
     public static MarkdownDocument ParseSemantic(string markdown, MarkdownLoadOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new MarkdownLoadOptions();
         var state = new MarkdownReaderState();
         var document = ParseInternal(
@@ -84,7 +84,7 @@ internal static partial class MarkdownReader {
     /// object-tree binding that the caller will discard.
     /// </summary>
     internal static MarkdownDocument ParseSemanticProjection(string markdown, MarkdownLoadOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new MarkdownLoadOptions();
         var state = new MarkdownReaderState { BuildTableCellModels = false };
         return ParseInternal(
@@ -107,7 +107,7 @@ internal static partial class MarkdownReader {
     internal static MarkdownDocument ParseProjectionWithBlockSpans(
         string markdown,
         MarkdownLoadOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new MarkdownLoadOptions();
 
         if (BuildEffectiveDocumentTransforms(
@@ -151,7 +151,7 @@ internal static partial class MarkdownReader {
     private static MarkdownParseInfo ParseWithSyntaxTreeCore(
         string markdown,
         MarkdownLoadOptions? options) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
+        ArgumentNullException.ThrowIfNull(markdown);
         options ??= new MarkdownLoadOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();

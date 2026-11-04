@@ -42,7 +42,7 @@ public sealed partial class BookProject {
         var languages = new HashSet<string>(StringComparer.Ordinal);
         foreach (var statement in edition.Statements) {
             cancellationToken.ThrowIfCancellationRequested();
-            if (statement == null) throw new ArgumentNullException(nameof(statement));
+            ArgumentNullException.ThrowIfNull(statement);
             RequireOnixText(statement.Text, nameof(statement.Text));
             RequireOnixTranslationLanguage(statement.LanguageCode, edition.Statements.Count, nameof(edition.Statements));
             if (!languages.Add(statement.LanguageCode ?? ""))

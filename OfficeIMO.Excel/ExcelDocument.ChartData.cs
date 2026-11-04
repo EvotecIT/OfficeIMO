@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal int ReserveChartDataStartRow(ExcelSheet sheet, int rowsNeeded, int spacingRows = 2) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (rowsNeeded <= 0) rowsNeeded = 1;
             if (spacingRows < 0) spacingRows = 0;
 
@@ -113,8 +113,8 @@ namespace OfficeIMO.Excel {
         internal bool IsOwnedChartDataRangeShared(
             ExcelChartDataRange range,
             ExtendedChartPart ownerPart) {
-            if (range == null) throw new ArgumentNullException(nameof(range));
-            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
+            ArgumentNullException.ThrowIfNull(range);
+            ArgumentNullException.ThrowIfNull(ownerPart);
             ExcelReference ownedRange = ExcelReference.Parse(range.DataRangeA1);
 
             IEnumerable<ExtendedChartPart> chartParts = WorkbookPartRoot.WorksheetParts

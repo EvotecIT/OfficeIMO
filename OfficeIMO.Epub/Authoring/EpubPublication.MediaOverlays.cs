@@ -14,7 +14,7 @@ public sealed partial class EpubPublication {
     /// </summary>
     public EpubManifestItem AddMediaOverlay(string contentManifestId, string overlayId, string containerPath,
         EpubMediaOverlay overlay, CancellationToken cancellationToken = default) {
-        if (overlay == null) throw new ArgumentNullException(nameof(overlay));
+        ArgumentNullException.ThrowIfNull(overlay);
         cancellationToken.ThrowIfCancellationRequested();
         if (PackageVersion != "3.0") throw new NotSupportedException("Media-overlay authoring requires EPUB 3.");
         if (EpubVocabulary.Expand(Root, "media:duration") != OverlayVocabulary + "duration")

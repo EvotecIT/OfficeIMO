@@ -12,7 +12,8 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Inserts parsed AsciiDoc blocks at a zero-based source-block index.</summary>
     public IReadOnlyList<AsciiDocBlock> Insert(int index, string source, AsciiDocParseOptions? options = null) {
-        if (index < 0 || index > Blocks.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Blocks.Count);
         EnsureInsertionBoundary(index);
         AsciiDocParseResult parsed = ParseResult(source, options);
         if (parsed.HasErrors) throw new ArgumentException("Inserted AsciiDoc must parse without recovery errors. Inspect ParseResult before insertion.", nameof(source));
@@ -30,7 +31,7 @@ public sealed partial class AsciiDocDocument {
     /// <summary>Appends a paragraph with native inline syntax while protecting block-start syntax.</summary>
     /// <exception cref="ArgumentException">The source is empty or contains more than one paragraph.</exception>
     public AsciiDocDocument AddParagraph(string inlineSource) {
-        if (inlineSource == null) throw new ArgumentNullException(nameof(inlineSource));
+        ArgumentNullException.ThrowIfNull(inlineSource);
         AsciiDocParseResult parsed = ParseResult(AsciiDocLiteralText.EscapeBlockStarts(inlineSource));
         AsciiDocBlock[] semantic = parsed.Document.Blocks.Where(block => !(block is AsciiDocBlankLine)).ToArray();
         if (parsed.HasErrors || semantic.Length != 1 || !(semantic[0] is AsciiDocParagraph))
@@ -42,14 +43,14 @@ public sealed partial class AsciiDocDocument {
     /// <summary>Appends a section heading. Section levels 1 through 5 use two through six equals signs.</summary>
     public AsciiDocDocument AddHeading(int sectionLevel, string inlineSource) {
         if (sectionLevel < 1 || sectionLevel > 5) throw new ArgumentOutOfRangeException(nameof(sectionLevel));
-        if (inlineSource == null) throw new ArgumentNullException(nameof(inlineSource));
+        ArgumentNullException.ThrowIfNull(inlineSource);
         AsciiDocText.EnsureSingleLine(inlineSource, nameof(inlineSource));
         return Add(new string('=', sectionLevel + 1) + " " + inlineSource);
     }
 
     /// <summary>Removes a semantic block together with its bound metadata and list attachments.</summary>
     public bool Remove(AsciiDocBlock block) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
+        ArgumentNullException.ThrowIfNull(block);
         if (!_editableBlocks.Contains(block)) return false;
         EnsureSemanticUnit(block);
         HashSet<AsciiDocBlock> unit = FindUnit(block);
@@ -61,8 +62,9 @@ public sealed partial class AsciiDocDocument {
 
     /// <summary>Moves a semantic block and its bound metadata and attachments before the original zero-based index.</summary>
     public AsciiDocDocument Move(AsciiDocBlock block, int index) {
-        if (block == null) throw new ArgumentNullException(nameof(block));
-        if (index < 0 || index > Blocks.Count) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentNullException.ThrowIfNull(block);
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(index, Blocks.Count);
         if (!_editableBlocks.Contains(block)) throw new ArgumentException("The block does not belong to this document.", nameof(block));
         EnsureSemanticUnit(block);
         HashSet<AsciiDocBlock> unit = FindUnit(block);

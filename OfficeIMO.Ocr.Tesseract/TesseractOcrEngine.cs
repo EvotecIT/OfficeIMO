@@ -55,7 +55,7 @@ public sealed partial class TesseractOcrEngine : IOcrEngine {
 
     /// <inheritdoc />
     public async Task<OcrResult> RecognizeAsync(OcrRequest request, CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         if (request.Payload == null || request.Payload.Length == 0) throw new ArgumentException("OCR request payload cannot be empty.", nameof(request));
         if (request.Payload.LongLength > _options.MaxInputBytes) throw new IOException("OCR request payload exceeds MaxInputBytes (" + _options.MaxInputBytes + ").");
         if (string.IsNullOrWhiteSpace(request.MediaType) ||

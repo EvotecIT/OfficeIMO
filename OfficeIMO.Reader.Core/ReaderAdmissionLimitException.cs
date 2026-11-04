@@ -11,7 +11,7 @@ public sealed class ReaderAdmissionLimitException : IOException {
             throw new ArgumentOutOfRangeException(nameof(maximum));
         if (actual.HasValue && (double.IsNaN(actual.Value) || actual.Value < 0))
             throw new ArgumentOutOfRangeException(nameof(actual));
-        if (innerException == null) throw new ArgumentNullException(nameof(innerException));
+        ArgumentNullException.ThrowIfNull(innerException);
         LimitName = limitName;
         Maximum = maximum;
         Actual = actual;

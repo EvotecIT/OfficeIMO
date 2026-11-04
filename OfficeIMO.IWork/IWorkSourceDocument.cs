@@ -142,7 +142,7 @@ public sealed partial class IWorkSourceDocument {
 
     /// <summary>Opens iWork package bytes and detects the application kind.</summary>
     public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
         return Open(stream, options);
     }
@@ -150,7 +150,7 @@ public sealed partial class IWorkSourceDocument {
     /// <summary>Opens iWork package bytes and verifies the expected application kind.</summary>
     public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
         return Open(stream, expectedKind, options);
     }
@@ -159,7 +159,7 @@ public sealed partial class IWorkSourceDocument {
     /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
     public static IWorkSourceDocument Open(byte[] data, IWorkReadOptions? options,
         CancellationToken cancellationToken) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
         return Open(stream, options, cancellationToken);
     }
@@ -168,7 +168,7 @@ public sealed partial class IWorkSourceDocument {
     /// <remarks>The token also governs subsequent projections and destination conversion.</remarks>
     public static IWorkSourceDocument Open(byte[] data, IWorkDocumentKind expectedKind,
         IWorkReadOptions? options, CancellationToken cancellationToken) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         using var stream = new MemoryStream(data, writable: false);
         return Open(stream, expectedKind, options, cancellationToken);
     }

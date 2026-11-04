@@ -32,7 +32,7 @@ public sealed partial class OfficeDrawing {
         if (area.X < 0D || area.Y < 0D || area.X + area.Width > Width || area.Y + area.Height > Height) {
             throw new ArgumentOutOfRangeException(nameof(area), "Pattern area must fit inside the drawing bounds.");
         }
-        if (tile == null) throw new ArgumentNullException(nameof(tile));
+        ArgumentNullException.ThrowIfNull(tile);
         Fonts.AddRange(tile.Fonts);
         _elements.Add(new OfficeDrawingTilingPattern(tile, area, horizontalStep, verticalStep, repeatX, repeatY, transform, originX, originY, maximumTileCount, opacity));
         return this;

@@ -11,9 +11,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentException("Custom property name is required.", nameof(name));
             }
 
-            if (property == null) {
-                throw new ArgumentNullException(nameof(property));
-            }
+            ArgumentNullException.ThrowIfNull(property);
 
             CustomProperties[name.Trim()] = property;
             _customDocumentPropertiesDirty = true;

@@ -27,8 +27,8 @@ internal sealed class OfficeLzxHuffmanTree {
         Array.Empty<int>());
 
     internal static OfficeLzxHuffmanTree Create(byte[] pathLengths, bool allowEmpty, string treeName) {
-        if (pathLengths == null) throw new ArgumentNullException(nameof(pathLengths));
-        if (treeName == null) throw new ArgumentNullException(nameof(treeName));
+        ArgumentNullException.ThrowIfNull(pathLengths);
+        ArgumentNullException.ThrowIfNull(treeName);
 
         var counts = new int[MaximumPathLength + 1];
         for (int symbol = 0; symbol < pathLengths.Length; symbol++) {
@@ -72,7 +72,7 @@ internal sealed class OfficeLzxHuffmanTree {
     }
 
     internal int Decode(OfficeLzxBitReader reader) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         if (_symbols.Length == 0) throw Corrupt("The LZX stream uses an empty Huffman tree.");
 
         int code = 0;

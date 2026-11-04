@@ -9,7 +9,7 @@ public static class OfficeDocumentReaderBuilderOpmlExtensions {
     public const string HandlerId = "officeimo.reader.opml";
     /// <summary>Adds .opml path and stream ingestion.</summary>
     public static OfficeDocumentReaderBuilder AddOpmlHandler(this OfficeDocumentReaderBuilder builder, ReaderOpmlOptions? options = null, bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderOpmlOptions registered = ReaderOpmlOptionsCloner.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "OPML Reader Adapter",

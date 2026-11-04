@@ -17,7 +17,7 @@ public static class CertificateValidator {
         CertificateValidationOptions? options = null,
         CertificateValidationPurpose purpose = CertificateValidationPurpose.DocumentSigning) {
 #if NETSTANDARD2_0 || NET472
-        if (certificate == null) throw new ArgumentNullException(nameof(certificate));
+        ArgumentNullException.ThrowIfNull(certificate);
 #else
         ArgumentNullException.ThrowIfNull(certificate);
 #endif

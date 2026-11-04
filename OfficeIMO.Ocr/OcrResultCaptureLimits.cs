@@ -7,9 +7,9 @@ public sealed class OcrResultCaptureLimits {
     /// <summary>Creates immutable retention limits. Omitted counts remain available on the captured result.</summary>
     public OcrResultCaptureLimits(int maxSpans = int.MaxValue, int maxDiagnostics = int.MaxValue,
         int maxDiagnosticAttributes = int.MaxValue) {
-        if (maxSpans < 0) throw new ArgumentOutOfRangeException(nameof(maxSpans));
-        if (maxDiagnostics < 0) throw new ArgumentOutOfRangeException(nameof(maxDiagnostics));
-        if (maxDiagnosticAttributes < 0) throw new ArgumentOutOfRangeException(nameof(maxDiagnosticAttributes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maxSpans);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxDiagnostics);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxDiagnosticAttributes);
         MaxSpans = maxSpans; MaxDiagnostics = maxDiagnostics; MaxDiagnosticAttributes = maxDiagnosticAttributes;
     }
     /// <summary>Maximum retained text spans.</summary>

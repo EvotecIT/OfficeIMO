@@ -75,7 +75,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="values">Item text values to apply. An empty list leaves one blank item so the control stays editable in Word.</param>
         public void SetTextItems(IEnumerable<string?> values) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
 
             var textValues = values.Select(value => value ?? string.Empty).ToList();
             if (textValues.Count == 0) {

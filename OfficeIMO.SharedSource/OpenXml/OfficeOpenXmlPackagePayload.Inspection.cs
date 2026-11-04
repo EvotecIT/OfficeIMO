@@ -19,7 +19,7 @@ internal static partial class OfficeOpenXmlPackagePayload {
         new OfficeEmbeddedPayloadInspection(FindEmbeddedPayloads(package).Select(handle => CreateSource(handle, executeRead)), options, cancellationToken);
 
     internal static Stream OpenDetached(OpenXmlPackage package, string id, long maximumBytes, CancellationToken token) {
-        if (maximumBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumBytes);
         token.ThrowIfCancellationRequested();
         OfficeOpenXmlPayloadHandle handle = FindEmbeddedPayload(package, id);
         using var inspection = new OfficeEmbeddedPayloadInspection(new[] { CreateSource(handle) },

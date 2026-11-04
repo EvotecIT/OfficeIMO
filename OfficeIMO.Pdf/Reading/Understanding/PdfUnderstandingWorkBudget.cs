@@ -11,7 +11,7 @@ internal sealed class PdfUnderstandingWorkBudget {
 
     internal PdfUnderstandingWorkBudget(long maximum, CancellationToken cancellationToken) {
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
-        if (maximum <= 0) throw new ArgumentOutOfRangeException(nameof(maximum));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximum);
 #pragma warning restore CA1512
         _maximum = maximum;
         _cancellationToken = cancellationToken;
@@ -26,7 +26,7 @@ internal sealed class PdfUnderstandingWorkBudget {
 
     internal void Consume(long units = 1) {
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
-        if (units <= 0) throw new ArgumentOutOfRangeException(nameof(units));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(units);
 #pragma warning restore CA1512
         if (Volatile.Read(ref _operationCompleted) != 0) return;
         ThrowIfCancellationRequested();

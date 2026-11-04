@@ -12,7 +12,7 @@ public partial class WordDocument {
     /// Existing cell content is retained. Replies and resolved state are managed through the returned comments.</remarks>
     public IReadOnlyList<WordComment> AddCellComments(IEnumerable<WordCellComment> comments,
         CancellationToken cancellationToken = default) {
-        if (comments == null) throw new ArgumentNullException(nameof(comments));
+        ArgumentNullException.ThrowIfNull(comments);
         cancellationToken.ThrowIfCancellationRequested();
         var definitions = new List<WordCellComment>();
         foreach (WordCellComment definition in comments) {

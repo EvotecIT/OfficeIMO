@@ -589,7 +589,8 @@ public sealed class DrawingRasterStreamingEncodingTests {
         private byte[] _buffer = new byte[256];
 
         public void Advance(int count) {
-            if (count < 0 || count > _buffer.Length) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(count, _buffer.Length);
             _output.Write(_buffer, 0, count);
         }
 
@@ -606,7 +607,7 @@ public sealed class DrawingRasterStreamingEncodingTests {
         internal byte[] ToArray() => _output.ToArray();
 
         private void EnsureCapacity(int sizeHint) {
-            if (sizeHint < 0) throw new ArgumentOutOfRangeException(nameof(sizeHint));
+            ArgumentOutOfRangeException.ThrowIfNegative(sizeHint);
             if (sizeHint > _buffer.Length) _buffer = new byte[sizeHint];
         }
     }

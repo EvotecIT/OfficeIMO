@@ -15,7 +15,7 @@ public static class OfficeDocumentReaderBuilderTextExtensions {
     /// The unknown fallback has no claimed file extensions, so a registered format adapter always wins.
     /// </remarks>
     public static OfficeDocumentReaderBuilder AddPlainTextHandlers(this OfficeDocumentReaderBuilder builder, bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         builder.AddHandler(CreateRegistration(TextHandlerId, ReaderInputKind.Text, new[] { ".txt", ".log" }), replaceExisting);
         builder.AddHandler(CreateRegistration(UnknownHandlerId, ReaderInputKind.Unknown, Array.Empty<string>()), replaceExisting);
         return builder;

@@ -107,11 +107,7 @@ public sealed partial class InvoicePdfLanguagePack {
     }
 
     private string? CodeLabel(string code, IReadOnlyDictionary<string, string>? custom, IReadOnlyDictionary<string, string[]> builtIn) {
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(code);
-#else
-        if (code == null) throw new ArgumentNullException(nameof(code));
-#endif
         if (custom != null && custom.TryGetValue(code, out string? value)) return value;
         if (!builtIn.TryGetValue(code, out string[]? labels)) return null;
         int index = Culture.TwoLetterISOLanguageName switch {

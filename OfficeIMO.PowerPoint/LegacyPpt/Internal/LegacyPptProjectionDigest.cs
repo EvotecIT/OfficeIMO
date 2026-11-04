@@ -11,7 +11,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
 
         internal static void Append(IncrementalHash hash, string? value) {
-            if (hash == null) throw new ArgumentNullException(nameof(hash));
+            ArgumentNullException.ThrowIfNull(hash);
             byte[] bytes = Encoding.UTF8.GetBytes(value ?? string.Empty);
             var length = new byte[4];
             uint count = checked((uint)bytes.Length);
@@ -24,7 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static string Finish(IncrementalHash hash) {
-            if (hash == null) throw new ArgumentNullException(nameof(hash));
+            ArgumentNullException.ThrowIfNull(hash);
             return Convert.ToBase64String(hash.GetHashAndReset());
         }
 

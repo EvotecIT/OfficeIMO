@@ -11,7 +11,7 @@ public sealed class OfficeWorkflowDirectoryPackageInput {
         IOfficePublicationGuard sourcePublicationGuard, int maximumEntries = 10_000) {
         if ((name == null || string.IsNullOrWhiteSpace(name)) || name.Length > 4096 || name.IndexOfAny(['/', '\\', '\0']) >= 0)
             throw new ArgumentException("A provider package filename is required.", nameof(name));
-        if (maximumEntries < 1) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
+        ArgumentOutOfRangeException.ThrowIfLessThan(maximumEntries, 1);
         Name = name;
         Directory = directory ?? throw new ArgumentNullException(nameof(directory));
         SourcePublicationGuard = sourcePublicationGuard ?? throw new ArgumentNullException(nameof(sourcePublicationGuard));

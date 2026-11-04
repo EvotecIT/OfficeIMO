@@ -135,7 +135,7 @@ namespace OfficeIMO.PowerPoint {
             int diagnosticCount = 0) {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Artifact name cannot be empty.", nameof(name));
             if (string.IsNullOrWhiteSpace(mediaType)) throw new ArgumentException("Media type cannot be empty.", nameof(mediaType));
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             _artifacts.Add(new PowerPointVisualProofArtifact(name.Trim(), mediaType.Trim(), content, diagnosticCount));
             return this;
         }

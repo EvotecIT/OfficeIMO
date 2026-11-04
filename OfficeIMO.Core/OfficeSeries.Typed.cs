@@ -11,8 +11,8 @@ public sealed partial class OfficeSeries {
     /// <summary>Creates chart values from a numeric selector. A direct property selector supplies its own series name.</summary>
     /// <remarks>Computed selectors require an explicit name. Expression interpretation supports NativeAOT without compiling dynamic code.</remarks>
     public static OfficeSeries From<T, TValue>(IEnumerable<T> data, Expression<Func<T, TValue>> value, string? name = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
-        if (value == null) throw new ArgumentNullException(nameof(value));
+        ArgumentNullException.ThrowIfNull(data);
+        ArgumentNullException.ThrowIfNull(value);
         if (!IsNumeric(typeof(TValue))) throw new ArgumentException("A chart series selector must return a numeric type.", nameof(value));
         if (name == null) {
             Expression body = value.Body;

@@ -84,9 +84,7 @@ namespace OfficeIMO.Excel {
         /// </remarks>
         public void RegisterCustomFunction(string name, ExcelCustomFormulaFunction function) {
             string normalizedName = NormalizeCustomFunctionName(name);
-            if (function == null) {
-                throw new ArgumentNullException(nameof(function));
-            }
+            ArgumentNullException.ThrowIfNull(function);
 
             if (ExcelFormulaCapabilities.IsBuiltInFunction(normalizedName)) {
                 throw new ArgumentException($"'{normalizedName}' is a built-in OfficeIMO formula function and cannot be replaced.", nameof(name));

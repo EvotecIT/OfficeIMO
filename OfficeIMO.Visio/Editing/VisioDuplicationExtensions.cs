@@ -31,13 +31,9 @@ namespace OfficeIMO.Visio {
         /// <param name="options">Optional duplication settings.</param>
         /// <returns>The duplicated page.</returns>
         public static VisioPage DuplicatePage(this VisioDocument document, VisioPage sourcePage, VisioPageDuplicationOptions? options) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
-            if (sourcePage == null) {
-                throw new ArgumentNullException(nameof(sourcePage));
-            }
+            ArgumentNullException.ThrowIfNull(sourcePage);
 
             if (!document.Pages.Contains(sourcePage)) {
                 throw new InvalidOperationException("The source page must belong to the target document.");
@@ -207,9 +203,7 @@ namespace OfficeIMO.Visio {
         /// <param name="options">Optional duplication settings.</param>
         /// <returns>The duplicated page.</returns>
         public static VisioPage Duplicate(this VisioPage page, VisioPageDuplicationOptions? options) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (page.OwnerDocument == null) {
                 throw new InvalidOperationException("The page is not associated with a document.");
@@ -243,13 +237,9 @@ namespace OfficeIMO.Visio {
         /// <param name="options">Optional duplication settings.</param>
         /// <returns>A selection containing the duplicated root shapes.</returns>
         public static VisioShapeSelection DuplicateShapes(this VisioPage page, IEnumerable<VisioShape> shapes, VisioShapeDuplicationOptions? options) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             VisioShapeDuplicationOptions effectiveOptions = options ?? new VisioShapeDuplicationOptions();
             EnsureFiniteOffset(effectiveOptions.OffsetX, nameof(effectiveOptions.OffsetX));
@@ -331,9 +321,7 @@ namespace OfficeIMO.Visio {
         /// <param name="options">Optional duplication settings.</param>
         /// <returns>A selection containing the duplicated root shapes.</returns>
         public static VisioShapeSelection Duplicate(this VisioShapeSelection selection, VisioShapeDuplicationOptions? options) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
             if (selection.OwnerPage == null) {
                 throw new InvalidOperationException("This selection is not associated with a page. Use page.DuplicateShapes(selection, ...) instead.");

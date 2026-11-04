@@ -11,9 +11,7 @@ namespace OfficeIMO.Excel {
     internal static partial class ExcelChartUtils {
         internal static void PopulateChart(ChartPart chartPart, OfficeChartType type, ExcelChartDataRange range,
             ExcelChartData? data, string? title = null, IReadOnlyList<string>? nativeSeriesNames = null) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
 
             ChartSpace chartSpace = new();
             chartSpace.AddNamespaceDeclaration("c", ChartNamespace);
@@ -294,15 +292,11 @@ namespace OfficeIMO.Excel {
 
         internal static void PopulateChartFromSeriesRanges(ChartPart chartPart, OfficeChartType type, string defaultSheetName,
             IReadOnlyList<ExcelChartSeriesRange> seriesRanges, string? title = null) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
             if (string.IsNullOrWhiteSpace(defaultSheetName)) {
                 throw new ArgumentException("Default sheet name cannot be null or empty.", nameof(defaultSheetName));
             }
-            if (seriesRanges == null) {
-                throw new ArgumentNullException(nameof(seriesRanges));
-            }
+            ArgumentNullException.ThrowIfNull(seriesRanges);
             if (seriesRanges.Count == 0) {
                 throw new ArgumentException("At least one series range is required.", nameof(seriesRanges));
             }

@@ -130,8 +130,8 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
             IReadOnlyCollection<string>? requiredScopes = null,
             bool potentialDataLoss = false) {
-            if (requestTypeInfo == null) throw new ArgumentNullException(nameof(requestTypeInfo));
-            if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+            ArgumentNullException.ThrowIfNull(requestTypeInfo);
+            ArgumentNullException.ThrowIfNull(responseTypeInfo);
             return SendAsync(
                 accessToken,
                 method,
@@ -167,7 +167,7 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
             IReadOnlyCollection<string>? requiredScopes = null,
             bool potentialDataLoss = false) {
-            if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+            ArgumentNullException.ThrowIfNull(responseTypeInfo);
             return SendAsync(
                 accessToken,
                 method,
@@ -240,7 +240,7 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRevisionPrecondition? revisionPrecondition = null,
             IReadOnlyCollection<string>? requiredScopes = null,
             bool potentialDataLoss = false) {
-            if (responseTypeInfo == null) throw new ArgumentNullException(nameof(responseTypeInfo));
+            ArgumentNullException.ThrowIfNull(responseTypeInfo);
             return SendAsyncCore(
                 accessToken,
                 method,
@@ -275,10 +275,10 @@ namespace OfficeIMO.GoogleWorkspace {
             bool potentialDataLoss) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
-            if (method == null) throw new ArgumentNullException(nameof(method));
+            ArgumentNullException.ThrowIfNull(method);
             if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Request URI is required.", nameof(uri));
             if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(report);
             if (maxResponseBytes.HasValue && maxResponseBytes.Value <= 0) throw new ArgumentOutOfRangeException(nameof(maxResponseBytes));
 
             string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
@@ -692,10 +692,10 @@ namespace OfficeIMO.GoogleWorkspace {
             bool allowSafeNonReadMethod) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
-            if (method == null) throw new ArgumentNullException(nameof(method));
+            ArgumentNullException.ThrowIfNull(method);
             if (string.IsNullOrWhiteSpace(uri)) throw new ArgumentException("Request URI is required.", nameof(uri));
             if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
-            if (report == null) throw new ArgumentNullException(nameof(report));
+            ArgumentNullException.ThrowIfNull(report);
 
             string effectiveUri = preserveRequestUri
                 ? uri
@@ -783,9 +783,9 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRevisionPrecondition revisionPrecondition, string serviceName,
             IReadOnlyCollection<string> requiredScopes, bool potentialDataLoss = false) {
             ThrowIfDisposed();
-            if (method == null) throw new ArgumentNullException(nameof(method));
+            ArgumentNullException.ThrowIfNull(method);
             if (string.IsNullOrWhiteSpace(target)) throw new ArgumentException("The mutation target is required.", nameof(target));
-            if (revisionPrecondition == null) throw new ArgumentNullException(nameof(revisionPrecondition));
+            ArgumentNullException.ThrowIfNull(revisionPrecondition);
             if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
@@ -1160,7 +1160,7 @@ namespace OfficeIMO.GoogleWorkspace {
 
         /// <summary>Deserializes the response body with source-generated JSON metadata.</summary>
         public T DeserializeJson<T>(JsonTypeInfo<T> typeInfo) {
-            if (typeInfo == null) throw new ArgumentNullException(nameof(typeInfo));
+            ArgumentNullException.ThrowIfNull(typeInfo);
             var value = JsonSerializer.Deserialize(Body, typeInfo);
             if (value == null) {
                 throw new InvalidOperationException("The Google Workspace response body could not be deserialized.");

@@ -17,7 +17,7 @@ internal static partial class OfficeGeometry {
 
     internal static IEnumerable<OfficePoint[]> EnumerateOrthogonalConnectorRoutes(OfficePoint start, OfficePoint end, double step, int maxLanes) {
         ValidateRoutingPoint(start); ValidateRoutingPoint(end); ValidateRoutingNumber(step);
-        if (maxLanes < 0) throw new ArgumentOutOfRangeException(nameof(maxLanes));
+        ArgumentOutOfRangeException.ThrowIfNegative(maxLanes);
         bool primaryHorizontal = Math.Abs(end.X - start.X) < Math.Abs(end.Y - start.Y);
         foreach (double offset in ConnectorLaneOffsets(step, maxLanes)) {
             yield return CreateOrthogonalConnectorRoute(start, end, primaryHorizontal, offset);

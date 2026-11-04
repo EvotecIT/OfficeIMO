@@ -10,7 +10,7 @@ internal static class LatexReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderLatexOptions? latexOptions = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (!File.Exists(path)) throw new FileNotFoundException("LaTeX file does not exist.", path);
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
         return Read(stream, path, readerOptions, latexOptions, cancellationToken);
@@ -23,7 +23,7 @@ internal static class LatexReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderLatexOptions? latexOptions = null,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderLatexOptions adapter = ReaderLatexOptionsCloner.Clone(latexOptions);
         long? nativeLimit = adapter.ParseOptions.MaxInputBytes;
@@ -47,7 +47,7 @@ internal static class LatexReaderAdapter {
         ReaderOptions? readerOptions = null,
         ReaderLatexOptions? latexOptions = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         return ReadResult(new LatexParseResult(document, document.Diagnostics), sourceName,
             readerOptions ?? new ReaderOptions(), ReaderLatexOptionsCloner.Clone(latexOptions), cancellationToken);
     }

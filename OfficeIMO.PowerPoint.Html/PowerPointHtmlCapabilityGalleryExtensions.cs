@@ -15,7 +15,7 @@ public static class PowerPointHtmlCapabilityGalleryExtensions {
     /// <param name="options">Optional gallery options.</param>
     /// <returns>Shared gallery manifest describing the generated artifacts and rich-content expectations.</returns>
     public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this PptCore.PowerPointDocument presentation, string directoryPath, PowerPointHtmlCapabilityGalleryOptions? options = null) {
-        if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+        ArgumentNullException.ThrowIfNull(presentation);
         if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Artifact directory cannot be empty.", nameof(directoryPath));
 
         options ??= new PowerPointHtmlCapabilityGalleryOptions();

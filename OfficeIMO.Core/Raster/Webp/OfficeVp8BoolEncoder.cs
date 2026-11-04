@@ -45,7 +45,7 @@ internal sealed class OfficeVp8BoolEncoder {
     private int _pos;
 
     internal OfficeVp8BoolEncoder(int expectedSize, int maximumBytes, CancellationToken cancellationToken, OfficeVp8EncodingMemory memory) {
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         _maximumBytes = maximumBytes;
         _cancellationToken = cancellationToken;
         _memory = memory;

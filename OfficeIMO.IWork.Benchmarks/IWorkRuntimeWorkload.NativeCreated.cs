@@ -10,7 +10,7 @@ public sealed partial class IWorkRuntimeWorkload {
     public static IWorkRuntimeWorkload CreateNativeKeynote(int slides) => new(slides);
 
     private IWorkRuntimeWorkload(int slides) {
-        if (slides < 1) throw new ArgumentOutOfRangeException(nameof(slides));
+        ArgumentOutOfRangeException.ThrowIfLessThan(slides, 1);
         _kind = IWorkDocumentKind.Keynote;
         _units = slides;
         _createdNativeDocument = IWorkKeynoteDocument.Create();

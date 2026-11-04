@@ -241,7 +241,7 @@ public sealed class OdsCell {
         string? creator = null,
         DateTimeOffset? date = null,
         string? name = null) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         EnsureEditable();
         if (_element.Elements(OdfNamespaces.Office + "annotation").Any()) {
             throw new InvalidOperationException("An ODF spreadsheet cell can contain only one annotation.");

@@ -9,7 +9,7 @@ internal sealed class EmailBoundedWriteStream : Stream {
     internal EmailBoundedWriteStream(Stream destination, long maximumLength) {
         _destination = destination ?? throw new ArgumentNullException(nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
-        if (maximumLength <= 0) throw new ArgumentOutOfRangeException(nameof(maximumLength));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumLength);
         _maximumLength = maximumLength;
         _maximumPosition = destination.CanSeek ? destination.Position : 0L;
     }
@@ -51,7 +51,7 @@ internal sealed class EmailBoundedWriteStream : Stream {
     }
 
     public override void Write(byte[] buffer, int offset, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         long end = checked(Position + count);
         EnsureWithinLimit(end);
@@ -72,7 +72,7 @@ internal sealed class EmailBoundedWriteStream : Stream {
 
     public override async Task WriteAsync(byte[] buffer, int offset, int count,
         CancellationToken cancellationToken) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
         long end = checked(Position + count);
         EnsureWithinLimit(end);

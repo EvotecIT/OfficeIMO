@@ -14,7 +14,7 @@ public sealed partial class EpubPublication {
     private XElement PrepareResourceDeclaration(string id, string containerPath, string mediaType, byte[] data, string? properties) {
         VerifyAvailableId(id); RequireText(mediaType, nameof(mediaType));
         VerifyPropertiesVersion(properties);
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         string path = VerifyContentPath(containerPath);
         if (_entries.ContainsKey(path) || Manifest.Any(item => item.Reference.ContainerPath == path)) throw new ArgumentException("Entry path already exists: " + path);
         EnsureEntryBudget(1);
@@ -31,7 +31,7 @@ public sealed partial class EpubPublication {
 
     /// <summary>Replaces one local resource payload. Encrypted/obfuscated bytes require an explicit re-keying implementation.</summary>
     public void UpdateResource(string manifestId, byte[] data) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         EpubManifestItem item = RequireManifestItem(manifestId);
         string path = RequireLocalPath(item);
         ReplaceResourcePayload(path, data);
@@ -60,7 +60,7 @@ public sealed partial class EpubPublication {
 
     /// <summary>Replaces content XML after validating a supported non-scripted XHTML or SVG root.</summary>
     public void SetContentXml(string manifestId, XDocument content) {
-        if (content == null) throw new ArgumentNullException(nameof(content));
+        ArgumentNullException.ThrowIfNull(content);
         ValidateContent(content, RequireManifestItem(manifestId).MediaType);
         UpdateResource(manifestId, SerializeXml(content, _maximumEntryBytes));
     }
@@ -70,7 +70,7 @@ public sealed partial class EpubPublication {
         IEnumerable<string>? stylesheets = null, bool linear = true) {
         RequireText(title, nameof(title));
         VerifyContentPath(containerPath);
-        if (xhtmlBody == null) throw new ArgumentNullException(nameof(xhtmlBody));
+        ArgumentNullException.ThrowIfNull(xhtmlBody);
         XElement body;
         using (var reader = XmlReader.Create(new StringReader("<body xmlns='" + Html.NamespaceName + "' xmlns:epub='" + Ops.NamespaceName + "'>" + xhtmlBody + "</body>"),
             new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = _maximumEntryBytes })) {
@@ -154,7 +154,8 @@ public sealed partial class EpubPublication {
     /// <summary>Removes one reading position without deleting its resource.</summary>
     public void RemoveSpineItem(int index) {
         XElement[] items = RequireSection("spine").Elements(Opf + "itemref").ToArray();
-        if (index < 0 || index >= items.Length) throw new ArgumentOutOfRangeException(nameof(index));
+        ArgumentOutOfRangeException.ThrowIfNegative(index);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, items.Length);
         EditPackageElement(RequireSection("spine"), proposed => proposed.Elements(Opf + "itemref").ElementAt(index).Remove());
     }
     /// <summary>Removes an unreferenced declaration and its payload. Callers must first update content/navigation links.</summary>

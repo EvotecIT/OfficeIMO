@@ -87,7 +87,7 @@ namespace OfficeIMO.Word {
         /// <param name="password">Password used to encrypt the document package.</param>
         /// <param name="saveOptions">Optional save policy settings.</param>
         internal void SaveEncrypted(string filePath, string password, WordSaveOptions? saveOptions = null) {
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(password);
             if (string.IsNullOrWhiteSpace(filePath)) {
                 throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             }
@@ -116,8 +116,8 @@ namespace OfficeIMO.Word {
         /// <param name="password">Password used to encrypt the document package.</param>
         /// <param name="saveOptions">Optional save policy settings.</param>
         internal void SaveEncrypted(Stream destination, string password, WordSaveOptions? saveOptions) {
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (password == null) throw new ArgumentNullException(nameof(password));
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(password);
             byte[] packageBytes = ToWordBytes(WordFileFormat.Docx, saveOptions);
             OfficeEncryption.EncryptPackageToStream(packageBytes, password, destination);
         }
@@ -358,9 +358,7 @@ namespace OfficeIMO.Word {
         /// <param name="format">Physical DOCX or DOC format.</param>
         /// <param name="options">Optional save policy settings.</param>
         internal void Save(Stream outputStream, WordFileFormat format, WordSaveOptions? options = null) {
-            if (outputStream == null) {
-                throw new ArgumentNullException(nameof(outputStream));
-            }
+            ArgumentNullException.ThrowIfNull(outputStream);
 
             if (!outputStream.CanWrite) {
                 throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
@@ -411,7 +409,7 @@ namespace OfficeIMO.Word {
             WordFileFormat format,
             WordSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (outputStream == null) throw new ArgumentNullException(nameof(outputStream));
+            ArgumentNullException.ThrowIfNull(outputStream);
             if (!outputStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(outputStream));
             if (FileOpenAccess == FileAccess.Read) throw new InvalidOperationException("Document is read only, and cannot be saved.");
 

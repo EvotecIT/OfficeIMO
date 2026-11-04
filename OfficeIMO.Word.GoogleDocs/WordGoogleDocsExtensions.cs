@@ -17,7 +17,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public static GoogleDocsTranslationPlan BuildGoogleDocsPlan(
             this WordDocument document,
             GoogleDocsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return DefaultExporter.BuildPlan(document, options);
         }
 
@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         public static GoogleDocsBatch BuildGoogleDocsBatch(
             this WordDocument document,
             GoogleDocsSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return DefaultExporter.BuildBatch(document, options);
         }
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspace.GoogleWorkspaceSession session,
             GoogleDocsSaveOptions? options = null,
             CancellationToken cancellationToken = default) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             return DefaultExporter.ExportAsync(document, session, options, cancellationToken);
         }
     }

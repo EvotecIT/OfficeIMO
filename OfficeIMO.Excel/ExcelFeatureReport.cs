@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel {
         private readonly List<ExcelFeatureFinding> _features = new List<ExcelFeatureFinding>();
 
         internal ExcelFeatureReport(IReadOnlyList<ExcelFeatureFinding> features) {
-            if (features == null) throw new ArgumentNullException(nameof(features));
+            ArgumentNullException.ThrowIfNull(features);
             _features.AddRange(features);
         }
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="featureNames">Feature names to match, for example <c>VBA macros</c> or <c>External workbook links</c>.</param>
         public IReadOnlyList<ExcelFeatureFinding> FindFeatures(IEnumerable<string> featureNames) {
-            if (featureNames == null) throw new ArgumentNullException(nameof(featureNames));
+            ArgumentNullException.ThrowIfNull(featureNames);
             var names = new HashSet<string>(featureNames.Where(name => !string.IsNullOrWhiteSpace(name)), StringComparer.OrdinalIgnoreCase);
             if (names.Count == 0) return Array.Empty<ExcelFeatureFinding>();
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="supportLevels">Support levels to match.</param>
         public IReadOnlyList<ExcelFeatureFinding> FindFeatures(params OfficeFeatureSupportLevel[] supportLevels) {
-            if (supportLevels == null) throw new ArgumentNullException(nameof(supportLevels));
+            ArgumentNullException.ThrowIfNull(supportLevels);
             if (supportLevels.Length == 0) return Array.Empty<ExcelFeatureFinding>();
 
             var levels = new HashSet<OfficeFeatureSupportLevel>(supportLevels);
@@ -807,7 +807,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static List<string> DescribeParts(IEnumerable<OpenXmlPart> parts, Func<OpenXmlPart, bool> predicate) {
-            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+            ArgumentNullException.ThrowIfNull(predicate);
 
             return parts
                 .Where(predicate)

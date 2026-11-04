@@ -49,11 +49,7 @@ public sealed partial class InvoicePdfLanguagePack {
     /// </summary>
     public static InvoicePdfLanguagePack Create(string cultureName, IReadOnlyDictionary<InvoicePdfText, string> labels) {
         if (string.IsNullOrWhiteSpace(cultureName)) throw new ArgumentException("A culture name is required.", nameof(cultureName));
-#if NET8_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(labels);
-#else
-        if (labels == null) throw new ArgumentNullException(nameof(labels));
-#endif
         var copy = new Dictionary<InvoicePdfText, string>();
         foreach (KeyValuePair<InvoicePdfText, string> entry in labels) {
 #if NET8_0_OR_GREATER

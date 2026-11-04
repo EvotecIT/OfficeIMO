@@ -60,22 +60,22 @@ namespace OfficeIMO.Excel.Xlsb {
 
         internal void Validate() {
             CancellationToken.ThrowIfCancellationRequested();
-            if (MaxRelatedParts <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRelatedParts));
-            if (MaxRelationshipDepth <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRelationshipDepth));
-            if (MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPartBytes));
-            if (MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
-            if (MaxRecordBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordBytes));
-            if (MaxRecordCount <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRecordCount));
-            if (MaxWorksheets <= 0) throw new ArgumentOutOfRangeException(nameof(MaxWorksheets));
-            if (MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCells));
-            if (MaxLogicalRows <= 0) throw new ArgumentOutOfRangeException(nameof(MaxLogicalRows));
-            if (MaxRowDefinitions <= 0) throw new ArgumentOutOfRangeException(nameof(MaxRowDefinitions));
-            if (MaxSharedStrings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStrings));
-            if (MaxSharedStringItemCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStringItemCharacters));
-            if (MaxSharedStringCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStringCharacters));
-            if (MaxMergedRanges <= 0) throw new ArgumentOutOfRangeException(nameof(MaxMergedRanges));
-            if (MaxHyperlinks <= 0) throw new ArgumentOutOfRangeException(nameof(MaxHyperlinks));
-            if (MaxStringCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStringCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxRelatedParts);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxRelationshipDepth);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPartBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxPackageBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxRecordBytes);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxRecordCount);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxWorksheets);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxCells);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxLogicalRows);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxRowDefinitions);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSharedStrings);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSharedStringItemCharacters);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxSharedStringCharacters);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxMergedRanges);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxHyperlinks);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(MaxStringCharacters);
         }
     }
 }

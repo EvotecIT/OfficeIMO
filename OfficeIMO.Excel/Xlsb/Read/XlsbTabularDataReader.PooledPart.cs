@@ -8,9 +8,7 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             Stream worksheetPart,
             XlsbImportOptions limits,
             CancellationToken cancellationToken) {
-            if (worksheetPart == null) {
-                throw new ArgumentNullException(nameof(worksheetPart));
-            }
+            ArgumentNullException.ThrowIfNull(worksheetPart);
             try {
                 if (!worksheetPart.CanRead || !worksheetPart.CanSeek) {
                     throw new InvalidOperationException(

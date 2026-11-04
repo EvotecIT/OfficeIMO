@@ -20,8 +20,8 @@ public static class EmailAddressBookEntryReader {
         ReaderOptions? readerOptions = null,
         ReaderEmailAddressBookOptions? addressBookOptions = null,
         CancellationToken cancellationToken = default) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(path);
         var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         return reader.Scope(ReadPathCore(path, effective,
             ReaderEmailAddressBookOptionsCloner.CloneOrDefault(addressBookOptions), cancellationToken), effective);
@@ -37,8 +37,8 @@ public static class EmailAddressBookEntryReader {
         ReaderOptions? readerOptions = null,
         ReaderEmailAddressBookOptions? addressBookOptions = null,
         CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(sourceName);
         var effective = DocumentReaderEngine.NormalizeOptions(readerOptions);
         return OfficeDocumentReader.Default.Scope(ReadStreamCore(stream, sourceName, effective,
             ReaderEmailAddressBookOptionsCloner.CloneOrDefault(addressBookOptions), cancellationToken), effective);

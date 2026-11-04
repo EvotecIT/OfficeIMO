@@ -137,9 +137,7 @@ namespace OfficeIMO.Visio {
         }
 
         private void PrepareConnectorForPage(VisioConnector connector, VisioConnector? ignoredConnector = null) {
-            if (connector == null) {
-                throw new ArgumentNullException(nameof(connector));
-            }
+            ArgumentNullException.ThrowIfNull(connector);
 
             if (_connectors.Contains(connector) && !ReferenceEquals(connector, ignoredConnector)) {
                 throw new InvalidOperationException("The connector is already part of this page.");
@@ -153,9 +151,7 @@ namespace OfficeIMO.Visio {
         }
 
         private void PrepareShapeForPage(VisioShape shape, VisioShape? ignoredShape = null) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             EnsureShapeNotOwnedByAnotherPage(shape);
 

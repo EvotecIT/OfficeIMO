@@ -50,7 +50,7 @@ public static partial class OfficeWebpCodec {
     /// <summary>Encodes WebP to a caller-owned buffer writer.</summary>
     public static void EncodeTo(OfficeRasterImage image, IBufferWriter<byte> destination, OfficeWebpEncodeOptions options,
         CancellationToken cancellationToken = default) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, stream, options, cancellationToken);
     }
@@ -59,7 +59,7 @@ public static partial class OfficeWebpCodec {
     internal static void EncodeTo(OfficeRasterImage image, Stream destination, OfficeWebpEncodeOptions options,
         double? dpiX, double? dpiY, CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null, bool materializeOutput = false) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         ValidateWebpOptions(options);
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
@@ -130,7 +130,7 @@ public static partial class OfficeWebpCodec {
     }
 
     private static void ValidateWebpOptions(OfficeWebpEncodeOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.Mode != OfficeWebpEncodingMode.Lossless && options.Mode != OfficeWebpEncodingMode.Lossy) {
             throw new ArgumentOutOfRangeException(nameof(options), "Unknown WebP compression mode.");
         }
@@ -139,7 +139,7 @@ public static partial class OfficeWebpCodec {
         }
         if (options.Effort != OfficeImageEncodingEffort.Fast && options.Effort != OfficeImageEncodingEffort.Balanced && options.Effort != OfficeImageEncodingEffort.Smallest)
             throw new ArgumentOutOfRangeException(nameof(options), "Unknown lossless encoding effort.");
-        if (options.RetainedManagedBytes < 0) throw new ArgumentOutOfRangeException(nameof(options));
+        ArgumentOutOfRangeException.ThrowIfNegative(options.RetainedManagedBytes, nameof(options));
     }
 
     private static void WriteLossyWebpChunk(Stream destination, string name, byte[] payload, CancellationToken cancellationToken) {

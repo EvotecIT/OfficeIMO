@@ -7,7 +7,7 @@ namespace OfficeIMO.Excel {
             => HasPendingDirectCellValues || HasUnmaterializedDirectDataSetRows;
 
         internal T ExecuteReadAfterMaterializing<T>(Func<T> read, CancellationToken cancellationToken = default) {
-            if (read == null) throw new ArgumentNullException(nameof(read));
+            ArgumentNullException.ThrowIfNull(read);
             cancellationToken.ThrowIfCancellationRequested();
             ReaderWriterLockSlim lck = EnsureLock();
             if (Locking.IsNoLock || lck.IsWriteLockHeld) {

@@ -28,7 +28,7 @@ public sealed class ContentLineProperty {
 
     /// <summary>Replaces every matching parameter with one parameter containing the supplied values.</summary>
     public ContentLineProperty SetParameter(string name, params string[] values) {
-        if (values == null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(values);
         for (int index = _parameters.Count - 1; index >= 0; index--) {
             if (string.Equals(_parameters[index].Name, name, StringComparison.OrdinalIgnoreCase))
                 _parameters.RemoveAt(index);

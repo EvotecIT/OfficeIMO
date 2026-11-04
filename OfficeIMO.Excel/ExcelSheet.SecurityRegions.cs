@@ -238,7 +238,7 @@ namespace OfficeIMO.Excel {
         }
 
         private IReadOnlyList<string> NormalizeRegionReferences(IEnumerable<string> ranges) {
-            if (ranges == null) throw new ArgumentNullException(nameof(ranges));
+            ArgumentNullException.ThrowIfNull(ranges);
             var result = new List<string>();
             foreach (string raw in ranges) {
                 ExcelReference reference = ExcelReference.Parse(raw);

@@ -349,8 +349,8 @@ namespace OfficeIMO.Word {
         /// Adds a hyperlink pointing to the specified anchor within the document using existing runs.
         /// </summary>
         public static WordHyperLink AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, string anchor, bool addStyle = false, string tooltip = "", bool history = true) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (runs == null) throw new ArgumentNullException(nameof(runs));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(runs);
 
             Hyperlink hyperlink = new Hyperlink() {
                 Anchor = anchor,
@@ -379,8 +379,8 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, string anchor, bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (inlineContent == null) throw new ArgumentNullException(nameof(inlineContent));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(inlineContent);
 
             var hyperlink = new Hyperlink {
                 Anchor = anchor,
@@ -440,8 +440,8 @@ namespace OfficeIMO.Word {
         /// Adds a hyperlink pointing to an external URI using existing runs.
         /// </summary>
         public static WordHyperLink AddHyperLink(WordParagraph paragraph, IEnumerable<WordParagraph> runs, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (runs == null) throw new ArgumentNullException(nameof(runs));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(runs);
 
             OpenXmlPart relationshipOwner = ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
                 ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
@@ -474,8 +474,8 @@ namespace OfficeIMO.Word {
         }
 
         internal static WordParagraph AddHyperLinkContent(WordParagraph paragraph, IEnumerable<OpenXmlElement> inlineContent, Uri uri, bool addStyle = false, string tooltip = "", bool history = true, bool moveContent = false) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
-            if (inlineContent == null) throw new ArgumentNullException(nameof(inlineContent));
+            ArgumentNullException.ThrowIfNull(paragraph);
+            ArgumentNullException.ThrowIfNull(inlineContent);
 
             OpenXmlPart relationshipOwner = ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
                 ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
@@ -532,7 +532,7 @@ namespace OfficeIMO.Word {
         /// <param name="newUri">Destination of the new hyperlink.</param>
         /// <returns>Newly created hyperlink.</returns>
         public static WordHyperLink CreateFormattedHyperlink(WordHyperLink reference, string newText, Uri newUri) {
-            if (reference == null) throw new ArgumentNullException(nameof(reference));
+            ArgumentNullException.ThrowIfNull(reference);
 
             return reference.InsertFormattedHyperlinkAfter(newText, newUri);
         }
@@ -544,8 +544,8 @@ namespace OfficeIMO.Word {
         /// <param name="newUri">Destination of the new hyperlink.</param>
         /// <returns>The inserted hyperlink.</returns>
         public WordHyperLink InsertFormattedHyperlinkAfter(string newText, Uri newUri) {
-            if (newText == null) throw new ArgumentNullException(nameof(newText));
-            if (newUri == null) throw new ArgumentNullException(nameof(newUri));
+            ArgumentNullException.ThrowIfNull(newText);
+            ArgumentNullException.ThrowIfNull(newUri);
 
             OpenXmlPart relationshipOwner = ResolveRelationshipPart()
                 ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
@@ -578,8 +578,8 @@ namespace OfficeIMO.Word {
         /// <param name="newUri">Destination of the new hyperlink.</param>
         /// <returns>The inserted hyperlink.</returns>
         public WordHyperLink InsertFormattedHyperlinkBefore(string newText, Uri newUri) {
-            if (newText == null) throw new ArgumentNullException(nameof(newText));
-            if (newUri == null) throw new ArgumentNullException(nameof(newUri));
+            ArgumentNullException.ThrowIfNull(newText);
+            ArgumentNullException.ThrowIfNull(newUri);
 
             OpenXmlPart relationshipOwner = ResolveRelationshipPart()
                 ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
@@ -611,7 +611,7 @@ namespace OfficeIMO.Word {
         /// <param name="reference">Hyperlink to duplicate.</param>
         /// <returns>The duplicated hyperlink.</returns>
         public static WordHyperLink DuplicateHyperlink(WordHyperLink reference) {
-            if (reference == null) throw new ArgumentNullException(nameof(reference));
+            ArgumentNullException.ThrowIfNull(reference);
 
             Hyperlink duplicate = (Hyperlink)reference._hyperlink.CloneNode(true);
             reference._hyperlink.InsertAfterSelf(duplicate);
@@ -624,7 +624,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="reference">Hyperlink to copy formatting from.</param>
         public void CopyFormattingFrom(WordHyperLink reference) {
-            if (reference == null) throw new ArgumentNullException(nameof(reference));
+            ArgumentNullException.ThrowIfNull(reference);
 
             Run run = _run ?? new Run();
             if (_run == null) {

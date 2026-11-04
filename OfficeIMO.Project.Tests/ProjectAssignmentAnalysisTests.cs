@@ -26,6 +26,34 @@ public sealed class ProjectAssignmentAnalysisTests {
         Assert.Equal(35, ProjectWorkEquation.MaterialCost(3, 10, 5));
         Assert.Throws<ArgumentException>(() => ProjectWorkEquation.WorkCost(ProjectWork.Hours(1), ProjectWork.Hours(2), 100, 150));
     }
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ZeroQuantitiesAcceptNegativeDecimalZero(int boundary) {
+        decimal zero = new decimal(0, 0, 0, isNegative: true, scale: 0);
+        decimal actual;
+        switch (boundary) {
+            case 0:
+                actual = new ProjectWork(zero).Minutes;
+                break;
+            case 1:
+                actual = ProjectUnits.Fraction(zero).Value;
+                break;
+            case 2:
+                actual = ProjectWorkEquation.Work(zero, ProjectUnits.Fraction(1m)).Minutes;
+                break;
+            default:
+                using (var document = ProjectDocument.Create()) {
+                    var summary = document.AddRecurringTask("Zero duration", new[] { new DateTime(2026, 1, 1) },
+                        ProjectDuration.WorkingMinutes(zero));
+                    actual = Assert.Single(summary.Children).Duration!.Value.Value;
+                }
+                break;
+        }
+        Assert.Equal(0m, actual);
+    }
     [Fact]
     public void StoredResourceCachesAndAssignmentTotalsRemainSeparateObservations() {
         using var native = ProjectDocument.Load(ProjectNativeTests.Fixture("actuals.mpp"));

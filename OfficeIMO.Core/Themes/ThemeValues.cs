@@ -12,13 +12,13 @@ internal static class ThemeValues {
         if (value.IsThemeRole) throw new ArgumentException("Palette colors must be literal to prevent circular role resolution.", name);
     }
     internal static IReadOnlyList<string> Names(IReadOnlyList<string> values, string name) {
-        if (values == null) throw new ArgumentNullException(name);
+        ArgumentNullException.ThrowIfNull(values, name);
         var copy = new List<string>(values.Count);
         foreach (string value in values) copy.Add(FontName(value, name));
         return copy.AsReadOnly();
     }
     internal static IReadOnlyList<OfficeColor> Colors(IReadOnlyList<OfficeColor> values, string name) {
-        if (values == null) throw new ArgumentNullException(name);
+        ArgumentNullException.ThrowIfNull(values, name);
         if (values.Count == 0) throw new ArgumentException("A series palette must contain at least one color.", name);
         return new List<OfficeColor>(values).AsReadOnly();
     }

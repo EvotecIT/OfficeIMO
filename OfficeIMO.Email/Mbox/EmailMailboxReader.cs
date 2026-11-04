@@ -17,13 +17,13 @@ public sealed class EmailMailboxReader {
 
     /// <summary>Reads a mailbox file.</summary>
     public EmailMailboxReadResult Read(string filePath, CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         using (FileStream stream = File.OpenRead(filePath)) return Read(stream, cancellationToken);
     }
 
     /// <summary>Reads mailbox bytes.</summary>
     public EmailMailboxReadResult Read(byte[] data, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         cancellationToken.ThrowIfCancellationRequested();
         if (data.LongLength > _options.MaxMailboxBytes) {
             throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMailboxBytes), data.LongLength,
@@ -49,7 +49,7 @@ public sealed class EmailMailboxReader {
 
     /// <summary>Asynchronously reads a mailbox file.</summary>
     public async Task<EmailMailboxReadResult> ReadAsync(string filePath, CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         using (FileStream stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read,
             81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
             return await ReadAsync(stream, cancellationToken).ConfigureAwait(false);
@@ -75,7 +75,7 @@ public sealed class EmailMailboxReader {
     /// <summary>Enumerates a mailbox file while retaining at most one decoded message in memory.</summary>
     public IEnumerable<EmailMailboxEntryReadResult> ReadEntries(string filePath,
         CancellationToken cancellationToken = default) {
-        if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+        ArgumentNullException.ThrowIfNull(filePath);
         return EnumerateFile(filePath, cancellationToken);
     }
 

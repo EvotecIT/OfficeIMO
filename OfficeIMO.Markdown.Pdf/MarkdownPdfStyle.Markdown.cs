@@ -5,9 +5,7 @@ namespace OfficeIMO.Markdown.Pdf;
 public sealed partial class MarkdownPdfStyle {
     /// <summary>Creates a PDF-specific profile from a shared Markdown visual theme.</summary>
     internal static MarkdownPdfStyle FromMarkdownTheme(MarkdownVisualTheme theme) {
-        if (theme == null) {
-            throw new ArgumentNullException(nameof(theme));
-        }
+        ArgumentNullException.ThrowIfNull(theme);
 
         MarkdownPdfStyle pdfTheme = Create(theme.Kind);
         pdfTheme.Name = theme.Name;

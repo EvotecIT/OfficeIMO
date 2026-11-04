@@ -59,10 +59,7 @@ public static partial class WordDocumentService
     /// <summary>Disposes the Word document.</summary>
     public static void CloseDocument(WordDocument document)
     {
-        if (document == null)
-        {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         try
         {

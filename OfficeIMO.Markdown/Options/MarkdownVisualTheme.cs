@@ -272,9 +272,7 @@ public sealed class MarkdownVisualTheme {
 
     /// <summary>Returns a copy of this theme with table styling configured.</summary>
     public MarkdownVisualTheme WithTable(Action<MarkdownTableVisualStyle> configure) {
-        if (configure == null) {
-            throw new ArgumentNullException(nameof(configure));
-        }
+        ArgumentNullException.ThrowIfNull(configure);
 
         MarkdownVisualTheme clone = Clone();
         configure(clone._table);

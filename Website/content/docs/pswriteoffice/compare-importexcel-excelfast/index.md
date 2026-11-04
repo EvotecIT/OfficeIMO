@@ -91,7 +91,7 @@ pwsh -NoProfile -File .\Benchmarks\Compare-ExcelPerformance.ps1 `
     -Engine PSWriteOffice,ImportExcel,ExcelFast
 ```
 
-See the [benchmark methodology and complete result matrix](https://github.com/EvotecIT/OfficeIMO/blob/7fa01d150c47a5a42b8fa099ff2f560b375c9c47/PowerShell/PSWriteOffice/Benchmarks/README.md) before quoting a result.
+See the [benchmark methodology and complete result matrix](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Benchmarks/README.md) before quoting a result.
 
 ## Choose ImportExcel when
 

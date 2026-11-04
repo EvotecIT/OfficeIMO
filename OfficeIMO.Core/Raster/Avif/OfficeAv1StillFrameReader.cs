@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 internal static partial class OfficeAv1StillFrameReader {
     internal static bool TryRead(byte[] bytes, OfficeAvifImageItem item, OfficeAv1StillSequence sequence,
         OfficeRasterDecodeOptions options, out OfficeAv1StillFrame? frame) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         options.CancellationToken.ThrowIfCancellationRequested();
         frame = null;

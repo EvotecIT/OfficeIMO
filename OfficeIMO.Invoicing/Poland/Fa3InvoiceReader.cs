@@ -13,7 +13,7 @@ public static partial class Fa3InvoiceReader {
     /// <summary>Reads a defensive snapshot, rejecting DTDs, ambiguous scalar fields and inputs over 16 MiB or depth 128.</summary>
     /// <remarks>National VAT buckets and P_15 are retained verbatim. No rounding, exchange rate or advance settlement is invented.</remarks>
     public static Fa3InvoiceReadResult Read(byte[] xml) {
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
         if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new InvalidDataException("Invoice XML must contain between 1 byte and 16 MiB.");
         byte[] snapshot = (byte[])xml.Clone();

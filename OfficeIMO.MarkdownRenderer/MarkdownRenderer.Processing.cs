@@ -78,9 +78,7 @@ public static partial class MarkdownRenderer {
         string? sourceMarkdown = null,
         string? originalMarkdown = null,
         bool preservesOriginalMarkdown = false) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var transforms = options.DocumentTransforms;
         if (transforms == null || transforms.Count == 0) {

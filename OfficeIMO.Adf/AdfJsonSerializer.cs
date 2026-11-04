@@ -44,7 +44,7 @@ internal static class AdfJsonSerializer {
     }
 
     internal static string Serialize(AdfDocument document, bool indented, AdfProcessingOptions? options = null) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         options ??= new AdfProcessingOptions();
         AdfGraphSafety.EnsureSafe(document, options);
         CancellationToken cancellationToken = options.CancellationToken;

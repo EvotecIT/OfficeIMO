@@ -38,7 +38,7 @@ public sealed class OfficeDocumentBlockNormalizationProcessor : OfficeDocumentPr
     public override OfficeDocumentReadResult Process(
         OfficeDocumentReadResult document,
         OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         foreach (OfficeDocumentBlock block in OfficeDocumentModelTraversal.BlockInstances(document)) {
             context.CancellationToken.ThrowIfCancellationRequested();
             if (_options.TrimText) block.Text = (block.Text ?? string.Empty).Trim();

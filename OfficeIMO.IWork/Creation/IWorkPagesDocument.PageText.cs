@@ -44,7 +44,7 @@ public sealed partial class IWorkPagesDocument {
     public void ClearFooter() { Footer = null; FooterDistancePoints = 0; }
 
     private static void ValidatePageText(IWorkTextRunData run, float distancePoints, float bodyMargin) {
-        if (run == null) throw new ArgumentNullException(nameof(run));
+        ArgumentNullException.ThrowIfNull(run);
         if (run.Text.Length == 0)
             throw new ArgumentException("Header and footer text must contain at least one character; clear the area to disable it.", nameof(run));
         if (run.Text.IndexOfAny(new[] { '\n', '\t', '\u2028', '\u2029' }) >= 0)

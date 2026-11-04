@@ -6,7 +6,7 @@ namespace OfficeIMO.Drawing;
 internal static class OfficeAv1StillSequenceReader {
     internal static bool TryRead(byte[] bytes, OfficeAvifImageItem item, OfficeRasterDecodeOptions options,
         out OfficeAv1StillSequence? sequence) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate();
         options.CancellationToken.ThrowIfCancellationRequested();
         sequence = null;

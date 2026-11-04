@@ -61,8 +61,8 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static ExcelChartData From<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params ExcelChartSeriesDefinition<T>[] seriesDefinitions) {
-            if (items == null) throw new ArgumentNullException(nameof(items));
-            if (categorySelector == null) throw new ArgumentNullException(nameof(categorySelector));
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(categorySelector);
             if (seriesDefinitions == null || seriesDefinitions.Length == 0) {
                 throw new ArgumentException("At least one series definition is required.", nameof(seriesDefinitions));
             }

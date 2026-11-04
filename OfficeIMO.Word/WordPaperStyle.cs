@@ -73,7 +73,7 @@ public sealed partial class WordPaperStyle {
 
     /// <summary>Applies body typography and dark headings to existing document paragraphs without restyling tables.</summary>
     public void ApplyTypography(WordDocument document) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         foreach (WordParagraph paragraph in document.Paragraphs) {
             paragraph.FontFamily = FontFamily;
             int level = paragraph.Style == WordParagraphStyles.Heading1 ? 1
@@ -92,8 +92,8 @@ public sealed partial class WordPaperStyle {
 
     /// <summary>Writes multiline text into an empty table cell with paper typography.</summary>
     public void SetCellText(WordTableCell cell, string text) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(cell);
+        ArgumentNullException.ThrowIfNull(text);
         string[] lines = text.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         for (int index = 0; index < lines.Length; index++) {
             WordParagraph paragraph = index == 0 ? cell.Paragraphs[0] : cell.AddParagraph();
@@ -107,7 +107,7 @@ public sealed partial class WordPaperStyle {
     /// <param name="tone">Text color as RGB hex.</param>
     /// <param name="tint">Optional background color as RGB hex; null retains the current fill.</param>
     public void ApplyCellTone(WordTableCell cell, string tone, string? tint = null) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
+        ArgumentNullException.ThrowIfNull(cell);
         if (tint != null) cell.ShadingFillValue = tint;
         foreach (WordParagraph paragraph in cell.Paragraphs) paragraph.RunColorValue = tone;
     }
@@ -119,7 +119,7 @@ public sealed partial class WordPaperStyle {
     /// <param name="tone">Rule color as RGB hex.</param>
     /// <param name="tint">Background color as RGB hex.</param>
     public void ApplyValueCard(WordTableCell cell, string label, string value, string tone, string tint) {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
+        ArgumentNullException.ThrowIfNull(cell);
         cell.ShadingFillValue = tint;
         cell.VerticalAlignment = WordTableVerticalAlignment.Center;
         cell.MarginTop = global::OfficeIMO.OfficeLength.Points(7.5D);
@@ -142,7 +142,7 @@ public sealed partial class WordPaperStyle {
     /// <param name="cell">Destination cell.</param>
     /// <param name="background">Page background as RGB hex.</param>
     public void ApplySpacerCell(WordTableCell cell, string background = "FFFFFF") {
-        if (cell == null) throw new ArgumentNullException(nameof(cell));
+        ArgumentNullException.ThrowIfNull(cell);
         cell.ShadingFillValue = background;
         cell.MarginTop = global::OfficeIMO.OfficeLength.Zero;
         cell.MarginBottom = global::OfficeIMO.OfficeLength.Zero;

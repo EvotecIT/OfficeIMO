@@ -44,7 +44,7 @@ internal static class OfficeVbaText {
     }
 
     internal static string NormalizeSource(string source, string name, OfficeVbaModuleKind kind, string? existingSource = null) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         if (source.IndexOf('\0') >= 0) throw new ArgumentException("VBA source cannot contain NUL characters reserved for compression padding.", nameof(source));
         string[] lines = source.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
         ValidateClassAttributes(lines);

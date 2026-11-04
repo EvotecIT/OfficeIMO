@@ -8,7 +8,7 @@ public static class AsciiDocProcessor {
 
     /// <summary>Processes source with bounded includes, output, and cooperative cancellation.</summary>
     public static AsciiDocProcessingResult Process(string source, AsciiDocProcessorOptions? options, System.Threading.CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         options ??= new AsciiDocProcessorOptions();
         ValidateOptions(options);
 

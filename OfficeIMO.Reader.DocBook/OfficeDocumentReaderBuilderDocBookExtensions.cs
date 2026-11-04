@@ -9,7 +9,7 @@ public static class OfficeDocumentReaderBuilderDocBookExtensions {
     public const string HandlerId = "officeimo.reader.docbook";
     /// <summary>Adds .dbk and .docbook path and stream ingestion. Generic .xml remains owned by the XML adapter.</summary>
     public static OfficeDocumentReaderBuilder AddDocBookHandler(this OfficeDocumentReaderBuilder builder, ReaderDocBookOptions? options = null, bool replaceExisting = true) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderDocBookOptions registered = ReaderDocBookOptionsCloner.Clone(options);
         return builder.AddHandler(new ReaderHandlerRegistration {
             Origin = ReaderHandlerOrigin.OfficeIMO, Id = HandlerId, DisplayName = "DocBook Reader Adapter",

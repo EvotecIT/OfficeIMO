@@ -2,7 +2,7 @@ namespace OfficeIMO.Email.AddressBook;
 
 internal static class OabBinary {
     internal static uint UInt32(byte[] buffer, int offset) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || offset > buffer.Length - 4) throw new InvalidDataException("Unexpected end of OAB data.");
         return unchecked((uint)(buffer[offset] |
             (buffer[offset + 1] << 8) |
@@ -16,7 +16,7 @@ internal static class OabBinary {
     }
 
     internal static byte[] ReadExactly(Stream stream, int count, string location) {
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         var result = new byte[count];
         int offset = 0;
         while (offset < count) {

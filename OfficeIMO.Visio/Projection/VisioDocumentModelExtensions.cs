@@ -15,7 +15,7 @@ public static class VisioDocumentModelExtensions {
         string? sourceName = null,
         VisioDocumentProjectionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         if (sourceName != null && string.IsNullOrWhiteSpace(sourceName)) {
             throw new ArgumentException("Source name cannot be empty.", nameof(sourceName));
         }

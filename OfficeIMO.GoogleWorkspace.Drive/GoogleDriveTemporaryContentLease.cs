@@ -75,7 +75,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveUploadOptions options,
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
-            if (client == null) throw new ArgumentNullException(nameof(client));
+            ArgumentNullException.ThrowIfNull(client);
             report ??= new TranslationReport();
             GoogleDriveFile? file = null;
             var cleanupReport = new GoogleDriveCleanupReport();

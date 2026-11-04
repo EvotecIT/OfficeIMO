@@ -7,7 +7,7 @@ public sealed class IWorkKeynoteTextBox : IWorkKeynoteCreationDrawable {
         : this(new[] { new IWorkTextRunData(text, fontName, fontSize, color) }, left, top, width, height) { }
 
     internal IWorkKeynoteTextBox(IEnumerable<IWorkTextRunData> runs, float left, float top, float width, float height) {
-        if (runs == null) throw new ArgumentNullException(nameof(runs));
+        ArgumentNullException.ThrowIfNull(runs);
         IWorkCreationValidation.ValidateFinite(left, nameof(left));
         IWorkCreationValidation.ValidateFinite(top, nameof(top));
         IWorkCreationValidation.ValidatePositive(width, nameof(width));

@@ -17,8 +17,8 @@ public sealed class PdfTextImportOptions {
     public PdfTextImportOptions Clone() {
         if (PdfOptions == null) throw new ArgumentException("PDF settings are required.", nameof(PdfOptions));
         if (TabSize < 1 || TabSize > 32) throw new ArgumentOutOfRangeException(nameof(TabSize));
-        if (MaximumCharacters < 1) throw new ArgumentOutOfRangeException(nameof(MaximumCharacters));
-        if (MaximumPages < 1) throw new ArgumentOutOfRangeException(nameof(MaximumPages));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumCharacters, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaximumPages, 1);
         return new PdfTextImportOptions {
             PdfOptions = PdfOptions.Clone(), EncodingName = EncodingName, TabSize = TabSize,
             MaximumCharacters = MaximumCharacters, MaximumPages = MaximumPages

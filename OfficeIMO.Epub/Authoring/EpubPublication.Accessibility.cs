@@ -15,14 +15,14 @@ public sealed partial class EpubPublication {
     /// by the publisher, not inferred or certified. Null summary and empty sufficient-mode sets remove those properties.
     /// </summary>
     public void SetAccessibilityMetadata(EpubAccessibilityMetadata metadata) {
-        if (metadata == null) throw new ArgumentNullException(nameof(metadata));
+        ArgumentNullException.ThrowIfNull(metadata);
         if (PackageVersion != "3.0") throw new NotSupportedException("Typed accessibility discovery metadata requires EPUB 3.");
         if (EpubVocabulary.Expand(Root, "schema:accessMode") != SchemaVocabulary + "accessMode")
             throw new InvalidOperationException("The schema prefix does not identify the schema.org vocabulary.");
         string[] modes = AccessibilityTokens(metadata.AccessModes, nameof(metadata.AccessModes));
         string[] features = AccessibilityTokens(metadata.Features, nameof(metadata.Features));
         string[] hazards = AccessibilityTokens(metadata.Hazards, nameof(metadata.Hazards));
-        if (metadata.SufficientAccessModes == null) throw new ArgumentNullException(nameof(metadata.SufficientAccessModes));
+        ArgumentNullException.ThrowIfNull(metadata.SufficientAccessModes, nameof(metadata.SufficientAccessModes));
         string[] sufficient = metadata.SufficientAccessModes.Select(set => string.Join(",",
             AccessibilityTokens(set, nameof(metadata.SufficientAccessModes)))).Distinct(StringComparer.Ordinal).ToArray();
         string[] summaries = metadata.Summary == null ? Array.Empty<string>() : new[] { metadata.Summary.Trim() };
@@ -35,7 +35,7 @@ public sealed partial class EpubPublication {
     }
 
     private static string[] AccessibilityTokens(IReadOnlyList<string> values, string parameter) {
-        if (values == null) throw new ArgumentNullException(parameter);
+        ArgumentNullException.ThrowIfNull(values, parameter);
         string[] result = values.Select(value => {
             if (string.IsNullOrWhiteSpace(value) || value.Any(character => char.IsWhiteSpace(character) || character == ','))
                 throw new ArgumentException("Each discovery vocabulary value must be a nonempty token, without commas or whitespace.", parameter);

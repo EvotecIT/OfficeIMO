@@ -11,7 +11,7 @@ internal sealed class PstBlockReadStream : Stream {
 
     internal PstBlockReadStream(Func<IEnumerable<byte[]>> blocks,
         EmailStoreSessionLifetime lifetime, Action<int>? bytesRead = null) {
-        if (blocks == null) throw new ArgumentNullException(nameof(blocks));
+        ArgumentNullException.ThrowIfNull(blocks);
         _lifetime = lifetime ?? throw new ArgumentNullException(nameof(lifetime));
         _bytesRead = bytesRead;
         _blocks = blocks().GetEnumerator();
@@ -27,7 +27,7 @@ internal sealed class PstBlockReadStream : Stream {
     }
 
     public override int Read(byte[] buffer, int offset, int count) {
-        if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+        ArgumentNullException.ThrowIfNull(buffer);
         if (offset < 0 || count < 0 || offset > buffer.Length - count) {
             throw new ArgumentOutOfRangeException(offset < 0 ? nameof(offset) : nameof(count));
         }

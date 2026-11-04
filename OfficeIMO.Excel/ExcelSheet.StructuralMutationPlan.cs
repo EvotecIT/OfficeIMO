@@ -1175,9 +1175,7 @@ namespace OfficeIMO.Excel {
             }
 
             internal int GetBudgetedReadSize(int requestedBytes) {
-                if (requestedBytes < 0) {
-                    throw new ArgumentOutOfRangeException(nameof(requestedBytes));
-                }
+                ArgumentOutOfRangeException.ThrowIfNegative(requestedBytes);
                 long probeLimit = _remainingXmlBytes == long.MaxValue
                     ? long.MaxValue
                     : _remainingXmlBytes + 1L;

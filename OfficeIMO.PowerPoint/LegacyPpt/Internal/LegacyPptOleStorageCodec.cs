@@ -11,16 +11,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptDecodedStorageBudget decodedStorageBudget,
             out byte[] storageBytes,
             out bool wasCompressed, out string? reason) {
-            if (persistObject == null) {
-                throw new ArgumentNullException(nameof(persistObject));
-            }
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (recordBudget == null) {
-                throw new ArgumentNullException(nameof(recordBudget));
-            }
-            if (decodedStorageBudget == null) {
-                throw new ArgumentNullException(nameof(decodedStorageBudget));
-            }
+            ArgumentNullException.ThrowIfNull(persistObject);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(recordBudget);
+            ArgumentNullException.ThrowIfNull(decodedStorageBudget);
             storageBytes = Array.Empty<byte>();
             wasCompressed = false;
             reason = null;

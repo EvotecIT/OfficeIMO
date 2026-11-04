@@ -33,7 +33,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointDocument ApplyDesignerTheme(this PowerPointDocument presentation,
             PowerPointDesignTheme? theme = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             PowerPointDesignTheme resolvedTheme = ResolveTheme(theme);
             PowerPointLayoutTheme mapped = PowerPointLayoutTheme.From(resolvedTheme, presentation.BaseTheme);
             if (presentation.OwnsLayoutTheme) {
@@ -108,8 +108,8 @@ namespace OfficeIMO.PowerPoint {
 
         public static PowerPointSlide AddDesignerSectionSlide(this PowerPointDocument presentation, string title,
             string? subtitle = null, PowerPointDesignTheme? theme = null, PowerPointDesignerSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(title);
             PowerPointDesignerSlideOptions resolved = options ?? new PowerPointDesignerSlideOptions();
             bool cover = presentation.Slides.Count == 0;
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved,
@@ -121,8 +121,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerCaseStudySlide(this PowerPointDocument presentation,
             string clientTitle, IEnumerable<PowerPointCaseStudySection> sections, IEnumerable<PowerPointMetric>? metrics = null,
             PowerPointDesignTheme? theme = null, PowerPointCaseStudySlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (clientTitle == null) throw new ArgumentNullException(nameof(clientTitle));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(clientTitle);
             PowerPointCaseStudySlideOptions resolved = options ?? new PowerPointCaseStudySlideOptions();
             List<PowerPointCaseStudySection> sectionList = NormalizeSections(sections, 4, nameof(sections));
             List<PowerPointMetric> metricList = (metrics ?? Enumerable.Empty<PowerPointMetric>()).Where(m => m != null).ToList();
@@ -142,8 +142,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerCardGridSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCardContent> cards,
             PowerPointDesignTheme? theme = null, PowerPointCardGridSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(title);
             PowerPointCardGridSlideOptions resolved = options ?? new PowerPointCardGridSlideOptions();
             List<PowerPointCardContent> cardList = NormalizeCards(cards);
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Cards);
@@ -155,8 +155,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerProcessSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointProcessStep> steps,
             PowerPointDesignTheme? theme = null, PowerPointProcessSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(title);
             PowerPointProcessSlideOptions resolved = options ?? new PowerPointProcessSlideOptions();
             List<PowerPointProcessStep> stepList = NormalizeSteps(steps);
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Process);
@@ -169,8 +169,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerLogoWallSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointLogoItem> logos,
             PowerPointDesignTheme? theme = null, PowerPointLogoWallSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(title);
             PowerPointLogoWallSlideOptions resolved = options ?? new PowerPointLogoWallSlideOptions();
             List<PowerPointLogoItem> logoList = NormalizeLogoItems(logos);
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.Logos);
@@ -186,8 +186,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerCoverageSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCoverageLocation> locations,
             PowerPointDesignTheme? theme = null, PowerPointCoverageSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(title);
             PowerPointCoverageSlideOptions resolved = options ?? new PowerPointCoverageSlideOptions();
             List<PowerPointCoverageLocation> locationList = NormalizeLocations(locations);
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle ?? resolved.SupportingText, resolved, PowerPointLayout.Coverage);
@@ -202,8 +202,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerCapabilitySlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointCapabilitySection> sections,
             PowerPointDesignTheme? theme = null, PowerPointCapabilitySlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (title == null) throw new ArgumentNullException(nameof(title));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(title);
             PowerPointCapabilitySlideOptions resolved = options ?? new PowerPointCapabilitySlideOptions();
             List<PowerPointCapabilitySection> sectionList = NormalizeCapabilitySections(sections);
             PowerPointLayoutSlide slide;
@@ -251,9 +251,9 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerExecutiveSummarySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointExecutiveSummaryContent content,
             PowerPointDesignTheme? theme = null, PowerPointExecutiveSummarySlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             PowerPointExecutiveSummarySlideOptions resolved = options ?? new PowerPointExecutiveSummarySlideOptions();
             PowerPointLayoutSlide slide;
             if (content.Metrics.Count > 0 && content.Points.Count > 0) {
@@ -283,9 +283,9 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerChartStorySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointChartStoryContent content,
             PowerPointDesignTheme? theme = null, PowerPointChartStorySlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             PowerPointChartStorySlideOptions resolved = options ?? new PowerPointChartStorySlideOptions();
             var chart = new PowerPointLayoutChart(content.ChartKind, content.SharedData) {
                 AlternativeText = content.AlternativeText ?? content.DataSummary
@@ -308,7 +308,7 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerComparisonSlide(this PowerPointDocument presentation,
             string title, string? subtitle, IEnumerable<PowerPointComparisonItem> items,
             PowerPointDesignTheme? theme = null, PowerPointComparisonSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             List<PowerPointComparisonItem> values = (items ?? throw new ArgumentNullException(nameof(items))).ToList();
             if (values.Count < 2 || values.Count > 4) {
                 throw new ArgumentOutOfRangeException(nameof(items), "Comparison slides support two to four options.");
@@ -342,8 +342,8 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerAppendixTableSlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointTableData data, PowerPointDesignTheme? theme = null,
             PowerPointAppendixTableSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(presentation);
+            ArgumentNullException.ThrowIfNull(data);
             PowerPointAppendixTableSlideOptions resolved = options ?? new PowerPointAppendixTableSlideOptions();
             var table = new PowerPointLayoutTable(data.Headers, data.Rows) { Caption = Join(data.Caption, Source(data.Provenance)) };
             PowerPointLayoutSlide slide;
@@ -364,9 +364,9 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerScreenshotStorySlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointImageAsset image, IEnumerable<string>? narrative = null,
             PowerPointDesignTheme? theme = null, PowerPointScreenshotStorySlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
-            if (image == null) throw new ArgumentNullException(nameof(image));
+            ArgumentNullException.ThrowIfNull(image);
             image.Validate();
             PowerPointScreenshotStorySlideOptions resolved = options ?? new PowerPointScreenshotStorySlideOptions();
             List<string> points = (narrative ?? Array.Empty<string>()).Where(n => !string.IsNullOrWhiteSpace(n)).ToList();
@@ -393,9 +393,9 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerArchitectureSlide(this PowerPointDocument presentation,
             string title, string? subtitle, PowerPointArchitectureContent content,
             PowerPointDesignTheme? theme = null, PowerPointArchitectureSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             PowerPointArchitectureSlideOptions resolved = options ?? new PowerPointArchitectureSlideOptions();
             PowerPointLayoutSlide slide = Content(presentation, title, subtitle, resolved, PowerPointLayout.TitleAndContent);
             slide.Blocks.Add(new PowerPointLayoutDrawing((target, context, box) => PowerPointLayoutDiagram.Draw(target, context, box, content)));
@@ -405,9 +405,9 @@ namespace OfficeIMO.PowerPoint {
         public static PowerPointSlide AddDesignerClosingSlide(this PowerPointDocument presentation,
             string title, PowerPointClosingContent content, PowerPointDesignTheme? theme = null,
             PowerPointClosingSlideOptions? options = null) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Title cannot be empty.", nameof(title));
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(content);
             PowerPointClosingSlideOptions resolved = options ?? new PowerPointClosingSlideOptions();
             PowerPointLayoutSlide slide = Content(presentation, title, Join(content.Statement, content.Contact, "\n"), resolved, PowerPointLayout.Closing);
             slide.Eyebrow = resolved.Eyebrow;

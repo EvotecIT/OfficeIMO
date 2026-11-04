@@ -6,7 +6,7 @@ public sealed partial class PublisherDocument {
     /// <summary>Appends both definitions of a two-page master atomically and returns their committed immutable snapshots.</summary>
     /// <remarks>Both definitions have the supplied name and the publication's existing size. Populate and assign each member through the ordinary page APIs. Definition coordinates use the native left/right registration: an applied left definition shifts right by half a page width, and an applied right definition shifts left by half a page width. No master is selected automatically by page parity. Limits, invalid input, cancellation or projection failure leave both definitions and the identifier allocator unchanged. This in-memory operation does not provide native PUB saving.</remarks>
     public (PublisherPage Left, PublisherPage Right) AddMasterPagePair(string name, CancellationToken cancellationToken = default) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(name) || name.Any(char.IsControl))
             throw new ArgumentException("Master names must contain non-control text.", nameof(name));

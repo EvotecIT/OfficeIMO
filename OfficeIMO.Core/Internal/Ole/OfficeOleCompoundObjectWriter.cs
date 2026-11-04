@@ -14,7 +14,7 @@ namespace OfficeIMO.Core.Internal {
             return stream.ToArray();
         }
         private static void WriteAnsi(BinaryWriter writer, string value, int maximum) {
-            if (value == null) throw new ArgumentNullException(nameof(value));
+            ArgumentNullException.ThrowIfNull(value);
             if (value.Length >= maximum) throw new ArgumentOutOfRangeException(nameof(value));
             foreach (char character in value) if (character == 0 || character > 127)
                 throw new ArgumentException("OLE identification strings must be ASCII without embedded NUL characters.", nameof(value));

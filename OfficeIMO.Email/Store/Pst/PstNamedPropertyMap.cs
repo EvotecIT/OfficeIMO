@@ -31,7 +31,7 @@ internal sealed class PstNamedPropertyMap {
     }
 
     internal bool TryGetPropertyId(MapiPropertyKey key, out ushort propertyId) {
-        if (key == null) throw new ArgumentNullException(nameof(key));
+        ArgumentNullException.ThrowIfNull(key);
         if (key.Name == null) {
             propertyId = 0;
             return false;

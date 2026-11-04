@@ -43,7 +43,7 @@ public sealed partial class HtmlConversionDocument {
     }
 
     private static string ReadText(Stream stream, Encoding? encoding, HtmlConversionLimits limits, Dom.IHtmlEncodingProvider encodingProvider) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         long position = stream.CanSeek ? stream.Position : 0;
         try {
@@ -66,7 +66,7 @@ public sealed partial class HtmlConversionDocument {
     }
 
     private static async Task<string> ReadTextAsync(Stream stream, Encoding? encoding, HtmlConversionLimits limits, Dom.IHtmlEncodingProvider encodingProvider, CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         long position = stream.CanSeek ? stream.Position : 0;
         try {

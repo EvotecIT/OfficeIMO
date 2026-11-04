@@ -14,7 +14,7 @@ public static class HtmlCssMathParser {
         string source,
         HtmlCssMathOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         HtmlCssMathOptions effective = (options ?? new HtmlCssMathOptions()).Clone();
         effective.Validate();
         cancellationToken.ThrowIfCancellationRequested();

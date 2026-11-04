@@ -28,9 +28,7 @@ internal static class MarkdownInlineCode {
     /// <param name="transformer">Transformation to apply to the protected text.</param>
     /// <returns>The transformed text with original inline-code spans restored.</returns>
     public static string ApplyTransformPreservingInlineCodeSpans(string? input, Func<string, string> transformer) {
-        if (transformer == null) {
-            throw new ArgumentNullException(nameof(transformer));
-        }
+        ArgumentNullException.ThrowIfNull(transformer);
 
         var protectedInput = ProtectInlineCodeSpans(input, out var codeSpans, out var tokenPrefix);
         var transformed = transformer(protectedInput);

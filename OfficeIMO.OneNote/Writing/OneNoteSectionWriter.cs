@@ -4,7 +4,7 @@ namespace OfficeIMO.OneNote;
 public static class OneNoteSectionWriter {
     /// <summary>Serializes a section to a new byte array.</summary>
     public static byte[] Write(OneNoteSection section, OneNoteWriterOptions? options = null) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         OneNoteWriterOptions effective = options ?? new OneNoteWriterOptions();
         OneNoteWriterValidation.ValidateSectionOptions(effective);
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(
@@ -27,7 +27,7 @@ public static class OneNoteSectionWriter {
 
     /// <summary>Serializes a section to a caller-owned writable stream.</summary>
     public static void Write(OneNoteSection section, Stream destination, OneNoteWriterOptions? options = null) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         byte[] data = Write(section, options);
         destination.Write(data, 0, data.Length);
@@ -35,7 +35,7 @@ public static class OneNoteSectionWriter {
 
     /// <summary>Serializes a section to a file, replacing an existing file.</summary>
     public static void Write(OneNoteSection section, string path, OneNoteWriterOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (path.Length == 0) throw new ArgumentException("Path cannot be empty.", nameof(path));
         byte[] data = Write(section, options);
         string fullPath = Path.GetFullPath(path);

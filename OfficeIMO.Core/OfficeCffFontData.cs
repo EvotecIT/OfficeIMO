@@ -40,7 +40,7 @@ internal sealed partial class OfficeCffFontData {
     internal OfficeCffVariationStore? VariationStore { get; }
 
     internal static bool IsStructurallyValidProgram(byte[] data, bool isCff2, bool? requireCidKeyed = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         try {
             int minimumHeaderSize = isCff2 ? 5 : 4;
             if (data.Length < minimumHeaderSize ||
@@ -202,8 +202,8 @@ internal sealed partial class OfficeCffFontData {
     }
 
     internal static OfficeCffFontData Parse(OfficeOpenTypeReader reader, OfficeFontVariationModel variations) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
-        if (variations == null) throw new ArgumentNullException(nameof(variations));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(variations);
         bool isCff2 = reader.TryGetTable("CFF2", out int tableOffset, out int tableLength);
         if (!isCff2 && !reader.TryGetTable("CFF ", out tableOffset, out tableLength)) {
             throw new InvalidDataException("The OpenType font does not contain CFF outlines.");
@@ -320,7 +320,8 @@ internal sealed partial class OfficeCffFontData {
     }
 
     internal CffSlice GetCharString(int glyphId) {
-        if (glyphId < 0 || glyphId >= _charStrings.Count) throw new ArgumentOutOfRangeException(nameof(glyphId));
+        ArgumentOutOfRangeException.ThrowIfNegative(glyphId);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(glyphId, _charStrings.Count);
         return _charStrings[glyphId];
     }
 
@@ -472,7 +473,8 @@ internal sealed partial class OfficeCffFontData {
 
         internal CffSlice this[int index] {
             get {
-                if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
+                ArgumentOutOfRangeException.ThrowIfNegative(index);
+                ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, Count);
                 int start = checked(_dataOffset + _offsets[index] - 1);
                 int length = _offsets[index + 1] - _offsets[index];
                 return new CffSlice(_data, start, length);

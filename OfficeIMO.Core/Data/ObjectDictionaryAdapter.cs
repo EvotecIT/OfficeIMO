@@ -30,8 +30,8 @@ namespace OfficeIMO.Data {
             out List<ObjectDictionaryEntry> entries) {
             entries = new List<ObjectDictionaryEntry>();
             if (value == null) return false;
-            if (maximumItems <= 0) throw new ArgumentOutOfRangeException(nameof(maximumItems));
-            if (maximumEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maximumEntries));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumItems);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumEntries);
             int itemCount = 0;
             Dictionary<string, int>? retainedIndexes = deduplicateResolvedKeys
                 ? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -83,7 +83,7 @@ namespace OfficeIMO.Data {
         }
 
         internal static bool IsDictionaryType(Type type) {
-            if (type == null) throw new ArgumentNullException(nameof(type));
+            ArgumentNullException.ThrowIfNull(type);
             return typeof(IDictionary).IsAssignableFrom(type)
                 || DictionaryTypeCache.GetOrAdd(type, IsGenericDictionaryType);
         }

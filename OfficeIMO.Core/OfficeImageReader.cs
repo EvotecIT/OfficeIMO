@@ -68,7 +68,7 @@ public static partial class OfficeImageReader {
         string? fileName,
         CancellationToken cancellationToken,
         out OfficeImageInfo info) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         long originalPosition = stream.CanSeek ? stream.Position : 0L;
         try {
             if (!TryReadBoundedPayload(stream, cancellationToken, out byte[] data)) {
@@ -86,7 +86,7 @@ public static partial class OfficeImageReader {
         string? fileName,
         bool allowExtensionFallback,
         out OfficeImageInfo info) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
 
         var originalPosition = stream.CanSeek ? stream.Position : 0;
         try {

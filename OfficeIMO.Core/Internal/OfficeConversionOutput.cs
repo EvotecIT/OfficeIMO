@@ -30,7 +30,7 @@ internal static class OfficeConversionOutput {
     }
 
     internal static OfficeConversionReport Save(OfficeConversionReport report, Stream stream, byte[] bytes) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         OfficeConversionFailures.Run(report, () => OfficeStreamWriter.WriteAllBytes(stream, bytes));
         return report;
     }
@@ -46,7 +46,7 @@ internal static class OfficeConversionOutput {
 
     internal static async Task<OfficeConversionReport> SaveAsync(OfficeConversionReport report, Stream stream, byte[] bytes,
         CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         await OfficeConversionFailures.RunAsync(report, () => OfficeStreamWriter.WriteAllBytesAsync(stream, bytes,
             cancellationToken)).ConfigureAwait(false);
         return report;

@@ -56,10 +56,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         }
 
         internal static LegacyXlsWorksheetDimension FromOneBasedBounds(int firstRow, int firstColumn, int lastRow, int lastColumn) {
-            if (firstRow <= 0) throw new ArgumentOutOfRangeException(nameof(firstRow));
-            if (firstColumn <= 0) throw new ArgumentOutOfRangeException(nameof(firstColumn));
-            if (lastRow < firstRow) throw new ArgumentOutOfRangeException(nameof(lastRow));
-            if (lastColumn < firstColumn) throw new ArgumentOutOfRangeException(nameof(lastColumn));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstRow);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstColumn);
+            ArgumentOutOfRangeException.ThrowIfLessThan(lastRow, firstRow);
+            ArgumentOutOfRangeException.ThrowIfLessThan(lastColumn, firstColumn);
 
             return new LegacyXlsWorksheetDimension(firstRow, firstColumn, lastRow, lastColumn);
         }

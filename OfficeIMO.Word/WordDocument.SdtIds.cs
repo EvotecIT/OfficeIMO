@@ -33,9 +33,7 @@ namespace OfficeIMO.Word {
         }
 
         internal void AssignNewSdtIds(OpenXmlElement element) {
-            if (element == null) {
-                throw new ArgumentNullException(nameof(element));
-            }
+            ArgumentNullException.ThrowIfNull(element);
 
             foreach (var sdtId in element.Descendants<SdtId>()) {
                 sdtId.Val = GenerateSdtId();

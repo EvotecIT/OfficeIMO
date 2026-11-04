@@ -19,7 +19,7 @@ internal sealed class OabDiscoveryResult {
 internal static class OabFileDiscovery {
     internal static OabDiscoveryResult Discover(string path, OfflineAddressBookReaderOptions options,
         CancellationToken cancellationToken) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         string fullPath = Path.GetFullPath(path);
         if (File.Exists(fullPath)) return DiscoverFile(fullPath, options);
         if (!Directory.Exists(fullPath)) throw new FileNotFoundException("OAB path does not exist.", fullPath);

@@ -31,7 +31,7 @@ public sealed class ConfluenceSession {
     /// <remarks>The credential source and any supplied <see cref="ConfluenceSessionOptions.HttpClient"/> remain caller-owned.</remarks>
     public ConfluenceSession(IConfluenceCredentialSource credentialSource, ConfluenceSessionOptions options) {
         CredentialSource = credentialSource ?? throw new ArgumentNullException(nameof(credentialSource));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(options);
         if (options.SiteUri == null || !options.SiteUri.IsAbsoluteUri) throw new ArgumentException("An absolute Confluence site URI is required.", nameof(options));
         if (!string.Equals(options.SiteUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) throw new ArgumentException("Confluence Cloud site URI must use HTTPS.", nameof(options));
         if (!string.IsNullOrEmpty(options.SiteUri.UserInfo)) throw new ArgumentException("Confluence site URI cannot contain embedded credentials.", nameof(options));

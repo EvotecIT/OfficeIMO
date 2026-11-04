@@ -13,7 +13,7 @@ public sealed class AngleSharpEncodingProvider : IHtmlEncodingProvider {
     static AngleSharpEncodingProvider() => Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
     /// <inheritdoc />
     public Encoding? ResolveLabel(string label) {
-        if (label == null) throw new ArgumentNullException(nameof(label));
+        ArgumentNullException.ThrowIfNull(label);
         if (string.Equals(label.Trim(), "x-user-defined", StringComparison.OrdinalIgnoreCase)) return TextEncoding.Resolve("windows-1252");
         return TextEncoding.IsSupported(label) ? TextEncoding.Resolve(label) : null;
     }

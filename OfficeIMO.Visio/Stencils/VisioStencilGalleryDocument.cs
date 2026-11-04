@@ -23,7 +23,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Creates a stencil gallery document in the supplied stream.
         /// </summary>
         public static VisioDocument Create(Stream stream, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             VisioDocument document = VisioDocument.Create(stream);
             return Populate(document, catalog, options);
         }
@@ -32,7 +32,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Adds stencil gallery review pages to an existing document.
         /// </summary>
         public static VisioDocument AddStencilGalleryDocument(this VisioDocument document, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             bool originalUseMastersByDefault = document.UseMastersByDefault;
             try {
                 return Populate(document, catalog, options);
@@ -42,7 +42,7 @@ namespace OfficeIMO.Visio.Stencils {
         }
 
         private static VisioDocument Populate(VisioDocument document, VisioStencilCatalog catalog, VisioStencilGalleryDocumentOptions? options) {
-            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             VisioStencilGalleryDocumentOptions effectiveOptions = options ?? new VisioStencilGalleryDocumentOptions();
             ValidateOptions(effectiveOptions);
 

@@ -38,8 +38,8 @@ namespace OfficeIMO.Word {
             WordDocument document,
             IEnumerable<KeyValuePair<string, object?>> values,
             WordTemplateOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(values);
 
             var model = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             foreach (KeyValuePair<string, object?> pair in values) {
@@ -60,8 +60,8 @@ namespace OfficeIMO.Word {
             WordDocument document,
             object model,
             WordTemplateOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(model);
 
             return ApplyCore(document, model, allowReflection: true, options);
         }

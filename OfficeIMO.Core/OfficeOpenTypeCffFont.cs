@@ -109,7 +109,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     }
 
     public IReadOnlyList<double> MeasureTextElements(IReadOnlyList<string> elements, double fontSize) {
-        if (elements == null) throw new ArgumentNullException(nameof(elements));
+        ArgumentNullException.ThrowIfNull(elements);
         ValidateSize(fontSize);
         var result = new double[elements.Count];
         double scale = Scale(fontSize);
@@ -174,8 +174,8 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         OfficeCffOperationBudget operationBudget) {
         ValidateTextAndSize(text, fontSize);
         ValidatePosition(x, y);
-        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
-        if (operationBudget == null) throw new ArgumentNullException(nameof(operationBudget));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
+        ArgumentNullException.ThrowIfNull(operationBudget);
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
         double cursor = x;
@@ -305,8 +305,8 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         PositionedGlyph[] glyphs = ValidateShapedGlyphs(text, result);
         ValidateSize(fontSize);
         ValidatePosition(x, y);
-        if (maximumPointCount <= 0) throw new ArgumentOutOfRangeException(nameof(maximumPointCount));
-        if (operationBudget == null) throw new ArgumentNullException(nameof(operationBudget));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumPointCount);
+        ArgumentNullException.ThrowIfNull(operationBudget);
         var contours = new List<List<OfficePoint>>();
         double scale = Scale(fontSize);
         if (result.Direction == OfficeTextDirection.TopToBottom) {
@@ -372,8 +372,8 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
     }
 
     private PositionedGlyph[] ValidateShapedGlyphs(string text, OfficeTextShapingResult result) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
-        if (result == null) throw new ArgumentNullException(nameof(result));
+        ArgumentNullException.ThrowIfNull(text);
+        ArgumentNullException.ThrowIfNull(result);
         if (text.Length > 0 && result.Glyphs.Count == 0) throw new ArgumentException("Drawing text shaping provider returned no glyphs for non-empty text.", nameof(result));
         var glyphs = new PositionedGlyph[result.Glyphs.Count];
         for (int index = 0; index < result.Glyphs.Count; index++) {
@@ -401,7 +401,7 @@ internal sealed class OfficeOpenTypeCffFont : IOfficeCffBoundedFontProgram, IOff
         _reader.AdvanceWidth(glyphId) + (_hvar?.AdvanceWidthDelta(glyphId) ?? 0));
 
     private static void ValidateTextAndSize(string text, double fontSize) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
         ValidateSize(fontSize);
     }
 

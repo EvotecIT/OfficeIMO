@@ -16,7 +16,7 @@ public static partial class HtmlRtfConverterExtensions {
     /// <summary>Converts an RTF document to semantic HTML text and returns the completed conversion report.</summary>
     public static string ToHtml(this RtfDocument document, RtfHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         RtfToHtmlResult result = document.ConvertToHtmlWithEvidence(options);
         string value = result.RequireValue();
@@ -77,7 +77,7 @@ public static partial class HtmlRtfConverterExtensions {
     /// <summary>Converts prepared HTML into an RTF document model and returns the completed conversion report.</summary>
     public static RtfDocument ToRtf(this HtmlConversionDocument document, HtmlRtfExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlToRtfResult result = document.ConvertToRtfWithEvidence(options);
         RtfDocument value = result.RequireValue();

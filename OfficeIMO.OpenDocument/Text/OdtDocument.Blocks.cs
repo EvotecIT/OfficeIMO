@@ -57,8 +57,8 @@ public sealed partial class OdtDocument {
 
     /// <summary>Adds a table initialized with the requested row and column count.</summary>
     public OdtTable AddTable(int rows, int columns, string? name = null) {
-        if (rows < 1) throw new ArgumentOutOfRangeException(nameof(rows));
-        if (columns < 1) throw new ArgumentOutOfRangeException(nameof(columns));
+        ArgumentOutOfRangeException.ThrowIfLessThan(rows, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(columns, 1);
         string tableName = string.IsNullOrWhiteSpace(name) ? NextTableName() : name!;
         var table = new XElement(OdfNamespaces.Table + "table",
             new XAttribute(OdfNamespaces.Table + "name", tableName),

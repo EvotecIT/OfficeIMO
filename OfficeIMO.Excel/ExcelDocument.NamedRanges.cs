@@ -68,7 +68,7 @@ namespace OfficeIMO.Excel {
         /// Separate areas with commas; commas inside quoted worksheet names are preserved.
         /// </summary>
         internal void SetPrintAreaCore(ExcelSheet sheet, string range, bool save = true) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentException("Range cannot be null or whitespace.", nameof(range));
 
             string[] areas = ExcelSheet.SplitDefinedNameParts(range).Select(part => {
@@ -265,7 +265,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Removes the sheet-local print area.</summary>
         internal void RemovePrintArea(ExcelSheet sheet, bool save = true) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             DefinedNames? definedNames = WorkbookRoot.DefinedNames;
             if (definedNames == null) return;
             ushort sheetPos = GetSheetPositionIndex(sheet);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Excel {
         /// <param name="lastCol">Last column to repeat (1-based), or null.</param>
         /// <param name="save">Whether to save the workbook after the change.</param>
         internal void SetPrintTitlesCore(ExcelSheet sheet, int? firstRow, int? lastRow, int? firstCol, int? lastCol, bool save = true) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
 
             var workbook = WorkbookRoot;
             var definedNames = workbook.DefinedNames ??= new DefinedNames();

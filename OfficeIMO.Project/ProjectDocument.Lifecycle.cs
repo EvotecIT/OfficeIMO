@@ -34,7 +34,7 @@ public sealed partial class ProjectDocument {
 
     /// <summary>Parses a Project XML string with bounded, DTD-disabled parsing.</summary>
     public static ProjectDocument Parse(string xml, ProjectLoadOptions? options = null, CancellationToken cancellationToken = default) {
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
         options ??= new ProjectLoadOptions(); options.ValidateLimits();
         if (options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose) throw new ArgumentException("Text input has no associated destination for SaveOnDispose.", nameof(options));
         if (xml.Length > options.MaxCharacters || Encoding.UTF8.GetByteCount(xml) > options.MaxInputBytes) throw new InvalidDataException("Project text exceeds the input limits.");

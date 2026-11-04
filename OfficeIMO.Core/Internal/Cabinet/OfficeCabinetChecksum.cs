@@ -5,7 +5,7 @@ namespace OfficeIMO.Core.Internal.Cabinet;
 /// <summary>Computes the four-byte longitudinal parity checksum defined by MS-CAB.</summary>
 internal static class OfficeCabinetChecksum {
     internal static uint Compute(byte[] data, int offset, int count, uint seed = 0) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         if (offset < 0 || count < 0 || offset > data.Length - count) throw new ArgumentOutOfRangeException(nameof(offset));
 
         uint checksum = seed;

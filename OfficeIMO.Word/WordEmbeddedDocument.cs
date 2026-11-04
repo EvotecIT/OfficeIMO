@@ -103,8 +103,8 @@ namespace OfficeIMO.Word {
         /// <param name="wordDocument">Parent <see cref="WordDocument"/>.</param>
         /// <param name="altChunk">AltChunk that defines the embedded content.</param>
         internal WordEmbeddedDocument(WordDocument wordDocument, AltChunk altChunk) {
-            if (wordDocument == null) throw new ArgumentNullException(nameof(wordDocument));
-            if (altChunk == null) throw new ArgumentNullException(nameof(altChunk));
+            ArgumentNullException.ThrowIfNull(wordDocument);
+            ArgumentNullException.ThrowIfNull(altChunk);
 
             _document = wordDocument;
             _altChunk = altChunk;
@@ -132,7 +132,7 @@ namespace OfficeIMO.Word {
         /// <param name="alternativeFormatImportPartType">Explicit part type or <c>null</c> to infer from the file extension.</param>
         /// <param name="htmlFragment">When <c>true</c>, <paramref name="fileNameOrContent"/> is treated as HTML markup rather than a file path.</param>
         public WordEmbeddedDocument(WordDocument wordDocument, string fileNameOrContent, WordAlternativeFormatImportPartType? alternativeFormatImportPartType, bool htmlFragment) {
-            if (wordDocument == null) throw new ArgumentNullException(nameof(wordDocument));
+            ArgumentNullException.ThrowIfNull(wordDocument);
             if (string.IsNullOrWhiteSpace(fileNameOrContent)) throw new ArgumentException("Value cannot be null or whitespace.", nameof(fileNameOrContent));
 
             WordAlternativeFormatImportPartType partType;

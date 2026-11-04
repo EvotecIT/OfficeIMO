@@ -28,7 +28,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterMasterTextStyleCatalog catalog,
             out string? reason) {
-            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            ArgumentNullException.ThrowIfNull(presentation);
             var fonts = new LegacyPptWriterFontCatalog(templateDocument);
             var records = new Dictionary<string, IReadOnlyList<byte[]>>(
                 StringComparer.Ordinal);
@@ -121,8 +121,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out byte[] bytes,
             out string? reason) {
-            if (master == null) throw new ArgumentNullException(nameof(master));
-            if (fonts == null) throw new ArgumentNullException(nameof(fonts));
+            ArgumentNullException.ThrowIfNull(master);
+            ArgumentNullException.ThrowIfNull(fonts);
             bytes = master.CopyRecordBytes();
             reason = null;
             if (master.Version != 0x0F
@@ -175,10 +175,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord master, IReadOnlyList<byte[]> style9Records,
             IReadOnlyCollection<ushort>? instancesToReplace,
             bool replaceAllExisting, out byte[] bytes) {
-            if (master == null) throw new ArgumentNullException(nameof(master));
-            if (style9Records == null) {
-                throw new ArgumentNullException(nameof(style9Records));
-            }
+            ArgumentNullException.ThrowIfNull(master);
+            ArgumentNullException.ThrowIfNull(style9Records);
             if (!replaceAllExisting && instancesToReplace == null) {
                 throw new ArgumentNullException(nameof(instancesToReplace));
             }

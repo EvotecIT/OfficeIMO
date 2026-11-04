@@ -9,9 +9,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void FitShapesToBounds(IEnumerable<PowerPointShape> shapes, PowerPointLayoutBox bounds,
             bool preserveAspect = false, bool center = false) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
 
             List<PowerPointShape> list = NormalizeShapes(shapes);
             if (list.Count == 0) {

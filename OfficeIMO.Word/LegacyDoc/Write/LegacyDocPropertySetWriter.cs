@@ -5,7 +5,7 @@ using System.Globalization;
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static class LegacyDocPropertySetWriter {
         internal static IReadOnlyList<OfficeCompoundStream> CreateDocumentPropertyStreams(WordDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
 
             var streams = new List<OfficeCompoundStream>(2);
             byte[]? summaryInformation = CreateSummaryInformation(document);

@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
         private long _decompressedBytesRead;
 
         internal XlsbPackagePartReader(ZipArchive archive, XlsbImportOptions options) {
-            if (archive == null) throw new ArgumentNullException(nameof(archive));
+            ArgumentNullException.ThrowIfNull(archive);
             _options = options ?? throw new ArgumentNullException(nameof(options));
             ValidateDeclaredSizeBudget(archive);
             _entries = BuildEntryIndex(archive);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel.Xlsb.Package {
             string partName,
             int maximumBytes,
             CancellationToken cancellationToken) {
-            if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
             cancellationToken.ThrowIfCancellationRequested();
             string normalized = NormalizePartName(partName);
             if (!_entries.TryGetValue(normalized, out ZipArchiveEntry? entry)) {

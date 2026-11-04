@@ -20,9 +20,7 @@ namespace OfficeIMO.Visio {
         /// <param name="maxPositionShifts">Number of positive and negative connector path-position shifts to try.</param>
         /// <param name="optimizationPasses">Number of whole-page label optimization passes to run after the initial placement sweep.</param>
         public static VisioPage ResolveConnectorLabelOverlaps(this VisioPage page, double step = 0.18D, int maxAttempts = 12, bool avoidShapes = true, bool avoidLabels = true, bool preferEndpointZones = false, bool avoidConnectorPaths = true, double positionStep = 0.08D, int maxPositionShifts = 4, int optimizationPasses = 1) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (step <= 0D || double.IsNaN(step) || double.IsInfinity(step)) {
                 throw new ArgumentOutOfRangeException(nameof(step), "Step must be a positive finite value.");
@@ -271,7 +269,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Gets connector route and label bounds in page inches.</summary>
         public static VisioShapeBounds GetConnectorContentBounds(this VisioConnector connector) {
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
+            ArgumentNullException.ThrowIfNull(connector);
             List<Point> path = BuildConnectorPath(connector);
             VisioShapeBounds bounds = GetPointBounds(path);
             if (TryGetConnectorLabelBounds(connector, path, out VisioShapeBounds labelBounds)) {
@@ -283,7 +281,7 @@ namespace OfficeIMO.Visio {
 
         /// <summary>Gets the explicitly placed connector label bounds in page inches, or empty bounds when no label is placed.</summary>
         public static VisioShapeBounds GetLabelBounds(this VisioConnector connector) {
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
+            ArgumentNullException.ThrowIfNull(connector);
             if (string.IsNullOrWhiteSpace(connector.Label)) return VisioShapeBounds.Empty;
             return TryGetConnectorLabelBounds(connector, BuildConnectorPath(connector), out VisioShapeBounds bounds)
                 ? bounds : VisioShapeBounds.Empty;

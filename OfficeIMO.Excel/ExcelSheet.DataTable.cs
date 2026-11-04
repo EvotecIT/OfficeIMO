@@ -72,9 +72,9 @@ namespace OfficeIMO.Excel {
 
         private void InsertDataTableCore(DataTable table, int startRow, int startColumn, bool includeHeaders,
             ExcelExecutionMode? mode, CancellationToken ct, bool copyDirectSaveTable, bool registerDirectSaveCandidate = true) {
-            if (table == null) throw new ArgumentNullException(nameof(table));
-            if (startRow < 1) throw new ArgumentOutOfRangeException(nameof(startRow));
-            if (startColumn < 1) throw new ArgumentOutOfRangeException(nameof(startColumn));
+            ArgumentNullException.ThrowIfNull(table);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startRow, 1);
+            ArgumentOutOfRangeException.ThrowIfLessThan(startColumn, 1);
             _excelDocument.MaterializeDeferredDataSetImport(ct);
             if (table.Columns.Count > 0 && table.Rows.Count + (includeHeaders ? 1L : 0L) > 0) {
                 long lastRow = (long)startRow + table.Rows.Count + (includeHeaders ? 1L : 0L) - 1;

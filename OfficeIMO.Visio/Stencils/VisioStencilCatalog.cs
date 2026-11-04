@@ -17,7 +17,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public VisioStencilCatalog(string name, IEnumerable<VisioStencilShape> shapes) {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Catalog name cannot be null or whitespace.", nameof(name));
-            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            ArgumentNullException.ThrowIfNull(shapes);
 
             Name = name;
             Shapes = shapes.ToList().AsReadOnly();
@@ -50,7 +50,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// Creates a stencil catalog using the fluent catalog builder.
         /// </summary>
         public static VisioStencilCatalog Create(string name, Action<VisioStencilCatalogBuilder> configure) {
-            if (configure == null) throw new ArgumentNullException(nameof(configure));
+            ArgumentNullException.ThrowIfNull(configure);
 
             VisioStencilCatalogBuilder builder = new(name);
             configure(builder);
@@ -172,7 +172,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// <param name="queries">Prioritized lookup or search queries.</param>
         /// <param name="shape">The matched stencil shape, when one is found.</param>
         public bool TryFindBest(IEnumerable<string> queries, out VisioStencilShape? shape) {
-            if (queries == null) throw new ArgumentNullException(nameof(queries));
+            ArgumentNullException.ThrowIfNull(queries);
 
             foreach (string query in queries.Where(value => !string.IsNullOrWhiteSpace(value))) {
                 if (TryGet(query, out shape) && shape != null) {
@@ -195,7 +195,7 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         /// <param name="queries">Prioritized lookup or search queries.</param>
         public VisioStencilShape FindBest(params string[] queries) {
-            if (queries == null) throw new ArgumentNullException(nameof(queries));
+            ArgumentNullException.ThrowIfNull(queries);
             if (TryFindBest(queries, out VisioStencilShape? shape) && shape != null) {
                 return shape;
             }

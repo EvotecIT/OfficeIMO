@@ -13,9 +13,7 @@ public static partial class MarkdownPdfConverterExtensions {
 
 
     internal static PdfCore.PdfDocument ConvertToPdfDocument(MarkdownDocument document, MarkdownPdfExportOptions options) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         PdfCore.PdfCreateOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfCreateOptions();
         pdfOptions.UseContentStreamCompressionByDefault();
@@ -61,9 +59,7 @@ public static partial class MarkdownPdfConverterExtensions {
     /// </summary>
     internal static PdfCore.PdfDocumentConversionResult ConvertToPdfWithEvidence(this MarkdownDocument document, MarkdownPdfExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         MarkdownPdfExportOptions operation = (options ?? new MarkdownPdfExportOptions()).CloneForConversion();
         operation.CancellationToken = cancellationToken;

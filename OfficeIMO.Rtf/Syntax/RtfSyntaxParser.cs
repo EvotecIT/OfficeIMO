@@ -24,7 +24,7 @@ public static class RtfSyntaxParser {
     /// Parses RTF text using the configured resource limits and cancellation token.
     /// </summary>
     public static RtfSyntaxTree Parse(string rtf, RtfLoadOptions? options, CancellationToken cancellationToken = default) {
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
+        ArgumentNullException.ThrowIfNull(rtf);
         RtfLoadOptions readOptions = options ?? new RtfLoadOptions();
         RtfTokenizeResult tokenized = RtfTokenizer.Tokenize(rtf, readOptions, cancellationToken);
         var diagnostics = new List<RtfDiagnostic>(tokenized.Diagnostics);

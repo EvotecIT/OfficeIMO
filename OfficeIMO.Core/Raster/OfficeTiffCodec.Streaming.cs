@@ -24,7 +24,7 @@ public static partial class OfficeTiffCodec {
         OfficeTiffEncodeOptions? options,
         CancellationToken cancellationToken,
         Action<OfficeRasterEncodingCheckpoint>? checkpointObserver = null) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         OfficeRasterOutput.EnsureWritable(destination);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeTiffEncodeOptions effective = options ?? new OfficeTiffEncodeOptions();
@@ -91,7 +91,7 @@ public static partial class OfficeTiffCodec {
         OfficeRasterImage image,
         IBufferWriter<byte> destination,
         OfficeTiffEncodeOptions? options = null) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         using var stream = new OfficeBufferWriterStream(destination);
         EncodeTo(image, stream, options);
     }

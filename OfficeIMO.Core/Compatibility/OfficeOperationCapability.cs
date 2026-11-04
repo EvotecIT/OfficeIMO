@@ -128,8 +128,8 @@ public sealed class OfficeOperationCatalog {
     /// <summary>Creates a versioned package-neutral operation catalog.</summary>
     public OfficeOperationCatalog(string id, int schemaVersion, IEnumerable<OfficeOperationCapability> capabilities) {
         if (string.IsNullOrWhiteSpace(id)) throw new ArgumentException("Catalog id cannot be empty.", nameof(id));
-        if (schemaVersion <= 0) throw new ArgumentOutOfRangeException(nameof(schemaVersion));
-        if (capabilities == null) throw new ArgumentNullException(nameof(capabilities));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(schemaVersion);
+        ArgumentNullException.ThrowIfNull(capabilities);
 
         OfficeOperationCapability[] rows = capabilities
             .OrderBy(static row => row.PackageId, StringComparer.Ordinal)

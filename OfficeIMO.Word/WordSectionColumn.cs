@@ -9,7 +9,7 @@ public sealed class WordSectionColumn {
     /// <exception cref="OverflowException">A rounded dimension exceeds the 32-bit twip range.</exception>
     public WordSectionColumn(OfficeLength width, OfficeLength? spaceAfter = null) {
         long widthTwips = width.ToTwips();
-        if (widthTwips <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(widthTwips, nameof(width));
         _ = checked((int)widthTwips);
         if (spaceAfter.HasValue) {
             if (spaceAfter.Value.ToEmus() < 0) throw new ArgumentOutOfRangeException(nameof(spaceAfter));

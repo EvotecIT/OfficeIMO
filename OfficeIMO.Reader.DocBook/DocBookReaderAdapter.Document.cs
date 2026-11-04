@@ -10,7 +10,7 @@ namespace OfficeIMO.Reader.DocBook;
 
 internal static partial class DocBookReaderAdapter {
     internal static OfficeDocumentReadResult ReadDocument(string path, ReaderOptions? readerOptions = null, ReaderDocBookOptions? docBookOptions = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderInputLimits.EnforceFileSize(path, reader.MaxInputBytes);
         ReaderDocBookOptions adapter = ReaderDocBookOptionsCloner.Clone(docBookOptions);
@@ -20,7 +20,7 @@ internal static partial class DocBookReaderAdapter {
     }
 
     internal static OfficeDocumentReadResult ReadDocument(Stream stream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderDocBookOptions? docBookOptions = null, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         ReaderOptions reader = readerOptions ?? new ReaderOptions();
         ReaderDocBookOptions adapter = ReaderDocBookOptionsCloner.Clone(docBookOptions);
         ApplyReaderLimit(adapter.ReadOptions, reader.MaxInputBytes);

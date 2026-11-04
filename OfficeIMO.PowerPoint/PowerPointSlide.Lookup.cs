@@ -15,9 +15,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a shape by its name.
         /// </summary>
         public PowerPointShape? GetShape(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             return ShapeList.FirstOrDefault(s => s.Name == name);
         }
@@ -26,9 +24,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a shape by name, optionally using case-insensitive comparison.
         /// </summary>
         public PowerPointShape? GetShapeByName(string name, bool ignoreCase = false) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             StringComparison comparison = ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             return ShapeList.FirstOrDefault(shape => string.Equals(shape.Name, name, comparison));
@@ -75,9 +71,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a textbox by its name.
         /// </summary>
         public PowerPointTextBox? GetTextBox(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             return TextBoxes.FirstOrDefault(tb => tb.Name == name);
         }
@@ -86,9 +80,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves an image by its name.
         /// </summary>
         public PowerPointImage? GetImage(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             return Images.FirstOrDefault(p => p.Name == name);
         }
@@ -97,9 +89,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a table by its name.
         /// </summary>
         public PowerPointTable? GetTable(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             return Tables.FirstOrDefault(t => t.Name == name);
         }
@@ -151,9 +141,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a chart by its name.
         /// </summary>
         public PowerPointChart? GetChart(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             return Charts.FirstOrDefault(c => c.Name == name);
         }
@@ -162,9 +150,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves an embedded OLE object by its shape name.
         /// </summary>
         public PowerPointOleObject? GetOleObject(string name) {
-            if (name == null) {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
             return OleObjects.FirstOrDefault(ole => ole.Name == name);
         }
 
@@ -172,9 +158,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Removes the specified shape from the slide.
         /// </summary>
         public void RemoveShape(PowerPointShape shape) {
-            if (shape == null) {
-                throw new ArgumentNullException(nameof(shape));
-            }
+            ArgumentNullException.ThrowIfNull(shape);
 
             EnsureShapeOnSlide(shape);
             var knownRelationshipIds = new HashSet<string>(

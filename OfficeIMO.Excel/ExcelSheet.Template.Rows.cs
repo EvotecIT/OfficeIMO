@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
         /// <param name="values">Values used when the block is included.</param>
         /// <param name="options">Optional template binding options.</param>
         public int ApplyTemplateOptionalRows(int firstRow, int rowCount, bool include, IDictionary<string, object?> values, ExcelTemplateOptions? options = null) {
-            if (values == null) throw new ArgumentNullException(nameof(values));
+            ArgumentNullException.ThrowIfNull(values);
             return ApplyTemplateOptionalRowsCore(firstRow, rowCount, include, ExcelTemplateBindingHelper.Create(values), options ?? new ExcelTemplateOptions());
         }
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional template binding options.</param>
         [RequiresUnreferencedCode("Object-model template binding walks runtime properties, including nested values. Use the IDictionary overload in NativeAOT applications.")]
         public int ApplyTemplateOptionalRows(int firstRow, int rowCount, bool include, object model, ExcelTemplateOptions? options = null) {
-            if (model == null) throw new ArgumentNullException(nameof(model));
+            ArgumentNullException.ThrowIfNull(model);
             return ApplyTemplateOptionalRowsCore(firstRow, rowCount, include, ExcelTemplateBindingHelper.Create(model), options ?? new ExcelTemplateOptions());
         }
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Excel {
         }
 
         private int ApplyTemplateRowsCore(int templateRow, IReadOnlyList<IReadOnlyDictionary<string, object?>> rowBindings, ExcelTemplateOptions options) {
-            if (templateRow <= 0) throw new ArgumentOutOfRangeException(nameof(templateRow));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(templateRow);
             if (rowBindings.Count == 0) return 0;
             if ((long)templateRow + rowBindings.Count - 1L > ExcelA1.MaxRows) {
                 throw new ArgumentOutOfRangeException(nameof(rowBindings), "Template row expansion must fit inside Excel's worksheet row limit.");
@@ -80,8 +80,8 @@ namespace OfficeIMO.Excel {
         }
 
         private int ApplyTemplateOptionalRowsCore(int firstRow, int rowCount, bool include, IReadOnlyDictionary<string, object?>? bindings, ExcelTemplateOptions options) {
-            if (firstRow <= 0) throw new ArgumentOutOfRangeException(nameof(firstRow));
-            if (rowCount <= 0) throw new ArgumentOutOfRangeException(nameof(rowCount));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstRow);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rowCount);
             if ((long)firstRow + rowCount - 1L > ExcelA1.MaxRows) throw new ArgumentOutOfRangeException(nameof(rowCount), "Template optional row block must fit inside Excel's worksheet row limit.");
 
             int replacements = 0;

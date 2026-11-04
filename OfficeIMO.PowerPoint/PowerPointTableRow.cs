@@ -52,9 +52,8 @@ namespace OfficeIMO.PowerPoint {
         ///     Retrieves a cell at the specified column index.
         /// </summary>
         public PowerPointTableCell GetCell(int columnIndex) {
-            if (columnIndex < 0 || columnIndex >= _table.Columns) {
-                throw new ArgumentOutOfRangeException(nameof(columnIndex));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, _table.Columns);
 
             A.TableCell cell = Row.Elements<A.TableCell>().ElementAt(columnIndex);
             return _table.WrapCell(cell);

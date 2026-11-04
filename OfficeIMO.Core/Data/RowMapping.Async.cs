@@ -20,7 +20,7 @@ public static class DataReaderAsyncMappingExtensions {
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicConstructors)] T>(
         this DbDataReader reader,
         CancellationToken cancellationToken = default) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         return EnumerateAutomatic<T>(reader, cancellationToken);
     }
 
@@ -32,8 +32,8 @@ public static class DataReaderAsyncMappingExtensions {
         this DbDataReader reader,
         Action<RowMapper<T>> configure,
         CancellationToken cancellationToken = default) where T : new() {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (configure is null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(configure);
         return EnumerateExplicit(reader, configure, cancellationToken);
     }
 
@@ -45,8 +45,8 @@ public static class DataReaderAsyncMappingExtensions {
         this DbDataReader reader,
         Func<IDataRecord, T> factory,
         CancellationToken cancellationToken = default) {
-        if (reader is null) throw new ArgumentNullException(nameof(reader));
-        if (factory is null) throw new ArgumentNullException(nameof(factory));
+        ArgumentNullException.ThrowIfNull(reader);
+        ArgumentNullException.ThrowIfNull(factory);
         return EnumerateFactory(reader, factory, cancellationToken);
     }
 

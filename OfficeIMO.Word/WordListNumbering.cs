@@ -75,9 +75,7 @@ namespace OfficeIMO.Word {
         /// <param name="document">The parent document.</param>
         /// <returns>The created <see cref="WordListNumbering"/>.</returns>
         public static WordListNumbering CreateNumberingDefinition(WordDocument document) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("The document does not contain a main document part.");
@@ -101,9 +99,7 @@ namespace OfficeIMO.Word {
         /// <param name="abstractNumberId">The abstract numbering identifier.</param>
         /// <returns>The <see cref="WordListNumbering"/> if found; otherwise, <c>null</c>.</returns>
         public static WordListNumbering? GetNumberingDefinition(WordDocument document, int abstractNumberId) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
             var mainPart = document._wordprocessingDocument.MainDocumentPart;
             var numbering = mainPart?.NumberingDefinitionsPart?.Numbering;
@@ -124,7 +120,7 @@ namespace OfficeIMO.Word {
         /// <param name="wordListLevel">The word list level.</param>
         private void UpdateLevelText(WordListLevel wordListLevel) {
             // Replace the placeholder in LevelText with the LevelIndex + 1
-            if (wordListLevel == null) throw new ArgumentNullException(nameof(wordListLevel));
+            ArgumentNullException.ThrowIfNull(wordListLevel);
 
             var level = wordListLevel._level ?? throw new InvalidOperationException("The list level is not initialized.");
             var levelTextElement = level.GetFirstChild<LevelText>()
@@ -143,7 +139,7 @@ namespace OfficeIMO.Word {
         public WordListLevel AddLevel(WordListLevel wordListLevel) {
             // before adding new level, we need to find the last level index and increment it by 1
             // once we have LevelIndex we need to set it to the level
-            if (wordListLevel == null) throw new ArgumentNullException(nameof(wordListLevel));
+            ArgumentNullException.ThrowIfNull(wordListLevel);
 
             wordListLevel._level.LevelIndex = GetNextLevelIndex;
             // Update the LevelText to match the new LevelIndex
@@ -160,7 +156,7 @@ namespace OfficeIMO.Word {
         /// <param name="level">The level.</param>
         internal void AddLevel(Level level) {
             // before adding new level, we need to find the last level index and increment it by 1
-            if (level == null) throw new ArgumentNullException(nameof(level));
+            ArgumentNullException.ThrowIfNull(level);
 
             level.LevelIndex = GetNextLevelIndex;
             // add the level to the abstractNum

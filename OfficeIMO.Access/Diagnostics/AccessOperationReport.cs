@@ -37,7 +37,7 @@ namespace OfficeIMO.Access {
         public IReadOnlyList<AccessDiagnostic> Diagnostics { get; }
         /// <summary>Rejects a report from another document or a stale revision.</summary>
         public void RequireCurrent(AccessDocument document) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
+            ArgumentNullException.ThrowIfNull(document);
             document.EnsureNotDisposed();
             if (document.Id != DocumentId || document.Revision != Revision || document.HasActiveUpdate) throw new InvalidOperationException("The Access assessment is stale or belongs to another document. Assess again after committing edits.");
         }

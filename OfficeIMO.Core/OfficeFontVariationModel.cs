@@ -71,7 +71,7 @@ internal sealed class OfficeFontVariationModel {
     internal static OfficeFontVariationModel Create(
         OfficeOpenTypeReader reader,
         IReadOnlyDictionary<string, float>? requestedValues) {
-        if (reader == null) throw new ArgumentNullException(nameof(reader));
+        ArgumentNullException.ThrowIfNull(reader);
         if (!reader.TryGetTable("fvar", out int offset, out int length)) {
             if (requestedValues != null && requestedValues.Count > 0) {
                 throw new ArgumentException("Variable-font axes were supplied for a static font.", nameof(requestedValues));

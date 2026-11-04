@@ -15,7 +15,7 @@ internal static partial class RtfReaderAdapter {
 
     /// <summary>Reads an RTF file and returns normalized chunks with operation-scoped fidelity diagnostics.</summary>
     public static RtfConversionResult<IReadOnlyList<ReaderChunk>> ReadResult(string rtfPath, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (rtfPath == null) throw new ArgumentNullException(nameof(rtfPath));
+        ArgumentNullException.ThrowIfNull(rtfPath);
         if (rtfPath.Length == 0) throw new ArgumentException("RTF path cannot be empty.", nameof(rtfPath));
         if (!File.Exists(rtfPath)) throw new FileNotFoundException($"RTF file '{rtfPath}' doesn't exist.", rtfPath);
 
@@ -38,7 +38,7 @@ internal static partial class RtfReaderAdapter {
 
     /// <summary>Reads an RTF stream and returns normalized chunks with operation-scoped fidelity diagnostics.</summary>
     public static RtfConversionResult<IReadOnlyList<ReaderChunk>> ReadResult(Stream rtfStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (rtfStream == null) throw new ArgumentNullException(nameof(rtfStream));
+        ArgumentNullException.ThrowIfNull(rtfStream);
         if (!rtfStream.CanRead) throw new ArgumentException("RTF stream must be readable.", nameof(rtfStream));
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
@@ -76,8 +76,8 @@ internal static partial class RtfReaderAdapter {
 
     /// <summary>Converts an RTF semantic model into normalized chunks with operation-scoped fidelity diagnostics.</summary>
     public static RtfConversionResult<IReadOnlyList<ReaderChunk>> ReadResult(RtfDocument document, string sourceName = "document.rtf", ReaderOptions? readerOptions = null, ReaderRtfOptions? rtfOptions = null, CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (sourceName == null) throw new ArgumentNullException(nameof(sourceName));
+        ArgumentNullException.ThrowIfNull(document);
+        ArgumentNullException.ThrowIfNull(sourceName);
 
         var effectiveReaderOptions = readerOptions ?? new ReaderOptions();
         var effectiveRtfOptions = ReaderRtfOptionsCloner.CloneOrDefault(rtfOptions);
@@ -92,7 +92,7 @@ internal static partial class RtfReaderAdapter {
     }
 
     private static IEnumerable<ReaderChunk> ReadRtfResultCore(RtfReadResult readResult, SourceMetadata source, ReaderOptions readerOptions, ReaderRtfOptions rtfOptions, CancellationToken cancellationToken) {
-        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        ArgumentNullException.ThrowIfNull(readResult);
         rtfOptions.Report.AddReadDiagnostics(readResult.Diagnostics, source.Path);
         IReadOnlyList<RtfDiagnostic> diagnostics = rtfOptions.IncludeDiagnostics ? readResult.Diagnostics : Array.Empty<RtfDiagnostic>();
         foreach (var chunk in Read(readResult.Document, source, readerOptions, rtfOptions, diagnostics, cancellationToken)) {

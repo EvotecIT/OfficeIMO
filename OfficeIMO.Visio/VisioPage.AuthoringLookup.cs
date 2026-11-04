@@ -11,13 +11,13 @@ public partial class VisioPage {
 
     /// <summary>Adds a container around existing shapes selected by identifier.</summary>
     public VisioShape AddContainer(string id, string text, IEnumerable<string> memberIds, VisioContainerOptions? options = null) {
-        if (memberIds == null) throw new ArgumentNullException(nameof(memberIds));
+        ArgumentNullException.ThrowIfNull(memberIds);
         return AddContainer(id, text, memberIds.Select(GetShape), options);
     }
 
     /// <summary>Configures and adds a container around existing shapes selected by identifier.</summary>
     public VisioShape AddContainer(string id, string text, IEnumerable<string> memberIds, Action<VisioContainerOptions> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         var options = new VisioContainerOptions();
         configure(options);
         return AddContainer(id, text, memberIds, options);

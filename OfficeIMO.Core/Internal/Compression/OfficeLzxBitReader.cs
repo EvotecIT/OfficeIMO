@@ -28,7 +28,8 @@ internal sealed class OfficeLzxBitReader {
     }
 
     internal uint ReadBits(int count) {
-        if (count < 0 || count > 32) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
         uint value = 0;
         int remaining = count;
         while (remaining > 0) {
@@ -88,7 +89,7 @@ internal sealed class OfficeLzxBitReader {
 
     internal void CopyRawBytes(byte[] destination, int destinationOffset, int count) {
         EnsureByteAligned();
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (destinationOffset < 0 || count < 0 || destinationOffset > destination.Length - count) {
             throw new ArgumentOutOfRangeException(nameof(destinationOffset));
         }

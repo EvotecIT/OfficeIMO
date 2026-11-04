@@ -23,7 +23,7 @@ internal sealed class OfficeCffOperationBudget {
     }
 
     internal OfficeCffOperationBudget(int maximumOperations) {
-        if (maximumOperations <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOperations));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOperations);
         _remaining = maximumOperations;
         _operationOwner = this;
     }

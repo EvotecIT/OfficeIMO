@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             Stream output,
             CancellationToken cancellationToken,
             XlsbSharedStringTable? sharedStrings = null) {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            ArgumentNullException.ThrowIfNull(source);
 
             IExcelSheetTabularRowSource rows = source.Rows;
             int rowOffset = source.IncludeHeaders ? 1 : 0;

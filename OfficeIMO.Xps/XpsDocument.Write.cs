@@ -13,7 +13,7 @@ public sealed partial class XpsDocument {
     }
     /// <summary>Embeds a caller-provided font and returns its absolute package URI. The caller must have embedding rights.</summary>
     public string AddFont(byte[] fontBytes, bool obfuscate = true) {
-        if (fontBytes == null) throw new ArgumentNullException(nameof(fontBytes));
+        ArgumentNullException.ThrowIfNull(fontBytes);
         if (fontBytes.Length < 32) throw new ArgumentException("A font program is required.", nameof(fontBytes));
         string name = "Resources/Fonts/" + Guid.NewGuid().ToString("D") + (obfuscate ? ".odttf" : ".ttf");
         byte[] data = (byte[])fontBytes.Clone();
@@ -23,7 +23,7 @@ public sealed partial class XpsDocument {
     }
     /// <summary>Adds an immutable package resource. Existing parts cannot be overwritten through this API.</summary>
     public string AddResource(string partName, byte[] bytes, string contentType) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if (string.IsNullOrWhiteSpace(contentType)) throw new ArgumentException("A MIME content type is required.", nameof(contentType));
         string name = XpsPackage.PartName(partName);
         if (name == "[Content_Types].xml" || name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase) || OfficeOpcPieceAssembler.HasPieceSuffix(name)) throw new ArgumentException("Reserved package part.", nameof(partName));
@@ -37,7 +37,7 @@ public sealed partial class XpsDocument {
     /// <summary>Replaces an existing resource's encoded bytes, retaining its URI and content type. All references see the replacement.</summary>
     /// <remarks>Structural parts and relationships must be edited through their owning APIs. Obfuscated font data must already use the part's native encoding.</remarks>
     public void ReplaceResource(string partName, byte[] bytes) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         string name = XpsPackage.PartName(partName);
         if (name == "[Content_Types].xml" || name.EndsWith(".rels", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Use the owning API to edit structural package parts.", nameof(partName));
@@ -69,7 +69,7 @@ public sealed partial class XpsDocument {
         Save(_filePath ?? throw new InvalidOperationException("The document has no associated path."), cancellationToken);
     /// <summary>Writes a ZIP package to a writable stream, leaving it open. Use a fresh/empty stream.</summary>
     public void Save(Stream stream, CancellationToken cancellationToken = default) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         cancellationToken.ThrowIfCancellationRequested();
         // Rewriting signed XML/ZIP bytes must never imply that signatures remain valid.
         if (_parts.Keys.Any(p => p.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase)) ||

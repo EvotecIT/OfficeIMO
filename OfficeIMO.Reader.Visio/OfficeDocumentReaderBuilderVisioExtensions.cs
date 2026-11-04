@@ -16,7 +16,7 @@ public static class OfficeDocumentReaderBuilderVisioExtensions {
         this OfficeDocumentReaderBuilder builder,
         ReaderVisioOptions? visioOptions = null,
         bool replaceExisting = false) {
-        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        ArgumentNullException.ThrowIfNull(builder);
         ReaderHandlerRegistration registration = CreateRegistration(visioOptions);
         return builder.AddHandler(registration, replaceExisting);
     }

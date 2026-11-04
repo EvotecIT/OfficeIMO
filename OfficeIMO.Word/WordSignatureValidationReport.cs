@@ -134,7 +134,7 @@ namespace OfficeIMO.Word {
         /// Creates a validation report from signature inspection metadata without performing cryptographic trust checks.
         /// </summary>
         public static WordSignatureValidationReport From(WordSignatureInfo signatureInfo) {
-            if (signatureInfo == null) throw new ArgumentNullException(nameof(signatureInfo));
+            ArgumentNullException.ThrowIfNull(signatureInfo);
 
             var findings = new List<string>();
             WordSignatureValidationState packageStructureStatus;
@@ -218,8 +218,8 @@ namespace OfficeIMO.Word {
         internal static WordSignatureValidationReport WithCryptographicValidation(
             WordSignatureValidationReport structural,
             IReadOnlyList<WordSignaturePartValidationResult> signatures) {
-            if (structural == null) throw new ArgumentNullException(nameof(structural));
-            if (signatures == null) throw new ArgumentNullException(nameof(signatures));
+            ArgumentNullException.ThrowIfNull(structural);
+            ArgumentNullException.ThrowIfNull(signatures);
 
             WordSignatureValidationFinding[] diagnostics = signatures
                 .SelectMany(signature => signature.Findings)

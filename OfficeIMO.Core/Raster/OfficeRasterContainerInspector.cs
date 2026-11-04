@@ -107,7 +107,7 @@ public static class OfficeRasterContainerInspector {
         Stream stream,
         OfficeRasterDecodeOptions? options,
         out OfficeRasterContainerInfo? container) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         OfficeRasterDecodeOptions effective = options ?? new OfficeRasterDecodeOptions();
         effective.Validate();
         long originalPosition = stream.CanSeek ? stream.Position : 0L;

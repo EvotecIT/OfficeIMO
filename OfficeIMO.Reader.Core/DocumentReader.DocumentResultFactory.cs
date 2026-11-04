@@ -42,7 +42,7 @@ internal static partial class DocumentReaderEngine {
         IEnumerable<string>? capabilities,
         IReadOnlyList<OfficeDocumentAsset>? assets,
         IReadOnlyList<OfficeDocumentOcrCandidate>? ocrCandidates) {
-        if (chunks == null) throw new ArgumentNullException(nameof(chunks));
+        ArgumentNullException.ThrowIfNull(chunks);
         ReaderChunk[] materializedChunks = chunks.ToArray();
         ReaderChunk? first = materializedChunks.Length == 0 ? null : materializedChunks[0];
         OfficeDocumentSource effectiveSource = source ?? new OfficeDocumentSource {

@@ -40,7 +40,7 @@ public static partial class OfficeWebpCodec {
         CancellationToken cancellationToken = default,
         long additionalRetainedManagedBytes = 0L,
         OfficeImageEncodingEffort effort = OfficeImageEncodingEffort.Balanced) {
-        if (image == null) throw new ArgumentNullException(nameof(image));
+        ArgumentNullException.ThrowIfNull(image);
         cancellationToken.ThrowIfCancellationRequested();
         if (image.Width > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP width cannot exceed 16,384 pixels.");
         if (image.Height > OfficeRasterImageEncoder.WebpMaximumDimension) throw new ArgumentOutOfRangeException(nameof(image), "WebP height cannot exceed 16,384 pixels.");
@@ -541,7 +541,8 @@ public static partial class OfficeWebpCodec {
         public int BytesWritten => _offset;
 
         public void WriteBits(uint value, int count) {
-            if (count < 0 || count > 32) throw new ArgumentOutOfRangeException(nameof(count));
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(count, 32);
             ulong mask = count == 32 ? uint.MaxValue : ((1UL << count) - 1UL);
             _buffer |= ((ulong)value & mask) << _bitCount;
             _bitCount += count;

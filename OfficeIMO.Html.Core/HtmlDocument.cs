@@ -41,7 +41,7 @@ public sealed partial class HtmlDocument : HtmlNode {
     public HtmlElement CreateElement(string localName, string namespaceUri = HtmlElement.HtmlNamespace, string? prefix = null) {
         EnsureMutable();
         if (string.IsNullOrWhiteSpace(localName)) throw new ArgumentException("An element name is required.", nameof(localName));
-        if (namespaceUri == null) throw new ArgumentNullException(nameof(namespaceUri));
+        ArgumentNullException.ThrowIfNull(namespaceUri);
         if (namespaceUri == HtmlElement.HtmlNamespace) localName = HtmlNames.LowerAscii(localName);
         return Register(new HtmlElement(this, NextId(), localName, namespaceUri, prefix));
     }
@@ -62,7 +62,7 @@ public sealed partial class HtmlDocument : HtmlNode {
     /// <summary>Creates or returns this template element's separate content fragment.</summary>
     public HtmlDocumentFragment GetOrCreateTemplateContent(HtmlElement template) {
         EnsureMutable();
-        if (template == null) throw new ArgumentNullException(nameof(template));
+        ArgumentNullException.ThrowIfNull(template);
         if (!ReferenceEquals(template.Document, this) || template.NamespaceUri != HtmlElement.HtmlNamespace || template.LocalName != "template") throw new ArgumentException("An HTML template in this document is required.", nameof(template));
         if (template.TemplateContent == null) {
             template.TemplateContent = CreateFragment();
@@ -147,7 +147,7 @@ public sealed partial class HtmlDocument : HtmlNode {
     }
     /// <summary>Applies edits to an independent clone and freezes the returned snapshot.</summary>
     public HtmlDocument Edit(Action<HtmlDocument> edit) {
-        if (edit == null) throw new ArgumentNullException(nameof(edit));
+        ArgumentNullException.ThrowIfNull(edit);
         HtmlDocument clone = Clone();
         try { edit(clone); return clone.Freeze(); }
         finally { clone.Freeze(); }

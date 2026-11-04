@@ -21,11 +21,7 @@ public sealed partial class PdfDocument {
         byte[] pdf,
         OfficeContentSafetyOptions? options = null,
         PdfLoadOptions? readOptions = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(pdf);
-#else
-        if (pdf == null) throw new ArgumentNullException(nameof(pdf));
-#endif
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(pdf, effective);
         return InspectPdfContentSafety(pdf, effective, readOptions, targets: null);
@@ -37,13 +33,8 @@ public sealed partial class PdfDocument {
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
         PdfLoadOptions? readOptions = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(pdf);
         ArgumentNullException.ThrowIfNull(selection);
-#else
-        if (pdf == null) throw new ArgumentNullException(nameof(pdf));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
-#endif
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentSafetyReport before = InspectPdfContentSafety(pdf, options.Inspection, readOptions, targets: null);

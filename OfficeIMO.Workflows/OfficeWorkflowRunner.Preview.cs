@@ -18,7 +18,7 @@ public sealed partial class OfficeWorkflowRunner {
     /// <summary>Creates an in-memory review sample through the existing native conversion route for a supported artifact.</summary>
     /// <remarks>HTML preview uses embedded content only; external and sibling resources are unavailable.</remarks>
     public static OfficeWorkflowDocumentPreview PreviewDocument(byte[] bytes, string extension, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         if ((extension == null || string.IsNullOrWhiteSpace(extension))) throw new ArgumentException("A non-empty value is required.", nameof(extension));
         if (bytes.LongLength > 128L * 1024 * 1024) throw new ArgumentException("Preview input exceeds 128 MB.", nameof(bytes));
         cancellationToken.ThrowIfCancellationRequested();

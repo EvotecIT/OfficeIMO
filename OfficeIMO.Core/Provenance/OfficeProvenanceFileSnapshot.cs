@@ -68,9 +68,9 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         CancellationToken cancellationToken = default) {
         if (_disposed) throw new ObjectDisposedException(nameof(OfficeProvenanceFileSnapshot));
         if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
-        if (report == null) throw new ArgumentNullException(nameof(report));
-        if (maximumDependencyBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumDependencyBytes));
-        if (maximumTotalBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumTotalBytes));
+        ArgumentNullException.ThrowIfNull(report);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumDependencyBytes);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumTotalBytes);
 
         bool resealDirectory = _directorySealed;
         if (resealDirectory) MakeSnapshotDirectoriesWritable();
@@ -250,7 +250,7 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string? auditRootPhysicalPath = null,
         string? auditRootIdentity = null) {
         if (string.IsNullOrWhiteSpace(sourcePath)) throw new ArgumentException("A source path is required.", nameof(sourcePath));
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
 
         string fullPath = Path.GetFullPath(sourcePath);
         string directoryPath = CreatePrivateDirectory();
@@ -647,15 +647,15 @@ internal sealed class OfficeProvenanceFileSnapshot : IDisposable {
         string limitMessage,
         CancellationToken cancellationToken,
         out long copiedBytes) {
-        if (source == null) throw new ArgumentNullException(nameof(source));
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(source);
+        ArgumentNullException.ThrowIfNull(destination);
         if (!source.CanRead || !source.CanSeek) {
             throw new ArgumentException("The snapshot source must be a readable, seekable stream.", nameof(source));
         }
         if (!destination.CanWrite) {
             throw new ArgumentException("The snapshot destination must be writable.", nameof(destination));
         }
-        if (maximumBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
         if (string.IsNullOrWhiteSpace(limitMessage)) throw new ArgumentException("A limit message is required.", nameof(limitMessage));
 
         source.Position = 0;

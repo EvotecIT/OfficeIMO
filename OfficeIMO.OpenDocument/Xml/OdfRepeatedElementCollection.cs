@@ -31,7 +31,8 @@ internal sealed class OdfRepeatedElementCollection<T> : IReadOnlyList<T> {
 
     public T this[int index] {
         get {
-            if (index < 0 || index >= _count) throw new ArgumentOutOfRangeException(nameof(index));
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _count);
             long current = 0;
             foreach (XElement element in _elements) {
                 long repeat = OdsRepeatModel.Read(element, _repeatAttribute);

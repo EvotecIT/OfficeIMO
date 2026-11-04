@@ -29,7 +29,7 @@ public static partial class OfficeInvoiceBufferWorkflow {
         InvoiceValidator? validator,
 #endif
         CancellationToken cancellationToken = default) {
-        if (requests == null) throw new ArgumentNullException(nameof(requests));
+        ArgumentNullException.ThrowIfNull(requests);
         OfficeInvoiceWorkflowBatchOptions limits = (options ?? new OfficeInvoiceWorkflowBatchOptions()).Snapshot();
         cancellationToken.ThrowIfCancellationRequested();
         var captured = new List<OfficeInvoiceWorkflowRequest>();

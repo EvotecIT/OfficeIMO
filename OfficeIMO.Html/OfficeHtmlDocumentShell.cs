@@ -50,7 +50,7 @@ public static class OfficeHtmlDocumentShell {
 
     /// <summary>Gets shared shell CSS from a document theme's colors and font choices.</summary>
     public static string GetThemeCss(OfficeTheme theme, string newLine = "\n") {
-        if (theme == null) throw new ArgumentNullException(nameof(theme));
+        ArgumentNullException.ThrowIfNull(theme);
         return GetThemeCss(OfficeHtmlThemePalette.Create(theme), newLine);
     }
 
@@ -95,7 +95,7 @@ public static class OfficeHtmlDocumentShell {
     /// while preserving first-seen order.
     /// </summary>
     public static string MergeBodyClasses(params string?[] classLists) {
-        if (classLists == null) throw new ArgumentNullException(nameof(classLists));
+        ArgumentNullException.ThrowIfNull(classLists);
         var classes = new List<string>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (string? classList in classLists) {

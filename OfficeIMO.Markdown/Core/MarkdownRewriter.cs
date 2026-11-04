@@ -7,9 +7,7 @@ namespace OfficeIMO.Markdown;
 public abstract class MarkdownRewriter {
     /// <summary>Rewrites the document in place and returns it.</summary>
     public virtual MarkdownDocument Rewrite(MarkdownDocument document) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
+        ArgumentNullException.ThrowIfNull(document);
 
         var rewritten = RewriteBlocks(document.Blocks);
         document.ReplaceBlocks(rewritten);

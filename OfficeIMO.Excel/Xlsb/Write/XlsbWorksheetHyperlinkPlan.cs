@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         internal IReadOnlyList<XlsbHyperlinkRelationship> Relationships { get; }
 
         internal bool RelationshipsMatch(XlsbSheet sourceSheet) {
-            if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
+            ArgumentNullException.ThrowIfNull(sourceSheet);
             XlsbHyperlink[] sourceRelationships = sourceSheet.Hyperlinks
                 .Where(hyperlink => hyperlink.IsExternal)
                 .ToArray();
@@ -72,7 +72,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet sheet,
             bool pruneOrphanedRelationships = false,
             IReadOnlyCollection<string>? reservedRelationshipIds = null) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+            ArgumentNullException.ThrowIfNull(sheet);
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
             Hyperlinks[] containers = worksheet.Elements<Hyperlinks>().ToArray();

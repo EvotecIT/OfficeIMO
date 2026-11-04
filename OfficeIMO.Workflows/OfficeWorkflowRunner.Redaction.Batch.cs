@@ -10,7 +10,7 @@ public sealed partial class OfficeWorkflowRunner {
         PdfRedactionBatchRequest request,
         IProgress<OfficeWorkflowProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         BuiltRedactionBatch built = await BuildBatchItemsAsync(request, cancellationToken).ConfigureAwait(false);
         PdfRedactionWorkflowRequest[] items = built.Items;
         string manifestPath = Path.GetFullPath(request.ManifestPath);

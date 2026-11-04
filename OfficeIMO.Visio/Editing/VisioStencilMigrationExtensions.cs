@@ -11,13 +11,9 @@ namespace OfficeIMO.Visio {
         /// Applies a stencil migration map to every foreground page in the document.
         /// </summary>
         public static VisioStencilMigrationResult ApplyStencilMigration(this VisioDocument document, VisioStencilMigrationMap map) {
-            if (document == null) {
-                throw new ArgumentNullException(nameof(document));
-            }
+            ArgumentNullException.ThrowIfNull(document);
 
-            if (map == null) {
-                throw new ArgumentNullException(nameof(map));
-            }
+            ArgumentNullException.ThrowIfNull(map);
 
             List<VisioStencilMigrationReplacement> replacements = new();
             foreach (VisioPage page in document.Pages.Where(page => !page.IsBackground)) {
@@ -31,13 +27,9 @@ namespace OfficeIMO.Visio {
         /// Applies a stencil migration map to all shapes on a page, including grouped children.
         /// </summary>
         public static VisioStencilMigrationResult ApplyStencilMigration(this VisioPage page, VisioStencilMigrationMap map) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (map == null) {
-                throw new ArgumentNullException(nameof(map));
-            }
+            ArgumentNullException.ThrowIfNull(map);
 
             return new VisioStencilMigrationResult(Apply(page, page.AllShapes(), map));
         }
@@ -46,13 +38,9 @@ namespace OfficeIMO.Visio {
         /// Applies a stencil migration map to a page-backed shape selection.
         /// </summary>
         public static VisioStencilMigrationResult ApplyStencilMigration(this VisioShapeSelection selection, VisioStencilMigrationMap map) {
-            if (selection == null) {
-                throw new ArgumentNullException(nameof(selection));
-            }
+            ArgumentNullException.ThrowIfNull(selection);
 
-            if (map == null) {
-                throw new ArgumentNullException(nameof(map));
-            }
+            ArgumentNullException.ThrowIfNull(map);
 
             if (selection.OwnerPage == null) {
                 throw new InvalidOperationException("This selection is not associated with a page. Apply the migration to the owning page or document instead.");

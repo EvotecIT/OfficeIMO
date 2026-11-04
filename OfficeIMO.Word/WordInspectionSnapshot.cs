@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordSectionInfo> Sections => _sections;
 
         internal void AddSection(WordSectionInfo section) {
-            if (section == null) throw new ArgumentNullException(nameof(section));
+            ArgumentNullException.ThrowIfNull(section);
             _sections.Add(section);
         }
     }
@@ -95,7 +95,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordBlockInfo> Elements => _elements;
 
         internal void AddElement(WordBlockInfo element) {
-            if (element == null) throw new ArgumentNullException(nameof(element));
+            ArgumentNullException.ThrowIfNull(element);
             _elements.Add(element);
         }
     }
@@ -193,17 +193,17 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordTabStopInfo> TabStops => _tabStops;
 
         internal void AddRun(WordRunInfo run) {
-            if (run == null) throw new ArgumentNullException(nameof(run));
+            ArgumentNullException.ThrowIfNull(run);
             _runs.Add(run);
         }
 
         internal void AddInlineField(WordInlineFieldInfo field) {
-            if (field == null) throw new ArgumentNullException(nameof(field));
+            ArgumentNullException.ThrowIfNull(field);
             _fields.Add(field);
         }
 
         internal void AddTabStop(WordTabStopInfo tabStop) {
-            if (tabStop == null) throw new ArgumentNullException(nameof(tabStop));
+            ArgumentNullException.ThrowIfNull(tabStop);
             _tabStops.Add(tabStop);
         }
     }
@@ -301,7 +301,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordParagraphInfo> Paragraphs => _paragraphs;
 
         internal void AddParagraph(WordParagraphInfo paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             _paragraphs.Add(paragraph);
         }
     }
@@ -316,7 +316,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordParagraphInfo> Paragraphs => _paragraphs;
 
         internal void AddParagraph(WordParagraphInfo paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             _paragraphs.Add(paragraph);
         }
     }
@@ -363,7 +363,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordTableInfo> Tables => _elements.OfType<WordTableInfo>().ToList();
 
         internal void AddElement(WordBlockInfo element) {
-            if (element == null) throw new ArgumentNullException(nameof(element));
+            ArgumentNullException.ThrowIfNull(element);
             _elements.Add(element);
         }
     }
@@ -399,7 +399,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<OfficeLength> ColumnWidths => _columnWidths;
 
         internal void AddRow(WordTableRowInfo row) {
-            if (row == null) throw new ArgumentNullException(nameof(row));
+            ArgumentNullException.ThrowIfNull(row);
             _rows.Add(row);
         }
 
@@ -418,7 +418,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordTableCellInfo> Cells => _cells;
 
         internal void AddCell(WordTableCellInfo cell) {
-            if (cell == null) throw new ArgumentNullException(nameof(cell));
+            ArgumentNullException.ThrowIfNull(cell);
             _cells.Add(cell);
         }
     }
@@ -451,7 +451,7 @@ namespace OfficeIMO.Word {
         public IReadOnlyList<WordParagraphInfo> Paragraphs => _paragraphs;
 
         internal void AddParagraph(WordParagraphInfo paragraph) {
-            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+            ArgumentNullException.ThrowIfNull(paragraph);
             _paragraphs.Add(paragraph);
         }
     }

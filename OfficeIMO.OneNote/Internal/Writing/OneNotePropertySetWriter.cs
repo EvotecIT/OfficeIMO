@@ -37,7 +37,7 @@ internal static class OneNotePropertySetWriter {
     }
 
     internal static byte[] WriteDesktop(IReadOnlyList<OneNoteWriteProperty> properties, IReadOnlyDictionary<Guid, uint> globalIds) {
-        if (globalIds == null) throw new ArgumentNullException(nameof(globalIds));
+        ArgumentNullException.ThrowIfNull(globalIds);
         var (objectReferences, objectSpaceReferences, contextReferences) = CollectReferences(properties);
         using (var stream = new MemoryStream(128)) {
             bool hasObjectSpaceStream = objectSpaceReferences.Length > 0 || contextReferences.Length > 0;

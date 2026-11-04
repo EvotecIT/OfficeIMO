@@ -167,7 +167,7 @@ internal sealed class PdfUnderstandingPipeline {
         Guard.NotNull(lines, nameof(lines));
         Guard.NotNull(sourceProviderType, nameof(sourceProviderType));
 #pragma warning disable CA1512 // ThrowIfNegativeOrZero is unavailable on every target framework.
-        if (pageNumber <= 0) throw new ArgumentOutOfRangeException(nameof(pageNumber));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pageNumber);
 #pragma warning restore CA1512
         var context = CreateContext(page, pageNumber, cancellationToken);
         if (priorWorkUnits > 0) context.ConsumeWork(priorWorkUnits);

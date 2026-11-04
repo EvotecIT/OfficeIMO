@@ -69,7 +69,7 @@ public static partial class OfficeRasterFilters {
     /// <summary>Applies an alpha-weighted local-mean threshold using a pixel radius and relative contrast between zero and one.</summary>
     public static OfficeRasterImage AdaptiveThreshold(OfficeRasterImage source, int radius = 15, double contrast = .15D, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (source == null) throw new ArgumentNullException(nameof(source));
+        ArgumentNullException.ThrowIfNull(source);
         CalculateAdaptiveThresholdAdditionalWorkingBytes(source.Width, source.Height, radius, contrast, out int entries);
         int stride = checked(source.Width + 1);
         var sums = new double[entries];

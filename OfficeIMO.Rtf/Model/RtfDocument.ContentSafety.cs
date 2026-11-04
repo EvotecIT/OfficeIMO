@@ -10,11 +10,7 @@ public sealed partial class RtfDocument {
         byte[] rtf,
         OfficeContentSafetyOptions? options = null,
         RtfLoadOptions? readOptions = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(rtf);
-#else
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-#endif
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         OfficeContentSafetyInputGuard.ValidateBytes(rtf, effective);
         RtfDocument document = Load(rtf, readOptions);
@@ -38,13 +34,8 @@ public sealed partial class RtfDocument {
         OfficeContentCleanupOptions? options = null,
         RtfLoadOptions? readOptions = null,
         RtfSaveOptions? writeOptions = null) {
-#if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(rtf);
         ArgumentNullException.ThrowIfNull(selection);
-#else
-        if (rtf == null) throw new ArgumentNullException(nameof(rtf));
-        if (selection == null) throw new ArgumentNullException(nameof(selection));
-#endif
         options ??= new OfficeContentCleanupOptions();
         options.Validate();
         OfficeContentSafetyReport before = InspectContentSafety(rtf, options.Inspection, readOptions);

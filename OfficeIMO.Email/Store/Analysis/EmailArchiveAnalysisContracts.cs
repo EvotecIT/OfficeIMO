@@ -12,7 +12,7 @@ public sealed class EmailArchiveAnalysisOptions {
         if (maxDuplicateGroups <= 0 || maxDuplicateGroups > 1000) throw new ArgumentOutOfRangeException(nameof(maxDuplicateGroups));
         if (maxItemsPerDuplicateGroup <= 0 || maxItemsPerDuplicateGroup > 1000) throw new ArgumentOutOfRangeException(nameof(maxItemsPerDuplicateGroup));
         if (maxLargeAttachments <= 0 || maxLargeAttachments > 1000) throw new ArgumentOutOfRangeException(nameof(maxLargeAttachments));
-        if (largeAttachmentThresholdBytes < 0) throw new ArgumentOutOfRangeException(nameof(largeAttachmentThresholdBytes));
+        ArgumentOutOfRangeException.ThrowIfNegative(largeAttachmentThresholdBytes);
         if (maxDistributionBuckets <= 0 || maxDistributionBuckets > 10000) throw new ArgumentOutOfRangeException(nameof(maxDistributionBuckets));
         if (maxDiagnostics <= 0 || maxDiagnostics > 1000) throw new ArgumentOutOfRangeException(nameof(maxDiagnostics));
         MaxItems = maxItems; MaxDecodedPropertyBytesPerItem = maxDecodedPropertyBytesPerItem;

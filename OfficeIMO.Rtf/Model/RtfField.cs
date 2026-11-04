@@ -71,7 +71,7 @@ public sealed partial class RtfField : IRtfInline {
 
     /// <summary>Configures Word form-field metadata for this field.</summary>
     public RtfField SetFormFieldData(Action<RtfFormFieldData> configure) {
-        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        ArgumentNullException.ThrowIfNull(configure);
         configure(GetOrCreateFormFieldData());
         return this;
     }

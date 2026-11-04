@@ -64,7 +64,7 @@ public sealed partial class IWorkPagesDocument {
     /// <remarks>The default tab interval is 36 points. Line breaks still require separate paragraphs.</remarks>
     public IWorkPagesParagraphData AddParagraph(string text, IWorkPagesParagraphLayout layout, string fontName = "Arial",
         float fontSizePoints = 12, string color = "000000") {
-        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        ArgumentNullException.ThrowIfNull(layout);
         return AddRichParagraph(new[] { new IWorkTextRunData(text, fontName, fontSizePoints,
             IWorkCreationValidation.ParseColor(color), allowTabs: true) }, layout);
     }
@@ -80,7 +80,7 @@ public sealed partial class IWorkPagesDocument {
 
     /// <summary>Adds a snapshot of rich runs with immutable paragraph spacing and custom tabs.</summary>
     public IWorkPagesParagraphData AddRichParagraph(IEnumerable<IWorkTextRunData> runs, IWorkPagesParagraphLayout layout) {
-        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        ArgumentNullException.ThrowIfNull(layout);
         var paragraph = new IWorkPagesParagraphData(runs, layout);
         _paragraphs.Add(paragraph);
         _bodyBlocks.Add(paragraph);
@@ -110,7 +110,7 @@ public sealed partial class IWorkPagesDocument {
     /// black solid grid, wrapping and four-point padding. Formulas, merges and per-cell styling are not authored.</remarks>
     public IWorkPagesTable AddTable(IWorkTableData data, string name = "Table 1", float columnWidthPoints = 100,
         float rowHeightPoints = 24, string fontName = "Arial", float fontSizePoints = 12, string color = "000000") {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         IWorkCreationValidation.ValidatePositive(columnWidthPoints, nameof(columnWidthPoints));
         IWorkCreationValidation.ValidatePositive(rowHeightPoints, nameof(rowHeightPoints));
         if (_tables.Any(table => string.Equals(table.Name, name, StringComparison.OrdinalIgnoreCase)))
@@ -129,7 +129,7 @@ public sealed partial class IWorkPagesDocument {
     /// The optional accessibility description supports at most 4096 normalized UTF-16 code units.</remarks>
     public IWorkPagesImage AddImage(byte[] data, float widthPoints, float heightPoints,
         string? accessibilityDescription = null, CancellationToken cancellationToken = default) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         IWorkCreationValidation.ValidatePositive(widthPoints, nameof(widthPoints));
         IWorkCreationValidation.ValidatePositive(heightPoints, nameof(heightPoints));
         if (widthPoints > PageSize.WidthPoints - LeftMarginPoints - RightMarginPoints
@@ -147,7 +147,7 @@ public sealed partial class IWorkPagesDocument {
     /// <summary>Writes a completed package at the stream's current position and leaves the stream open.</summary>
     /// <remarks>Encoding finishes before writing; cancellation or I/O failure while copying can leave partial stream data.</remarks>
     public void Save(Stream destination, IWorkPagesWriteOptions? options = null, CancellationToken cancellationToken = default) {
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
         IWorkNativePackageWriter.Copy(SaveBytes(options, cancellationToken), destination, cancellationToken);
     }
@@ -156,7 +156,7 @@ public sealed partial class IWorkPagesDocument {
     /// <remarks>Validation and encoding finish before staging. Cancellation or failed staging preserves the existing destination.</remarks>
     public void Save(string path, bool overwrite = false, IWorkPagesWriteOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
         byte[] bytes = SaveBytes(options, cancellationToken);
         OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken),

@@ -65,9 +65,7 @@ public abstract class MarkdownObject {
 
     /// <summary>Dispatches this node to a visitor.</summary>
     public void Accept(MarkdownVisitor visitor) {
-        if (visitor == null) {
-            throw new ArgumentNullException(nameof(visitor));
-        }
+        ArgumentNullException.ThrowIfNull(visitor);
 
         visitor.Visit(this);
     }
@@ -134,9 +132,7 @@ public abstract class MarkdownObject {
     }
 
     internal void BindSyntaxNode(MarkdownSyntaxNode syntaxNode) {
-        if (syntaxNode == null) {
-            throw new ArgumentNullException(nameof(syntaxNode));
-        }
+        ArgumentNullException.ThrowIfNull(syntaxNode);
 
         MarkdownAttributeSet existingAttributes = Attributes;
         _metadata = syntaxNode.Attributes.IsEmpty && !existingAttributes.IsEmpty

@@ -16,7 +16,7 @@ namespace OfficeIMO.Core.Internal {
         }
 
         internal static byte[] Compress(byte[] bytes, CancellationToken cancellationToken) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
             cancellationToken.ThrowIfCancellationRequested();
             using var output = new MemoryStream();
             output.WriteByte(0x78);
@@ -41,8 +41,8 @@ namespace OfficeIMO.Core.Internal {
         internal static byte[] Decompress(byte[] bytes, int maximumOutputBytes,
             int? expectedOutputBytes = null,
             CancellationToken cancellationToken = default) {
-            if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-            if (maximumOutputBytes < 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputBytes));
+            ArgumentNullException.ThrowIfNull(bytes);
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumOutputBytes);
             if (expectedOutputBytes.HasValue && expectedOutputBytes.Value < 0) {
                 throw new ArgumentOutOfRangeException(nameof(expectedOutputBytes));
             }
@@ -148,7 +148,7 @@ namespace OfficeIMO.Core.Internal {
         /// <summary>Appends at most 5552 bytes to normalized Adler-32 state and reduces it modulo 65521.</summary>
         /// <remarks>Callers retain ownership of cancellation and progress between these bounded blocks.</remarks>
         internal static void AppendAdler32Block(byte[] data, int offset, int count, ref uint a, ref uint b) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             if (offset < 0 || count < 0 || count > 5552 || offset > data.Length - count) {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
@@ -188,7 +188,7 @@ namespace OfficeIMO.Core.Internal {
             int expectedOutputBytes,
             int maximumOutputBytes,
             CancellationToken cancellationToken) {
-            if (expectedOutputBytes < 0) throw new ArgumentOutOfRangeException(nameof(expectedOutputBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(expectedOutputBytes);
             if (expectedOutputBytes > maximumOutputBytes) {
                 throw new OfficeDecompressionSizeLimitException(
                     $"The decompressed zlib stream exceeds {maximumOutputBytes} bytes.");

@@ -103,9 +103,7 @@ namespace OfficeIMO.PowerPoint {
         /// Applies the style to a text run.
         /// </summary>
         public void Apply(PowerPointTextRun run) {
-            if (run == null) {
-                throw new ArgumentNullException(nameof(run));
-            }
+            ArgumentNullException.ThrowIfNull(run);
 
             if (FontSize != null) {
                 run.FontSize = FontSize.Value;
@@ -136,9 +134,7 @@ namespace OfficeIMO.PowerPoint {
         /// Applies the style to a paragraph's default run.
         /// </summary>
         public void Apply(PowerPointParagraph paragraph) {
-            if (paragraph == null) {
-                throw new ArgumentNullException(nameof(paragraph));
-            }
+            ArgumentNullException.ThrowIfNull(paragraph);
 
             if (FontSize != null) {
                 paragraph.SetFontSize(FontSize.Value);

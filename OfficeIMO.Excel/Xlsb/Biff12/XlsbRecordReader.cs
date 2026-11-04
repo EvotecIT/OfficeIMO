@@ -11,9 +11,9 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             int maxRecordBytes = DefaultMaxRecordBytes,
             XlsbRecordReadBudget? budget = null,
             System.Threading.CancellationToken cancellationToken = default) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("The BIFF12 stream must be readable.", nameof(stream));
-            if (maxRecordBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxRecordBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(maxRecordBytes);
 
             var records = new List<XlsbRecord>();
             while (true) {
@@ -28,9 +28,9 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
 
         /// <summary>Reads the next BIFF12 record, returning false only at a clean record boundary at end of stream.</summary>
         internal static bool TryRead(Stream stream, int maxRecordBytes, out XlsbRecord record) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (!stream.CanRead) throw new ArgumentException("The BIFF12 stream must be readable.", nameof(stream));
-            if (maxRecordBytes < 0) throw new ArgumentOutOfRangeException(nameof(maxRecordBytes));
+            ArgumentOutOfRangeException.ThrowIfNegative(maxRecordBytes);
 
             long offset = stream.CanSeek ? stream.Position : -1;
             int firstTypeByte = stream.ReadByte();

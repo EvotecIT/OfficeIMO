@@ -13,7 +13,7 @@ public sealed partial class PowerPointDocument {
     public IReadOnlyList<PowerPointSlide> AddSlides(int count, int masterIndex = 0, int layoutIndex = 0,
         CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
-        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         cancellationToken.ThrowIfCancellationRequested();
         if (count == 0) return Array.Empty<PowerPointSlide>();
         SlideLayoutPart layoutPart = GetSlideLayoutPart(masterIndex, layoutIndex);

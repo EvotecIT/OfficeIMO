@@ -13,7 +13,7 @@ public static partial class ExcelIWorkConverter {
     /// Use <see cref="NumbersToExcelResult.RequireCompleteEditableReconstruction"/> to reject visual fallbacks and incomplete reconstruction.</remarks>
     public static NumbersToExcelResult ToExcelResult(this IWorkSourceDocument package, IWorkConversionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (package == null) throw new ArgumentNullException(nameof(package));
+        ArgumentNullException.ThrowIfNull(package);
         cancellationToken.ThrowIfCancellationRequested();
         return ProjectNumbers(package, options);
     }
@@ -25,7 +25,7 @@ public static partial class ExcelIWorkConverter {
     /// <summary>Converts a Numbers spreadsheet into the editable Excel model and returns the completed conversion report.</summary>
     public static ExcelDocument ToExcel(this IWorkSourceDocument package, NumbersExcelExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (package == null) throw new ArgumentNullException(nameof(package));
+        ArgumentNullException.ThrowIfNull(package);
         cancellationToken.ThrowIfCancellationRequested();
         NumbersToExcelResult result = package.ToExcelResult(options?.ConversionOptions, cancellationToken);
         ExcelDocument value = result.Value;

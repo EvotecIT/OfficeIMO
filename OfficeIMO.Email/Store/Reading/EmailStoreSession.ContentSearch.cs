@@ -10,7 +10,7 @@ public sealed partial class EmailStoreSession {
         EmailStoreContentQuery query,
         IProgress<EmailStoreContentSearchProgress>? progress = null,
         CancellationToken cancellationToken = default) {
-        if (query == null) throw new ArgumentNullException(nameof(query));
+        ArgumentNullException.ThrowIfNull(query);
         ThrowIfDisposed();
         if (query.BodyTextProjector != null && !string.Equals(query.BodyTextProjectionIdentity, query.BodyTextProjector.Identity, StringComparison.Ordinal))
             throw new ArgumentException("The body projection identity changed after query construction.", nameof(query));

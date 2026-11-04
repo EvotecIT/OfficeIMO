@@ -118,21 +118,21 @@ public sealed class OneNoteReaderOptions {
         if (MaxInputBytes.HasValue && MaxInputBytes.Value < 1) {
             throw new ArgumentOutOfRangeException(nameof(MaxInputBytes), "MaxInputBytes must be greater than zero when specified.");
         }
-        if (MaxFileNodeListFragments < 1) throw new ArgumentOutOfRangeException(nameof(MaxFileNodeListFragments));
-        if (MaxFileNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxFileNodes));
-        if (MaxTransactionLogFragments < 1) throw new ArgumentOutOfRangeException(nameof(MaxTransactionLogFragments));
-        if (MaxTransactionEntries < 1) throw new ArgumentOutOfRangeException(nameof(MaxTransactionEntries));
-        if (MaxObjects < 1) throw new ArgumentOutOfRangeException(nameof(MaxObjects));
-        if (MaxPropertiesPerObject < 1) throw new ArgumentOutOfRangeException(nameof(MaxPropertiesPerObject));
-        if (MaxPropertySetDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxPropertySetDepth));
-        if (MaxPageGraphNodes < 1) throw new ArgumentOutOfRangeException(nameof(MaxPageGraphNodes));
-        if (MaxPageRelationshipDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxPageRelationshipDepth));
-        if (MaxInkPathValues < 1) throw new ArgumentOutOfRangeException(nameof(MaxInkPathValues));
-        if (MaxAssetBytes < 1) throw new ArgumentOutOfRangeException(nameof(MaxAssetBytes));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxFileNodeListFragments, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxFileNodes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTransactionLogFragments, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxTransactionEntries, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxObjects, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxPropertiesPerObject, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxPropertySetDepth, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxPageGraphNodes, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxPageRelationshipDepth, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxInkPathValues, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxAssetBytes, 1);
         if (MaxTotalAssetBytes < MaxAssetBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalAssetBytes), "MaxTotalAssetBytes must be at least MaxAssetBytes.");
         }
-        if (MaxStreamObjects < 1) throw new ArgumentOutOfRangeException(nameof(MaxStreamObjects));
-        if (MaxStreamObjectDepth < 1) throw new ArgumentOutOfRangeException(nameof(MaxStreamObjectDepth));
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxStreamObjects, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(MaxStreamObjectDepth, 1);
     }
 }

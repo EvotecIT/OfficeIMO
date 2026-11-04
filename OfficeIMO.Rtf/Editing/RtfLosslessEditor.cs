@@ -32,8 +32,8 @@ public sealed partial class RtfLosslessEditor {
     /// Replaces literal visible text contained inside individual text nodes.
     /// </summary>
     public int ReplaceText(string oldText, string newText, StringComparison comparison = StringComparison.Ordinal) {
-        if (oldText == null) throw new ArgumentNullException(nameof(oldText));
-        if (newText == null) throw new ArgumentNullException(nameof(newText));
+        ArgumentNullException.ThrowIfNull(oldText);
+        ArgumentNullException.ThrowIfNull(newText);
         if (oldText.Length == 0) throw new ArgumentException("Text to replace cannot be empty.", nameof(oldText));
 
         int replacements = 0;
@@ -70,9 +70,7 @@ public sealed partial class RtfLosslessEditor {
     /// Adds or replaces a custom document property in the root <c>userprops</c> destination while preserving the rest of the RTF stream.
     /// </summary>
     public void SetUserProperty(RtfUserProperty property) {
-        if (property == null) {
-            throw new ArgumentNullException(nameof(property));
-        }
+        ArgumentNullException.ThrowIfNull(property);
 
         RtfGroup root = SetUserPropertyInRoot(_syntaxTree.Root, property);
         _syntaxTree = new RtfSyntaxTree(root, _syntaxTree.Diagnostics);
@@ -101,7 +99,7 @@ public sealed partial class RtfLosslessEditor {
     /// Appends a plain RTF paragraph at the end of the root document group while preserving existing syntax.
     /// </summary>
     public void AppendParagraph(string text) {
-        if (text == null) throw new ArgumentNullException(nameof(text));
+        ArgumentNullException.ThrowIfNull(text);
 
         var children = new List<RtfNode>(_syntaxTree.Root.Children) {
             new RtfControlWord(0, "pard", null, hasParameter: false, rawText: @"\pard "),
@@ -126,7 +124,7 @@ public sealed partial class RtfLosslessEditor {
     /// Saves the edited syntax tree to a file without semantic normalization.
     /// </summary>
     public void SaveLossless(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         RtfBytePreservingEncoding.WriteAllText(path, ToRtf());
     }
 
@@ -134,7 +132,7 @@ public sealed partial class RtfLosslessEditor {
     /// Saves the edited syntax tree to a stream without semantic normalization.
     /// </summary>
     public void SaveLossless(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         RtfBytePreservingEncoding.WriteTo(stream, ToRtf());
     }
 

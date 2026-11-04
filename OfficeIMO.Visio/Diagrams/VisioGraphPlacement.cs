@@ -30,7 +30,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly IReadOnlyList<(double X, double Y)> _points;
         /// <summary>Snapshots a finite route containing at least two points.</summary>
         public VisioGraphRoute(IEnumerable<VisioConnectorWaypoint> points) {
-            if (points == null) throw new ArgumentNullException(nameof(points));
+            ArgumentNullException.ThrowIfNull(points);
             _points = Array.AsReadOnly(points.Select(point => {
                 if (point == null) throw new ArgumentException("Route points cannot be null.", nameof(points));
                 VisioGraphPlacement.RequireFinite(point.X, nameof(points));

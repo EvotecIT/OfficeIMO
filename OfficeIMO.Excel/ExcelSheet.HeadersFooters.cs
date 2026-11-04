@@ -98,9 +98,7 @@ namespace OfficeIMO.Excel {
             GetHeaderFooter(ExcelImageExportOptions.DefaultMaximumTotalSourceImageBytes);
 
         internal ExcelHeaderFooterInfo GetHeaderFooter(long maximumTotalSourceImageBytes) {
-            if (maximumTotalSourceImageBytes <= 0L) {
-                throw new ArgumentOutOfRangeException(nameof(maximumTotalSourceImageBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maximumTotalSourceImageBytes, 0L);
 
             var ws = WorksheetRoot;
             var hf = ws.GetFirstChild<HeaderFooter>();

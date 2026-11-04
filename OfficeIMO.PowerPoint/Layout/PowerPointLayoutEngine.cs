@@ -11,8 +11,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Adds one logical slide; overflow can produce several physical slides.</summary>
         internal static IReadOnlyList<PowerPointSlide> AddSlides(PowerPointDocument document, PowerPointLayoutSlide content,
             PowerPointLayoutTheme? theme = null, PowerPointSlide? materialized = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (content == null) throw new ArgumentNullException(nameof(content));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(content);
             var context = new PowerPointLayoutContext(document, theme ?? document.LayoutTheme, content.DesignIntent);
             int originalCount = document.Slides.Count;
             Action rollback = context.Deck.CaptureRollback();

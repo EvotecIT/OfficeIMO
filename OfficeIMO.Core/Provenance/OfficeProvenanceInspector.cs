@@ -19,7 +19,7 @@ public static class OfficeProvenanceInspector {
 
     /// <summary>Inspects a bounded asset stream and restores its original position when seekable.</summary>
     public static OfficeProvenanceReport Inspect(Stream stream, string? fileName = null, OfficeProvenanceOptions? options = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         long originalPosition = stream.CanSeek ? stream.Position : 0L;
@@ -33,7 +33,7 @@ public static class OfficeProvenanceInspector {
 
     /// <summary>Inspects bounded encoded asset bytes.</summary>
     public static OfficeProvenanceReport Inspect(byte[] data, string? fileName = null, OfficeProvenanceOptions? options = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         options.CancellationToken.ThrowIfCancellationRequested();
@@ -50,7 +50,7 @@ public static class OfficeProvenanceInspector {
     /// <remarks>Malformed XML and unrelated namespaces produce no declaration evidence. This inspection
     /// interprets metadata declarations without establishing authorship or validating C2PA claims.</remarks>
     public static OfficeProvenanceReport InspectXmp(byte[] packet, OfficeProvenanceOptions? options = null) {
-        if (packet == null) throw new ArgumentNullException(nameof(packet));
+        ArgumentNullException.ThrowIfNull(packet);
         options ??= new OfficeProvenanceOptions();
         OfficeProvenanceBinary.ValidateLimits(options);
         options.CancellationToken.ThrowIfCancellationRequested();
@@ -314,7 +314,7 @@ public static class OfficeProvenanceRemover {
         byte[] data,
         string? fileName = null,
         OfficeProvenanceRemovalOptions? options = null) {
-        if (data == null) throw new ArgumentNullException(nameof(data));
+        ArgumentNullException.ThrowIfNull(data);
         options ??= new OfficeProvenanceRemovalOptions();
         OfficeProvenanceBinary.ValidateRemovalOptions(options);
         if (data.LongLength > options.Limits.MaxAssetBytes) {

@@ -15,7 +15,7 @@ internal static class HtmlCssIdSelectorRewriter {
     internal static string Rewrite(string css, IReadOnlyDictionary<string, string> map, CancellationToken token,
         Func<string, string, string, string?, HtmlCssAttributeSelectorEdit>? rewriteRelationship = null,
         long maximumOutputCharacters = int.MaxValue) {
-        if (maximumOutputCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(maximumOutputCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumOutputCharacters);
         maximumOutputCharacters = Math.Min(maximumOutputCharacters, int.MaxValue);
         if (css.Length > maximumOutputCharacters) throw OutputLimit();
         var edits = new List<(int Start, int Length, string Value)>();

@@ -21,7 +21,7 @@ public sealed class PowerPointNotesInfo
 
 internal static class PowerPointNotesReader {
     public static PowerPointNotesInfo Read(PowerPointSlide slide, int slideIndex) {
-        if (slide == null) throw new ArgumentNullException(nameof(slide));
+        ArgumentNullException.ThrowIfNull(slide);
         return new PowerPointNotesInfo {
             Slide = slide,
             SlideIndex = slideIndex >= 0 ? slideIndex + 1 : -1,
@@ -31,7 +31,7 @@ internal static class PowerPointNotesReader {
     }
 
     public static int ResolveSlideIndex(PowerPointSlide slide) {
-        if (slide == null) throw new ArgumentNullException(nameof(slide));
+        ArgumentNullException.ThrowIfNull(slide);
         return slide.Index;
     }
 }

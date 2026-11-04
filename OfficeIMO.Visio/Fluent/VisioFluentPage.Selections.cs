@@ -17,9 +17,7 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="predicate">Predicate used to select shapes.</param>
         /// <param name="configure">Configuration to apply to the selected shapes.</param>
         public VisioFluentPage Shapes(Func<VisioShape, bool> predicate, Action<VisioShapeSelection> configure) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             ConfigureShapes(Page.SelectShapes(predicate), configure);
             return this;
@@ -79,27 +77,21 @@ namespace OfficeIMO.Visio.Fluent {
         /// <param name="predicate">Predicate used to select connectors.</param>
         /// <param name="configure">Configuration to apply to the selected connectors.</param>
         public VisioFluentPage Connectors(Func<VisioConnector, bool> predicate, Action<VisioConnectorSelection> configure) {
-            if (predicate == null) {
-                throw new ArgumentNullException(nameof(predicate));
-            }
+            ArgumentNullException.ThrowIfNull(predicate);
 
             ConfigureConnectors(new VisioConnectorSelection(Page.Connectors.Where(predicate)), configure);
             return this;
         }
 
         private void ConfigureShapes(VisioShapeSelection selection, Action<VisioShapeSelection> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             configure(selection);
             RebuildShapeIndex();
         }
 
         private static void ConfigureConnectors(VisioConnectorSelection selection, Action<VisioConnectorSelection> configure) {
-            if (configure == null) {
-                throw new ArgumentNullException(nameof(configure));
-            }
+            ArgumentNullException.ThrowIfNull(configure);
 
             configure(selection);
         }

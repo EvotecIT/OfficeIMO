@@ -54,10 +54,10 @@ public sealed class EmailStorePstConversionOptions {
         EmailStorePartialResultPolicy partialResultPolicy =
             EmailStorePartialResultPolicy.RetainResumableState,
         IProgress<EmailStorePstMigrationProgress>? progress = null) {
-        if (maxItems <= 0) throw new ArgumentOutOfRangeException(nameof(maxItems));
-        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
-        if (maxVerificationIssues <= 0) throw new ArgumentOutOfRangeException(nameof(maxVerificationIssues));
-        if (checkpointIntervalItems <= 0) throw new ArgumentOutOfRangeException(nameof(checkpointIntervalItems));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxItems);
+        ArgumentOutOfRangeException.ThrowIfNegative(maxNestedMessageDepth);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxVerificationIssues);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(checkpointIntervalItems);
         if (!Enum.IsDefined(typeof(EmailStorePartialResultPolicy), partialResultPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(partialResultPolicy));
         }

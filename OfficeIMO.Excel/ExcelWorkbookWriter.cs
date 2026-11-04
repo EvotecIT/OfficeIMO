@@ -16,7 +16,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     public ExcelDataSetImportResult WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         string name, IEnumerable<T> rows, CancellationToken cancellationToken = default) {
         try {
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(rows);
             var projection = ExcelSheet.CreateStreamingRowProjection<T>();
             return WriteTable(name, rows, projection.Headers, projection.WriteRow, cancellationToken);
         } catch { _workbook.Abort(); throw; }
@@ -26,7 +26,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     public Task<ExcelDataSetImportResult> WriteTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] T>(
         string name, IAsyncEnumerable<T> rows, CancellationToken cancellationToken = default) {
         try {
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(rows);
             var projection = ExcelSheet.CreateStreamingRowProjection<T>();
             return WriteTable(name, rows, projection.Headers, projection.WriteRow, cancellationToken);
         } catch { _workbook.Abort(); throw; }
@@ -36,7 +36,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     public ExcelDataSetImportResult WriteTable<T>(string name, IEnumerable<T> rows, IReadOnlyList<string> headers,
         Action<ExcelDocument.ExcelTabularRowWriter, T> writeRow, CancellationToken cancellationToken = default) {
         try {
-            if (rows == null) throw new ArgumentNullException(nameof(rows));
+            ArgumentNullException.ThrowIfNull(rows);
             return _workbook.WriteTable(name, new SynchronousRows<T>(rows), headers, writeRow, cancellationToken).GetAwaiter().GetResult();
         } catch { _workbook.Abort(); throw; }
     }
@@ -49,7 +49,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     /// <summary>Writes the rows and schema of an existing data table without copying its rows.</summary>
     public ExcelDataSetImportResult WriteTable(string name, DataTable table, CancellationToken cancellationToken = default) {
         try {
-            if (table == null) throw new ArgumentNullException(nameof(table));
+            ArgumentNullException.ThrowIfNull(table);
             string[] headers = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
             return WriteTable(name, table.Rows.Cast<DataRow>(), headers, (writer, row) => {
                 for (int column = 0; column < headers.Length; column++) {
@@ -63,7 +63,7 @@ public sealed class ExcelWorkbookWriter : IDisposable {
     /// <summary>Writes a forward-only reader in one pass. The caller retains ownership of the reader.</summary>
     public ExcelDataSetImportResult WriteTable(string name, IDataReader reader, CancellationToken cancellationToken = default) {
         try {
-            if (reader == null) throw new ArgumentNullException(nameof(reader));
+            ArgumentNullException.ThrowIfNull(reader);
             string[] headers = ExcelSheet.BuildReaderHeaders(reader);
             return WriteTable(name, ReadRows(reader), headers, (writer, row) => {
                 for (int column = 0; column < headers.Length; column++) {

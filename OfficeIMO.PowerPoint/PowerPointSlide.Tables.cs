@@ -26,19 +26,11 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = (top ?? defaults.Top).ToEmus();
             long nativeWidth = (width ?? defaults.Width).ToEmus();
             long nativeHeight = (height ?? defaults.Height).ToEmus();
-            if (rows <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(rows));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(rows);
 
-            if (columns <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(columns));
-            }
-            if (nativeWidth <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(width));
-            }
-            if (nativeHeight <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(height));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(columns);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
 
             A.Table table = new();
             A.TableProperties props = new();
@@ -145,9 +137,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTable AddTable<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(IEnumerable<T> data, Action<ObjectFlattenerOptions>? configure,
             bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(data);
 
             var options = new ObjectFlattenerOptions();
             configure?.Invoke(options);
@@ -286,12 +276,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTable AddTable<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
             bool includeHeaders = true, OfficeLength? left = null, OfficeLength? top = null, OfficeLength? width = null, OfficeLength? height = null) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
-            if (columns == null) {
-                throw new ArgumentNullException(nameof(columns));
-            }
+            ArgumentNullException.ThrowIfNull(data);
+            ArgumentNullException.ThrowIfNull(columns);
 
             var columnList = MaterializeObjectTableItemsBounded(
                 columns,

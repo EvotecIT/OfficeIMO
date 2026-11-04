@@ -90,9 +90,7 @@ public sealed class OfficeClipPath {
 
     private static OfficeClipPath CreatePath(IEnumerable<OfficePathCommand> commands, OfficeFillRule fillRule,
         double? canvasWidth, double? canvasHeight) {
-        if (commands is null) {
-            throw new ArgumentNullException(nameof(commands));
-        }
+        ArgumentNullException.ThrowIfNull(commands);
 
         var source = new List<OfficePathCommand>();
         double minX = 0;

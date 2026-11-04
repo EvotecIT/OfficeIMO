@@ -344,9 +344,7 @@ namespace OfficeIMO.Excel {
             ExcelImageExportOptions options,
             List<OfficeImageExportDiagnostic> diagnostics,
             ExcelSourceImageBudget sourceImageBudget) {
-            if (options == null) {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (options.Scale <= 0D || double.IsNaN(options.Scale) || double.IsInfinity(options.Scale)) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Scale must be a finite positive number.");

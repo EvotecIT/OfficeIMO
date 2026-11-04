@@ -52,7 +52,7 @@ namespace OfficeIMO.Excel {
         /// <param name="display">Optional display text selector. Defaults to the cell text.</param>
         /// <param name="styled">When true, applies hyperlink styling (blue + underline).</param>
         public void LinkCellsToInternalSheets(string a1, Func<string, string> destinationSheetForCellText, string targetA1 = "A1", Func<string, string>? display = null, bool styled = true) {
-            if (destinationSheetForCellText == null) throw new ArgumentNullException(nameof(destinationSheetForCellText));
+            ArgumentNullException.ThrowIfNull(destinationSheetForCellText);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(a1);
             for (int r = r1; r <= r2; r++) {
                 for (int c = c1; c <= c2; c++) {
@@ -139,7 +139,7 @@ namespace OfficeIMO.Excel {
         /// </example>
         public ExcelLinkByHeaderResult LinkByHeader(string header, ExcelLinkTarget target, ExcelLinkByHeaderOptions? options = null) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
-            if (target == null) throw new ArgumentNullException(nameof(target));
+            ArgumentNullException.ThrowIfNull(target);
             var opts = options ?? new ExcelLinkByHeaderOptions();
             if (!string.IsNullOrWhiteSpace(opts.Range) && !string.IsNullOrWhiteSpace(opts.Table)) {
                 throw new ArgumentException("Set either Range or Table, not both.", nameof(options));

@@ -66,9 +66,7 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
             PowerPointLayoutBox bounds, OfficeLength spacing, bool center = false) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
             if (spacing < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(spacing));
             }
@@ -103,9 +101,7 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
             PowerPointLayoutBox bounds, OfficeLength spacing, PowerPointShapeAlignment alignment) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
             if (spacing < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(spacing));
             }
@@ -157,9 +153,7 @@ namespace OfficeIMO.PowerPoint {
         /// <remarks>Geometry uses whole native EMUs. OfficeLength factories specify the input unit.</remarks>
         public void DistributeShapesWithSpacing(IEnumerable<PowerPointShape> shapes, PowerPointShapeDistribution distribution,
             PowerPointLayoutBox bounds, OfficeLength spacing, PowerPointShapeAlignment alignment, PowerPointShapeAlignment crossAxisAlignment) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
             if (spacing < OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(spacing));
             }
@@ -409,9 +403,7 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLayoutBox bounds, long spacingEmus, PowerPointShapeAlignment alignment,
             PowerPointShapeAlignment? crossAxisAlignment, bool clampSpacingToBounds,
             bool scaleToFitBounds, bool preserveAspect) {
-            if (shapes == null) {
-                throw new ArgumentNullException(nameof(shapes));
-            }
+            ArgumentNullException.ThrowIfNull(shapes);
             if (spacingEmus < 0) {
                 throw new ArgumentOutOfRangeException("spacing");
             }

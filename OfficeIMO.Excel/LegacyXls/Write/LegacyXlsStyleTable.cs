@@ -26,9 +26,9 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         internal static LegacyXlsStyleTable Create(ExcelDocument document, IReadOnlyList<ExcelSheet> sheets, LegacyXlsFontTable fontTable,
             IEnumerable<uint>? referencedStyleIndexes = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (sheets == null) throw new ArgumentNullException(nameof(sheets));
-            if (fontTable == null) throw new ArgumentNullException(nameof(fontTable));
+            ArgumentNullException.ThrowIfNull(document);
+            ArgumentNullException.ThrowIfNull(sheets);
+            ArgumentNullException.ThrowIfNull(fontTable);
 
             SortedSet<uint> openXmlStyleIndexes = referencedStyleIndexes == null
                 ? CollectReferencedStyleIndexes(sheets) : new SortedSet<uint>(referencedStyleIndexes);

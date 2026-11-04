@@ -120,7 +120,7 @@ namespace OfficeIMO.Excel {
             int maximumCells = 1_000_000,
             CancellationToken cancellationToken = default) {
             if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
-            if (maximumCells < 1) throw new ArgumentOutOfRangeException(nameof(maximumCells));
+            ArgumentOutOfRangeException.ThrowIfLessThan(maximumCells, 1);
             var (r1, c1, r2, c2) = ExcelA1.ParseRange(range);
             long cellCount = ((long)r2 - r1 + 1L) * ((long)c2 - c1 + 1L);
             if (cellCount > maximumCells) {

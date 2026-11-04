@@ -43,9 +43,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ExcelSheet sheet,
             IReadOnlyList<XlsbWriteCell> cells,
             int cellFormatCount) {
-            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
-            if (cells == null) throw new ArgumentNullException(nameof(cells));
-            if (cellFormatCount <= 0) throw new ArgumentOutOfRangeException(nameof(cellFormatCount));
+            ArgumentNullException.ThrowIfNull(sheet);
+            ArgumentNullException.ThrowIfNull(cells);
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellFormatCount);
 
             Worksheet worksheet = sheet.WorksheetPart.Worksheet
                 ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");

@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
             int start,
             out ExcelFormulaReferenceCandidate? candidate) {
             candidate = null;
-            if (formula == null) throw new ArgumentNullException(nameof(formula));
+            ArgumentNullException.ThrowIfNull(formula);
             if (start < 0 || start >= formula.Length) return false;
             if (start > 0 && IsReferenceIdentifierPart(formula[start - 1])) return false;
             if (!CanStartReference(formula, start)) return false;
@@ -197,7 +197,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Returns syntax-validated references with their exact source spans.</summary>
         internal static IReadOnlyList<ExcelFormulaReferenceCandidate> FindReferences(string formula) {
-            if (formula == null) throw new ArgumentNullException(nameof(formula));
+            ArgumentNullException.ThrowIfNull(formula);
             ExcelFormulaSyntaxTree tree = ExcelFormulaSyntaxTree.Parse(formula);
             var references = new List<ExcelFormulaReferenceCandidate>();
             int index = 0;
@@ -219,8 +219,8 @@ namespace OfficeIMO.Excel {
         internal static string RewriteReferences(
             string formula,
             Func<ExcelFormulaReferenceCandidate, string> rewriter) {
-            if (formula == null) throw new ArgumentNullException(nameof(formula));
-            if (rewriter == null) throw new ArgumentNullException(nameof(rewriter));
+            ArgumentNullException.ThrowIfNull(formula);
+            ArgumentNullException.ThrowIfNull(rewriter);
             IReadOnlyList<ExcelFormulaReferenceCandidate> references = FindReferences(formula);
             if (references.Count == 0) return formula;
             var builder = new StringBuilder(formula.Length);
@@ -237,8 +237,8 @@ namespace OfficeIMO.Excel {
         internal static string RewriteOutsideStrings(
             string formula,
             Func<string, string> rewriteSegment) {
-            if (formula == null) throw new ArgumentNullException(nameof(formula));
-            if (rewriteSegment == null) throw new ArgumentNullException(nameof(rewriteSegment));
+            ArgumentNullException.ThrowIfNull(formula);
+            ArgumentNullException.ThrowIfNull(rewriteSegment);
 
             var builder = new StringBuilder(formula.Length);
             int index = 0;

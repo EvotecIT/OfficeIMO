@@ -75,9 +75,8 @@ namespace OfficeIMO.Word {
         /// <param name="index">Zero-based index of the variable to remove.</param>
         /// <exception cref="ArgumentOutOfRangeException">Thrown when index is out of range.</exception>
         public void RemoveDocumentVariableAt(int index) {
-            if (index < 0 || index >= DocumentVariables.Count) {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, DocumentVariables.Count);
             string key = DocumentVariables.Keys.ElementAt(index);
             DocumentVariables.Remove(key);
         }

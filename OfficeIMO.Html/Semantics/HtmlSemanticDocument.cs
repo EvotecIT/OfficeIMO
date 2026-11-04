@@ -91,7 +91,7 @@ public sealed class HtmlSemanticDocument {
 
     private static IReadOnlyDictionary<string, string> SnapshotDictionary(
         IReadOnlyDictionary<string, string> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         var copy = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (KeyValuePair<string, string> pair in values) copy[pair.Key] = pair.Value;
         return new ReadOnlyDictionary<string, string>(copy);

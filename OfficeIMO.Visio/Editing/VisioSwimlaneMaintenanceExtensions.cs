@@ -21,9 +21,7 @@ namespace OfficeIMO.Visio {
         /// Finds swimlane lanes on the page, using OfficeIMO semantic metadata first and generated IDs/stencil metadata as a fallback.
         /// </summary>
         public static IReadOnlyList<VisioSwimlaneLane> GetSwimlaneLanes(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             Dictionary<string, VisioShape> headers = new(StringComparer.Ordinal);
             foreach (VisioShape shape in page.Shapes) {
@@ -54,9 +52,7 @@ namespace OfficeIMO.Visio {
         /// Finds swimlane phase columns on the page, using OfficeIMO semantic metadata first and generated IDs/stencil metadata as a fallback.
         /// </summary>
         public static IReadOnlyList<VisioSwimlanePhase> GetSwimlanePhases(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             List<VisioSwimlanePhase> phases = new();
             int order = 0;
@@ -74,9 +70,7 @@ namespace OfficeIMO.Visio {
         /// Finds swimlane activities and their current lane/phase placement.
         /// </summary>
         public static IReadOnlyList<VisioSwimlaneActivityPlacement> GetSwimlaneActivities(this VisioPage page) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             IReadOnlyList<VisioSwimlaneLane> lanes = page.GetSwimlaneLanes();
             IReadOnlyList<VisioSwimlanePhase> phases = page.GetSwimlanePhases();
@@ -96,7 +90,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         public static VisioSwimlaneAssignmentResult AssignSwimlaneActivities(
             this VisioPage page) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
+            ArgumentNullException.ThrowIfNull(page);
             IReadOnlyList<VisioSwimlaneLane> lanes = page.GetSwimlaneLanes();
             IReadOnlyList<VisioSwimlanePhase> phases = page.GetSwimlanePhases();
             var assigned = new List<VisioSwimlaneActivityPlacement>();
@@ -140,9 +134,7 @@ namespace OfficeIMO.Visio {
         /// Finds a swimlane lane by identifier.
         /// </summary>
         public static VisioSwimlaneLane? FindSwimlaneLane(this VisioPage page, string laneId) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (string.IsNullOrWhiteSpace(laneId)) {
                 throw new ArgumentException("Lane id cannot be empty.", nameof(laneId));
@@ -155,9 +147,7 @@ namespace OfficeIMO.Visio {
         /// Finds a swimlane phase by identifier.
         /// </summary>
         public static VisioSwimlanePhase? FindSwimlanePhase(this VisioPage page, string phaseId) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (string.IsNullOrWhiteSpace(phaseId)) {
                 throw new ArgumentException("Phase id cannot be empty.", nameof(phaseId));
@@ -170,9 +160,7 @@ namespace OfficeIMO.Visio {
         /// Moves a swimlane activity to a target lane/phase cell and relayouts the affected swimlane activities.
         /// </summary>
         public static VisioPage MoveSwimlaneActivity(this VisioPage page, string activityId, string laneId, string phaseId, VisioSwimlaneRelayoutOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (string.IsNullOrWhiteSpace(activityId)) {
                 throw new ArgumentException("Activity id cannot be empty.", nameof(activityId));
@@ -207,9 +195,7 @@ namespace OfficeIMO.Visio {
         /// Re-centers swimlane activities inside their lane/phase cells, stacking multiple activities deterministically.
         /// </summary>
         public static VisioPage RelayoutSwimlaneActivities(this VisioPage page, VisioSwimlaneRelayoutOptions? options = null) {
-            if (page == null) {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             VisioSwimlaneRelayoutOptions resolvedOptions = options ?? new VisioSwimlaneRelayoutOptions();
             ValidateOptions(resolvedOptions);

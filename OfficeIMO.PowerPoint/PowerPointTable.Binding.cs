@@ -15,18 +15,10 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public void Bind<T>(IEnumerable<T> data, IEnumerable<PowerPointTableColumn<T>> columns,
             bool includeHeaders = true, int startRow = 0, int startColumn = 0) {
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
-            if (columns == null) {
-                throw new ArgumentNullException(nameof(columns));
-            }
-            if (startRow < 0) {
-                throw new ArgumentOutOfRangeException(nameof(startRow));
-            }
-            if (startColumn < 0) {
-                throw new ArgumentOutOfRangeException(nameof(startColumn));
-            }
+            ArgumentNullException.ThrowIfNull(data);
+            ArgumentNullException.ThrowIfNull(columns);
+            ArgumentOutOfRangeException.ThrowIfNegative(startRow);
+            ArgumentOutOfRangeException.ThrowIfNegative(startColumn);
 
             var items = data.ToList();
             var columnList = columns.ToList();
