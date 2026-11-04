@@ -98,7 +98,7 @@ public sealed class ConversionNativeOptionsTests {
         await OfficeConverter.ConvertAsync(source, OfficeDocumentFormat.Markdown, output, OfficeDocumentFormat.PowerPoint,
             new OfficeConversionOptions { RegisteredSettings = new OfficeWorkflowRouteSettings {
                 MarkdownPowerPoint = new MarkdownToPowerPointOptions { SlideBreak = split,
-                    SlideSize = PowerPointSlideSizePreset.Screen4x3, RenderMermaidDiagrams = false }
+                    SlideSize = PowerPointSlideSizePreset.Screen4x3 }
             } });
         output.Position = 0;
         using PowerPointDocument presentation = PowerPointDocument.Load(output);
@@ -115,8 +115,7 @@ public sealed class ConversionNativeOptionsTests {
     public async Task MarkdownDeckCanKeepQuotesVisibleAndOmitFrontMatterWithAnotherTitleLevel() {
         using MarkdownDocument source = MarkdownDocument.Parse("---\ntitle: Omitted cover\n---\n\n# Body heading\n\n> Visible quote marker\n\n## Slide title marker\n\nContent marker");
         var converted = await source.ToPowerPointAsync(new MarkdownToPowerPointOptions { RenderFrontMatter = false,
-            BlockquotesAsNotes = false, TitleHeadingLevel = 2, SlideBreak = MarkdownSlideBreak.Heading,
-            RenderMermaidDiagrams = false });
+            BlockquotesAsNotes = false, TitleHeadingLevel = 2, SlideBreak = MarkdownSlideBreak.Heading });
         using PowerPointDocument presentation = converted.Value;
         Assert.Equal(2, presentation.Slides.Count);
         string visible = string.Join("\n", presentation.Slides.SelectMany(slide => slide.TextBoxes).Select(box => box.Text));

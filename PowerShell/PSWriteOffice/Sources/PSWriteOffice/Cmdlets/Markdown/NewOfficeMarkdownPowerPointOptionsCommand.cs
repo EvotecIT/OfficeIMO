@@ -46,9 +46,6 @@ public sealed class NewOfficeMarkdownPowerPointOptionsCommand : OfficeCmdlet {
     /// <summary>Maximum decoded data URI image bytes.</summary>
     [Parameter, ValidateRange(0, long.MaxValue)]
     public long? MaximumDataUriImageBytes { get; set; }
-    /// <summary>Keep Mermaid blocks as source code.</summary>
-    [Parameter]
-    public SwitchParameter NoMermaidDiagrams { get; set; }
     /// <summary>Native Markdown dialect profile; mutually exclusive with ReaderOptions.</summary>
     [Parameter]
     public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
@@ -74,7 +71,6 @@ public sealed class NewOfficeMarkdownPowerPointOptionsCommand : OfficeCmdlet {
         if (BoundSwitch(nameof(AllowRemoteImages)) is bool remote) options.AllowRemoteImages = remote;
         if (BoundSwitch(nameof(NoDataUriImages)) is bool noData) options.AllowDataUriImages = !noData;
         if (MaximumDataUriImageBytes.HasValue) options.MaximumDataUriImageBytes = MaximumDataUriImageBytes.Value;
-        if (BoundSwitch(nameof(NoMermaidDiagrams)) is bool noMermaid) options.RenderMermaidDiagrams = !noMermaid;
         WriteObject(options);
     }
 }

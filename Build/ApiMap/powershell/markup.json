@@ -1014,13 +1014,6 @@
               "pipeline": "none"
             },
             {
-              "name": "NoMermaidDiagrams",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Keep Mermaid blocks as code instead of rendering them as diagrams."
-            },
-            {
               "name": "Profile",
               "type": "MarkdownLoadOptions.MarkdownDialectProfile",
               "mandatory": false,

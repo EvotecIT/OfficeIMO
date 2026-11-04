@@ -66,6 +66,8 @@
     "OfficeIMO.Markdown": "3.5.X",
     "OfficeIMO.Markdown.Html": "3.5.X",
     "OfficeIMO.Markdown.Pdf": "3.5.X",
+    "OfficeIMO.Markup": "3.5.X",
+    "OfficeIMO.Markup.PowerPoint": "3.5.X",
     "OfficeIMO.Mhtml": "3.5.X",
     "OfficeIMO.Mhtml.Pdf": "3.5.X",
     "OfficeIMO.Rtf.Markdown": "3.5.X",

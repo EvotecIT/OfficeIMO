@@ -16,9 +16,9 @@ internal static partial class MarkdownPowerPointProjection {
             string? title = source.FindFrontMatterEntry("title")?.Value as string;
             string? subtitle = source.FindFrontMatterEntry("subtitle")?.Value as string;
             string? author = source.FindFrontMatterEntry("author")?.Value as string;
-            if (!string.IsNullOrEmpty(title)) { current.Title = title; target.Metadata["title"] = title; }
-            if (!string.IsNullOrEmpty(subtitle)) current.Blocks.Add(new OfficeMarkupParagraphBlock(subtitle));
-            if (!string.IsNullOrEmpty(author)) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); target.Metadata["author"] = author; }
+            if (title is { Length: > 0 }) { current.Title = title; target.Metadata["title"] = title; }
+            if (subtitle is { Length: > 0 }) current.Blocks.Add(new OfficeMarkupParagraphBlock(subtitle));
+            if (author is { Length: > 0 }) { current.Blocks.Add(new OfficeMarkupParagraphBlock(author)); target.Metadata["author"] = author; }
         }
         foreach (IMarkdownBlock block in source.Blocks) {
             token.ThrowIfCancellationRequested();
@@ -178,7 +178,8 @@ internal static partial class MarkdownPowerPointProjection {
     internal static MarkupPowerPointExportOptions ExportOptions(MarkdownToPowerPointOptions options, string root) {
         var output = new MarkupPowerPointExportOptions { BaseDirectory = root, AllowExternalImagePaths = false,
             AllowDataUriImages = options.AllowDataUriImages, MaximumDataUriImageBytes = options.MaximumDataUriImageBytes,
-            RenderMermaidDiagrams = options.RenderMermaidDiagrams, TemporaryDirectory = Path.Combine(root, "mermaid") };
+            // Keep diagram source and native loss diagnostics without invoking an external renderer.
+            RenderMermaidDiagrams = false };
         if (options.SlideSize is { } size) {
             (output.SlideWidthInches, output.SlideHeightInches) = size switch {
                 OfficeIMO.PowerPoint.PowerPointSlideSizePreset.Screen4x3 => (10D, 7.5D),

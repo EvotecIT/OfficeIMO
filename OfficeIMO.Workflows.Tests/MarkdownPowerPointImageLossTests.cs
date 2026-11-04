@@ -12,7 +12,7 @@ public class MarkdownPowerPointImageLossTests {
             FailOnLoss = true,
             RegisteredSettings = new OfficeWorkflowRouteSettings {
                 MarkdownPowerPoint = new MarkdownToPowerPointOptions {
-                    AllowDataUriImages = true, MaximumDataUriImageBytes = 1, RenderMermaidDiagrams = false
+                    AllowDataUriImages = true, MaximumDataUriImageBytes = 1
                 }
             }
         };

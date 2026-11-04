@@ -14,7 +14,7 @@ public enum MarkdownSlideBreak {
     Heading
 }
 
-/// <summary>Controls Markdown outline projection through the existing native Markup presentation renderer.</summary>
+/// <summary>Controls native Markdown outline projection. Diagrams retain source text and report rendering loss.</summary>
 public sealed class MarkdownToPowerPointOptions {
     /// <summary>Rejects reported mapping or native presentation loss.</summary>
     public bool FailOnLoss { get; set; }
@@ -44,8 +44,6 @@ public sealed class MarkdownToPowerPointOptions {
     public bool AllowDataUriImages { get; set; } = true;
     /// <summary>Maximum decoded source data URI image size.</summary>
     public long MaximumDataUriImageBytes { get; set; } = 16L * 1024 * 1024;
-    /// <summary>Passes Mermaid diagrams to the existing optional native renderer; false retains them as code.</summary>
-    public bool RenderMermaidDiagrams { get; set; } = true;
     /// <summary>Markdown syntax, dialect, normalization and input limits used by source conversion routes.</summary>
     public MarkdownLoadOptions? ReaderOptions { get; set; }
 
