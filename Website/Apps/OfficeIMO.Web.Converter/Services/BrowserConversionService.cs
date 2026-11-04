@@ -60,6 +60,7 @@ public sealed partial class BrowserConversionService {
             "docx-pdf" => ConvertWordToPdfBytes(file, effectiveProfile),
             "xlsx-pdf" => ConvertExcelToPdfBytes(file, limitExcelRows, effectiveProfile),
             "pptx-pdf" => ConvertPowerPointToPdfBytes(file, effectiveProfile),
+            "publisher-pdf" => ConvertPublisherToPdfBytes(file, effectiveProfile),
             _ => throw new NotSupportedException($"The route '{route.Id}' does not accept a document upload.")
         };
         stopwatch.Stop();
@@ -267,7 +268,8 @@ public sealed partial class BrowserConversionService {
             payload.OptionProfile,
             profile,
             conversionMilliseconds,
-            payload.Serialization);
+            payload.Serialization,
+            payload.Limits);
         BrowserConversionArtifact? debugOverlay = generateDebugOverlay
             ? CreateDebugOverlay(file, bytes)
             : null;
@@ -450,7 +452,8 @@ public sealed partial class BrowserConversionService {
         PdfConversionReport Report,
         PdfSerializationReport Serialization,
         string Converter,
-        string OptionProfile);
+        string OptionProfile,
+        ManifestLimits? Limits = null);
 
     internal readonly record struct ExcelBrowserReadPlan(
         int? MaxRowsPerSheet,

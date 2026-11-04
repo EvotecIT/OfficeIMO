@@ -30,5 +30,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+    <InternalsVisibleTo Include="OfficeIMO.Web.Converter" />
   </ItemGroup>
 </Project>

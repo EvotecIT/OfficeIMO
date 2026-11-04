@@ -68,7 +68,7 @@ The [format compatibility page](/compatibility/) exposes those states from the s
 
 ## Browser, server, and desktop choices
 
-The browser playground intentionally supports a smaller modern-format route set because files stay in the browser. Publisher to PDF and legacy DOC, XLS, and PPT migration use the local packages or command-line surfaces described in the route guides.
+The browser playground handles selected conversions on your device, including [Publisher to PDF](/browser/publisher-to-pdf/). Legacy DOC, XLS, and PPT migration uses the local packages or command-line tools described in the route guides.
 
 ## Need a broader workflow?
 

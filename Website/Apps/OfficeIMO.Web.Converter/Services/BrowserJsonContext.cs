@@ -32,7 +32,16 @@ internal sealed record ManifestSubstitution(string Source, string Target, string
 
 internal sealed record ManifestPolicy(string Resources, string TaggedStructure, bool SystemFonts, bool ExternalResources);
 
-internal sealed record ManifestLimits(string Profile, long PackageBytes, int PackagePartCount, long PartUncompressedBytes, long TotalUncompressedBytes, double CompressionRatio);
+internal sealed record ManifestLimits(
+    string Profile,
+    long PackageBytes,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? PackagePartCount = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? PartUncompressedBytes = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? TotalUncompressedBytes = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] double? CompressionRatio = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? PublicationPages = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? PublicationImageBytes = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] long? OutputBytes = null);
 
 internal sealed record ManifestPerformance(
     long ConversionMilliseconds,

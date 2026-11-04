@@ -1,8 +1,11 @@
 <section class="imo-browser-tools imo-container" aria-labelledby="browser-tools-title">
 {{~ catalog = data.browser_tools ~}}
-{{~ browser_drop_extensions = [] ~}}
-{{~ for tool in catalog.tools ~}}{{~ browser_drop_extensions = array.concat browser_drop_extensions (tool.input.accept | string.split ",") ~}}{{~ end ~}}
-{{~ browser_drop_extensions = array.uniq browser_drop_extensions ~}}
+{{~ browser_drop_extensions = {} ~}}
+{{~ for tool in catalog.tools ~}}
+  {{~ for extension in (tool.input.accept | string.split ",") ~}}
+    {{~ browser_drop_extensions[extension] = true ~}}
+  {{~ end ~}}
+{{~ end ~}}
   <div class="imo-browser-tools__hero">
     <header class="imo-browser-tools__heading">
       <p class="imo-workbench__eyebrow">Browser tools · Nothing is uploaded</p>
@@ -16,7 +19,7 @@
       </ul>
     </header>
     <div class="imo-file-drop" data-browser-drop hidden>
-      <input class="imo-visually-hidden" id="browser-drop-input" type="file" accept="{{ browser_drop_extensions | array.join "," | html.escape }}" />
+      <input class="imo-visually-hidden" id="browser-drop-input" type="file" accept="{{ browser_drop_extensions | object.keys | array.join "," | html.escape }}" />
       <label class="imo-file-drop__target" for="browser-drop-input" data-browser-drop-target>
         <span class="imo-file-drop__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3"/></svg></span>
         <strong>Drop a document to start</strong>

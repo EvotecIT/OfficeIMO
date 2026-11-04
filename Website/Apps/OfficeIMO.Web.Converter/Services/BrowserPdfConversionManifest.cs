@@ -19,7 +19,8 @@ internal static class BrowserPdfConversionManifest {
         string optionProfile,
         BrowserPdfProfile profile,
         long conversionMilliseconds,
-        PdfSerializationReport serialization) {
+        PdfSerializationReport serialization,
+        ManifestLimits? limits) {
         string sourceHash = Sha256(source.Bytes);
         string outputHash = Sha256(outputBytes);
         string engineVersion = GetEngineVersion();
@@ -65,7 +66,7 @@ internal static class BrowserPdfConversionManifest {
                 PdfTaggedStructureMode.CatalogMarkers.ToString(),
                 SystemFonts: false,
                 ExternalResources: false),
-            new ManifestLimits(
+            limits ?? new ManifestLimits(
                 "browser",
                 BrowserConversionService.MaxPackageBytes,
                 BrowserConversionService.MaxPackagePartCount,

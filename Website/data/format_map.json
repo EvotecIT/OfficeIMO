@@ -2948,6 +2948,7 @@
       "api": "PublisherDocument.Load(stream, readOptions).SaveAsPdf(output, pdfOptions)",
       "surfaces": [
         "dotnet",
+        "browser",
         "cli",
         "studio",
         "powershell"

@@ -79,6 +79,21 @@
       "guide": "/convert/guides/", "package": "OfficeIMO.PowerPoint.Pdf"
     },
     {
+      "id": "publisher-to-pdf", "group": "convert", "from": "PUB", "to": "PDF",
+      "title": "Publisher to PDF",
+      "summary": "Convert a Microsoft Publisher (.pub) file to PDF. Check the preview and conversion warnings before downloading.",
+      "seoTitle": "Convert Publisher (.pub) to PDF in your browser | OfficeIMO",
+      "seoDescription": "Convert a Microsoft Publisher .pub file to PDF in your browser. Try a sample, review the preview and diagnostics, and download the PDF without uploading your file.",
+      "input": { "kind": "file", "accept": ".pub", "label": "Publisher publication", "sample": "samples/native-authored.pub", "sampleName": "OfficeIMO-Publisher-Sample.pub" },
+      "options": [],
+      "engine": { "kind": "convert", "target": "publisher-pdf", "action": "convert", "assemblies": ["OfficeIMO.Publisher.wasm", "OfficeIMO.Pdf.wasm", "OfficeIMO.Web.Fonts.wasm", "OfficeIMO.Publisher.Pdf.wasm"] },
+      "run": { "label": "Convert to PDF", "busy": ["Reading the publication", "Drawing each page", "Writing the PDF"] },
+      "expect": "Supports Publisher 2002 and later files. Review page layout, font substitutions, and any graphics or effects the converter reports as approximate.",
+      "next": ["compress-pdf", "protect-pdf", "inspect-pdf"],
+      "legacy": ["route=publisher-pdf"],
+      "guide": "/convert/publisher-to-pdf/", "package": "OfficeIMO.Publisher.Pdf"
+    },
+    {
       "id": "html-to-pdf", "group": "convert", "from": "HTML", "to": "PDF",
       "title": "HTML to PDF",
       "summary": "Paste HTML and CSS, or open an .html file, and get an accessible PDF.",

@@ -1,15 +1,15 @@
 ---
 title: "Convert Publisher (.pub) to PDF after Microsoft Publisher retirement"
-description: "Open and convert Microsoft Publisher .pub files to PDF without Publisher. Use the OfficeIMO CLI, PowerShell, or .NET to preserve and review your archive."
+description: "Convert Microsoft Publisher .pub files to PDF without Publisher. Try the browser converter for one file, or use the OfficeIMO CLI, PowerShell, or .NET to preserve an archive."
 meta.seo_title: "Convert Publisher (.pub) to PDF after retirement | OfficeIMO"
 meta.eyebrow: "Microsoft Publisher retirement"
 meta.source_format: "Publisher (.pub)"
 meta.destination_format: "PDF"
 meta.package: "OfficeIMO.Publisher.Pdf"
 meta.package_url: "https://www.nuget.org/packages/OfficeIMO.Publisher.Pdf"
-meta.runtime: ".NET, OfficeIMO CLI, and PowerShell"
-meta.primary_label: "Get the OfficeIMO CLI"
-meta.primary_url: "/tool/"
+meta.runtime: "Browser, .NET, OfficeIMO CLI, and PowerShell"
+meta.primary_label: "Convert Publisher to PDF in your browser"
+meta.primary_url: "/browser/publisher-to-pdf/"
 meta.secondary_label: "Check Publisher format support"
 meta.secondary_url: "/compatibility/"
 meta.summary_title: "Publisher to PDF summary"
@@ -32,6 +32,10 @@ meta.howto.steps:
 Microsoft began removing Publisher from Microsoft 365 on October 1, 2026. Support for the perpetual edition ended on October 13, 2026. A licensed perpetual edition can still open files after support ends. [Microsoft Publisher retirement guidance](https://support.microsoft.com/en-us/publisher/microsoft-publisher-will-no-longer-be-supported-after-october-2026)
 
 If you have a folder of newsletters, flyers, or brochures, keep the original `.pub` files and make PDF copies for viewing, sharing, and printing. OfficeIMO reads supported Publisher files locally without a Microsoft Office installation.
+
+## Convert one .pub file in your browser
+
+Open a `.pub` file up to 25 MiB or try the included sample, then choose **Convert to PDF**. Review the page preview before downloading. The diagnostics are available under **More files and next steps**. The browser processes the publication on your device. [Open the Publisher to PDF converter](/browser/publisher-to-pdf/)
 
 ## Convert one .pub file from the command line
 
@@ -83,15 +87,14 @@ dotnet add package OfficeIMO.Publisher.Pdf
 ```
 
 ```csharp
+using System.Text.Json;
 using OfficeIMO.Publisher;
 using OfficeIMO.Publisher.Pdf;
 
 var publication = PublisherDocument.Load("brochure.pub");
 var report = publication.SaveAsPdf("brochure.pdf");
 
-foreach (var diagnostic in report.Diagnostics) {
-    Console.WriteLine(diagnostic.Message);
-}
+Console.WriteLine(JsonSerializer.Serialize(report.Diagnostics, new JsonSerializerOptions { WriteIndented = true }));
 ```
 
 ## Check the PDFs before relying on them

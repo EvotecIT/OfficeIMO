@@ -237,7 +237,7 @@
 .bt-item input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--imo-primary); }
 .bt-item__body { display: grid; gap: 2px; cursor: default; }
 label.bt-item__body { cursor: pointer; }
-.bt-item__body b { font-size: var(--imo-font-size-sm); color: var(--imo-text); }
+.bt-item__body b { font-size: var(--imo-font-size-sm); color: var(--imo-text); overflow-wrap: anywhere; }
 .bt-item__body span { font-size: var(--imo-font-size-xs); color: var(--imo-text-secondary); line-height: 1.5; overflow-wrap: anywhere; }
 .bt-state { font: 600 11.5px/1 var(--imo-font-body); padding: 5px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid transparent; }
 .bt-state--found, .bt-state--warning { background: var(--bt-warn-wash); color: var(--bt-warn); }
