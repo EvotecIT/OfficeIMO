@@ -232,7 +232,7 @@ internal static class HtmlCapabilityContractValue {
     }
 
     internal static IReadOnlyList<string> Normalize(IEnumerable<string> values, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         return values.Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -242,7 +242,7 @@ internal static class HtmlCapabilityContractValue {
     }
 
     internal static IReadOnlyList<T> Unique<T>(IEnumerable<T> values, Func<T, string> id, string parameterName) {
-        if (values == null) throw new ArgumentNullException(parameterName);
+        ArgumentNullException.ThrowIfNull(values, parameterName);
         T[] result = values.ToArray();
         if (result.Any(item => item == null)) throw new ArgumentException("Entries cannot be null.", parameterName);
         string[] duplicates = result.GroupBy(id, StringComparer.OrdinalIgnoreCase)

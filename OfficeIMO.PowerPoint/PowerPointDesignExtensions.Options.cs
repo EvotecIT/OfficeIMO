@@ -15,9 +15,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static List<PowerPointCaseStudySection> NormalizeSections(IEnumerable<PowerPointCaseStudySection> sections,
             int maxCount, string paramName) {
-            if (sections == null) {
-                throw new ArgumentNullException(paramName);
-            }
+            ArgumentNullException.ThrowIfNull(sections, paramName);
 
             List<PowerPointCaseStudySection> list = sections.Where(section => section != null).ToList();
             if (list.Count == 0) {

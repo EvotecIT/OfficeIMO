@@ -104,9 +104,7 @@ namespace OfficeIMO.Visio.Fluent {
         }
 
         private IReadOnlyList<VisioShape> ResolveShapes(IEnumerable<string> shapeIds, string parameterName) {
-            if (shapeIds == null) {
-                throw new ArgumentNullException(parameterName);
-            }
+            ArgumentNullException.ThrowIfNull(shapeIds, parameterName);
 
             List<VisioShape> shapes = shapeIds.Select(ResolveShape).Distinct().ToList();
             if (shapes.Count == 0) {

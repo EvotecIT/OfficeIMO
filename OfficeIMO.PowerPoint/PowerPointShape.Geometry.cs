@@ -112,12 +112,8 @@ namespace OfficeIMO.PowerPoint {
         public void Resize(OfficeLength width, OfficeLength height, PowerPointShapeAnchor anchor = PowerPointShapeAnchor.TopLeft) {
             long widthValue = width.ToEmus();
             long heightValue = height.ToEmus();
-            if (widthValue < 0) {
-                throw new ArgumentOutOfRangeException(nameof(width));
-            }
-            if (heightValue < 0) {
-                throw new ArgumentOutOfRangeException(nameof(height));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(widthValue, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegative(heightValue, nameof(height));
 
             PowerPointLayoutBox bounds = Bounds;
             (double anchorX, double anchorY) = ResolveAnchorPoint(bounds, anchor);

@@ -10,7 +10,7 @@ public sealed partial class BookProject {
         var result = new List<XElement>();
         var mainSchemes = new HashSet<(BookOnixSubjectScheme, string?)>();
         foreach (BookOnixSubject subject in subjects) {
-            token.ThrowIfCancellationRequested(); if (subject == null) throw new ArgumentNullException(nameof(subject));
+            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(subject);
             string scheme = subject.Scheme switch {
                 BookOnixSubjectScheme.Dewey => "01", BookOnixSubjectScheme.LibraryOfCongressClassification => "03",
                 BookOnixSubjectScheme.LibraryOfCongressHeading => "04", BookOnixSubjectScheme.Bisac => "10",
@@ -42,7 +42,7 @@ public sealed partial class BookProject {
             if (subject.Code != null) element.Add(new XElement(ns + "SubjectCode", subject.Code));
             var languages = new HashSet<string>(StringComparer.Ordinal);
             foreach (BookOnixSubjectHeading heading in subject.Headings) {
-                token.ThrowIfCancellationRequested(); if (heading == null) throw new ArgumentNullException(nameof(heading));
+                token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(heading);
                 RequireOnixText(heading.Text, nameof(heading.Text));
                 RequireOnixTranslationLanguage(heading.LanguageCode, subject.Headings.Count, nameof(subject.Headings));
                 if (!languages.Add(heading.LanguageCode ?? string.Empty))

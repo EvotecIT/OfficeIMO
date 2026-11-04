@@ -22,7 +22,7 @@ public sealed partial class EpubPublication {
         string[] modes = AccessibilityTokens(metadata.AccessModes, nameof(metadata.AccessModes));
         string[] features = AccessibilityTokens(metadata.Features, nameof(metadata.Features));
         string[] hazards = AccessibilityTokens(metadata.Hazards, nameof(metadata.Hazards));
-        if (metadata.SufficientAccessModes == null) throw new ArgumentNullException(nameof(metadata.SufficientAccessModes));
+        ArgumentNullException.ThrowIfNull(metadata.SufficientAccessModes, nameof(metadata.SufficientAccessModes));
         string[] sufficient = metadata.SufficientAccessModes.Select(set => string.Join(",",
             AccessibilityTokens(set, nameof(metadata.SufficientAccessModes)))).Distinct(StringComparer.Ordinal).ToArray();
         string[] summaries = metadata.Summary == null ? Array.Empty<string>() : new[] { metadata.Summary.Trim() };
@@ -35,7 +35,7 @@ public sealed partial class EpubPublication {
     }
 
     private static string[] AccessibilityTokens(IReadOnlyList<string> values, string parameter) {
-        if (values == null) throw new ArgumentNullException(parameter);
+        ArgumentNullException.ThrowIfNull(values, parameter);
         string[] result = values.Select(value => {
             if (string.IsNullOrWhiteSpace(value) || value.Any(character => char.IsWhiteSpace(character) || character == ','))
                 throw new ArgumentException("Each discovery vocabulary value must be a nonempty token, without commas or whitespace.", parameter);

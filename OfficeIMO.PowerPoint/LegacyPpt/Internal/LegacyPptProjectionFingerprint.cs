@@ -294,8 +294,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
             internal EditableImageFingerprintScope Merge(
                 EditableImageFingerprintScope other) {
-                if (other == null) throw new ArgumentNullException(
-                    nameof(other));
+                ArgumentNullException.ThrowIfNull(other);
                 return new EditableImageFingerprintScope(
                     new HashSet<string>(_exclusiveImagePartUris.Concat(
                         other._exclusiveImagePartUris),

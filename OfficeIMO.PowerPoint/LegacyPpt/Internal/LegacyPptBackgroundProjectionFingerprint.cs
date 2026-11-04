@@ -11,8 +11,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal static class LegacyPptBackgroundProjectionFingerprint {
         internal static string Create(OpenXmlPart ownerPart,
             P.Background? background) {
-            if (ownerPart == null) throw new ArgumentNullException(
-                nameof(ownerPart));
+            ArgumentNullException.ThrowIfNull(ownerPart);
             if (background == null) return string.Empty;
             using IncrementalHash fingerprint = LegacyPptProjectionDigest
                 .CreateBuilder();

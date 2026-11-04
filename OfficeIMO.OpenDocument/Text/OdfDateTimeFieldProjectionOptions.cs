@@ -28,7 +28,7 @@ public sealed class OdfDateTimeFieldProjectionOptions {
             throw new ArgumentOutOfRangeException(nameof(Mode));
         if ((copy.Mode == OdfDateTimeFieldProjectionMode.RefreshDynamic) != copy.RefreshTimestamp.HasValue)
             throw new ArgumentException("Supply a timestamp only when refreshing dynamic date/time fields.");
-        if (copy.DefaultCultureName == null) throw new ArgumentNullException(nameof(DefaultCultureName));
+        ArgumentNullException.ThrowIfNull(copy.DefaultCultureName, nameof(DefaultCultureName));
         _ = CultureInfo.GetCultureInfo(copy.DefaultCultureName);
         return copy;
     }

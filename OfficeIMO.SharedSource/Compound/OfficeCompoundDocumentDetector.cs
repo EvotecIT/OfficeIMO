@@ -57,7 +57,7 @@ namespace OfficeIMO.Core.Internal {
         internal static DocumentKind Detect(Stream stream, long maxInputBytes,
             int maxDirectoryEntries, CancellationToken cancellationToken,
             out string? error, bool preserveResourceLimits = false) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             cancellationToken.ThrowIfCancellationRequested();
             if (!stream.CanRead || !stream.CanSeek) {
                 error = "Compound document detection requires a readable seekable stream.";

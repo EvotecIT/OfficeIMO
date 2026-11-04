@@ -763,7 +763,7 @@ internal static partial class ManagedTextShapingTestAssets {
         int nonDefaultMappingCount = 1) {
         const int cmapHeaderLength = 20;
         const int format12Length = 28;
-        if (nonDefaultMappingCount <= 0) throw new ArgumentOutOfRangeException(nameof(nonDefaultMappingCount));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nonDefaultMappingCount);
         int format14Length = nonDefaultGlyph.HasValue ? checked(25 + nonDefaultMappingCount * 5) : 29;
         int format12 = cmapHeaderLength;
         int format14 = format12 + format12Length;

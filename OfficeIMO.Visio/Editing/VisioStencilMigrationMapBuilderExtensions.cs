@@ -79,9 +79,7 @@ namespace OfficeIMO.Visio {
         internal static VisioStencilShape Resolve(VisioStencilCatalog catalog, IEnumerable<string> replacementQueries, string parameterName) {
             ArgumentNullException.ThrowIfNull(catalog);
 
-            if (replacementQueries == null) {
-                throw new ArgumentNullException(parameterName);
-            }
+            ArgumentNullException.ThrowIfNull(replacementQueries, parameterName);
 
             string[] queries = replacementQueries
                 .Where(query => !string.IsNullOrWhiteSpace(query))

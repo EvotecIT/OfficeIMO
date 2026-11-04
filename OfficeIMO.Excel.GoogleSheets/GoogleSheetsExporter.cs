@@ -443,12 +443,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static void ValidateExecutionOptions(GoogleSheetsExecutionOptions execution) {
             ArgumentNullException.ThrowIfNull(execution);
-            if (execution.MaxValueRangesPerRequest <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(execution.MaxValueRangesPerRequest));
-            }
-            if (execution.MaxStructuralRequestsPerBatch <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(execution.MaxStructuralRequestsPerBatch));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(execution.MaxValueRangesPerRequest, nameof(execution.MaxValueRangesPerRequest));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(execution.MaxStructuralRequestsPerBatch, nameof(execution.MaxStructuralRequestsPerBatch));
         }
     }
 

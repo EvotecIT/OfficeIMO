@@ -804,9 +804,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static void ReplacePreferences<T>(List<T> target, IEnumerable<T> values, string name) {
-            if (values == null) {
-                throw new ArgumentNullException(name);
-            }
+            ArgumentNullException.ThrowIfNull(values, name);
 
             target.Clear();
             target.AddRange(values.Distinct());

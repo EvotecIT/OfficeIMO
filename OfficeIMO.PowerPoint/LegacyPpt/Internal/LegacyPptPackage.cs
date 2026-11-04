@@ -117,10 +117,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             ArgumentNullException.ThrowIfNull(bytes);
             ArgumentNullException.ThrowIfNull(options);
             ArgumentNullException.ThrowIfNull(recordBudget);
-            if (decodedStorageBudget == null) {
-                throw new ArgumentNullException(
-                    nameof(decodedStorageBudget));
-            }
+            ArgumentNullException.ThrowIfNull(decodedStorageBudget);
             cancellationToken.ThrowIfCancellationRequested();
             OfficeCompoundReadOptions compoundReadOptions =
                 CreateCompoundReadOptions(options, preserveResourceLimits);

@@ -343,8 +343,8 @@ public static class OutlookRecurrenceExpander {
         (days & (OutlookRecurrenceDays)(1 << (int)day)) != 0;
 
     private static void Validate(OutlookRecurrence recurrence, OutlookRecurrenceExpansionOptions options) {
-        if (options.MaxOccurrences <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxOccurrences));
-        if (options.MaxCandidateDays <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCandidateDays));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxOccurrences, nameof(options.MaxOccurrences));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCandidateDays, nameof(options.MaxCandidateDays));
         if (options.WindowStart.HasValue && options.WindowEnd.HasValue &&
             options.WindowEnd.Value <= options.WindowStart.Value)
             throw new ArgumentException("WindowEnd must be later than WindowStart.", nameof(options));

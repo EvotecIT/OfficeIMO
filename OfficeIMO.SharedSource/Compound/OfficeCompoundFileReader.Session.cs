@@ -31,8 +31,8 @@ namespace OfficeIMO.Core.Internal {
             /// follows leaveOpen; disposing this session invalidates every outstanding view.</summary>
             internal ReadSession(Stream source, OfficeCompoundReadOptions options, bool leaveOpen, CancellationToken token,
                 bool requireCanonicalHeader = false) {
-                if (source == null) throw new ArgumentNullException(nameof(source));
-                if (options == null) throw new ArgumentNullException(nameof(options));
+                ArgumentNullException.ThrowIfNull(source);
+                ArgumentNullException.ThrowIfNull(options);
                 if (!source.CanRead || !source.CanSeek) throw new ArgumentException("Compound sessions require a readable seekable source.", nameof(source));
                 _source = source; _leaveOpen = leaveOpen; _token = token; _basePosition = source.Position;
                 try {

@@ -35,7 +35,7 @@ public sealed partial class BookProject {
         int restrictionBudget = 524288;
         var rights = new List<XElement>(); var territories = new List<OnixTerritory>(); var grants = new List<OnixTerritory>();
         foreach (BookOnixSalesRights right in commercial.SalesRights) {
-            token.ThrowIfCancellationRequested(); if (right == null) throw new ArgumentNullException(nameof(right));
+            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(right);
             string code = right.Kind switch {
                 BookOnixSalesRightsKind.Exclusive => "01", BookOnixSalesRightsKind.NonExclusive => "02",
                 BookOnixSalesRightsKind.NotForSale => "03", BookOnixSalesRightsKind.NotForSaleExclusive => "04",
@@ -53,7 +53,7 @@ public sealed partial class BookProject {
         var supplies = new List<XElement>();
         var marketReferences = new HashSet<string>(StringComparer.Ordinal);
         foreach (BookOnixSupply supply in commercial.Supplies) {
-            token.ThrowIfCancellationRequested(); if (supply == null) throw new ArgumentNullException(nameof(supply));
+            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(supply);
             if (supply.MarketReference is { } reference) {
                 RequireOnixMarketReference(reference);
                 if (!marketReferences.Add(reference)) throw new ArgumentException("Market references must be unique within a product.", nameof(commercial));
@@ -98,7 +98,7 @@ public sealed partial class BookProject {
             };
             detail.Add(new XElement(ns + "UnpricedItemType", code));
         } else foreach (BookOnixPrice price in supply.Prices) {
-            token.ThrowIfCancellationRequested(); if (price == null) throw new ArgumentNullException(nameof(price));
+            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(price);
             detail.Add(BuildOnixPrice(price, market));
         }
         return new XElement(ns + "ProductSupply",

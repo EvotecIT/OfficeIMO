@@ -13,7 +13,7 @@ public sealed partial class CsvDocument
     {
         ArgumentNullException.ThrowIfNull(reader);
         options = options?.Clone() ?? new CsvReaderOptions();
-        if (options.MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInputBytes, nameof(options));
         options.CancellationToken.ThrowIfCancellationRequested();
         if (reader is StringReader)
         {

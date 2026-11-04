@@ -83,9 +83,7 @@ namespace OfficeIMO.Word {
         /// <returns>The paragraphs containing matches, grouped by document part, and the total match count.</returns>
         /// <remarks>Each match lies within one paragraph.</remarks>
         public WordSearchResult Find(Regex pattern) {
-            if (pattern == null) {
-                throw new ArgumentNullException(nameof(pattern));
-            }
+            ArgumentNullException.ThrowIfNull(pattern);
 
             var result = new WordSearchResult();
             ForEachSearchScope((paragraphs, destination) => result.FindRegex(paragraphs, pattern, destination!), result);
@@ -201,9 +199,7 @@ namespace OfficeIMO.Word {
 #pragma warning disable RS0026 // Paragraph-scoped overload of the document ReplaceAll; both keep the options parameter optional.
         public static int ReplaceAll(List<WordParagraph> paragraphs, string text, string replacement, OfficeTextSearchOptions? options = null) {
 #pragma warning restore RS0026
-            if (paragraphs == null) {
-                throw new ArgumentNullException(nameof(paragraphs));
-            }
+            ArgumentNullException.ThrowIfNull(paragraphs);
             int count = 0;
             ReplaceText(paragraphs, text, replacement, ref count, true, OfficeTextSearch.GetComparison(options), options?.WholeWords == true);
             return count;

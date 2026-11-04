@@ -10,9 +10,7 @@ namespace OfficeIMO.Tests.TestStreams {
         private long _written;
 
         internal ThrowAfterBytesWriteStream(long maxBytesBeforeThrow) {
-            if (maxBytesBeforeThrow < 0) {
-                throw new ArgumentOutOfRangeException(nameof(maxBytesBeforeThrow));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(maxBytesBeforeThrow);
 
             _maxBytesBeforeThrow = maxBytesBeforeThrow;
         }

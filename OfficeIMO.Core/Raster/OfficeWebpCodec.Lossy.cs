@@ -139,7 +139,7 @@ public static partial class OfficeWebpCodec {
         }
         if (options.Effort != OfficeImageEncodingEffort.Fast && options.Effort != OfficeImageEncodingEffort.Balanced && options.Effort != OfficeImageEncodingEffort.Smallest)
             throw new ArgumentOutOfRangeException(nameof(options), "Unknown lossless encoding effort.");
-        if (options.RetainedManagedBytes < 0) throw new ArgumentOutOfRangeException(nameof(options));
+        ArgumentOutOfRangeException.ThrowIfNegative(options.RetainedManagedBytes, nameof(options));
     }
 
     private static void WriteLossyWebpChunk(Stream destination, string name, byte[] payload, CancellationToken cancellationToken) {

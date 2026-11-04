@@ -31,7 +31,7 @@ internal sealed class InvoicePreservedXml {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(xml);
 #else
-        if (xml == null) throw new ArgumentNullException(nameof(xml));
+        ArgumentNullException.ThrowIfNull(xml);
 #endif
         if (xml.Length == 0 || xml.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new InvalidDataException("Invoice XML must contain between 1 byte and 16 MiB.");
@@ -48,7 +48,7 @@ internal sealed class InvoicePreservedXml {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(stream);
 #else
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
 #endif
         if (!stream.CanRead) throw new ArgumentException("Invoice XML stream must be readable.", nameof(stream));
         using (var buffer = new MemoryStream()) {

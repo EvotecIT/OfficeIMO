@@ -145,9 +145,7 @@ public readonly struct PdfPageRange : System.IEquatable<PdfPageRange> {
     }
 
     internal static int[] ExpandMany(PdfPageRange[]? pageRanges, int pageCount, string paramName) {
-        if (pageRanges is null) {
-            throw new System.ArgumentNullException(paramName);
-        }
+        System.ArgumentNullException.ThrowIfNull(pageRanges, paramName);
 
         if (pageRanges.Length == 0) {
             throw new System.ArgumentException("At least one page range must be specified.", paramName);

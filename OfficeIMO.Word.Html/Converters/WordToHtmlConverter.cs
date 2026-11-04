@@ -1121,9 +1121,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             void AppendTable(IElement parent, WordTable table, WordParagraph? captionParagraph = null, int nestingDepth = 0) {
-                if (options.MaxTableNestingDepth <= 0) {
-                    throw new ArgumentOutOfRangeException(nameof(options.MaxTableNestingDepth));
-                }
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTableNestingDepth, nameof(options.MaxTableNestingDepth));
                 if (nestingDepth >= options.MaxTableNestingDepth) {
                     throw new InvalidDataException($"The Word table nesting exceeds the {options.MaxTableNestingDepth}-level HTML conversion limit.");
                 }
@@ -1462,9 +1460,7 @@ namespace OfficeIMO.Word.Html {
                 Stack<IElement> items,
                 Stack<int> numberIds) {
                 int level = listInfo.Level;
-                if (options.MaxListNestingDepth <= 0) {
-                    throw new ArgumentOutOfRangeException(nameof(options.MaxListNestingDepth));
-                }
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxListNestingDepth, nameof(options.MaxListNestingDepth));
                 if (level < 0 || level >= options.MaxListNestingDepth) {
                     throw new InvalidDataException($"The Word list level {level} exceeds the {options.MaxListNestingDepth}-level HTML conversion limit.");
                 }

@@ -301,9 +301,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static List<double> MaterializeFiniteChartValues(IEnumerable<double> values, string parameterName, bool allowNegative) {
-            if (values == null) {
-                throw new ArgumentNullException(parameterName);
-            }
+            ArgumentNullException.ThrowIfNull(values, parameterName);
 
             List<double> materialized = values.ToList();
             if (materialized.Count == 0) {

@@ -27,8 +27,8 @@ internal sealed partial class OfficeAv1CoefficientReader {
 
     internal OfficeAv1CoefficientReader(OfficeAv1StillFrame frame, OfficeAv1StillSequence sequence,
         OfficeAv1Tile tile, OfficeRasterDecodeOptions options) {
-        if (sequence==null) throw new ArgumentNullException(nameof(sequence));
-        if (options==null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(sequence);
+        ArgumentNullException.ThrowIfNull(options);
         options.Validate(); options.CancellationToken.ThrowIfCancellationRequested();
         _geometry=new OfficeAv1TileGeometry(frame,tile,sequence.Use128Superblock?128:64);
         _geometry.EnsurePixelBudget(options.MaximumDecodedPixels);
@@ -64,8 +64,8 @@ internal sealed partial class OfficeAv1CoefficientReader {
     internal void BeginBlock(OfficeAv1BlockRegion block, OfficeAv1BlockPrelude prelude, OfficeAv1IntraModes modes,
         OfficeAv1Palette palette, OfficeAv1TransformLayout layout) {
         Check(); _geometry.Validate(block);
-        if (palette==null) throw new ArgumentNullException(nameof(palette));
-        if (layout==null) throw new ArgumentNullException(nameof(layout));
+        ArgumentNullException.ThrowIfNull(palette);
+        ArgumentNullException.ThrowIfNull(layout);
         if (_pending) throw new InvalidOperationException("Complete the current AV1 coefficient leaf first.");
         if ((uint)prelude.SegmentId>=8 || (uint)modes.YMode>12 || (uint)modes.UvMode>13 ||
             palette.FilterMode < -1 || palette.FilterMode>4 || layout.Count<1 || layout.Count>1536)
@@ -88,7 +88,7 @@ internal sealed partial class OfficeAv1CoefficientReader {
     /// <summary>Reads the next residual in the supplied traversal order, without exposing mutable context or arrays.</summary>
     internal OfficeAv1Coefficients Read(OfficeAv1SymbolReader symbols) {
         Check();
-        if (symbols==null) throw new ArgumentNullException(nameof(symbols));
+        ArgumentNullException.ThrowIfNull(symbols);
         if (!_pending || _index>=_layout!.Count) throw new InvalidOperationException("No AV1 residual is pending.");
         try {
             var block=_layout.Block(_index);

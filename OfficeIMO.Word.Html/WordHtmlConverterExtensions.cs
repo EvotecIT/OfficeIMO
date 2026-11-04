@@ -23,7 +23,7 @@ namespace OfficeIMO.Word.Html {
         /// <summary>Converts the document to HTML with the shared structured result contract.</summary>
         internal static HtmlTextConversionResult ConvertToHtmlWithEvidence(this WordDocument document, WordHtmlExportOptions? options = null,
             System.Threading.CancellationToken cancellationToken = default) {
-            if (document == null) throw new System.ArgumentNullException(nameof(document));
+            System.ArgumentNullException.ThrowIfNull(document);
             WordHtmlExportOptions resolved = (options ?? new WordHtmlExportOptions()).CloneForConversion();
             var converter = new WordToHtmlConverter();
             string html = converter.Convert(document, resolved, cancellationToken);
@@ -58,8 +58,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
         public static IReadOnlyList<WordElement> AddHtml(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlWordExportOptions? options = null) {
-            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
-            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
+            System.ArgumentNullException.ThrowIfNull(doc);
+            System.ArgumentNullException.ThrowIfNull(htmlDocument);
             HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
             resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
             EnsureOfflineSynchronousImport(htmlDocument, resolved);
@@ -75,8 +75,8 @@ namespace OfficeIMO.Word.Html {
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>Live imported elements in document order, using the existing Word element projection.</returns>
         public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlWordExportOptions? options = null, CancellationToken cancellationToken = default) {
-            if (doc == null) throw new System.ArgumentNullException(nameof(doc));
-            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
+            System.ArgumentNullException.ThrowIfNull(doc);
+            System.ArgumentNullException.ThrowIfNull(htmlDocument);
             cancellationToken.ThrowIfCancellationRequested();
 
             HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);

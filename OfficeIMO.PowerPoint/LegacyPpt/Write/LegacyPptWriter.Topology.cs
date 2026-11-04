@@ -107,10 +107,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal void EnsurePersistObjectCapacity(
                 int additionalPersistObjectCount) {
-                if (additionalPersistObjectCount < 0) {
-                    throw new ArgumentOutOfRangeException(
-                        nameof(additionalPersistObjectCount));
-                }
+                ArgumentOutOfRangeException.ThrowIfNegative(additionalPersistObjectCount);
                 int total = checked(BasePersistObjectCount
                     + additionalPersistObjectCount);
                 if (total > MaxPersistObjectCount) {

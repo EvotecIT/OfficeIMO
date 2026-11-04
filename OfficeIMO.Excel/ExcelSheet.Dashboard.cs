@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(data);
             var opts = options ?? new ExcelDashboardOptions();
             if (data.Columns.Count == 0) throw new ArgumentException("Dashboard data must contain at least one column.", nameof(data));
-            if (opts.TableRow <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableRow));
-            if (opts.TableColumn <= 0) throw new ArgumentOutOfRangeException(nameof(ExcelDashboardOptions.TableColumn));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opts.TableRow, nameof(ExcelDashboardOptions.TableRow));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(opts.TableColumn, nameof(ExcelDashboardOptions.TableColumn));
             ValidateDashboardLayout(opts, data);
 
             WriteDashboardHeader(opts);

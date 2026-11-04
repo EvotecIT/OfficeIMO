@@ -97,11 +97,11 @@ namespace OfficeIMO.Excel {
             ArgumentNullException.ThrowIfNull(sourceDocument);
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
             options ??= new ExcelWorksheetCopyOptions();
-            if (options.MaxDefinedNames <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNames));
-            if (options.MaxDefinedNameCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDefinedNameCharacters));
-            if (options.MaxInCellImages <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImages));
-            if (options.MaxInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInCellImageBytes));
-            if (options.MaxTotalInCellImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalInCellImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDefinedNames, nameof(options.MaxDefinedNames));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDefinedNameCharacters, nameof(options.MaxDefinedNameCharacters));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInCellImages, nameof(options.MaxInCellImages));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInCellImageBytes, nameof(options.MaxInCellImageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalInCellImageBytes, nameof(options.MaxTotalInCellImageBytes));
             if (ReferenceEquals(sourceDocument, this) && options.CopyMode != ExcelWorksheetCopyMode.Values) {
                 ExcelSheet sourceSheet = GetSheet(sourceSheetName);
                 var inCellImageContext = new InCellImageCopyContext(
@@ -188,7 +188,7 @@ namespace OfficeIMO.Excel {
             }
 
             options ??= new ExcelWorksheetMergeOptions();
-            if (options.BlankRowsBefore < 0) throw new ArgumentOutOfRangeException(nameof(options.BlankRowsBefore));
+            ArgumentOutOfRangeException.ThrowIfNegative(options.BlankRowsBefore, nameof(options.BlankRowsBefore));
 
             string sourceRange = string.IsNullOrWhiteSpace(options.SourceRange) ? sourceSheet.GetUsedRangeA1() : options.SourceRange!;
             var sourceBounds = ParseRangeOrCell(sourceRange);

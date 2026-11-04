@@ -34,7 +34,7 @@ public sealed class OdtTable {
 
     /// <summary>Gets a zero-based cell.</summary>
     public OdtTableCell Cell(int row, int column) {
-        if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
+        ArgumentOutOfRangeException.ThrowIfNegative(row);
         ArgumentOutOfRangeException.ThrowIfNegative(column);
         OdtTableRow tableRow = Rows.ElementAtOrDefault(row) ?? throw new ArgumentOutOfRangeException(nameof(row));
         return tableRow.Cells.ElementAtOrDefault(column) ?? throw new ArgumentOutOfRangeException(nameof(column));

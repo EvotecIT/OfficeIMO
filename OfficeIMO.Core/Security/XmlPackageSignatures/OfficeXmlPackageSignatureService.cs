@@ -403,15 +403,15 @@ internal static class OfficeXmlPackageSignatureService {
     }
 
     private static void ValidateOptions(OfficeXmlPackageSignatureOptions options) {
-        if (options.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
-        if (options.MaxEntries <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEntries));
-        if (options.MaxEntryBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEntryBytes));
-        if (options.MaxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalDigestBytes));
-        if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
-        if (options.MaxSignatures <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatures));
-        if (options.MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificates));
-        if (options.MaxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificateBytes));
-        if (options.MaxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalCertificateBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxPackageBytes, nameof(options.MaxPackageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEntries, nameof(options.MaxEntries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEntryBytes, nameof(options.MaxEntryBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalDigestBytes, nameof(options.MaxTotalDigestBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatureBytes, nameof(options.MaxSignatureBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatures, nameof(options.MaxSignatures));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCertificates, nameof(options.MaxCertificates));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCertificateBytes, nameof(options.MaxCertificateBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalCertificateBytes, nameof(options.MaxTotalCertificateBytes));
     }
 
     private static OfficeXmlPackageSigningResult Failed(string path, string finding) =>

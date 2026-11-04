@@ -12,8 +12,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static string ReadLogicalTextForWrite(
             PowerPointTextBox textBox) {
-            if (textBox == null) throw new ArgumentNullException(
-                nameof(textBox));
+            ArgumentNullException.ThrowIfNull(textBox);
             if (textBox.Element is not P.Shape shape
                 || shape.TextBody == null) return string.Empty;
             var result = new System.Text.StringBuilder();
@@ -59,8 +58,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterTextBoxContent? content,
             out string? reason) {
-            if (textBox == null) throw new ArgumentNullException(
-                nameof(textBox));
+            ArgumentNullException.ThrowIfNull(textBox);
             ArgumentNullException.ThrowIfNull(fonts);
             content = null;
             reason = null;
@@ -85,8 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             out string? reason) {
             ArgumentNullException.ThrowIfNull(cell);
             ArgumentNullException.ThrowIfNull(fonts);
-            if (pictureBullets == null) throw new ArgumentNullException(
-                nameof(pictureBullets));
+            ArgumentNullException.ThrowIfNull(pictureBullets);
             A.TextBody? body = cell.Cell.TextBody;
             if (body == null) {
                 content = null;

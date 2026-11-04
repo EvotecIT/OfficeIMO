@@ -42,7 +42,7 @@ public sealed class MarkdownQuoteBuilder {
 
     /// <summary>Adds an arbitrary markdown block inside the quote.</summary>
     public MarkdownQuoteBuilder Block(IMarkdownBlock block) {
-        if (block == null) throw new System.ArgumentNullException(nameof(block));
+        System.ArgumentNullException.ThrowIfNull(block);
         _entries.Add(new Entry(block));
         return this;
     }

@@ -39,9 +39,7 @@ namespace OfficeIMO.Security {
         }
 
         private static void ValidateBlock(byte[] buffer, int offset, string parameterName) {
-            if (buffer == null) {
-                throw new ArgumentNullException(parameterName);
-            }
+            ArgumentNullException.ThrowIfNull(buffer, parameterName);
 
             if (offset < 0 || offset > buffer.Length - BlockSize) {
                 throw new ArgumentOutOfRangeException(parameterName, "A complete 16-byte AES block is required.");

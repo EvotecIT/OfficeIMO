@@ -20,8 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static LegacyPptTextBody Apply(LegacyPptTextBody textBody,
             LegacyPptRecord? record, int? rawCharacterCount = null) {
-            if (textBody == null) throw new ArgumentNullException(
-                nameof(textBody));
+            ArgumentNullException.ThrowIfNull(textBody);
             if (record == null) return textBody;
             try {
                 if (record.Version != 0 || record.Instance != 0

@@ -114,10 +114,7 @@ internal static class OfficeArtBlipStoreEntryReader {
         if (length < 0 || length > source.Length - offset) {
             throw new ArgumentOutOfRangeException(nameof(length));
         }
-        if (maximumDecodedImageBytes < 0) {
-            throw new ArgumentOutOfRangeException(
-                nameof(maximumDecodedImageBytes));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(maximumDecodedImageBytes);
         data = default;
         if (length < 8) return false;
         BlipReadResult result = ReadBlip(source, offset,

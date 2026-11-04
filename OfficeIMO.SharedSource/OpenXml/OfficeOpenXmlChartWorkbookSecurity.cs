@@ -38,7 +38,7 @@ namespace OfficeIMO.OpenXml.Internal {
             };
 
         private static byte[] ReadBounded(Stream stream) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
 
             using var buffer = new MemoryStream();
             var chunk = new byte[81920];

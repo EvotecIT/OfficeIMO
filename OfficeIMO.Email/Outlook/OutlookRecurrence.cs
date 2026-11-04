@@ -160,7 +160,7 @@ public sealed class OutlookRecurrence {
     /// <summary>Pattern shape within the recurrence interval.</summary>
     public OutlookRecurrencePatternKind PatternKind { get => _patternKind; set { _patternKind = value; MarkDirty(); } }
     /// <summary>Positive frequency interval.</summary>
-    public int Interval { get => _interval; set { if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value)); _interval = value; MarkDirty(); } }
+    public int Interval { get => _interval; set { ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value); _interval = value; MarkDirty(); } }
     /// <summary>Local start of the first occurrence.</summary>
     public DateTime Start { get => _start; set { _start = AsLocal(value); MarkDirty(); } }
     /// <summary>Duration of each unmodified occurrence.</summary>

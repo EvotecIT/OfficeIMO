@@ -25,8 +25,8 @@ namespace OfficeIMO.PowerPoint {
             long nativeTop = top.ToEmus();
             long nativeWidth = width.ToEmus();
             long nativeHeight = height.ToEmus();
-            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
             ValidateCustomGeometryTransformCoordinate(nativeLeft, nameof(left));
             ValidateCustomGeometryTransformCoordinate(nativeTop, nameof(top));
             ValidateCustomGeometryExtent(nativeWidth, nameof(width));

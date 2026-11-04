@@ -8,7 +8,7 @@ internal static class IWorkCreationValidation {
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     internal static void ValidateName(string value, string name) {
-        if (value == null) throw new ArgumentNullException(name);
+        ArgumentNullException.ThrowIfNull(value, name);
         if (string.IsNullOrWhiteSpace(value) || value.Length > 128 || value.Any(char.IsControl))
             throw new ArgumentException("A name of at most 128 characters without controls is required.", name);
         StrictUtf8.GetByteCount(value);

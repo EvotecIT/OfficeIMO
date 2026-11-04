@@ -19,19 +19,19 @@ internal static class OdfTestPackageRewriter {
     }
 
     internal static byte[] Rewrite(byte[] sourceBytes, Func<string, byte[], byte[]> transform) {
-        if (transform == null) throw new ArgumentNullException(nameof(transform));
+        ArgumentNullException.ThrowIfNull(transform);
         return RewriteCore(sourceBytes, transform, static _ => true, additions: null);
     }
 
     internal static byte[] Remove(byte[] sourceBytes, string removedPath) {
-        if (removedPath == null) throw new ArgumentNullException(nameof(removedPath));
+        ArgumentNullException.ThrowIfNull(removedPath);
         return RewriteCore(sourceBytes, static (_, bytes) => bytes,
             name => !string.Equals(name, removedPath, StringComparison.Ordinal), additions: null);
     }
 
     private static byte[] RewriteCore(byte[] sourceBytes, Func<string, byte[], byte[]> transform,
         Func<string, bool> include, IReadOnlyList<OdfTestPackageEntry>? additions) {
-        if (sourceBytes == null) throw new ArgumentNullException(nameof(sourceBytes));
+        ArgumentNullException.ThrowIfNull(sourceBytes);
 
         var entries = new List<OdfZipWriteEntry>();
         using (var sourceStream = new MemoryStream(sourceBytes, writable: false))

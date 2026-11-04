@@ -142,7 +142,7 @@ internal static partial class OfficeJpegWriter {
         if (height > OfficeRasterImageEncoder.JpegMaximumDimension) throw new ArgumentOutOfRangeException(nameof(height), "JPEG height cannot exceed 65535 pixels.");
         _ = OfficeRasterGuards.EnsureOutputPixels(width, height, JpegOutputLimitMessage);
         _ = OfficeRasterGuards.EnsureOutputBytes((long)width * height * 4, JpegOutputLimitMessage);
-        if (rgba is null) throw new ArgumentNullException(bufferName);
+        ArgumentNullException.ThrowIfNull(rgba, bufferName);
         if (stride < width * 4) throw new ArgumentOutOfRangeException(nameof(stride));
         if (rowStride < rowOffset + stride) throw new ArgumentOutOfRangeException(nameof(rowStride));
         if (rgba.Length < height * rowStride) throw new ArgumentException(bufferMessage, bufferName);

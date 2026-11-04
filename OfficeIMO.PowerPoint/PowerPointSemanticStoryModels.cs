@@ -177,7 +177,7 @@ namespace OfficeIMO.PowerPoint {
         public string? Lead { get; }
 
         private static IReadOnlyList<T> Materialize<T>(IEnumerable<T> source, string name) {
-            if (source == null) throw new ArgumentNullException(name);
+            ArgumentNullException.ThrowIfNull(source, name);
             return new ReadOnlyCollection<T>(source.Where(item => item != null).ToList());
         }
     }

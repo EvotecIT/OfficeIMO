@@ -161,8 +161,7 @@ internal static partial class CsvParser
         private async ValueTask SkipCommentAsync(CsvLine first, string delimiter, bool asynchronous, CancellationToken token)
         {
             if (TryParse(first.Text, delimiter, false, first.PhysicalLineNumber, out _)) return;
-            if (_options.MaxCommentContinuationLines <= 0)
-                throw new ArgumentOutOfRangeException(nameof(_options.MaxCommentContinuationLines));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(_options.MaxCommentContinuationLines, nameof(_options.MaxCommentContinuationLines));
             var state = new QuotedRecordState();
             UpdateState(first.Text, delimiter, ref state);
             var continuations = new List<CsvLine>();

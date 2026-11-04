@@ -454,7 +454,7 @@ public partial class MarkdownDocument : MarkdownObject {
     /// <see cref="AddTable(Action{MarkdownTableBuilder})"/> followed by the builder's AlignDatesCenter and AlignNumericRight.
     /// </summary>
     public MarkdownDocument TableAuto(Action<MarkdownTableBuilder> build, bool alignNumeric = true, bool alignDates = true) {
-        if (build == null) throw new ArgumentNullException(nameof(build));
+        ArgumentNullException.ThrowIfNull(build);
         AddTable(builder => {
             build(builder);
             if (alignDates) builder.AlignDatesCenter();

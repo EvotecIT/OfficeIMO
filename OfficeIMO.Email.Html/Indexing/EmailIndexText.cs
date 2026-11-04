@@ -9,9 +9,9 @@ public static class EmailIndexText {
         ArgumentNullException.ThrowIfNull(source);
         var effective = options ?? new EmailIndexTextOptions();
         if (!Enum.IsDefined(typeof(EmailConcealedTextPolicy), effective.ConcealedTextPolicy)) throw new ArgumentOutOfRangeException(nameof(effective.ConcealedTextPolicy));
-        if (effective.MaxSourceChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxSourceChars));
-        if (effective.MaxProjectionChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxProjectionChars));
-        if (effective.MaxTextChars <= 0) throw new ArgumentOutOfRangeException(nameof(effective.MaxTextChars));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxSourceChars, nameof(effective.MaxSourceChars));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxProjectionChars, nameof(effective.MaxProjectionChars));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effective.MaxTextChars, nameof(effective.MaxTextChars));
         var builder = new EmailIndexTextBuilder(effective.MaxTextChars);
         var diagnostics = new List<EmailDiagnostic>();
         EmailBodySourceKind kind;

@@ -15,7 +15,7 @@ public static partial class ExcelHtmlConverterExtensions {
     /// <summary>Converts a workbook to HTML text and returns the completed conversion report.</summary>
     public static string ToHtml(this ExcelDocument workbook, ExcelHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+        ArgumentNullException.ThrowIfNull(workbook);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlTextConversionResult result = workbook.ConvertToHtmlWithEvidence(options);
         string value = result.RequireValue();
@@ -76,7 +76,7 @@ public static partial class ExcelHtmlConverterExtensions {
     /// <summary>Converts a worksheet to HTML text and returns the completed conversion report.</summary>
     public static string ToHtml(this ExcelSheet sheet, ExcelHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (sheet == null) throw new ArgumentNullException(nameof(sheet));
+        ArgumentNullException.ThrowIfNull(sheet);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlTextConversionResult result = sheet.ConvertToHtmlWithEvidence(options);
         string value = result.RequireValue();

@@ -672,18 +672,10 @@ namespace OfficeIMO.Data {
         }
 
         private static void ValidateLimits(ObjectFlattenerOptions options) {
-            if (options.MaxDepth <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.MaxDepth));
-            }
-            if (options.MaxCollectionItems <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.MaxCollectionItems));
-            }
-            if (options.MaxColumns <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.MaxColumns));
-            }
-            if (options.MaxCells <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(options.MaxCells));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDepth, nameof(options.MaxDepth));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCollectionItems, nameof(options.MaxCollectionItems));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxColumns, nameof(options.MaxColumns));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCells, nameof(options.MaxCells));
         }
 
         private static bool IsPathSelectedForMaterialization(string path, ObjectFlattenerOptions options) {

@@ -172,7 +172,7 @@ public sealed partial class PdfTextRun {
 #if NET6_0_OR_GREATER
         System.ArgumentNullException.ThrowIfNull(featureSettings);
 #else
-        if (featureSettings == null) throw new System.ArgumentNullException(nameof(featureSettings));
+        System.ArgumentNullException.ThrowIfNull(featureSettings);
 #endif
         if (InlineElement != null) return this;
         var copy = CopyRunFormattingTo(new PdfTextRun(Text, Bold, Underline, Color, Italic, Strike, FontSize, StandardFont, LinkUri, LinkContents, Baseline, LinkDestinationName, TabLeader, TabAlignment, BackgroundColor, FontFamily, UnderlineStyle, StrikeStyle, DecorationColor));

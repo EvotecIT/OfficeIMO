@@ -104,8 +104,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 LegacyPptWriterPictureBulletCatalog pictureBullets) {
             ArgumentNullException.ThrowIfNull(shapes);
             ArgumentNullException.ThrowIfNull(fonts);
-            if (pictureBullets == null) throw new ArgumentNullException(
-                nameof(pictureBullets));
+            ArgumentNullException.ThrowIfNull(pictureBullets);
             var interactions = new LegacyPptWriterInteractionCatalog();
             var animations = new LegacyPptWriterAnimationCatalog(
                 new Dictionary<string, LegacyPptWriterAnimation>(

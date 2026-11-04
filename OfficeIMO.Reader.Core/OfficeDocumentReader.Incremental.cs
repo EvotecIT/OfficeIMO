@@ -50,7 +50,7 @@ public sealed partial class OfficeDocumentReader {
     /// <summary>Enumerates chunks from caller-owned bytes.</summary>
     public IEnumerable<ReaderChunk> Enumerate(byte[] bytes, string? sourceName = null, ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         return EnumerateBytes(bytes, sourceName, options, cancellationToken);
     }
 
@@ -107,7 +107,7 @@ public sealed partial class OfficeDocumentReader {
     /// <summary>Enumerates caller-owned bytes asynchronously with backpressure.</summary>
     public async IAsyncEnumerable<ReaderChunk> EnumerateAsync(byte[] bytes, string? sourceName = null,
         ReaderOptions? options = null, [EnumeratorCancellation] CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         using var stream = new MemoryStream(bytes, writable: false);
         await foreach (var chunk in EnumerateAsync(stream, sourceName, options, cancellationToken).ConfigureAwait(false)) yield return chunk;
     }

@@ -107,7 +107,7 @@ public static partial class OfficeConverter {
 
     private static async Task<OfficeConversionReport> ConvertStreamAsync(Stream source, OfficeDocumentFormat sourceFormat,
         Stream destination, OfficeDocumentFormat target, OfficeConversionOptions? options, string? outputPath, CancellationToken cancellationToken) {
-        if (source == null) throw new ArgumentNullException(nameof(source)); if (destination == null) throw new ArgumentNullException(nameof(destination));
+        ArgumentNullException.ThrowIfNull(source); ArgumentNullException.ThrowIfNull(destination);
         if (!source.CanRead || !destination.CanWrite) throw new ArgumentException("Readable input and writable output streams are required.");
         if (ReferenceEquals(source, destination)) throw new ArgumentException("Input and output streams must be different.");
         if (source is FileStream inputFile && destination is FileStream outputFile && IsSameFile(inputFile, outputFile))

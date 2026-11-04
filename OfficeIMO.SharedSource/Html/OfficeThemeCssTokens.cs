@@ -35,7 +35,7 @@ internal static class OfficeThemeCssTokens {
     }
 
     internal static IReadOnlyList<KeyValuePair<string, string>> GetTokens(OfficeTheme theme) {
-        if (theme == null) throw new ArgumentNullException(nameof(theme));
+        ArgumentNullException.ThrowIfNull(theme);
         OfficeThemePalette palette = theme.Palette;
         var tokens = new List<KeyValuePair<string, string>>();
         void Append(string name, string value) => tokens.Add(new KeyValuePair<string, string>(name, value));

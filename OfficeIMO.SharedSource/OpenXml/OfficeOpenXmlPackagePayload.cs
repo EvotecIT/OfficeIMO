@@ -33,7 +33,7 @@ namespace OfficeIMO.OpenXml.Internal {
     /// <summary>Shared package-part inventory and bounded stream operations for Office Open XML formats.</summary>
     internal static partial class OfficeOpenXmlPackagePayload {
         internal static IReadOnlyList<OfficeOpenXmlPayloadHandle> FindEmbeddedPayloads(OpenXmlPackage package) {
-            if (package == null) throw new ArgumentNullException(nameof(package));
+            ArgumentNullException.ThrowIfNull(package);
 
             var result = new List<OfficeOpenXmlPayloadHandle>();
             var visited = new HashSet<OpenXmlPart>();
@@ -67,7 +67,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static OfficeEmbeddedPayloadInfo CreateInfo(OfficeOpenXmlPayloadHandle handle, bool includeSha256) {
-            if (handle == null) throw new ArgumentNullException(nameof(handle));
+            ArgumentNullException.ThrowIfNull(handle);
             long length = GetLength(handle.Part);
             string? sha256 = includeSha256 ? ComputeSha256(handle.Part) : null;
             string partUri = handle.Part.Uri.ToString();
@@ -85,7 +85,7 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static byte[] ReadBytes(OpenXmlPart part, long? maxBytes = null) {
-            if (part == null) throw new ArgumentNullException(nameof(part));
+            ArgumentNullException.ThrowIfNull(part);
             using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
             return OfficeStreamReader.ReadAllBytes(stream, maxBytes);
         }
@@ -96,14 +96,14 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void ReplaceBytes(OpenXmlPart part, byte[] data) {
-            if (part == null) throw new ArgumentNullException(nameof(part));
+            ArgumentNullException.ThrowIfNull(part);
             if (data == null || data.Length == 0) throw new ArgumentException("Payload data cannot be empty.", nameof(data));
             using var source = new MemoryStream(data, writable: false);
             part.FeedData(source);
         }
 
         internal static void RemovePart(OfficeOpenXmlPayloadHandle handle) {
-            if (handle == null) throw new ArgumentNullException(nameof(handle));
+            ArgumentNullException.ThrowIfNull(handle);
             RemoveKnownRelationshipReferences(handle);
             handle.Owner.DeletePart(handle.Part);
         }
@@ -159,7 +159,7 @@ namespace OfficeIMO.OpenXml.Internal {
 
         internal static OfficeVbaProjectInfo CreateVbaProjectInfo(VbaProjectPart part, bool includeSha256,
             long maxBytes = OfficeVbaProjectInfo.DefaultMaximumProjectBytes) {
-            if (part == null) throw new ArgumentNullException(nameof(part));
+            ArgumentNullException.ThrowIfNull(part);
             if (maxBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxBytes));
             byte[] projectBytes = ReadBytes(part, maxBytes);
             string? sha256 = includeSha256 ? ComputeSha256(projectBytes) : null;

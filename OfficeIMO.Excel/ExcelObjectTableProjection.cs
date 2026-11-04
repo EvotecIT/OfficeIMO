@@ -39,7 +39,7 @@ internal sealed partial class ExcelObjectTableProjection {
 
             var options = projectionOptions?.CreateProjectionSnapshot() ?? new ObjectFlattenerOptions();
             OfficeIMO.Core.Internal.ObjectDataHelpers.ConfigureTableProjection(options, tableOptions);
-            if (options.MaxRows <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRows));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxRows, nameof(options.MaxRows));
             options.MaxColumns = Math.Min(options.MaxColumns, ExcelA1.MaxColumns - _startColumn + 1);
             int maximumDataRows = Math.Min(options.MaxRows, Math.Max(0, ExcelA1.MaxRows - _currentRow + 1 - HeaderRows));
             int startRow = _currentRow;

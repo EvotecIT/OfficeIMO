@@ -25,7 +25,7 @@ public sealed partial class BookOnixMessage {
         var markets = new OnixMarketSelection[updates.Count];
         for (int index = 0; index < updates.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var update = updates[index]; if (update == null) throw new ArgumentNullException(nameof(update)); if (update.Source == null) throw new ArgumentNullException("update.Source");
+            var update = updates[index]; ArgumentNullException.ThrowIfNull(update); if (update.Source == null) throw new ArgumentNullException("update.Source");
             sources[index] = update.Source;
             replacements[index] = ReadBlocks(update.ReplaceBlocks);
             clears[index] = ReadBlocks(update.ClearBlocks);
@@ -72,14 +72,14 @@ public sealed partial class BookOnixMessage {
         var reasons = new XElement[deletions.Count][];
         for (int index = 0; index < deletions.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
-            var deletion = deletions[index]; if (deletion == null) throw new ArgumentNullException(nameof(deletion)); if (deletion.Source == null) throw new ArgumentNullException("deletion.Source");
+            var deletion = deletions[index]; ArgumentNullException.ThrowIfNull(deletion); if (deletion.Source == null) throw new ArgumentNullException("deletion.Source");
             sources[index] = deletion.Source;
             if (deletion.Reasons == null) throw new ArgumentNullException("deletion.Reasons");
             if (deletion.Reasons.Count > 16) throw new ArgumentException("At most 16 deletion-reason translations are supported.", nameof(deletions));
             var languages = new HashSet<string>(StringComparer.Ordinal); var values = new List<XElement>();
             foreach (var reason in deletion.Reasons) {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (reason == null) throw new ArgumentNullException(nameof(reason)); if ((reason.Text == null || string.IsNullOrWhiteSpace(reason.Text))) throw new ArgumentException("A non-empty value is required.", "reason.Text");
+                ArgumentNullException.ThrowIfNull(reason); if ((reason.Text == null || string.IsNullOrWhiteSpace(reason.Text))) throw new ArgumentException("A non-empty value is required.", "reason.Text");
                 if (reason.Text.Length > 100) throw new ArgumentException("Deletion reasons cannot exceed 100 UTF-16 code units.", nameof(deletions));
                 XmlConvert.VerifyXmlChars(reason.Text);
                 BookProject.RequireOnixTranslationLanguage(reason.LanguageCode, deletion.Reasons.Count, nameof(deletion.Reasons));

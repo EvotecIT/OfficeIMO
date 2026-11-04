@@ -16,7 +16,7 @@ public static partial class OneNoteMarkdownConverterExtensions {
     /// <summary>Converts a section to a Markdown document and returns the completed conversion report.</summary>
     public static MarkdownDocument ToMarkdown(this OneNoteSection section, OneNoteMarkdownExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         cancellationToken.ThrowIfCancellationRequested();
         OneNoteMarkdownConversionResult result = ConvertToMarkdownWithEvidence(section, options, out _);
         MarkdownDocument value = result.Value;
@@ -78,7 +78,7 @@ public static partial class OneNoteMarkdownConverterExtensions {
     /// <summary>Converts a notebook to a Markdown document and returns the completed conversion report.</summary>
     public static MarkdownDocument ToMarkdown(this OneNoteNotebook notebook, OneNoteMarkdownExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         cancellationToken.ThrowIfCancellationRequested();
         OneNoteMarkdownConversionResult result = ConvertToMarkdownWithEvidence(notebook, options, out _);
         MarkdownDocument value = result.Value;

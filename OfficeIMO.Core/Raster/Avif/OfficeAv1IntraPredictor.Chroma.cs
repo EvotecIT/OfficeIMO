@@ -7,7 +7,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
     internal OfficeAv1Prediction PredictChromaFromLuma(int size,int alpha,ushort dc,ushort[] luma,int stride,
         int sourceWidth,int sourceHeight,int subX,int subY) {
         var d=Dimensions(size);int w=d.Width,h=d.Height;
-        if(luma==null) throw new ArgumentNullException(nameof(luma));
+        ArgumentNullException.ThrowIfNull(luma);
         if(w>32 || h>32 || (uint)subX>1 || (uint)subY>1 || subY>subX || alpha< -16 || alpha>16 ||
            sourceWidth<(1<<subX) || sourceWidth>64 || sourceHeight<(1<<subY) || sourceHeight>64 ||
            (sourceWidth&subX)!=0 || (sourceHeight&subY)!=0 || stride<sourceWidth || stride>64 ||
@@ -34,7 +34,7 @@ internal sealed partial class OfficeAv1IntraPredictor {
     /// <summary>Maps one transform's leaf-relative palette indices to immutable prediction samples.</summary>
     internal OfficeAv1Prediction PredictPalette(int size,int plane,OfficeAv1Palette palette,int offsetX,int offsetY) {
         var d=Dimensions(size);int w=d.Width,h=d.Height;
-        if(palette==null) throw new ArgumentNullException(nameof(palette));
+        ArgumentNullException.ThrowIfNull(palette);
         if((uint)plane>=3) throw new FormatException("Invalid AV1 palette plane.");
         int width=plane==0?palette.Width:palette.ChromaWidth,height=plane==0?palette.Height:palette.ChromaHeight;
         int colors=plane==0?palette.SizeY:palette.SizeUv;

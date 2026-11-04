@@ -110,7 +110,7 @@ public static partial class HtmlImageExportExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         request = request.WithOptions(HtmlPdfExportOptions.ForImageExport(request.Options));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         return HtmlRenderEngine.ExecuteWithDeadline(resolved, cancellationToken, operationCancellationToken => {
@@ -127,7 +127,7 @@ public static partial class HtmlImageExportExtensions {
         this HtmlConversionDocument document,
         HtmlRenderRequest request,
         CancellationToken cancellationToken = default) {
-        if (request == null) throw new ArgumentNullException(nameof(request));
+        ArgumentNullException.ThrowIfNull(request);
         request = request.WithOptions(HtmlPdfExportOptions.ForImageExport(request.Options));
         HtmlRenderOptions resolved = HtmlRenderEngine.PrepareOptions(document, request);
         return await HtmlRenderEngine.ExecuteWithDeadlineAsync(resolved, cancellationToken, async operationCancellationToken => {

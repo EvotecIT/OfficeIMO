@@ -414,10 +414,10 @@ internal static partial class OfficeVbaSignatureService {
     private static void ValidateOptions(OfficeVbaSignatureInspectionOptions options) {
         ArgumentNullException.ThrowIfNull(options);
         options.Package.Validate();
-        if (options.MaxMacroProjectBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxMacroProjectBytes));
-        if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
-        if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
-        if (options.MaxRelationships <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxMacroProjectBytes, nameof(options.MaxMacroProjectBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatureBytes, nameof(options.MaxSignatureBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalSignatureBytes, nameof(options.MaxTotalSignatureBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxRelationships, nameof(options.MaxRelationships));
     }
 
     private static XDocument LoadXml(byte[] bytes) {

@@ -147,10 +147,7 @@ public static partial class EpubImageExportExtensions {
     private static IReadOnlyList<EpubChapter> SelectChapters(
         EpubDocument source,
         EpubImageExportOptions options) {
-        if (options.ChapterIndex < 0) {
-            throw new ArgumentOutOfRangeException(
-                nameof(options.ChapterIndex));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(options.ChapterIndex, nameof(options.ChapterIndex));
         if (options.ChapterCount.HasValue &&
             options.ChapterCount.Value < 1) {
             throw new ArgumentOutOfRangeException(

@@ -7,8 +7,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryBuildTextSpecialInfoRecord(
             IReadOnlyList<A.Paragraph> paragraphs, out byte[]? record,
             out string? reason) {
-            if (paragraphs == null) throw new ArgumentNullException(
-                nameof(paragraphs));
+            ArgumentNullException.ThrowIfNull(paragraphs);
             record = null;
             reason = null;
             var runs = new List<LegacyPptWriterTextSpecialInfoRun>();

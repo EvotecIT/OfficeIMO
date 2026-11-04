@@ -12,7 +12,7 @@ using S = DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
         internal static byte[] BuildBubbleChartWorkbook(OfficeChartData data) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
 
             using MemoryStream stream = new();
             using (SpreadsheetDocument document =

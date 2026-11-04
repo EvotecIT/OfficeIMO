@@ -23,7 +23,7 @@ internal static class InvoiceXml {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(bytes);
 #else
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
 #endif
         if (bytes.Length == 0 || bytes.Length > InvoiceProfileDeclaration.MaximumXmlBytes)
             throw new InvalidDataException("Invoice XML must contain between 1 byte and 16 MiB.");

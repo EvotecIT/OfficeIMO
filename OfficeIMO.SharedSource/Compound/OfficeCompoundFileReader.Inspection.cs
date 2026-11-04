@@ -65,14 +65,14 @@ namespace OfficeIMO.Core.Internal {
             entries = Array.Empty<OfficeCompoundFileEntry>();
             error = null;
             try {
-                if (stream == null) throw new ArgumentNullException(nameof(stream));
+                ArgumentNullException.ThrowIfNull(stream);
                 cancellationToken.ThrowIfCancellationRequested();
                 if (!stream.CanRead || !stream.CanSeek) {
                     error = "Compound directory inspection requires a readable seekable stream.";
                     return false;
                 }
-                if (maxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(maxInputBytes));
-                if (maxDirectoryEntries <= 0) throw new ArgumentOutOfRangeException(nameof(maxDirectoryEntries));
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxInputBytes);
+                ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxDirectoryEntries);
 
                 long basePosition = stream.Position;
                 long remainingBytes = checked(stream.Length - basePosition);

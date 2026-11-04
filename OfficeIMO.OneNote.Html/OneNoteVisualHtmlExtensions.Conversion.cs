@@ -14,7 +14,7 @@ public static partial class OneNoteVisualHtmlExtensions {
     /// <summary>Converts a section to visual HTML with one SVG canvas per page and returns the completed conversion report.</summary>
     public static string ToVisualHtml(this OneNoteSection section, OneNoteVisualHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         cancellationToken.ThrowIfCancellationRequested();
         string value = RenderVisual(section.Name, OneNotePageTraversal.Flatten(section), options, out OfficeConversionReport source);
         return OfficeConversionOutput.Complete(value, source, options?.FailOnLoss == true, out report);
@@ -73,7 +73,7 @@ public static partial class OneNoteVisualHtmlExtensions {
     /// <summary>Converts a notebook to visual HTML with one SVG canvas per page and returns the completed conversion report.</summary>
     public static string ToVisualHtml(this OneNoteNotebook notebook, OneNoteVisualHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         cancellationToken.ThrowIfCancellationRequested();
         string value = RenderVisual(notebook.Name, OneNotePageTraversal.Flatten(notebook), options, out OfficeConversionReport source);
         return OfficeConversionOutput.Complete(value, source, options?.FailOnLoss == true, out report);

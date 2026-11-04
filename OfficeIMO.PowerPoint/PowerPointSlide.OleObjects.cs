@@ -28,8 +28,8 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException(
                     "An OLE ProgID is required.", nameof(progId));
             }
-            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
             if (string.IsNullOrWhiteSpace(contentType)) {
                 throw new ArgumentException(
                     "An embedded-part content type is required.",
@@ -117,8 +117,8 @@ namespace OfficeIMO.PowerPoint {
             ArgumentNullException.ThrowIfNull(source);
             if (!source.IsAbsoluteUri) throw new ArgumentException("A linked OLE URI must be absolute.", nameof(source));
             if (string.IsNullOrWhiteSpace(progId)) throw new ArgumentException("An OLE ProgID is required.", nameof(progId));
-            if (nativeWidth <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-            if (nativeHeight <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
 
             uint shapeId = AllocateShapeIds(2);
             uint previewShapeId = shapeId + 1U;

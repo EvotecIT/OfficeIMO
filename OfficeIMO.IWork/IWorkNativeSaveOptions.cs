@@ -17,9 +17,9 @@ public sealed class IWorkNativeSaveOptions {
         var copy = new IWorkNativeSaveOptions { MaxPackageBytes = MaxPackageBytes,
             MaxEditedArchiveBytes = MaxEditedArchiveBytes, MaxEditedRecords = MaxEditedRecords,
             AllowUnassessedVisualCaches = AllowUnassessedVisualCaches };
-        if (copy.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
-        if (copy.MaxEditedArchiveBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxEditedArchiveBytes));
-        if (copy.MaxEditedRecords <= 0) throw new ArgumentOutOfRangeException(nameof(MaxEditedRecords));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxPackageBytes, nameof(MaxPackageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxEditedArchiveBytes, nameof(MaxEditedArchiveBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxEditedRecords, nameof(MaxEditedRecords));
         return copy;
     }
 }

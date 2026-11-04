@@ -391,8 +391,7 @@ public abstract partial class AsyncPSCmdlet
     {
         lock (_lifecycleLock)
         {
-            if (_disposeRequested)
-                throw new ObjectDisposedException(GetType().FullName);
+            ObjectDisposedException.ThrowIf(_disposeRequested, this);
 
             _activeBlocks++;
         }

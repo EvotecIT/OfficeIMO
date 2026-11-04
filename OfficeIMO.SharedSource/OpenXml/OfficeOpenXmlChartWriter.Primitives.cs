@@ -253,12 +253,8 @@ namespace OfficeIMO.OpenXml.Internal {
         }
 
         internal static void UpdateScatterData(ChartPart chartPart, OfficeChartData data) {
-            if (chartPart == null) {
-                throw new ArgumentNullException(nameof(chartPart));
-            }
-            if (data == null) {
-                throw new ArgumentNullException(nameof(data));
-            }
+            ArgumentNullException.ThrowIfNull(chartPart);
+            ArgumentNullException.ThrowIfNull(data);
             ValidateSharedChartData(data, OfficeChartType.Scatter);
 
             C.ChartSpace? chartSpace = chartPart.ChartSpace;

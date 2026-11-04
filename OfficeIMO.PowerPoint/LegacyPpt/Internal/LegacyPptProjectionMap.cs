@@ -135,8 +135,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             && _ordinaryLayoutsByPartUri.ContainsKey(partUri);
 
         internal bool OrdinaryLayoutMatches(SlideLayoutPart layoutPart) {
-            if (layoutPart == null) throw new ArgumentNullException(
-                nameof(layoutPart));
+            ArgumentNullException.ThrowIfNull(layoutPart);
             return _ordinaryLayoutsByPartUri.TryGetValue(
                     layoutPart.Uri.ToString(), out LegacyPptOrdinaryLayoutProjection?
                         projection)
@@ -145,8 +144,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool OrdinaryLayoutTypeMatches(
             SlideLayoutPart layoutPart) {
-            if (layoutPart == null) throw new ArgumentNullException(
-                nameof(layoutPart));
+            ArgumentNullException.ThrowIfNull(layoutPart);
             return _ordinaryLayoutsByPartUri.TryGetValue(
                     layoutPart.Uri.ToString(), out LegacyPptOrdinaryLayoutProjection?
                         projection)
@@ -156,8 +154,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool TryGetOrdinaryLayoutAddedShapeIds(
             SlideLayoutPart layoutPart,
             out IReadOnlyList<uint> addedShapeIds) {
-            if (layoutPart == null) throw new ArgumentNullException(
-                nameof(layoutPart));
+            ArgumentNullException.ThrowIfNull(layoutPart);
             addedShapeIds = Array.Empty<uint>();
             return _ordinaryLayoutsByPartUri.TryGetValue(
                     layoutPart.Uri.ToString(), out LegacyPptOrdinaryLayoutProjection?

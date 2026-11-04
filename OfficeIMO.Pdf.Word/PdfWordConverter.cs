@@ -33,8 +33,7 @@ namespace OfficeIMO.Pdf.Word {
             ArgumentNullException.ThrowIfNull(target);
 
             ArgumentNullException.ThrowIfNull(options);
-            if (options.MaxImageTextOverlapComparisons <= 0)
-                throw new ArgumentOutOfRangeException(nameof(options.MaxImageTextOverlapComparisons));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxImageTextOverlapComparisons, nameof(options.MaxImageTextOverlapComparisons));
 
             if (options.IncludeMetadata) {
                 CopyMetadata(source.Metadata, target);

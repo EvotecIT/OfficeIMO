@@ -41,7 +41,7 @@ public sealed class OfficeImageOptimizationRequest {
     public int TargetPixelWidth {
         get => _targetPixelWidth;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(TargetPixelWidth));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, nameof(TargetPixelWidth));
             _targetPixelWidth = value;
         }
     }
@@ -50,7 +50,7 @@ public sealed class OfficeImageOptimizationRequest {
     public int TargetPixelHeight {
         get => _targetPixelHeight;
         set {
-            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(TargetPixelHeight));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value, nameof(TargetPixelHeight));
             _targetPixelHeight = value;
         }
     }

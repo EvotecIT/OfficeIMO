@@ -20,7 +20,7 @@ namespace OfficeIMO.Core.Internal {
 
         /// <summary>Validates a stream that will always be used as an associated destination.</summary>
         public static void EnsureAssociatedDestination(Stream stream, string parameterName) {
-            if (stream == null) throw new ArgumentNullException(parameterName);
+            ArgumentNullException.ThrowIfNull(stream, parameterName);
             if (!stream.CanWrite) {
                 throw new ArgumentException("Stream must be writable.", parameterName);
             }

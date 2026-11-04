@@ -5,8 +5,8 @@ public partial class VisioPage {
     public VisioShape AddTitle(string text, string id = "title", OfficeLength? height = null, OfficeLength? topMargin = null) {
         OfficeLength titleHeight = height ?? OfficeLength.Inches(0.5);
         OfficeLength margin = topMargin ?? OfficeLength.Inches(0.35);
-        if (titleHeight <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(height));
-        if (margin < OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(topMargin));
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(titleHeight, OfficeLength.Zero, nameof(height));
+        ArgumentOutOfRangeException.ThrowIfLessThan(margin, OfficeLength.Zero, nameof(topMargin));
         OfficeLength width = OfficeLength.Inches(Math.Max(1, WidthInches - 0.7));
         VisioShape shape = AddTextBox(id, OfficeLength.Inches(WidthInches / 2),
             OfficeLength.Inches(HeightInches - margin.ToInches() - titleHeight.ToInches() / 2), width, titleHeight, text);

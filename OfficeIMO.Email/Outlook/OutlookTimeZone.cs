@@ -369,5 +369,5 @@ internal sealed class TimeZoneRuleList : IList<OutlookTimeZoneRule> {
     public void Insert(int index, OutlookTimeZoneRule item) { Attach(item); _items.Insert(index, item); _changed(); }
     public void RemoveAt(int index) { _items.RemoveAt(index); _changed(); }
     public OutlookTimeZoneRule this[int index] { get => _items[index]; set { Attach(value); _items[index] = value; _changed(); } }
-    private void Attach(OutlookTimeZoneRule item) { if (item == null) throw new ArgumentNullException(nameof(item)); item.SetChangeTracker(_changed); }
+    private void Attach(OutlookTimeZoneRule item) { ArgumentNullException.ThrowIfNull(item); item.SetChangeTracker(_changed); }
 }

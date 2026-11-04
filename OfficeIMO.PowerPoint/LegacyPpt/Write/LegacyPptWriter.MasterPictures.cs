@@ -37,8 +37,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterPictureBulletCatalog pictureBullets,
             bool convertUnsupportedTables,
             out LegacyPptFeature failureFeature, out string? reason) {
-            if (catalog == null) throw new ArgumentNullException(
-                nameof(catalog));
+            ArgumentNullException.ThrowIfNull(catalog);
             ArgumentNullException.ThrowIfNull(shapes);
             IReadOnlyList<PowerPointShape> flattened =
                 FlattenShapeTreeForWrite(shapes, out reason);

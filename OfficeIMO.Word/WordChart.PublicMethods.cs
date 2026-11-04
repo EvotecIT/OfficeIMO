@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         public WordChart SetSize(OfficeLength width, OfficeLength? height = null) {
             long widthEmus = width.ToEmus();
             long? heightEmus = height?.ToEmus();
-            if (widthEmus <= 0) throw new ArgumentOutOfRangeException(nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(widthEmus, nameof(width));
             if (heightEmus <= 0) throw new ArgumentOutOfRangeException(nameof(height));
             if (_drawing != null) WordDrawingLayoutReader.SetExtent(_drawing, widthEmus, heightEmus);
             return this;

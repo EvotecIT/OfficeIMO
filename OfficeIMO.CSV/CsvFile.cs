@@ -216,10 +216,7 @@ internal static partial class CsvFile
 
     private static void ValidateMaxInputBytes(CsvParsingSettings options)
     {
-        if (options.MaxInputBytes <= 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options.MaxInputBytes));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInputBytes, nameof(options.MaxInputBytes));
     }
 
     private static Stream CreateWriteStream(string path, CsvSaveOptions options, bool append, int bufferSize)

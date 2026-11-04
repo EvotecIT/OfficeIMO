@@ -20,7 +20,7 @@ public static partial class WordPdfConverterExtensions {
         RecordNativeMixedTextBoxDiagnostic(paragraph, runs, options,
             defaults.RunningContentContext == null ? "body paragraph" : "header/footer paragraph");
         int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
-        if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
         int imageCount = 0;
         var emittedNoteKeys = new HashSet<NativeNoteKey>();
         var pending = new List<WordParagraph>();

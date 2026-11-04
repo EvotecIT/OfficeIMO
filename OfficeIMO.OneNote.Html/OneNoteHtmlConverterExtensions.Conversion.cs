@@ -15,7 +15,7 @@ public static partial class OneNoteHtmlConverterExtensions {
     /// <summary>Converts a section to semantic HTML through the shared Markdown model and returns the completed conversion report.</summary>
     public static string ToHtml(this OneNoteSection section, OneNoteHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (section == null) throw new ArgumentNullException(nameof(section));
+        ArgumentNullException.ThrowIfNull(section);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlTextConversionResult result = section.ConvertToHtmlWithEvidence(options);
         string value = result.RequireValue();
@@ -76,7 +76,7 @@ public static partial class OneNoteHtmlConverterExtensions {
     /// <summary>Converts a notebook to semantic HTML through the shared Markdown model and returns the completed conversion report.</summary>
     public static string ToHtml(this OneNoteNotebook notebook, OneNoteHtmlExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (notebook == null) throw new ArgumentNullException(nameof(notebook));
+        ArgumentNullException.ThrowIfNull(notebook);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlTextConversionResult result = notebook.ConvertToHtmlWithEvidence(options);
         string value = result.RequireValue();

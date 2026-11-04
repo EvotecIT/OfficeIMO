@@ -53,14 +53,14 @@ public sealed class EmailStoreAsyncEnumerator<T> {
     /// <summary>Current element.</summary>
     public T Current {
         get {
-            if (_disposed) throw new ObjectDisposedException(GetType().FullName);
+            ObjectDisposedException.ThrowIf(_disposed, this);
             return _inner.Current;
         }
     }
 
     /// <summary>Advances the already-indexed lightweight iterator and observes cancellation.</summary>
     public Task<bool> MoveNextAsync() {
-        if (_disposed) throw new ObjectDisposedException(GetType().FullName);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         if (Interlocked.Exchange(ref _moveInProgress, 1) != 0) {
             throw new InvalidOperationException("Concurrent MoveNextAsync calls are not supported.");
         }

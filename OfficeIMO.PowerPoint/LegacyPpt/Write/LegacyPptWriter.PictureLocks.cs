@@ -20,8 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryReadPictureProtectionForWrite(
             PowerPointImage picture, out uint? propertyValue,
             out string? reason) {
-            if (picture == null) throw new ArgumentNullException(
-                nameof(picture));
+            ArgumentNullException.ThrowIfNull(picture);
             propertyValue = null;
             if (picture.Element is not P.Picture source) {
                 reason = "The picture shape has no DrawingML picture element.";

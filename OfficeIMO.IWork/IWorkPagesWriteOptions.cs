@@ -35,17 +35,17 @@ public sealed class IWorkPagesWriteOptions {
             MaxDecodedImageBytes = MaxDecodedImageBytes,
             MaxPackageBytes = MaxPackageBytes
         };
-        if (copy.MaxParagraphs <= 0) throw new ArgumentOutOfRangeException(nameof(MaxParagraphs));
-        if (copy.MaxTextRuns <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextRuns));
-        if (copy.MaxTextCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTextCharacters));
-        if (copy.MaxTabStops <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTabStops));
-        if (copy.MaxNumberedLists <= 0) throw new ArgumentOutOfRangeException(nameof(MaxNumberedLists));
-        if (copy.MaxTables <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTables));
-        if (copy.MaxTableCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxTableCells));
-        if (copy.MaxImages <= 0) throw new ArgumentOutOfRangeException(nameof(MaxImages));
-        if (copy.MaxEncodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxEncodedImageBytes));
-        if (copy.MaxDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxDecodedImageBytes));
-        if (copy.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(MaxPackageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxParagraphs, nameof(MaxParagraphs));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTextRuns, nameof(MaxTextRuns));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTextCharacters, nameof(MaxTextCharacters));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTabStops, nameof(MaxTabStops));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxNumberedLists, nameof(MaxNumberedLists));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTables, nameof(MaxTables));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxTableCells, nameof(MaxTableCells));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxImages, nameof(MaxImages));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxEncodedImageBytes, nameof(MaxEncodedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxDecodedImageBytes, nameof(MaxDecodedImageBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(copy.MaxPackageBytes, nameof(MaxPackageBytes));
         return copy;
     }
 }

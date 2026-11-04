@@ -76,7 +76,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void ValidateMaxInputBytes(WordLoadOptions options) {
-            if (options.MaxInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxInputBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxInputBytes, nameof(options.MaxInputBytes));
         }
 
         private static void ValidateSourcePackage(byte[] sourceBytes,

@@ -660,8 +660,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildPreservedFspRecord(
             LegacyPptRecord prototype, PowerPointShape shape) {
-            if (prototype == null) throw new ArgumentNullException(
-                nameof(prototype));
+            ArgumentNullException.ThrowIfNull(prototype);
             ArgumentNullException.ThrowIfNull(shape);
             if (prototype.Type != OfficeArtFsp
                 || prototype.PayloadLength < 8) {

@@ -22,12 +22,8 @@ namespace OfficeIMO.PowerPoint {
             if (!File.Exists(imagePath)) {
                 throw new FileNotFoundException("Image file not found.", imagePath);
             }
-            if (nativeWidth <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(width));
-            }
-            if (nativeHeight <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(height));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
 
             using FileStream source = new(imagePath, FileMode.Open, FileAccess.Read);
             using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(source, OfficeIMO.Drawing.OfficeImageReader.FromExtension(imagePath));
@@ -97,12 +93,8 @@ namespace OfficeIMO.PowerPoint {
             if (!image.CanRead) {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }
-            if (nativeWidth <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(width));
-            }
-            if (nativeHeight <= 0) {
-                throw new ArgumentOutOfRangeException(nameof(height));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeWidth, nameof(width));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(nativeHeight, nameof(height));
 
             using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
             if (normalized != null) return AddImage(normalized, OfficeIMO.Drawing.OfficeImageFormat.Png, left, top, width, height);

@@ -171,8 +171,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildPreservedGroupCoordinateRecord(
             LegacyPptRecord prototype, PowerPointGroupShape group) {
-            if (prototype == null) throw new ArgumentNullException(
-                nameof(prototype));
+            ArgumentNullException.ThrowIfNull(prototype);
             ArgumentNullException.ThrowIfNull(group);
             if (prototype.Type != OfficeArtFspgr
                 || prototype.PayloadLength < 16) {

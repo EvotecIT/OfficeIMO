@@ -20,10 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             ArgumentNullException.ThrowIfNull(source);
             ArgumentNullException.ThrowIfNull(options);
             ArgumentNullException.ThrowIfNull(recordBudget);
-            if (decodedStorageBudget == null) {
-                throw new ArgumentNullException(
-                    nameof(decodedStorageBudget));
-            }
+            ArgumentNullException.ThrowIfNull(decodedStorageBudget);
             if (options.Password == null) {
                 throw new CryptographicException(
                     "The binary PowerPoint presentation is encrypted. Provide LegacyPptImportOptions.Password or use PowerPointDocument.LoadEncrypted.");

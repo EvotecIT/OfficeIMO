@@ -20,9 +20,9 @@ namespace OfficeIMO.Core.Internal {
             out string? error) {
             selectedStream = null;
             error = null;
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (options == null) throw new ArgumentNullException(nameof(options));
-            if (selector == null) throw new ArgumentNullException(nameof(selector));
+            ArgumentNullException.ThrowIfNull(source);
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(selector);
             if (!source.CanRead || !source.CanSeek) {
                 error = "Compound stream views require a readable seekable source.";
                 return false;
@@ -322,7 +322,7 @@ namespace OfficeIMO.Core.Internal {
 
             public override int Read(byte[] buffer, int offset, int count) {
                 ThrowIfDisposed();
-                if (buffer == null) throw new ArgumentNullException(nameof(buffer));
+                ArgumentNullException.ThrowIfNull(buffer);
                 if (offset < 0 || count < 0 || offset > buffer.Length - count) throw new ArgumentOutOfRangeException();
                 if (_position >= _length || count == 0) return 0;
                 _cancellationToken.ThrowIfCancellationRequested();

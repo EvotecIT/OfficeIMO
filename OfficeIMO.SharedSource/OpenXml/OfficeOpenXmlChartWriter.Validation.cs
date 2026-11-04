@@ -6,7 +6,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.OpenXml.Internal {
     internal static partial class OfficeOpenXmlChartWriter {
         internal static void ValidateSharedChartData(OfficeChartData data, OfficeChartType defaultKind) {
-            if (data == null) throw new ArgumentNullException(nameof(data));
+            ArgumentNullException.ThrowIfNull(data);
             if (!Enum.IsDefined(typeof(OfficeChartType), defaultKind))
                 throw new ArgumentOutOfRangeException(nameof(defaultKind), "Chart kind is not supported.");
             if (data.Series.Any(series => series.RenderKind.HasValue && !Enum.IsDefined(typeof(OfficeChartType), series.RenderKind.Value) ||

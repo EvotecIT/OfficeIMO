@@ -18,7 +18,7 @@ public static partial class OfficeDocument {
         if (string.IsNullOrWhiteSpace(sourceName)) throw new ArgumentException("A source filename is required.", nameof(sourceName));
         OfficeInspectOptions settings = options ?? new();
         if (settings.Formats == null || ((settings.IncludeContent || settings.IncludeSummary) && settings.Reader == null)) throw new ArgumentException("Reader and format settings are required.", nameof(options));
-        if (settings.MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(settings.MaximumInputBytes, nameof(options));
         if (settings.VbaSignatures != null || settings.WordMacroSignatures != null)
             throw new NotSupportedException("VBA and Word macro signature inspection require a source path.");
         long maximumBytes = settings.MaximumInputBytes;

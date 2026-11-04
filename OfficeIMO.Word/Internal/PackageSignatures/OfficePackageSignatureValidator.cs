@@ -588,18 +588,18 @@ namespace OfficeIMO.Word {
                 new[] { Finding("signature-part-malformed", WordSignatureValidationState.Failed, message, info.Uri) });
 
         internal static void ValidateOptions(WordSignatureValidationOptions options) {
-            if (options.MaxSignatureParts <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureParts));
-            if (options.MaxPackageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageBytes));
-            if (options.MaxPackageParts <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPackageParts));
-            if (options.MaxPartBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxPartBytes));
-            if (options.MaxSignedReferences <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignedReferences));
-            if (options.MaxTotalDigestBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalDigestBytes));
-            if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
-            if (options.MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificates));
-            if (options.MaxCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificateBytes));
-            if (options.MaxTotalCertificateBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalCertificateBytes));
-            if (options.MaxTimestampTokens <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampTokens));
-            if (options.MaxTimestampBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatureParts, nameof(options.MaxSignatureParts));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxPackageBytes, nameof(options.MaxPackageBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxPackageParts, nameof(options.MaxPackageParts));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxPartBytes, nameof(options.MaxPartBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignedReferences, nameof(options.MaxSignedReferences));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalDigestBytes, nameof(options.MaxTotalDigestBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatureBytes, nameof(options.MaxSignatureBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCertificates, nameof(options.MaxCertificates));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCertificateBytes, nameof(options.MaxCertificateBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalCertificateBytes, nameof(options.MaxTotalCertificateBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTimestampTokens, nameof(options.MaxTimestampTokens));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTimestampBytes, nameof(options.MaxTimestampBytes));
         }
 
         private static bool IsValidationException(Exception exception) =>

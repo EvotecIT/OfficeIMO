@@ -234,9 +234,7 @@ internal static class OfficeImageExportBatchProcessor {
         OfficeImageExportOptions options,
         int? expectedOutputCount) {
         if (!expectedOutputCount.HasValue) return;
-        if (expectedOutputCount.Value < 0) {
-            throw new ArgumentOutOfRangeException(nameof(expectedOutputCount));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(expectedOutputCount.Value, nameof(expectedOutputCount));
         if (expectedOutputCount.Value > options.MaximumOutputCount) {
             throw new OfficeImageExportBatchLimitException(
                 nameof(OfficeImageExportOptions.MaximumOutputCount),

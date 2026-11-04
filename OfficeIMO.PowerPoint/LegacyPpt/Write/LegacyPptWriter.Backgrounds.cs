@@ -518,8 +518,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static int? ReadBackgroundPictureStoreIndex(
             LegacyPptRecord prototype) {
-            if (prototype == null) throw new ArgumentNullException(
-                nameof(prototype));
+            ArgumentNullException.ThrowIfNull(prototype);
             LegacyPptRecord? drawing = prototype.Children.FirstOrDefault(child =>
                 child.Type == RecordDrawing);
             LegacyPptRecord? backgroundShape = drawing?.DescendantsAndSelf()

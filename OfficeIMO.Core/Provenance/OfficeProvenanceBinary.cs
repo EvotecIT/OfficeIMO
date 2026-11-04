@@ -60,10 +60,10 @@ internal static class OfficeProvenanceBinary {
         if (options.MaxManifestBytes <= 0 || options.MaxManifestBytes > options.MaxAssetBytes) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxManifestBytes));
         }
-        if (options.MaxCarriers <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCarriers));
-        if (options.MaxContainerEntries <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxContainerEntries));
-        if (options.MaxExpandedContainerBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxExpandedContainerBytes));
-        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCarriers, nameof(options.MaxCarriers));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxContainerEntries, nameof(options.MaxContainerEntries));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxExpandedContainerBytes, nameof(options.MaxExpandedContainerBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEmbeddedAssets, nameof(options.MaxEmbeddedAssets));
     }
 
     internal static void ValidateRemovalOptions(OfficeProvenanceRemovalOptions options) {
@@ -73,7 +73,7 @@ internal static class OfficeProvenanceBinary {
             (options.MaxOutputBytes.Value <= 0 || options.MaxOutputBytes.Value > int.MaxValue)) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxOutputBytes));
         }
-        if (options.MaxEmbeddedAssets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEmbeddedAssets));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEmbeddedAssets, nameof(options.MaxEmbeddedAssets));
         if (!Enum.IsDefined(typeof(OfficeIMO.OfficeSignatureMutationPolicy), options.SignatureMutationPolicy)) {
             throw new ArgumentOutOfRangeException(nameof(options.SignatureMutationPolicy));
         }

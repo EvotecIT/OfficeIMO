@@ -136,10 +136,10 @@ namespace OfficeIMO.Word {
 
         internal static void ValidateOptions(WordMacroProjectSignatureInspectionOptions options) {
             ArgumentNullException.ThrowIfNull(options);
-            if (options.MaxMacroProjectBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxMacroProjectBytes));
-            if (options.MaxSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSignatureBytes));
-            if (options.MaxTotalSignatureBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalSignatureBytes));
-            if (options.MaxRelationships <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxRelationships));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxMacroProjectBytes, nameof(options.MaxMacroProjectBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSignatureBytes, nameof(options.MaxSignatureBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalSignatureBytes, nameof(options.MaxTotalSignatureBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxRelationships, nameof(options.MaxRelationships));
             OfficePackageSecurityInspector.ValidateOptions(options.PackageSecurity);
             ValidateCmsOptions(options.CmsVerification);
         }
@@ -331,13 +331,13 @@ namespace OfficeIMO.Word {
 
         private static void ValidateCmsOptions(CmsVerificationOptions options) {
             ArgumentNullException.ThrowIfNull(options);
-            if (options.MaxEncodedBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxEncodedBytes));
-            if (options.MaxContentBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxContentBytes));
-            if (options.MaxSigners <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSigners));
-            if (options.MaxCertificates <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCertificates));
-            if (options.MaxTimestampTokens <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampTokens));
-            if (options.MaxTimestampTokenBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTimestampTokenBytes));
-            if (options.MaxTotalTimestampBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxTotalTimestampBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxEncodedBytes, nameof(options.MaxEncodedBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxContentBytes, nameof(options.MaxContentBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSigners, nameof(options.MaxSigners));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCertificates, nameof(options.MaxCertificates));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTimestampTokens, nameof(options.MaxTimestampTokens));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTimestampTokenBytes, nameof(options.MaxTimestampTokenBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxTotalTimestampBytes, nameof(options.MaxTotalTimestampBytes));
         }
 
         private static uint ReadUInt32(byte[] bytes, int offset) =>

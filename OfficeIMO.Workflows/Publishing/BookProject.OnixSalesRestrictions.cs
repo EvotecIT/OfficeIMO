@@ -12,7 +12,7 @@ public sealed partial class BookProject {
         XNamespace ns = OnixNamespace;
         var result = new List<XElement>(); var prior = new List<BookOnixSalesRestriction>();
         foreach (var restriction in restrictions) {
-            token.ThrowIfCancellationRequested(); if (restriction == null) throw new ArgumentNullException(nameof(restriction));
+            token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(restriction);
             if (!OfficeRuntimeCompatibility.IsDefined(restriction.Kind)) throw new ArgumentOutOfRangeException(nameof(restriction.Kind));
             if (restriction.Outlets == null) throw new ArgumentNullException("restriction.Outlets"); if (restriction.Notes == null) throw new ArgumentNullException("restriction.Notes");
             if (restriction.Outlets.Count > 16 || restriction.Notes.Count > 16)
@@ -40,7 +40,7 @@ public sealed partial class BookProject {
             }
             var languages = new HashSet<string>(StringComparer.Ordinal);
             foreach (var note in restriction.Notes) {
-                token.ThrowIfCancellationRequested(); if (note == null) throw new ArgumentNullException(nameof(note));
+                token.ThrowIfCancellationRequested(); ArgumentNullException.ThrowIfNull(note);
                 if (!OfficeRuntimeCompatibility.IsDefined(note.Format)) throw new ArgumentOutOfRangeException(nameof(note.Format));
                 bool xhtml = note.Format == BookOnixCollateralTextFormat.Xhtml;
                 RequireOnixRestrictionText(note.Text, xhtml ? 4096 : 300, ref budget);
@@ -61,7 +61,7 @@ public sealed partial class BookProject {
     }
 
     private static XElement BuildOnixSalesOutlet(BookOnixSalesOutlet outlet, ref int budget) {
-        if (outlet == null) throw new ArgumentNullException(nameof(outlet)); if (outlet.Identifiers == null) throw new ArgumentNullException("outlet.Identifiers");
+        ArgumentNullException.ThrowIfNull(outlet); if (outlet.Identifiers == null) throw new ArgumentNullException("outlet.Identifiers");
         if (outlet.Identifiers.Count > 8 || outlet.Name == null && outlet.Identifiers.Count == 0)
             throw new ArgumentException("An outlet requires a name or identifier, and supports at most eight identifiers.", nameof(outlet));
         if (outlet.Name == null && outlet.NameLanguageCode != null) throw new ArgumentException("Name language requires an outlet name.", nameof(outlet));

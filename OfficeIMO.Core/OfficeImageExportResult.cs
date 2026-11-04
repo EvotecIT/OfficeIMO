@@ -54,7 +54,7 @@ public sealed class OfficeImageExportResult {
         }
         if (width < 1) throw new System.ArgumentOutOfRangeException(nameof(width), "Image width must be positive.");
         if (height < 1) throw new System.ArgumentOutOfRangeException(nameof(height), "Image height must be positive.");
-        if (bytes == null) throw new System.ArgumentNullException(nameof(bytes));
+        System.ArgumentNullException.ThrowIfNull(bytes);
         OfficeImageInfo identified;
         if (validateAndClone) {
             if (!OfficeImageReader.TryValidateContent(bytes, format.GetFileExtension(), out identified) ||
@@ -144,7 +144,7 @@ public sealed class OfficeImageExportResult {
 
     /// <summary>Throws when this result violates the supplied acceptance policy.</summary>
     public OfficeImageExportResult Require(OfficeImageExportPolicy policy) {
-        if (policy == null) throw new System.ArgumentNullException(nameof(policy));
+        System.ArgumentNullException.ThrowIfNull(policy);
         policy.EnsureAccepted(Diagnostics);
         return this;
     }

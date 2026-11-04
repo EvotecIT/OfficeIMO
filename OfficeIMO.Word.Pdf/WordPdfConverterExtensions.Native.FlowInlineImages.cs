@@ -25,7 +25,7 @@ namespace OfficeIMO.Word.Pdf {
                 story is W.Header or W.Footer);
             if (!allowFrameOverflow && !runs.Any(run => IsNativeRenderableTextRun(run, paragraph))) return images;
             int limit = options?.MaxImagesPerParagraph ?? 1_000;
-            if (limit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             int count = 0;
             foreach (WordParagraph run in runs) {
                 if (IsNativeHiddenTextRun(run, paragraph)) continue;

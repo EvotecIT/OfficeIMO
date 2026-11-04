@@ -486,10 +486,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static void ValidateOptions(GoogleSheetsImportOptions options) {
-            if (options.MaxResponseBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxResponseBytes));
-            if (options.MaxSheets <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSheets));
-            if (options.MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxCells));
-            if (options.MaxDimensionGroupMembers <= 0) throw new ArgumentOutOfRangeException(nameof(options.MaxDimensionGroupMembers));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxResponseBytes, nameof(options.MaxResponseBytes));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxSheets, nameof(options.MaxSheets));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxCells, nameof(options.MaxCells));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(options.MaxDimensionGroupMembers, nameof(options.MaxDimensionGroupMembers));
         }
 
         private static void ValidateNativeSpreadsheet(

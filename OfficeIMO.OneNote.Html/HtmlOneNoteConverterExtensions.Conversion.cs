@@ -15,7 +15,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     /// <summary>Converts prepared HTML into a OneNote section and returns the completed conversion report.</summary>
     public static OneNoteSection ToOneNoteSection(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var result = document.ConvertToOneNoteSectionWithEvidence(options);
         OneNoteSection value = Require(result);
@@ -38,7 +38,7 @@ public static partial class HtmlOneNoteConverterExtensions {
     /// <summary>Converts prepared HTML into a single-section OneNote notebook and returns the completed conversion report.</summary>
     public static OneNoteNotebook ToOneNoteNotebook(this HtmlConversionDocument document, HtmlOneNoteExportOptions? options, out OfficeConversionReport report,
         CancellationToken cancellationToken = default) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
+        ArgumentNullException.ThrowIfNull(document);
         cancellationToken.ThrowIfCancellationRequested();
         var result = document.ConvertToOneNoteNotebookWithEvidence(options);
         OneNoteNotebook value = Require(result);

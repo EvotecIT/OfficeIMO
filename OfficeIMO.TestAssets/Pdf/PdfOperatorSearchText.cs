@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests;
 /// </summary>
 internal static class PdfOperatorSearchText {
     internal static string From(byte[] pdf) {
-        if (pdf == null) throw new ArgumentNullException(nameof(pdf));
+        ArgumentNullException.ThrowIfNull(pdf);
 
         Encoding latin1 = Encoding.GetEncoding(28591);
         var text = new StringBuilder(latin1.GetString(pdf));
@@ -48,8 +48,8 @@ internal static class PdfOperatorSearchText {
         @"/(BaseFont|FontName) /[A-Z]{6}\+", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     internal static string Decode(PdfStream stream, Dictionary<int, PdfIndirectObject> objects) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (objects == null) throw new ArgumentNullException(nameof(objects));
+        ArgumentNullException.ThrowIfNull(stream);
+        ArgumentNullException.ThrowIfNull(objects);
 
         byte[] decoded = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
         return Encoding.GetEncoding(28591).GetString(decoded);

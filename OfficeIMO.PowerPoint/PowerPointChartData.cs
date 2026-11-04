@@ -25,13 +25,9 @@ namespace OfficeIMO.PowerPoint {
         /// Initializes a new chart data container with categories and series.
         /// </summary>
         public PowerPointChartData(IEnumerable<string> categories, IEnumerable<PowerPointChartSeries> series) {
-            if (categories == null) {
-                throw new System.ArgumentNullException(nameof(categories));
-            }
+            System.ArgumentNullException.ThrowIfNull(categories);
 
-            if (series == null) {
-                throw new System.ArgumentNullException(nameof(series));
-            }
+            System.ArgumentNullException.ThrowIfNull(series);
 
             Categories = categories.ToList();
             Series = series.ToList();
@@ -82,12 +78,8 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static PowerPointChartData From<T>(IEnumerable<T> items, Func<T, string> categorySelector,
             params PowerPointChartSeriesDefinition<T>[] seriesDefinitions) {
-            if (items == null) {
-                throw new System.ArgumentNullException(nameof(items));
-            }
-            if (categorySelector == null) {
-                throw new System.ArgumentNullException(nameof(categorySelector));
-            }
+            System.ArgumentNullException.ThrowIfNull(items);
+            System.ArgumentNullException.ThrowIfNull(categorySelector);
             if (seriesDefinitions == null || seriesDefinitions.Length == 0) {
                 throw new System.ArgumentException("At least one series definition is required.", nameof(seriesDefinitions));
             }
@@ -132,13 +124,9 @@ namespace OfficeIMO.PowerPoint {
         private void Initialize(string name, IEnumerable<double> values, IEnumerable<double>? xValues,
             PowerPointChartSnapshotKind? chartKind, OfficeColor? color = null, double? strokeWidth = null,
             OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary) {
-            if (name == null) {
-                throw new System.ArgumentNullException(nameof(name));
-            }
+            System.ArgumentNullException.ThrowIfNull(name);
 
-            if (values == null) {
-                throw new System.ArgumentNullException(nameof(values));
-            }
+            System.ArgumentNullException.ThrowIfNull(values);
 
             Name = name;
             Values = values.ToList();

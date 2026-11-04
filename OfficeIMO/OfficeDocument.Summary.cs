@@ -8,7 +8,7 @@ namespace OfficeIMO;
 public static partial class OfficeDocument {
     private static void InspectSummary(OfficeDocumentInfo result, Stream source, OfficeInspectOptions settings,
         CancellationToken cancellationToken, bool sourceIsPath = false) {
-        if (settings.MaximumInputBytes <= 0) throw new ArgumentOutOfRangeException(nameof(settings.MaximumInputBytes));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(settings.MaximumInputBytes, nameof(settings.MaximumInputBytes));
         long maximum = Math.Min(settings.MaximumInputBytes, settings.Reader.MaxInputBytes ?? long.MaxValue);
         ReaderOptions readOptions = DocumentReaderEngine.NormalizeOptions(settings.Reader, inheritProjection: false);
         readOptions.MaxInputBytes = maximum;

@@ -294,7 +294,7 @@ public static class OneNoteNotebookReader {
 
     private static void ValidateOptions(OneNoteNotebookReaderOptions options) {
         if (options.OneNoteOptions == null) throw new ArgumentException("OneNoteOptions cannot be null.", nameof(options));
-        if (options.MaxSectionGroupDepth < 0) throw new ArgumentOutOfRangeException(nameof(options.MaxSectionGroupDepth));
+        ArgumentOutOfRangeException.ThrowIfNegative(options.MaxSectionGroupDepth, nameof(options.MaxSectionGroupDepth));
         if (options.MaxNotebookEntries < 1) throw new ArgumentOutOfRangeException(nameof(options.MaxNotebookEntries));
     }
 

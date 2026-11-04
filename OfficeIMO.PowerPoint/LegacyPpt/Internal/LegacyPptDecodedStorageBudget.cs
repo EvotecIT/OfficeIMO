@@ -10,10 +10,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private bool _wasExceeded;
 
         internal LegacyPptDecodedStorageBudget(long maximumDecodedBytes) {
-            if (maximumDecodedBytes < 0) {
-                throw new ArgumentOutOfRangeException(
-                    nameof(maximumDecodedBytes));
-            }
+            ArgumentOutOfRangeException.ThrowIfNegative(maximumDecodedBytes);
             _maximumDecodedBytes = maximumDecodedBytes;
         }
 

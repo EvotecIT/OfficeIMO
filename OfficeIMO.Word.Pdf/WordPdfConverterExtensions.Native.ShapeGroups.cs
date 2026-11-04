@@ -143,7 +143,7 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void CountNativeVmlGroupImages(V.Group group, WordPdfExportOptions? options, ref int imageCount) {
             int imageLimit = options?.MaxImagesPerParagraph ?? 1_000;
-            if (imageLimit <= 0) throw new ArgumentOutOfRangeException(nameof(WordPdfExportOptions.MaxImagesPerParagraph));
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(imageLimit, nameof(WordPdfExportOptions.MaxImagesPerParagraph));
             foreach (V.ImageData image in group.Descendants<V.ImageData>()) {
                 options?.CancellationToken.ThrowIfCancellationRequested();
                 if (image.Ancestors<V.Shape>().Any(IsNativeVmlHidden) || image.Ancestors<V.Group>().Any(IsNativeVmlHidden)) continue;

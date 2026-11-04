@@ -33,7 +33,7 @@ public static class HtmlRenderCapabilityGalleryExtensions {
         ArgumentNullException.ThrowIfNull(options);
         if (options.RenderOptions == null) throw new ArgumentException("Gallery render options cannot be null.", nameof(options));
         if (options.PdfProofOptions == null) throw new ArgumentException("Gallery PDF proof options cannot be null.", nameof(options));
-        if (options.PreviewPageIndex < 0) throw new ArgumentOutOfRangeException(nameof(options.PreviewPageIndex));
+        ArgumentOutOfRangeException.ThrowIfNegative(options.PreviewPageIndex, nameof(options.PreviewPageIndex));
         OfficeImageExportFormat[] formats = options.PreviewFormats.Distinct().ToArray();
         if (formats.Length == 0 || formats.Any(format => !format.IsRaster() && format != OfficeImageExportFormat.Svg))
             throw new ArgumentException("At least one supported preview format is required.", nameof(options));
