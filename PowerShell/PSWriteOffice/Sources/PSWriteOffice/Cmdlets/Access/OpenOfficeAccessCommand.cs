@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -11,19 +12,24 @@ namespace PSWriteOffice.Cmdlets.Access;
 /// <summary>Reads a native database without running queries, macros, or linked connections.</summary>
 /// <example>
 ///   <summary>Reads a native database without running queries, macros, or linked connections.</summary>
-///   <code>Get-OfficeAccess -Path ./contacts.accdb -TableName Contacts</code>
+///   <code>Open-OfficeAccess -Path ./contacts.accdb -Table Contacts</code>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeAccess")]
+[Cmdlet(VerbsCommon.Open, "OfficeAccess", DefaultParameterSetName = "Path")]
 [OutputType(typeof(AccessDocument))]
-public sealed class GetOfficeAccessCommand : PSCmdlet {
+public sealed class OpenOfficeAccessCommand : PSCmdlet {
     /// <summary>Literal database filename.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FullName", "LiteralPath", "FilePath")]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>Exact input path without wildcard expansion.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("PSPath", "FullName")]
+    public string LiteralPath { get; set; } = string.Empty;
+
 
     /// <summary>Optional user-table selection.</summary>
     [Parameter]
-    public string[]? TableName { get; set; }
+    public string[]? Table { get; set; }
 
     /// <summary>Maximum source size in bytes.</summary>
     [Parameter]
@@ -37,9 +43,12 @@ public sealed class GetOfficeAccessCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WriteObject(AccessDocument.Load(OfficeFileCommandUtilities.ResolvePath(this, Path), new AccessLoadOptions {
+        foreach (var path in OfficePath.ResolveInput(SessionState, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath", allowDirectory: false)) ReadPath(path);
+    }
+    private void ReadPath(string inputPath) {
+        WriteObject(AccessDocument.Load(inputPath, new AccessLoadOptions {
             AccessMode = DocumentAccessMode.ReadOnly, PersistenceMode = DocumentPersistenceMode.Explicit,
-            TableNames = TableName, MaxInputBytes = MaxInputBytes, MaxRows = MaxRows
+            TableNames = Table, MaxInputBytes = MaxInputBytes, MaxRows = MaxRows
         }));
     }
 }

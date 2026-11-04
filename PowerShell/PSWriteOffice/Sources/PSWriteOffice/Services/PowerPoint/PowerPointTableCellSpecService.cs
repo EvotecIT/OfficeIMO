@@ -1,5 +1,6 @@
 using System.Linq;
 using OfficeIMO.PowerPoint;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Table;
 using PSWriteOffice.Services.Text;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -54,10 +55,9 @@ internal static class PowerPointTableCellSpecService
             return;
         }
 
-        var fill = OfficeColorUtilities.ToRgbHex(style.FillColor);
-        if (!string.IsNullOrWhiteSpace(fill))
+        if (!string.IsNullOrWhiteSpace(style.FillColor))
         {
-            cell.FillColor = fill;
+            cell.FillColor = OfficeColorTransformationAttribute.Bind(style.FillColor);
         }
 
         if (!string.IsNullOrWhiteSpace(style.Align) &&

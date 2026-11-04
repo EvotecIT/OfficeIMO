@@ -11,18 +11,18 @@ namespace PSWriteOffice.Cmdlets.Access;
 /// <summary>Streams native or modeled table rows as PowerShell objects.</summary>
 /// <example>
 ///   <summary>Streams native or modeled table rows as PowerShell objects.</summary>
-///   <code>$database | Get-OfficeAccessRow -TableName Contacts | Export-Csv ./contacts.csv -NoTypeInformation</code>
+///   <code>$database | Get-OfficeAccessRow -Table Contacts | Export-Csv ./contacts.csv -NoTypeInformation</code>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeAccessRow", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PSObject))]
 public sealed class GetOfficeAccessRowCommand : PSCmdlet {
     /// <summary>Live database document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public AccessDocument Document { get; set; } = null!;
 
     /// <summary>Table name.</summary>
     [Parameter(Mandatory = true, Position = 0)]
-    public string TableName { get; set; } = string.Empty;
+    public string Table { get; set; } = string.Empty;
 
     /// <summary>Maximum rows emitted; a partial result produces a warning.</summary>
     [Parameter]
@@ -31,7 +31,7 @@ public sealed class GetOfficeAccessRowCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var reader = Document.Tables[TableName].OpenDataReader();
+        using var reader = Document.Tables[Table].OpenDataReader();
         long count = 0;
         while (reader.Read()) {
             if (count++ == MaxRows) {
