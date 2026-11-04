@@ -48,81 +48,17 @@ Describe 'Authenticated PDF automation' {
         $map.TextRegions.Count | Should -BeGreaterThan 1
     }
 
-    It 'exposes an explicit authenticated permission override on PDF readers' {
-        foreach ($name in @(
-            'Add-OfficePdfCanvas',
-            'Add-OfficePdfPageOverlay',
-            'Add-OfficePdfStamp',
-            'ConvertTo-OfficePdfFlatAnnotation',
-            'ConvertTo-OfficePdfFlatForm',
-            'ConvertTo-OfficePdfHtml',
-            'ConvertTo-OfficePdfMarkdown',
-            'ConvertTo-OfficePdfOptimized',
-            'ConvertTo-OfficePdfRedacted',
-            'ConvertTo-OfficePdfSanitized',
-            'ConvertTo-OfficePdfSearchable',
-            'Copy-OfficePdfPage',
-            'Export-OfficePdfLayoutOverlay',
-            'Export-OfficePdfXfdf',
-            'Open-OfficePdf',
-            'Get-OfficePdfAnnotation',
-            'Get-OfficePdfAppendOnlyMutation',
-            'Get-OfficePdfAttachment',
-            'Get-OfficePdfCompliance',
-            'Get-OfficePdfDiagnostic',
-            'Get-OfficePdfFont',
-            'Get-OfficePdfFormField',
-            'Get-OfficePdfImage',
-            'Get-OfficePdfInfo',
-            'Get-OfficePdfInteractionMap',
-            'Get-OfficePdfOptimization',
-            'Get-OfficePdfPreflight',
-            'Get-OfficePdfRedactionPlan',
-            'Get-OfficePdfSignature',
-            'Get-OfficePdfText',
-            'Import-OfficePdfXfdf',
-            'Invoke-OfficePdfOcrMerge',
-            'Join-OfficePdf',
-            'Move-OfficePdfPage',
-            'New-OfficePdfSignature',
-            'Remove-OfficePdfAnnotation',
-            'Remove-OfficePdfPage',
-            'Set-OfficePdfAnnotation',
-            'Set-OfficePdfForm',
-            'Set-OfficePdfMetadata',
-            'Set-OfficePdfPage',
-            'Set-OfficePdfSignature'
-        )) {
-            $parameters = (Get-Command $name).Parameters.Keys
-            $parameters | Should -Contain 'Password'
-            $parameters | Should -Contain 'IgnorePermissionRestrictions'
-        }
-
-        $overlayParameters = (Get-Command Add-OfficePdfPageOverlay).Parameters.Keys
-        $overlayParameters | Should -Contain 'ReadOptions'
-        $overlayParameters | Should -Contain 'SourceReadOptions'
-        (Get-Command ConvertTo-OfficePdfSearchable).Parameters.Keys | Should -Contain 'ReadOptions'
-
-        foreach ($name in @('Compare-OfficePdfVisual', 'Test-OfficePdfRewrite')) {
-            $parameters = (Get-Command $name).Parameters.Keys
-            $parameters | Should -Contain 'ReferencePassword'
-            $parameters | Should -Contain 'IgnoreReferencePermissionRestrictions'
-            $parameters | Should -Contain 'DifferencePassword'
-            $parameters | Should -Contain 'IgnoreDifferencePermissionRestrictions'
-        }
-    }
-
     It 'ignores usage restrictions only after valid password authentication' {
         $path = Join-Path $TestDrive 'restricted.pdf'
         New-OfficePdf -Path $path -Password 'open' -OwnerPassword 'owner' -Permission None {
             PdfParagraph 'Authenticated restricted text'
         } | Out-Null
 
-        { Get-OfficePdfText -Path $path -Password 'open' } | Should -Throw
-        { Get-OfficePdfText -Path $path -Password 'wrong' -IgnorePermissionRestrictions } | Should -Throw
-        Get-OfficePdfText -Path $path -Password 'open' -IgnorePermissionRestrictions |
+        { Read-OfficeDocument -As Text -Path $path -Password 'open' } | Should -Throw
+        { Read-OfficeDocument -As Text -Path $path -Password 'wrong' -Options (New-OfficePdfReadOptions -IgnorePermissionRestrictions) } | Should -Throw
+        Read-OfficeDocument -As Text -Path $path -Password 'open' -Options (New-OfficePdfReadOptions -IgnorePermissionRestrictions) |
             Should -Match 'Authenticated restricted text'
-        Get-OfficePdfText -Path $path -Password 'owner' |
+        Read-OfficeDocument -As Text -Path $path -Password 'owner' |
             Should -Match 'Authenticated restricted text'
 
         { ConvertTo-OfficeDocumentImage -LiteralPath $path -Format Svg -Password open -ErrorAction Stop } |
@@ -145,11 +81,11 @@ Describe 'Authenticated PDF automation' {
             PdfParagraph 'Restricted source two'
         } | Out-Null
 
-        { Join-OfficePdf -Path $first, $second -Password 'open-one', 'open-two' -OutputPath $output } |
+        { Merge-OfficeDocument -Path $first, $second -Password 'open-one', 'open-two' -OutputPath $output } |
             Should -Throw
 
-        $report = Join-OfficePdf -Path $first, $second -Password 'open-one', 'open-two' `
-            -IgnorePermissionRestrictions -OutputPath $output -PassThruReport
+        $report = Merge-OfficeDocument -Path $first, $second -Password 'open-one', 'open-two' `
+            -Options (New-OfficePdfReadOptions -IgnorePermissionRestrictions) -OutputPath $output -PassThruReport
 
         $report.GetType().FullName | Should -Be 'OfficeIMO.Pdf.PdfMergeReport'
         $report.Sources.Count | Should -Be 2
@@ -158,11 +94,11 @@ Describe 'Authenticated PDF automation' {
         $report.Sources[0].PasswordAuthenticationRole.ToString() | Should -Be 'User'
         $report.OutputPageCount | Should -Be 2
         $report.OutputHasEncryption | Should -BeTrue
-        { Get-OfficePdfText -Path $output } | Should -Throw '*requires a password*'
-        { Get-OfficePdfText -Path $output -Password 'open-one' } | Should -Throw
-        { Get-OfficePdfText -Path $output -Password 'owner-two' } | Should -Throw
-        Get-OfficePdfText -Path $output -Password 'owner-one' | Should -Match 'Restricted source one'
-        Get-OfficePdfText -Path $output -Password 'open-one' -IgnorePermissionRestrictions |
+        { Read-OfficeDocument -As Text -Path $output } | Should -Throw '*requires a password*'
+        { Read-OfficeDocument -As Text -Path $output -Password 'open-one' } | Should -Throw
+        { Read-OfficeDocument -As Text -Path $output -Password 'owner-two' } | Should -Throw
+        Read-OfficeDocument -As Text -Path $output -Password 'owner-one' | Should -Match 'Restricted source one'
+        Read-OfficeDocument -As Text -Path $output -Password 'open-one' -Options (New-OfficePdfReadOptions -IgnorePermissionRestrictions) |
             Should -Match 'Restricted source two'
     }
 
@@ -180,25 +116,25 @@ Describe 'Authenticated PDF automation' {
             PdfParagraph 'Restricted page three'
         } | Out-Null
 
-        Move-OfficePdfPage -Path $source -PageRange 1 -BeforePage 4 -OutputPath $moved `
+        Move-OfficePdfPage -Path $source -Page 1 -BeforePage 4 -OutputPath $moved `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
         Remove-OfficePdfPage -Path $source -Page 2 -OutputPath $removed `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        Set-OfficePdfPage -Path $source -PageRange 1 -Rotation 90 -OutputPath $rotated `
+        Set-OfficePdfPage -Path $source -Page 1 -Rotation 90 -OutputPath $rotated `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        Set-OfficePdfPage -Path $source -PageRange 1 -BoxName CropBox `
-            -Left 10 -Bottom 10 -Right 300 -Top 500 -OutputPath $boxed `
+        Set-OfficePdfPage -Path $source -Page 1 -BoxName CropBox `
+            -BoxLeft 10 -BoxBottom 10 -BoxRight 300 -BoxTop 500 -OutputPath $boxed `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
 
         foreach ($output in @($moved, $removed, $rotated, $boxed)) {
-            { Get-OfficePdfText -Path $output } | Should -Throw '*requires a password*'
-            (Get-OfficePdfInfo -Path $output -Password 'owner').Security.HasEncryption | Should -BeTrue
+            { Read-OfficeDocument -As Text -Path $output } | Should -Throw '*requires a password*'
+            ((Get-OfficeDocumentInfo -Detailed -Path $output -Password 'owner').Details).Security.HasEncryption | Should -BeTrue
         }
-        $movedPages = @(Get-OfficePdfText -Path $moved -ByPage -Password 'owner')
+        $movedPages = @(Read-OfficeDocument -As Text -Path $moved -ByPage -Password 'owner')
         $movedPages[2].Text | Should -Match 'Restricted page one'
-        (Get-OfficePdfInfo -Path $removed -Password 'owner').PageCount | Should -Be 2
-        (Get-OfficePdfInfo -Path $rotated -Password 'owner').PageCount | Should -Be 3
-        (Get-OfficePdfInfo -Path $boxed -Password 'owner').Pages[0].Geometry.CropBox.Width | Should -Be 290
+        ((Get-OfficeDocumentInfo -Detailed -Path $removed -Password 'owner').Details).PageCount | Should -Be 2
+        ((Get-OfficeDocumentInfo -Detailed -Path $rotated -Password 'owner').Details).PageCount | Should -Be 3
+        ((Get-OfficeDocumentInfo -Detailed -Path $boxed -Password 'owner').Details).Pages[0].Geometry.CropBox.Width | Should -Be 290
     }
 
     It 'fills authenticated restricted forms through the shared read contract' {
@@ -213,13 +149,13 @@ Describe 'Authenticated PDF automation' {
             PdfFormField -Name Name -Type Text -Value Ada
         } | Out-Null
 
-        Set-OfficePdfForm -Path $source -OutputPath $output -Field @{ Name = 'Grace' } `
+        Set-OfficePdfFormField -Path $source -OutputPath $output -Value @{ Name = 'Grace' } `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        ConvertTo-OfficePdfFlatForm -Path $source -OutputPath $flat `
+        Update-OfficePdf -FlattenForm -Path $source -OutputPath $flat `
             -Password 'open' -IgnorePermissionRestrictions | Should -BeOfType System.IO.FileInfo
-        Set-OfficePdfForm -Path $source -OutputPath $filledAndFlat -Field @{ Name = 'Flattened' } -Flatten `
+        Set-OfficePdfFormField -Path $source -OutputPath $filledAndFlat -Value @{ Name = 'Flattened' } -Flatten `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        Set-OfficePdfForm -Path $source -OutputPath $incremental -Field @{ Name = 'Incremental' } -Incremental `
+        Set-OfficePdfFormField -Path $source -OutputPath $incremental -Value @{ Name = 'Incremental' } -Incremental `
             -Password 'owner' -PassThru | Should -BeOfType System.IO.FileInfo
         $xfdf = Export-OfficePdfXfdf -Path $source -Password 'open' -IgnorePermissionRestrictions
         $xfdf = $xfdf -replace '>Ada<', '>Imported<'
@@ -227,12 +163,12 @@ Describe 'Authenticated PDF automation' {
             -Password 'open' -IgnorePermissionRestrictions
 
         foreach ($resultPath in @($output, $flat, $filledAndFlat, $incremental, $imported)) {
-            { Get-OfficePdfInfo -Path $resultPath } | Should -Throw '*requires a password*'
-            (Get-OfficePdfInfo -Path $resultPath -Password 'owner').Security.HasEncryption | Should -BeTrue
+            { (Get-OfficeDocumentInfo -Detailed -Path $resultPath).Details } | Should -Throw '*requires a password*'
+            ((Get-OfficeDocumentInfo -Detailed -Path $resultPath -Password 'owner').Details).Security.HasEncryption | Should -BeTrue
         }
         (Get-OfficePdfFormField -Path $output -Name Name -Password 'owner').Value | Should -Be 'Grace'
-        (Get-OfficePdfInfo -Path $flat -Password 'owner').FormFieldCount | Should -Be 0
-        (Get-OfficePdfInfo -Path $filledAndFlat -Password 'owner').FormFieldCount | Should -Be 0
+        ((Get-OfficeDocumentInfo -Detailed -Path $flat -Password 'owner').Details).FormFieldCount | Should -Be 0
+        ((Get-OfficeDocumentInfo -Detailed -Path $filledAndFlat -Password 'owner').Details).FormFieldCount | Should -Be 0
         (Get-OfficePdfFormField -Path $incremental -Name Name -Password 'owner').Value | Should -Be 'Incremental'
         (Get-OfficePdfFormField -Path $imported -Name Name -Password 'owner').Value | Should -Be 'Imported'
     }
@@ -247,15 +183,15 @@ Describe 'Authenticated PDF automation' {
 
         Set-OfficePdfMetadata -Path $source -OutputPath $metadata -Title 'Authenticated metadata' `
             -Password 'open' -IgnorePermissionRestrictions -PassThru | Should -BeOfType System.IO.FileInfo
-        $sanitization = ConvertTo-OfficePdfSanitized -Path $source -OutputPath $sanitized `
+        $sanitization = Optimize-OfficePdf -Sanitize -PassThru -Path $source -OutputPath $sanitized `
             -Password 'open' -IgnorePermissionRestrictions
 
         foreach ($output in @($metadata, $sanitized)) {
-            { Get-OfficePdfInfo -Path $output } | Should -Throw '*requires a password*'
-            (Get-OfficePdfInfo -Path $output -Password 'owner').Security.HasEncryption | Should -BeTrue
+            { (Get-OfficeDocumentInfo -Detailed -Path $output).Details } | Should -Throw '*requires a password*'
+            ((Get-OfficeDocumentInfo -Detailed -Path $output -Password 'owner').Details).Security.HasEncryption | Should -BeTrue
         }
-        (Get-OfficePdfInfo -Path $metadata -Password 'owner').Metadata.Title | Should -Be 'Authenticated metadata'
-        Get-OfficePdfText -Path $sanitized -Password 'owner' | Should -Match 'Restricted rewrite source'
+        ((Get-OfficeDocumentInfo -Detailed -Path $metadata -Password 'owner').Details).Metadata.Title | Should -Be 'Authenticated metadata'
+        Read-OfficeDocument -As Text -Path $sanitized -Password 'owner' | Should -Match 'Restricted rewrite source'
         $sanitization.MutationPlan.Warnings | Should -Contain 'Input.PermissionRestrictionsIgnored'
     }
 
@@ -269,7 +205,7 @@ Describe 'Authenticated PDF automation' {
             PdfParagraph 'Restricted rewrite proof'
         } | Out-Null
 
-        $readOptionsType = (Get-Command Add-OfficePdfPageOverlay).Parameters['ReadOptions'].ParameterType
+        $readOptionsType = (Get-Command Add-OfficePdfStamp).Parameters['LoadOptions'].ParameterType
         $referenceReadOptions = [Activator]::CreateInstance($readOptionsType)
         $differenceReadOptions = [Activator]::CreateInstance($readOptionsType)
         $referenceReadOptions.Limits.MaxInputBytes = 10MB
@@ -281,7 +217,7 @@ Describe 'Authenticated PDF automation' {
 
         $report = Test-OfficePdfRewrite -ReferencePath $reference -DifferencePath $difference `
             -Options $rewriteOptions `
-            -ReferencePassword 'reference-open' -IgnoreReferencePermissionRestrictions `
+            -Password 'reference-open' -IgnorePermissionRestrictions `
             -DifferencePassword 'difference-open' -IgnoreDifferencePermissionRestrictions
 
         $report.IsPreserved | Should -BeTrue
@@ -300,9 +236,8 @@ Describe 'General existing-page visual stamping' {
             PdfParagraph 'Canvas page two'
         } | Out-Null
 
-        (Get-Command Add-OfficePdfCanvas).Parameters.Keys | Should -Contain 'ConfigureRendering'
         $configured = [System.Collections.Generic.List[bool]]::new()
-        Add-OfficePdfCanvas -Path $source -OutputPath $output -PageRange 1 -ConfigureRendering {
+        Add-OfficePdfStamp -Path $source -OutputPath $output -Page 1 -ConfigureRendering {
             param($options)
             $configured.Add($true)
             $options.CompressContentStreams = $false
@@ -312,7 +247,7 @@ Describe 'General existing-page visual stamping' {
         } -PassThru | Should -BeOfType System.IO.FileInfo
 
         $configured | Should -HaveCount 1
-        $pages = @(Get-OfficePdfText -Path $output -ByPage)
+        $pages = @(Read-OfficeDocument -As Text -Path $output -ByPage)
         $pages[0].Text | Should -Match 'Canvas overlay 1/2'
         $pages[1].Text | Should -Not -Match 'Canvas overlay'
     }
@@ -324,16 +259,16 @@ Describe 'General existing-page visual stamping' {
             PdfParagraph 'Original page content'
         } | Out-Null
 
-        Add-OfficePdfCanvas -Path $source -OutputPath $output -Content {
+        Add-OfficePdfStamp -Path $source -OutputPath $output -Content {
             PdfCanvasText -Run @(
-                TextRun 'Owner: ' -Bold
+                @{ Text = 'Owner: '; Bold = $true }
                 @{ Text = 'Platform'; Color = '#0F766E' }
-            ) -X 36 -Y 24 -FontSize 10
+            ) -X 36 -Y 24 -Size 10
 
             PdfCanvasText 'Review copy' -X 36 -Y 60 -Italic
         } -PassThru | Should -BeOfType System.IO.FileInfo
 
-        $text = Get-OfficePdfText -Path $output
+        $text = Read-OfficeDocument -As Text -Path $output
         $text | Should -Match 'Owner: Platform'
         $text | Should -Match 'Review copy'
         $text | Should -Match 'Original page content'
@@ -347,9 +282,9 @@ Describe 'General existing-page visual stamping' {
         } | Out-Null
 
         {
-            Add-OfficePdfCanvas -Path $source -OutputPath $output -Content {
+            Add-OfficePdfStamp -Path $source -OutputPath $output -Content {
                 PdfCanvasText -Run @(
-                    TextRun 'Open portal' -LinkUri 'https://example.com'
+                    @{ Text = 'Open portal'; LinkUri = 'https://example.com' }
                 ) -X 36 -Y 24
             } -ErrorAction Stop
         } | Should -Throw '*PDF canvas text runs do not support links*'
@@ -371,15 +306,15 @@ Describe 'General existing-page visual stamping' {
             PdfParagraph 'Source page two'
         } | Out-Null
 
-        Add-OfficePdfPageOverlay -Path $target -SourcePath $source -SourcePageNumber 2 `
-            -PageRange 2 -OutputPath $overlay -PassThru | Should -BeOfType System.IO.FileInfo
-        Add-OfficePdfPageOverlay -Path $target -SourcePath $source -SourcePageNumber 1 `
-            -PageRange 1 -Underlay -OutputPath $underlay -PassThru | Should -BeOfType System.IO.FileInfo
+        Add-OfficePdfStamp -Path $target -OverlayPath $source -OverlayPage 2 `
+            -Page 2 -OutputPath $overlay -PassThru | Should -BeOfType System.IO.FileInfo
+        Add-OfficePdfStamp -Path $target -OverlayPath $source -OverlayPage 1 `
+            -Page 1 -Behind -OutputPath $underlay -PassThru | Should -BeOfType System.IO.FileInfo
 
-        $overlayPages = @(Get-OfficePdfText -Path $overlay -ByPage)
+        $overlayPages = @(Read-OfficeDocument -As Text -Path $overlay -ByPage)
         $overlayPages[0].Text | Should -Not -Match 'Source page two'
         $overlayPages[1].Text | Should -Match 'Source.*page.*two'
-        (Get-OfficePdfText -Path $underlay) | Should -Match 'Source.*page.*one'
+        (Read-OfficeDocument -As Text -Path $underlay) | Should -Match 'Source.*page.*one'
     }
 
     It 'rejects an oversized overlay source before the shared stream overload reads it' {
@@ -388,12 +323,12 @@ Describe 'General existing-page visual stamping' {
         $output = Join-Path $TestDrive 'bounded-overlay-output.pdf'
         New-OfficePdf -Path $target { PdfParagraph 'Target' } | Out-Null
         New-OfficePdf -Path $source { PdfParagraph 'Source' } | Out-Null
-        $readOptionsType = (Get-Command Add-OfficePdfPageOverlay).Parameters['SourceReadOptions'].ParameterType
+        $readOptionsType = (Get-Command Add-OfficePdfStamp).Parameters['OverlayLoadOptions'].ParameterType
         $sourceReadOptions = [Activator]::CreateInstance($readOptionsType)
         $sourceReadOptions.Limits.MaxInputBytes = 1
 
-        { Add-OfficePdfPageOverlay -Path $target -SourcePath $source -OutputPath $output `
-                -SourceReadOptions $sourceReadOptions -ErrorAction Stop } |
+        { Add-OfficePdfStamp -Path $target -OverlayPath $source -OutputPath $output `
+                -OverlayLoadOptions $sourceReadOptions -ErrorAction Stop } |
             Should -Throw '*configured limit*'
         Test-Path -LiteralPath $output | Should -BeFalse
     }
@@ -410,26 +345,23 @@ Describe 'PDF table value and typed-cell contracts' {
             PdfTable -InputObject $rows -Property Name, Tags -CollectionSeparator ' | '
         } | Out-Null
 
-        $text = Get-OfficePdfText -Path $path
+        $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'Identity \| Critical'
         $text | Should -Not -Match 'System\.Object\[\]'
     }
 
     It 'renders typed check boxes, form fields, images, and links in table cells' {
         $path = Join-Path $TestDrive 'typed-table-cells.pdf'
-        $checkBox = New-OfficePdfTableCellCheckBox -Name Approved -Checked
-        $field = New-OfficePdfTableCellField -Name Reviewer -Value 'Alice'
-        $image = New-OfficePdfTableCellImage -Path (Join-Path $PSScriptRoot 'Assets\CellImage.png') -Width 18 -Height 18
 
         New-OfficePdf -Path $path {
             PdfTable -InputObject @(
                 @(
-                    (New-OfficePdfTableCell -Text 'Approved' -CheckBox $checkBox),
-                    (New-OfficePdfTableCell -Text 'Reviewer' -FormField $field)
+                    (New-OfficePdfTableCell { PdfText 'Approved'; PdfFormField -Name Approved -Type CheckBox -Checked }),
+                    (New-OfficePdfTableCell { PdfText 'Reviewer'; PdfFormField -Name Reviewer -Value 'Alice'; PdfFormField -Name Status -Type Choice -Option 'Ready', 'Pending' -Value Ready -ListBox })
                 ),
                 @(
-                    (New-OfficePdfTableCell -Text 'Logo' -Image $image),
-                    (New-OfficePdfTableCell -Text 'Portal' -LinkUri 'https://example.com' -LinkContents 'Open portal')
+                    (New-OfficePdfTableCell { PdfText 'Logo'; PdfImage -Path (Join-Path $PSScriptRoot 'Assets/CellImage.png') -Width 18 -Height 18 }),
+                    (New-OfficePdfTableCell -Text 'Portal' -Link 'https://example.com' -LinkContents 'Open portal')
                 )
             )
         } | Out-Null
@@ -437,8 +369,10 @@ Describe 'PDF table value and typed-cell contracts' {
         $fields = @(Get-OfficePdfFormField -Path $path)
         $fields.Name | Should -Contain 'Approved'
         $fields.Name | Should -Contain 'Reviewer'
+        ($fields | Where-Object Name -eq Status).IsCombo | Should -BeFalse
+        ($fields | Where-Object Name -eq Status).OptionCount | Should -Be 2
         @(Get-OfficePdfImage -Path $path).Count | Should -BeGreaterThan 0
-        (Get-OfficePdfInfo -Path $path).LinkUris | Should -Contain 'https://example.com'
+        ((Get-OfficeDocumentInfo -Detailed -Path $path).Details).LinkUris | Should -Contain 'https://example.com'
     }
 }
 
@@ -448,18 +382,18 @@ Describe 'Composed generated-PDF headers and footers' {
         New-OfficePdf -Path $path {
             $headerLabel = 'Scoped header'
             $footerLabel = 'Scoped footer'
-            PdfHeader -Compose {
+            PdfHeader -Builder {
                 param($header)
                 $null = $header.Text($headerLabel)
             }
-            PdfFooter -Compose {
+            PdfFooter -Builder {
                 param($footer)
                 $null = $footer.Text($footerLabel)
             }
             PdfParagraph 'Scoped body'
         } | Out-Null
 
-        $text = Get-OfficePdfText -Path $path
+        $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'Scoped header'
         $text | Should -Match 'Scoped footer'
     }
@@ -467,13 +401,13 @@ Describe 'Composed generated-PDF headers and footers' {
     It 'supports default, first-page, and even-page variants through the native composers' {
         $path = Join-Path $TestDrive 'header-footer-variants.pdf'
         New-OfficePdf -Path $path {
-            PdfHeader -Compose {
+            PdfHeader -Builder {
                 param($header)
                 $null = $header.Zones('Default header', 'Default center', 'Page {page}/{pages}')
                 $null = $header.FirstPageZones('First header', 'First center', 'First {page}')
                 $null = $header.EvenPagesZones('Even header', 'Even center', 'Even {page}/{pages}')
             }
-            PdfFooter -Compose {
+            PdfFooter -Builder {
                 param($footer)
                 $null = $footer.Zones('Default footer', 'Default center', '{page}/{pages}')
                 $null = $footer.FirstPageZones('First footer', 'First center', 'First {page}')
@@ -486,7 +420,7 @@ Describe 'Composed generated-PDF headers and footers' {
             PdfParagraph 'Body three'
         } | Out-Null
 
-        $pages = @(Get-OfficePdfText -Path $path -ByPage)
+        $pages = @(Read-OfficeDocument -As Text -Path $path -ByPage)
         $pages[0].Text | Should -Match 'First header'
         $pages[0].Text | Should -Match 'First footer'
         $pages[1].Text | Should -Match 'Even header'
@@ -498,28 +432,18 @@ Describe 'Composed generated-PDF headers and footers' {
     It 'preserves styled header and footer runs with styled page tokens' {
         $path = Join-Path $TestDrive 'header-footer-rich-text.pdf'
         New-OfficePdf -Path $path {
-            PdfHeader -Compose {
-                param($header)
-                $label = New-OfficeTextRun -Text 'Rich header ' -Bold | ConvertTo-OfficePdfTextRun
-                $pageStyle = New-OfficeTextRun -Italic | ConvertTo-OfficePdfTextRun
-                $null = $header.Text({
-                    param($text)
-                    $null = $text.Run($label).CurrentPage($pageStyle)
-                })
+            PdfHeader {
+                PdfText 'Rich header ' -Bold
+                PdfPageNumber -Italic
             }
-            PdfFooter -Compose {
-                param($footer)
-                $label = New-OfficeTextRun -Text 'Rich footer ' -Underline | ConvertTo-OfficePdfTextRun
-                $pageStyle = New-OfficeTextRun -Kind Superscript | ConvertTo-OfficePdfTextRun
-                $null = $footer.Text({
-                    param($text)
-                    $null = $text.Run($label).CurrentPage($pageStyle).Text('/').TotalPages($pageStyle)
-                })
+            PdfFooter {
+                PdfText 'Rich footer ' -Underline Single
+                PdfPageNumber -IncludeTotal -Baseline Superscript
             }
             PdfParagraph 'Styled body'
         } | Out-Null
 
-        $text = Get-OfficePdfText -Path $path
+        $text = Read-OfficeDocument -As Text -Path $path
         $text | Should -Match 'Rich header\s*1'
         $text | Should -Match 'Rich footer'
         $text | Should -Match '1\s+1'

@@ -12,7 +12,8 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 /// <para>Supports PDF and Open XML Word and Excel files. Binary projection and conversion are not performed.
 /// Word and Excel live documents can receive appended files and remain caller-owned. PDF merging creates a new
 /// document, so live PDF targets are not supported. PassThru returns a saved FileInfo for file input or the live
-/// document for Document input. Native merge options determine which content is imported.</para>
+/// document for Document input. PassThruReport returns the native report for PDF file merges.
+/// Native merge options determine which content is imported.</para>
 /// <example>
 ///   <summary>Combine PDFs in the specified order.</summary>
 ///   <code>Merge-OfficeDocument -Path ./agenda.pdf, ./minutes.pdf -OutputPath ./board-pack.pdf -PassThru</code>
@@ -26,7 +27,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <code>Merge-OfficeDocument -Document $proposal -Path ./scope.docx, ./pricing.docx -OutputPath ./proposal.docx</code>
 /// </example>
 [Cmdlet("Merge", "OfficeDocument", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
-[OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument))]
+[OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument), typeof(OfficeIMO.Pdf.PdfMergeReport))]
 public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     private readonly List<string> _inputs = new();
     private object? _document;
@@ -76,6 +77,11 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
+    /// <summary>Emit the native PDF merge report after successful publication.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    public SwitchParameter PassThruReport { get; set; }
+
     /// <summary>Open the saved result through the shell after successful publication.</summary>
     [Parameter(ParameterSetName = "Path")]
     [Parameter(ParameterSetName = "LiteralPath")]
@@ -99,6 +105,8 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
         if (_inputs.Count == 0) throw new PSArgumentException("Provide at least one input file.");
         string extension = System.IO.Path.GetExtension(_inputs[0]).ToLowerInvariant();
         var family = OfficeMergeDispatch.GetFamily(extension);
+        if (PassThruReport.IsPresent && family != OfficeMergeFamily.Pdf)
+            throw new PSArgumentException("PassThruReport is available for native PDF merges.");
         foreach (string path in _inputs) {
             if (!extension.Equals(System.IO.Path.GetExtension(path), StringComparison.OrdinalIgnoreCase))
                 throw new PSArgumentException("All merge inputs must have the same format and extension. Convert mixed inputs separately.");
@@ -119,8 +127,9 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
             OfficePath.ValidateDestination(output, NoClobber.IsPresent);
         }
         if (!ShouldProcess(output ?? "Live " + family + " document", "Merge documents in input order")) return;
-        OfficeMergeDispatch.Execute(_inputs, Password, family, extension, options, _document, output, NoClobber.IsPresent, readOptions);
+        var report = OfficeMergeDispatch.Execute(_inputs, Password, family, extension, options, _document, output, NoClobber.IsPresent, readOptions);
         if (Show.IsPresent) FileOpenService.Open(output!);
+        if (PassThruReport.IsPresent) WriteObject(report);
         if (PassThru.IsPresent) WriteObject(_document ?? (object)new FileInfo(output!));
     }
 

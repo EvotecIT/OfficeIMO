@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <code>New-OfficeWord -Path .\ProtectedReport.docx {
 ///     Add-OfficeWordParagraph -Text 'Confidential report'
 ///     Add-OfficeWordWatermark -Text 'CONFIDENTIAL' -Scale 1.2
-///     Protect-OfficeWordDocument -Password 'secret'
+///     Protect-OfficeDocument -Restriction ReadOnly -RestrictionPassword 'secret'
 /// }</code>
 ///   <para>Applies a text watermark to the current section and then protects the document through OfficeIMO settings.</para>
 /// </example>
@@ -23,12 +23,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>New-OfficeWord -Path .\DraftReport.docx {
 ///     Add-OfficeWordParagraph -Text 'Draft report'
-///     Add-OfficeWordWatermark -ImagePath .\Assets\Draft.png -Scale 0.6 -HorizontalOffset 20 -VerticalOffset 40
+///     Add-OfficeWordWatermark -ImagePath .\Assets\Draft.png -Scale 0.6 -X 20 -Y 40
 /// }</code>
 ///   <para>Uses the image watermark path and placement parameters exposed by OfficeIMO.Word.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordWatermark", DefaultParameterSetName = ParameterSetText)]
-[Alias("WordWatermark")]
+[Alias("WordWatermark") ]
 public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
 {
     private const string ParameterSetText = "Text";
@@ -44,11 +44,11 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
 
     /// <summary>Horizontal offset for the watermark.</summary>
     [Parameter]
-    public double? HorizontalOffset { get; set; }
+    public double? X { get; set; }
 
     /// <summary>Vertical offset for the watermark.</summary>
     [Parameter]
-    public double? VerticalOffset { get; set; }
+    public double? Y { get; set; }
 
     /// <summary>Scale factor for the watermark.</summary>
     [Parameter]
@@ -65,10 +65,10 @@ public sealed class AddOfficeWordWatermarkCommand : PSCmdlet
         var section = context.RequireSection();
         var header = context.CurrentHeader;
 
-        global::OfficeIMO.OfficeLength? horizontalOffset = HorizontalOffset.HasValue
-            ? global::OfficeIMO.OfficeLength.Points(HorizontalOffset.Value) : null;
-        global::OfficeIMO.OfficeLength? verticalOffset = VerticalOffset.HasValue
-            ? global::OfficeIMO.OfficeLength.Points(VerticalOffset.Value) : null;
+        global::OfficeIMO.OfficeLength? horizontalOffset = X.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(X.Value) : null;
+        global::OfficeIMO.OfficeLength? verticalOffset = Y.HasValue
+            ? global::OfficeIMO.OfficeLength.Points(Y.Value) : null;
 
         WordWatermark watermark;
         if (ParameterSetName == ParameterSetImage)

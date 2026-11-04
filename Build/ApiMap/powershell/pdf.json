@@ -1060,7 +1060,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeTextDecorationStyle",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Shared underline style; bare -Underline means Single."
@@ -1122,6 +1122,20 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Flow level only (own paragraph)."
+            },
+            {
+              "name": "TabLeader",
+              "type": "PdfTabLeaderStyle",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
+            },
+            {
+              "name": "TabAlignment",
+              "type": "PdfTabAlignment",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
             }
           ]
         },
@@ -1162,7 +1176,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeTextDecorationStyle",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Shared underline style; bare -Underline means Single."
@@ -1229,6 +1243,20 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "TabLeader",
+              "type": "PdfTabLeaderStyle",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
+            },
+            {
+              "name": "TabAlignment",
+              "type": "PdfTabAlignment",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
             }
           ]
         }
@@ -2128,7 +2156,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeTextDecorationStyle",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2146,7 +2174,7 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2232,7 +2260,7 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -2406,7 +2434,7 @@
           ]
         }
       ],
-      "notes": "Shared Chart vocabulary. Renders through the same visual engine PdfImage -InputObject uses for prebuilt ChartForgeX visuals.",
+      "notes": "Shared Chart vocabulary. Projects PowerShell properties through the same binding used by Word and PowerPoint, then renders the existing OfficeChartSnapshot with the core vector chart renderer. PDF owns drawing placement; no extra runtime provider is introduced.",
       "examples": [
         {
           "title": "Chart one series",
@@ -3412,6 +3440,13 @@
               "type": "OfficeAlignment",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "ListBox",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
             }
           ]
         },
@@ -3496,6 +3531,13 @@
               "mandatory": false,
               "pipeline": "none",
               "notes": "Document set only; inside a block the document is returned by New-OfficePdf."
+            },
+            {
+              "name": "ListBox",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the native capability of the retired rich-run or table-cell factory through this canonical content command."
             }
           ]
         }
@@ -3666,7 +3708,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeTextDecorationStyle",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Shared underline style; bare -Underline means Single."
@@ -3932,10 +3974,10 @@
             {
               "name": "Text",
               "type": "string",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "none",
-              "notes": "Supports {page} and {pages}."
+              "notes": "Defaults to 'Page {page}/{pages}' when omitted."
             },
             {
               "name": "Alignment",
@@ -4893,7 +4935,7 @@
             },
             {
               "name": "Underline",
-              "type": "OfficeUnderline",
+              "type": "OfficeTextDecorationStyle",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Shared underline style; bare -Underline means Single."
@@ -5052,9 +5094,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5153,9 +5196,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5252,9 +5296,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5351,9 +5396,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5444,9 +5490,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5525,9 +5572,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5626,9 +5674,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5725,9 +5774,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5824,9 +5874,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5917,9 +5968,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -5993,9 +6045,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6089,9 +6142,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6183,9 +6237,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6277,9 +6332,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6366,9 +6422,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6456,9 +6513,10 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Top, Center, Bottom; Center binds to the native overlay Middle alignment."
             },
             {
               "name": "Width",
@@ -6492,9 +6550,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6602,9 +6661,10 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Top, Center, Bottom; Center binds to the native overlay Middle alignment."
             },
             {
               "name": "Width",
@@ -6638,9 +6698,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6746,9 +6807,10 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Top, Center, Bottom; Center binds to the native overlay Middle alignment."
             },
             {
               "name": "Width",
@@ -6782,9 +6844,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -6890,9 +6953,10 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Top, Center, Bottom; Center binds to the native overlay Middle alignment."
             },
             {
               "name": "Width",
@@ -6926,9 +6990,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -7028,9 +7093,10 @@
             },
             {
               "name": "VerticalAlignment",
-              "type": "OfficeVerticalAlignment",
+              "type": "OfficeTextVerticalAlignment",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Top, Center, Bottom; Center binds to the native overlay Middle alignment."
             },
             {
               "name": "Width",
@@ -7064,9 +7130,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native selector retains ranges plus last/odd/even/exclusions from the absorbed canvas and page-overlay commands."
             },
             {
               "name": "X",
@@ -7995,7 +8062,7 @@
             },
             {
               "name": "BoxName",
-              "type": "PdfPageBoxName",
+              "type": "PdfPageBoundaryBox",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8119,7 +8186,7 @@
             },
             {
               "name": "BoxName",
-              "type": "PdfPageBoxName",
+              "type": "PdfPageBoundaryBox",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8246,7 +8313,7 @@
             },
             {
               "name": "BoxName",
-              "type": "PdfPageBoxName",
+              "type": "PdfPageBoundaryBox",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8373,7 +8440,7 @@
             },
             {
               "name": "BoxName",
-              "type": "PdfPageBoxName",
+              "type": "PdfPageBoundaryBox",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8489,7 +8556,7 @@
             },
             {
               "name": "BoxName",
-              "type": "PdfPageBoxName",
+              "type": "PdfPageBoundaryBox",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8586,7 +8653,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -8693,12 +8760,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             },
             {
@@ -8733,14 +8800,15 @@
           "description": "Lists link annotations that carry an action, with their page and action type, for review before a PDF is published.",
           "code": "Get-OfficePdfAnnotation -Path .\\Publications\\Annual-Report.pdf -Subtype Link -WithAction |\n    Select-Object PageNumber, ObjectNumber, ActionType |\n    Format-Table -AutoSize"
         }
-      ]
+      ],
+      "notes": "A source is required: Path is the default; Document is a caller-owned live PDF and is never disposed."
     },
     {
       "name": "Set-OfficePdfAnnotation",
       "alias": null,
       "status": "existing",
       "synopsis": "Updates one annotation by object number.",
-      "outputType": "System.IO.FileInfo, PdfDocument",
+      "outputType": "System.IO.FileInfo, PdfDocument, PdfAnnotationEditResult",
       "parameterSets": [
         {
           "name": "Path",
@@ -8786,7 +8854,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8874,7 +8942,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8962,7 +9030,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9050,7 +9118,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9141,7 +9209,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9232,7 +9300,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9323,7 +9391,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9414,7 +9482,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9494,7 +9562,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9554,7 +9622,7 @@
             },
             {
               "name": "Flags",
-              "type": "PdfAnnotationFlags",
+              "type": "int",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9593,8 +9661,8 @@
           "code": "$pdf = Open-OfficePdf -Path .\\Inbound\\Supplier-Catalog.pdf\n$links = Get-OfficePdfAnnotation -Document $pdf -WithAction |\n    Where-Object ActionType -in 'Launch', 'JavaScript'\nforeach ($link in $links) {\n    $pdf = Set-OfficePdfAnnotation -Document $pdf -ObjectNumber $link.ObjectNumber -RemoveAction\n}\nSave-OfficePdf -Document $pdf -Path .\\Inbound\\Supplier-Catalog-Safe.pdf"
         },
         {
-          "title": "Retarget a moved link",
-          "description": "Point every link to the old intranet page at its new address.",
+          "title": "Comment on moved links",
+          "description": "Updates comment metadata on links whose existing target matches the URI pattern.",
           "code": "Set-OfficePdfAnnotation -Path .\\Handbook\\Employee-Handbook.pdf -OutputPath .\\Handbook\\Employee-Handbook-Updated.pdf -Uri 'https://intranet.contoso.com/hr/leave*' -Contents 'Leave policy (moved to the HR portal)'"
         }
       ]
@@ -9604,7 +9672,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Removes annotations matching filters.",
-      "outputType": "System.IO.FileInfo, PdfDocument",
+      "outputType": "System.IO.FileInfo, PdfDocument, PdfAnnotationEditResult",
       "parameterSets": [
         {
           "name": "Path",
@@ -9959,7 +10027,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -10044,12 +10112,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             },
             {
@@ -10073,7 +10141,8 @@
           "description": "Reads the same fields from every returned form and exports one row per form to Excel.",
           "code": "Get-ChildItem -Path .\\Forms\\Returned -Filter '*.pdf' | ForEach-Object {\n    $fields = @{}\n    Get-OfficePdfFormField -LiteralPath $_.FullName | ForEach-Object { $fields[$_.Name] = $_.Value }\n    [pscustomobject]@{\n        File        = $_.Name\n        Requester   = $fields['Requester']\n        System      = $fields['System']\n        AccessLevel = $fields['AccessLevel']\n        Approved    = $fields['Approved']\n    }\n} | Export-OfficeExcel -Path .\\Forms\\Access-Requests.xlsx"
         }
-      ]
+      ],
+      "notes": "A source is required: Path is the default; Document is a caller-owned live PDF and is never disposed."
     },
     {
       "name": "Set-OfficePdfFormField",
@@ -11360,7 +11429,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -11467,12 +11536,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             },
             {
@@ -11497,7 +11566,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "ShouldProcess applies when -OutputDirectory is given.",
+      "notes": "ShouldProcess applies when -OutputDirectory is given. Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document.",
       "examples": [
         {
           "title": "List embedded files",
@@ -11520,7 +11589,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -11639,12 +11708,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             },
             {
@@ -11675,7 +11744,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "Resource extraction, not page rendering (that is Export-OfficeDocumentImage). ShouldProcess applies when -OutputDirectory is given.",
+      "notes": "Resource extraction, not page rendering (that is Export-OfficeDocumentImage). ShouldProcess applies when -OutputDirectory is given. Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document.",
       "examples": [
         {
           "title": "List images",
@@ -11698,7 +11767,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -11793,12 +11862,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             },
             {
@@ -11827,7 +11896,8 @@
           "description": "Checks a folder for fonts that need review, such as missing ToUnicode maps, before indexing the files for search.",
           "code": "Get-ChildItem -Path .\\Archive -Filter '*.pdf' | ForEach-Object {\n    $file = $_\n    Get-OfficePdfFont -LiteralPath $file.FullName -NeedsReview |\n        Select-Object @{ Name = 'File'; Expression = { $file.Name } }, BaseFont, HasToUnicodeMap, HasEmbeddedFontFile\n}"
         }
-      ]
+      ],
+      "notes": " Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document."
     },
     {
       "name": "Optimize-OfficePdf",
@@ -15478,7 +15548,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -15549,12 +15619,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             }
           ]
@@ -15571,7 +15641,8 @@
           "description": "Checks every signed contract in a folder and lists the files that have findings to follow up.",
           "code": "Get-ChildItem -Path .\\Contracts -Filter '*-Signed.pdf' | ForEach-Object {\n    $report = Get-OfficePdfSignature -LiteralPath $_.FullName\n    if ($report.Findings) {\n        [pscustomobject]@{ File = $_.Name; Findings = $report.Findings.Count }\n    }\n}"
         }
-      ]
+      ],
+      "notes": " Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document."
     },
     {
       "name": "Get-OfficePdfDiagnostic",
@@ -15718,7 +15789,7 @@
         {
           "title": "Check how text will render",
           "description": "Reports encoding and shaping for right-to-left text before it is written with a specific font.",
-          "code": "Get-OfficePdfDiagnostic -Text 'مرحبا بالعالم' -FontPath .\\Fonts\\NotoNaskhArabic-Regular.ttf -AdvancedLayout"
+          "code": "Get-OfficePdfDiagnostic -Text '\u0645\u0631\u062d\u0628\u0627 \u0628\u0627\u0644\u0639\u0627\u0644\u0645' -FontPath .\\Fonts\\NotoNaskhArabic-Regular.ttf -AdvancedLayout"
         }
       ]
     },
@@ -16070,7 +16141,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Path",
@@ -16165,12 +16236,12 @@
         },
         {
           "name": "Document",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Document",
               "type": "PdfDocument",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "value"
             },
             {
@@ -16200,7 +16271,7 @@
           "code": "$pdf = Open-OfficePdf -Path .\\Manuals\\Installation-Guide.pdf\n$pageCount = (Get-OfficeDocumentInfo -Document $pdf).PageCount\n$maps = foreach ($page in 1..$pageCount) {\n    Get-OfficePdfInteractionMap -Document $pdf -Page $page\n}\nClose-OfficePdf -Document $pdf\n$maps | ConvertTo-Json -Depth 6 | Set-Content -Path .\\Manuals\\Installation-Guide.map.json"
         }
       ],
-      "notes": "-Options takes New-OfficePdfInteractionOptions."
+      "notes": "-Options takes New-OfficePdfInteractionOptions. Inspection requires a file source or explicit live Document; a PDF creation block has no completed inspection document."
     },
     {
       "name": "Test-OfficePdfRewrite",
@@ -16665,10 +16736,11 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
               "pipeline": "none",
-              "notes": "Replaces -Pages."
+              "notes": "Replaces -Pages.",
+              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
             },
             {
               "name": "PagesPerSheet",
@@ -16762,9 +16834,10 @@
             },
             {
               "name": "Page",
-              "type": "OfficePageRange",
+              "type": "PdfPageSelector",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "note": "Preserves the native print selection grammar, including last, odd, even and exclusions."
             },
             {
               "name": "PagesPerSheet",
@@ -16887,7 +16960,7 @@
             },
             {
               "name": "RasterOverflowBehavior",
-              "type": "PdfRasterOverflowBehavior",
+              "type": "OfficeRasterOverflowBehavior",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -16911,9 +16984,10 @@
             },
             {
               "name": "RenderTimeoutSeconds",
-              "type": "int",
+              "type": "double",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native TimeSpan timeout accepts fractional seconds, consistently with the shared image-options base."
             },
             {
               "name": "MaximumDegreeOfParallelism",
@@ -16949,7 +17023,7 @@
       "alias": null,
       "status": "new",
       "synopsis": "Creates PDF encryption settings (algorithm, metadata encryption) for Protect-OfficeDocument -Encrypt.",
-      "outputType": "PdfStandardEncryptionOptions",
+      "outputType": "System.Collections.Hashtable",
       "parameterSets": [
         {
           "name": "Default",
@@ -16984,7 +17058,7 @@
           "code": "$openPassword = Read-Host -Prompt 'Open password' -AsSecureString\n$ownerPassword = Read-Host -Prompt 'Permissions password' -AsSecureString\n$pdf = New-OfficePdfEncryptionOptions -NoMetadataEncryption\nGet-ChildItem -Path .\\Board -Filter *.pdf |\n    Protect-OfficeDocument -Encrypt -Password $openPassword -Restriction Copy, Modify -RestrictionPassword $ownerPassword -Options $pdf"
         }
       ],
-      "notes": "Consumed by Protect-OfficeDocument -Encrypt on PDF input. Passwords and permissions are not repeated here: Protect-OfficeDocument -Password (user password), -RestrictionPassword (owner password) and -Restriction (permissions to withhold) fill UserPassword, OwnerPassword and AllowedPermissions. Metadata is encrypted by default; -NoMetadataEncryption turns that off."
+      "notes": "Consumed by Protect-OfficeDocument -Encrypt on PDF input. Passwords and permissions are not repeated here: Protect-OfficeDocument -Password (user password), -RestrictionPassword (owner password) and -Restriction (permissions to withhold) fill UserPassword, OwnerPassword and AllowedPermissions. Metadata is encrypted by default; -NoMetadataEncryption turns that off. Returns the existing Protect-OfficeDocument option override table. The receiver creates PdfStandardEncryptionOptions with its real open or owner password; this factory never constructs password-bearing native options."
     },
     {
       "name": "New-OfficePdfExcelOptions",
@@ -17589,7 +17663,7 @@
       "alias": null,
       "status": "existing",
       "synopsis": "Creates rendering and tolerance options for Compare-OfficeDocument -Visual on PDFs.",
-      "outputType": "PdfVisualComparisonOptions",
+      "outputType": "PSWriteOffice.Services.Comparison.OfficePdfVisualComparisonOptions",
       "parameterSets": [
         {
           "name": "Default",
@@ -17687,7 +17761,8 @@
           "description": "Compares the first 10 pages visually at double scale with a small tolerance and writes the comparison report for review.",
           "code": "$options = New-OfficePdfVisualComparisonOptions -Scale 2 -ChannelTolerance 2 -AllowedDifferenceRatio 0.001 -MaxPages 10\nCompare-OfficeDocument -ReferencePath .\\Approved\\Q3-Sales.pdf -DifferencePath .\\Reports\\Q3-Sales.pdf -Visual -Options $options"
         }
-      ]
+      ],
+      "notes": " Retains native render options together with distinct reference/difference PdfLoadOptions; Compare-OfficeDocument consumes this binding value without changing caller-owned policies."
     },
     {
       "name": "New-OfficePdfMergeOptions",
@@ -17741,17 +17816,11 @@
               "type": "OfficeLength",
               "mandatory": false,
               "pipeline": "none"
-            },
-            {
-              "name": "IgnorePermissionRestrictions",
-              "type": "switch",
-              "mandatory": false,
-              "pipeline": "none"
             }
           ]
         }
       ],
-      "notes": "Carries the Join-OfficePdf page-normalization parameters. -PageSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm.",
+      "notes": "Carries the Join-OfficePdf page-normalization parameters. -PageSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm. Source authentication/read policy is a separate canonical native options value: combine this factory with New-OfficePdfReadOptions -IgnorePermissionRestrictions through Merge-OfficeDocument -Options. No read policy is stored in PdfMergeOptions.",
       "examples": [
         {
           "title": "Merge onto A4 pages",
@@ -17762,6 +17831,11 @@
           "title": "Assemble a board pack",
           "description": "Merges cover, reports and appendix into one A4 portrait pack with annotations flattened.",
           "code": "$options = New-OfficePdfMergeOptions -PageSize A4 -Orientation Portrait -ResizeMode Fit -FlattenVisualAnnotations\n$parts = '.\\BoardPack\\Cover.pdf', '.\\BoardPack\\Finance.pdf', '.\\BoardPack\\Operations.pdf', '.\\BoardPack\\Appendix.pdf'\nMerge-OfficeDocument -Path $parts -OutputPath .\\BoardPack\\Q3-Board-Pack.pdf -Options $options -Show"
+        },
+        {
+          "title": "Preserve an explicit source read policy",
+          "description": "Combines merge geometry with authenticated permission policy through the canonical typed options array.",
+          "code": "$merge = New-OfficePdfMergeOptions -FlattenVisualAnnotations -PageSize A4\n$read = New-OfficePdfReadOptions -IgnorePermissionRestrictions\nMerge-OfficeDocument -Path .\\Part1.pdf, .\\Part2.pdf -OutputPath .\\Merged.pdf -Options $merge, $read"
         }
       ]
     },
@@ -18951,8 +19025,8 @@
         "LiteralPath": "LiteralPath",
         "IgnorePermissionRestrictions": "New-OfficePdfReadOptions -IgnorePermissionRestrictions"
       },
-      "hint": "Get-OfficeDocumentInfo -Path .\\In.pdf",
-      "reason": "Generic document info is cross-format; for a PDF it returns the same PdfDocumentInfo (OfficeDocument.Inspect)."
+      "hint": "(Get-OfficeDocumentInfo -Path .\\In.pdf -Detailed).Details",
+      "reason": "Generic document info returns OfficeDocumentInfo; Detailed retains the native detached PdfDocumentInfo in Details."
     },
     {
       "old": "Get-OfficePdfInteractionMap",
@@ -19010,7 +19084,7 @@
       "parameterSet": "Path | LiteralPath",
       "parameters": {
         "AsMarkdown": "As Markdown",
-        "AsTextBlock": "As Structure",
+        "AsTextBlock": null,
         "ByPage": "ByPage",
         "OutputPath": null,
         "PageRange": "New-OfficePdfReadOptions -Page",
@@ -19021,7 +19095,7 @@
         "LiteralPath": "LiteralPath"
       },
       "hint": "Read-OfficeDocument -Path .\\In.pdf -As Markdown | Set-Content .\\In.md",
-      "reason": "Reading text is cross-format (default view is plain text via -As Text); writing it to a file is Set-Content or Convert-OfficeDocument -To Markdown."
+      "reason": "Plain text and Markdown use Read-OfficeDocument -As Text or Markdown; ByPage returns OfficeDocumentPageText with Page.Number and Text. Writing text is Set-Content or Convert-OfficeDocument -To Markdown. Exact native geometric/font text blocks remain available from a caller-owned Open-OfficePdf document through $pdf.Read().TextBlocks; As Structure is normalized extraction and does not return native text blocks."
     },
     {
       "old": "Get-OfficePdfTextDiagnostic",
@@ -19029,7 +19103,7 @@
       "action": "merge",
       "new": "Get-OfficePdfDiagnostic",
       "parameterSet": "Text",
-      "hint": "Get-OfficePdfDiagnostic -Text 'مرحبا' -AdvancedLayout",
+      "hint": "Get-OfficePdfDiagnostic -Text '\u0645\u0631\u062d\u0628\u0627' -AdvancedLayout",
       "reason": "Diagnostic concepts are one command (rule 2)."
     },
     {
@@ -19068,7 +19142,7 @@
       "parameterSet": "Path",
       "parameters": {
         "FilePath": "Path",
-        "PassThruReport": "PassThru",
+        "PassThruReport": "PassThruReport",
         "FlattenVisualAnnotations": "New-OfficePdfMergeOptions -FlattenVisualAnnotations",
         "PageSize": "New-OfficePdfMergeOptions -PageSize",
         "Width": "New-OfficePdfMergeOptions -Width",
@@ -19076,10 +19150,10 @@
         "Landscape": "New-OfficePdfMergeOptions -Orientation",
         "ResizeMode": "New-OfficePdfMergeOptions -ResizeMode",
         "ResizeMargin": "New-OfficePdfMergeOptions -ResizeMargin",
-        "IgnorePermissionRestrictions": "New-OfficePdfMergeOptions -IgnorePermissionRestrictions"
+        "IgnorePermissionRestrictions": "New-OfficePdfReadOptions -IgnorePermissionRestrictions"
       },
       "hint": "Merge-OfficeDocument -Path .\\A.pdf, .\\B.pdf -OutputPath .\\All.pdf -Options (New-OfficePdfMergeOptions -PageSize A4)",
-      "reason": "Combining documents is the cross-format Merge-OfficeDocument; PDF page normalization travels in New-OfficePdfMergeOptions."
+      "reason": "Merge-OfficeDocument uses PdfMergeOptions for normalization and a separate PdfLoadOptions/PdfReadOptions value for authenticated source policy; no read policy field is stored in PdfMergeOptions. PassThruReport preserves the native PdfMergeReport; PassThru separately returns FileInfo."
     },
     {
       "old": "Move-OfficePdfPage",
@@ -19344,7 +19418,7 @@
         "Document": null
       },
       "hint": "Read-OfficeDocument -Path .\\In.pdf -As Structure -Options (New-OfficePdfReadOptions -Profile Structured)",
-      "reason": "Structured reading is cross-format; for PDFs it returns PdfDocumentReadResult. Read-OfficeDocument reads files, so a live document is saved first (Save-OfficePdf) or read with $pdf.Read()."
+      "reason": "Read-OfficeDocument returns the cross-format OfficeDocumentReadResult, including normalized pages, blocks, tables and assets. For the native PdfDocumentReadResult (font metrics, geometric text blocks, native profile and live-document reads), use the existing caller-owned $pdf = Open-OfficePdf ...; try { $pdf.Read() } finally { $pdf.Dispose() }. Native inspection does not require saving a live document."
     },
     {
       "old": "Remove-OfficePdfAnnotation",

@@ -2649,10 +2649,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -2660,6 +2660,163 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "PathSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "PathRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -2671,14 +2828,96 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "PathChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -2752,10 +2991,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -2763,6 +3002,149 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "PathFileSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "PathFileRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -2774,14 +3156,89 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "PathFileChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -2851,10 +3308,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -2862,6 +3319,169 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -2873,14 +3493,99 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -2957,10 +3662,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -2968,6 +3673,155 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathFileSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathFileRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -2979,14 +3833,92 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathFileChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -3053,10 +3985,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3064,6 +3996,149 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -3075,14 +4150,89 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "OutputDirectory",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Folder for the image files, named {BaseName}-{Number}.{ext}; a sheet range or chart uses {BaseName}-{Sheet}-{Name}.{ext}. Required: Export- always writes files. ConvertTo-OfficeDocumentImage returns the images as objects instead."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -3148,10 +4298,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3159,6 +4309,147 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentFileSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentFileRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -3170,14 +4461,88 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "NoClobber",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            }
+          ]
+        },
+        {
+          "name": "DocumentFileChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value"
+            },
+            {
+              "name": "OutputPath",
+              "type": "string",
+              "mandatory": true,
+              "position": 1,
+              "pipeline": "none",
+              "note": "Exactly one image. Selecting more than one page, slide or sheet is an invalid argument; use -Page or -OutputDirectory. Never treated as a folder."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -3250,10 +4615,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3261,27 +4626,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
-            },
-            {
-              "name": "Sheet",
-              "type": "OfficeSheetSelector[]",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
-            },
-            {
-              "name": "Range",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
-            },
-            {
-              "name": "Chart",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3352,10 +4696,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3363,27 +4707,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
-            },
-            {
-              "name": "Sheet",
-              "type": "OfficeSheetSelector[]",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
-            },
-            {
-              "name": "Range",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
-            },
-            {
-              "name": "Chart",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3427,7 +4750,7 @@
           ]
         }
       ],
-      "notes": "Always writes files and returns one native OfficeImageExportResult per saved image, with its payload, name, dimensions, diagnostics, batch position and SavedPath. OutputPath requires exactly one input and one selected image, with rejection before any destination is created. OutputDirectory writes a numbered batch. NoClobber uses atomic create-if-absent publication. Format is inferred from a file extension when omitted; extensionless file paths append the selected encoding extension. For in-memory images use ConvertTo-OfficeDocumentImage. Absorbs the eight format-specific Export-Office*Image commands; Visio PNG/SVG file output also uses this command. Sheet, Range and Chart select Excel content. NoText moves to Options.RenderText=false; native font and connector settings stay in VisioImageExportOptions. Format-specific load and image options are accepted together through Options, routed by type, with unknown or unused keys rejected. Native output limits and deadlines remain in those options. PDF passwords and permission policy remain with PdfLoadOptions.",
+      "notes": "Always writes files and returns one native OfficeImageExportResult per saved image, with its payload, name, dimensions, diagnostics, batch position and SavedPath. OutputPath requires exactly one input and one selected image, with rejection before any destination is created. OutputDirectory writes a numbered batch. NoClobber uses atomic create-if-absent publication. Format is inferred from a file extension when omitted; extensionless file paths append the selected encoding extension. For in-memory images use ConvertTo-OfficeDocumentImage. Absorbs the eight format-specific Export-Office*Image commands; Visio PNG/SVG file output also uses this command. Sheet, Range and Chart select Excel content. NoText moves to Options.RenderText=false; native font and connector settings stay in VisioImageExportOptions. Format-specific load and image options are accepted together through Options, routed by type, with unknown or unused keys rejected. Native output limits and deadlines remain in those options. PDF passwords and permission policy remain with PdfLoadOptions. Format uses OfficeImageExportFormat so only encodable outputs are offered; use Pbm instead of the detection-only PortableMap value. Native parameter sets make Page, Sheet-only, Range and Chart selection exclusive; Range and Chart may additionally select Sheet. Invalid selector combinations are rejected before loading or writing. HTML Text input offers Page selection only; Excel selectors do not bind to a source that cannot contain worksheets.",
       "examples": [
         {
           "title": "Render slides to PNG files",
@@ -3471,10 +4794,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3482,6 +4805,135 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "PathSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "PathRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -3493,14 +4945,82 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "PathChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Path",
+              "type": "string[]",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "wildcards": true
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -3563,10 +5083,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3574,6 +5094,141 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -3585,14 +5240,85 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            },
+            {
+              "name": "ThrottleLimit",
+              "type": "int",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Input files rendered in parallel."
+            }
+          ]
+        },
+        {
+          "name": "LiteralPathChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "LiteralPath",
+              "type": "string[]",
+              "mandatory": true,
+              "pipeline": "propertyName",
+              "wildcards": false,
+              "aliases": [
+                "PSPath",
+                "FullName"
+              ]
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -3652,10 +5378,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3663,6 +5389,121 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            }
+          ]
+        },
+        {
+          "name": "DocumentSheet",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": true,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            }
+          ]
+        },
+        {
+          "name": "DocumentRange",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Sheet",
@@ -3674,14 +5515,75 @@
             {
               "name": "Range",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
             },
             {
+              "name": "Dpi",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Target resolution (was TargetDpi / PixelsPerInch)."
+            },
+            {
+              "name": "Scale",
+              "type": "double",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "Options",
+              "type": "object[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Format image and load options (hashtables accepted) from New-OfficeWordImageOptions, New-OfficeExcelImageOptions, New-OfficePdfImageOptions, New-OfficePowerPointImageOptions, New-OfficeVisioImageOptions, New-OfficeHtmlRenderOptions and New-OfficeHtmlConversionOptions, routed by type."
+            },
+            {
+              "name": "Password",
+              "type": "SecureString",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Argument transformation also accepts a plain string (converted, with a warning) or a PSCredential (its password). There is no separate -Credential parameter."
+            }
+          ]
+        },
+        {
+          "name": "DocumentChart",
+          "default": false,
+          "parameters": [
+            {
+              "name": "Document",
+              "type": "object",
+              "mandatory": true,
+              "position": 0,
+              "pipeline": "value",
+              "note": "A live Word, Excel, PowerPoint, PDF, Visio or HTML document."
+            },
+            {
+              "name": "Format",
+              "type": "OfficeImageExportFormat",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
+            },
+            {
+              "name": "Sheet",
+              "type": "OfficeSheetSelector[]",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
+            },
+            {
               "name": "Chart",
               "type": "string",
-              "mandatory": false,
+              "mandatory": true,
               "pipeline": "none",
               "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
@@ -3740,10 +5642,10 @@
             },
             {
               "name": "Format",
-              "type": "OfficeImageFormat",
+              "type": "OfficeImageExportFormat",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Png by default; inferred from OutputPath when omitted. The selected native engine determines which encoders are supported."
+              "note": "Concrete native output encoding. Use Pbm for monochrome portable bitmap output; OfficeImageFormat.PortableMap identifies the broader input container family."
             },
             {
               "name": "Page",
@@ -3751,27 +5653,6 @@
               "mandatory": false,
               "pipeline": "none",
               "note": "1-based pages, slides, diagram pages or HTML pages, for example 1-3,5 (replaces PageRange, PageIndex/PageCount, SlideNumber and AllPages). Default: all."
-            },
-            {
-              "name": "Sheet",
-              "type": "OfficeSheetSelector[]",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Worksheets to render (name, 1-based index or object; replaces WorksheetName and SheetName)."
-            },
-            {
-              "name": "Range",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "An A1 range within -Sheet (was Export-OfficeExcelRangeImage)."
-            },
-            {
-              "name": "Chart",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "A chart name within -Sheet (was Export-OfficeExcelChartImage)."
             },
             {
               "name": "Dpi",
@@ -3809,7 +5690,7 @@
           ]
         }
       ],
-      "notes": "Returns one native OfficeImageExportResult per rendered page, slide, sheet, range, chart or diagram page. Results expose Format, MimeType, Source, Name, Width, Height, Bytes, Diagnostics, SequenceIndex and SequenceCount; Bytes also holds UTF-8 SVG. The default view omits Bytes. No filesystem effects and no WhatIf; Export-OfficeDocumentImage writes the same images to files. Inputs are Path/LiteralPath files, live Word/Excel/PowerPoint/PDF/Visio/HTML documents, or Text with From Html. Caller-owned documents retain their current content, association and lifetime. Page uses one-based selection; PowerPoint retains native document order and de-duplication. Options are cloned and routed to admitted native owners.",
+      "notes": "Returns one native OfficeImageExportResult per rendered page, slide, sheet, range, chart or diagram page. Results expose Format, MimeType, Source, Name, Width, Height, Bytes, Diagnostics, SequenceIndex and SequenceCount; Bytes also holds UTF-8 SVG. The default view omits Bytes. No filesystem effects and no WhatIf; Export-OfficeDocumentImage writes the same images to files. Inputs are Path/LiteralPath files, live Word/Excel/PowerPoint/PDF/Visio/HTML documents, or Text with From Html. Caller-owned documents retain their current content, association and lifetime. Page uses one-based selection; PowerPoint retains native document order and de-duplication. Options are cloned and routed to admitted native owners. Format uses OfficeImageExportFormat so only encodable outputs are offered; use Pbm instead of the detection-only PortableMap value. Native parameter sets make Page, Sheet-only, Range and Chart selection exclusive; Range and Chart may additionally select Sheet. Invalid selector combinations are rejected before loading or writing. HTML Text input offers Page selection only; Excel selectors do not bind to a source that cannot contain worksheets.",
       "examples": [
         {
           "title": "Get slide images as objects",
@@ -4435,7 +6316,7 @@
       "parameterSets": [
         {
           "name": "Path",
-          "default": true,
+          "default": false,
           "parameters": [
             {
               "name": "Path",
@@ -4562,12 +6443,12 @@
         },
         {
           "name": "Document",
-          "default": false,
+          "default": true,
           "parameters": [
             {
               "name": "Document",
               "type": "object",
-              "mandatory": true,
+              "mandatory": false,
               "position": 0,
               "pipeline": "value"
             },
@@ -4621,7 +6502,7 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Protect-OfficeWordDocument (-ProtectionType becomes -Restriction), Protect-OfficeExcelWorkbook (NoStructure/ProtectWindows become -Restriction; LegacyPasswordHash moves to Excel options); sheet-level Protect-OfficeExcelSheet stays with Excel. Covers passwords, encryption and permission restrictions for every format, PDF included (Protect-OfficePdf does not exist; PDF redaction is Remove-OfficePdfContent in the PDF area). -Password also accepts a PSCredential through transformation; there is no -Credential parameter. Output: FileInfo with -PassThru on a path, the document with -PassThru on -Document.",
+      "notes": "Candidate absorptions from other areas: Protect-OfficeWordDocument (-ProtectionType becomes -Restriction), Protect-OfficeExcelWorkbook (NoStructure/ProtectWindows become -Restriction; LegacyPasswordHash moves to Excel options); sheet-level Protect-OfficeExcelSheet stays with Excel. Covers passwords, encryption and permission restrictions for every format, PDF included (Protect-OfficePdf does not exist; PDF redaction is Remove-OfficePdfContent in the PDF area). -Password also accepts a PSCredential through transformation; there is no -Credential parameter. Output: FileInfo with -PassThru on a path, the document with -PassThru on -Document. Document defaults to the current document content block; outside a block, provide Document, Path or LiteralPath.",
       "examples": [
         {
           "title": "Encrypt a workbook with a password",
@@ -4967,7 +6848,9 @@
       "outputType": "System.IO.FileInfo",
       "outputTypes": [
         "System.IO.FileInfo",
-        "OfficeConversionReport"
+        "OfficeIMO.Word.WordDocument",
+        "OfficeIMO.Excel.ExcelDocument",
+        "OfficeIMO.Pdf.PdfMergeReport"
       ],
       "shouldProcess": true,
       "parameterSets": [
@@ -5002,7 +6885,8 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions."
+              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions.",
+              "notes": "Native merge settings, Excel merge selections, optional PDF read policy, or hashtables of merge settings. PDF read options come from New-OfficePdfReadOptions and apply to every source with per-source passwords."
             },
             {
               "name": "NoClobber",
@@ -5012,6 +6896,12 @@
             },
             {
               "name": "PassThru",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThruReport",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
@@ -5058,7 +6948,8 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions."
+              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions.",
+              "notes": "Native merge settings, Excel merge selections, optional PDF read policy, or hashtables of merge settings. PDF read options come from New-OfficePdfReadOptions and apply to every source with per-source passwords."
             },
             {
               "name": "NoClobber",
@@ -5068,6 +6959,12 @@
             },
             {
               "name": "PassThru",
+              "type": "SwitchParameter",
+              "mandatory": false,
+              "pipeline": "none"
+            },
+            {
+              "name": "PassThruReport",
               "type": "SwitchParameter",
               "mandatory": false,
               "pipeline": "none"
@@ -5119,7 +7016,8 @@
               "type": "object[]",
               "mandatory": false,
               "pipeline": "none",
-              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions."
+              "note": "Merge options routed by type (hashtables accepted), for example New-OfficePdfMergeOptions (page size, resize, annotation flattening) or New-OfficeExcelMergeOptions.",
+              "notes": "Native merge settings, Excel merge selections, optional PDF read policy, or hashtables of merge settings. PDF read options come from New-OfficePdfReadOptions and apply to every source with per-source passwords."
             },
             {
               "name": "NoClobber",
@@ -5136,7 +7034,7 @@
           ]
         }
       ],
-      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel.",
+      "notes": "Candidate absorptions from other areas: Join-OfficeWordDocument, Join-OfficePdf, Join-OfficeExcelWorkbook. Sheet-level Join-OfficeExcelSheet stays with Excel. For PDF input, -Options also accepts one PdfLoadOptions or New-OfficePdfReadOptions result alongside PdfMergeOptions; each source receives an independent complete read-policy snapshot and its selected password. PassThruReport returns PdfMergeReport for PDF file merges; it can be combined with PassThru to also return the saved file.",
       "examples": [
         {
           "title": "Merge PDFs into one",
@@ -6513,79 +8411,13 @@
       "name": "New-OfficeGoogleWorkspaceSession",
       "alias": null,
       "status": "new",
-      "synopsis": "Creates a Google Workspace session from a desktop OAuth sign-in (PKCE) or a service account, for the Google Docs and Sheets exports.",
+      "synopsis": "Creates a Google Workspace session from a service account for Google Docs and Sheets exports.",
       "outputType": "OfficeIMO.GoogleWorkspace.GoogleWorkspaceSession",
       "outputTypes": [
         "OfficeIMO.GoogleWorkspace.GoogleWorkspaceSession"
       ],
       "shouldProcess": false,
       "parameterSets": [
-        {
-          "name": "Desktop",
-          "default": true,
-          "parameters": [
-            {
-              "name": "ClientId",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "OAuth desktop client id. Required unless -ClientSecret is given a PSCredential, whose user name is used."
-            },
-            {
-              "name": "ClientSecret",
-              "type": "SecureString",
-              "mandatory": true,
-              "pipeline": "none",
-              "note": "Desktop client secret. Also accepts a PSCredential (client id and secret) or a plain string with a warning."
-            },
-            {
-              "name": "Account",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Expected Google account (login hint); the session fails if a different account signs in."
-            },
-            {
-              "name": "TokenCachePath",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Folder for the refresh-token cache; default is the per-user OfficeIMO profile."
-            },
-            {
-              "name": "NoTokenCache",
-              "type": "SwitchParameter",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "Sign in every time and keep no refresh token."
-            },
-            {
-              "name": "Scope",
-              "type": "string[]",
-              "mandatory": false,
-              "pipeline": "none",
-              "note": "OAuth scopes: full URLs or the short names Drive, DriveFile, DriveReadonly, Documents, Spreadsheets, Presentations (tab-completes). Default: Docs and Sheets authoring with DriveFile."
-            },
-            {
-              "name": "ApplicationName",
-              "type": "string",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "RequestTimeoutSeconds",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            },
-            {
-              "name": "MaxRetryCount",
-              "type": "int",
-              "mandatory": false,
-              "pipeline": "none"
-            }
-          ]
-        },
         {
           "name": "ServiceAccount",
           "parameters": [
@@ -6629,16 +8461,12 @@
               "mandatory": false,
               "pipeline": "none"
             }
-          ]
+          ],
+          "default": true
         }
       ],
-      "notes": "Mirrors New-OfficeConfluenceSession: one command, one set per sign-in kind, and the same ApplicationName, RequestTimeoutSeconds and MaxRetryCount parameters. Desktop runs the installed-application OAuth flow with PKCE in the default browser on a loopback redirect and caches the refresh token unless -NoTokenCache; ServiceAccount signs JWTs from the key file and needs no browser, so it suits scheduled jobs. -ClientSecret is SecureString; transformation also accepts a PSCredential (its user name becomes -ClientId) or a plain string with a warning. The session is passed to -Session on Export-OfficeWordGoogleDocument and Export-OfficeExcelGoogleSpreadsheet.",
+      "notes": "Uses the native service-account JWT credential source. Subject enables domain-wide delegation; without it the service account acts as itself. The session is passed to -Session on Export-OfficeWordGoogleDocument and Export-OfficeExcelGoogleSpreadsheet. Desktop OAuth is separate roadmap work requiring its optional authentication provider and secure credential-storage contract.",
       "examples": [
-        {
-          "title": "Sign in with a desktop OAuth client",
-          "description": "Opens the browser once for consent and caches the refresh token for later runs.",
-          "code": "$client = Get-Credential -Message 'Google OAuth client id and secret'\n$googleSession = New-OfficeGoogleWorkspaceSession -ClientSecret $client -Account 'anna.nowak@example.com'"
-        },
         {
           "title": "Publish nightly with a service account",
           "description": "Signs in without a browser by impersonating a reporting user and uploads the sales workbook to Google Sheets.",

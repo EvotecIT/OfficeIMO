@@ -36,7 +36,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 ///   <summary>Withhold PDF copying while allowing readers to open without a password.</summary>
 ///   <code>Protect-OfficeDocument -Path ./board.pdf -Restriction Copy -Password $ownerPassword -OutputPath ./restricted.pdf</code>
 /// </example>
-[Cmdlet(VerbsSecurity.Protect, "OfficeDocument", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
+[Cmdlet(VerbsSecurity.Protect, "OfficeDocument", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(FileInfo), typeof(OfficeIMO.Word.WordDocument), typeof(OfficeIMO.Excel.ExcelDocument),
     typeof(OfficeIMO.PowerPoint.PowerPointDocument), typeof(PdfDocument))]
 public sealed class ProtectOfficeDocumentCommand : PSCmdlet {
@@ -55,10 +55,10 @@ public sealed class ProtectOfficeDocumentCommand : PSCmdlet {
     [ValidateNotNullOrEmpty]
     public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>Caller-owned native Word, Excel, PowerPoint or PDF document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
+    /// <summary>Caller-owned native document; defaults to the enclosing document content block.</summary>
+    [Parameter(Position = 0, ValueFromPipeline = true, ParameterSetName = "Document")]
     [ValidateNotNull]
-    public IDisposable Document { get; set; } = null!;
+    public IDisposable? Document { get; set; }
 
     /// <summary>Open password with Encrypt; otherwise the restriction password. Accepts a credential or warned plain text.</summary>
     [Parameter]
@@ -100,7 +100,8 @@ public sealed class ProtectOfficeDocumentCommand : PSCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         if (ParameterSetName == "Document") {
-            _documents.Add(OfficeProtectionOptionBinding.Unwrap(Document) ?? throw new PSArgumentException("Document cannot be null."));
+            object? document = OfficeProtectionOptionBinding.Unwrap(Document) ?? OfficeDocumentContext.Find<IDisposable>();
+            _documents.Add(document ?? throw new PSArgumentException("Provide Document or Path, or call Protect-OfficeDocument inside a document content block."));
             return;
         }
         bool literal = ParameterSetName == "LiteralPath";
