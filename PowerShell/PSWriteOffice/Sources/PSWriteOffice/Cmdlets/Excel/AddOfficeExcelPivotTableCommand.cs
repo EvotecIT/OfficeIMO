@@ -110,6 +110,7 @@ public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
 
     /// <summary>Built-in chart style identifier.</summary>
     [Parameter()]
+    [ArgumentCompleter(typeof(PSWriteOffice.Completion.OfficeExcelPivotStyleArgumentCompleter))]
     public string? Style { get; set; }
 
     /// <summary>Pivot layout (Compact, Outline, Tabular).</summary>

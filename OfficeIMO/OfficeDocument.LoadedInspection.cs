@@ -54,7 +54,7 @@ public static partial class OfficeDocument {
                 break;
             case ExcelDocument excel:
                 result.Format = ReaderInputKind.Excel;
-                result.SheetCount = excel.Sheets.Count;
+                result.SheetCount = excel.GetWorkbookSheetCount(cancellationToken);
                 if (settings.Detailed) result.Details = excel.Inspect(settings.ExcelInspection ?? settings.Formats.Excel?.ReadOptions, cancellationToken);
                 if (settings.IncludeContent) result.Content = excel.ReadDocument(result.Source, settings.Reader, settings.Formats.Excel, cancellationToken);
                 break;

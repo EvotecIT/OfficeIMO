@@ -1,3 +1,5 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
@@ -10,7 +12,12 @@ namespace OfficeIMO.Tests;
 public sealed class OfficeDocumentInspectionTests {
     [Theory]
     [InlineData("source.docx", ReaderInputKind.Word)]
+    [InlineData("misnamed.xlsm", ReaderInputKind.Word)]
     [InlineData("source.xlsx", ReaderInputKind.Excel)]
+    [InlineData("source.xlsm", ReaderInputKind.Excel)]
+    [InlineData("source.xltx", ReaderInputKind.Excel)]
+    [InlineData("source.xltm", ReaderInputKind.Excel)]
+    [InlineData("source.xlam", ReaderInputKind.Excel)]
     [InlineData("source.pptx", ReaderInputKind.PowerPoint)]
     [InlineData("source.pdf", ReaderInputKind.Pdf)]
     [InlineData("source.md", ReaderInputKind.Markdown)]
@@ -20,10 +27,24 @@ public sealed class OfficeDocumentInspectionTests {
             string path = Path.Combine(root, name);
             switch (expected) {
                 case ReaderInputKind.Word:
-                    using (var document = WordDocument.Create()) { document.AddParagraph("Inspection content"); document.Save(path); }
+                    using (var document = WordDocument.Create()) {
+                        document.AddParagraph("Inspection content");
+                        string nativePath = Path.ChangeExtension(path, ".docx");
+                        document.Save(nativePath);
+                        if (nativePath != path) File.Move(nativePath, path);
+                    }
                     break;
                 case ReaderInputKind.Excel:
                     using (var document = ExcelDocument.Create()) { document.AddSheet("Data").Cell(1, 1).SetValue("Inspection content"); document.Save(path); }
+                    using (var package = SpreadsheetDocument.Open(path, true)) {
+                        var workbook = package.WorkbookPart!;
+                        var chartSheet = workbook.AddNewPart<ChartsheetPart>();
+                        chartSheet.Chartsheet = new Chartsheet(new SheetViews(new SheetView { WorkbookViewId = 0 }));
+                        workbook.Workbook!.Sheets!.Append(new Sheet {
+                            Id = workbook.GetIdOfPart(chartSheet), SheetId = 2, Name = "Revenue Chart"
+                        });
+                        workbook.Workbook!.Save();
+                    }
                     break;
                 case ReaderInputKind.PowerPoint:
                     using (var document = PowerPointDocument.Create()) { document.AddSlide().AddTextBox("Inspection content"); document.Save(path); }
@@ -39,10 +60,15 @@ public sealed class OfficeDocumentInspectionTests {
                     break;
             }
             byte[] original = File.ReadAllBytes(path);
-            OfficeDocumentInfo inspection = OfficeDocument.Inspect(path);
+            OfficeDocumentInfo inspection = OfficeDocument.Inspect(path, new OfficeInspectOptions { IncludeSummary = true, Detailed = true });
             OfficeDocumentReadResult result = Assert.IsType<OfficeDocumentReadResult>(inspection.Content);
             Assert.Equal(expected, result.Kind);
             Assert.NotEmpty(result.Blocks);
+            if (expected == ReaderInputKind.Excel) {
+                Assert.Equal(2, inspection.SheetCount);
+                ExcelWorkbookInfo details = Assert.IsType<ExcelWorkbookInfo>(inspection.Details);
+                Assert.Equal("Data", Assert.Single(details.Worksheets).Name);
+            }
             Assert.Equal(original, File.ReadAllBytes(path));
         } finally { Directory.Delete(root, true); }
     }

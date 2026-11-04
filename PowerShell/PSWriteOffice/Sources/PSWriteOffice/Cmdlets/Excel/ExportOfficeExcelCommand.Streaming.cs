@@ -98,7 +98,7 @@ public sealed partial class ExportOfficeExcelCommand {
             _streamHasInput = true;
             DeclareStreamingColumns(view.Table?.Columns.Cast<DataColumn>().Select(column => column.ColumnName)
                 ?? Array.Empty<string>());
-            foreach (DataRowView row in view) StreamProjectedRow(row.Row);
+            foreach (DataRowView row in view) StreamProjectedRow(row);
         } else if (value is IDataReader reader) {
             EnsureStreamingRows("ReaderData");
             _streamHasInput = true;

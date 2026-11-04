@@ -30,13 +30,13 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
 {
     private const int StreamWriterBufferSize = 64 * 1024;
     private const int CompressionProbeBufferSize = 256;
-    private const string ParameterSetInputObjectPathDelimiter = "InputObjectPathDelimiter";
+    private const string ParameterSetInputObjectPathDelimiter = "InputObjectPath";
     private const string ParameterSetInputObjectPathCulture = "InputObjectPathCulture";
-    private const string ParameterSetInputObjectLiteralPathDelimiter = "InputObjectLiteralPathDelimiter";
+    private const string ParameterSetInputObjectLiteralPathDelimiter = "InputObjectLiteralPath";
     private const string ParameterSetInputObjectLiteralPathCulture = "InputObjectLiteralPathCulture";
-    private const string ParameterSetDocumentPathDelimiter = "DocumentPathDelimiter";
+    private const string ParameterSetDocumentPathDelimiter = "DocumentPath";
     private const string ParameterSetDocumentPathCulture = "DocumentPathCulture";
-    private const string ParameterSetDocumentLiteralPathDelimiter = "DocumentLiteralPathDelimiter";
+    private const string ParameterSetDocumentLiteralPathDelimiter = "DocumentLiteralPath";
     private const string ParameterSetDocumentLiteralPathCulture = "DocumentLiteralPathCulture";
     private CsvRowWriter? _streamingWriter;
     private readonly CsvPowerShellObjectProjector _objectProjector = new();
@@ -48,10 +48,11 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     private bool _wroteOutput;
 
     /// <summary>Objects to export into CSV rows.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectPathDelimiter)]
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectPathCulture)]
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectLiteralPathCulture)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectPathDelimiter)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectPathCulture)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetInputObjectLiteralPathCulture)]
+    [AllowNull, AllowEmptyString, AllowEmptyCollection]
     public object? InputObject { get; set; }
 
     /// <summary>CSV document to export.</summary>
@@ -77,19 +78,12 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     [Alias("PSPath", "LP")]
     public string? LiteralPath { get; set; }
 
-    /// <summary>Field delimiter character.</summary>
+    /// <summary>Field delimiter text, including multi-character separators.</summary>
     [Parameter(ParameterSetName = ParameterSetInputObjectPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetDocumentPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetDocumentLiteralPathDelimiter)]
-    public char Delimiter { get; set; } = ',';
-
-    /// <summary>Field delimiter text for multi-character delimiters such as || or ::.</summary>
-    [Parameter(ParameterSetName = ParameterSetInputObjectPathDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetInputObjectLiteralPathDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetDocumentPathDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetDocumentLiteralPathDelimiter)]
-    public string? DelimiterText { get; set; }
+    public string Delimiter { get; set; } = ",";
 
     /// <summary>Use the list separator from the selected or current culture as the delimiter.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetInputObjectPathCulture)]
@@ -190,7 +184,7 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
                 throw new PSArgumentException("The selected culture must provide a single-character list separator.");
             }
 
-            Delimiter = separator[0];
+            Delimiter = separator;
         }
     }
 
@@ -503,8 +497,8 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     {
         var options = new CsvSaveOptions
         {
-            Delimiter = Delimiter,
-            DelimiterText = DelimiterText,
+            Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
+            DelimiterText = Delimiter,
             IncludeHeader = includeHeader ?? !NoHeader.IsPresent,
             Culture = Culture ?? CultureInfo.InvariantCulture,
             Encoding = Encoding,
@@ -745,8 +739,8 @@ public sealed partial class ExportOfficeCsvCommand : PSCmdlet
     {
         var options = new CsvLoadOptions
         {
-            Delimiter = Delimiter,
-            DelimiterText = DelimiterText,
+            Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
+            DelimiterText = Delimiter,
             Encoding = Encoding ?? _appendEncoding,
             Culture = Culture ?? CultureInfo.InvariantCulture,
             CompressionType = CompressionType

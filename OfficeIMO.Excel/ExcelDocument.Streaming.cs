@@ -120,9 +120,13 @@ public partial class ExcelDocument {
                 _styles ??= styles;
                 var layout = new StreamingWorksheetLayout(_options, names, styles);
                 string? tableName = _options.CreateTable
-                    ? DirectDataSetWorkbookModel.SanitizeTableName(_options.TableName ?? name) : null;
-                if (tableName != null && !_tableNames.Add(tableName))
-                    throw new ArgumentException("Table names must be unique after sanitizing.", nameof(name));
+                    ? DirectDataSetWorkbookModel.SanitizeTableName(string.IsNullOrWhiteSpace(_options.TableName) ? name : _options.TableName!) : null;
+                if (tableName != null) {
+                    if (string.IsNullOrWhiteSpace(_options.TableName))
+                        tableName = DirectDataSetWorkbookModel.GetUniqueName(tableName, _tableNames, 255);
+                    else if (!_tableNames.Add(tableName))
+                        throw new ArgumentException("Table names must be unique after sanitizing.", nameof(name));
+                }
                 var sheet = new DirectDataSetSheetModel(_sheets.Count + 1, sheetName, tableName, "", table,
                     _options.TableStyle, _options.IncludeHeaders, _options.IncludeAutoFilter, _options.CreateTable,
                     false, false, null, _options.UseCellValueNumberFormats,

@@ -79,26 +79,6 @@ internal static class ExcelTabularInputService
             }
         }
 
-        if (first is DataRowView firstRowView)
-        {
-            var rows = new List<DataRow>(items.Count) { firstRowView.Row };
-            for (var i = 1; i < items.Count; i++)
-            {
-                if (Unwrap(items[i]) is not DataRowView rowView)
-                {
-                    rows.Clear();
-                    break;
-                }
-
-                rows.Add(rowView.Row);
-            }
-
-            if (rows.Count > 0)
-            {
-                return NormalizeTabularValues(FromDataRows(rows), copyExistingTable: false, normalizerOptions);
-            }
-        }
-
         if (TryProjectToDataTable(items, tableName, normalizerOptions, out var projectedTable))
         {
             return projectedTable;

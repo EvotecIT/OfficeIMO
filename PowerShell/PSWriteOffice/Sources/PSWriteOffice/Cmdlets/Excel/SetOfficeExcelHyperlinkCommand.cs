@@ -149,17 +149,17 @@ public sealed class SetOfficeExcelHyperlinkCommand : PSCmdlet {
                 ? sheet.LinkByHeader(Header!, ExcelLinkTarget.Url(text => ExcelTextTransformService.Apply(UrlScript!, text)), options)
                 : sheet.LinkByHeader(Header!, ExcelLinkTarget.Sheet(destination, TargetAddress ?? "A1"), options);
             if (!result.Succeeded) throw new PSArgumentException(result.Failure);
-        } else if (ParameterSetName.EndsWith("Range", StringComparison.Ordinal)) {
+        } else if (ParameterSetName == "InternalRange") {
+            sheet.LinkCellsToInternalSheets(Range!, destination, TargetAddress ?? "A1", display, styled);
+        } else if (ParameterSetName == "UrlRange") {
             var (startRow, startColumn, endRow, endColumn) = ExcelA1.ParseRange(Range!);
             for (int row = startRow; row <= endRow; row++)
                 for (int column = startColumn; column <= endColumn; column++) {
-                    string text = sheet.Cell(row, column).GetFormattedText() ?? string.Empty;
-                    if (text.Length == 0) continue;
-                    if (ParameterSetName.StartsWith("Url", StringComparison.Ordinal)) {
-                        string url = ExcelTextTransformService.Apply(UrlScript!, text);
-                        if (display == null) sheet.SetHyperlinkSmart(row, column, url, null, styled);
-                        else sheet.SetHyperlink(row, column, url, display(text), styled);
-                    } else sheet.SetInternalLink(row, column, sheet.Document.Sheets.Single(item => item.Name == destination(text)), TargetAddress ?? "A1", display?.Invoke(text), styled);
+                    if (!sheet.TryGetCellText(row, column, out var text) || string.IsNullOrWhiteSpace(text)) continue;
+                    string url = ExcelTextTransformService.Apply(UrlScript!, text);
+                    if (string.IsNullOrWhiteSpace(url)) continue;
+                    if (display == null) sheet.SetHyperlinkSmart(row, column, url, null, styled);
+                    else sheet.SetHyperlink(row, column, url, display(text), styled);
                 }
         } else {
             var (row, column) = ExcelHostExtensions.ResolveCellAddress(null, null, Address);

@@ -117,29 +117,39 @@ public sealed class InvokeOfficeExcelTemplateCommand : PSCmdlet {
     [Parameter(ParameterSetName = "OptionalRows")]
     public SwitchParameter Remove { get; set; }
 
+    private readonly List<object?> _rows = new();
+
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        if (ParameterSetName is "Rows" or "Sheets") {
+            TableInputCollector.AddInput(_rows, InputObject);
+            return;
+        }
+        ApplyTemplate();
+    }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        if (ParameterSetName is "Rows" or "Sheets") ApplyTemplate();
+    }
+
+    private void ApplyTemplate() {
         var document = ExcelCommandTargets.Document(Document);
         var options = ExcelTemplateValueService.CreateOptions(Culture?.Name, MissingValueBehavior, ThrowOnMissing);
         int replacements = 0;
         if (ParameterSetName == "Sheets") {
-            var rows = ExcelTemplateValueService.ConvertRows(TableInputCollectorRows(InputObject));
+            var rows = ExcelTemplateValueService.ConvertRows(_rows);
             Func<IDictionary<string, object?>, int, string>? getName = SheetNameProperty == null ? null : (values, _) => ExcelTemplateValueService.GetStringValue(values, SheetNameProperty) ?? string.Empty;
             replacements = document.ApplyTemplateSheets(TemplateSheet!.Resolve(document.Sheets, s => s.Name).Name, rows, getName, options);
         } else {
             var selectors = Sheet;
             foreach (var sheet in ExcelSheetResolver.ResolveMany(document, selectors, Document == null ? ExcelDslContext.Current?.CurrentSheet : null)) {
-                if (ParameterSetName == "Rows") replacements += sheet.ApplyTemplateRows(TemplateRow!.Value, ExcelTemplateValueService.ConvertRows(TableInputCollectorRows(InputObject)), options);
+                if (ParameterSetName == "Rows") replacements += sheet.ApplyTemplateRows(TemplateRow!.Value, ExcelTemplateValueService.ConvertRows(_rows), options);
                 else if (ParameterSetName == "OptionalRows") replacements += Remove ? sheet.RemoveTemplateOptionalRows(OptionalRow!.Value, RowCount) : sheet.ApplyTemplateOptionalRows(OptionalRow!.Value, RowCount, true, Value == null ? new Dictionary<string, object?>() : ExcelTemplateValueService.ConvertValues(Value), options);
                 else replacements += sheet.ApplyTemplate(ExcelTemplateValueService.ConvertValues(Value!), options);
             }
         }
         if (PassThru) WriteObject(replacements);
-    }
-    private static List<object?> TableInputCollectorRows(object? value) {
-        var rows = new List<object?>();
-        TableInputCollector.AddInput(rows, value);
-        return rows;
     }
 
 }

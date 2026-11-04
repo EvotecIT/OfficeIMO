@@ -86,7 +86,7 @@ public sealed class AddOfficeExcelTableOfContentsCommand : PSCmdlet {
     /// <inheritdoc />
     protected override void ProcessRecord() {
         var document = ExcelCommandTargets.Document(Document);
-        string name = Name ?? "Table of Contents";
+        string name = Name ?? "TOC";
         document.AddTableOfContents(sheetName: name, placeFirst: !NoMoveFirst, withHyperlinks: !NoHyperlinks, includeNamedRanges: IncludeNamedRanges, includeHiddenNamedRanges: IncludeHiddenNamedRanges, styled: !NoStyle);
         if (BackLink) {
             if (BackLinkAddress != null) {

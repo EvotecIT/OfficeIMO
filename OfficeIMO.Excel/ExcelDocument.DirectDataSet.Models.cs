@@ -453,7 +453,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static string GetUniqueName(string baseName, HashSet<string> used, int maxLength) {
+            internal static string GetUniqueName(string baseName, HashSet<string> used, int maxLength) {
                 string trimmed = string.IsNullOrWhiteSpace(baseName) ? "Table" : baseName;
                 if (trimmed.Length > maxLength) {
                     trimmed = trimmed.Substring(0, maxLength);
@@ -484,11 +484,10 @@ namespace OfficeIMO.Excel {
                 baseName = baseName.Trim('\'', ' ');
                 var builder = new StringBuilder(baseName.Length);
                 foreach (char ch in baseName) {
-                    builder.Append(ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' ? '_' : ch);
+                    builder.Append(ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' || char.IsControl(ch) ? '_' : ch);
                 }
 
-                string value = _multipleUnderscoresRegex.Replace(builder.ToString().Trim(), "_");
-                value = value.Trim('_');
+                string value = builder.ToString().Trim();
                 if (string.IsNullOrWhiteSpace(value)) {
                     return "Sheet1";
                 }

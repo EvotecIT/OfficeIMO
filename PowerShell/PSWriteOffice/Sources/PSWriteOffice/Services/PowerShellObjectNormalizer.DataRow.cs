@@ -10,19 +10,20 @@ internal static partial class PowerShellObjectNormalizer
 {
     private static Dictionary<string, object?> ProjectDataRowDictionary(
         DataRow row,
+        DataRowVersion version,
         PowerShellObjectNormalizerOptions options)
     {
         var columns = row.Table.Columns;
         var result = new Dictionary<string, object?>(columns.Count, StringComparer.OrdinalIgnoreCase);
         foreach (DataColumn column in columns)
         {
-            result[column.ColumnName] = NormalizeCellValue(row[column], options);
+            result[column.ColumnName] = NormalizeCellValue(row[column, version], options);
         }
 
         return result;
     }
 
-    private static bool TryGetDataRow(object item, out DataRow row)
+    private static bool TryGetDataRow(object item, out DataRow row, out DataRowVersion version)
     {
         if (item is PSObject psObject)
         {
@@ -32,21 +33,25 @@ internal static partial class PowerShellObjectNormalizer
         if (item is DataRow dataRow)
         {
             row = dataRow;
+            version = DataRowVersion.Default;
             return true;
         }
 
         if (item is DataRowView dataRowView)
         {
             row = dataRowView.Row;
+            version = dataRowView.RowVersion;
             return true;
         }
 
         row = null!;
+        version = DataRowVersion.Default;
         return false;
     }
 
     private static void ProjectDataRow(
         DataRow row,
+        DataRowVersion version,
         string[]? columns,
         out string[] projectedColumns,
         out object?[] values,
@@ -61,7 +66,7 @@ internal static partial class PowerShellObjectNormalizer
             {
                 var column = tableColumns[i];
                 projectedColumns[i] = column.ColumnName;
-                values[i] = NormalizeCellValue(row[column], options);
+                values[i] = NormalizeCellValue(row[column, version], options);
             }
 
             return;
@@ -69,11 +74,12 @@ internal static partial class PowerShellObjectNormalizer
 
         projectedColumns = columns;
         values = new object?[columns.Length];
-        ProjectDataRowInto(row, columns, values, options);
+        ProjectDataRowInto(row, version, columns, values, options);
     }
 
     private static void ProjectDataRowInto(
         DataRow row,
+        DataRowVersion version,
         string[] columns,
         object?[] values,
         PowerShellObjectNormalizerOptions options)
@@ -81,7 +87,7 @@ internal static partial class PowerShellObjectNormalizer
         for (var i = 0; i < columns.Length; i++)
         {
             var column = GetDataColumn(row.Table.Columns, columns[i]);
-            values[i] = column == null ? null : NormalizeCellValue(row[column], options);
+            values[i] = column == null ? null : NormalizeCellValue(row[column, version], options);
         }
     }
 

@@ -295,6 +295,7 @@ public sealed partial class ExportOfficeExcelCommand {
     {
         return new PowerShellObjectNormalizerOptions
         {
+            Culture = Culture ?? CultureInfo.InvariantCulture,
             CollectionSeparator = CollectionSeparator,
             DictionaryEntrySeparator = DictionaryEntrySeparator,
             DictionaryKeyValueSeparator = DictionaryKeyValueSeparator,

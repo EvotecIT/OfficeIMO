@@ -30,7 +30,7 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// }</code>
 /// <para>Takes the colours and fonts from the company template so an older workbook matches current branding.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelTheme", DefaultParameterSetName = "Theme")]
+[Cmdlet(VerbsCommon.Set, "OfficeExcelTheme", DefaultParameterSetName = "Name")]
 [Alias("ExcelTheme")]
 public sealed class SetOfficeExcelThemeCommand : PSCmdlet {
     /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>

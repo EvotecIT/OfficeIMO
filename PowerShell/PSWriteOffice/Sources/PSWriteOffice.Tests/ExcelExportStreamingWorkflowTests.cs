@@ -107,12 +107,26 @@ public sealed class ExcelExportStreamingWorkflowTests {
     }
 
     [Theory]
-    [InlineData(DataViewRowState.ModifiedOriginal, false)]
-    [InlineData(DataViewRowState.ModifiedOriginal, true)]
-    [InlineData(DataViewRowState.Deleted, false)]
-    [InlineData(DataViewRowState.Deleted, true)]
-    public void DataViewAndIndividualViewsExportTheSelectedOriginalVersion(DataViewRowState state, bool individualRow) {
+    [InlineData(DataViewRowState.ModifiedOriginal, false, null)]
+    [InlineData(DataViewRowState.ModifiedOriginal, true, null)]
+    [InlineData(DataViewRowState.Deleted, false, null)]
+    [InlineData(DataViewRowState.Deleted, true, null)]
+    [InlineData(DataViewRowState.ModifiedOriginal, true, "-Append")]
+    [InlineData(DataViewRowState.Deleted, true, "-Append")]
+    [InlineData(DataViewRowState.ModifiedOriginal, true, "-ReplaceSheet")]
+    [InlineData(DataViewRowState.Deleted, true, "-ReplaceSheet")]
+    public void DataViewAndIndividualViewsExportTheSelectedOriginalVersion(DataViewRowState state, bool individualRow, string? mode) {
         InDirectory(path => {
+            if (mode != null) {
+                using var previous = ExcelDocument.Create(path);
+                var orders = previous.AddSheet("Orders");
+                orders.Cell("A1").SetValue("Name");
+                orders.Cell("B1").SetValue("Amount");
+                orders.Cell("A2").SetValue("existing");
+                orders.Cell("B2").SetValue(3m);
+                previous.AddSheet("Keep").Cell("A1").SetValue("untouched");
+                previous.Save();
+            }
             using var table = new DataTable("Orders");
             table.Columns.Add("Name");
             table.Columns.Add("Amount", typeof(decimal));
@@ -124,12 +138,20 @@ public sealed class ExcelExportStreamingWorkflowTests {
             using var view = new DataView(table) { RowStateFilter = state };
             using var runspace = CreateRunspace(path);
             runspace.SessionStateProxy.SetVariable("rows", individualRow ? view[0] : view);
-            Invoke(runspace, "Export-OfficeExcel -Path $destination -InputObject $rows -Sheet Orders");
+            Invoke(runspace, mode == null
+                ? "Export-OfficeExcel -Path $destination -InputObject $rows -Sheet Orders"
+                : "$rows | Export-OfficeExcel -Path $destination -Sheet Orders " + mode);
             using var saved = ExcelDocument.Load(path);
             Assert.Equal("Name", saved["Orders"].Cell("A1").GetValue<string>());
-            Assert.Equal("original", saved["Orders"].Cell("A2").GetValue<string>());
-            Assert.Equal(1m, saved["Orders"].Cell("B2").GetValue<decimal>());
-            Assert.True(string.IsNullOrEmpty(saved["Orders"].Cell("A3").GetValue<string>()));
+            int row = mode == "-Append" ? 3 : 2;
+            Assert.Equal("original", saved["Orders"].Cell(row, 1).GetValue<string>());
+            Assert.Equal(1m, saved["Orders"].Cell(row, 2).GetValue<decimal>());
+            Assert.True(string.IsNullOrEmpty(saved["Orders"].Cell(row + 1, 1).GetValue<string>()));
+            if (mode == "-Append") {
+                Assert.Equal("existing", saved["Orders"].Cell("A2").GetValue<string>());
+                Assert.Equal(3m, saved["Orders"].Cell("B2").GetValue<decimal>());
+            }
+            if (mode != null) Assert.Equal("untouched", saved["Keep"].Cell("A1").GetValue<string>());
         });
     }
 
