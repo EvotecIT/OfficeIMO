@@ -39,4 +39,6 @@ Desktop Office can be an optional independent validation oracle for high-value s
 - [XLSB and XLSX conversion](/convert/xlsb-xlsx/)
 - [PPT and PPTX conversion](/convert/ppt-pptx/)
 
+If the archive also contains Publisher files, see [Convert Publisher to PDF after Microsoft Publisher retirement](/convert/publisher-to-pdf/) for single-file and batch conversion.
+
 After modernization, use the normal [Word](/products/word/), [Excel](/products/excel/), and [PowerPoint](/products/powerpoint/) APIs for editing, reporting, review, or publishing.

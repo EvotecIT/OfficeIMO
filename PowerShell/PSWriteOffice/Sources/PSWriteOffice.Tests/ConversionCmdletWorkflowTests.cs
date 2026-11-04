@@ -12,7 +12,7 @@ namespace PSWriteOffice.Tests;
 public sealed partial class ConversionCmdletWorkflowTests {
     [Fact]
     public void NoClobberReportsASkippedFileWithoutReplacingItsExistingDestination() {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-no-clobber-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-no-clobber-");
         try {
             string source = Path.Combine(root, "review.md"), destination = Path.Combine(root, "review.pdf");
             File.WriteAllText(source, "# Updated source");
@@ -45,7 +45,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
 
     [Fact]
     public void SavedBatchKeepsItsSkipPolicyAndReportsEveryEligibleSkippedInput() {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-skip-job-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-skip-job-");
         try {
             string source = Path.Combine(root, "review.md");
             string outputDirectory = Directory.CreateDirectory(Path.Combine(root, "pdf")).FullName;
@@ -92,7 +92,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
     [InlineData(1)]
     [InlineData(0)]
     public void FileFreshnessUsesStrictlyNewerOutputsAndReportsAnActualConversionOtherwise(int outputAge) {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-freshness-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-freshness-");
         try {
             string source = Path.Combine(root, "review.md"), destination = Path.Combine(root, "review.pdf");
             File.WriteAllText(source, "# Current conversion evidence");
@@ -148,7 +148,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
 
     [Fact]
     public void SourceOverrideSelectsMarkdownInATextFileAndSurvivesPortableJobSaveAndExecution() {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-from-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-from-");
         try {
             string source = Path.Combine(root, "review.txt"), destination = Path.Combine(root, "review.docx");
             string batchOutput = Path.Combine(root, "word"), jobPath = Path.Combine(root, "review.officejob.json");
@@ -285,7 +285,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
 
     [Fact]
     public void MixedFormatPaperOverrideRetainsTypedWordSettingsAndUsesEachEnginesNativePaperPreset() {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-mixed-options-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-mixed-options-");
         try {
             string input = Directory.CreateDirectory(Path.Combine(root, "inputs")).FullName;
             using (var document = WordDocument.Create()) { document.AddParagraph("Word conversion source"); document.Save(Path.Combine(input, "review.docx")); }
@@ -318,7 +318,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
 
     [Fact]
     public void LiteralFilePipelineConvertsToNativePdfAndRetainsOptionsAndBatchCounts() {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-command-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-command-");
         try {
             string input = Directory.CreateDirectory(Path.Combine(root, "inputs")).FullName;
             string source = Path.Combine(input, "review[1].docx");
@@ -351,7 +351,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
 
     [Fact]
     public void SavedJobPlansWithoutEffectsAndRunsWithTheSharedPortableContract() {
-        string root = Directory.CreateTempSubdirectory("officeimo-conversion-job-").FullName;
+        string root = CreateBatchTestDirectory("officeimo-conversion-job-");
         try {
             string input = Directory.CreateDirectory(Path.Combine(root, "inputs")).FullName;
             using (var document = WordDocument.Create()) { document.AddParagraph("Saved conversion source"); document.Save(Path.Combine(input, "review.docx")); }
@@ -428,6 +428,12 @@ public sealed partial class ConversionCmdletWorkflowTests {
             Assert.Equal(Path.Combine(root, "notes.md"), report.Source);
             Assert.Contains("Piped heading", File.ReadAllText(Path.Combine(root, "notes.html")));
         } finally { Directory.Delete(root, true); }
+    }
+
+    private static string CreateBatchTestDirectory(string prefix) {
+        // Batch paths reject symlinked ancestors, including the macOS system temp path.
+        string path = Path.Combine(AppContext.BaseDirectory, prefix + Guid.NewGuid().ToString("N"));
+        return Directory.CreateDirectory(path).FullName;
     }
 
     private static Runspace OpenRunspace() {

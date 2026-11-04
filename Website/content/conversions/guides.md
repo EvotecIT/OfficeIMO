@@ -1,6 +1,6 @@
 ---
 title: "Document Conversion Guides for .NET"
-description: "Choose .NET routes for DOC, DOCX, XLS, XLSX, XLSB, PPT, PPTX, PDF, and web formats, with documented PSWriteOffice routes called out separately."
+description: "Choose .NET routes for DOC, DOCX, XLS, XLSX, XLSB, PPT, PPTX, PUB, PDF, and web formats, with documented PSWriteOffice routes called out separately."
 layout: conversion
 meta.eyebrow: "Conversion workflows"
 meta.outcome: "Move documents without hiding fidelity decisions"
@@ -29,6 +29,7 @@ OfficeIMO conversion is built for .NET applications that need more than a file-e
 | [PPT and PPTX](/convert/ppt-pptx/) | `OfficeIMO.PowerPoint` | Slides, shapes, text, media, notes, charts, and fallback decisions |
 | [Word to PDF](/convert/word-to-pdf/) | `OfficeIMO.Word.Pdf` | Publishing warnings, fonts, images, tables, sections, and output status |
 | [Excel to PDF](/convert/excel-to-pdf/) | `OfficeIMO.Excel.Pdf` | Worksheet selection, pagination, page setup, styles, and export warnings |
+| [Publisher to PDF](/convert/publisher-to-pdf/) | `OfficeIMO.Publisher.Pdf` | Page sizes, searchable text, and fidelity diagnostics for Publisher archives |
 | [PDF to Word](/convert/pdf-to-word/) | `OfficeIMO.Word.Pdf` | Editable reconstruction or rendered-page output with explicit loss diagnostics |
 | [PDF tables to Excel](/convert/pdf-tables-to-excel/) | `OfficeIMO.Excel.Pdf` | Detected table rows and cells, omitted page content, and import limits |
 | [PDF to PowerPoint](/convert/pdf-to-powerpoint/) | `OfficeIMO.PowerPoint.Pdf` | Editable, visual, hybrid, and tables-only projections with warnings |
@@ -38,19 +39,20 @@ For HTML, Markdown, RTF, OpenDocument, Google Docs, Sheets, and Slides, use the 
 
 ## One CLI binary for modern Office-to-PDF routes
 
-Install `OfficeIMO.Tool` once and use the same `officeimo` executable for DOCX, XLSX, and PPTX input:
+Install `OfficeIMO.Tool` once and use the same `officeimo` executable for DOCX, XLSX, PPTX, and PUB input:
 
 ```shell
 officeimo convert report.docx
 officeimo convert workbook.xlsx --output published/workbook.pdf
 officeimo convert deck.pptx --output deck.pdf --force
+officeimo convert brochure.pub brochure.pdf
 ```
 
-The extension selects the same first-party Word, Excel, or PowerPoint PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above.
+The extension selects the same first-party Word, Excel, PowerPoint, or Publisher PDF adapter used by .NET applications. The source is opened read-only, diagnostics go to standard error, and an existing destination is not replaced unless `--force` is explicit. The command is intentionally a thin package dispatcher; format-specific fidelity and warning contracts remain in the owning adapters linked above.
 
 ## PowerShell routes are documented separately
 
-PSWriteOffice exposes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and a much broader set of authoring, inspection, validation, and publishing commands. It does not imply that every .NET conversion route in the table is available as a cmdlet. Start with the [PSWriteOffice product page](/products/pswriteoffice/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
+PSWriteOffice includes dedicated DOC/DOCX and XLS/XLSX conversion cmdlets and supports [Publisher to PDF](/convert/publisher-to-pdf/#convert-a-publisher-archive-with-powershell) through `Convert-OfficeDocument`. Start with the [PSWriteOffice product page](/products/pswriteoffice/), then verify the exact command and parameters in the [PowerShell API reference](/api/powershell/).
 
 ## Conversion is a policy decision
 
@@ -66,7 +68,7 @@ The [format compatibility page](/compatibility/) exposes those states from the s
 
 ## Browser, server, and desktop choices
 
-The browser playground intentionally supports a smaller modern-format route set because files stay in the browser. Legacy DOC, XLS, and PPT migration belongs in a .NET service, desktop application, or CLI. PSWriteOffice additionally provides the documented DOC/DOCX and XLS/XLSX cmdlet routes described above. That boundary is explicit so a browser demo—or the .NET package matrix—is never mistaken for the PowerShell command surface.
+The browser playground intentionally supports a smaller modern-format route set because files stay in the browser. Publisher to PDF and legacy DOC, XLS, and PPT migration use the local packages or command-line surfaces described in the route guides.
 
 ## Need a broader workflow?
 

@@ -98,17 +98,17 @@ internal sealed class OfficePdfArguments {
 
     private void Validate() {
         if (string.IsNullOrWhiteSpace(InputPath)) {
-            throw new OfficePdfUsageException("The convert command requires an input DOC, DOCX, TXT, XLSX, PPTX, ODG, FODG, or DjVu file.");
+            throw new OfficePdfUsageException("The convert command requires an input DOC, DOCX, TXT, XLSX, PPTX, ODG, FODG, DjVu, or PUB file.");
         }
 
         string extension = Path.GetExtension(InputPath).ToLowerInvariant();
-        if (extension is not ".doc" and not ".docx" and not ".txt" and not ".xlsx" and not ".pptx" and not ".odg" and not ".fodg" and not ".djvu" and not ".djv") {
-            throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, PPTX, ODG, FODG, and DjVu input.");
+        if (extension is not ".doc" and not ".docx" and not ".txt" and not ".xlsx" and not ".pptx" and not ".odg" and not ".fodg" and not ".djvu" and not ".djv" and not ".pub") {
+            throw new OfficePdfUsageException("The convert command supports DOC, DOCX, TXT, XLSX, PPTX, ODG, FODG, DjVu, and PUB input.");
         }
         if (AllowLegacyLoss && extension != ".doc") throw new OfficePdfUsageException("--allow-legacy-loss requires DOC input.");
         if (HasTextOptions && extension != ".txt") throw new OfficePdfUsageException("Text encoding and tabs require TXT input.");
         if (HasDiagramOptions && !IsDrawInput) throw new OfficePdfUsageException("Diagram options require ODG or FODG input.");
-        if (FailOnLoss && !IsDrawInput && !IsDjVuInput) throw new OfficePdfUsageException("--require-no-loss requires ODG, FODG, or DjVu input.");
+        if (FailOnLoss && !IsDrawInput && !IsDjVuInput && extension != ".pub") throw new OfficePdfUsageException("--require-no-loss requires ODG, FODG, DjVu, or PUB input.");
 
         OutputPath ??= Path.ChangeExtension(InputPath, ".pdf");
         if (Path.GetExtension(OutputPath).Equals(".pdf", StringComparison.OrdinalIgnoreCase) == false) {
