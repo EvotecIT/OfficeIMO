@@ -22,7 +22,6 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
-    [Parameter(ParameterSetName = "Text")]
     [Parameter(ParameterSetName = "Document")]
     public SwitchParameter Ocr { get; set; }
 
@@ -31,7 +30,6 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
-    [Parameter(ParameterSetName = "Text")]
     [Parameter(ParameterSetName = "Document")]
     [OfficeOptionsTransformation(typeof(OfficeOcrOptions))]
     public OfficeOcrOptions? OcrOptions { get; set; }
@@ -41,7 +39,6 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
-    [Parameter(ParameterSetName = "Text")]
     [Parameter(ParameterSetName = "Document")]
     [OfficePageRangeTransformation]
     public OfficePageRange? Page { get; set; }
@@ -51,7 +48,6 @@ public sealed partial class ConvertOfficeDocumentCommand {
     [Parameter(ParameterSetName = "LiteralPath")]
     [Parameter(ParameterSetName = "PathFile")]
     [Parameter(ParameterSetName = "LiteralPathFile")]
-    [Parameter(ParameterSetName = "Text")]
     [Parameter(ParameterSetName = "Document")]
     [ValidateRange(36D, 600D)]
     public double? Dpi { get; set; }

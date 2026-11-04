@@ -173,7 +173,12 @@ Describe 'Native PDF annotation selection and XFDF option capture' {
         { Set-OfficePdfAnnotation -LiteralPath $source -OutputPath $output -Uri 'https://example.invalid/rev*' -Contents Reviewed -Password $user -ErrorAction Stop } |
             Should -Throw '*Append-only annotation updates retain replaced annotation data*'
         Test-Path -LiteralPath $output | Should -BeFalse
-        Set-OfficePdfAnnotation -LiteralPath $source -OutputPath $output -Uri 'https://example.invalid/rev*' -Contents Reviewed -Password $owner
+        $policy = [OfficeIMO.Pdf.PdfAnnotationUpdateOptions]::new()
+        $policy.AllowResidualDataInAppendOnly = $true
+        $policy.Contents = 'Caller value'
+        Set-OfficePdfAnnotation -LiteralPath $source -OutputPath $output -Uri 'https://example.invalid/rev*' -Contents Reviewed -Password $owner -Options $policy
+        $policy.Contents | Should -Be 'Caller value'
+        $policy.AllowResidualDataInAppendOnly | Should -BeTrue
         $annotations = @(Get-OfficePdfAnnotation -LiteralPath $output -Password $owner)
         ($annotations | Where-Object Uri -eq 'https://example.invalid/review').Contents | Should -Be Reviewed
         ($annotations | Where-Object Uri -eq 'https://example.invalid/keep').Contents | Should -Not -Be Reviewed

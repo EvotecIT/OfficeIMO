@@ -1,97 +1,96 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
-using System.Security;
+using System.Threading;
+using OfficeIMO;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Updates a single indirect PDF annotation.</summary>
-[Cmdlet(VerbsCommon.Set, "OfficePdfAnnotation", SupportsShouldProcess = true)]
-[OutputType(typeof(FileInfo))]
-[OutputType(typeof(PdfAnnotationEditResult))]
-public sealed class SetOfficePdfAnnotationCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>Input PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
-    [Alias("FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Output PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
-    public string OutputPath { get; set; } = string.Empty;
-
-    /// <summary>Password used to authenticate an encrypted PDF.</summary>
-    [Parameter]
-    [OfficePasswordTransformation]
-    public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed annotation-modification restrictions.</summary>
-    [Parameter]
-    public SwitchParameter IgnorePermissionRestrictions { get; set; }
-
-    /// <summary>Indirect annotation object number to update.</summary>
-    [Parameter(Mandatory = true)]
-    public int ObjectNumber { get; set; }
-
-    /// <summary>Replacement annotation contents text.</summary>
-    [Parameter]
-    public string? Contents { get; set; }
-
-    /// <summary>Replacement annotation title text.</summary>
-    [Parameter]
-    public string? Title { get; set; }
-
-    /// <summary>Replacement annotation name.</summary>
-    [Parameter]
-    public string? Name { get; set; }
-
-    /// <summary>Replacement annotation flags.</summary>
-    [Parameter]
-    public int? Flags { get; set; }
-
-    /// <summary>Replacement annotation color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
-
-    /// <summary>Remove /A and /AA action dictionaries from the annotation.</summary>
-    [Parameter]
-    public SwitchParameter RemoveAction { get; set; }
-
-    /// <summary>Return the annotation edit result instead of the output file.</summary>
-    [Parameter]
-    public SwitchParameter PassThruReport { get; set; }
+/// <summary>Updates native annotation contents, styling and actions by identity or target URI.</summary>
+/// <para>Native confirmation runs before loading or editing a file. Live inputs stay caller-owned; a replacement document is adopted by the enclosing content block or returned for explicit assignment. PassThru returns native edit reports.</para>
+[Cmdlet(VerbsCommon.Set, "OfficePdfAnnotation", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
+[OutputType(typeof(FileInfo), typeof(PdfDocument), typeof(PdfAnnotationEditResult))]
+public sealed partial class SetOfficePdfAnnotationCommand : PSCmdlet, IDisposable {
+    private readonly CancellationTokenSource _stop = new();
+    private readonly List<string> _inputs = new();
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        string inputPath = PdfCommandUtilities.ResolvePath(this, Path);
-        string outputPath = PdfCommandUtilities.ResolvePath(this, OutputPath);
-        if (!ShouldProcess(outputPath, "Update PDF annotation")) {
+        if (ParameterSetName.StartsWith("Document", StringComparison.Ordinal)) {
+            var source = Document ?? OfficeDocumentContext.Find<PdfDocument>() ?? throw new PSArgumentException("Provide Document or use an Open-/New-OfficePdf content block.");
+            if (!ShouldProcess("PDF document", "Set PDF annotations")) return;
+            var reports = Edit(source);
+            if (reports.Count == 0) { if (!PassThru) WriteObject(source); return; }
+            var result = reports[reports.Count - 1].ToDocument();
+            bool adopted = OfficeDocumentContext.Replace(source, result);
+            if (PassThru) {
+                foreach (var report in reports) WriteObject(report);
+                if (!adopted) result.Dispose();
+            } else if (!adopted) WriteObject(result);
             return;
         }
-
-        global::OfficeIMO.OfficeColor? color = PdfCommandUtilities.ParseColor(Color);
-        var options = new PdfAnnotationUpdateOptions {
-            Contents = Contents,
-            Title = Title,
-            Name = Name,
-            Flags = Flags,
-            Color = color.HasValue ? new[] { color.Value.ToNormalizedRgb().R, color.Value.ToNormalizedRgb().G, color.Value.ToNormalizedRgb().B } : null,
-            RemoveActions = RemoveAction.IsPresent
-        };
-
-        PdfCommandUtilities.EnsureDirectory(outputPath);
-        PdfAnnotationEditResult result = PdfDocument
-            .Load(inputPath, PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-            .Annotations.Update(ObjectNumber, options);
-        result.ToDocument().Save(outputPath);
-        if (PassThruReport.IsPresent) {
-            WriteObject(result);
-            return;
-        }
-
-        WritePassThru(new FileInfo(outputPath));
+        bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
+        _inputs.AddRange(OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal));
     }
+
+    /// <inheritdoc />
+    protected override void EndProcessing() {
+        if (_inputs.Count == 0) return;
+        var read = PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions.IsPresent);
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(IgnorePermissionRestrictions)) is bool ignore)
+            read = (read ?? new PdfLoadOptions()).Snapshot(null, null, ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce);
+        foreach (var item in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, false)) {
+            if (!ShouldProcess(item.Output, "Set PDF annotations")) continue;
+            using var source = PdfDocument.Load(item.Input, read, _stop.Token);
+            var reports = Edit(source);
+            using var result = reports.Count == 0 ? null : reports[reports.Count - 1].ToDocument();
+            (result ?? source).Save(item.Output, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, _stop.Token);
+            if (PassThru) { foreach (var report in reports) WriteObject(report); }
+            else WriteObject(new FileInfo(item.Output));
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void StopProcessing() => _stop.Cancel();
+    private IReadOnlyList<PdfAnnotationEditResult> Edit(PdfDocument source) {
+        var options = PdfOperationCancellation.Bind(Options ?? new PdfAnnotationUpdateOptions(), createWhenNull: false, _stop.Token)!;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Contents))) options.Contents = Contents;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Title))) options.Title = Title;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Name))) options.Name = Name;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Flags))) options.Flags = Flags;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(RemoveAction))) options.RemoveActions = RemoveAction.IsPresent;
+        if (Color.HasValue) {
+            var rgb = Color.Value.Resolve(OfficeTheme.Default).ToNormalizedRgb();
+            options.Color = new[] { rgb.R, rgb.G, rgb.B };
+        }
+        if (Uri == null) return new[] { source.Annotations.Update(ObjectNumber, options, _stop.Token) };
+        var pattern = new WildcardPattern(Uri, WildcardOptions.IgnoreCase | WildcardOptions.CultureInvariant);
+        var selected = source.Annotations.GetForEditing(_stop.Token)
+            .Where(annotation => annotation.Uri != null && pattern.IsMatch(annotation.Uri) && annotation.ObjectNumber.HasValue)
+            .Select(annotation => annotation.ObjectNumber!.Value).ToList();
+        var reports = new List<PdfAnnotationEditResult>();
+        PdfDocument current = source;
+        try {
+            while (selected.Count > 0) {
+                _stop.Token.ThrowIfCancellationRequested();
+                int number = selected[0]; selected.RemoveAt(0);
+                var report = current.Annotations.Update(number, options, _stop.Token);
+                reports.Add(report);
+                var next = report.ToDocument();
+                if (!ReferenceEquals(current, source)) current.Dispose();
+                current = next;
+                if (report.AnnotationObjectNumberMap != null)
+                    selected = selected.Select(id => report.AnnotationObjectNumberMap.TryGetValue(id, out int mapped) ? mapped
+                        : throw new InvalidOperationException("An annotation disappeared during the native rewrite.")).ToList();
+            }
+        } finally { if (!ReferenceEquals(current, source)) current.Dispose(); }
+        return reports;
+    }
+    /// <summary>Releases the command-owned cancellation source.</summary>
+    public void Dispose() => _stop.Dispose();
 }

@@ -28,7 +28,6 @@ public sealed partial class ReadOfficeDocumentCommand : OfficeInputCmdlet {
     private OfficeReadConfiguration _configuration = null!;
     private OfficeDocumentReader _reader = null!;
     private OfficeOcrOptions? _ocrOptions;
-    private IOcrEngine? _ocrEngine;
     private bool _recurseBound, _extensionBound, _maximumFilesBound;
     private long? TotalByteAllowance => MaximumTotalBytes ?? _configuration.Common.FolderOptions?.MaxTotalBytes;
     private int FileCeiling => _maximumFilesBound ? MaximumFiles : Math.Max(1, _configuration.Common.FolderOptions?.MaxFiles ?? MaximumFiles);
@@ -196,9 +195,11 @@ public sealed partial class ReadOfficeDocumentCommand : OfficeInputCmdlet {
     protected override async Task EndProcessingAsync() {
         if (ParameterSetName == "InputObject" || _paths.Count == 0) return;
         if (_ocrOptions != null) {
-            _ocrEngine = await OfficeReadOcr.CreateEngineAsync(_ocrOptions, CancelToken);
             var builder = ReaderCommandUtilities.CreateBuilder(_configuration.Formats).WithMaxConcurrentReads(ThrottleLimit);
-            if (As != OfficeReadView.Ocr) builder.AddProcessor(new OfficeDocumentOcrProcessor(_ocrEngine, _ocrOptions.ExecutionOptions));
+            if (As != OfficeReadView.Ocr) {
+                IOcrEngine engine = await OfficeReadOcr.CreateEngineAsync(_ocrOptions, CancelToken);
+                builder.AddProcessor(new OfficeDocumentOcrProcessor(engine, _ocrOptions.ExecutionOptions));
+            }
             _reader = builder.Build();
         }
         var batch = new ReaderBatchOptions { MaxDocuments = FileCeiling == 0 ? int.MaxValue : FileCeiling, MaxDegreeOfParallelism = TotalByteAllowance.HasValue ? 1 : ThrottleLimit, MaxTotalBytes = TotalByteAllowance };
@@ -208,6 +209,7 @@ public sealed partial class ReadOfficeDocumentCommand : OfficeInputCmdlet {
         if (limited) WriteWarning($"Document selection reached MaximumFiles ({FileCeiling}). Use zero for no limit.");
         var paths = As == OfficeReadView.Ocr ? SelectWithinByteBudget(selected) : selected;
         if (As == OfficeReadView.Ocr) {
+            var reviewEngine = new Lazy<Task<IOcrEngine>>(() => OfficeReadOcr.CreateEngineAsync(_ocrOptions!, CancelToken));
             try {
                 await RunBatchAsync(paths, async (path, token) => {
                     var common = _configuration.Common;
@@ -215,7 +217,7 @@ public sealed partial class ReadOfficeDocumentCommand : OfficeInputCmdlet {
                         common = OfficeReadConfiguration.Copy(common);
                         common.MaxInputBytes = Math.Min(common.MaxInputBytes ?? long.MaxValue, allowance);
                     }
-                    return await OfficeReadOcr.ReadReviewAsync(path, _ocrEngine!, _ocrOptions!, common,
+                    return await OfficeReadOcr.ReadReviewAsync(path, _ => reviewEngine.Value, _ocrOptions!, common,
                         _configuration.Formats.Pdf?.ReadOptions ?? _configuration.Formats.Pdf?.LoadOptions, token);
                 }, "Recognize documents");
             } finally { _configuration.Common.OpenPassword = null; }

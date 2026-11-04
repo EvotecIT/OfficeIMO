@@ -43,7 +43,7 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
     /// <summary>Input data (array, list, DataTable, etc.).</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetContext)]
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    [Alias("Data")]
+    [Alias("Data"), AllowNull]
     public object[] InputObject { get; set; } = Array.Empty<object>();
 
     /// <summary>Selected input properties in display order.</summary>
