@@ -15,8 +15,6 @@ public static class ModuleInitializer
         if (string.IsNullOrEmpty(diffDisabled))
             Environment.SetEnvironmentVariable("DiffEngine_Disabled", "true");
 
-        Environment.SetEnvironmentVariable("Verify_DisableClipboard", "true");
-
         Verifier.UseSourceFileRelativeDirectory("verified");
         VerifierSettings.RegisterFileConverter<WordprocessingDocument>(WordprocessingDocumentConverter.Convert);
     }
