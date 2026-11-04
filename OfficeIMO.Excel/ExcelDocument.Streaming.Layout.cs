@@ -97,6 +97,7 @@ public partial class ExcelDocument {
         internal bool[] AutoFitColumns { get; }
         internal string ViewsXml { get; }
         internal string Range(int columns, int rows, bool includeHeaders) =>
+            columns <= 0 || (rows == 0 && !includeHeaders) ? string.Empty :
             ExcelA1.CellReference(HeaderRow, FirstColumn) + ":" +
             ExcelA1.CellReference(Math.Max(HeaderRow, DataRow + rows - 1), FirstColumn + columns - 1);
     }

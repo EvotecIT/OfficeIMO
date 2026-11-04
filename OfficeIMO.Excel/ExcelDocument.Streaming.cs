@@ -58,7 +58,7 @@ public partial class ExcelDocument {
         private readonly Stream? _stagedDestination;
         private readonly string? _stagedPath;
         private readonly ExcelPositionReportingWriteStream? _position;
-        private readonly ZipArchive _archive;
+        private ZipArchive? _archive;
         private readonly ExcelWriterOptions _options;
         private readonly OfficeTheme _theme;
         private readonly bool _leaveOpen;
@@ -90,9 +90,7 @@ public partial class ExcelDocument {
                 _stagedPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Excel-Package-" + Guid.NewGuid().ToString("N") + ".xlsx");
                 _output = new FileStream(_stagedPath, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
             } else _output = output;
-            if (_output.CanSeek) PrepareDestinationStreamForWrite(_output);
             _position = _output.CanSeek ? null : new ExcelPositionReportingWriteStream(_output);
-            _archive = new ZipArchive(_position ?? _output, ZipArchiveMode.Create, leaveOpen: true);
         }
 
         internal async Task<ExcelDataSetImportResult> WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
@@ -134,6 +132,10 @@ public partial class ExcelDocument {
                     showRowStripes: _options.ShowRowStripes, showColumnStripes: _options.ShowColumnStripes,
                     includeCellReferences: _options.IncludeCellReferences) { StreamingLayout = layout };
                 var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options.DateSystem, styles);
+                if (_archive == null) {
+                    if (_output.CanSeek) PrepareDestinationStreamForWrite(_output);
+                    _archive = new ZipArchive(_position ?? _output, ZipArchiveMode.Create, leaveOpen: true);
+                }
                 int rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive, model, rows, writeRow, layout.AutoFitColumns.Any(enabled => enabled), _theme, cancellationToken).ConfigureAwait(false);
                 _sheets.Add(sheet);
                 return new ExcelDataSetImportResult(sheetName, tableName,
@@ -155,9 +157,9 @@ public partial class ExcelDocument {
                         throw new InvalidOperationException("Write at least one table before disposing the writer; a workbook needs a worksheet.");
                     if (!_failed) {
                         var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options.DateSystem, _styles);
-                        DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive, model, _theme);
+                        DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive!, model, _theme);
                     }
-                } finally { _archive.Dispose(); }
+                } finally { _archive?.Dispose(); }
                 if (!_leaveOpen || _stagedPath != null) _output.Dispose();
                 if (!_failed && (_temporaryPath ?? _stagedPath) is string packagePath)
                     FinalizeStreamingFile(packagePath, _options);

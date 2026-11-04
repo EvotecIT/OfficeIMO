@@ -483,12 +483,15 @@ namespace OfficeIMO.Excel {
                 string baseName = (name ?? string.Empty).Trim();
                 baseName = baseName.Trim('\'', ' ');
                 var builder = new StringBuilder(baseName.Length);
+                bool hasValidCharacter = false;
                 foreach (char ch in baseName) {
-                    builder.Append(ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' || char.IsControl(ch) ? '_' : ch);
+                    bool invalid = ch is ':' or '\\' or '/' or '?' or '*' or '[' or ']' || char.IsControl(ch);
+                    builder.Append(invalid ? '_' : ch);
+                    hasValidCharacter |= !invalid && !char.IsWhiteSpace(ch);
                 }
 
                 string value = builder.ToString().Trim();
-                if (string.IsNullOrWhiteSpace(value)) {
+                if (!hasValidCharacter) {
                     return "Sheet1";
                 }
 
