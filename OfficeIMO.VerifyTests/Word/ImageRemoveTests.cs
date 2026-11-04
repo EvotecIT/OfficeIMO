@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Assert = OfficeIMO.VerifyTests.TestAssert;
 
 namespace OfficeIMO.VerifyTests.Word;
 
@@ -27,7 +26,8 @@ public class ImageRemoveTests {
         });
         using var document = WordDocument.Create();
         document.AddHeadersAndFooters();
-        var headers = Assert.NotNull(document.Header);
+        var headers = document.Header;
+        Assert.NotNull(headers);
         var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
         var paragraph = defaultHeader.AddParagraph();
         paragraph.AddImage(stream, "tiny.png", OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));

@@ -3,7 +3,6 @@ using System;
 using System.Threading.Tasks;
 using VerifyXunit;
 using Xunit;
-using Assert = OfficeIMO.VerifyTests.TestAssert;
 using Color = OfficeIMO.OfficeColor;
 
 namespace OfficeIMO.VerifyTests.Word;
@@ -90,7 +89,8 @@ public class AdvancedDocumentTests {
         document.AddHeadersAndFooters();
 
         // adding text to default header
-        var headers = Assert.NotNull(document.Header);
+        var headers = document.Header;
+        Assert.NotNull(headers);
         var defaultHeader = Assert.IsType<WordHeader>(headers.Default);
         defaultHeader.AddParagraph("Text added to header - Default");
 
@@ -105,7 +105,8 @@ public class AdvancedDocumentTests {
         document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
         // add page numbers
-        var footers = Assert.NotNull(document.Footer);
+        var footers = document.Footer;
+        Assert.NotNull(footers);
         var defaultFooter = Assert.IsType<WordFooter>(footers.Default);
         defaultFooter.AddPageNumber(WordPageNumberStyle.PlainNumber);
 
