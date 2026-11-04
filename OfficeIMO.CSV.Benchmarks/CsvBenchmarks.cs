@@ -546,6 +546,11 @@ public partial class CsvBenchmarks
         CsvDocument.ReadRowsReusable(reader, (_, values) =>
         {
             checksum += MeasureValues(values);
+            if (_validateRawRead)
+            {
+                for (int column = 0; column < values.Count; column++) ValidateRawField(column, values[column]);
+                CompleteRawRow();
+            }
         });
 
         return checksum;
@@ -572,7 +577,7 @@ public partial class CsvBenchmarks
     public int OfficeIMO_ReadFieldSpansMaterialized()
     {
         using var reader = new StringReader(_csvText);
-        var visitor = new CsvMaterializingFieldSpanVisitor();
+        var visitor = new CsvMaterializingFieldSpanVisitor(_validateRawRead ? _expectedRawRows : null);
         CsvDocument.ReadFieldSpans(
             reader,
             ref visitor,

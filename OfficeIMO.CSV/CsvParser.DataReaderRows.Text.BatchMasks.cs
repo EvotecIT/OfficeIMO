@@ -1,7 +1,6 @@
 #if NET8_0_OR_GREATER
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.Arm;
 using System.Runtime.Intrinsics.X86;
 
 namespace OfficeIMO.CSV;
@@ -36,26 +35,7 @@ internal static partial class CsvParser
             return (uint)Avx2.MoveMask(matches);
         }
 
-        var lower = GetTextDataReaderBatchArmMatches(PackTextDataReaderBatchArm(ref text, position), delimiter, textMayContainQuote);
-        var upper = GetTextDataReaderBatchArmMatches(PackTextDataReaderBatchArm(ref text, position + 16), delimiter, textMayContainQuote);
-        return Vector128.ExtractMostSignificantBits(lower) | (Vector128.ExtractMostSignificantBits(upper) << 16);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<byte> PackTextDataReaderBatchArm(ref ushort text, int position) =>
-        AdvSimd.ExtractNarrowingSaturateUnsignedUpper(
-            AdvSimd.ExtractNarrowingSaturateUnsignedLower(
-                Vector128.LoadUnsafe(ref text, (nuint)position).AsInt16()),
-            Vector128.LoadUnsafe(ref text, (nuint)(position + 8)).AsInt16());
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<byte> GetTextDataReaderBatchArmMatches(Vector128<byte> bytes, byte delimiter, bool textMayContainQuote)
-    {
-        var matches = Vector128.Equals(bytes, Vector128.Create(delimiter)) |
-            Vector128.Equals(bytes, Vector128.Create((byte)'\r')) |
-            Vector128.Equals(bytes, Vector128.Create((byte)'\n'));
-        if (textMayContainQuote) matches |= Vector128.Equals(bytes, Vector128.Create((byte)'"'));
-        return matches;
+        return CsvSimdMasks.ReadTextSpecial32Arm(ref text, position, delimiter, textMayContainQuote);
     }
 }
 #endif
