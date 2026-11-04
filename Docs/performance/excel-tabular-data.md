@@ -5,9 +5,13 @@
 I compare complete 50,000-row operations, with the same work for every engine.
 Excel uses a unique name, integer ID, date and double; CSV uses the existing
 mixed ten-column fixture. Reads return owned strings and consume typed values.
-Object parsing constructs one record per row. Writers include row generation,
-serialization, finalization and the complete in-memory byte array. Setup checks
-every value through independent readers; measured reads check counts and checksums.
+Object parsing constructs one record per row. Excel writer timing includes row
+generation, serialization, finalization and the complete returned byte array.
+CSV writer timing starts with prepared projected rows and ends with a finalized
+UTF-8 MemoryStream; it reports the encoded length without an extra ToArray copy.
+Setup checks every value: Excel writer output through ExcelDataReader, and CSV
+writer output through `CsvDocument.ReadRowsReusable` against the prepared expected
+headers and values. Measured reads check counts and checksums.
 Invalid output has no usable timing. Third-party dependencies remain in the
 opt-in comparison projects.
 
@@ -920,6 +924,201 @@ passes all six reader lanes, without a new binary timing claim. Public APIs,
 selector timing, framework support, runtime dependencies and the grid loader
 remain unchanged; net472 is cross-built without Windows execution.
 
+## Quote-free CSV text snapshots: 4 November 2026
+
+I target another 20% reduction in elapsed time for the existing 50,000-row,
+ten-column text-snapshot comparison. The baseline is `41fbfd10e8`. The
+[normalized evidence](csv-arm-text-reads-2026-11-04.json) retains every sample,
+package version, input hash and assembly identity. Both engines receive the same
+5,728,121-byte CSV content; OfficeIMO opens the prepared decoded text through
+StringReader, while ExcelReader.NET consumes prepared UTF-8 bytes.
+
+I freeze the benchmark harness and dependencies, replacing only OfficeIMO.CSV.dll.
+One complete before/after pair covers all eleven lanes. A reversed repeat covers
+the affected OfficeIMO raw and typed lanes and their ExcelReader.NET controls.
+Each uses eight warmups, twelve measurements, sixteen invocations, unroll one
+and no outlier removal. Medians below combine both series where repeated.
+The evidence artifact’s `protocol.reproduction` records each leg’s exact command,
+filter, frozen-harness setup and invocation count, including the shape controls.
+
+| Lane | Library | Before ms | After ms | Allocation before → after MiB |
+|---|---|---:|---:|---:|
+| Raw read | OfficeIMO | 8.070 | 6.375 | 21.511 → 21.511 |
+| Raw read | ExcelReader.NET | 7.606 | 7.715 | 21.508 → 21.508 |
+| Raw read | Sylvan | 8.891 | 9.006 | 21.542 → 21.542 |
+| Raw read | Sep | 4.708 | 4.755 | 20.835 → 20.835 |
+| Raw read | CsvHelper | 18.312 | 18.297 | 21.529 → 21.529 |
+| Raw read | Dataplat | 11.012 | 11.099 | 21.514 → 21.514 |
+| Typed parse | OfficeIMO | 10.836 | 8.646 | 16.782 → 16.782 |
+| Typed parse | ExcelReader.NET | 13.743 | 13.770 | 16.779 → 16.779 |
+| Typed parse | CsvHelper | 32.410 | 32.333 | 32.275 → 32.274 |
+| UTF-8 write | OfficeIMO | 7.262 | 7.018 | 16.009 → 16.009 |
+| UTF-8 write | ExcelReader.NET | 6.581 | 6.539 | 15.960 → 15.961 |
+
+Raw reading improves 21.0% and typed parsing 20.2%, with essentially unchanged
+allocation. Writers are unchanged; their timing movement is a control, not a
+writing improvement. Sep remains faster in the owned-string raw-read lane.
+
+The CPU profile places 49.8% of sampled raw-read thread time in the per-row
+Vector128 parser. I reuse the existing batch parser on ARM for text the existing
+whole-input probe proves contains no quotes. Saturating UTF-16 packing produces
+one punctuation mask per block without turning Unicode low bytes into delimiters.
+Static quote-mode specialization removes unnecessary quote-state work. The
+serial reader caches batch eligibility, while its original materialization and
+pooled-storage implementation stays intact.
+
+Quoted and multiline ARM inputs retain their per-row reader. ARM parallel
+projection retains scalar batch admission before record factories run; AVX2
+retains its existing completed-prefix behavior. Strict quoted fields are checked
+before trimming, and all three per-record entry points retain the strict fallback
+instead of the permissive trimmed AVX2 parser. The independent malformed-input
+reproductions fail before those fixes; regression theories cover trimming,
+oversized fallback, Unicode, retained strings and factory/error ordering.
+
+Unrelated CI test jobs ran on this host during some shape controls. I retain all
+samples and make no quiet-host or portable-ranking claim. Each 25,000-row shape
+also runs in a fresh process, so one shape cannot train another's branch profile.
+Those controls and their variation remain in the evidence rather than being
+substituted for the main cohort.
+
+The XLSX control is unchanged: plain raw reads measure 5.533 ms for OfficeIMO
+and 6.328 ms for ExcelReader.NET; escaped raw reads measure 9.656 and 12.905 ms.
+The other libraries and typed controls remain in the evidence. Profiling locates
+inflation, indexing synchronization and entity validation costs. A conditional
+publisher-notification trial measures 5.718/9.862 ms for plain/escaped raw reads,
+so I remove it. I claim no additional XLSX gain from this pass.
+
+The implementation is `d50de622e2`. The public API and four library targets remain
+unchanged, with no new production dependency. Final net10.0 suites pass 7,778
+Excel tests with five expected skips and all 949 CSV tests; net8.0 CSV passes 940.
+All four targets build and native osx-arm64 AOT passes, including 257 Unicode
+rows above 64 KiB, quoted fallback and batch rollover. AVX2 runtime execution and
+Windows net472 execution are unavailable locally; their library targets compile.
+
+## ARM stream and partition readers and XLSX validation: 4 November 2026
+
+I extend block scanning to the remaining CSV UTF-8 stream, buffered-line and
+partition-discovery paths. These use the existing parsing rules and share
+Unicode-safe masks with the text reader. Quoted records retain the established
+parser, and partition planning retains factory and error ordering. There is no
+public API, target-framework or production-dependency change.
+
+The baseline is `ce4d15b353`, which contains the earlier CSV text-snapshot work
+and upstream `9908041b8b`. CSV implementation is `6d3efb8a70`; XLSX validation
+is `2e8fa5833d`. The [normalized evidence](csv-excel-arm-readers-2026-11-04.json) retains every measured sample,
+allocation, package version, input identity, source hash and assembly identity.
+I freeze the harness and dependencies, replacing only OfficeIMO.CSV.dll for CSV
+or OfficeIMO.Excel.dll for Excel. All setup validation stays enabled.
+
+CSV uses eight warmups, twelve measurements, thirty-two invocations and no
+outlier removal. One complete A1/B1 pair covers all lanes below; reversed B2/A2
+repeats cover affected CSV readers, the byte-input control and parallel records.
+Medians combine all retained samples where repeated. XLSX repeats every lane in
+all four legs, with sixteen invocations. Execution is serialized on the same M4
+at normal priority, with no affinity or quiet-host claim.
+
+CSV results use the same generated ten-column content. Text readers receive
+prepared decoded text; the stream lane and byte-input control receive prepared
+UTF-8 bytes. Raw string lanes materialize every field. Borrowed-span controls
+remain separate from those ownership contracts. Parallel lanes return ordered
+records with every value validated. The 50k snapshot, typed and write lanes
+retain their existing work; writer timing movement is a control.
+
+| Workload | Lane | Before ms | After ms | Allocation before → after MiB |
+| --- | --- | ---: | ---: | ---: |
+| 25k mixed | OfficeIMO row callback | 17.848 | 3.294 | 10.821 → 10.821 |
+| 25k mixed | OfficeIMO materialized spans | 3.972 | 2.686 | 10.751 → 10.751 |
+| 25k mixed | CsvHelper strings | 9.278 | 9.154 | 10.772 → 10.772 |
+| 25k mixed | Sylvan strings | 4.550 | 4.412 | 10.785 → 10.785 |
+| 25k mixed | Sylvan borrowed spans | 2.923 | 2.878 | 0.035 → 0.035 |
+| 25k mixed | Dataplat strings | 5.442 | 5.345 | 10.756 → 10.756 |
+| 25k mixed | Sep strings | 2.351 | 2.256 | 10.414 → 10.414 |
+| 25k mixed | Sep borrowed spans | 0.866 | 0.851 | 0.002 → 0.002 |
+| 25k mixed | ExcelReader.NET strings | 3.732 | 3.776 | 10.750 → 10.750 |
+| 25k mixed | OfficeIMO UTF-8 stream | 6.169 | 4.030 | 10.416 → 10.416 |
+| 50k snapshot/typed/write | OfficeIMO raw | 6.282 | 5.976 | 21.511 → 21.511 |
+| 50k snapshot/typed/write | ExcelReader.NET raw | 7.524 | 7.753 | 21.508 → 21.508 |
+| 50k snapshot/typed/write | Sylvan raw | 8.863 | 8.862 | 21.542 → 21.542 |
+| 50k snapshot/typed/write | Sep raw | 4.639 | 4.545 | 20.835 → 20.835 |
+| 50k snapshot/typed/write | CsvHelper raw | 19.012 | 18.300 | 21.529 → 21.529 |
+| 50k snapshot/typed/write | Dataplat raw | 10.703 | 10.805 | 21.513 → 21.513 |
+| 50k snapshot/typed/write | OfficeIMO typed | 8.598 | 8.536 | 16.782 → 16.782 |
+| 50k snapshot/typed/write | ExcelReader.NET typed | 14.168 | 14.177 | 16.779 → 16.779 |
+| 50k snapshot/typed/write | CsvHelper typed | 32.295 | 32.665 | 32.274 → 32.274 |
+| 50k snapshot/typed/write | OfficeIMO write | 5.909 | 5.964 | 16.009 → 16.009 |
+| 50k snapshot/typed/write | ExcelReader.NET write | 6.477 | 6.520 | 15.960 → 15.960 |
+| 25k quoted, DOP 16 | OfficeIMO parallel records | 10.353 | 8.439 | 9.833 → 9.834 |
+| 25k quoted, DOP 16 | Sep parallel records | 7.434 | 7.111 | 9.890 → 9.892 |
+
+The targeted reductions are **81.5%** for reusable callbacks, **32.4%** for
+materialized field spans and **34.7%** for UTF-8 stream reads. Parallel projection
+improves **18.5%**. Allocations are essentially unchanged. The gain comes from
+avoiding repeated scalar scans; it is not a blanket speedup for every CSV API.
+Sep remains faster in the owned-string raw-read lane.
+
+I also run quoted and multiline controls in fresh processes. Quoted callback,
+span and stream results are 33.068 → 33.279, 6.494 → 6.623 and 7.789 → 7.991 ms.
+Multiline results are 55.068 → 55.503, 5.636 → 4.109 and 6.949 → 5.391 ms.
+Those shapes and their variation remain in the evidence rather than replacing
+the main comparison.
+
+The review reproduction exposes a shared quoted-prefix bug: empty columns after
+a quoted field can collapse, shifting later values or rejecting valid width.
+Two of six public-reader cases fail before correction. The shared buffered and
+text tail helpers now retain each pending empty column; the existing generic
+text continuation remains a passing control. The corrected focused run passes
+all 96 cases. This fixes the existing x64 helper as well as the newly admitted
+ARM route.
+
+For XLSX, I scan each XML byte block once and consume every special-byte match.
+The complete UTF-8 and structural XML proof remains before first-row delivery.
+Entities, forbidden controls, noncharacters and `]]>` retain their checks across
+block boundaries. A short-run ASCII decoding trial adds no meaningful benefit,
+so I remove it. Plain XLSX does not enter the changed special-byte validator and
+remains a control.
+
+### Plain XLSX, 50k rows
+
+| Lane | Before ms | After ms | Allocation before → after MiB |
+| --- | ---: | ---: | ---: |
+| OfficeIMO typed | 7.102 | 7.302 | 4.574 → 4.574 |
+| ExcelReader.NET typed | 8.076 | 8.036 | 4.506 → 4.506 |
+| OfficeIMO raw | 5.544 | 5.575 | 2.286 → 2.286 |
+| Sylvan raw | 28.070 | 28.369 | 2.546 → 2.546 |
+| ExcelDataReader raw | 60.700 | 60.278 | 33.881 → 33.881 |
+| ExcelReader.NET raw | 6.386 | 6.401 | 2.217 → 2.217 |
+
+### Escaped-text XLSX, 50k rows
+
+| Lane | Before ms | After ms | Allocation before → after MiB |
+| --- | ---: | ---: | ---: |
+| OfficeIMO typed | 11.591 | 10.487 | 6.939 → 6.939 |
+| ExcelReader.NET typed | 14.829 | 14.808 | 6.870 → 6.870 |
+| OfficeIMO raw | 9.762 | 8.747 | 4.650 → 4.650 |
+| Sylvan raw | 32.005 | 32.305 | 4.908 → 4.908 |
+| ExcelDataReader raw | 68.935 | 68.305 | 43.948 → 43.948 |
+| ExcelReader.NET raw | 12.936 | 12.860 | 4.581 → 4.581 |
+
+Escaped raw reads improve **10.4%** and typed parsing **9.5%**. They do not reach
+20% in this cohort. Plain and peer timing changes are retained as controls.
+The binary readers have no equivalent explicit x86-only scanning branch in the
+inspected paths; XLS/XLSB and writing code are unchanged by this pass.
+
+These numbers qualify ARM64 on this Mac. Modern Windows ARM64 can select the
+same eligible masks; Windows x64 already has AVX2 scanning and receives shared
+fixes and portable XML validation. I do not infer their timing from M4 results.
+The net472 and netstandard2.0 implementations retain their compatible fallbacks.
+
+Final proof passes 7,784 Excel net10.0 tests with five expected skips, all 965
+CSV net10.0 tests and all 956 CSV net8.0 tests. Both libraries build for all four
+targets. Native osx-arm64 AOT passes for CSV stream/text/partition parsing and
+large escaped implicit XLSX raw and typed reads. The focused Excel run passes
+130 cases, including deliberately aligned forbidden XML sequences. The nine
+aligned XML cases use canonical inline-cell text with valid controls. Removing
+the two character guards makes all nine fail; restoring the unchanged
+implementation passes the final suite. Windows/x64
+performance and Windows net472 runtime need their own execution evidence.
+
 ## Remaining costs and limits
 
 Parity across formats is incomplete. The latest paired XLSX cohort puts raw
@@ -963,7 +1162,7 @@ XLSB, both date systems and both insertion routes, and adds a date to the existi
 uncached sparse-table case. The focused final run passes 32 cases. Every measured
 writer also passes independent ExcelDataReader and strict-reader validation.
 
-Excel builds for netstandard2.0, net8.0, net10.0 and net472; both comparison projects
+For the 2 November cohort, Excel builds for netstandard2.0, net8.0, net10.0 and net472; both comparison projects
 also build for net8.0. The net10.0 osx-arm64 NativeAOT publish and smoke pass,
 including constructor-bound record mapping. Final net10.0 correctness runs use
 `Category!=Performance`: Excel.Tests passes 7,742 with five opt-in/platform skips;

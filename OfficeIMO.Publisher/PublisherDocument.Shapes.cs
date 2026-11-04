@@ -24,7 +24,7 @@ public sealed partial class PublisherDocument {
     /// <summary>Appends a rectangle, rounded rectangle, ellipse or nondegenerate line to an existing document or master page, returning its current immutable snapshot.</summary>
     /// <remarks>Coordinates and descriptor dimensions use points. The descriptor is copied and must use solid paint without transforms, clipping, effects, dashes or markers. A line may have zero extent on one axis. New artwork has no story or wrap references. This edits the in-memory publication and does not provide native PUB creation or saving. Validation, cancellation or projection failure leaves the document and its identifier allocator unchanged.</remarks>
     public PublisherShape AddShape(uint pageId, OfficeShape shape, double x, double y, CancellationToken cancellationToken = default) {
-        if (shape == null) throw new ArgumentNullException(nameof(shape));
+        ArgumentNullException.ThrowIfNull(shape);
         cancellationToken.ThrowIfCancellationRequested();
         OfficeShape owned = PublisherShapeGeometry.OwnedPrimitive(shape, x, y);
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable native model.");

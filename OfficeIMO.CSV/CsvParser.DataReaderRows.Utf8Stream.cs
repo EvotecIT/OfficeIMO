@@ -227,17 +227,26 @@ internal static partial class CsvParser
                         }
                     }
 
-                    if (Avx2.IsSupported && _length - _position >= Vector256<byte>.Count)
+                    if ((Avx2.IsSupported || Vector128.IsHardwareAccelerated) && _length - _position >= 32)
                     {
                         int chunkStart = _position;
-                        Vector256<byte> values = Vector256.LoadUnsafe(
-                            ref MemoryMarshal.GetArrayDataReference(_buffer),
-                            (nuint)chunkStart);
-                        uint delimiterMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, _delimiterVector));
-                        uint quoteMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, QuoteVector));
-                        uint carriageReturnMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, CarriageReturnVector));
-                        uint lineFeedMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, LineFeedVector));
-                        uint terminalMask = quoteMask | carriageReturnMask | lineFeedMask;
+                        uint delimiterMask, terminalMask;
+                        if (Avx2.IsSupported)
+                        {
+                            Vector256<byte> values = Vector256.LoadUnsafe(
+                                ref MemoryMarshal.GetArrayDataReference(_buffer), (nuint)chunkStart);
+                            delimiterMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(values, _delimiterVector));
+                            terminalMask = (uint)Avx2.MoveMask(Avx2.Or(
+                                Avx2.CompareEqual(values, QuoteVector),
+                                Avx2.Or(Avx2.CompareEqual(values, CarriageReturnVector),
+                                    Avx2.CompareEqual(values, LineFeedVector))));
+                        }
+                        else
+                        {
+                            CsvSimdMasks.ReadBytes32(ref MemoryMarshal.GetArrayDataReference(_buffer),
+                                chunkStart, _delimiter, out delimiterMask, out uint quotes, out uint newlines);
+                            terminalMask = quotes | newlines;
+                        }
                         if (terminalMask == 0)
                         {
                             VisitDelimiterMask(delimiterMask, chunkStart, ref fieldStart, ref fieldIndex);

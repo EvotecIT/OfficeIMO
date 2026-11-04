@@ -8,7 +8,7 @@ internal static class ConvertCommand {
 OfficeIMO.Tool - document conversion
 
 Usage:
-  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx|input.odg|input.fodg|input.djvu|input.djv> [output.pdf] [--force]
+  officeimo convert <input.doc|input.docx|input.txt|input.xlsx|input.pptx|input.odg|input.fodg|input.djvu|input.djv|input.pub> [output.pdf] [--force]
                     [--max-input-bytes <bytes>] [--max-output-bytes <bytes>]
                     [--max-characters-in-part <characters>]
                     [--diagram-layers screen|print] [--require-no-loss]
@@ -27,7 +27,8 @@ Apple workflow conversion accepts ZIP files and directory bundles.
 Markdown and JSON output use the OfficeIMO Reader pipeline.
 Draw PDF output keeps source page dimensions and uses print-visible layers by default.
 DjVu PDF output preserves scan pixels, page sizes and existing searchable text.
-Diagram and DjVu --require-no-loss reject source and PDF-stage fidelity losses before publishing.
+Publisher PDF output keeps source page dimensions and reports fidelity losses.
+For Draw, DjVu and Publisher, --require-no-loss rejects source and PDF-stage fidelity losses before publishing.
 The default destination for supported PDF input is a sibling PDF file.
 """;
 

@@ -78,14 +78,14 @@ public sealed partial class PublisherDocument {
     }
 
     private static string NativeSavePath(string path) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path) || !string.Equals(Path.GetExtension(path), ".pub", StringComparison.OrdinalIgnoreCase))
             throw new ArgumentException("Native Publisher saving requires a .pub destination.", nameof(path));
         return Path.GetFullPath(path);
     }
 
     private static void RequireNativeDestination(Stream stream) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The native PUB destination must be writable.", nameof(stream));
     }
 

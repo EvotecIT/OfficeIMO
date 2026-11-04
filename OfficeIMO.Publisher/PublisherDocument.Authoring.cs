@@ -23,7 +23,7 @@ public sealed partial class PublisherDocument {
     /// <summary>Appends an empty centered single-page master at the publication's existing size, returning its committed immutable snapshot. The name must contain non-control text.</summary>
     /// <remarks>The master has no inherited master. Populate it through supported shape, table and ordinary text-frame operations, then assign it to document pages. Use AddMasterPagePair for a left/right pair. Native PUB saving is not provided.</remarks>
     public PublisherPage AddMasterPage(string name, CancellationToken cancellationToken = default) {
-        if (name == null) throw new ArgumentNullException(nameof(name));
+        ArgumentNullException.ThrowIfNull(name);
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(name) || name.Any(char.IsControl))
             throw new ArgumentException("Master names must contain non-control text.", nameof(name));
@@ -42,7 +42,7 @@ public sealed partial class PublisherDocument {
     /// <remarks>The frame uses one column, zero gap and padding, top alignment, no fill or outline, and no transform or wrap references. Paragraphs are copied and carriage returns normalize to newlines; an empty collection creates an empty story. Ordinary authored stories have no implicit final terminator. Complete overflow remains in TextStories. Continue a document-page story with AddLinkedTextFrame. Limits, validation, cancellation or projection failure leave the publication and both reserved identifiers unchanged. Native PUB saving is not provided.</remarks>
     public PublisherTextFrame AddTextFrame(uint pageId, double x, double y, double width, double height,
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken cancellationToken = default) {
-        if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+        ArgumentNullException.ThrowIfNull(paragraphs);
         cancellationToken.ThrowIfCancellationRequested();
         if (!Finite(x)) throw new ArgumentOutOfRangeException(nameof(x));
         if (!Finite(y)) throw new ArgumentOutOfRangeException(nameof(y));

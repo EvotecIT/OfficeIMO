@@ -149,13 +149,21 @@ public sealed class BrowserToolCatalogTests {
     }
 
     [Fact]
-    public void SamplesExistInTheEngineFolder() {
-        string wwwroot = Path.Combine(WebsiteRoot, "Apps", "OfficeIMO.Web.Converter", "wwwroot");
+    public void SamplesExistInTheEngineFolderOrAreLinkedForPublication() {
+        string project = Path.Combine(WebsiteRoot, "Apps", "OfficeIMO.Web.Converter");
+        string wwwroot = Path.Combine(project, "wwwroot");
+        XElement[] linkedContent = XDocument.Load(Path.Combine(project, "OfficeIMO.Web.Converter.csproj"))
+            .Descendants("Content")
+            .Where(static item => item.Attribute("CopyToPublishDirectory")?.Value is "Always" or "PreserveNewest")
+            .ToArray();
         foreach (JsonElement tool in Tools) {
             foreach (string key in new[] { "sample", "sampleSecond" }) {
                 if (!tool.GetProperty("input").TryGetProperty(key, out JsonElement sample)) continue;
                 string path = sample.GetString()!;
-                bool linkedByProject = path == "samples/showcase-dashboard.pdf"; // linked from Website/static by the project file
+                bool linkedByProject = linkedContent.Any(item =>
+                    item.Attribute("Link")?.Value.Replace('\\', '/') == "wwwroot/" + path &&
+                    item.Attribute("Include") is XAttribute include &&
+                    File.Exists(Path.Combine(project, include.Value.Replace('\\', Path.DirectorySeparatorChar))));
                 Assert.True(linkedByProject || File.Exists(Path.Combine(wwwroot, path)), $"{tool.GetProperty("id").GetString()} {key} {path} is missing.");
             }
         }

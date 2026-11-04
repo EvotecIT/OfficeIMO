@@ -16,7 +16,7 @@ public sealed partial class PublisherDocument {
     /// <remarks>The detected content must have one static frame and normal encoded orientation. Bytes are copied; each call creates a separate embedded asset. The picture is uncropped, has no fill or outline, effects, transform, story or wrap references, and is appended in drawing order. Negative offsets allow clipped bleed. Existing picture edits remain available. Validation, limits, cancellation or projection failure consumes neither the object nor image identifier and leaves the publication unchanged. This is in-memory authoring, without native PUB saving.</remarks>
     public PublisherPicture AddImage(uint pageId, byte[] bytes, double x, double y, double width, double height,
         CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         cancellationToken.ThrowIfCancellationRequested();
         if (!Finite(x)) throw new ArgumentOutOfRangeException(nameof(x));
         if (!Finite(y)) throw new ArgumentOutOfRangeException(nameof(y));
@@ -52,7 +52,7 @@ public sealed partial class PublisherDocument {
     /// <summary>Replaces one supported picture placement's embedded image with owned PNG or JPEG bytes. Other placements sharing its old asset remain unchanged.</summary>
     /// <remarks>Retains picture identity, page/master ownership, crop, bounds and drawing order. Original native assets remain available in Images. Fetch current page, picture and image snapshots after an edit. Failed validation, cancellation or projection leaves the document unchanged. Qualified imported pictures support bounded native save-back with explicit loss-policy allowance; unsafe source bindings refuse output. Asset identifiers are document-scoped and may be remapped on native reload.</remarks>
     public void ReplacePictureImage(uint pictureId, byte[] bytes, CancellationToken cancellationToken = default) {
-        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        ArgumentNullException.ThrowIfNull(bytes);
         cancellationToken.ThrowIfCancellationRequested();
         var model = _model ?? throw new NotSupportedException("This publication has no editable model.");
         Commit(model.ReplacePictureImage(pictureId, bytes, cancellationToken).Project(cancellationToken), cancellationToken);

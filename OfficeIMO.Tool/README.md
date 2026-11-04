@@ -139,7 +139,7 @@ to 16 MiB. For the pinned authority downloads and runtime requirements, see the
 
 DOC conversion blocks known legacy import loss by default; `--allow-legacy-loss` explicitly accepts the reported reductions. TXT conversion treats HTML and Markdown as literal text, detects Unicode BOMs and otherwise uses strict UTF-8. Use `--text-encoding` and `--tab-size` for explicit text settings. The adapter's diagnostics remain on standard error.
 
-Batch conversion uses the existing executable workflow catalog. PDF export selects DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw and DjVu; unsupported files are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
+Batch conversion uses the existing executable workflow catalog. PDF routes include DOC, DOCX, TXT, XLSX, PPTX, HTML, Markdown, RTF, Draw, DjVu and Publisher. Files without an eligible route are counted as skipped. Checkpoints are optional. Resolve relative paths from the directory where the command runs:
 
 ```powershell
 officeimo workflow batch --input-directory ./Documents --output ./PDF
@@ -398,6 +398,7 @@ characters as `\\`, `\t`, `\r`, `\n`, or `\uXXXX` so each name remains on one ou
 officeimo convert .\report.docx
 officeimo convert .\workbook.xlsx .\published\workbook.pdf
 officeimo convert .\deck.pptx --output .\deck.pdf --force
+officeimo convert .\brochure.pub .\brochure.pdf
 ```
 
 The input extension selects `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, or `OfficeIMO.PowerPoint.Pdf`. The tool opens the source read-only, applies structural package-bomb checks, bounds Open XML part parsing, writes diagnostics to standard error, and refuses to replace an existing PDF unless `--force` is supplied.
@@ -405,6 +406,8 @@ The input extension selects `OfficeIMO.Word.Pdf`, `OfficeIMO.Excel.Pdf`, or `Off
 Conversion defaults to a 64 MiB input limit, 10,000,000 characters per XML part, and a 256 MiB PDF output limit. Operators processing larger trusted documents can set `--max-input-bytes`, `--max-characters-in-part`, or `--max-output-bytes` explicitly. Native Office PDF exports stream to an atomic staging file. Draw PDF conversion uses bounded in-memory serialization and workflow reopen validation before atomic publication. A rejected or failed conversion preserves the destination.
 
 ODG and FODG conversion keeps source page dimensions, including blank pages, and selects print-visible layers by default. Use `--diagram-layers screen|print` to choose visibility. Located fidelity diagnostics go to standard error; `--require-no-loss` rejects source or PDF-stage losses before publication. Batch conversion accepts the same diagram choices and `--maximum-xml-characters-in-part`; mixed batches apply diagram settings only to diagram routes. Checkpoint reuse retains source and page locations in recorded loss diagnostics.
+
+Publisher PDF conversion supports Publisher 2002-and-later publications. It keeps source page dimensions and writes fidelity diagnostics to standard error. Use `--require-no-loss` to reject a conversion when OfficeIMO reports fidelity loss. Publisher 97/98 and 2000 files require conversion to a later Publisher format first.
 
 ## Static HTML conversion
 

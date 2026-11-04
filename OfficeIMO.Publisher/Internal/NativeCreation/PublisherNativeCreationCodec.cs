@@ -14,8 +14,8 @@ internal static partial class PublisherNativeCreationCodec {
 
     /// <summary>Creates candidate bytes under an independent operation budget; this does not admit public source-free saving.</summary>
     internal static byte[] Create(PublisherNativeCreationPlan plan, PublisherLoadOptions options, long maxOutputBytes, CancellationToken token) {
-        if (plan == null) throw new ArgumentNullException(nameof(plan));
-        if (options == null) throw new ArgumentNullException(nameof(options));
+        ArgumentNullException.ThrowIfNull(plan);
+        ArgumentNullException.ThrowIfNull(options);
         if (maxOutputBytes < 1 || maxOutputBytes > int.MaxValue) throw new ArgumentOutOfRangeException(nameof(maxOutputBytes));
         token.ThrowIfCancellationRequested();
         var context = new PublisherParseContext(options.Clone(), token);

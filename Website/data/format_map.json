@@ -2948,9 +2948,13 @@
       "api": "PublisherDocument.Load(stream, readOptions).SaveAsPdf(output, pdfOptions)",
       "surfaces": [
         "dotnet",
+        "browser",
         "cli",
-        "studio"
-      ]
+        "studio",
+        "powershell"
+      ],
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pub -To Pdf -OutputPath ./out.pdf"
     },
     {
       "id": "reader-visio-pdf",

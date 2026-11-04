@@ -1899,7 +1899,7 @@
       "supportEvidence":"Native Contents/Quill/OfficeArt fixtures verify physical pages, searchable styled text, linked frames, native tables, embedded images and carried source/PDF diagnostics.",
       "knownLimitations":"Publisher 2002-and-later recovery uses the bounded shared drawing profile. Earlier generations, unsupported graphics, exact native text breaks and native Publisher pixel comparisons remain unqualified.",
       "resultContract":"OfficeConversionReport",
-      "browserAvailable":false,
+      "browserAvailable":true,
       "agentDiscoverable":true
     },
     {
