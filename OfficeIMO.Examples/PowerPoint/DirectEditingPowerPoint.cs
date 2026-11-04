@@ -34,8 +34,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 slide.AddShape(OfficePresetShapeType.Rectangle,
                         OfficeIMO.OfficeLength.Centimeters(content.Left.ToCentimeters() + 12.0), OfficeIMO.OfficeLength.Centimeters(content.Top.ToCentimeters() + 2.1),
                         OfficeIMO.OfficeLength.Centimeters(10.0), OfficeIMO.OfficeLength.Centimeters(4.0))
-                    .Fill("E7F7FF")
-                    .Stroke("007ACC", global::OfficeIMO.OfficeLength.Points(2));
+                    .Fill(OfficeColor.Parse("E7F7FF"))
+                    .Stroke(OfficeColor.Parse("007ACC"), global::OfficeIMO.OfficeLength.Points(2));
                 slide.Notes.Text = "Concrete objects can be edited immediately or after reopening the deck.";
 
                 using (PowerPointDocument source = PowerPointDocument.Load(sourcePath,

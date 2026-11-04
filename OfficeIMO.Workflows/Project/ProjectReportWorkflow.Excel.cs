@@ -54,8 +54,8 @@ public static partial class ProjectReportWorkflow {
     }
 
     private static void FinishSheet(ExcelSheet sheet, CancellationToken token, int rows, int columns = 4, int repeatedColumns = 0) {
-        sheet.UsedRange.SetFontName("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(12)).SetFontColor("183047");
-        sheet.Range("A1:" + sheet.Cell(1, columns).Address).SetBold().SetFillColor("183047").SetFontColor("FFFFFF");
+        sheet.UsedRange.SetFontFamily("Arial").SetFontSize(global::OfficeIMO.OfficeLength.Points(12)).SetColor(OfficeColor.Parse("183047"));
+        sheet.Range("A1:" + sheet.Cell(1, columns).Address).SetBold().SetFillColor(OfficeColor.Parse("183047")).SetColor(OfficeColor.Parse("FFFFFF"));
         sheet.View.Freeze(1); sheet.AutoFitColumns(ct: token);
         for (int c = 1; c <= columns; c++) {
             token.ThrowIfCancellationRequested();
@@ -69,7 +69,7 @@ public static partial class ProjectReportWorkflow {
         }
         sheet.SetRowLayout(1, new ExcelRowLayoutOptions { WrapText = true, FirstColumn = 1, LastColumn = columns });
         if (rows > 1) sheet.SetRowsLayout(Enumerable.Range(2, rows - 1).Where(row => row % 2 == 0),
-            new ExcelRowLayoutOptions { BackgroundColor = "F4F7FA", FirstColumn = 1, LastColumn = columns });
+            new ExcelRowLayoutOptions { BackgroundColor = OfficeColor.Parse("F4F7FA"), FirstColumn = 1, LastColumn = columns });
         sheet.AutoFitRows(ct: token);
         sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
             Preset = columns > 8 ? ExcelPrintLayoutPreset.Worksheet : ExcelPrintLayoutPreset.Report, PaperSize = ExcelPaperSize.A4,

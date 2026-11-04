@@ -46,8 +46,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             PowerPointAutoShape card = slide.AddRectangle(
                     canvasBox.Left, canvasBox.Top, canvasBox.Width, OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.6),
                     "Hero Card")
-                .Fill("E7F7FF")
-                .Stroke("007ACC", global::OfficeIMO.OfficeLength.Points(2));
+                .Fill(OfficeColor.Parse("E7F7FF"))
+                .Stroke(OfficeColor.Parse("007ACC"), global::OfficeIMO.OfficeLength.Points(2));
             card.FillTransparency = 6;
             card.Rotation = -1.5;
 
@@ -57,8 +57,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(canvasBox.Width.ToCentimeters() * 0.55),
                     OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.35),
                     "Accent Panel")
-                .Fill("FFF4E5")
-                .Stroke("C48A00", global::OfficeIMO.OfficeLength.Points(1.5));
+                .Fill(OfficeColor.Parse("FFF4E5"))
+                .Stroke(OfficeColor.Parse("C48A00"), global::OfficeIMO.OfficeLength.Points(1.5));
             accent.Rotation = 2;
             accent.BringToFront();
 
@@ -69,8 +69,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
                     OfficeIMO.OfficeLength.Centimeters(badgeSizeCm),
                     "Badge")
-                .Fill("FDEBD0")
-                .Stroke("D35400", global::OfficeIMO.OfficeLength.Points(1.5));
+                .Fill(OfficeColor.Parse("FDEBD0"))
+                .Stroke(OfficeColor.Parse("D35400"), global::OfficeIMO.OfficeLength.Points(1.5));
 
             PowerPointAutoShape arrow = slide.AddShape(
                     OfficePresetShapeType.RightArrow,
@@ -79,8 +79,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     OfficeIMO.OfficeLength.Centimeters(canvasBox.Width.ToCentimeters() * 0.6),
                     OfficeIMO.OfficeLength.Centimeters(canvasBox.Height.ToCentimeters() * 0.25),
                     "Flow Arrow")
-                .Fill("D9EAD3")
-                .Stroke("6AA84F", global::OfficeIMO.OfficeLength.Points(1.5));
+                .Fill(OfficeColor.Parse("D9EAD3"))
+                .Stroke(OfficeColor.Parse("6AA84F"), global::OfficeIMO.OfficeLength.Points(1.5));
             arrow.Rotation = -1;
 
             PowerPointTextBox label = slide.AddTextBox(
@@ -98,8 +98,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 picture.FitToBox(crop: true);
             } else {
                 PowerPointTextBox placeholder = slide.AddTextBox("(image placeholder)",rightColumn);
-                placeholder.FillColor = "F3F3F3";
-                placeholder.OutlineColor = "CCCCCC";
+                placeholder.FillColor = OfficeColor.Parse("F3F3F3");
+                placeholder.OutlineColor = OfficeColor.Parse("CCCCCC");
                 placeholder.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             }
 

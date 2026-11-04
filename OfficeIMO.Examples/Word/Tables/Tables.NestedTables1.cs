@@ -77,9 +77,9 @@ namespace OfficeIMO.Examples.Word {
                 foreach (var table in document.TablesIncludingNestedTables) {
                     Console.WriteLine("Table " + i + " out of " + document.TablesIncludingNestedTables.Count);
                     if (table.IsNestedTable) {
-                        Console.WriteLine("Nested table Rows count: " + table.RowsCount);
+                        Console.WriteLine("Nested table Rows count: " + table.RowCount);
                         var parentTable = Guard.NotNull(table.ParentTable, "Nested table should expose its parent table.");
-                        Console.WriteLine("Nested table Parent Rows count: " + parentTable.RowsCount);
+                        Console.WriteLine("Nested table Parent Rows count: " + parentTable.RowCount);
                     } else {
                         Console.WriteLine("Skipped table, not nested table");
                     }

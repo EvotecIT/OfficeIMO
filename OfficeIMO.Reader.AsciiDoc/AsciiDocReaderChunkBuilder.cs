@@ -27,15 +27,15 @@ internal static class AsciiDocReaderChunkBuilder {
             if (block is AsciiDocHeading heading) UpdateHeadingStack(headingStack, heading, ResolveText(heading.Title, context.Attributes, options));
             string headingPath = string.Join(" > ", headingStack.Select(static state => state.Title));
             string text = GetPlainText(block, context.Attributes, options, cancellationToken);
-            AsciiDocToMarkdownResult markdownResult = block.ToMarkdownDocumentResult(context.Attributes, options.MarkdownOptions);
-            string markdown = markdownResult.Value.ToMarkdown().TrimEnd();
+            var markdownDocument = block.ToMarkdown(context.Attributes, options.MarkdownOptions, out OfficeConversionReport markdownReport, cancellationToken);
+            string markdown = markdownDocument.ToMarkdown().TrimEnd();
             if (markdown.Length == 0 && block is AsciiDocAttributeEntry) markdown = block.OriginalText.TrimEnd('\r', '\n');
 
             IReadOnlyList<string> parts = Split(text.Length == 0 ? markdown : text, readerOptions.MaxChars);
             if (parts.Count == 0) parts = new[] { string.Empty };
             for (int partIndex = 0; partIndex < parts.Count; partIndex++) {
                 IReadOnlyList<string>? warnings = options.IncludeDiagnostics
-                    ? BuildWarnings(result.Diagnostics, markdownResult.Report.NativeDiagnostics, block, parts.Count > 1)
+                    ? BuildWarnings(result.Diagnostics, ((AsciiDocToMarkdownReport)markdownReport).NativeDiagnostics, block, parts.Count > 1)
                     : null;
                 yield return new ReaderChunk {
                     Id = BuildId(sourceIndex, partIndex, parts.Count),
@@ -66,7 +66,7 @@ internal static class AsciiDocReaderChunkBuilder {
         ReaderAsciiDocOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        AsciiDocToMarkdownResult conversion = result.Document.ToMarkdownDocumentResult(options.MarkdownOptions);
+        var markdownDocument = result.Document.ToMarkdown(options.MarkdownOptions, out OfficeConversionReport markdownReport, cancellationToken);
         var attachedBlocks = new HashSet<AsciiDocBlock>(
             result.Document.BlocksOfType<AsciiDocListBlock>()
                 .SelectMany(static list => list.Items)
@@ -75,7 +75,7 @@ internal static class AsciiDocReaderChunkBuilder {
             .Where(context => !attachedBlocks.Contains(context.Block) && ShouldEmit(context.Block, options))
             .Select(context => GetPlainText(context.Block, context.Attributes, options, cancellationToken))
             .Where(value => value.Length > 0));
-        string markdown = conversion.Value.ToMarkdown().TrimEnd();
+        string markdown = markdownDocument.ToMarkdown().TrimEnd();
         IReadOnlyList<string> parts = Split(text.Length == 0 ? markdown : text, readerOptions.MaxChars);
         if (parts.Count == 0) parts = new[] { string.Empty };
 
@@ -97,7 +97,7 @@ internal static class AsciiDocReaderChunkBuilder {
                 Markdown = parts.Count == 1 ? markdown : parts[partIndex],
                 Diagnostics = new ReaderChunkDiagnostics { SourceKind = "asciidoc" },
                 Warnings = options.IncludeDiagnostics
-                    ? BuildWarnings(result.Diagnostics, conversion.Report.NativeDiagnostics, null, parts.Count > 1)
+                    ? BuildWarnings(result.Diagnostics, ((AsciiDocToMarkdownReport)markdownReport).NativeDiagnostics, null, parts.Count > 1)
                     : null
             };
         }

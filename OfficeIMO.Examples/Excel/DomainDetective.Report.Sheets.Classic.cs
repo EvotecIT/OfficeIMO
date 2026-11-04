@@ -99,26 +99,26 @@ namespace OfficeIMO.Examples.Excel
             int hdr = overview.CurrentRow;
             overview.Sheet.Cell(hdr, 1).SetValue("Status");
             overview.Sheet.Cell(hdr, 1).SetBold(true);
-            overview.Sheet.Cell(hdr, 1).SetFillColor("#F2F2F2");
+            overview.Sheet.Cell(hdr, 1).SetFillColor(OfficeColor.Parse("#F2F2F2"));
             overview.Sheet.Cell(hdr, 2).SetValue("Meaning");
             overview.Sheet.Cell(hdr, 2).SetBold(true);
-            overview.Sheet.Cell(hdr, 2).SetFillColor("#F2F2F2");
+            overview.Sheet.Cell(hdr, 2).SetFillColor(OfficeColor.Parse("#F2F2F2"));
             overview.Sheet.Cell(hdr, 3).SetValue("Recommended Action");
             overview.Sheet.Cell(hdr, 3).SetBold(true);
-            overview.Sheet.Cell(hdr, 3).SetFillColor("#F2F2F2");
+            overview.Sheet.Cell(hdr, 3).SetFillColor(OfficeColor.Parse("#F2F2F2"));
             var pal = ReportStatusColors.Create(OfficeTheme.Default);
             overview.Sheet.Cell(hdr + 1, 1).SetValue("OK");
-            if (pal.FillHexMap.TryGetValue("OK", out var ok))
+            if (pal.FillMap.TryGetValue("OK", out var ok))
                 overview.Sheet.Cell(hdr + 1, 1).SetFillColor(ok);
             overview.Sheet.Cell(hdr + 1, 2).SetValue("All checks passed or acceptable");
             overview.Sheet.Cell(hdr + 1, 3).SetValue("No action required");
             overview.Sheet.Cell(hdr + 2, 1).SetValue("Warning");
-            if (pal.FillHexMap.TryGetValue("Warning", out var wr))
+            if (pal.FillMap.TryGetValue("Warning", out var wr))
                 overview.Sheet.Cell(hdr + 2, 1).SetFillColor(wr);
             overview.Sheet.Cell(hdr + 2, 2).SetValue("Requires attention; not blocking");
             overview.Sheet.Cell(hdr + 2, 3).SetValue("Review recommendations");
             overview.Sheet.Cell(hdr + 3, 1).SetValue("Error");
-            if (pal.FillHexMap.TryGetValue("Error", out var er))
+            if (pal.FillMap.TryGetValue("Error", out var er))
                 overview.Sheet.Cell(hdr + 3, 1).SetFillColor(er);
             overview.Sheet.Cell(hdr + 3, 2).SetValue("Blocking or invalid configuration");
             overview.Sheet.Cell(hdr + 3, 3).SetValue("Fix immediately");
@@ -171,15 +171,15 @@ namespace OfficeIMO.Examples.Excel
             int lhdr = s.CurrentRow;
             s.Sheet.Cell(lhdr, 1).SetValue("Status");
             s.Sheet.Cell(lhdr, 1).SetBold(true);
-            s.Sheet.Cell(lhdr, 1).SetFillColor("#F2F2F2");
+            s.Sheet.Cell(lhdr, 1).SetFillColor(OfficeColor.Parse("#F2F2F2"));
             s.Sheet.Cell(lhdr, 2).SetValue("Meaning");
             s.Sheet.Cell(lhdr, 2).SetBold(true);
-            s.Sheet.Cell(lhdr, 2).SetFillColor("#F2F2F2");
+            s.Sheet.Cell(lhdr, 2).SetFillColor(OfficeColor.Parse("#F2F2F2"));
             s.Sheet.Cell(lhdr, 3).SetValue("Recommended Action");
             s.Sheet.Cell(lhdr, 3).SetBold(true);
-            s.Sheet.Cell(lhdr, 3).SetFillColor("#F2F2F2");
+            s.Sheet.Cell(lhdr, 3).SetFillColor(OfficeColor.Parse("#F2F2F2"));
             var pal = ReportStatusColors.Create(OfficeTheme.Default);
-            if (pal.FillHexMap.TryGetValue("OK", out var ok2))
+            if (pal.FillMap.TryGetValue("OK", out var ok2))
             {
                 s.Sheet.Cell(lhdr + 1, 1).SetValue("OK");
                 s.Sheet.Cell(lhdr + 1, 1).SetFillColor(ok2);
@@ -187,7 +187,7 @@ namespace OfficeIMO.Examples.Excel
                 s.Sheet.Cell(lhdr + 1, 3).SetValue("No action required");
             }
 
-            if (pal.FillHexMap.TryGetValue("Warning", out var wr2))
+            if (pal.FillMap.TryGetValue("Warning", out var wr2))
             {
                 s.Sheet.Cell(lhdr + 2, 1).SetValue("Warning");
                 s.Sheet.Cell(lhdr + 2, 1).SetFillColor(wr2);
@@ -195,7 +195,7 @@ namespace OfficeIMO.Examples.Excel
                 s.Sheet.Cell(lhdr + 2, 3).SetValue("Review recommendations");
             }
 
-            if (pal.FillHexMap.TryGetValue("Error", out var er2))
+            if (pal.FillMap.TryGetValue("Error", out var er2))
             {
                 s.Sheet.Cell(lhdr + 3, 1).SetValue("Error");
                 s.Sheet.Cell(lhdr + 3, 1).SetFillColor(er2);
@@ -212,7 +212,7 @@ namespace OfficeIMO.Examples.Excel
                 s.BulletedList(d.Recommendations);
                 int end = start + d.Recommendations.Length - 1;
                 for (int r = start; r <= end; r++)
-                    s.Sheet.Cell(r, 1).SetFillColor("#FFF4CE");
+                    s.Sheet.Cell(r, 1).SetFillColor(OfficeColor.Parse("#FFF4CE"));
             }
 
             // Positives (manual bullet + fill)
@@ -223,7 +223,7 @@ namespace OfficeIMO.Examples.Excel
                 s.BulletedList(d.Positives);
                 int endP = startP + d.Positives.Length - 1;
                 for (int r = startP; r <= endP; r++)
-                    s.Sheet.Cell(r, 1).SetFillColor("#E7F4E4");
+                    s.Sheet.Cell(r, 1).SetFillColor(OfficeColor.Parse("#E7F4E4"));
             }
 
             if (d.References.Length > 0)

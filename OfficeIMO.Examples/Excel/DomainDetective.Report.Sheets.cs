@@ -107,7 +107,7 @@ namespace OfficeIMO.Examples.Excel
             // Pretty legend (Status | Meaning | Recommended Action) using reusable SectionLegend
             {
                 var pal = ReportStatusColors.Create(OfficeTheme.Default);
-                var map = pal.FillHexMap.ToDictionary(pair => pair.Key, pair => OfficeColor.Parse(pair.Value), StringComparer.OrdinalIgnoreCase);
+                var map = pal.FillMap;
                 overview.SectionLegend(title: "Legend", headers: new[] { "Status", "Meaning", "Recommended Action" }, rows: new[] { new[] { "OK", "All checks passed or acceptable", "No action required" }, new[] { "Warning", "Requires attention; not blocking", "Review recommendations" }, new[] { "Error", "Blocking or invalid configuration", "Fix immediately" }, }, firstColumnFillByValue: map);
             }
 
@@ -174,7 +174,7 @@ namespace OfficeIMO.Examples.Excel
             // Legend per domain (reusable SectionLegend)
             {
                 var pal = ReportStatusColors.Create(OfficeTheme.Default);
-                s.SectionLegend(title: "Legend", headers: new[] { "Status", "Meaning", "Recommended Action" }, rows: new[] { new[] { "OK", "All checks passed or acceptable", "No action required" }, new[] { "Warning", "Requires attention; not blocking", "Review recommendations" }, new[] { "Error", "Blocking or invalid configuration", "Fix immediately" }, }, firstColumnFillByValue: pal.FillHexMap.ToDictionary(pair => pair.Key, pair => OfficeColor.Parse(pair.Value), StringComparer.OrdinalIgnoreCase));
+                s.SectionLegend(title: "Legend", headers: new[] { "Status", "Meaning", "Recommended Action" }, rows: new[] { new[] { "OK", "All checks passed or acceptable", "No action required" }, new[] { "Warning", "Requires attention; not blocking", "Review recommendations" }, new[] { "Error", "Blocking or invalid configuration", "Fix immediately" }, }, firstColumnFillByValue: pal.FillMap);
             }
 
             // Recommendations highlighted (warning tone) using BulletedListWithFill

@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                         $"Score: {recommendation.PreferenceScore}",
                         $"{recommendation.Design.PaletteStyle} / {recommendation.Design.LayoutStrategy}",
                         $"{recommendation.Design.Mood} / {recommendation.Design.VisualStyle}",
-                        $"{recommendation.Design.HeadingFontName} + {recommendation.Design.BodyFontName}"
+                        $"{recommendation.Design.HeadingFontFamily} + {recommendation.Design.BodyFontFamily}"
                     },
                     recommendation.Design.AccentColor)),
                 "brief-alternatives",
@@ -76,7 +76,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             direction.Add(new PowerPointLayoutKpi((selected.Design.Index + 1).ToString(), "Selected option"));
             direction.Add(new PowerPointLayoutKpi(selected.Reasons.Count.ToString(), "Reasons"));
             plan.Add(new PowerPointContentPlanSlide("Selected direction", direction, PowerPointLayout.CaseStudy, selected.Design.DirectionName) {
-                Notes = $"{selected.Design.Mood} mood, {selected.Design.HeadingFontName} headings. Change only the alternative index to render a different direction."
+                Notes = $"{selected.Design.Mood} mood, {selected.Design.HeadingFontFamily} headings. Change only the alternative index to render a different direction."
             });
 
             PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromBrief(brief);

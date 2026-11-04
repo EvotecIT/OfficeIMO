@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word
                     paragraph1.SetFontSize(global::OfficeIMO.OfficeLength.Points(18));
                     paragraph1.SetFontFamily("Arial");
                     paragraph1.SetCapsStyle(WordCapsStyle.SmallCaps);
-                    paragraph1.SetStrike();
+                    paragraph1.SetStrikethrough();
                     document.Save();
                 }
             }

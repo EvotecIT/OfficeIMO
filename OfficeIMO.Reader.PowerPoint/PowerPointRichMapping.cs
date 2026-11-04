@@ -221,7 +221,7 @@ internal static class PowerPointRichMapping {
         ReaderLocation location,
         List<OfficeDocumentLink> links,
         ref int linkIndex) {
-        foreach (PowerPointTableRow row in table.RowItems) {
+        foreach (PowerPointTableRow row in table.Rows) {
             foreach (PowerPointTableCell cell in row.Cells) {
                 foreach (PowerPointParagraph paragraph in cell.Paragraphs) {
                     AddPowerPointRunLinks(paragraph.Runs, location, BuildPowerPointRegion(table), links, ref linkIndex);
@@ -254,8 +254,8 @@ internal static class PowerPointRichMapping {
     }
 
     private static ReaderTable MapPowerPointTable(PowerPointTable table, ReaderLocation location, int tableIndex, int maxRows) {
-        IReadOnlyList<PowerPointTableRow> sourceRows = table.RowItems;
-        int columnCount = Math.Max(table.Columns, sourceRows.Count == 0 ? 0 : sourceRows.Max(static row => row.Cells.Count));
+        IReadOnlyList<PowerPointTableRow> sourceRows = table.Rows;
+        int columnCount = Math.Max(table.ColumnCount, sourceRows.Count == 0 ? 0 : sourceRows.Max(static row => row.Cells.Count));
         bool hasHeaderRow = table.HeaderRow && sourceRows.Count > 0;
         IReadOnlyList<string> columns = hasHeaderRow
             ? Enumerable.Range(0, columnCount).Select(index => GetPowerPointCellText(sourceRows[0], index, "Column " + (index + 1).ToString(CultureInfo.InvariantCulture))).ToArray()

@@ -101,7 +101,7 @@ namespace OfficeIMO.Examples.Excel
                 // Note: we keep a direct call as a best-effort attempt; visuals will ensure it applies.
                 try
                 {
-                    composer.Sheet.ColumnStyleByHeader("Status").BoldByTextSet(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Error", "Warning" });
+                    composer.Sheet.ColumnStyleByHeader("Status").SetBoldByTextSet(new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "Error", "Warning" });
                 }
                 catch
                 {
@@ -116,25 +116,25 @@ namespace OfficeIMO.Examples.Excel
                 var legendHeaderRow = composer.CurrentRow;
                 composer.Sheet.Cell(legendHeaderRow, 1).SetValue("Status");
                 composer.Sheet.Cell(legendHeaderRow, 1).SetBold(true);
-                composer.Sheet.Cell(legendHeaderRow, 1).SetFillColor("#F2F2F2");
+                composer.Sheet.Cell(legendHeaderRow, 1).SetFillColor(OfficeColor.Parse("#F2F2F2"));
                 composer.Sheet.Cell(legendHeaderRow, 2).SetValue("Meaning");
                 composer.Sheet.Cell(legendHeaderRow, 2).SetBold(true);
-                composer.Sheet.Cell(legendHeaderRow, 2).SetFillColor("#F2F2F2");
+                composer.Sheet.Cell(legendHeaderRow, 2).SetFillColor(OfficeColor.Parse("#F2F2F2"));
                 var palette = ReportStatusColors.Create(OfficeTheme.Default);
                 // OK / Success
                 composer.Sheet.Cell(legendHeaderRow + 1, 1).SetValue("OK");
-                if (palette.FillHexMap.TryGetValue("OK", out var okHex))
-                    composer.Sheet.Cell(legendHeaderRow + 1, 1).SetFillColor(okHex);
+                if (palette.FillMap.TryGetValue("OK", out var okColor))
+                    composer.Sheet.Cell(legendHeaderRow + 1, 1).SetFillColor(okColor);
                 composer.Sheet.Cell(legendHeaderRow + 1, 2).SetValue("All checks passed or acceptable");
                 // Warning
                 composer.Sheet.Cell(legendHeaderRow + 2, 1).SetValue("Warning");
-                if (palette.FillHexMap.TryGetValue("Warning", out var warnHex))
-                    composer.Sheet.Cell(legendHeaderRow + 2, 1).SetFillColor(warnHex);
+                if (palette.FillMap.TryGetValue("Warning", out var warnColor))
+                    composer.Sheet.Cell(legendHeaderRow + 2, 1).SetFillColor(warnColor);
                 composer.Sheet.Cell(legendHeaderRow + 2, 2).SetValue("Requires attention; not blocking");
                 // Error
                 composer.Sheet.Cell(legendHeaderRow + 3, 1).SetValue("Error");
-                if (palette.FillHexMap.TryGetValue("Error", out var errHex))
-                    composer.Sheet.Cell(legendHeaderRow + 3, 1).SetFillColor(errHex);
+                if (palette.FillMap.TryGetValue("Error", out var errColor))
+                    composer.Sheet.Cell(legendHeaderRow + 3, 1).SetFillColor(errColor);
                 composer.Sheet.Cell(legendHeaderRow + 3, 2).SetValue("Blocking or invalid configuration");
                 composer.Spacer();
                 // Header text and an optional embedded logo
@@ -186,21 +186,21 @@ namespace OfficeIMO.Examples.Excel
                     int lhdr = rs.CurrentRow;
                     rs.Sheet.Cell(lhdr, 1).SetValue("Status");
                     rs.Sheet.Cell(lhdr, 1).SetBold(true);
-                    rs.Sheet.Cell(lhdr, 1).SetFillColor("#F2F2F2");
+                    rs.Sheet.Cell(lhdr, 1).SetFillColor(OfficeColor.Parse("#F2F2F2"));
                     rs.Sheet.Cell(lhdr, 2).SetValue("Meaning");
                     rs.Sheet.Cell(lhdr, 2).SetBold(true);
-                    rs.Sheet.Cell(lhdr, 2).SetFillColor("#F2F2F2");
+                    rs.Sheet.Cell(lhdr, 2).SetFillColor(OfficeColor.Parse("#F2F2F2"));
                     var pal = ReportStatusColors.Create(OfficeTheme.Default);
                     rs.Sheet.Cell(lhdr + 1, 1).SetValue("OK");
-                    if (pal.FillHexMap.TryGetValue("OK", out var ok2))
+                    if (pal.FillMap.TryGetValue("OK", out var ok2))
                         rs.Sheet.Cell(lhdr + 1, 1).SetFillColor(ok2);
                     rs.Sheet.Cell(lhdr + 1, 2).SetValue("All checks passed or acceptable");
                     rs.Sheet.Cell(lhdr + 2, 1).SetValue("Warning");
-                    if (pal.FillHexMap.TryGetValue("Warning", out var wr2))
+                    if (pal.FillMap.TryGetValue("Warning", out var wr2))
                         rs.Sheet.Cell(lhdr + 2, 1).SetFillColor(wr2);
                     rs.Sheet.Cell(lhdr + 2, 2).SetValue("Requires attention; not blocking");
                     rs.Sheet.Cell(lhdr + 3, 1).SetValue("Error");
-                    if (pal.FillHexMap.TryGetValue("Error", out var er2))
+                    if (pal.FillMap.TryGetValue("Error", out var er2))
                         rs.Sheet.Cell(lhdr + 3, 1).SetFillColor(er2);
                     rs.Sheet.Cell(lhdr + 3, 2).SetValue("Blocking or invalid configuration");
                     rs.Spacer();

@@ -5,7 +5,7 @@ namespace OfficeIMO.Reader.OneNote;
 internal static class ReaderOneNoteOptionsCloner {
     internal static ReaderOneNoteOptions CloneOrDefault(ReaderOneNoteOptions? options) {
         options ??= new ReaderOneNoteOptions();
-        OneNoteReaderOptions native = CloneNative(options.OneNoteOptions ?? new OneNoteReaderOptions());
+        OneNoteLoadOptions native = CloneNative(options.OneNoteOptions ?? new OneNoteLoadOptions());
         OneNoteNotebookReaderOptions notebook = CloneNotebook(options.NotebookOptions ?? new OneNoteNotebookReaderOptions());
         notebook.OneNoteOptions = native;
         return new ReaderOneNoteOptions {
@@ -22,8 +22,8 @@ internal static class ReaderOneNoteOptionsCloner {
         return options == null ? null : CloneOrDefault(options);
     }
 
-    private static OneNoteReaderOptions CloneNative(OneNoteReaderOptions options) {
-        return new OneNoteReaderOptions {
+    private static OneNoteLoadOptions CloneNative(OneNoteLoadOptions options) {
+        return new OneNoteLoadOptions {
             MaxInputBytes = options.MaxInputBytes,
             MaxFileNodeListFragments = options.MaxFileNodeListFragments,
             MaxFileNodes = options.MaxFileNodes,

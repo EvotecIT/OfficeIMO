@@ -11,7 +11,7 @@ public sealed class ReaderOneNoteOptions {
     public bool AllowTableOfContentsSiblingFileReads { get; set; } = true;
 
     /// <summary>Native OneNote parser limits and compatibility settings.</summary>
-    public OneNoteReaderOptions OneNoteOptions { get; set; } = new OneNoteReaderOptions();
+    public OneNoteLoadOptions OneNoteOptions { get; set; } = new OneNoteLoadOptions();
 
     /// <summary>Notebook hierarchy and package-expansion settings for <c>.onetoc2</c> and <c>.onepkg</c> inputs.</summary>
     public OneNoteNotebookReaderOptions NotebookOptions { get; set; } = new OneNoteNotebookReaderOptions();
