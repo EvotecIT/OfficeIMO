@@ -49,7 +49,7 @@ internal static partial class OfficeMergeDispatch {
     }
 
     internal static void Execute(IReadOnlyList<string> paths, SecureString?[]? passwords, OfficeMergeFamily family,
-        string extension, object options, object? document, string? output, bool noClobber) {
+        string extension, object options, object? document, string? output, bool noClobber, PdfLoadOptions? readOptions = null) {
         var owned = new List<IDisposable>();
         Exception? operationFailure = null;
         try {
@@ -67,7 +67,7 @@ internal static partial class OfficeMergeDispatch {
                         AccessMode = primary ? DocumentAccessMode.ReadWrite : DocumentAccessMode.ReadOnly,
                         PersistenceMode = DocumentPersistenceMode.Explicit, AllowBinaryProjection = false, Password = password
                     }),
-                    _ => PdfDocument.Load(paths[index], new PdfLoadOptions { Password = password })
+                    _ => PdfDocument.Load(paths[index], (readOptions ?? new PdfLoadOptions()).Clone(null, password))
                 };
                 owned.Add(source);
                 // Extension checking alone must not permit a mislabeled package or a template conversion.

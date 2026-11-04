@@ -63,7 +63,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
     [OfficePasswordTransformation]
     public SecureString?[]? Password { get; set; }
 
-    /// <summary>Native merge settings, New-OfficeExcelMergeOptions results, or property hashtables for the selected format.</summary>
+    /// <summary>Native merge settings, Excel merge selections, and optional PDF read policy; property hashtables override merge settings.</summary>
     [Parameter]
     [ValidateNotNullOrEmpty]
     public object[]? Options { get; set; }
@@ -106,7 +106,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
         if (Password != null && Password.Length != 1 && Password.Length != _inputs.Count)
             throw new PSArgumentException("Provide one Password for all files, or one Password per resolved input file.");
         var engine = (EngineIntrinsics)SessionState.PSVariable.GetValue("ExecutionContext");
-        object options = OfficeMergeOptionBinding.Capture(engine, family, Options);
+        object options = OfficeMergeOptionBinding.Capture(engine, family, Options, out var readOptions);
         string? associatedPath = _document == null ? null : OfficeMergeDispatch.ValidateDocument(_document, extension);
         string? output = OutputPath == null ? null : OfficePath.ResolveOutput(SessionState, OutputPath, directory: false);
         if (output == null && NoClobber.IsPresent) throw new PSArgumentException("NoClobber requires OutputPath.");
@@ -119,7 +119,7 @@ public sealed class MergeOfficeDocumentCommand : PSCmdlet {
             OfficePath.ValidateDestination(output, NoClobber.IsPresent);
         }
         if (!ShouldProcess(output ?? "Live " + family + " document", "Merge documents in input order")) return;
-        OfficeMergeDispatch.Execute(_inputs, Password, family, extension, options, _document, output, NoClobber.IsPresent);
+        OfficeMergeDispatch.Execute(_inputs, Password, family, extension, options, _document, output, NoClobber.IsPresent, readOptions);
         if (Show.IsPresent) FileOpenService.Open(output!);
         if (PassThru.IsPresent) WriteObject(_document ?? (object)new FileInfo(output!));
     }
