@@ -38,6 +38,7 @@
     <ProjectReference Include="..\OfficeIMO.Word.Rtf\OfficeIMO.Word.Rtf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.OpenDocument\OfficeIMO.Word.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel.OpenDocument\OfficeIMO.Excel.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Html\OfficeIMO.Excel.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.OneNote.Html\OfficeIMO.OneNote.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.OneNote.Markdown\OfficeIMO.OneNote.Markdown.csproj" />

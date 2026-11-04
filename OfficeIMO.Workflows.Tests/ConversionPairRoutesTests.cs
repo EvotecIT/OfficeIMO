@@ -60,6 +60,32 @@ public sealed class ConversionPairRoutesTests {
     }
 
     [Fact]
+    public async Task ExcelHtmlRoutesPreserveEncryptedWorkbookContentInBothDirections() {
+        using var source = new MemoryStream();
+        using (ExcelDocument workbook = ExcelDocument.Create()) {
+            workbook.AddSheet("Secure").Cell(1, 1).SetValue("Encrypted marker");
+            workbook.Save(source, new ExcelSaveOptions { Password = "test-only-password" });
+        }
+        source.Position = 0;
+        using var html = new MemoryStream();
+        OfficeConversionReport exported = await OfficeConverter.ConvertAsync(source, OfficeDocumentFormat.Excel,
+            html, OfficeDocumentFormat.Html, new OfficeConversionOptions { SourcePassword = "test-only-password" });
+        Assert.Contains("Encrypted marker", Encoding.UTF8.GetString(html.ToArray()), StringComparison.Ordinal);
+        Assert.DoesNotContain(exported.Diagnostics, finding => finding.LossKind == OfficeConversionLossKind.Failure);
+        html.Position = 0;
+        using var restored = new MemoryStream();
+        await OfficeConverter.ConvertAsync(html, OfficeDocumentFormat.Html, restored, OfficeDocumentFormat.Excel);
+        restored.Position = 0;
+        using ExcelDocument reopened = ExcelDocument.Load(restored);
+        Assert.Equal("Secure", reopened.Sheets[0].Name);
+        Assert.True(reopened.Sheets[0].TryGetCellText(1, 1, out string? value));
+        Assert.Equal("Encrypted marker", value);
+        Assert.True(source.CanRead);
+        Assert.True(html.CanRead);
+        Assert.True(restored.CanWrite);
+    }
+
+    [Fact]
     public async Task WordRtfPairUsesNativeWordSaveAndRtfReadContracts() {
         var (rtf, _) = await ConvertFileAsync("docx-rtf", ".docx", CreateOfficeDocument(".docx"), ".rtf");
         var (word, _) = await ConvertFileAsync("rtf-docx", ".rtf", rtf, ".docx");
@@ -148,6 +174,7 @@ public sealed class ConversionPairRoutesTests {
     [InlineData("docx-rtf", ".docx", ".rtf")]
     [InlineData("docx-odt", ".docx", ".odt")]
     [InlineData("xlsx-ods", ".xlsx", ".ods")]
+    [InlineData("xlsx-html", ".xlsx", ".html")]
     [InlineData("pptx-odp", ".pptx", ".odp")]
     public async Task OfficePairRoutesRejectXmlBeyondTheConfiguredLimitBeforeWriting(string route, string sourceExtension,
         string targetExtension) {

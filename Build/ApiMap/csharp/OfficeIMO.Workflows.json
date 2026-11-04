@@ -965,6 +965,16 @@
       "action": "add",
       "new": "MarkdownToPowerPointOptions.Theme",
       "reason": "Projects shared theme through native Markup presentation creation without changing caller settings."
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "OfficeWorkflowRouteSettings.ExcelHtml; OfficeWorkflowRouteSettings.HtmlExcel",
+      "reason": "Register the existing xlsx-html and html-xlsx adapters in the optional Workflows bundle; keep passwords, native policies and loss evidence at the engine boundary. Captured options retain independent native clones.",
+      "files": [
+        "OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.ExcelHtml.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowRouteSettings.Pairs.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

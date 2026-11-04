@@ -7,7 +7,7 @@ public static partial class OfficeWorkflow {
     private static IEnumerable<string> PairRouteIds => new[] {
         "asciidoc-markdown", "markdown-asciidoc", "latex-markdown", "markdown-latex", "markdown-pptx",
         "rtf-html", "html-rtf", "rtf-markdown", "markdown-rtf", "rtf-docx", "docx-rtf", "pdf-rtf",
-        "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx",
+        "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx", "xlsx-html", "html-xlsx",
         "onenote-html", "html-onenote", "onenote-markdown", "onenote-pdf",
         "asciidoc-pdf", "latex-pdf", "odt-pdf", "ods-pdf", "odp-pdf"
     };
@@ -25,6 +25,7 @@ public static partial class OfficeWorkflow {
                 throw new ArgumentException("The selected pair supports the Faithful output profile.", nameof(options));
             OfficeConversionReport report = Id switch {
                 "markdown-pptx" => await ConvertMarkdownPowerPointAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
+                "xlsx-html" or "html-xlsx" => await ConvertExcelHtmlAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "asciidoc-markdown" or "markdown-asciidoc" or "latex-markdown" or "markdown-latex" or "asciidoc-pdf" or "latex-pdf" =>
                     await ConvertTextAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "rtf-html" or "html-rtf" or "rtf-markdown" or "markdown-rtf" or "rtf-docx" or "docx-rtf" or "pdf-rtf" =>

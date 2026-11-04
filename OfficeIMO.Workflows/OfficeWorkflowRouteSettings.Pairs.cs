@@ -6,6 +6,12 @@ public sealed partial class OfficeWorkflowRouteSettings {
     /// <summary>Markdown parsing, encoding and syntax settings.</summary>
     public OfficeIMO.Markdown.MarkdownLoadOptions? MarkdownLoad { get; set; }
 
+    /// <summary>Native workbook to HTML mapping and loss policy.</summary>
+    public OfficeIMO.Excel.Html.ExcelHtmlExportOptions? ExcelHtml { get; set; }
+
+    /// <summary>Native HTML to workbook mapping, import limits and loss policy.</summary>
+    public OfficeIMO.Excel.Html.HtmlExcelExportOptions? HtmlExcel { get; set; }
+
     /// <summary>AsciiDoc parsing limits and native profile.</summary>
     public OfficeIMO.AsciiDoc.AsciiDocParseOptions? AsciiDocLoad { get; set; }
 
@@ -120,6 +126,8 @@ public sealed partial class OfficeWorkflowRouteSettings {
         var copy = (OfficeWorkflowRouteSettings)Snapshot();
         return routeId switch {
             "markdown-pptx" => new OfficeWorkflowRouteSettings { MarkdownPowerPoint = copy.MarkdownPowerPoint },
+            "xlsx-html" => new OfficeWorkflowRouteSettings { ExcelHtml = copy.ExcelHtml },
+            "html-xlsx" => new OfficeWorkflowRouteSettings { HtmlExcel = copy.HtmlExcel },
             "rtf-pdf" => new OfficeWorkflowRouteSettings { Rtf = copy.Rtf },
             "odg-pdf" => new OfficeWorkflowRouteSettings { Draw = copy.Draw },
             "visio-pdf" => new OfficeWorkflowRouteSettings { Visio = copy.Visio },
@@ -163,6 +171,8 @@ public sealed partial class OfficeWorkflowRouteSettings {
     private OfficeWorkflowRouteSettings CopyPairSettingsTo(OfficeWorkflowRouteSettings copy) {
         copy.MarkdownPowerPoint = MarkdownPowerPoint?.Clone();
         copy.MarkdownLoad = MarkdownLoad?.Clone();
+        copy.ExcelHtml = ExcelHtml?.Clone();
+        copy.HtmlExcel = HtmlExcel?.Clone();
         copy.AsciiDocLoad = Snapshot(AsciiDocLoad);
         copy.AsciiDocMarkdown = Snapshot(AsciiDocMarkdown);
         copy.MarkdownAsciiDoc = Snapshot(MarkdownAsciiDoc);
