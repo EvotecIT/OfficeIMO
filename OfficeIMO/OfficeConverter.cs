@@ -205,6 +205,7 @@ public static partial class OfficeConverter {
         OfficeDocumentFormat.Rtf => ".rtf", OfficeDocumentFormat.Xps => ".xps", OfficeDocumentFormat.Publisher => ".pub",
         OfficeDocumentFormat.Text => ".txt", OfficeDocumentFormat.Email => ".eml", OfficeDocumentFormat.Epub => ".epub",
         OfficeDocumentFormat.Csv => ".csv", OfficeDocumentFormat.Json => ".json", OfficeDocumentFormat.Xml => ".xml",
+        OfficeDocumentFormat.AsciiDoc => ".adoc", OfficeDocumentFormat.Latex => ".tex", OfficeDocumentFormat.OneNote => ".one",
         OfficeDocumentFormat.Visio => ".vsdx", _ => throw new NotSupportedException("The format requires an explicit physical filename and registered route.")
     };
 
@@ -220,6 +221,8 @@ public static partial class OfficeConverter {
         ".pages" or ".numbers" or ".key" => OfficeDocumentFormat.IWork,
         ".csv" or ".tsv" => OfficeDocumentFormat.Csv, ".json" => OfficeDocumentFormat.Json, ".xml" => OfficeDocumentFormat.Xml,
         ".epub" => OfficeDocumentFormat.Epub, ".vsdx" or ".vdx" or ".vtx" => OfficeDocumentFormat.Visio,
+        ".adoc" or ".asciidoc" => OfficeDocumentFormat.AsciiDoc, ".tex" or ".latex" => OfficeDocumentFormat.Latex,
+        ".one" or ".onepkg" or ".onetoc2" => OfficeDocumentFormat.OneNote,
         _ => OfficeDocumentFormat.Unknown
     };
 }
