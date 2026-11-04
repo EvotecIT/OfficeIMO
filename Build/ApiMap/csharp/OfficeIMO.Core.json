@@ -1007,6 +1007,30 @@
       "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } where code passed StringComparison.Ordinal; omit options for the case-insensitive default.",
       "reason": "One set of Find/ReplaceAll comparison settings shared by Word, PowerPoint and PDF, with the same case-insensitive, partial-word default.",
       "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Drawing.OfficeColorExtensions.ToHexColor(OfficeColor color)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use OfficeColor.ToRgbHex() for RGB. ToArgbHex(), ToHex() and ToCssColor() retain their distinct ARGB, RGBA and CSS contracts.",
+      "reason": "The unused forwarding method adds no color conversion capability; remove its empty extension class.",
+      "file": "OfficeIMO.Core/OfficeColorExtensions.cs",
+      "category": "formatting",
+      "phase": "3.6-shared-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Drawing.OfficeColorExtensions",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use OfficeColor.ToRgbHex() for RGB. ToArgbHex(), ToHex() and ToCssColor() retain their distinct ARGB, RGBA and CSS contracts.",
+      "reason": "The unused forwarding method adds no color conversion capability; remove its empty extension class.",
+      "file": "OfficeIMO.Core/OfficeColorExtensions.cs",
+      "category": "formatting",
+      "phase": "3.6-shared-formatting",
+      "applied": "implemented"
     }
   ],
   "extraChanges": [

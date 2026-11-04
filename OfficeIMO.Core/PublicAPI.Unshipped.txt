@@ -120,3 +120,5 @@ const OfficeIMO.OfficeDiagnosticCodes.ImageCodecUnavailable = "image-codec-unava
 static OfficeIMO.Drawing.OfficeImageReader.NormalizeForEmbedding(byte[]! encodedBytes, OfficeIMO.Drawing.OfficeRasterDecodeOptions? options, out OfficeIMO.Drawing.OfficeImageInfo! info) -> byte[]!
 static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.get -> OfficeIMO.Drawing.IOfficeRasterImageCodec?
 static OfficeIMO.Drawing.OfficeRasterImageCodecs.Platform.set -> void
+*REMOVED*OfficeIMO.Drawing.OfficeColorExtensions
+*REMOVED*static OfficeIMO.Drawing.OfficeColorExtensions.ToHexColor(this OfficeIMO.OfficeColor color) -> string!
