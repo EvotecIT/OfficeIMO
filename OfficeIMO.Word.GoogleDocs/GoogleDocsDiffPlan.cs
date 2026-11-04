@@ -210,7 +210,7 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static string RunFingerprint(WordRunInfo run) =>
-            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{(run.FontSize is OfficeLength size ? checked((int)size.ToPoints()) : (int?)null)}|{run.Color?.ToRgbHex()}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
+            GoogleWorkspaceCheckpointFormat.Format($"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontFamily}|{(run.FontSize is OfficeLength size ? checked((int)size.ToPoints()) : (int?)null)}|{run.Color?.ToRgbHex()}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}");
 
         private static string InlineImageFingerprint(WordInlineImageInfo? image) => image == null
             ? string.Empty

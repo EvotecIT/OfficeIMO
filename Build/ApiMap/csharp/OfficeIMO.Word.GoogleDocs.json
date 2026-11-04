@@ -7,5 +7,17 @@
       "new": "GoogleDocsSaveOptions.Clone()",
       "reason": "Creates independent native export settings for typed options combined with property overrides, including nested mutable collections. The shell preserves the caller options and reuses native translation and export."
     }
+  ],
+  "changes": [
+    {
+      "old": "OfficeIMO.Word.GoogleDocs.GoogleDocsParagraphRun.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Word.GoogleDocs.GoogleDocsParagraphRun.Strikethrough",
+      "replacement": "Use Strikethrough on normalized Google Docs paragraph runs. The provider wire field remains strikethrough.",
+      "reason": "The normalized public run uses the same strikethrough vocabulary as Word, PowerPoint, RTF and shared text formatting.",
+      "category": "authoring",
+      "applied": true
+    }
   ]
 }
