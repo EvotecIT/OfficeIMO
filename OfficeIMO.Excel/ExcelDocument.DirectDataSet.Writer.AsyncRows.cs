@@ -32,7 +32,8 @@ namespace OfficeIMO.Excel {
 
                 writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                 writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
-                WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles);
+                if (sheet.StreamingLayout != null) writer.Write(sheet.StreamingLayout.ViewsXml);
+                WriteDeclaredColumns(writer, sheet.ColumnWidths, declaredStyles, sheet.StreamingLayout?.FirstColumn ?? 1);
                 writer.Write("<sheetData>");
 
                 int count = await WriteAsyncSheetData(writer, sheet, dateTimeOffsetWriteStrategy, dateSystem,
@@ -49,20 +50,29 @@ namespace OfficeIMO.Excel {
                 DirectColumnWritePlan columnWritePlan, IAsyncEnumerable<T> rows, Action<ExcelTabularRowWriter, T> writeRow,
                 int maximumRows, DirectSharedStringTable? sharedStrings, ExcelTabularStylePlan? declaredStyles, CancellationToken ct) {
                 int columnCount = sheet.Table.ColumnCount;
-                string[] cellReferencePrefixes = CreateCellReferencePrefixes(columnCount);
+                var layout = sheet.StreamingLayout;
+                string[] cellReferencePrefixes = layout == null || layout.FirstColumn == 1 ? CreateCellReferencePrefixes(columnCount)
+                    : Enumerable.Range(layout.FirstColumn, columnCount).Select(column => "<c r=\"" + ExcelA1.ColumnIndexToLetters(column)).ToArray();
                 string?[]? styleAttributes = columnWritePlan.StyleAttributes;
                 bool[]? valueStyleColumns = columnWritePlan.ValueStyleColumns;
-                int rowIndex = 1;
+                int rowIndex = layout?.FirstRow ?? 1;
+                if (layout?.Title != null) {
+                    string titleRow = InvariantNumberText.Get(rowIndex++);
+                    writer.Write("<row r=\""); writer.Write(titleRow); writer.Write("\">");
+                    WriteCell(writer, titleRow, cellReferencePrefixes[0], layout.Title, layout.TitleAttribute,
+                        dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
+                    writer.Write("</row>");
+                }
                 if (sheet.IncludeHeaders) {
-                    const string headerRowReference = "1";
-                    writer.Write("<row r=\"1\">");
+                    string headerRowReference = InvariantNumberText.Get(rowIndex);
+                    writer.Write("<row r=\""); writer.Write(headerRowReference); writer.Write("\">");
                     for (int columnIndex = 0; columnIndex < columnCount; columnIndex++) {
                         WriteCell(
                             writer,
                             headerRowReference,
                             cellReferencePrefixes[columnIndex],
                             sheet.Table.GetColumnName(columnIndex),
-                            declaredStyles?.Columns[columnIndex]?.Attribute,
+                            layout?.HeaderAttributes[columnIndex] ?? declaredStyles?.Columns[columnIndex]?.Attribute,
                             dateTimeOffsetWriteStrategy,
                             dateSystem,
                             sharedStrings);

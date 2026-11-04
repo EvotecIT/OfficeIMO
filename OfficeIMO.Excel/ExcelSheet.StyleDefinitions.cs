@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
                 var part = WorkbookPartRoot.WorkbookStylesPart
                     ?? WorkbookPartRoot.AddNewPart<DocumentFormat.OpenXml.Packaging.WorkbookStylesPart>();
                 Stylesheet stylesheet = part.Stylesheet ??= CreateDefaultStylesheet();
-                result = ExcelSheet.DefineDeclaredNamedStyle(stylesheet, normalizedName, snapshot, hidden);
+                result = ExcelSheet.DefineDeclaredNamedStyle(stylesheet, normalizedName, snapshot, hidden, EffectiveCreationTheme);
                 ExcelSheet.SaveStylesheet(part);
                 MarkPackageDirty();
             });
@@ -24,24 +24,24 @@ namespace OfficeIMO.Excel {
     }
 
     public partial class ExcelSheet {
-        internal static CellFormat CreateDefinitionFormat(Stylesheet stylesheet, ExcelStyleDefinition definition) {
+        internal static CellFormat CreateDefinitionFormat(Stylesheet stylesheet, ExcelStyleDefinition definition, OfficeTheme? theme = null) {
             EnsureDefaultStylePrimitives(stylesheet);
             CellFormat format = GetBaseCellFormat(stylesheet, 0U);
             format.FontId = GetOrCreateFontVariant(stylesheet, format.FontId?.Value, font => {
                 SetBold(font, definition.Bold);
                 SetItalic(font, definition.Italic);
                 SetUnderline(font, definition.Underline?.ToOpenXml());
-                if (definition.FontName != null) SetFontName(font, definition.FontName);
+                if (definition.FontFamily != null) SetFontName(font, definition.FontFamily);
                 if (definition.FontSize.HasValue) SetFontSize(font, definition.FontSize.Value.ToPoints());
-                if (definition.FontColor.HasValue) SetFontColor(font, definition.FontColor.Value.ToArgbHex());
+                if (definition.Color.HasValue) SetFontColorElement(font, ExcelColor.ToSpreadsheetColor(definition.Color.Value, theme));
             });
             format.ApplyFont = true;
             if (definition.BackgroundColor.HasValue) {
-                string argb = definition.BackgroundColor.Value.ToArgbHex();
+                Color color = ExcelColor.ToSpreadsheetColor(definition.BackgroundColor.Value, theme);
                 format.FillId = GetOrCreateFill(stylesheet, new Fill(new PatternFill {
                     PatternType = PatternValues.Solid,
-                    ForegroundColor = new ForegroundColor { Rgb = argb },
-                    BackgroundColor = new BackgroundColor { Rgb = argb }
+                    ForegroundColor = new ForegroundColor { Rgb = color.Rgb, Theme = color.Theme },
+                    BackgroundColor = new BackgroundColor { Rgb = color.Rgb, Theme = color.Theme }
                 }));
                 format.ApplyFill = true;
             }
@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
 
         internal static uint AddDefinitionNumberFormat(Stylesheet stylesheet, string code) => GetOrCreateNumberFormatId(stylesheet, code);
 
-        internal static ExcelNamedStyleInfo DefineDeclaredNamedStyle(Stylesheet stylesheet, string name, ExcelStyleDefinition definition, bool hidden) {
+        internal static ExcelNamedStyleInfo DefineDeclaredNamedStyle(Stylesheet stylesheet, string name, ExcelStyleDefinition definition, bool hidden, OfficeTheme? theme = null) {
             EnsureNamedStyleContainers(stylesheet);
             CellStyle? style = stylesheet.CellStyles!.Elements<CellStyle>()
                 .FirstOrDefault(item => string.Equals(item.Name?.Value, name, StringComparison.OrdinalIgnoreCase));
@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                 .Any(item => !ReferenceEquals(item, style) && item.FormatId?.Value == existingFormatId)) {
                 throw new InvalidOperationException($"Named style '{name}' shares its base format with another style and cannot be redefined safely.");
             }
-            CellFormat format = CreateDefinitionFormat(stylesheet, definition);
+            CellFormat format = CreateDefinitionFormat(stylesheet, definition, theme);
             format.FormatId = null;
             uint formatId = ReplaceOrAppendNamedStyleFormat(stylesheet, style, format);
             style ??= stylesheet.CellStyles.AppendChild(new CellStyle());

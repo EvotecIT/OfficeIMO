@@ -4,18 +4,6 @@ using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        /// <summary>
-        /// Sets the worksheet tab color shown by spreadsheet applications.
-        /// </summary>
-        /// <param name="color">Named color, RGB hex, or RGBA hex value.</param>
-        public void SetTabColor(string color) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                throw new ArgumentException("Tab color is required.", nameof(color));
-            }
-
-            SetTabColor(OfficeColor.Parse(color));
-        }
-
         /// <summary>Sets a literal or theme-based worksheet tab color.</summary>
         /// <param name="color">A literal RGBA color, native theme role or status color.</param>
         /// <remarks>Native theme roles follow later workbook theme edits; status roles are written as literals.</remarks>

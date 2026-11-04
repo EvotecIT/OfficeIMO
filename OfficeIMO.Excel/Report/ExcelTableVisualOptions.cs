@@ -64,7 +64,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Apply background colors depending on cell text for a given header name.
         /// </summary>
-        public Dictionary<string, IDictionary<string, string>> TextBackgrounds { get; } = new Dictionary<string, IDictionary<string, string>>(System.StringComparer.OrdinalIgnoreCase);
+        public Dictionary<string, IDictionary<string, OfficeColor>> TextBackgrounds { get; } = new Dictionary<string, IDictionary<string, OfficeColor>>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// Makes cells bold when their text matches any value in the set, keyed by header name.

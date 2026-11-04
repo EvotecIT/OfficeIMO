@@ -516,6 +516,8 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class DirectDataSetSheetModel {
+            internal StreamingWorksheetLayout? StreamingLayout { get; set; }
+
             internal DirectDataSetSheetModel(
                 int index,
                 string sheetName,

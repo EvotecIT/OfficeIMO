@@ -14,32 +14,15 @@ namespace OfficeIMO.Excel {
         private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,
             bool showCategoryName, bool showSeriesName, bool showPercent) {
             ApplyDataLabels(chartElement, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                null, null, false);
+                null, null, null);
         }
 
-        private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool showLegendKey, bool showValue,
-            bool showCategoryName, bool showSeriesName, bool showPercent,
-            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
+        private static void ApplyDataLabels(OpenXmlCompositeElement chartElement, bool? showLegendKey, bool? showValue,
+            bool? showCategoryName, bool? showSeriesName, bool? showPercent,
+            OfficeChartDataLabelPosition? position, string? numberFormat, bool? sourceLinked) {
             C.DataLabels labels = EnsureDataLabels(chartElement);
-            ReplaceChild(labels, new C.ShowLegendKey { Val = showLegendKey });
-            ReplaceChild(labels, new C.ShowValue { Val = showValue });
-            ReplaceChild(labels, new C.ShowCategoryName { Val = showCategoryName });
-            ReplaceChild(labels, new C.ShowSeriesName { Val = showSeriesName });
-            ReplaceChild(labels, new C.ShowPercent { Val = showPercent });
-            ReplaceChild(labels, new C.ShowBubbleSize { Val = false });
-
-            if (position != null) {
-                ApplyDataLabelPosition(labels, chartElement, position.Value);
-            }
-
-            if (numberFormat != null) {
-                ReplaceChild(labels, new C.NumberingFormat {
-                    FormatCode = numberFormat,
-                    SourceLinked = sourceLinked
-                });
-            }
-
-            NormalizeDataLabelsOrder(labels);
+            ApplyDataLabelOverrides(labels, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
+                showBubbleSize: null, position, numberFormat, sourceLinked);
         }
 
         // DrawingML text is stored in hundredths of a point. Validate before attaching XML.
@@ -50,7 +33,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyTextStyle(A.TextCharacterPropertiesType runProps, OfficeLength? fontSize, bool? bold,
-            bool? italic, OfficeColor? color, string? fontName) {
+            bool? italic, OfficeColor? color, string? fontFamily) {
             if (fontSize != null) {
                 runProps.FontSize = ToNativeFontSize(fontSize.Value);
             }
@@ -63,19 +46,19 @@ namespace OfficeIMO.Excel {
             if (color != null) {
                 ApplyTextSolidFill(runProps, color);
             }
-            if (fontName != null) {
+            if (fontFamily != null) {
                 runProps.RemoveAllChildren<A.LatinFont>();
-                runProps.Append(new A.LatinFont { Typeface = fontName });
+                runProps.Append(new A.LatinFont { Typeface = fontFamily });
             }
         }
 
-        private static void ValidateDataLabelTextStyle(OfficeLength? fontSize, OfficeColor? color, string? fontName) {
+        private static void ValidateDataLabelTextStyle(OfficeLength? fontSize, OfficeColor? color, string? fontFamily) {
             if (fontSize != null && fontSize.Value <= OfficeLength.Zero) {
                 throw new ArgumentOutOfRangeException(nameof(fontSize));
             }
             if (fontSize.HasValue) _ = ToNativeFontSize(fontSize.Value);
-            if (fontName != null && string.IsNullOrWhiteSpace(fontName)) {
-                throw new ArgumentException("Font name cannot be empty.", nameof(fontName));
+            if (fontFamily != null && string.IsNullOrWhiteSpace(fontFamily)) {
+                throw new ArgumentException("Font name cannot be empty.", nameof(fontFamily));
             }
         }
 
@@ -297,8 +280,8 @@ namespace OfficeIMO.Excel {
         }
 
         private static void ApplyDataLabelTextStyle(OpenXmlCompositeElement labels, OfficeLength? fontSize, bool? bold,
-            bool? italic, OfficeColor? color, string? fontName) {
-            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontName);
+            bool? italic, OfficeColor? color, string? fontFamily) {
+            ApplyTextStyle(EnsureTextPropertiesRunProperties(labels), fontSize, bold, italic, color, fontFamily);
 
             if (labels is C.DataLabels dataLabels) {
                 NormalizeDataLabelsOrder(dataLabels);
@@ -368,7 +351,7 @@ namespace OfficeIMO.Excel {
 
         private static void ApplyDataLabelOverrides(OpenXmlCompositeElement label, bool? showLegendKey, bool? showValue,
             bool? showCategoryName, bool? showSeriesName, bool? showPercent, bool? showBubbleSize,
-            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked) {
+            OfficeChartDataLabelPosition? position, string? numberFormat, bool? sourceLinked) {
             if (showLegendKey != null) {
                 ReplaceChild(label, new C.ShowLegendKey { Val = showLegendKey.Value });
             }
@@ -390,11 +373,12 @@ namespace OfficeIMO.Excel {
             if (position != null) {
                 ApplyDataLabelPosition(label, label, position.Value);
             }
-            if (numberFormat != null) {
-                ReplaceChild(label, new C.NumberingFormat {
-                    FormatCode = numberFormat,
-                    SourceLinked = sourceLinked
-                });
+            if (numberFormat != null || sourceLinked.HasValue) {
+                C.NumberingFormat format = label.GetFirstChild<C.NumberingFormat>()
+                    ?? new C.NumberingFormat { FormatCode = "General", SourceLinked = false };
+                if (numberFormat != null) format.FormatCode = numberFormat;
+                if (sourceLinked.HasValue) format.SourceLinked = sourceLinked.Value;
+                if (format.Parent == null) label.AddChild(format, true);
             }
 
             if (label is C.DataLabels dataLabels) {
@@ -465,7 +449,7 @@ namespace OfficeIMO.Excel {
                 || template.Bold != null
                 || template.Italic != null
                 || template.TextColor != null
-                || template.FontName != null;
+                || template.FontFamily != null;
             bool applyShapeStyle = template.NoFill
                 || template.NoLine
                 || template.FillColor != null
@@ -476,7 +460,7 @@ namespace OfficeIMO.Excel {
                 || template.LeaderLineWidth != null;
 
             if (applyTextStyle) {
-                ValidateDataLabelTextStyle(template.FontSize, template.TextColor, template.FontName);
+                ValidateDataLabelTextStyle(template.FontSize, template.TextColor, template.FontFamily);
             }
             if (applyShapeStyle) {
                 ValidateDataLabelShapeStyle(template.FillColor, template.LineColor, template.LineWidth,
@@ -489,14 +473,14 @@ namespace OfficeIMO.Excel {
             C.DataLabels labels = EnsureDataLabels(series);
             ApplyDataLabelOverrides(labels, template.ShowLegendKey, template.ShowValue, template.ShowCategoryName,
                 template.ShowSeriesName, template.ShowPercent, template.ShowBubbleSize,
-                template.Position, template.NumberFormat, template.SourceLinked);
+                template.Position, template.NumberFormat, template.NumberFormat != null ? template.SourceLinked : (bool?)null);
             if (template.Separator != null) {
                 ApplyDataLabelSeparator(labels, template.Separator);
             }
 
             if (applyTextStyle) {
                 ApplyDataLabelTextStyle(labels, template.FontSize, template.Bold, template.Italic,
-                    template.TextColor, template.FontName);
+                    template.TextColor, template.FontFamily);
             }
             if (applyShapeStyle) {
                 ApplyDataLabelShapeStyle(labels, template.FillColor, template.LineColor, template.LineWidth,

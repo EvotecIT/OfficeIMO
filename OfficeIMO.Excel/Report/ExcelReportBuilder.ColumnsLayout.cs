@@ -213,7 +213,7 @@ namespace OfficeIMO.Excel {
                     string hdr = headersT[i];
                     string colRange = $"{ExcelReportBuilder.ColumnLetter(_baseCol + i)}{headerRow + 1}:{ExcelReportBuilder.ColumnLetter(_baseCol + i)}{_row - 1}";
                     if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt))
-                        _sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
+                        _sheet.ColumnStyleByHeader(hdr).SetNumberFormat(fmt);
                     else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec))
                         _sheet.ColumnStyleByHeader(hdr).Number(dec);
                     if (viz.DataBars.TryGetValue(hdr, out var color))

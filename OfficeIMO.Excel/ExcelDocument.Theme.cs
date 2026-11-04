@@ -32,6 +32,7 @@ namespace OfficeIMO.Excel {
             }
 
             SetWorkbookThemeXml(xml);
+            _creationTheme = null;
             return this;
         }
 

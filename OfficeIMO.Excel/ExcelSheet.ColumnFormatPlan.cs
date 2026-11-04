@@ -42,7 +42,7 @@ namespace OfficeIMO.Excel {
                         ApplyColumnNumberFormat(columnIndex, headerRow, ruleIncludeHeader, numberFormat);
                     }
                 } else if (directCandidateMatched) {
-                    ColumnStyleByHeader(rule.Header, ruleIncludeHeader, options).NumberFormat(numberFormat);
+                    ColumnStyleByHeader(rule.Header, ruleIncludeHeader, options).SetNumberFormat(numberFormat);
                 } else {
                     ApplyColumnNumberFormat(columnIndex, headerRow, ruleIncludeHeader, numberFormat);
                 }

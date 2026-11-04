@@ -11,20 +11,10 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 namespace OfficeIMO.Excel {
     // Represents a chart on a worksheet.
     public sealed partial class ExcelChart {
-        /// <summary>
-        /// Configures data labels for all supported chart series.
-        /// </summary>
-        public ExcelChart SetDataLabels(bool showValue = true, bool showCategoryName = false,
-            bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false) {
-            return SetDataLabels(showValue, showCategoryName, showSeriesName, showLegendKey, showPercent, null, null, false);
-        }
-
-        /// <summary>
-        /// Configures data labels for all supported chart series with optional formatting.
-        /// </summary>
-        public ExcelChart SetDataLabels(bool showValue, bool showCategoryName,
-            bool showSeriesName, bool showLegendKey, bool showPercent,
-            OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked = false) {
+        /// <summary>Updates supplied data-label settings for all supported chart families; omitted flags, position and number-format settings remain unchanged.</summary>
+        public ExcelChart SetDataLabels(bool? showValue = null, bool? showCategoryName = null,
+            bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null,
+            OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool? sourceLinked = null) {
             if (numberFormat != null && string.IsNullOrWhiteSpace(numberFormat)) {
                 throw new ArgumentException("Number format cannot be empty.", nameof(numberFormat));
             }
@@ -105,8 +95,8 @@ namespace OfficeIMO.Excel {
         /// Sets data label text style for all chart labels.
         /// </summary>
         public ExcelChart SetDataLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            OfficeColor? color = null, string? fontName = null) {
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            OfficeColor? color = null, string? fontFamily = null) {
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             C.Chart chart = GetChart();
             C.PlotArea? plotArea = chart.GetFirstChild<C.PlotArea>();
@@ -115,46 +105,46 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (C.BarChart barChart in plotArea.Elements<C.BarChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.Bar3DChart barChart in plotArea.Elements<C.Bar3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(barChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.LineChart lineChart in plotArea.Elements<C.LineChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.Line3DChart lineChart in plotArea.Elements<C.Line3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(lineChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.AreaChart areaChart in plotArea.Elements<C.AreaChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.Area3DChart areaChart in plotArea.Elements<C.Area3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(areaChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.PieChart pieChart in plotArea.Elements<C.PieChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.Pie3DChart pieChart in plotArea.Elements<C.Pie3DChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.OfPieChart pieChart in plotArea.Elements<C.OfPieChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(pieChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.DoughnutChart doughnutChart in plotArea.Elements<C.DoughnutChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(doughnutChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(doughnutChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.ScatterChart scatterChart in plotArea.Elements<C.ScatterChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(scatterChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(scatterChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.BubbleChart bubbleChart in plotArea.Elements<C.BubbleChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(bubbleChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(bubbleChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.RadarChart radarChart in plotArea.Elements<C.RadarChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(radarChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(radarChart), fontSize, bold, italic, color, fontFamily);
             }
             foreach (C.StockChart stockChart in plotArea.Elements<C.StockChart>()) {
-                ApplyDataLabelTextStyle(EnsureDataLabels(stockChart), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(stockChart), fontSize, bold, italic, color, fontFamily);
             }
 
             Save();
@@ -399,12 +389,12 @@ namespace OfficeIMO.Excel {
         /// Sets data label text style for a series by index.
         /// </summary>
         public ExcelChart SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, OfficeColor? color = null, string? fontName = null) {
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -418,13 +408,13 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets data label text style for a series by name.
         /// </summary>
-        public ExcelChart SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) {
+        public ExcelChart SetSeriesDataLabelTextStyleByName(string seriesName, OfficeLength? fontSize = null, bool? bold = null,
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -490,7 +480,7 @@ namespace OfficeIMO.Excel {
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    showBubbleSize, position, numberFormat, sourceLinked);
+                    showBubbleSize, position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
             });
 
             if (!applied) {
@@ -541,7 +531,7 @@ namespace OfficeIMO.Excel {
                     }
 
                     ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName,
-                        showPercent, showBubbleSize, position, numberFormat, sourceLinked);
+                        showPercent, showBubbleSize, position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
                 }
             });
 
@@ -570,7 +560,7 @@ namespace OfficeIMO.Excel {
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
                 ApplyDataLabelOverrides(label, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    showBubbleSize, position, numberFormat, sourceLinked);
+                    showBubbleSize, position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
             });
 
             if (!applied) {
@@ -586,14 +576,14 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelChart SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex,
             OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            OfficeColor? color = null, string? fontName = null) {
+            OfficeColor? color = null, string? fontFamily = null) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
-                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -607,16 +597,16 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets data label text style for a specific point by series name.
         /// </summary>
-        public ExcelChart SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex,
+        public ExcelChart SetSeriesDataLabelTextStyleForPointByName(string seriesName, int pointIndex,
             OfficeLength? fontSize = null, bool? bold = null, bool? italic = null,
-            OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) {
+            OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
             ArgumentOutOfRangeException.ThrowIfNegative(pointIndex);
-            ValidateDataLabelTextStyle(fontSize, color, fontName);
+            ValidateDataLabelTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 C.DataLabel label = EnsureDataLabel(series, pointIndex);
-                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(label, fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -821,7 +811,7 @@ namespace OfficeIMO.Excel {
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
                 ApplyDataLabels(series, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
+                    position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
             });
 
             if (!applied) {
@@ -846,7 +836,7 @@ namespace OfficeIMO.Excel {
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
                 ApplyDataLabels(series, showLegendKey, showValue, showCategoryName, showSeriesName, showPercent,
-                    position, numberFormat, sourceLinked);
+                    position, numberFormat, numberFormat != null ? sourceLinked : (bool?)null);
             });
 
             if (!applied) {

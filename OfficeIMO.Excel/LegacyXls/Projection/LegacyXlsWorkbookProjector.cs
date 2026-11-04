@@ -1885,17 +1885,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                     projectedRun.Italic = font.Italic;
                     projectedRun.Underline = font.Underline;
                     projectedRun.UnderlineStyle = ToUnderlineStyle(font.UnderlineStyle).ToOfficeEnum();
-                    projectedRun.FontName = font.Name;
+                    projectedRun.FontFamily = font.Name;
                     projectedRun.FontSize = font.Size.HasValue ? OfficeLength.Points(font.Size.Value) : (OfficeLength?)null;
                     projectedRun.VerticalTextAlignment = ToVerticalTextAlignment(font.Escapement).ToOfficeEnum();
                     projectedRun.Outline = font.Outline;
                     projectedRun.Shadow = font.Shadow;
                     projectedRun.Condense = font.Condense;
                     projectedRun.Extend = font.Extend;
-                    projectedRun.FontFamily = font.Family;
+                    projectedRun.FontFamilyClassification = font.Family;
                     projectedRun.FontCharacterSet = font.CharacterSet;
                     if (workbook.TryResolveColor(font.ColorIndex, out string? fontColor)) {
-                        projectedRun.FontColor = fontColor;
+                        projectedRun.Color = ExcelColor.FromSpreadsheetColor(null, fontColor);
                     }
                 }
 

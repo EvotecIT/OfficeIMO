@@ -422,11 +422,11 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static CommentText BuildCommentText(string text) {
+        private CommentText BuildCommentText(string text) {
             return BuildCommentText(new[] { new ExcelRichTextRun(text) });
         }
 
-        private static CommentText BuildCommentText(IEnumerable<ExcelRichTextRun> runs) {
+        private CommentText BuildCommentText(IEnumerable<ExcelRichTextRun> runs) {
             var normalizedRuns = NormalizeCommentRuns(runs);
             var commentText = new CommentText();
             foreach (var richRun in normalizedRuns) {
@@ -440,8 +440,8 @@ namespace OfficeIMO.Excel {
                     properties.Append(new Underline { Val = richRun.Underline ? UnderlineValues.Single : UnderlineValues.None });
                 }
                 if (richRun.StrikethroughSpecified) properties.Append(new Strike { Val = richRun.Strikethrough });
-                if (!string.IsNullOrWhiteSpace(richRun.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(richRun.FontColor!) });
-                if (!string.IsNullOrWhiteSpace(richRun.FontName)) properties.Append(new RunFont { Val = richRun.FontName });
+                if (richRun.Color.HasValue) properties.Append(ExcelColor.ToSpreadsheetColor(richRun.Color.Value, _excelDocument.EffectiveCreationTheme));
+                if (!string.IsNullOrWhiteSpace(richRun.FontFamily)) properties.Append(new RunFont { Val = richRun.FontFamily });
                 if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value.ToPoints() });
                 ExcelRichTextRun.AppendFontMetadata(properties, richRun);
                 if (properties.HasChildren) {

@@ -313,7 +313,7 @@
     }
   ],
   "additions": [
-    "ExcelSheet.Document : ExcelDocument — exposes the owning workbook so native worksheets returned by file operations can be saved and disposed explicitly",
+    "ExcelSheet.Document : ExcelDocument \u2014 exposes the owning workbook so native worksheets returned by file operations can be saved and disposed explicitly",
     "ExcelSheet.Report(ExcelReportOptions options = null) : ExcelReportBuilder",
     "ExcelSheet.AddTable<T>(IEnumerable<T> rows, OfficeTableOptions options = null) : ExcelTable and AddTable(DataTable table, ...) : ExcelTable",
     "ExcelSheet.AddChart<T>(OfficeChartType type, IEnumerable<T> data, Func<T, object> category, params OfficeSeries[] series) : ExcelChart and the nameof() overload",
@@ -10711,7 +10711,7 @@
       "note": "Adds the previously unmapped return-contract change; statement callers retain their behavior."
     },
     {
-      "old": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string tocSheetName = \"TOC\", int row = 2, int col = 1, string text = \"← TOC\") : void",
+      "old": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(string tocSheetName = \"TOC\", int row = 2, int col = 1, string text = \"\u2190 TOC\") : void",
       "new": "OfficeIMO.Excel.ExcelDocument.AddBackLinksToToc(...) : IReadOnlyDictionary<ExcelSheet, ExcelHyperlinkInfo>",
       "kind": "method",
       "action": "change",
@@ -11010,8 +11010,8 @@
       "old": "OfficeIMO.Excel.ExcelSheet.CellFontColor(int row, int column, string hexColor)",
       "kind": "method",
       "action": "merge",
-      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetFontColor(hexColor)",
-      "reason": "The cell or range is the object you act on; the sheet-level duplicate goes.",
+      "new": "OfficeIMO.Excel.ExcelSheet.Cell(row, column).SetColor(color)",
+      "reason": "Apply text color through Cell(row, column).SetColor(OfficeColor). Convert a legacy RGB/ARGB value to the matching RGBA channels before passing it.",
       "category": "authoring",
       "phase": "3.6-g2",
       "applied": "applied"
@@ -11455,22 +11455,22 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(\"FCE4E4\").SetFontColor(\"9C0006\").",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(OfficeColor.Parse(\"FCE4E4\")).SetColor(OfficeColor.Parse(\"9C0006\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied",
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(\"FCE4E4\").SetFontColor(\"9C0006\")."
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(OfficeColor.Parse(\"FCE4E4\")).SetColor(OfficeColor.Parse(\"9C0006\"))."
     },
     {
       "old": "OfficeIMO.Excel.ExcelRange.HeaderStyle()",
       "kind": "method",
       "action": "remove",
       "new": null,
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetBold().SetFillColor(\"D9EAF7\").SetFontColor(\"1F4E79\").",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetBold().SetFillColor(OfficeColor.Parse(\"D9EAF7\")).SetColor(OfficeColor.Parse(\"1F4E79\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied",
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetBold().SetFillColor(\"D9EAF7\").SetFontColor(\"1F4E79\")."
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetBold().SetFillColor(OfficeColor.Parse(\"D9EAF7\")).SetColor(OfficeColor.Parse(\"1F4E79\"))."
     },
     {
       "old": "OfficeIMO.Excel.ExcelRange.Integer()",
@@ -11488,11 +11488,11 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFontColor(\"666666\").",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetColor(OfficeColor.Parse(\"666666\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied",
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFontColor(\"666666\")."
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetColor(OfficeColor.Parse(\"666666\"))."
     },
     {
       "old": "OfficeIMO.Excel.ExcelRange.Number(int decimals = 2)",
@@ -11521,11 +11521,11 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(\"E7F6E7\").SetFontColor(\"226B22\").",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(OfficeColor.Parse(\"E7F6E7\")).SetColor(OfficeColor.Parse(\"226B22\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied",
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(\"E7F6E7\").SetFontColor(\"226B22\")."
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(OfficeColor.Parse(\"E7F6E7\")).SetColor(OfficeColor.Parse(\"226B22\"))."
     },
     {
       "old": "OfficeIMO.Excel.ExcelRange.Text()",
@@ -11574,11 +11574,11 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(\"FFF4CC\").SetFontColor(\"7A4D00\").",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(OfficeColor.Parse(\"FFF4CC\")).SetColor(OfficeColor.Parse(\"7A4D00\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied",
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(\"FFF4CC\").SetFontColor(\"7A4D00\")."
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use range.SetFillColor(OfficeColor.Parse(\"FFF4CC\")).SetColor(OfficeColor.Parse(\"7A4D00\"))."
     },
     {
       "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.BeginsWith(string text)",
@@ -12654,8 +12654,8 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(\"E7F6E7\").SetFontColor(\"226B22\").",
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(\"E7F6E7\").SetFontColor(\"226B22\").",
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(OfficeColor.Parse(\"E7F6E7\")).SetColor(OfficeColor.Parse(\"226B22\")).",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(OfficeColor.Parse(\"E7F6E7\")).SetColor(OfficeColor.Parse(\"226B22\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied"
@@ -12665,8 +12665,8 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(\"FFF4CC\").SetFontColor(\"7A4D00\").",
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(\"FFF4CC\").SetFontColor(\"7A4D00\").",
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(OfficeColor.Parse(\"FFF4CC\")).SetColor(OfficeColor.Parse(\"7A4D00\")).",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(OfficeColor.Parse(\"FFF4CC\")).SetColor(OfficeColor.Parse(\"7A4D00\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied"
@@ -12676,8 +12676,8 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(\"FCE4E4\").SetFontColor(\"9C0006\").",
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(\"FCE4E4\").SetFontColor(\"9C0006\").",
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(OfficeColor.Parse(\"FCE4E4\")).SetColor(OfficeColor.Parse(\"9C0006\")).",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFillColor(OfficeColor.Parse(\"FCE4E4\")).SetColor(OfficeColor.Parse(\"9C0006\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied"
@@ -12687,8 +12687,8 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFontColor(\"666666\").",
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetFontColor(\"666666\").",
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetColor(OfficeColor.Parse(\"666666\")).",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetColor(OfficeColor.Parse(\"666666\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied"
@@ -12698,11 +12698,759 @@
       "kind": "method",
       "action": "remove",
       "new": null,
-      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetBold().SetFillColor(\"D9EAF7\").SetFontColor(\"1F4E79\").",
-      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetBold().SetFillColor(\"D9EAF7\").SetFontColor(\"1F4E79\").",
+      "replacement": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetBold().SetFillColor(OfficeColor.Parse(\"D9EAF7\")).SetColor(OfficeColor.Parse(\"1F4E79\")).",
+      "reason": "Formatting presets had no use beyond SetNumberFormat and fixed colours; set the format or colours directly. Use cell.SetBold().SetFillColor(OfficeColor.Parse(\"D9EAF7\")).SetColor(OfficeColor.Parse(\"1F4E79\")).",
       "category": "authoring",
       "phase": "3.6-g3",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetFontName(string fontName)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelCell.SetFontFamily(string fontFamily)",
+      "reason": "FontFamily denotes a typeface name, separate from native numeric classification.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetFontColor(string hexColor)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelCell.SetColor(OfficeColor color)",
+      "reason": "Text color uses OfficeColor; convert legacy RGB/ARGB literals to explicit channels before migration, rather than parsing ARGB as RGBA.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetFillColor(string hexColor)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelCell.SetFillColor(OfficeColor color)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetGradientFill(string fromHexColor, string toHexColor, double degree = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelCell.SetGradientFill(OfficeColor fromColor, OfficeColor toColor, double degree = 0)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetBorder(ExcelBorderStyle style, string? hexColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelCell.SetBorder(ExcelBorderStyle style, OfficeColor? color = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelCell.SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, OfficeColor? color = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelCell.SetDiagonalBorder(ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelCell.SetDiagonalBorder(ExcelBorderStyle style, OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetFontName(string fontName)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRange.SetFontFamily(string fontFamily)",
+      "reason": "FontFamily denotes a typeface name, separate from native numeric classification.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetFontColor(string hexColor)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRange.SetColor(OfficeColor color)",
+      "reason": "Text color uses OfficeColor; convert legacy RGB/ARGB literals to explicit channels before migration, rather than parsing ARGB as RGBA.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetFillColor(string hexColor)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelRange.SetFillColor(OfficeColor color)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetGradientFill(string fromHexColor, string toHexColor, double degree = 0)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRange.SetGradientFill(OfficeColor fromColor, OfficeColor toColor, double degree = 0)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetBorder(ExcelBorderStyle style, string? hexColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRange.SetBorder(ExcelBorderStyle style, OfficeColor? color = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRange.SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, OfficeColor? color = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRange.SetDiagonalBorder(ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRange.SetDiagonalBorder(ExcelBorderStyle style, OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelCell.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRichTextRun.FontFamily : byte?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRichTextRun.FontFamilyClassification : byte?",
+      "reason": "Keep the typeface string, native family classification byte and typed text color distinct; nullable values inherit cell formatting.",
+      "file": "OfficeIMO.Excel/ExcelRichTextRun.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRichTextRun.FontName : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRichTextRun.FontFamily : string?",
+      "reason": "Keep the typeface string, native family classification byte and typed text color distinct; nullable values inherit cell formatting.",
+      "file": "OfficeIMO.Excel/ExcelRichTextRun.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRichTextRun.FontColor : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRichTextRun.Color : OfficeColor?",
+      "reason": "Keep the typeface string, native family classification byte and typed text color distinct; nullable values inherit cell formatting.",
+      "file": "OfficeIMO.Excel/ExcelRichTextRun.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelStyleDefinition.FontName : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelStyleDefinition.FontFamily : string?",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelStyleDefinition.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelStyleDefinition.FontColor : OfficeColor?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelStyleDefinition.Color : OfficeColor?",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelStyleDefinition.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRowLayoutOptions.FontName : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelRowLayoutOptions.FontFamily : string?",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRowLayoutOptions.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRowLayoutOptions.BackgroundColor : string?",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRowLayoutOptions.BackgroundColor : OfficeColor?",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRowLayoutOptions.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontName : string?",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontFamily : string?",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelChartDataLabelTemplate.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.Bold()",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetBold(bool bold = true)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.NumberFormat(string format)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetNumberFormat(string format)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.Background(string hexColor)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColor(OfficeColor color)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.Background(OfficeColor color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColor(OfficeColor color)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.FontColor(string hexColor)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetColor(OfficeColor color)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.AlignLeft()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetHorizontalAlignment(ExcelHorizontalAlignment.Left)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.AlignCenter()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetHorizontalAlignment(ExcelHorizontalAlignment.Center)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.AlignRight()",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetHorizontalAlignment(ExcelHorizontalAlignment.Right)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.FontColorByTextMap(IDictionary<string, string> map, bool caseInsensitive = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetColorByTextMap(IDictionary<string, OfficeColor> map, bool caseInsensitive = true)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BackgroundWhenTextEquals(string text, string hexColor, bool caseInsensitive = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColorWhenTextEquals(string text, OfficeColor color, bool caseInsensitive = true)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BackgroundByTextMap(IDictionary<string, string> map, bool caseInsensitive = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColorByTextMap(IDictionary<string, OfficeColor> map, bool caseInsensitive = true)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BackgroundByTextMap(IDictionary<string, OfficeColor> map, bool caseInsensitive = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColorByTextMap(IDictionary<string, OfficeColor> map, bool caseInsensitive = true)",
+      "reason": "Use the existing cell/range Set vocabulary and owners. Header lookup, inert missing headers and direct-save number-format metadata remain.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BoldWhenTextEquals(string text, bool caseInsensitive = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetBoldWhenTextEquals(string text, bool bold = true, bool caseInsensitive = true)",
+      "reason": "Explicit false clears bold. An old positional second bool represented caseInsensitive; preserve that intent with a named caseInsensitive argument.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BoldByTextSet(ISet<string> values, bool caseInsensitive = true)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetBoldByTextSet(ISet<string> values, bool bold = true, bool caseInsensitive = true)",
+      "reason": "Explicit false clears bold. An old positional second bool represented caseInsensitive; preserve that intent with a named caseInsensitive argument.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelTableVisualOptions.TextBackgrounds : Dictionary<string, IDictionary<string, string>>",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelTableVisualOptions.TextBackgrounds : Dictionary<string, IDictionary<string, OfficeColor>>",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/Report/ExcelTableVisualOptions.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelSheet.SetTabColor(string color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelSheet.SetTabColor(OfficeColor color)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelSheet.TabColor.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, string? fillColor = null, bool stopIfTrue = false, int? priority = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null, OfficeColor? fillColor = null, bool stopIfTrue = false, int? priority = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string formula, string? fillColor = null, bool stopIfTrue = false, int? priority = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string formula, OfficeColor? fillColor = null, bool stopIfTrue = false, int? priority = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Text(ExcelConditionalFormatType type, string text, string? fillColor = null, bool stopIfTrue = false)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Text(ExcelConditionalFormatType type, string text, OfficeColor? fillColor = null, bool stopIfTrue = false)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DuplicateValues(string? fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DuplicateValues(OfficeColor? fillColor = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.UniqueValues(string? fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.UniqueValues(OfficeColor? fillColor = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage(bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, string? fillColor = null, bool stopIfTrue = false)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage(bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, OfficeColor? fillColor = null, bool stopIfTrue = false)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TopBottom(uint rank, bool bottom = false, bool percent = false, string? fillColor = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TopBottom(uint rank, bool bottom = false, bool percent = false, OfficeColor? fillColor = null)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TimePeriod(ExcelConditionalTimePeriod timePeriod, string? fillColor = null, bool stopIfTrue = false)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TimePeriod(ExcelConditionalTimePeriod timePeriod, OfficeColor? fillColor = null, bool stopIfTrue = false)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(string startColor, string endColor)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(OfficeColor startColor, OfficeColor endColor)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DataBar(string color)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DataBar(OfficeColor color)",
+      "reason": "Use the shared formatting contract and preserve native theme roles.",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null, bool ignoreCase = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleByName(string seriesName, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior. Use an explicit ByName selector to avoid adding two optional-parameter overloads.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(string seriesName, int pointIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontName = null, bool ignoreCase = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPointByName(string seriesName, int pointIndex, OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true)",
+      "reason": "Rename the typeface named argument to fontFamily without changing chart text-style behavior. Use an explicit ByName selector to avoid adding two optional-parameter overloads.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-authoring-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetLegend(OfficeChartLegendPosition position, bool overlay = false)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetLegend(OfficeChartLegendPosition? position = null, bool? overlay = null)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabels(bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabels(bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool? sourceLinked = null)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetDataLabels(bool showValue, bool showCategoryName, bool showSeriesName, bool showLegendKey, bool showPercent, OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked = false)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeIMO.Excel.ExcelChart.SetDataLabels(bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool? sourceLinked = null)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.DataLabels.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool? showMajor = null, bool? showMinor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool? showMajor = null, bool? showMinor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, OfficeChartAxisGroup axisGroup = OfficeChartAxisGroup.Primary)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.Axes.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape? style = null, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Excel.ExcelChart.SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Excel.ExcelChart.SetSeriesMarkerByName(string seriesName, OfficeChartMarkerShape? style = null, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true)",
+      "reason": "Omitted settings preserve existing native state; explicit false clears only the selected flag. Pass showValue:true to enable data-label values instead of relying on the former parameterless default. Marker ByName keeps selector overloads unambiguous.",
+      "file": "OfficeIMO.Excel/ExcelChart.SeriesAndAreas.cs",
+      "category": "authoring",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "old": "PSWriteOffice.Foundation.OfficeSheetSelector",
+      "kind": "type",
+      "action": "move",
+      "new": "OfficeIMO.Excel.OfficeSheetSelector",
+      "reason": "One immutable native name/pattern/position/live-identity model for authoring, streaming reader selection and deferred PDF batch/saved-job options. PowerShell only unwraps and binds. Numeric strings remain names; selected results follow workbook order, and empty/unmatched explicit selections fail.",
+      "file": "OfficeIMO.Excel/OfficeSheetSelector.cs",
+      "category": "authoring",
+      "phase": "3.6-native-sheet-selectors",
+      "applied": "implemented"
+    },
+    {
+      "old": "ExcelSheet.AddPivotTable(string sourceRange, string destinationCell, ExcelPivotTableOptions? options = null)",
+      "new": "ExcelSheet.AddPivotTable(string sourceRange, string destinationCell) and AddPivotTable(string sourceRange, string destinationCell, ExcelPivotTableOptions? options)",
+      "action": "change",
+      "kind": "method",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotAuthoring.cs",
+      "phase": "3.6-native-pipeline-authoring",
+      "category": "authoring",
+      "reason": "Keep existing two/three-argument callers while the source-sheet overload owns the sole optional options parameter at greatest arity; native API analyzers remain enabled.",
+      "applied": "implemented"
     }
   ],
   "packageMoves": [
@@ -12874,7 +13622,7 @@
       "subject": "Local worksheet addresses",
       "status": "applied",
       "phase": "B",
-      "note": "CellAt(string) and native ExcelRange preserve the removed builders’ rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
+      "note": "CellAt(string) and native ExcelRange preserve the removed builders\u2019 rejection of worksheet-qualified addresses. Cross-sheet addresses remain explicit in operations that support them."
     },
     {
       "subject": "Excel report AddTable(DataTable) target correction",
@@ -13675,7 +14423,7 @@
         "OfficeIMO.OpenDocument.Converters.Tests/SpreadsheetConditionalFormattingLossTests.cs",
         "OfficeIMO.Excel.Tests/Pdf/Excel.SaveAsPdf.PageSetupPrintAreaTests.cs"
       ],
-      "note": "Nullable inheritance, 1–409-point differential-format guards and numeric provider/native wire values are preserved. The five authoring APIs and four font models now use one physical length contract. Compiler consumer closure preserves nullable expected rich-run sizes and sums typed PDF minimum row heights after the existing nonnull assertion, retaining all saved-value expectations.",
+      "note": "Nullable inheritance, 1\u2013409-point differential-format guards and numeric provider/native wire values are preserved. The five authoring APIs and four font models now use one physical length contract. Compiler consumer closure preserves nullable expected rich-run sizes and sums typed PDF minimum row heights after the existing nonnull assertion, retaining all saved-value expectations.",
       "phase": "B",
       "action": "change",
       "old": "ExcelCellStyleInfo.FontSize, ExcelVisualTextRun.FontSize, ExcelVisualDrawingObject.TextFontSize, ExcelConditionalFormattingInfo.DifferentialFontSize",
@@ -13717,6 +14465,286 @@
       "reason": "Values written into a template kept losing its column number formats (XLBench template scenario: A2005 got format 14, E2005 got General).",
       "category": "authoring",
       "applied": "applied"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetItalic(bool italic = true)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetUnderline(bool underline)",
+      "reason": "Explicit true or false selects single underline; parameterless SetUnderline() enables it and the enum overload preserves native underline styles without optional-overload ambiguity.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetUnderline(ExcelUnderlineStyle underlineStyle)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetStrikethrough(bool strikethrough = true)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetFontFamily(string fontFamily)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetFontSize(OfficeLength fontSize)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetVerticalAlignment(ExcelVerticalAlignment alignment)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetVerticalTextAlignment(ExcelVerticalTextAlignment alignment)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetWrapText(bool wrapText = true)",
+      "reason": "Expose the existing cell/range formatting capability through the same header handle; Boolean false explicitly disables the property.",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "applied": "implemented"
+    },
+    {
+      "phase": "3.6-authoring-formatting",
+      "action": "add",
+      "new": "ExcelColumnStyleByHeaderBuilder.SetUnderline()",
+      "file": "OfficeIMO.Excel/ExcelColumnStyleByHeaderBuilder.cs",
+      "reason": "Enable single underline through the standard no-argument authoring grammar; Boolean false and native enum styles remain separate explicit overloads.",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelRangeConditionalFormattingBuilder.ColorScale(OfficeColor startColor, OfficeColor midColor, OfficeColor endColor)",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelRangeConditionalFormattingBuilder.cs",
+      "reason": "Create a native min/50th-percentile/max color scale without flattening theme roles.",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelSheet.SetConditionalFormattingColors(ExcelConditionalFormattingInfo rule, OfficeColor? color = null, OfficeColor? fillColor = null)",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelSheet.ConditionalFormatting.Colors.cs",
+      "reason": "Update supplied rule colors at the attached native owner and preserve other style/unknown markup. If both colors are omitted, apply the document creation theme Danger text and light Danger fill. Return a fresh snapshot; rule flags continue through UpdateConditionalFormattingRule.",
+      "phase": "3.6-formatting-native-support",
+      "applied": "implemented"
+    },
+    {
+      "new": "OfficeSheetSelector(string? name = null, int? position = null)",
+      "action": "add",
+      "file": "OfficeIMO.Excel/OfficeSheetSelector.cs",
+      "reason": "Persist exactly one name/pattern or positive one-based position through System.Text.Json; ignore the live worksheet object and persist its captured name.",
+      "phase": "3.6-native-sheet-selectors",
+      "applied": "implemented"
+    },
+    {
+      "new": "OfficeSheetSelector.ResolveMany(ExcelDocument document, IReadOnlyList<OfficeSheetSelector>? selectors, ExcelSheet? defaultSheet = null)",
+      "action": "add",
+      "file": "OfficeIMO.Excel/OfficeSheetSelector.cs",
+      "reason": "Resolve once against the loaded workbook, validate live membership and deduplicate in workbook order.",
+      "phase": "3.6-native-sheet-selectors",
+      "applied": "implemented"
+    },
+    {
+      "new": "OfficeSheetSelector.ResolveNames(IReadOnlyList<string> sheetNames, IReadOnlyList<OfficeSheetSelector>? selectors)",
+      "action": "add",
+      "file": "OfficeIMO.Excel/OfficeSheetSelector.cs",
+      "reason": "Use the same selector engine against an existing streaming reader catalog without loading an editable workbook; reject live identity without its owner.",
+      "phase": "3.6-native-sheet-selectors",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelDocument.ApplyTheme(OfficeTheme theme) -> ExcelDocument",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelDocument.Theme.Creation.cs",
+      "reason": "Apply shared palette/font scheme and subsequent native status defaults; native role links remain native.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelTableStyle.None = -1",
+      "action": "add",
+      "file": "OfficeIMO.Excel/Enums/ExcelTableStyle.cs",
+      "reason": "No named native table style, preserving table filters/visual flags and existing enum numeric values.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelSheet.AddPivotTable(ExcelSheet sourceSheet, string sourceRange, string destinationCell, ExcelPivotTableOptions? options = null) -> ExcelPivotTable",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelSheet.PivotAuthoring.cs",
+      "reason": "Use supplied same-workbook source for headers, cached shared items and records; place pivot on receiver worksheet.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWorkbookWriter.BeginTable(string name, CancellationToken cancellationToken = default) -> ExcelIncrementalTableWriter",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelWorkbookWriter.cs",
+      "reason": "Native immediate disk spool with final first-seen column union for pipeline inputs.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWorkbookWriter.Abort() -> void",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelWorkbookWriter.cs",
+      "reason": "Discard pending package including previously completed tables; Dispose releases without file publication.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelIncrementalTableWriter",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelIncrementalTableWriter.cs",
+      "reason": "Native owned row spool: WriteRow(IReadOnlyList<string>, IReadOnlyList<object?>), DeclareColumns(IReadOnlyList<string>), Complete() -> ExcelDataSetImportResult, Dispose() aborts incomplete input; preserve scalar/date types without source retention.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.Address:string = A1",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.Title:string?",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.BoldHeaders:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.FreezeHeader:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.FreezeFirstColumn:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.NoClobber:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.ColumnFormat:ExcelColumnFormatPlan?",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.IgnoreMissingColumnFormat:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.DocumentProperties:IReadOnlyDictionary<string, object?>?",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.SaveOptions:ExcelSaveOptions?",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.ShowFirstColumn:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.ShowLastColumn:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.ShowRowStripes:bool = true",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
+    },
+    {
+      "new": "ExcelWriterOptions.ShowColumnStripes:bool",
+      "action": "add",
+      "file": "OfficeIMO.Excel/ExcelTabularWriteOptions.cs",
+      "reason": "Actual Export-OfficeExcel Create defaults and policies live in native writer: schema union, placement/title/header, table/no-style/filter/visual flags, column formats/autofit/freeze, metadata and final save/atomic/no-clobber policy. Default row ingestion remains bounded; explicit save policies may invoke documented resource-limited native finalization.",
+      "phase": "3.6-native-pipeline-authoring",
+      "applied": "implemented"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
@@ -13728,21 +14756,22 @@
     "surface": "Markdown syntax nodes are exempt from the format prefix. OfficeColor/OfficeColorRole use the root OfficeIMO namespace. Authoring, units, image-builder consolidation, visibility baselines and AOT smoke acceptance are Phase B."
   },
   "summary": {
-    "changes": 322,
+    "changes": 574,
     "byAction": {
-      "rename": 23,
-      "merge": 92,
-      "change": 171,
-      "remove": 19,
+      "merge": 280,
+      "rename": 49,
+      "change": 163,
+      "remove": 47,
       "internalize": 15,
+      "move": 18,
       "keep": 2
     },
     "byCategory": {
-      "naming": 4,
       "lifecycle": 52,
-      "authoring": 117,
+      "authoring": 367,
       "units": 123,
       "options": 11,
+      "naming": 6,
       "conversion": 3,
       "visibility": 12
     },

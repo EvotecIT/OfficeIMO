@@ -217,7 +217,7 @@ namespace OfficeIMO.Excel {
                         : FormatCellDisplayText(rawText, valueKind, style, sheet.Document.DateSystem);
                     IReadOnlyList<ExcelVisualTextRun> richTextRuns = covered
                         ? Array.Empty<ExcelVisualTextRun>()
-                        : BuildRichTextRuns(sheet.GetRichText(row.Index, column.Index));
+                        : BuildRichTextRuns(sheet.GetRichText(row.Index, column.Index), sheet.Document.WorkbookPartRoot);
                     cells.Add(new ExcelVisualCell(
                         row.Index,
                         column.Index,
@@ -306,7 +306,7 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private static IReadOnlyList<ExcelVisualTextRun> BuildRichTextRuns(IReadOnlyList<ExcelRichTextRun> runs) {
+        private static IReadOnlyList<ExcelVisualTextRun> BuildRichTextRuns(IReadOnlyList<ExcelRichTextRun> runs, WorkbookPart? workbook) {
             if (runs.Count == 0) {
                 return Array.Empty<ExcelVisualTextRun>();
             }
@@ -323,8 +323,8 @@ namespace OfficeIMO.Excel {
                     run.Italic,
                     run.Underline,
                     run.Strikethrough,
-                    NormalizeRunColor(run.FontColor),
-                    string.IsNullOrWhiteSpace(run.FontName) ? null : run.FontName,
+                    NormalizeRunColor(run.Color, workbook),
+                    string.IsNullOrWhiteSpace(run.FontFamily) ? null : run.FontFamily,
                     run.FontSize,
                     run.UnderlineStyle,
                     run.VerticalTextAlignment,
@@ -337,18 +337,8 @@ namespace OfficeIMO.Excel {
             return visualRuns.Count == 0 ? Array.Empty<ExcelVisualTextRun>() : visualRuns.AsReadOnly();
         }
 
-        private static string? NormalizeRunColor(string? color) {
-            if (string.IsNullOrWhiteSpace(color)) {
-                return null;
-            }
-
-            string value = color!.Trim().TrimStart('#');
-            if (value.Length == 6) {
-                return "FF" + value.ToUpperInvariant();
-            }
-
-            return value.Length == 8 ? value.ToUpperInvariant() : null;
-        }
+        private static string? NormalizeRunColor(OfficeColor? color, WorkbookPart? workbook) =>
+            color.HasValue ? ExcelThemeColorResolver.Resolve(ExcelColor.ToSpreadsheetColor(color.Value), workbook) : null;
 
         private static void AddIntersectingMergeOriginCells(ExcelWorksheetGeometryIndex geometry,
             ExcelSheet sheet,
@@ -444,7 +434,7 @@ namespace OfficeIMO.Excel {
                     style,
                     coveredByMerge: false,
                     hyperlink,
-                    BuildRichTextRuns(sheet.GetRichText(merge.StartRow, merge.StartColumn)),
+                    BuildRichTextRuns(sheet.GetRichText(merge.StartRow, merge.StartColumn), sheet.Document.WorkbookPartRoot),
                     valueKind));
             }
         }
@@ -913,7 +903,7 @@ namespace OfficeIMO.Excel {
                         snapshotHeight,
                         pair.Value.Author,
                         pair.Value.Text,
-                        BuildRichTextRuns(pair.Value.RichTextRuns),
+                        BuildRichTextRuns(pair.Value.RichTextRuns, sheet.Document.WorkbookPartRoot),
                         bodyObstacles,
                         out ExcelVisualCommentBody body)) {
                         bodies.Add(body);

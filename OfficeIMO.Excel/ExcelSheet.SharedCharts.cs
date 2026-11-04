@@ -20,13 +20,13 @@ namespace OfficeIMO.Excel {
             ExcelChart chart = AddChart(excelData, placement?.Row ?? 1, placement?.Column ?? 1,
                 options?.Width, options?.Height, chartKind, options?.Title);
             chart.ApplyAuthoredSeriesStyles(excelData.Series,
-                data.Series.Select(series => series.ShowInLegend).ToList());
+                data.Series.Select(series => series.ShowInLegend).ToList(), data.Series);
             chart.ApplySharedPointStyles(data.Series);
             chart.ApplySharedPointExplosions(data.Series);
             return chart;
         }
 
-        private static ExcelChartData ToExcelChartData(OfficeChartData data, OfficeChartType defaultKind) {
+        private ExcelChartData ToExcelChartData(OfficeChartData data, OfficeChartType defaultKind) {
             var series = new List<ExcelChartSeries>(data.Series.Count);
             foreach (OfficeSeries item in data.Series) {
                 OfficeChartType? chartType = item.RenderKind ?? defaultKind;
@@ -38,13 +38,13 @@ namespace OfficeIMO.Excel {
                     : OfficeChartAxisGroup.Primary;
                 ExcelChartSeries mapped = item.XValues == null
                     ? new ExcelChartSeries(item.Name, item.Values, chartType, axisGroup,
-                        item.Color?.ToRgbHex())
+                        item.Color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex())
                     : new ExcelChartSeries(item.Name, item.Values, item.XValues, chartType, axisGroup,
-                        item.Color?.ToRgbHex());
+                        item.Color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex());
                 mapped = mapped.WithImageExportStyle(
-                    item.Color?.ToRgbHex(), item.StrokeWidth?.ToPoints(), item.StrokeDashStyle,
-                    item.PointColors?.Select(color => color?.ToRgbHex()).ToList(), item.ResolveMarkerVisibility(item.RenderKind ?? defaultKind, OfficeTheme.Default),
-                    item.ConnectLine, item.MarkerSize, item.ResolveMarkerShape(item.RenderKind ?? defaultKind, OfficeTheme.Default), item.MarkerOutlineColor?.ToRgbHex(),
+                    item.Color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex(), item.StrokeWidth?.ToPoints(), item.StrokeDashStyle,
+                    item.PointColors?.Select(color => color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex()).ToList(), item.ResolveMarkerVisibility(item.RenderKind ?? defaultKind, OfficeTheme.Default),
+                    item.ConnectLine, item.MarkerSize, item.ResolveMarkerShape(item.RenderKind ?? defaultKind, OfficeTheme.Default), item.MarkerOutlineColor?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex(),
                     item.MarkerOutlineWidth?.ToPoints()).WithSeriesStyle(item.SeriesStyle)
                     .WithPointStyles(item.PointStyles).WithPointExplosions(item.PointExplosions);
                 series.Add(mapped);

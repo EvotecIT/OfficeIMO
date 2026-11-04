@@ -35,17 +35,17 @@ namespace OfficeIMO.Excel {
                 else writer.Write(value);
             }
 
-            private static void WriteDeclaredColumns(TextWriter writer, double[]? widths, ExcelTabularStylePlan? styles) {
-                if (styles == null) { WriteColumns(writer, widths); return; }
+            private static void WriteDeclaredColumns(TextWriter writer, double[]? widths, ExcelTabularStylePlan? styles, int firstColumn = 1) {
+                if (styles == null && firstColumn == 1) { WriteColumns(writer, widths); return; }
                 bool opened = false;
-                int count = Math.Max(widths?.Length ?? 0, styles.Columns.Length);
+                int count = Math.Max(widths?.Length ?? 0, styles?.Columns.Length ?? 0);
                 for (int i = 0; i < count; i++) {
                     double width = widths != null && i < widths.Length ? widths[i] : 0;
-                    var style = i < styles.Columns.Length ? styles.Columns[i] : null;
+                    var style = styles != null && i < styles.Columns.Length ? styles.Columns[i] : null;
                     if (width <= 0 && style == null) continue;
                     if (!opened) { writer.Write("<cols>"); opened = true; }
-                    writer.Write("<col min=\""); WriteInvariant(writer, i + 1);
-                    writer.Write("\" max=\""); WriteInvariant(writer, i + 1); writer.Write('"');
+                    writer.Write("<col min=\""); WriteInvariant(writer, i + firstColumn);
+                    writer.Write("\" max=\""); WriteInvariant(writer, i + firstColumn); writer.Write('"');
                     if (width > 0) {
                         writer.Write(" width=\""); WriteColumnWidth(writer, width);
                         writer.Write("\" bestFit=\"1\" customWidth=\"1\"");

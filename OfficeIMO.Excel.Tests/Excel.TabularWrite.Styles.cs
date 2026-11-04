@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             RequireStreaming = true, UseSharedStrings = sharedStrings, IncludeCellReferences = references,
             DateSystem = ExcelDateSystem.NineteenFour,
             Styles = new Dictionary<string, ExcelStyleDefinition> {
-                ["Emphasis"] = new() { Bold = true, FontName = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14),
-                    FontColor = OfficeColor.Red, BackgroundColor = OfficeColor.Yellow, WrapText = true,
+                ["Emphasis"] = new() { Bold = true, FontFamily = "Arial", FontSize = global::OfficeIMO.OfficeLength.Points(14),
+                    Color = OfficeColor.Red, BackgroundColor = OfficeColor.Yellow, WrapText = true,
                     HorizontalAlignment = ExcelHorizontalAlignment.Center, VerticalAlignment = ExcelVerticalAlignment.Top },
                 ["Amount"] = new() { Italic = true, NumberFormat = "0.00" },
                 ["Plain"] = new()
