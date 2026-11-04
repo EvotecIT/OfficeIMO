@@ -122,6 +122,9 @@ internal static class OfficeConversionSupportAssessments {
         "pdf-html" => Targeted(
             "Semantic and positioned-review profiles verify readable text, detected tables, page geometry hints, images, links, forms, and deterministic diagnostics.",
             "The result is review HTML, not a full PDF renderer; complex graphics, optional content, scans without OCR, and pixel-perfect composition are not preserved."),
+        "pdf-markdown" => Targeted(
+            "Native logical readback fixtures verify Markdown headings, paragraphs, tables, selected page order, stream output, and configurable page separators.",
+            "Reading order and structure are reconstructed from supported PDF content. Fixed page layout, graphics, interactive behavior, and scans without OCR are not preserved; the canonical conversion reports layout approximation."),
         "pdf-rtf" or "pdf-odt" => Targeted(
             "Reopen tests verify parser-supported logical text and basic structure in an editable text-document destination with loss diagnostics.",
             "Page layout, complex graphics, columns, clipping, annotations, scans without OCR, and exact pagination are not reconstructed."),

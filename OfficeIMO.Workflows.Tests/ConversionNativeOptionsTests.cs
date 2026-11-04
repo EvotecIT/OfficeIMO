@@ -1,5 +1,6 @@
 using System.Text;
 using OfficeIMO.Markdown;
+using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Rtf;
 using OfficeIMO.Word.Html;
@@ -7,6 +8,51 @@ using OfficeIMO.Word.Html;
 namespace OfficeIMO.Workflows.Tests;
 
 public sealed class ConversionNativeOptionsTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task PdfMarkdownUsesNativeContentPasswordAndProjectionSettings(bool encrypted) {
+        OfficeWorkflow.RegisterConversions();
+        using var document = PdfDocument.Create(new PdfCreateOptions {
+            Encryption = encrypted ? new PdfStandardEncryptionOptions("reader") { OwnerPassword = "owner" } : null
+        });
+        document.Compose(builder => {
+            builder.Page(page => page.Content(content => content.AddParagraph("First Markdown content marker")));
+            builder.Page(page => page.Content(content => content.AddParagraph("Second Markdown content marker")));
+        });
+        var native = new PdfLogicalMarkdownOptions { IncludePageSeparators = false };
+        using var input = new MemoryStream(document.ToBytes());
+        using var output = new MemoryStream();
+        OfficeConversionReport report = await OfficeConverter.ConvertAsync(input, OfficeDocumentFormat.Pdf,
+            output, OfficeDocumentFormat.Markdown, new OfficeConversionOptions {
+                PdfLoad = new PdfLoadOptions { Password = encrypted ? "reader" : null },
+                RegisteredSettings = new OfficeWorkflowRouteSettings { PdfMarkdown = native }
+            });
+        string markdown = Encoding.UTF8.GetString(output.ToArray());
+        Assert.Contains("First Markdown content marker", markdown);
+        Assert.Contains("Second Markdown content marker", markdown);
+        Assert.DoesNotContain("---", markdown);
+        Assert.Contains(report.Diagnostics, finding => finding.Code == "PDF_MARKDOWN_LOGICAL_PROJECTION"
+            && finding.LossKind == OfficeConversionLossKind.Approximation);
+        Assert.True(input.CanRead);
+        Assert.True(output.CanWrite);
+        Assert.False(native.IncludePageSeparators);
+    }
+
+    [Fact]
+    public async Task PdfMarkdownStrictLossWritesNoExternalOutput() {
+        OfficeWorkflow.RegisterConversions();
+        using var document = PdfDocument.Create(builder => builder.Content(content => content.AddParagraph("Strict Markdown marker")));
+        using var input = new MemoryStream(document.ToBytes());
+        using var output = new MemoryStream();
+        OfficeConversionException error = await Assert.ThrowsAsync<OfficeConversionException>(() =>
+            OfficeConverter.ConvertAsync(input, OfficeDocumentFormat.Pdf, output, OfficeDocumentFormat.Markdown,
+                new OfficeConversionOptions { FailOnLoss = true }));
+        Assert.True(error.Report.HasLoss);
+        Assert.Contains(error.Report.Diagnostics, finding => finding.Code == "PDF_MARKDOWN_LOGICAL_PROJECTION");
+        Assert.Equal(0, output.Length);
+    }
+
     [Fact]
     public async Task CanonicalMarkdownHtmlUsesReaderLimitsBeforeWriting() {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes("Long source marker"));

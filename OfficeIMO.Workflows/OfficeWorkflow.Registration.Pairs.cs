@@ -9,7 +9,7 @@ public static partial class OfficeWorkflow {
         "rtf-html", "html-rtf", "rtf-markdown", "markdown-rtf", "rtf-docx", "docx-rtf", "pdf-rtf",
         "docx-odt", "odt-docx", "xlsx-ods", "ods-xlsx", "pptx-odp", "odp-pptx", "xlsx-html", "html-xlsx",
         "onenote-html", "html-onenote", "onenote-markdown", "onenote-pdf",
-        "asciidoc-pdf", "latex-pdf", "odt-pdf", "ods-pdf", "odp-pdf"
+        "asciidoc-pdf", "latex-pdf", "odt-pdf", "ods-pdf", "odp-pdf", "pdf-markdown"
     };
 
     // The optional bundle owns only load/convert/save orchestration. Format mapping and loss policy stay in each pair adapter.
@@ -26,6 +26,7 @@ public static partial class OfficeWorkflow {
             OfficeConversionReport report = Id switch {
                 "markdown-pptx" => await ConvertMarkdownPowerPointAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "xlsx-html" or "html-xlsx" => await ConvertExcelHtmlAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
+                "pdf-markdown" => await ConvertPdfMarkdownAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "asciidoc-markdown" or "markdown-asciidoc" or "latex-markdown" or "markdown-latex" or "asciidoc-pdf" or "latex-pdf" =>
                     await ConvertTextAsync(source, destination, options, settings, cancellationToken).ConfigureAwait(false),
                 "rtf-html" or "html-rtf" or "rtf-markdown" or "markdown-rtf" or "rtf-docx" or "docx-rtf" or "pdf-rtf" =>

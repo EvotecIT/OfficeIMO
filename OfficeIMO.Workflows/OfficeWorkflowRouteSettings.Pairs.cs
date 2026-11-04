@@ -127,6 +127,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
         return routeId switch {
             "markdown-pptx" => new OfficeWorkflowRouteSettings { MarkdownPowerPoint = copy.MarkdownPowerPoint },
             "xlsx-html" => new OfficeWorkflowRouteSettings { ExcelHtml = copy.ExcelHtml },
+            "pdf-markdown" => new OfficeWorkflowRouteSettings { PdfMarkdown = copy.PdfMarkdown },
             "html-xlsx" => new OfficeWorkflowRouteSettings { HtmlExcel = copy.HtmlExcel },
             "rtf-pdf" => new OfficeWorkflowRouteSettings { Rtf = copy.Rtf },
             "odg-pdf" => new OfficeWorkflowRouteSettings { Draw = copy.Draw },
@@ -172,6 +173,7 @@ public sealed partial class OfficeWorkflowRouteSettings {
         copy.MarkdownPowerPoint = MarkdownPowerPoint?.Clone();
         copy.MarkdownLoad = MarkdownLoad?.Clone();
         copy.ExcelHtml = ExcelHtml?.Clone();
+        copy.PdfMarkdown = ClonePdfMarkdownOptions(PdfMarkdown);
         copy.HtmlExcel = HtmlExcel?.Clone();
         copy.AsciiDocLoad = Snapshot(AsciiDocLoad);
         copy.AsciiDocMarkdown = Snapshot(AsciiDocMarkdown);

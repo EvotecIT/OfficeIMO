@@ -975,6 +975,16 @@
         "OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.ExcelHtml.cs",
         "OfficeIMO.Workflows/OfficeWorkflowRouteSettings.Pairs.cs"
       ]
+    },
+    {
+      "phase": "M5",
+      "action": "add",
+      "new": "OfficeWorkflowRouteSettings.PdfMarkdown",
+      "reason": "Canonical PDF Markdown conversion uses the native logical projection, authenticated native input policy, cloned settings and explicit layout-loss evidence.",
+      "files": [
+        "OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.PdfMarkdown.cs",
+        "OfficeIMO.Workflows/OfficeWorkflowRouteSettings.PdfMarkdown.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",
