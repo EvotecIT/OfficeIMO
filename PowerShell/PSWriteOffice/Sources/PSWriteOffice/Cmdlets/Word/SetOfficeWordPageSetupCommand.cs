@@ -176,10 +176,9 @@ public sealed class SetOfficeWordPageSetupCommand : PSCmdlet
     {
         if (PageSize.HasValue)
         {
-            section.PageSetup.Size.Width = PageSize.Value.Width;
-            section.PageSetup.Size.Height = PageSize.Value.Height;
+            section.PageSetup.Size.SetSize(PageSize.Value, Orientation);
         }
-        if (Orientation.HasValue) section.PageSetup.Orientation = Orientation.Value;
+        else if (Orientation.HasValue) section.PageSetup.Orientation = Orientation.Value;
         if (MarginPreset.HasValue)
         {
             section.PageSetup.Margins.Type = MarginPreset.Value;

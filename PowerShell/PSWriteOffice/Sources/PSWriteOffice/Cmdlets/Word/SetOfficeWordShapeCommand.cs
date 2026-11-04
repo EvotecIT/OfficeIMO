@@ -85,8 +85,8 @@ public sealed class SetOfficeWordShapeCommand : PSCmdlet
         if (MyInvocation.BoundParameters.ContainsKey(nameof(X))) Shape.Left = X;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Y))) Shape.Top = Y;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Rotation))) Shape.Rotation = Rotation;
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(FillColor))) Shape.FillColor = OfficeColor.ParseHex(WordRunColor.Create(FillColor!.Value, Shape._document).Val!.Value!);
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(StrokeColor))) Shape.StrokeColor = OfficeColor.ParseHex(WordRunColor.Create(StrokeColor!.Value, Shape._document).Val!.Value!);
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(FillColor))) Shape.FillColor = FillColor!.Value;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(StrokeColor))) Shape.StrokeColor = StrokeColor!.Value;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(StrokeWidth))) Shape.StrokeWeight = StrokeWidth;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Stroked))) Shape.Stroked = Stroked.IsPresent;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(ZIndex))) Shape.ZIndex = ZIndex;

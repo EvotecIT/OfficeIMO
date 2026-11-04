@@ -6,6 +6,7 @@ using System.Linq;
 using System.Management.Automation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Table;
 using PSWriteOffice.Services.Text;
@@ -536,10 +537,9 @@ public sealed class AddOfficeWordTableCommand : PSCmdlet
             return;
         }
 
-        var fill = OfficeColorUtilities.ToRgbHex(style.FillColor);
-        if (!string.IsNullOrWhiteSpace(fill))
+        if (!string.IsNullOrWhiteSpace(style.FillColor))
         {
-            cell.ShadingFillColor = OfficeIMO.OfficeColor.Parse(fill!);
+            cell.ShadingFillColor = OfficeColorTransformationAttribute.Bind(style.FillColor);
         }
 
         if (!string.IsNullOrWhiteSpace(style.Align) &&

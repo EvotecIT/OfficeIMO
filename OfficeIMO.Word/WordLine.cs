@@ -50,7 +50,7 @@ namespace OfficeIMO.Word {
                 return Color.TryParse(color, out Color parsed) ? parsed : Color.Black;
             }
             set {
-                var hex = value.ToRgbHex();
+                var hex = WordRunColor.Resolve(value, _document).ToRgbHex();
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 _line.StrokeColor = hex;
             }

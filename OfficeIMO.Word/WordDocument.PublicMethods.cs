@@ -512,7 +512,6 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordShape"/>.</returns>
         public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
             OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
-            WordShape.ValidateVmlColors(fillColor, strokeColor);
             var paragraph = AddParagraph();
             return paragraph.AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }

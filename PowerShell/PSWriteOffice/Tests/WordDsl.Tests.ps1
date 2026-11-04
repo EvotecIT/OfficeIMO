@@ -1152,6 +1152,66 @@ Describe 'Word DSL surface' {
         $stats.Words | Should -BeGreaterThan 0
     }
 
+    It 'applies a paper size to an opened landscape section with <RequestedOrientation> orientation' -ForEach @(
+        @{ RequestedOrientation = 'Retained'; ExpectedOrientation = 'landscape'; ExpectedWidth = '15840'; ExpectedHeight = '12240' }
+        @{ RequestedOrientation = 'Landscape'; ExpectedOrientation = 'landscape'; ExpectedWidth = '15840'; ExpectedHeight = '12240' }
+        @{ RequestedOrientation = 'Portrait'; ExpectedOrientation = 'portrait'; ExpectedWidth = '12240'; ExpectedHeight = '15840' }
+    ) {
+        $path = Join-Path $TestDrive "PageSize-$RequestedOrientation.docx"
+        New-OfficeWord -Path $path { Set-OfficeWordPageSetup -Orientation Landscape }
+        $document = Open-OfficeWord -Path $path
+        try {
+            $options = @{ Document = $document; PageSize = 'Letter' }
+            if ($RequestedOrientation -ne 'Retained') { $options.Orientation = $RequestedOrientation }
+            Set-OfficeWordPageSetup @options
+            Save-OfficeWord -Document $document | Out-Null
+        } finally { Close-OfficeWord -Document $document }
+        $xml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
+        $size = $xml.SelectSingleNode('//*[local-name()="pgSz"]')
+        $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+        $size.GetAttribute('orient', $ns) | Should -Be $ExpectedOrientation
+        $size.GetAttribute('w', $ns) | Should -Be $ExpectedWidth
+        $size.GetAttribute('h', $ns) | Should -Be $ExpectedHeight
+    }
+
+    It 'carries reusable cell theme roles to each target and authors shapes direct cells and conditions' {
+        $definition = New-OfficeWordTableCell -Text 'Reusable' -BackgroundColor Accent1
+        foreach ($themeName in 'Modern', 'Boardroom') {
+            $path = Join-Path $TestDrive "RoleColors-$themeName.docx"
+            New-OfficeWord -Path $path -Theme $themeName {
+                WordParagraph {
+                    $shape = WordShape -Type Rectangle -Width 20pt -Height 10pt -FillColor Accent1 -StrokeColor Accent2 -PassThru
+                    $shape | Set-OfficeWordShape -FillColor Accent3 -StrokeColor Warning
+                }
+                $rows = @(
+                    , @($definition, 'Direct')
+                    , @((New-OfficeWordTableCell -Text 'Conditional'), 'Status')
+                )
+                $table = WordTable -InputObject $rows -NoHeader -PassThru {
+                    WordTableCondition -FilterScript { $_[0].Text -eq 'Conditional' } -BackgroundColor Accent2
+                }
+                $table.Rows[0].Cells[1] | Set-OfficeWordTableCell -BackgroundColor TextMuted
+                $table.Rows[1].Cells[1] | Set-OfficeWordTableCell -BackgroundColor Success
+            }
+            $xml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/document.xml'
+            $themeXml = Get-ZipXmlDocumentLocal -Path $path -Entry 'word/theme/theme1.xml'
+            $ns = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
+            $fills = @($xml.SelectNodes('//*[local-name()="tcPr"]/*[local-name()="shd"]'))
+            $fills.Count | Should -Be 4
+            $fills[0].GetAttribute('themeFill', $ns) | Should -Be 'accent1'
+            $fills[0].GetAttribute('fill', $ns) | Should -Be $themeXml.SelectSingleNode('//*[local-name()="accent1"]/*').GetAttribute('val')
+            $fills[1].GetAttribute('themeFill', $ns) | Should -Be 'dark2'
+            $fills[2].GetAttribute('themeFill', $ns) | Should -Be 'accent2'
+            $fills[3].GetAttribute('themeFill', $ns) | Should -Be ''
+            $theme = [OfficeIMO.OfficeTheme]::$themeName
+            $fills[3].GetAttribute('fill', $ns) | Should -Be $theme.Palette.Success.ToRgbHex()
+            $schemes = @($xml.SelectNodes('//*[local-name()="schemeClr"]'))
+            $schemes.GetAttribute('val') | Should -Contain 'accent3'
+            $rgb = @($xml.SelectNodes('//*[local-name()="srgbClr"]'))
+            $rgb.GetAttribute('val') | Should -Contain $theme.Palette.Warning.ToRgbHex()
+        }
+    }
+
     It 'joins Word documents through the thin append wrapper' {
         $basePath = Join-Path $TestDrive 'JoinBase.docx'
         $appendPath = Join-Path $TestDrive 'JoinAppendix.docx'

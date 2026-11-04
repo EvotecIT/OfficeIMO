@@ -98,12 +98,6 @@ namespace OfficeIMO.Word {
             return color!.StartsWith("#", StringComparison.Ordinal) ? color : "#" + color;
         }
 
-        /// <summary>Checks color components before a VML factory adds document nodes.</summary>
-        internal static void ValidateVmlColors(OfficeColor? fillColor, OfficeColor? strokeColor = null) {
-            if (fillColor?.IsThemeRole == true) _ = fillColor.Value.ToRgbHex();
-            if (strokeColor?.IsThemeRole == true) _ = strokeColor.Value.ToRgbHex();
-        }
-
         /// <summary>Formats an exact shared length as invariant VML point text, without display rounding.</summary>
         internal static string FormatVmlLength(OfficeLength value) =>
             (value.ToEmus() / 12700m).ToString(CultureInfo.InvariantCulture) + "pt";
@@ -201,6 +195,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         internal WordShape(WordDocument document, Paragraph paragraph, Run run, WordDrawing? drawing = null, OpenXmlElement? selectedVmlShape = null) {
             _document = document;
+            CaptureColorContext(document);
             _wordParagraph = new WordParagraph(document, paragraph, run);
             _run = run;
             _rectangle = selectedVmlShape == null && drawing == null ? run.Descendants<V.Rectangle>().FirstOrDefault() : selectedVmlShape as V.Rectangle;
@@ -221,7 +216,7 @@ namespace OfficeIMO.Word {
         /// Adds an ellipse shape to the given paragraph.
         /// </summary>
         public static WordShape AddEllipse(WordParagraph paragraph, OfficeLength width, OfficeLength height, OfficeColor? fillColor = null) {
-            var vmlFill = (fillColor ?? OfficeColor.White).ToRgbHex();
+            var vmlFill = WordRunColor.Resolve(fillColor ?? OfficeColor.White, paragraph._document).ToRgbHex();
             if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
             var ellipse = new V.Oval() {
                 Id = "Ellipse" + Guid.NewGuid().ToString("N"),
@@ -245,7 +240,7 @@ namespace OfficeIMO.Word {
         public static WordShape AddRoundedRectangle(WordParagraph paragraph, OfficeLength width, OfficeLength height,
             OfficeColor? fillColor = null, double arcSize = 0.25) {
             var arc = (int)Math.Round(arcSize * 65536d);
-            var vmlFill = (fillColor ?? OfficeColor.White).ToRgbHex();
+            var vmlFill = WordRunColor.Resolve(fillColor ?? OfficeColor.White, paragraph._document).ToRgbHex();
             if (!string.IsNullOrEmpty(vmlFill) && !vmlFill.StartsWith("#", StringComparison.Ordinal)) vmlFill = "#" + vmlFill;
             var roundRect = new V.RoundRectangle() {
                 Id = "RoundedRect" + Guid.NewGuid().ToString("N"),
@@ -268,7 +263,7 @@ namespace OfficeIMO.Word {
         /// Adds a line shape to the given paragraph.
         /// </summary>
         public static WordShape AddLine(WordParagraph paragraph, OfficeLength startX, OfficeLength startY, OfficeLength endX, OfficeLength endY, OfficeColor? color = null, OfficeLength? strokeWeight = null) {
-            var vmlStroke = EnsureHashPrefix((color ?? OfficeColor.Black).ToRgbHex());
+            var vmlStroke = EnsureHashPrefix(WordRunColor.Resolve(color ?? OfficeColor.Black, paragraph._document).ToRgbHex());
             var line = new V.Line() {
                 Id = "Line" + Guid.NewGuid().ToString("N"),
                 Style = "mso-wrap-style:square",
@@ -314,7 +309,8 @@ namespace OfficeIMO.Word {
         /// Adds a polygon shape using <see cref="OfficeIMO.OfficeColor"/> values.
         /// </summary>
         public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.OfficeColor fillColor, OfficeIMO.OfficeColor strokeColor) {
-            return AddPolygon(paragraph, points, fillColor.ToRgbHex(), strokeColor.ToRgbHex());
+            return AddPolygon(paragraph, points, WordRunColor.Resolve(fillColor, paragraph._document).ToRgbHex(),
+                WordRunColor.Resolve(strokeColor, paragraph._document).ToRgbHex());
         }
 
         /// <summary>
@@ -428,69 +424,6 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Native fill colour as hexadecimal string (no leading '#', lowercase).
-        /// </summary>
-        internal string FillColorValue {
-            get {
-                if (_rectangle?.FillColor?.Value is string rect) return NormalizeHexNoHash(rect);
-                if (_roundRectangle?.FillColor?.Value is string round) return NormalizeHexNoHash(round);
-                if (_ellipse?.FillColor?.Value is string ellipse) return NormalizeHexNoHash(ellipse);
-                if (_polygon?.FillColor?.Value is string poly) return NormalizeHexNoHash(poly);
-                if (_shape?.FillColor?.Value is string shape) return NormalizeHexNoHash(shape);
-                if (_wpsShape != null) {
-                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
-                    var solid = spPr?.GetFirstChild<A.SolidFill>();
-                    var rgb = solid?.GetFirstChild<A.RgbColorModelHex>();
-                    if (rgb?.Val != null) return NormalizeHexNoHash(rgb.Val.Value);
-                }
-                return string.Empty;
-            }
-            set {
-                string normalized = Helpers.NormalizeSixDigitRgb(value, nameof(value));
-                string v = "#" + normalized;
-                if (_rectangle != null) _rectangle.FillColor = v;
-                if (_roundRectangle != null) _roundRectangle.FillColor = v;
-                if (_ellipse != null) _ellipse.FillColor = v;
-                if (_polygon != null) _polygon.FillColor = v;
-                if (_shape != null) _shape.FillColor = v;
-                if (_wpsShape != null) {
-                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
-                    if (spPr != null) {
-                        // Remove NoFill if present
-                        var noFill = spPr.GetFirstChild<A.NoFill>();
-                        noFill?.Remove();
-
-                        var solid = spPr.GetFirstChild<A.SolidFill>();
-                        if (solid == null) {
-                            solid = new A.SolidFill();
-                            WordDrawingFillOrdering.InsertAfterGeometryOrBeforeFormatting(spPr, solid);
-                        }
-                        var rgb = solid.GetFirstChild<A.RgbColorModelHex>();
-                        if (rgb == null) {
-                            rgb = new A.RgbColorModelHex();
-                            solid.RemoveAllChildren();
-                            solid.Append(rgb);
-                        }
-                        rgb.Val = normalized;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets or sets the fill color using <see cref="OfficeIMO.OfficeColor"/>.
-        /// </summary>
-        public OfficeIMO.OfficeColor FillColor {
-            get {
-                var hex = FillColorValue;
-                if (string.IsNullOrEmpty(hex)) return OfficeIMO.OfficeColor.Transparent;
-                if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
-                return OfficeIMO.OfficeColor.Parse(hex);
-            }
-            set => FillColorValue = value.ToRgbHex();
-        }
-
-        /// <summary>
         /// Identifier of the shape.
         /// </summary>
         public string Id {
@@ -575,76 +508,6 @@ namespace OfficeIMO.Word {
                     SetStyleValue("visibility", value.Value ? "hidden" : "visible");
                 }
             }
-        }
-
-        /// <summary>
-        /// Native outline colour in hex format (no leading '#', lowercase). Null when not applicable.
-        /// </summary>
-        internal string? StrokeColorValue {
-            get {
-                if (_rectangle != null) return NormalizeHexNoHash(_rectangle.StrokeColor?.Value);
-                if (_roundRectangle != null) return NormalizeHexNoHash(_roundRectangle.StrokeColor?.Value);
-                if (_ellipse != null) return NormalizeHexNoHash(_ellipse.StrokeColor?.Value);
-                if (_polygon != null) return NormalizeHexNoHash(_polygon.StrokeColor?.Value);
-                if (_line != null) return NormalizeHexNoHash(_line.StrokeColor?.Value);
-                if (_shape != null) return NormalizeHexNoHash(_shape.StrokeColor?.Value);
-                if (_wpsShape != null) {
-                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
-                    var outline = spPr?.GetFirstChild<A.Outline>();
-                    var solid = outline?.GetFirstChild<A.SolidFill>();
-                    var rgb = solid?.GetFirstChild<A.RgbColorModelHex>();
-                    if (rgb?.Val != null) return NormalizeHexNoHash(rgb.Val.Value);
-                }
-                return null;
-            }
-            set {
-                string? v = value;
-                if (v is { Length: > 0 } s0) {
-                    if (!s0.StartsWith("#", StringComparison.Ordinal)) v = "#" + s0;
-                }
-                if (_rectangle != null) _rectangle.StrokeColor = v;
-                if (_roundRectangle != null) _roundRectangle.StrokeColor = v;
-                if (_ellipse != null) _ellipse.StrokeColor = v;
-                if (_polygon != null) _polygon.StrokeColor = v;
-                if (_line != null) _line.StrokeColor = v;
-                if (_shape != null) _shape.StrokeColor = v;
-                if (_wpsShape != null && v is { Length: > 0 } s1) {
-                    var spPr = _wpsShape.GetFirstChild<Wps.ShapeProperties>();
-                    if (spPr != null) {
-                        var outline = spPr.GetFirstChild<A.Outline>();
-                        if (outline == null) {
-                            outline = new A.Outline();
-                            spPr.Append(outline);
-                        }
-                        var solid = outline.GetFirstChild<A.SolidFill>();
-                        if (solid == null) {
-                            solid = new A.SolidFill();
-                            outline.RemoveAllChildren<A.FillProperties>();
-                            outline.Append(solid);
-                        }
-                        var rgb = solid.GetFirstChild<A.RgbColorModelHex>();
-                        if (rgb == null) {
-                            rgb = new A.RgbColorModelHex();
-                            solid.RemoveAllChildren();
-                            solid.Append(rgb);
-                        }
-                        rgb.Val = s1.TrimStart('#');
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Outline color using <see cref="OfficeIMO.OfficeColor"/>.
-        /// </summary>
-        public OfficeIMO.OfficeColor StrokeColor {
-            get {
-                var hex = StrokeColorValue;
-                if (hex is not { Length: > 0 } s) return OfficeIMO.OfficeColor.Transparent;
-                if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
-                return OfficeIMO.OfficeColor.Parse(s);
-            }
-            set => StrokeColorValue = value.ToRgbHex();
         }
 
         /// <summary>

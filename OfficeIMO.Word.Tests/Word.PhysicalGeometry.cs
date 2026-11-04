@@ -6,6 +6,32 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Word {
+    [Theory]
+    [InlineData(null, 15840U, 12240U)]
+    [InlineData(OfficePageOrientation.Landscape, 15840U, 12240U)]
+    [InlineData(OfficePageOrientation.Portrait, 12240U, 15840U)]
+    public void PhysicalPageSize_PreservesOrChangesLandscapeOrientationTogether(
+        OfficePageOrientation? orientation, uint width, uint height) {
+        using var document = WordDocument.Create();
+        var size = document.Sections[0].PageSetup.Size;
+        size.PageSize = WordPageSize.A4;
+        size.Orientation = OfficePageOrientation.Landscape;
+        size.SetSize(OfficeIMO.Drawing.OfficePageSizes.Letter, orientation);
+        using var stream = new MemoryStream(document.ToBytes());
+        using (var package = WordprocessingDocument.Open(stream, false)) {
+            var savedSize = package.MainDocumentPart!.Document.Body!.Descendants<PageSize>().Single();
+            Assert.Equal(width, savedSize.Width!.Value);
+            Assert.Equal(height, savedSize.Height!.Value);
+            Assert.Equal((orientation ?? OfficePageOrientation.Landscape).ToOpenXml(), savedSize.Orient!.Value);
+            Assert.Null(savedSize.Code);
+            Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(package));
+        }
+        stream.Position = 0;
+        using var reopened = WordDocument.Load(stream);
+        Assert.Equal(WordPageSize.Letter, reopened.Sections[0].PageSetup.Size.PageSize);
+        Assert.Equal(orientation ?? OfficePageOrientation.Landscape, reopened.Sections[0].PageSetup.Orientation);
+    }
+
     [Fact]
     public void PhysicalGeometry_RoundsAtTheNativeBoundaryAndSurvivesSaving() {
         using WordDocument document = WordDocument.Create();

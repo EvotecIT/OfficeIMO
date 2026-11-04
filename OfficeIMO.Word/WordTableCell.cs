@@ -135,12 +135,13 @@ namespace OfficeIMO.Word {
                     if (color == "AUTO") color = "auto";
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Fill = color;
+                    _tableCellProperties.Shading.ThemeFill = null;
+                    _tableCellProperties.Shading.ThemeFillTint = null;
+                    _tableCellProperties.Shading.ThemeFillShade = null;
                     _tableCellProperties.Shading.Val ??= ShadingPatternValues.Clear;
                     NormalizeTableCellPropertiesOrder();
                 } else {
-                    if (_tableCellProperties?.Shading?.Fill != null) {
-                        _tableCellProperties.Shading.Remove();
-                    }
+                    _tableCellProperties?.Shading?.Remove();
                 }
 
             }
@@ -221,15 +222,23 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or set the background color of a cell using OfficeIMO color.
-        /// An automatic or unspecified fill has no RGB color and returns null; setting null removes the shading.
+        /// Gets the resolved background color. Setting a role retains native theme slots and resolves status colors against the document.
+        /// An automatic or unspecified fill returns null; setting null removes the shading.
         /// </summary>
         public Color? ShadingFillColor {
             get {
                 string fill = ShadingFillValue;
-                return fill != "" && OfficeIMO.OfficeColor.TryParseHex(fill, out OfficeIMO.OfficeColor color) ? color : null;
+                return OfficeColor.TryParseHex(fill, out var color) ? color : null;
             }
-            set => ShadingFillValue = value?.ToRgbHex() ?? "";
+            set {
+                if (!value.HasValue) {
+                    ShadingFillValue = "";
+                    return;
+                }
+                var native = WordRunColor.Create(value.Value, _document);
+                ShadingFillValue = native.Val!.Value!;
+                _tableCellProperties!.Shading!.ThemeFill = native.ThemeColor;
+            }
         }
 
         /// <summary>Gets or sets the directly authored preferred cell width. Null removes tcW.</summary>
