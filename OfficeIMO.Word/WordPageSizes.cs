@@ -176,7 +176,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or Set section/page Width
+        /// Gets or sets the section width. Explicit dimension edits clear the printer paper code without changing orientation.
         /// </summary>
         public global::OfficeIMO.OfficeLength? Width {
             get {
@@ -188,11 +188,12 @@ namespace OfficeIMO.Word {
                 var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageSize = EnsurePageSize();
                 pageSize.Width = wordNativeValue;
+                pageSize.Code = null;
             }
         }
 
         /// <summary>
-        /// Get or Set section/page Height
+        /// Gets or sets the section height. Explicit dimension edits clear the printer paper code without changing orientation.
         /// </summary>
         public global::OfficeIMO.OfficeLength? Height {
             get {
@@ -204,6 +205,7 @@ namespace OfficeIMO.Word {
                 var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageSize = EnsurePageSize();
                 pageSize.Height = wordNativeValue;
+                pageSize.Code = null;
             }
         }
 
