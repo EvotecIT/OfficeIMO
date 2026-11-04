@@ -253,33 +253,6 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData("\ufffe", 0)]
-    [InlineData("\ufffe", 14)]
-    [InlineData("\ufffe", 15)]
-    [InlineData("\uffff", 0)]
-    [InlineData("\uffff", 14)]
-    [InlineData("\uffff", 15)]
-    public void OpenDataReader_RejectsXmlForbiddenScalarsOnIndexedRows(string forbiddenScalar, int byteAlignment) {
-        string path = CreateCompactFastPathWorkbook();
-        try {
-            const string entryName = "xl/worksheets/sheet1.xml";
-            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
-            int rowStart = worksheetXml.IndexOf("<row r=\"2\"", StringComparison.Ordinal);
-            int prefixBytes = Encoding.UTF8.GetByteCount(worksheetXml.Substring(0, rowStart) + "<row note=\"");
-            string padding = new string('x', (byteAlignment - prefixBytes % 16 + 16) % 16);
-            string malformedXml = worksheetXml.Replace(
-                "<row r=\"2\"",
-                $"<row note=\"{padding}{forbiddenScalar}\" r=\"2\"");
-            Assert.NotEqual(worksheetXml, malformedXml);
-            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
-
-            Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
-        } finally {
-            File.Delete(path);
-        }
-    }
-
-    [Theory]
     [InlineData("http://www.w3.org/XML/1998/namespace")]
     [InlineData("http://www.w3.org/2000/xmlns/")]
     public void OpenDataReader_RejectsReservedNamespaceBindings(string namespaceUri) {
@@ -300,23 +273,35 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(0)]
-    [InlineData(14)]
-    [InlineData(15)]
-    public void OpenDataReader_RejectsRawCDataTerminatorInsideFastValidatedSheetData(int byteAlignment) {
+    [InlineData("]]>", 0)]
+    [InlineData("]]>", 14)]
+    [InlineData("]]>", 15)]
+    [InlineData("\ufffe", 0)]
+    [InlineData("\ufffe", 14)]
+    [InlineData("\ufffe", 15)]
+    [InlineData("\uffff", 0)]
+    [InlineData("\uffff", 14)]
+    [InlineData("\uffff", 15)]
+    public void OpenDataReader_RejectsForbiddenXmlTextInsideFastValidatedCell(string forbiddenText, int byteAlignment) {
         string path = CreateCompactFastPathWorkbook();
         try {
             const string entryName = "xl/worksheets/sheet1.xml";
-            string worksheetXml = Encoding.UTF8.GetString(ReadZipEntry(path, entryName));
-            int rowStart = worksheetXml.IndexOf("<row r=\"2\"", StringComparison.Ordinal);
-            int prefixBytes = Encoding.UTF8.GetByteCount(worksheetXml.Substring(0, rowStart));
-            string padding = new string(' ', (byteAlignment - prefixBytes % 16 + 16) % 16);
-            string malformedXml = worksheetXml.Replace(
-                "<row r=\"2\"",
-                padding + "]]><row r=\"2\"");
-            Assert.NotEqual(worksheetXml, malformedXml);
-            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(malformedXml));
+            const string prefix = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\"><sheetData>"
+                + "<row><c t=\"inlineStr\"><is><t>Value</t></is></c></row>"
+                + "<row><c t=\"inlineStr\"><is><t>";
+            string padding = new string('x', (byteAlignment - prefix.Length % 16 + 16) % 16);
+            string validText = forbiddenText.Length == 1 ? "\ufffd" : "]]x";
+            string value = padding + validText + new string('y', 32);
+            string validXml = prefix + value + "</t></is></c></row></sheetData></worksheet>";
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(validXml));
+            using (var reader = ExcelDocument.OpenReader(path)) {
+                Assert.True(reader.Read());
+                Assert.True(reader.TryGetUtf8Text(0, out _));
+                Assert.Equal(value, reader.GetString(0));
+                Assert.False(reader.Read());
+            }
 
+            ReplaceZipEntry(path, entryName, Encoding.UTF8.GetBytes(validXml.Replace(validText, forbiddenText)));
             Assert.Throws<XmlException>(() => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
         } finally {
             File.Delete(path);
