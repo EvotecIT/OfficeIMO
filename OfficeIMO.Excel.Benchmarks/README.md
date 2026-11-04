@@ -67,6 +67,20 @@ a row, so the first-row lane contains only OfficeIMO. Use full scans for the
 completed-row comparison, and keep cold versus warmed
 allocation and sampled process memory separate.
 
+## Native binary model loads
+
+`ExcelNativeBinaryModelReadBenchmarks` loads a generated 20,000-row XLS and XLSB
+workbook into OfficeIMO's full-fidelity workbook models (`LegacyXlsWorkbook` and the
+XLSB workbook model). These are the compound-file, BIFF8 and BIFF12 record paths behind
+opening, editing and converting a binary workbook; the tabular readers measured
+elsewhere stream cells without building a model. Setup writes each workbook with
+OfficeIMO's native writer. Every timed load checks the cell count and a numeric
+checksum. Compare the `Allocated` column across changes to these readers.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelNativeBinaryModelReadBenchmarks*' --artifacts ./Ignore/Benchmarks/native-binary-model-read
+```
+
 ## Worksheet preparation
 
 `ExcelWorksheetPreparationBenchmarks` measures OfficeIMO's public XLSX reader

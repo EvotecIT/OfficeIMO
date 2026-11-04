@@ -41,7 +41,8 @@ internal sealed class ToUnicodeCMap {
     private const int MaxReverseMapNodes = 65536;
     private const int MaxDestinationHexCharactersWithWhitespace = MaxDestinationTextCharacters * 8;
 
-    private readonly Dictionary<string, string> _map = new(StringComparer.OrdinalIgnoreCase);
+    // Keyed by source-code byte count and value so lookups never format the code bytes as hex text.
+    private readonly Dictionary<ulong, string> _map = new();
     private readonly ReverseMapNode _reverseMapRoot = new();
     private int _maxKeyBytes = 1;
     private int _processedMappings;
@@ -62,7 +63,13 @@ internal sealed class ToUnicodeCMap {
         _retainedReverseCodeCharacters * sizeof(char);
 
     /// <summary>Source code hex strings and their mapped text.</summary>
-    internal IEnumerable<KeyValuePair<string, string>> Mappings => _map;
+    internal IEnumerable<KeyValuePair<string, string>> Mappings {
+        get {
+            foreach (KeyValuePair<ulong, string> mapping in _map) {
+                yield return new KeyValuePair<string, string>(FormatKey(mapping.Key), mapping.Value);
+            }
+        }
+    }
 
     public static bool TryParse(byte[] data, out ToUnicodeCMap? cmap) {
         try {
@@ -168,12 +175,13 @@ internal sealed class ToUnicodeCMap {
             return;
         }
 
-        _maxKeyBytes = Math.Max(_maxKeyBytes, srcHex.Length / 2);
-        string key = srcHex.ToUpperInvariant();
+        int keyBytes = srcHex.Length / 2;
+        _maxKeyBytes = Math.Max(_maxKeyBytes, keyBytes);
+        ulong key = CreateKey(keyBytes, Convert.ToUInt32(srcHex, 16));
         // dst may be multi-codepoints; keep as UTF-16 string
         string s = HexToString(dstHex);
         if (_map.TryGetValue(key, out string? previous)) _retainedMappingTextCharacters -= previous.Length;
-        else _retainedMappingTextCharacters += key.Length;
+        else _retainedMappingTextCharacters += srcHex.Length;
         _retainedMappingTextCharacters += s.Length;
         _map[key] = s;
         if (!_reverseMapBudgetExhausted && s.Length > 0 && s.Length <= MaxReverseMappingTextCharacters) {
@@ -186,10 +194,10 @@ internal sealed class ToUnicodeCMap {
             }
 
             if (node.CodeHex is null) {
-                node.CodeHex = key;
+                node.CodeHex = srcHex.ToUpperInvariant();
                 // Reverse terminals and partially created branches survive forward-map replacement.
                 // Charge their source strings separately, including conservative string-object overhead.
-                _retainedReverseCodeCharacters += key.Length;
+                _retainedReverseCodeCharacters += srcHex.Length;
                 _reverseMapTerminalCount++;
             }
         }
@@ -267,7 +275,7 @@ internal sealed class ToUnicodeCMap {
             cancellationCheck?.Invoke();
             int used = 0;
             for (int length = Math.Min(_maxKeyBytes, bytes.Length - index); length >= 1; length--) {
-                if (_map.ContainsKey(ByteSliceToHex(bytes, index, length))) {
+                if (_map.ContainsKey(CreateKey(bytes, index, length))) {
                     used = length;
                     break;
                 }
@@ -290,8 +298,7 @@ internal sealed class ToUnicodeCMap {
             int max = Math.Min(_maxKeyBytes, bytes.Length - i);
             string? mapped = null; int used = 0;
             for (int len = max; len >= 1; len--) {
-                string key = ByteSliceToHex(bytes, i, len);
-                if (_map.TryGetValue(key, out var s)) { mapped = s; used = len; break; }
+                if (_map.TryGetValue(CreateKey(bytes, i, len), out var s)) { mapped = s; used = len; break; }
             }
             if (mapped is null) {
                 allMapped = false;
@@ -392,10 +399,20 @@ internal sealed class ToUnicodeCMap {
         }
     }
 
-    private static string ByteSliceToHex(byte[] b, int start, int len) {
-        var sb = new System.Text.StringBuilder(len * 2);
-        for (int i = 0; i < len; i++) sb.Append(b[start + i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
-        return sb.ToString();
+    private static readonly string[] KeyFormats = { "X0", "X2", "X4", "X6", "X8" };
+
+    private static ulong CreateKey(int byteCount, uint code) => ((ulong)(uint)byteCount << 32) | code;
+
+    private static ulong CreateKey(byte[] bytes, int start, int byteCount) {
+        uint code = 0;
+        for (int index = 0; index < byteCount; index++) {
+            code = (code << 8) | bytes[start + index];
+        }
+
+        return CreateKey(byteCount, code);
     }
+
+    private static string FormatKey(ulong key) =>
+        ((uint)key).ToString(KeyFormats[(int)(key >> 32)], System.Globalization.CultureInfo.InvariantCulture);
 
 }

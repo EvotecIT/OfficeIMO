@@ -46,6 +46,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var sharedFormulaState = new BiffSharedFormulaImportState(sheet, externSheets, externalReferences, sheetNames, definedNames, formulaTokenRecords, diagnostics, options);
             var chartMetadataState = new BiffChartMetadataReaderState();
             var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
+            var transientPayloads = new Dictionary<int, byte[]>();
             while (offset < workbookStream.Length) {
                 options.CancellationToken.ThrowIfCancellationRequested();
                 if (offset + 4 > workbookStream.Length) {
@@ -72,8 +73,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                byte[] payload = new byte[length];
-                Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                byte[] payload;
+                if (nestedSubstreamDepth == 0 && IsTransientValueRecord(type)) {
+                    payload = CopyTransientPayload(transientPayloads, workbookStream, payloadOffset, length);
+                } else {
+                    payload = new byte[length];
+                    Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
+                }
+
                 if (offset == sheet.StreamOffset) {
                     if (type != (ushort)BiffRecordType.Bof) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
@@ -747,6 +754,34 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordOffset: offset,
                     recordType: type));
             }
+        }
+
+        // Cell value records are decoded into cells immediately and their payload is never retained, so one
+        // exact-length buffer per record length can serve every such record. Handlers bound reads by payload.Length.
+        private static bool IsTransientValueRecord(ushort type) {
+            switch ((BiffRecordType)type) {
+                case BiffRecordType.Blank:
+                case BiffRecordType.BoolErr:
+                case BiffRecordType.LabelSst:
+                case BiffRecordType.MulBlank:
+                case BiffRecordType.MulRk:
+                case BiffRecordType.Number:
+                case BiffRecordType.Rk:
+                case BiffRecordType.Row:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static byte[] CopyTransientPayload(Dictionary<int, byte[]> buffers, byte[] source, int offset, int length) {
+            if (!buffers.TryGetValue(length, out byte[]? buffer)) {
+                buffer = new byte[length];
+                buffers[length] = buffer;
+            }
+
+            Buffer.BlockCopy(source, offset, buffer, 0, length);
+            return buffer;
         }
 
         private static void AddUnsupportedFeature(
