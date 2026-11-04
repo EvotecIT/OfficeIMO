@@ -240,7 +240,9 @@
     "WordDropDownList.Text : string?",
     "WordComboBox.Text : string?",
     "WordPictureControl.Text : string?",
-    "WordRepeatingSection.Text : string?"
+    "WordRepeatingSection.Text : string?",
+    "WordDocumentStatisticsInfo: detached eleven-counter native statistics snapshot",
+    "WordDocumentInfo.Statistics: detached statistics captured by WordDocument.Inspect"
   ],
   "internalizeCandidates": [
     {
@@ -9222,6 +9224,16 @@
       "reason": "Keep three-argument default path calls and explicit native settings while admitting the four-argument model overload without optional-overload ambiguity or analyzer suppression.",
       "file": "OfficeIMO.Word/WordDocumentComparer/WordDocumentComparer.Redline.cs",
       "applied": "phase-b-applied"
+    },
+    {
+      "subject": "Canonical detailed Word inspection preserves statistics",
+      "change": "WordDocumentInfo.Statistics carries detached Pages, Paragraphs, Words, Images, Tables, Charts, Shapes, Bookmarks, Lists, Characters and CharactersWithSpaces using the existing WordDocumentStatistics counting rules.",
+      "reason": "Get-OfficeDocumentInfo -Detailed preserves the retired Word statistics command without a PowerShell-only model or a live document reference.",
+      "files": [
+        "OfficeIMO.Word/WordDocumentStatisticsInfo.cs",
+        "OfficeIMO.Word/WordInspectionSnapshot.cs",
+        "OfficeIMO.Word/WordDocument.Inspection.cs"
+      ]
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

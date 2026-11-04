@@ -62,6 +62,7 @@ namespace OfficeIMO.Word {
                 Author = Properties?.Creator,
                 Subject = Properties?.Subject,
                 Keywords = Properties?.Keywords,
+                Statistics = new WordDocumentStatisticsInfo(Statistics),
             };
 
             for (int sectionIndex = 0; sectionIndex < Sections.Count; sectionIndex++) {

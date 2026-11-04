@@ -419,3 +419,16 @@ static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(OfficeIMO.Word.
 static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath) -> OfficeIMO.Word.WordComparisonResult!
 static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options) -> OfficeIMO.Word.WordComparisonResult!
 *REMOVED*static OfficeIMO.Word.WordDocumentComparer.CreateRedlineDocument(string! sourcePath, string! targetPath, string! outputPath, OfficeIMO.Word.WordComparisonRedlineOptions? options = null) -> OfficeIMO.Word.WordComparisonResult!
+OfficeIMO.Word.WordDocumentInfo.Statistics.get -> OfficeIMO.Word.WordDocumentStatisticsInfo!
+OfficeIMO.Word.WordDocumentStatisticsInfo
+OfficeIMO.Word.WordDocumentStatisticsInfo.Bookmarks.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Characters.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.CharactersWithSpaces.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Charts.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Images.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Lists.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Pages.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Paragraphs.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Shapes.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Tables.get -> int
+OfficeIMO.Word.WordDocumentStatisticsInfo.Words.get -> int

@@ -1,13 +1,11 @@
-using OfficeIMO.Word;
+namespace OfficeIMO.Word;
 
-namespace PSWriteOffice.Models.Word;
-
-/// <summary>PowerShell-friendly snapshot of Word document statistics.</summary>
+/// <summary>Detached snapshot of the native Word statistics counters.</summary>
 public sealed class WordDocumentStatisticsInfo
 {
     /// <summary>Creates a statistics snapshot from an OfficeIMO.Word statistics object.</summary>
     /// <param name="statistics">Document statistics read from OfficeIMO.Word.</param>
-    public WordDocumentStatisticsInfo(WordDocumentStatistics statistics)
+    internal WordDocumentStatisticsInfo(WordDocumentStatistics statistics)
     {
         Pages = statistics.Pages;
         Paragraphs = statistics.Paragraphs;

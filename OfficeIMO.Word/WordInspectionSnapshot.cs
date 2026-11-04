@@ -14,6 +14,8 @@ namespace OfficeIMO.Word {
         public string? Subject { get; internal set; }
         /// <summary>Gets document keywords from core properties.</summary>
         public string? Keywords { get; internal set; }
+        /// <summary>Gets the detached native statistics captured during inspection, including recorded counts where present.</summary>
+        public WordDocumentStatisticsInfo Statistics { get; internal set; } = null!;
         /// <summary>Gets sections in document order.</summary>
         public IReadOnlyList<WordSectionInfo> Sections => _sections;
 

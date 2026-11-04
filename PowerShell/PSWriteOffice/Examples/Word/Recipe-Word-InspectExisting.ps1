@@ -13,8 +13,8 @@ New-OfficeWord -Path $path {
 }
 
 $document = Open-OfficeWord -Path $path -ReadOnly
-Get-OfficeWordStatistics -Document $document
+(Get-OfficeDocumentInfo -Document $document -Detailed).Details.Statistics
 $document | Get-OfficeWordParagraph | Select-Object Index, Text
 $document | Get-OfficeWordTable | Select-Object Index, RowCount, ColumnCount
-Find-OfficeWord -Document $document -Text 'Messaging'
+Get-OfficeWordParagraph -Document $document -Pattern 'Messaging' -SimpleMatch
 Close-OfficeWord -Document $document
