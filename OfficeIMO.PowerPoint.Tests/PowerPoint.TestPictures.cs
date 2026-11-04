@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
     ///     deliberately mismatched frame restore that frame here.
     /// </summary>
     internal static class PowerPointTestPictures {
-        internal static PowerPointPicture WithFrame(this PowerPointPicture picture, long left, long top, long width, long height) {
+        internal static PowerPointImage WithFrame(this PowerPointImage picture, long left, long top, long width, long height) {
             picture.Left = OfficeLength.Emus(left);
             picture.Top = OfficeLength.Emus(top);
             picture.Width = OfficeLength.Emus(width);

@@ -55,14 +55,14 @@ public sealed class EmailArchiveAnalysisTests {
         source.Attachments.Add(new EmailAttachment { FileName = "child.eml", EmbeddedDocument = child });
         byte[] bytes = new EmailDocumentWriter().ToBytes(source, format);
         var parent = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false,
-            includeEmbeddedMessages: false)).Read(bytes).Document;
+            includeEmbeddedMessages: false)).ReadDocument(bytes).Document;
         var attachment = Assert.Single(parent.Attachments);
         Assert.Null(attachment.EmbeddedDocument); Assert.Null(attachment.Content);
         Assert.Empty(attachment.StructuredStorageStreams); Assert.True(attachment.Length > 0);
         Assert.All(attachment.MapiProperties.Where(MapiKnownProperties.PidTag.AttachData.MatchesIdentity), property => {
             Assert.Null(property.Value); Assert.Null(property.RawData);
         });
-        var full = new EmailDocumentReader().Read(bytes).Document;
+        var full = new EmailDocumentReader().ReadDocument(bytes).Document;
         Assert.Equal("child", Assert.Single(full.Attachments).EmbeddedDocument!.Subject);
         var policy = new EmailSemanticComparisonOptions(includeAttachmentContent: false,
             maxEmbeddedMessageDepth: 0, includeEmbeddedMessageContent: false);

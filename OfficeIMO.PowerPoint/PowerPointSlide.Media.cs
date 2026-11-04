@@ -133,6 +133,11 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentOutOfRangeException(nameof(height));
             }
 
+            using MemoryStream? normalizedPoster = posterImage == null ? null
+                : PowerPointImageNormalization.NormalizeHeicForEmbedding(posterImage, posterImageType);
+            if (normalizedPoster != null)
+                return AddMedia(media, contentType, extension, kind, left, top, width, height, normalizedPoster, OfficeImageFormat.Png);
+
             uint shapeId = AllocateShapeId();
             MediaDataPart mediaPart = CreateMediaDataPart(media, contentType, extension);
             string fileReferenceId = GetNextRelationshipId(_slidePart);
@@ -209,6 +214,9 @@ namespace OfficeIMO.PowerPoint {
             if (!image.CanRead) {
                 throw new ArgumentException("Image stream must be readable.", nameof(image));
             }
+
+            using MemoryStream? normalized = PowerPointImageNormalization.NormalizeHeicForEmbedding(image, imageType);
+            if (normalized != null) return AddImagePartFromStream(normalized, OfficeImageFormat.Png);
 
             PartTypeInfo partTypeInfo = imageType.ToPartTypeInfo();
             string imageExtension = PowerPointPartFactory.GetImageExtension(imageType);

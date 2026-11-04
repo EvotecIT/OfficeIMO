@@ -42,7 +42,7 @@ namespace OfficeIMO.Access {
             if (document.Id != DocumentId || document.Revision != Revision || document.HasActiveUpdate) throw new InvalidOperationException("The Access assessment is stale or belongs to another document. Assess again after committing edits.");
         }
         /// <summary>Requires a supported operation without known loss. Unsupported codecs fail before output.</summary>
-        public void RequireNoLoss() {
+        public void ThrowIfLoss() {
             if (Status != AccessOperationStatus.Supported) throw new AccessOperationNotSupportedException(this);
         }
     }

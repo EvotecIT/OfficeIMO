@@ -69,7 +69,7 @@ public static partial class WordIWorkConverter {
                 list.Numbering.Levels[level].LevelText = "(%"
                     + (level + 1).ToString(System.Globalization.CultureInfo.InvariantCulture) + ")";
             }
-            if (firstObservation && fontName != null) list.FontName = fontName;
+            if (firstObservation && fontName != null) list.FontFamily = fontName;
             if (firstObservation && qualifiedMarkerFontSize.HasValue) list.FontSize = qualifiedMarkerFontSize.HasValue ? global::OfficeIMO.OfficeLength.Points(qualifiedMarkerFontSize.Value) : null;
             if (qualifiedLeftOffset.HasValue && qualifiedHangingOffset.HasValue) {
                 WordListLevel numberingLevel = list.Numbering.Levels[level];

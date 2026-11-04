@@ -199,7 +199,10 @@ namespace OfficeIMO.Excel {
         /// <param name="width">The column width.</param>
         public void SetColumnWidth(int columnIndex, ExcelColumnWidth width) {
             double value = NormalizeColumnWidth(width.ToCharacters(this));
-            _excelDocument.MaterializeDeferredDataSetImport();
+            if (_excelDocument.HasUnmaterializedDirectDataSetRows) {
+                _excelDocument.MaterializeDeferredDataSetImport();
+            }
+
             WriteLock(() => {
                 var worksheet = WorksheetRoot;
                 var columns = worksheet.GetFirstChild<Columns>();

@@ -29,7 +29,7 @@ internal static class ReportEngineVerifier {
 
     private static object VerifyCsv(string path, int count) {
         Require(File.ReadAllBytes(path).Take(3).SequenceEqual(new byte[] { 239, 187, 191 }), "CSV lost its UTF-8 BOM.");
-        using var reader = CsvDocument.OpenDataReader(path);
+        using var reader = CsvDocument.OpenReader(path);
         Require(reader.FieldCount == Headers.Length && Enumerable.Range(0, Headers.Length).Select(reader.GetName).SequenceEqual(Headers), "CSV headers differ.");
         int row = 0;
         while (reader.Read()) {

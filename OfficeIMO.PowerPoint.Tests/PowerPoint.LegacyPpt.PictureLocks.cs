@@ -21,8 +21,8 @@ namespace OfficeIMO.Tests {
             byte[] editedBytes;
             using (PowerPointDocument presentation =
                    PowerPointDocument.Load(sourcePath)) {
-                foreach (PowerPointPicture model in presentation.Slides[0]
-                             .Pictures) {
+                foreach (PowerPointImage model in presentation.Slides[0]
+                             .Images) {
                     P.Picture picture = (P.Picture)model.Element;
                     P.NonVisualPictureDrawingProperties nonVisual = picture
                         .NonVisualPictureProperties!
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             using PowerPointDocument reopened =
                 PowerPointDocument.Load(editedInput);
-            Assert.All(reopened.Slides[0].Pictures, model => {
+            Assert.All(reopened.Slides[0].Images, model => {
                 P.NonVisualPictureDrawingProperties projected =
                     ((P.Picture)model.Element).NonVisualPictureProperties!
                     .NonVisualPictureDrawingProperties!;

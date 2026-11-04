@@ -7,7 +7,7 @@ public enum EmailStoreMboxExportFidelityPolicy {
     /// <summary>Commits a usable partial mailbox and preserves every omission or approximation in the report.</summary>
     AllowDiagnosedLoss = 0,
     /// <summary>Rejects publication when typed diagnostics report approximation, omission, or failure.</summary>
-    RequireNoLoss = 1
+    FailOnLoss = 1
 }
 
 /// <summary>Selection and streaming policy for mbox export.</summary>

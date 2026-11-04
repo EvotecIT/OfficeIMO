@@ -1,3 +1,4 @@
+#pragma warning disable RS0026, RS0027 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -48,12 +49,12 @@ public sealed partial class PdfDocumentPages {
         TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page ranges", effective => Split(PdfPageRange.ParseMany(pageRanges), effective, cancellationToken), options, cancellationToken);
 
     /// <summary>Resolves bookmark ranges while observing cancellation and retaining captured read limits.</summary>
-    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(CancellationToken cancellationToken, params string[] bookmarkTitles) =>
-        BookmarkPageRanges(_document.ReadOptions, cancellationToken, bookmarkTitles);
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(IReadOnlyList<string> bookmarkTitles, CancellationToken cancellationToken = default) =>
+        BookmarkPageRanges(_document.ReadOptions, cancellationToken, (bookmarkTitles ?? throw new ArgumentNullException(nameof(bookmarkTitles))).ToArray());
 
     /// <summary>Splits bookmarked sections with cooperative cancellation through every output part.</summary>
-    public IReadOnlyList<PdfDocument> SplitByBookmarks(CancellationToken cancellationToken, params string[] bookmarkTitles) =>
-        SplitByBookmarks(_document.ReadOptions, cancellationToken, bookmarkTitles);
+    public IReadOnlyList<PdfDocument> SplitByBookmarks(IReadOnlyList<string> bookmarkTitles, CancellationToken cancellationToken = default) =>
+        SplitByBookmarks(_document.ReadOptions, cancellationToken, (bookmarkTitles ?? throw new ArgumentNullException(nameof(bookmarkTitles))).ToArray());
 
     /// <summary>Reports bookmark splitting while preserving cancellation as an exception.</summary>
     internal PdfOperationResult<IReadOnlyList<PdfDocument>> SplitByBookmarksResult(CancellationToken cancellationToken, IReadOnlyList<string>? bookmarkTitles = null, PdfLoadOptions? options = null) =>

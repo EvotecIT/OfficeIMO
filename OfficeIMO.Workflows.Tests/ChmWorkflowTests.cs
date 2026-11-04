@@ -18,7 +18,7 @@ public sealed class ChmWorkflowTests {
                 index => ChmFixture.Html("<p>Help topic " + index + "</p>"));
             File.WriteAllBytes(input, ChmFixture.Archive(topics));
             File.WriteAllBytes(text, PdfDocument.Create(compose => compose.Page(page => page.Content(content =>
-                content.Item(item => item.Paragraph(paragraph => paragraph.Text("Other document")))))).ToBytes());
+                content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Other document")))))).ToBytes());
             var result = await new OfficeWorkflowRunner().AssemblePdfAsync(new PdfAssemblyRequest { Sources = [input, text], OutputPath = output });
             Assert.True(result.Succeeded, result.Summary);
             var pdf = PdfReadDocument.Open(File.ReadAllBytes(output));
@@ -52,8 +52,8 @@ public sealed class ChmWorkflowTests {
             var evidence = Assert.IsType<OfficeWorkflowConversionEvidence>(result.ConversionEvidence);
             Assert.Equal("ITSF", evidence.Facts["sourceContainer"]); Assert.Equal("2", evidence.Facts["topicCount"]);
             Assert.Contains(result.Diagnostics, item => item.Code == "conversion-output-reopened");
-            foreach (var finding in evidence.FidelityDiagnostics)
-                Assert.Equal(evidence.FidelityDiagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message),
+            foreach (var finding in evidence.Diagnostics)
+                Assert.Equal(evidence.Diagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message),
                     result.Diagnostics.Count(item => item.Code == finding.Code && item.Message == finding.Message));
             byte[] bytes = File.ReadAllBytes(output);
             if (extension == ".pdf") { Assert.Equal(2, PdfReadDocument.Open(bytes).Pages.Count); Assert.Contains("Café", PdfReadDocument.Open(bytes).ExtractText()); } else if (extension == ".epub") { using var stream = new MemoryStream(bytes); Assert.Contains(EpubDocument.Load(stream).Chapters, item => item.Text.Contains("Café")); } else Assert.Contains("Café", File.ReadAllText(output));

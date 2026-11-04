@@ -99,30 +99,50 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private bool HasForeignContentInTableFooterInterval(IEnumerable<HtmlRenderVisual> visuals,
-        string owner, double start, double end, double verticalTranslation = 0D) {
-        foreach (HtmlRenderVisual visual in visuals) {
+    // Pending semantic-group translations are followed through their offsets rather than
+    // copied: a leaf's layout top after the offsets is all this scan needs.
+    private bool HasForeignContentInTableFooterInterval(IReadOnlyList<HtmlRenderVisual> visuals,
+        string owner, double start, double end, double verticalTranslation = 0D, HtmlRenderOffset[]? pending = null) {
+        for (int index = 0; index < visuals.Count; index++) {
+            HtmlRenderVisual visual = visuals[index];
             ChargeLayoutOperation("parallel table footer ownership");
             if (visual is HtmlRenderSemanticGroup table
                 && IsTableFormattingGroup(table) && table.StructureElementKey == owner) continue;
-            IReadOnlyList<HtmlRenderVisual>? children = visual switch {
-                HtmlRenderClipGroup group => group.Visuals,
-                HtmlRenderEffectGroup group => group.Visuals,
-                HtmlRenderLogicalTextGroup group => group.Visuals,
-                HtmlRenderPathClipGroup group => group.Visuals,
-                HtmlRenderLayoutRegion group => group.Visuals,
-                HtmlRenderSemanticGroup group => group.Visuals,
-                _ => null
-            };
+            HtmlRenderOffset[]? childPending = pending;
+            IReadOnlyList<HtmlRenderVisual>? children;
+            if (visual is HtmlRenderSemanticGroup semantic
+                && semantic.TryGetPendingTranslation(out IReadOnlyList<HtmlRenderVisual> source, out HtmlRenderOffset[] offsets)) {
+                children = source;
+                childPending = pending == null ? offsets : HtmlRenderOffset.Append(offsets, pending);
+            } else {
+                if (pending != null && visual is not HtmlRenderSemanticGroup && visual.PaintChildren != null) {
+                    // Other containers rebase their own geometry, so read them as a pending read would.
+                    visual = visual.TranslateThrough(pending, index);
+                    childPending = null;
+                }
+                children = visual switch {
+                    HtmlRenderClipGroup group => group.Visuals,
+                    HtmlRenderEffectGroup group => group.Visuals,
+                    HtmlRenderLogicalTextGroup group => group.Visuals,
+                    HtmlRenderPathClipGroup group => group.Visuals,
+                    HtmlRenderLayoutRegion group => group.Visuals,
+                    HtmlRenderSemanticGroup group => group.Visuals,
+                    _ => null
+                };
+            }
             if (children != null) {
                 double childTranslation = verticalTranslation;
                 if (visual is HtmlRenderEffectGroup effect && TryGetVerticalPaintTranslation(effect.Transform, out double translation)) {
                     childTranslation += translation;
                 }
-                if (HasForeignContentInTableFooterInterval(children, owner, start, end, childTranslation)) return true;
+                if (HasForeignContentInTableFooterInterval(children, owner, start, end, childTranslation, childPending)) return true;
             } else if (visual is HtmlRenderText or HtmlRenderImage or HtmlRenderDrawing or HtmlRenderFormField
                 or HtmlRenderShape { IsAtomicReplacedPlaceholder: true }) {
-                double top = visual.LayoutY + verticalTranslation;
+                double layoutY = visual.LayoutY;
+                if (childPending != null) {
+                    foreach (HtmlRenderOffset offset in childPending) if (!offset.PaintOnly) layoutY += offset.Y;
+                }
+                double top = layoutY + verticalTranslation;
                 if (top < end - 0.0001D && top + visual.LayoutHeight > start + 0.0001D) return true;
             }
         }

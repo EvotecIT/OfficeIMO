@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                         VisioShape shape = page.Shapes.First(s => s.Id == id);
                         bool referencesMaster = shapeElement.Attribute("Master") != null;
                         bool hasGeom = shapeElement.Element(ns + "Geom") != null;
-                        Assert.True((shape.Width > 0 && shape.Height > 0) || referencesMaster || hasGeom,
+                        Assert.True((shape.Width.ToInches() > 0 && shape.Height.ToInches() > 0) || referencesMaster || hasGeom,
                             $"{Path.GetFileName(file)} shape {id} has zero size");
                         if (!hasGeom && !referencesMaster) {
                             continue;

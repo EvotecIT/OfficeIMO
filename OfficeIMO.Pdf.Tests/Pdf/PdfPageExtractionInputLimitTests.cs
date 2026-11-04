@@ -63,7 +63,7 @@ public class PdfPageExtractionInputLimitTests {
     [Fact]
     public void PageExtractionReadsFromCurrentStreamPosition() {
         byte[] pdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Page extraction current position"))
+            .Paragraph(paragraph => paragraph.AddText("Page extraction current position"))
             .ToBytes();
         byte[] prefixed = new byte[pdf.Length + 5];
         Buffer.BlockCopy(pdf, 0, prefixed, 5, pdf.Length);

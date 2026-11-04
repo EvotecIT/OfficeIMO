@@ -51,7 +51,7 @@ public sealed class NativeMacKeychainTests(Xunit.Abstractions.ITestOutputHelper 
             var document = new EmailDocument { Subject = "Synthetic Keychain", Body = { Text = "Zażółć 日本語" } };
             EmailSmimeCreationResult message = EmailSmime.SignAndEncrypt(document, native,
                 new[] { fixture.PublicCertificate }, OfficeSecurityProvider.Default);
-            using EmailReadResult parsed = new EmailDocumentReader().Read(message.Message);
+            using EmailReadResult parsed = new EmailDocumentReader().ReadDocument(message.Message);
             EmailSmimeProcessingResult processed = EmailSmime.DecryptThenVerify(parsed.Document, native, OfficeSecurityProvider.Default);
             Assert.Equal(document.Body.Text, processed.Content!.Body.Text);
             Assert.True(processed.Verification!.IsCryptographicallyValid);

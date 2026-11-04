@@ -15,7 +15,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
         try {
             File.WriteAllText(path,
                 "div{position:absolute;left:24px;top:18px;width:160px;height:40px}");
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             options.StylesheetPaths.Add(path);
 
             HtmlToWordResult result = HtmlConversionDocument.Parse(
@@ -23,8 +23,8 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
             using WordDocument word = result.Value;
 
             Assert.Empty(word.TextBoxes);
-            Assert.NotEmpty(word.Find("Element styled anchor", StringComparison.Ordinal));
-            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+            Assert.NotEmpty(word.Find("Element styled anchor", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
                 diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
                 && diagnostic.Detail == "externalStylesheetSources=true; semanticFlow=true");
         } finally {
@@ -56,7 +56,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
     [InlineData(OfficePageOrientation.Landscape)]
     public void ContinuousWordProjectionUsesConfiguredPageWidth(OfficePageOrientation orientation) {
         const string html = "<div style='position:absolute;right:0;top:0;width:96px;height:40px'>A5 anchor</div>";
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             DefaultPageSize = WordPageSize.A5,
             DefaultOrientation = orientation
         };
@@ -76,7 +76,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
     public async Task RedirectedStylesheetAliasesShareBudgetState() {
         const string css = ".target{color:red}";
         int cssBytes = Encoding.UTF8.GetByteCount(css);
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = cssBytes;
         limits.MaxTotalCssBytes = cssBytes;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(
@@ -107,7 +107,7 @@ public sealed class HtmlEditableLayoutReviewWave29Tests {
         const string externalCss = ".target{color:red}";
         int seedBytes = Encoding.UTF8.GetByteCount(seedCss);
         int externalBytes = Encoding.UTF8.GetByteCount(externalCss);
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxCssBytes = Math.Max(seedBytes, externalBytes);
         limits.MaxTotalCssBytes = seedBytes + externalBytes - 1;
         HtmlConversionDocument document = HtmlConversionDocument.Parse(

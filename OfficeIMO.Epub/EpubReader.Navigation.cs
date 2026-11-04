@@ -7,7 +7,7 @@ internal static partial class EpubReader {
     private static EpubNavigationResult ReadNavigation(
         Dictionary<string, ZipArchiveEntry> entryIndex,
         EpubPackage? package,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -56,7 +56,7 @@ internal static partial class EpubReader {
         Dictionary<string, ZipArchiveEntry> entryIndex,
         string navPath,
         EpubNavigationResult result,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         NavigationLimitState limits,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
@@ -123,7 +123,7 @@ internal static partial class EpubReader {
         string navPath,
         string? baseHref,
         int depth,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         NavigationLimitState limits,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
@@ -174,7 +174,7 @@ internal static partial class EpubReader {
         bool includeTableOfContents,
         bool includePageList,
         bool includeTitleFallback,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         NavigationLimitState limits,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
@@ -248,7 +248,7 @@ internal static partial class EpubReader {
         IEnumerable<XElement> source,
         string ncxPath,
         int depth,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         NavigationLimitState limits,
         EpubDiagnosticCollector diagnostics,
         CancellationToken cancellationToken) {
@@ -327,7 +327,7 @@ internal static partial class EpubReader {
     private static bool TryReserveNavigationItem(
         int depth,
         string sourcePath,
-        EpubReadOptions options,
+        EpubLoadOptions options,
         NavigationLimitState limits,
         EpubDiagnosticCollector diagnostics) {
         if (depth > options.MaxNavigationDepth) {

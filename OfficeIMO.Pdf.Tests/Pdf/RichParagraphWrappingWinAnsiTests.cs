@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests.Pdf {
         public void WinAnsiEncoding_RejectsUnsupportedGeneratedTextWithClearDiagnostic() {
             var exception = Assert.ThrowsAny<ArgumentException>(() =>
                 PdfDocument.Create()
-                    .Paragraph(p => p.Text("Snowman \u2603"))
+                    .Paragraph(p => p.AddText("Snowman \u2603"))
                     .ToBytes());
 
             Assert.Contains("U+2603", exception.Message, StringComparison.Ordinal);

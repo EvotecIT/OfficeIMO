@@ -20,8 +20,8 @@ public partial class HtmlOfficeAdapters {
             + string.Concat(Enumerable.Range(2, columnCount - 1).Select(index => $"<td>{60 + index}</td>"))
             + "</tr></table>";
 
-        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcel(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         byte[] bytes = artifact.ToArray();
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(new MemoryStream(bytes), false)) {
@@ -41,11 +41,11 @@ public partial class HtmlOfficeAdapters {
 
         using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(bytes));
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
-        Assert.Equal(label, sheet.CellAt(2, 1).GetValue<string>());
+        Assert.Equal(label, sheet.Cell(2, 1).GetValue<string>());
         Assert.Equal("https://example.test/satellites", sheet.GetHyperlinks()["A2"].Target);
-        Assert.True(sheet.GetCellStyle(1, 1).Bold);
+        Assert.True(sheet.Cell(1, 1).GetStyle().Bold);
         for (int column = 2; column <= columnCount; column++) {
-            Assert.Equal((60 + column).ToString(), sheet.CellAt(2, column).GetValue<string>());
+            Assert.Equal((60 + column).ToString(), sheet.Cell(2, column).GetValue<string>());
         }
     }
 
@@ -55,18 +55,18 @@ public partial class HtmlOfficeAdapters {
         const string html = "<table><tr><th>Quantity</th><th>Mercury</th><th>Venus</th><th>Earth</th><th>Mars</th></tr>"
             + "<tr></tr><tr><td>Known natural satellites as of January 2013</td><td>0</td><td>0</td><td>1</td><td>2</td></tr>"
             + "<tr><td colspan='5'>" + note + "</td></tr></table>";
-        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcel(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using MemoryStream artifact = new System.IO.MemoryStream(workbook.ToBytes());
         using ExcelDocument reopened = ExcelDocument.Load(artifact);
         ExcelSheet sheet = Assert.Single(reopened.Sheets);
         Assert.Equal("A4:E4", Assert.Single(sheet.GetMergedRanges()).A1Range);
-        Assert.Equal(note, sheet.CellAt(4, 1).GetValue<string>());
-        Assert.Equal("Known natural satellites as of January 2013", sheet.CellAt(3, 1).GetValue<string>());
-        Assert.Equal("2", sheet.CellAt(3, 5).GetValue<string>());
+        Assert.Equal(note, sheet.Cell(4, 1).GetValue<string>());
+        Assert.Equal("Known natural satellites as of January 2013", sheet.Cell(3, 1).GetValue<string>());
+        Assert.Equal("2", sheet.Cell(3, 5).GetValue<string>());
         Assert.DoesNotContain(sheet.EnumerateCells(), cell => cell.Row == 2);
-        Assert.True(sheet.GetCellStyle(3, 1).WrapText);
-        Assert.True(sheet.GetCellStyle(4, 1).WrapText);
+        Assert.True(sheet.Cell(3, 1).GetStyle().WrapText);
+        Assert.True(sheet.Cell(4, 1).GetStyle().WrapText);
     }
 }
 
@@ -80,8 +80,8 @@ public partial class HtmlOfficeAdapters {
             + "<td data-officeimo-value-kind='date-time' data-officeimo-value='2026-09-01T00:00:00'>1 Sep 2026</td></tr>"
             + "<tr><th scope='row'>Projects</th><td>pending</td><td>later</td></tr></tbody></table></body></html>";
 
-        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcelDocument(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
+        using ExcelDocument workbook = HtmlConversionDocument.Parse(html).ToExcel(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic, ImportTypedCellValues = true });
         foreach (ExcelSheet autoFit in workbook.Sheets) {
             autoFit.AutoFitColumns();
             autoFit.AutoFitRows();

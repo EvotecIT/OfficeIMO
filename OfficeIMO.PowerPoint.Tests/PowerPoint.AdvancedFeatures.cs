@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FF0000", slide.BackgroundColor);
                 Assert.Equal(PowerPointSlideTransition.Fade, slide.Transition);
                 Assert.Single(slide.TextBoxes);
-                Assert.Single(slide.Pictures);
+                Assert.Single(slide.Images);
                 Assert.Single(slide.Tables);
                 Assert.Single(slide.Charts);
                 Assert.Equal("00FF00", slide.TextBoxes.First().FillColor);

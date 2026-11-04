@@ -13,7 +13,7 @@ public sealed partial class ReaderEpubModularTests {
         try {
             BuildTextlessStructuredEpub(epubPath);
 
-            EpubDocument document = EpubDocument.Load(epubPath, new EpubReadOptions {
+            EpubDocument document = EpubDocument.Load(epubPath, new EpubLoadOptions {
                 IncludeRawHtml = true,
                 MaxTotalRawHtmlBytes = 1
             });

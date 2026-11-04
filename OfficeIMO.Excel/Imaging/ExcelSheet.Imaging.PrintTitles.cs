@@ -435,7 +435,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryCreatePrintTitleLayout(string bodyRange, out PrintTitleLayout layout) {
             layout = default;
-            ExcelPrintTitles titles = GetPrintTitles();
+            ExcelPrintTitles titles = ReadPrintTitles();
             if ((!titles.HasRows && !titles.HasColumns) ||
                 !ExcelA1.TryParseRange(bodyRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
                 return false;

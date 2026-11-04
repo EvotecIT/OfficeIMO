@@ -441,10 +441,9 @@ namespace OfficeIMO.PowerPoint {
                                 soundContext: soundContext),
                         pictureBullet => ProjectLegacyPictureBullet(ownerPart,
                             pictureBullet))
-                    : new TextBody(
-                        new A.BodyProperties(),
-                        new A.ListStyle(),
-                        new A.Paragraph(new A.Run(new A.Text(source.Text))));
+                    : new TextBody(new OpenXmlElement[] { new A.BodyProperties(), new A.ListStyle() }.Concat(
+                        PowerPointTextContent.SplitParagraphs(source.Text).Select(paragraph =>
+                            new A.Paragraph(PowerPointTextContent.CreateInlineContent(paragraph)))));
                 if (!hasRichText) {
                     LegacyPptTextProjection.ApplyTextFrame(
                         textBody.BodyProperties, source.TextFrame);

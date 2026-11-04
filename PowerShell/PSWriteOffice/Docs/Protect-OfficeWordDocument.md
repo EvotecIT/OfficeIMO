@@ -11,7 +11,7 @@ Protects a Word document with a password.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Protect-OfficeWordDocument [-Password] <string> [-Document <WordDocument>] [-ProtectionType <WordDocumentProtectionType>] [-PassThru] [<CommonParameters>]
+Protect-OfficeWordDocument [-Password] <securestring> [-Document <WordDocument>] [-ProtectionType <WordDocumentProtectionType>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -67,7 +67,7 @@ Accept wildcard characters: False
 Password to apply.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

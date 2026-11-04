@@ -95,8 +95,8 @@ public sealed partial class OfficeFontFaceCollection {
             : CreateResourceFamilyName(family, registered.Descriptor, registered.UnicodeRanges);
         OfficeFontFace alias = registered.CreateAlias(family, resource);
         int index = _faces.FindLastIndex(face => face.FamilyName == family && face.ResourceFamilyName == resource);
-        if (index >= 0) _faces[index] = alias;
-        else _faces.Add(alias);
+        if (index >= 0) FacesToChange[index] = alias;
+        else FacesToChange.Add(alias);
         return alias;
     }
 

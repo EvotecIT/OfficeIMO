@@ -638,7 +638,7 @@ public partial class DrawingTests {
 
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
         OfficeImageExportReport report = new OfficeImageExportReport(new[] { diagnostic }, resultCount: 0);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
         Assert.True(report.HasFailures);
         Assert.Throws<OfficeImageExportPolicyException>(() => report.Require(
             new OfficeImageExportPolicy { RequireNoFailures = true }));

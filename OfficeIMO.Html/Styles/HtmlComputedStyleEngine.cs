@@ -82,6 +82,14 @@ public static partial class HtmlComputedStyleEngine {
     };
     private static readonly HashSet<string> SupportedProperties = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "all",
+        "-webkit-text-emphasis",
+        "-webkit-text-emphasis-style",
+        "-webkit-text-fill-color",
+        "shape-outside",
+        "text-emphasis",
+        "text-emphasis-style",
+        "border-image",
+        "border-image-source",
         "background",
         "background-attachment",
         "background-clip",
@@ -410,7 +418,8 @@ public static partial class HtmlComputedStyleEngine {
                 options.CssMediaWidth,
                 options.CssMediaHeight,
                 options.MediaFeatures,
-                HtmlRenderingFontDefaults.ForRendering(options, document.CompatMode == "BackCompat")),
+                HtmlRenderingFontDefaults.ForRendering(options, document.CompatMode == "BackCompat"),
+                options.ContainerInlineSizes),
             true,
             false,
             limits);
@@ -489,6 +498,30 @@ public static partial class HtmlComputedStyleEngine {
             colorValues);
     }
 
+    private static void ComputeElementOnContinuationStack(
+        IElement element,
+        HtmlComputedStyle? parent,
+        StyleRuleIndex rules,
+        IDictionary<IElement, HtmlComputedStyle> computed,
+        IDictionary<IElement, HtmlPseudoElementStylePair> pseudoElements,
+        bool includePseudoElements,
+        bool includeCascadeTraces,
+        HtmlCssProcessingBudget budget,
+        MediaEnvironment environment,
+        double containingWidth,
+        double? containingHeight,
+        IReadOnlyList<ContainerQueryContext> containerContexts) {
+        // Style computation also serves the conversions that never reach layout.
+        Func<bool> work = () => {
+            ComputeElement(element, parent, rules, computed, pseudoElements, includePseudoElements, includeCascadeTraces,
+                budget, environment, containingWidth, containingHeight, containerContexts);
+            return true;
+        };
+        if (!HtmlExecutionStack.TryRun(work, HtmlExecutionStack.MinimumStackBytes, out _)) {
+            throw new InsufficientExecutionStackException("HTML style computation exhausted the available stack.");
+        }
+    }
+
     private static void ComputeElement(
         IElement element,
         HtmlComputedStyle? parent,
@@ -502,6 +535,11 @@ public static partial class HtmlComputedStyleEngine {
         double containingWidth,
         double? containingHeight,
         IReadOnlyList<ContainerQueryContext> containerContexts) {
+        if (!HtmlExecutionStack.HasRoom()) {
+            ComputeElementOnContinuationStack(element, parent, rules, computed, pseudoElements, includePseudoElements,
+                includeCascadeTraces, budget, environment, containingWidth, containingHeight, containerContexts);
+            return;
+        }
         var properties = new Dictionary<string, CascadedProperty>(HtmlCssPropertyNameComparer.Instance);
         IReadOnlyDictionary<string, string>? parentProperties =
             GetParentPropertiesWithEffectiveDisplay(parent, element.ParentElement);
@@ -580,6 +618,9 @@ public static partial class HtmlComputedStyleEngine {
         (double elementWidth, double? elementHeight) = rules.ContainerGeometryReuse.Resolve(style,
             containingWidth, containingHeight, elementFontSize, rootFontSize, environment,
             containerUnitWidth, containerUnitHeight);
+        if (environment.ContainerInlineSizes != null
+            && environment.ContainerInlineSizes.TryGetValue(element, out double measuredWidth)) elementWidth = measuredWidth;
+        if (ResolveContainerType(style) is not "normal") style.ContainerInlineSize = elementWidth;
         IReadOnlyList<ContainerQueryContext> childContainerContexts = AddContainerContext(style, elementWidth, elementHeight, elementFontSize, inheritedFontSize, rootFontSize, containerContexts);
         if (includePseudoElements) ComputePseudoElementStyles(element, style, rules, pseudoElements, budget,
             childContainerContexts, environment, rules.CustomPropertyRegistrations, includeCascadeTraces);

@@ -35,7 +35,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private static void AppendFlowPaintLayers(ICollection<HtmlRenderVisual> visuals, IEnumerable<FlowPaintLayer> layers) {
         var normal = new List<HtmlRenderVisual>();
         void FlushNormal() {
-            foreach (HtmlRenderVisual visual in OrderFloatPaint(normal)) visuals.Add(visual.Translate(0D, 0D, visuals.Count));
+            // Every normal visual was translated here and is owned, as is each ordered fragment.
+            foreach (HtmlRenderVisual visual in OrderFloatPaint(normal)) visuals.Add(visual.WithPaintOrder(visuals.Count, owned: true));
             normal.Clear();
         }
         foreach (FlowPaintLayer layer in OrderFlowPaintLayers(layers)) {

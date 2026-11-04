@@ -14,7 +14,7 @@ public sealed class EpubPackageContractTests {
 
         EpubDocument document = EpubDocument.Load(
             new MemoryStream(package, writable: false),
-            new EpubReadOptions {
+            new EpubLoadOptions {
                 IncludeRawHtml = true,
                 IncludeResourceData = true
             });
@@ -85,7 +85,7 @@ public sealed class EpubPackageContractTests {
             ApplyAdobeObfuscation(clear, "00112233445566778899aabbccddeeff"));
 
         EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false),
-            new EpubReadOptions { IncludeResourceData = true });
+            new EpubLoadOptions { IncludeResourceData = true });
 
         EpubResource font = Assert.Single(document.Resources);
         Assert.Equal(EpubEncryptionKind.AdobeFontObfuscation, font.Encryption!.Kind);
@@ -103,7 +103,7 @@ public sealed class EpubPackageContractTests {
             ApplyIdpfObfuscation(clear, identifier));
 
         EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false),
-            new EpubReadOptions { IncludeResourceData = true });
+            new EpubLoadOptions { IncludeResourceData = true });
 
         EpubResource font = Assert.Single(document.Resources);
         Assert.True(font.WasDeobfuscated);
@@ -118,7 +118,7 @@ public sealed class EpubPackageContractTests {
             new byte[] { 9, 8, 7, 6 });
 
         EpubDocument document = EpubDocument.Load(new MemoryStream(package, writable: false),
-            new EpubReadOptions { IncludeResourceData = true });
+            new EpubLoadOptions { IncludeResourceData = true });
 
         EpubResource font = Assert.Single(document.Resources);
         Assert.Null(font.Data);
@@ -129,7 +129,7 @@ public sealed class EpubPackageContractTests {
     [Fact]
     public async Task LoadAndLoadAsync_EnforcePackageSizeWithFatalDiagnostics() {
         byte[] package = BuildPackage(includeUnsafeEntry: false);
-        var options = new EpubReadOptions { MaxPackageBytes = package.Length - 1L };
+        var options = new EpubLoadOptions { MaxPackageBytes = package.Length - 1L };
 
         EpubReadException syncException = Assert.Throws<EpubReadException>(() =>
             EpubDocument.Load(new MemoryStream(package, writable: false), options));
@@ -149,13 +149,13 @@ public sealed class EpubPackageContractTests {
         EpubReadException entryException = Assert.Throws<EpubReadException>(() =>
             EpubDocument.Load(
                 new MemoryStream(package, writable: false),
-                new EpubReadOptions { MaxArchiveEntries = 2 }));
+                new EpubLoadOptions { MaxArchiveEntries = 2 }));
         Assert.Equal("epub.archive.entry-count-limit", Assert.Single(entryException.Diagnostics).Code);
 
         EpubReadException sizeException = Assert.Throws<EpubReadException>(() =>
             EpubDocument.Load(
                 new MemoryStream(package, writable: false),
-                new EpubReadOptions { MaxTotalUncompressedBytes = 32 }));
+                new EpubLoadOptions { MaxTotalUncompressedBytes = 32 }));
         Assert.Equal("epub.archive.total-size-limit", Assert.Single(sizeException.Diagnostics).Code);
     }
 
@@ -255,7 +255,7 @@ public sealed class EpubPackageContractTests {
 
         EpubDocument document = EpubDocument.Load(
             new MemoryStream(package, writable: false),
-            new EpubReadOptions { IncludeRawHtml = true });
+            new EpubLoadOptions { IncludeRawHtml = true });
 
         EpubChapter chapter = Assert.Single(document.Chapters);
         Assert.Equal("Local Title", chapter.Title);

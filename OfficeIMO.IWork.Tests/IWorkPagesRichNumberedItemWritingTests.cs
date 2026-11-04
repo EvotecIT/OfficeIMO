@@ -27,7 +27,7 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
             Assert.False(markerDefaults.Bold); Assert.False(markerDefaults.Italic);
             Assert.False(markerDefaults.Underline); Assert.False(markerDefaults.Strikethrough);
         }
-        using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output);
         using (var reopened = WordDocument.Load(new MemoryStream(output.ToArray())))
             Assert.Equal(items.Select(paragraph => paragraph.ListNumber!.Value),
@@ -81,9 +81,9 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
         list.AddRichItem(new[] { new IWorkTextRunData("One", "Arial", 12, bold: true),
             new IWorkTextRunData(" two", "Arial", 12), new IWorkTextRunData(" three", "Arial", 12, italic: true) });
         using var output = new MemoryStream(); output.WriteByte(9);
-        Assert.Throws<InvalidDataException>(() => document.Save(output, new() { MaximumTextRuns = 2 }));
+        Assert.Throws<InvalidDataException>(() => document.Save(output, new() { MaxTextRuns = 2 }));
         Assert.Equal(new byte[] { 9 }, output.ToArray());
-        Assert.NotEmpty(document.SaveBytes(new() { MaximumTextRuns = 3 }));
+        Assert.NotEmpty(document.SaveBytes(new() { MaxTextRuns = 3 }));
     }
 
     internal static IWorkPagesDocument Example() {

@@ -86,7 +86,7 @@ public class PdfDocumentIOTests {
     [Fact]
     public void Save_DirectStreamOutputSupportsGeneratedEncryption() {
         PdfDocument document = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Direct encrypted stream"));
+            .Paragraph(paragraph => paragraph.AddText("Direct encrypted stream"));
         using var stream = new MemoryStream();
 
         document.Save(stream);
@@ -273,7 +273,7 @@ public class PdfDocumentIOTests {
     private static PdfDocument BuildDocument(string title) {
         return PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
-            .Paragraph(p => p.Text("PDF stream output."));
+            .Paragraph(p => p.AddText("PDF stream output."));
     }
 
     private sealed class NonSeekableWriteStream : Stream {

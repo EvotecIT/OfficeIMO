@@ -415,7 +415,7 @@ internal static class PowerPointRoadmapVisualCorpus {
             for (int column = 0; column < values.GetLength(1); column++) {
                 PowerPointTableCell cell = table.GetCell(row, column);
                 cell.Text = values[row, column];
-                cell.FontName = "Arial";
+                cell.FontFamily = "Arial";
                 if (row == 0) {
                     cell.Bold = true;
                     cell.FillColor = "DBEAFE";
@@ -445,16 +445,16 @@ internal static class PowerPointRoadmapVisualCorpus {
 
     private static void AddTitle(PowerPointSlide slide, string text) {
         PowerPointTextBox title = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(28),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(46));
-        title.FontName = "Arial";
+        title.FontFamily = "Arial";
         title.FontSize = global::OfficeIMO.OfficeLength.Points(28);
         title.Bold = true;
-        title.Color = "0F172A";
+        title.Color = OfficeColor.Parse("0F172A");
     }
 
     private static void AddFooter(PowerPointSlide slide, string text) {
         PowerPointTextBox footer = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(45),global::OfficeIMO.OfficeLength.Points(495),global::OfficeIMO.OfficeLength.Points(760),global::OfficeIMO.OfficeLength.Points(20));
-        footer.FontName = "Arial";
+        footer.FontFamily = "Arial";
         footer.FontSize = global::OfficeIMO.OfficeLength.Points(10);
-        footer.Color = "64748B";
+        footer.Color = OfficeColor.Parse("64748B");
     }
 }

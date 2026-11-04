@@ -25,8 +25,15 @@ namespace OfficeIMO.PowerPoint {
         internal const uint SlideNumberIndex = 12U;
         internal const uint DateIndex = 10U;
 
+        /// <param name="presentationPart">Presentation to restyle.</param>
+        /// <param name="theme">Theme tokens to write.</param>
+        /// <param name="selectedMaster">Single master to restyle, or null for every master and the presentation defaults.</param>
+        /// <param name="keepMasterContent">
+        ///     True for a deck OfficeIMO did not author: only the theme part and text styles change, so shape trees,
+        ///     backgrounds and placeholder links survive.
+        /// </param>
         internal static void Apply(PresentationPart presentationPart, PowerPointLayoutTheme theme,
-            SlideMasterPart? selectedMaster = null) {
+            SlideMasterPart? selectedMaster = null, bool keepMasterContent = false) {
             if (presentationPart.Presentation == null) return;
             P.SlideSize? size = presentationPart.Presentation.SlideSize;
             double width = (size?.Cx?.Value ?? 12192000) / 12700D;
@@ -39,6 +46,11 @@ namespace OfficeIMO.PowerPoint {
             foreach (SlideMasterPart masterPart in presentationPart.SlideMasterParts) {
                 if (selectedMaster != null && masterPart != selectedMaster) continue;
                 if (masterPart.ThemePart != null) WriteTheme(masterPart.ThemePart, theme);
+                if (keepMasterContent) {
+                    WriteTextStyles(masterPart, theme);
+                    continue;
+                }
+
                 WriteMaster(masterPart, theme, grid);
                 foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
                     WriteLayout(layoutPart, theme, grid);
@@ -301,6 +313,12 @@ namespace OfficeIMO.PowerPoint {
             string tree = TreeXml(placeholders, master: true);
             string background = "<p:bg xmlns:p=\"" + NsP + "\" xmlns:a=\"" + NsA + "\"><p:bgPr><a:solidFill><a:schemeClr val=\"bg1\"/></a:solidFill><a:effectLst/></p:bgPr></p:bg>";
             master.CommonSlideData = new P.CommonSlideData(new P.Background(background), new P.ShapeTree(tree));
+            WriteTextStyles(masterPart, theme);
+        }
+
+        private static void WriteTextStyles(SlideMasterPart masterPart, PowerPointLayoutTheme theme) {
+            P.SlideMaster? master = masterPart.SlideMaster;
+            if (master == null) return;
             master.TextStyles = new P.TextStyles(TextStylesXml(theme));
             master.Save();
         }

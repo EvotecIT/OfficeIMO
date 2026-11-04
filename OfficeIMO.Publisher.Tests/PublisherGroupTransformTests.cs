@@ -45,7 +45,7 @@ public sealed class PublisherGroupTransformTests {
 
     private static PublisherDocument ProjectRecords(byte[] records) {
         var escher = new PublisherEscherReader(new PublisherBinaryData(records, "nonuniform group"), null,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Read();
+            new PublisherParseContext(new PublisherLoadOptions(), default)).Read();
         var source = new PublisherContents(612, 792, new Dictionary<uint, PublisherContentChunk>());
         source.Pages.Add(new PublisherSourcePage(10, "", null, null));
         source.Shapes.Add(1, new PublisherSourceShape(new PublisherContentChunk(1, 1, 0, 10), Array.Empty<PublisherBlock>()));
@@ -55,7 +55,7 @@ public sealed class PublisherGroupTransformTests {
         var text = new PublisherQuillText();
         text.Stories.Add(4, new PublisherTextStory(4, "", Array.Empty<OfficeRichTextParagraph>()));
         return new PublisherPageProjector(source, text, escher,
-            new PublisherParseContext(new PublisherReadOptions(), default)).Project();
+            new PublisherParseContext(new PublisherLoadOptions(), default)).Project();
     }
 
     [Theory]
@@ -115,7 +115,7 @@ public sealed class PublisherGroupTransformTests {
             OfficePoint expected = Transform(unrotated, centerX, centerY, angle, horizontal, vertical);
             Equal(expected, artwork.Transform.TransformPoint(image.Projection.CreateUnitSquareTransform().TransformPoint(point)));
         }
-        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(publication.ToPdfBytes())).Pages.Count);
+        Assert.Equal(publication.Pages.Count, PdfDocument.Load(new System.IO.MemoryStream(publication.ToPdf().ToBytes())).Pages.Count);
         Assert.Contains("matrix(", publication.ToSvg(publication.Pages.ToList().IndexOf(page)));
     }
 
@@ -124,7 +124,7 @@ public sealed class PublisherGroupTransformTests {
         byte[] leaf = Shape(3, 0, 0, true, new[] { 100, 120, 250, 300 });
         byte[] inner = Group(2, 30, false, true, true, new[] { 200, 100, 800, 600 }, leaf);
         byte[] outer = Group(1, 90, true, false, false, new[] { -127000, -254000, 127000, 254000 }, inner);
-        var context = new PublisherParseContext(new PublisherReadOptions(), CancellationToken.None);
+        var context = new PublisherParseContext(new PublisherLoadOptions(), CancellationToken.None);
         PublisherEscherData result = new PublisherEscherReader(new PublisherBinaryData(outer, "nested group records"), null, context).Read();
         PublisherEscherShape child = result.Shapes.Single(shape => shape.Id == 3);
         Assert.Equal(100, child.Bounds!.Value.X1, 6);
@@ -211,7 +211,7 @@ public sealed class PublisherGroupTransformTests {
     public void Inherited_transform_wrappers_cannot_bypass_the_projected_element_budget() {
         var child = new OfficeDrawing(10, 10).AddShape(OfficeShape.Rectangle(2, 2), 1, 1);
         var drawing = new OfficeDrawing(10, 10).AddEffectDrawing(child, OfficeTransform.RotateDegrees(30));
-        var context = new PublisherParseContext(new PublisherReadOptions {
+        var context = new PublisherParseContext(new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 1 }
         }, CancellationToken.None);
         Assert.Throws<InvalidDataException>(() => context.AccountProjection(drawing));

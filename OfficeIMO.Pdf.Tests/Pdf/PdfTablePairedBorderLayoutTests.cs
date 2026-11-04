@@ -116,15 +116,17 @@ public partial class PdfDocumentVisualQualityTests {
             rows[0][0] = string.Join("\n", Enumerable.Range(0, 12).Select(index => $"gyp{index:D2}"));
         }
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(surface == "columns" ? 520 : 320), PageHeight = global::OfficeIMO.OfficeLength.Points(surface == "fragment" ? 110 : 220), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), CompressContentStreams = false
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(surface == "columns" ? 520 : 320), global::OfficeIMO.OfficeLength.Points(surface == "fragment" ? 110 : 220)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }, CompressContentStreams = false
         });
         document.Compose(root => root.Page(page => page.Content(content => {
         switch (surface) {
-            case "flow": content.Table(rows, style: style); break;
-            case "fragment": content.Table(rows, style: style); break;
-            case "row": content.Row(row => row.PercentColumn(100, column => column.Table(rows, style: style))); break;
-            case "columns": content.Columns(inner => inner.Table(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
+            case "flow": content.AddTable(rows, style: style); break;
+            case "fragment": content.AddTable(rows, style: style); break;
+            case "row": content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, style: style))); break;
+            case "columns": content.Columns(inner => inner.AddTable(rows, style: style), new PdfMultiColumnOptions { ColumnCount = 2, BalanceLastPage = false }); break;
             case "canvas": content.Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(30), global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(40), style)); break;
             default: throw new ArgumentException("Unknown surface", nameof(surface));
         }

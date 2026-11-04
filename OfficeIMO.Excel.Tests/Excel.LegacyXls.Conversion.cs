@@ -18,16 +18,17 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Create(xlsxPath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(2, 1, "Alice");
-                sheet.CellValue(2, 2, 42);
-                sheet.CellValue(3, 1, true);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(2, 1).SetValue("Alice");
+                sheet.Cell(2, 2).SetValue(42);
+                sheet.Cell(3, 1).SetValue(true);
                 document.Save();
             }
 
             ExcelDocumentConversionResult toXls = ExcelDocument.Convert(xlsxPath, xlsPath);
 
-            Assert.Equal(xlsPath, toXls.RequireNoLoss());
+            toXls.ThrowIfLoss();
+            Assert.Equal(xlsPath, toXls.Value);
             Assert.Equal(ExcelFileFormat.Xlsx, toXls.Report.SourceFormat);
             Assert.Equal(ExcelFileFormat.Xls, toXls.Report.DestinationFormat);
             Assert.False(toXls.HasLoss);
@@ -70,7 +71,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(result.HasLoss);
                 Assert.Equal(allowedPath, result.RequireValue());
-                Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+                Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
                 using ExcelDocument converted = ExcelDocument.Load(allowedPath);
                 Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
@@ -129,7 +130,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             byte[] existing = { 1, 2, 3, 4 };
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Conflict policy");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Conflict policy");
                 document.Save();
             }
             File.WriteAllBytes(destinationPath, existing);
@@ -156,7 +157,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             byte[] originalBytes = { 1, 2, 3, 4 };
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Read-only conversion target");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Read-only conversion target");
                 document.Save();
             }
             File.WriteAllBytes(destinationPath, originalBytes);
@@ -178,7 +179,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Already XLSX");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Already XLSX");
                 document.Save();
             }
 
@@ -194,7 +195,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Template").CellValue(1, 1, "Reusable workbook");
+                document.AddSheet("Template").Cell(1, 1).SetValue("Reusable workbook");
                 document.Save();
             }
 
@@ -203,7 +204,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Excel.Xlsx", result.Report.SourceFormatDescriptor.Id);
             Assert.Equal("Excel.Xltx", result.Report.DestinationFormatDescriptor.Id);
             Assert.Equal(OfficeDocumentKind.Template, result.Report.DestinationFormatDescriptor.DocumentKind);
-            Assert.Equal(destinationPath, result.RequireNoLoss());
+            result.ThrowIfLoss();
+            Assert.Equal(destinationPath, result.Value);
             using SpreadsheetDocument package = SpreadsheetDocument.Open(destinationPath, false);
             Assert.Equal(SpreadsheetDocumentType.Template, package.DocumentType);
         }
@@ -214,7 +216,7 @@ namespace OfficeIMO.Tests {
             string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Macro").CellValue(1, 1, "Carrier");
+                document.AddSheet("Macro").Cell(1, 1).SetValue("Carrier");
                 document.AddMacro(CreateVbaProjectPayload());
                 document.Save();
             }
@@ -223,7 +225,7 @@ namespace OfficeIMO.Tests {
                 ExcelDocument.Convert(sourcePath, blockedPath));
 
             Assert.Equal(OfficeConversionFailureReason.DataLossBlocked, blocked.Reason);
-            OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.Diagnostics,
+            OfficeConversionDiagnostic finding = Assert.Single(blocked.Result.Report.NativeDiagnostics,
                 diagnostic => diagnostic.Code == "excel-vba-project-removed");
             Assert.Equal(OfficeCompatibilityState.Blocked, finding.CompatibilityState);
             Assert.True(finding.CompatibilityImpact.HasFlag(OfficeCompatibilityImpact.Security));
@@ -243,7 +245,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlt");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "No silent extension aliasing");
+                document.AddSheet("Data").Cell(1, 1).SetValue("No silent extension aliasing");
                 document.Save();
             }
 
@@ -252,9 +254,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, exception.Reason);
             Assert.True(exception.Result.Report.HasLoss);
-            Assert.Contains(exception.Result.Report.FidelityDiagnostics,
-                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(exception.Result.Report.Diagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Contains(exception.Result.Report.NativeDiagnostics,
                 diagnostic => diagnostic.Code == "excel-legacy-destination-not-writable"
                     && diagnostic.CompatibilityState == OfficeCompatibilityState.Blocked);
             Assert.False(File.Exists(destinationPath));
@@ -265,7 +267,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlt");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Preflight only");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Preflight only");
                 document.Save();
             }
 
@@ -292,7 +294,7 @@ namespace OfficeIMO.Tests {
             string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
             string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xltx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Signed").CellValue(1, 1, "Signed conversion source");
+                document.AddSheet("Signed").Cell(1, 1).SetValue("Signed conversion source");
                 document.Save();
             }
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(sourcePath, true)) {
@@ -349,7 +351,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + extension);
             string copyPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + extension);
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "No mislabeled Open XML payload");
+            document.AddSheet("Data").Cell(1, 1).SetValue("No mislabeled Open XML payload");
 
             NotSupportedException save = Assert.Throws<NotSupportedException>(() => document.Save(savePath));
             NotSupportedException copy = Assert.Throws<NotSupportedException>(() => document.SaveCopy(copyPath));
@@ -365,7 +367,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
-                document.AddSheet("Data").CellValue(1, 1, "Source must remain untouched");
+                document.AddSheet("Data").Cell(1, 1).SetValue("Source must remain untouched");
                 document.Save();
             }
             File.SetLastWriteTimeUtc(sourcePath, new DateTime(2001, 1, 1, 0, 0, 0, DateTimeKind.Utc));
@@ -509,12 +511,12 @@ namespace OfficeIMO.Tests {
             string visualPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xls");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet sheet = document.AddSheet("Dashboard");
-                sheet.CellValue(1, 1, "Quarter");
-                sheet.CellValue(1, 2, "Sales");
-                sheet.CellValue(2, 1, "Q1");
-                sheet.CellValue(2, 2, 10);
-                sheet.CellValue(3, 1, "Q2");
-                sheet.CellValue(3, 2, 20);
+                sheet.Cell(1, 1).SetValue("Quarter");
+                sheet.Cell(1, 2).SetValue("Sales");
+                sheet.Cell(2, 1).SetValue("Q1");
+                sheet.Cell(2, 2).SetValue(10);
+                sheet.Cell(3, 1).SetValue("Q2");
+                sheet.Cell(3, 2).SetValue(20);
                 sheet.AddChart(OfficeChartType.ColumnClustered, new ExcelChartData(
                         new[] { "Q1", "Q2" },
                         new[] { new ExcelChartSeries("Sales", new[] { 10D, 20D }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(280), Height = OfficeLength.Pixels(180), Title = "Quarterly sales" });
@@ -526,9 +528,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeConversionFailureReason.DestinationFeatureUnsupported, blocked.Reason);
             Assert.True(blocked.Result.Report.HasLoss);
-            Assert.Contains(blocked.Result.Report.FidelityDiagnostics,
-                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
             Assert.Contains(blocked.Result.Report.Diagnostics,
+                diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Failure);
+            Assert.Contains(blocked.Result.Report.NativeDiagnostics,
                 finding => finding.Code == "excel-binary-writer-unsupported"
                     && finding.CompatibilityState == OfficeCompatibilityState.Blocked);
             Assert.False(File.Exists(blockedPath));
@@ -541,7 +543,7 @@ namespace OfficeIMO.Tests {
             ExcelDocumentConversionReport preflight = ExcelDocument.AnalyzeConversion(sourcePath, visualPath, options);
 
             Assert.False(File.Exists(visualPath));
-            Assert.Contains(preflight.Diagnostics,
+            Assert.Contains(preflight.NativeDiagnostics,
                 finding => finding.Code == "excel-binary-writer-cell-raster-fallback"
                     && finding.CompatibilityState == OfficeCompatibilityState.Rasterized
                     && finding.FallbackArtifact != null);
@@ -553,7 +555,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument legacy = ExcelDocument.Load(visualPath);
             Assert.Equal(ExcelFileFormat.Xls, legacy.SourceFormat);
             ExcelSheet visualSheet = Assert.Single(legacy.Sheets, sheet => sheet.Name == "Dashboard");
-            Assert.False(string.IsNullOrWhiteSpace(visualSheet.CellAt(1, 1).GetStyle().FillColorArgb));
+            Assert.False(string.IsNullOrWhiteSpace(visualSheet.Cell(1, 1).GetStyle().FillColorArgb));
             Assert.False(legacy.TryGetCompatibilitySourcePayload(out _, out _));
         }
 
@@ -563,7 +565,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsb");
             using (ExcelDocument document = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet sheet = document.AddSheet("Visual");
-                sheet.CellValue(1, 1, "Source payload");
+                sheet.Cell(1, 1).SetValue("Source payload");
                 sheet.AddChart(OfficeChartType.Pie, new ExcelChartData(
                         new[] { "A", "B" },
                         new[] { new ExcelChartSeries("Value", new[] { 3D, 7D }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 2, Column = 2, Width = OfficeLength.Pixels(220), Height = OfficeLength.Pixels(140), Title = "Preserved chart" });
@@ -580,7 +582,7 @@ namespace OfficeIMO.Tests {
                     VisualFallbackMaxRows = 48
                 });
 
-            Assert.Contains(converted.Report.Diagnostics,
+            Assert.Contains(converted.Report.NativeDiagnostics,
                 finding => finding.Code == "excel-source-carrier-embedded"
                     && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
             using ExcelDocument binary = ExcelDocument.Load(destinationPath);
@@ -607,10 +609,10 @@ namespace OfficeIMO.Tests {
                         CompatibilityMode = OfficeCompatibilityMode.PreservationOnly
                     });
 
-                Assert.Contains(converted.Report.Diagnostics,
+                Assert.Contains(converted.Report.NativeDiagnostics,
                     finding => finding.Code == "excel-source-carrier-embedded"
                         && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
-                Assert.Contains(converted.Report.Diagnostics,
+                Assert.Contains(converted.Report.NativeDiagnostics,
                     finding => finding.RepresentsDataLoss
                         && finding.CompatibilityState == OfficeCompatibilityState.EmbeddedSource);
                 using ExcelDocument modern = ExcelDocument.Load(destinationPath);

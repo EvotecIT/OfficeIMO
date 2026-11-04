@@ -89,7 +89,7 @@ public sealed partial class MarkdownPdfStyle {
         style.CellPaddingX = global::OfficeIMO.OfficeLength.Points(3);
         style.CellPaddingY = global::OfficeIMO.OfficeLength.Points(paddingY);
         style.ColumnWidths = new System.Collections.Generic.List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(20D), null };
-        style.Alignments = new System.Collections.Generic.List<PdfCore.PdfColumnAlign> { PdfCore.PdfColumnAlign.Center, PdfCore.PdfColumnAlign.Left };
+        style.Alignments = new System.Collections.Generic.List<global::OfficeIMO.OfficeAlignment> { global::OfficeIMO.OfficeAlignment.Center, global::OfficeIMO.OfficeAlignment.Left };
         style.VerticalAlignments = new System.Collections.Generic.List<PdfCore.PdfCellVerticalAlign> { PdfCore.PdfCellVerticalAlign.Top, PdfCore.PdfCellVerticalAlign.Top };
         style.BodyColumnFills = new System.Collections.Generic.List<global::OfficeIMO.OfficeColor?> { null, null };
         style.SpacingBefore = global::OfficeIMO.OfficeLength.Points(3);

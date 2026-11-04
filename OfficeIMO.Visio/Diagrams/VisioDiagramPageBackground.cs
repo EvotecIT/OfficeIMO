@@ -7,8 +7,8 @@ internal static class VisioDiagramPageBackground {
     internal static void Apply(VisioPage page, OfficeColor? color) {
         if (!color.HasValue || color.Value.A == 0) return;
         // Apply after fitting and routing so the canvas never acts as a layout obstacle.
-        VisioShape background = page.AddRectangle(page.Width / 2D, page.Height / 2D,
-            page.Width, page.Height, string.Empty, VisioMeasurementUnit.Inches);
+        VisioShape background = page.AddRectangleInches(page.WidthInches / 2D, page.HeightInches / 2D,
+            page.WidthInches, page.HeightInches, string.Empty, VisioMeasurementUnit.Inches);
         background.NameU = "OfficeIMO Page Background";
         background.FillColor = color.Value;
         background.LinePattern = 0;

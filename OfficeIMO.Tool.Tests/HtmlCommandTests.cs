@@ -342,7 +342,7 @@ public sealed class HtmlCommandTests {
         byte[] bold = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
         byte[] italic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
         byte[] boldItalic = OfficeIMO.TestAssets.ManagedTextShapingTestAssets.CreateFont([65, 66, 32]);
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
 
         HtmlCommand.ConfigureFontFamily(
             options,

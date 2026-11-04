@@ -3,7 +3,7 @@ using System.Globalization;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlWriter {
-    private static void AppendNote(StringBuilder builder, RtfNote? note, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendNote(StringBuilder builder, RtfNote? note, RtfHtmlExportOptions options, RtfDocument document) {
         if (note == null) {
             return;
         }
@@ -27,7 +27,7 @@ internal static partial class RtfHtmlWriter {
         builder.Append("></span>");
     }
 
-    private static void AppendSafeNote(StringBuilder builder, RtfNote note, RtfToHtmlOptions options, RtfDocument document) {
+    private static void AppendSafeNote(StringBuilder builder, RtfNote note, RtfHtmlExportOptions options, RtfDocument document) {
         builder.Append("<span class=\"rtf-note rtf-note-");
         builder.Append(FormatNoteKind(note.Kind));
         builder.Append("\">");
@@ -43,7 +43,7 @@ internal static partial class RtfHtmlWriter {
 
     private static string EncodeNoteContent(RtfNote note, RtfDocument document) {
         var content = new StringBuilder();
-        var options = RtfToHtmlOptions.CreateRoundTripProfile();
+        var options = RtfHtmlExportOptions.CreateRoundTripProfile();
         options.FragmentOnly = true;
         for (int index = 0; index < note.Paragraphs.Count; index++) {
             if (index > 0) {

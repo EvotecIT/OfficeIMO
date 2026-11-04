@@ -18,11 +18,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult result = sequence.ToOfficeVisio();
 
-        OfficeConversionFidelityDiagnostic omission = Assert.Single(result.Report.FidelityDiagnostics,
+        OfficeDiagnostic omission = Assert.Single(result.Report.Diagnostics,
             item => item.Code == nameof(OfficeVisioVisualDiagnosticCode.ActivationNotProjected));
         Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
         Assert.Equal("Annotation:unmatched/activation", omission.Location);
-        Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(result.Report.ThrowIfLoss);
     }
 
     [Fact]
@@ -37,11 +37,11 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult result = sequence.ToOfficeVisio();
 
-        OfficeConversionFidelityDiagnostic omission = Assert.Single(result.Report.FidelityDiagnostics,
+        OfficeDiagnostic omission = Assert.Single(result.Report.Diagnostics,
             item => item.Code == nameof(OfficeVisioVisualDiagnosticCode.BranchDividerNotProjected));
         Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
         Assert.Equal("Annotation:alternate/branchDivider", omission.Location);
-        Assert.Throws<InvalidOperationException>(result.Report.RequireNoLoss);
+        Assert.ThrowsAny<OfficeConversionException>(result.Report.ThrowIfLoss);
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult topologyResult = topology.ToOfficeVisio();
 
-        Assert.Contains(topologyResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(topologyResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.DetailsNotRendered &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "service" &&
@@ -82,12 +82,12 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult flowResult = flow.ToOfficeVisio();
 
-        Assert.Contains(flowResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(flowResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.DetailsNotRendered &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "approve" &&
             diagnostic.Feature == "details");
-        Assert.Contains(flowResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(flowResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.ArtworkNotProjected &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "approve" &&
@@ -102,12 +102,12 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult topologyResult = topology.ToOfficeVisio();
 
-        Assert.Contains(topologyResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(topologyResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.NodeKindNormalized &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "service" &&
             diagnostic.Feature == "nodeKind");
-        OfficeConversionFidelityDiagnostic normalized = Assert.Single(topologyResult.Report.FidelityDiagnostics,
+        OfficeDiagnostic normalized = Assert.Single(topologyResult.Report.Diagnostics,
             diagnostic => diagnostic.Code == nameof(OfficeVisioVisualDiagnosticCode.NodeKindNormalized));
         Assert.Equal(OfficeConversionLossKind.Approximation, normalized.LossKind);
 
@@ -127,7 +127,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult flowResult = flow.ToOfficeVisio();
 
-        Assert.Contains(flowResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(flowResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.NodeKindNormalized &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Node &&
             diagnostic.EntityId == "input" &&
@@ -142,17 +142,17 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult topologyResult = topology.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeTitle = false });
 
-        Assert.Contains(topologyResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(topologyResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
             diagnostic.EntityId == "untitled-graph" &&
             diagnostic.Feature == "title");
-        IOfficeConversionReport common = topologyResult.Report;
-        OfficeConversionFidelityDiagnostic omittedTitle = Assert.Single(common.FidelityDiagnostics,
+        OfficeConversionReport common = topologyResult.Report;
+        OfficeDiagnostic omittedTitle = Assert.Single(common.Diagnostics,
             diagnostic => diagnostic.Code == nameof(OfficeVisioVisualDiagnosticCode.TitleNotProjected));
         Assert.Equal(OfficeConversionLossKind.Omission, omittedTitle.LossKind);
         Assert.Equal("Artifact:untitled-graph/title", omittedTitle.Location);
-        Assert.Throws<InvalidOperationException>(() => common.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => common.ThrowIfLoss());
 
         VisualArtifactInterchangeEnvelope sequence = SequenceEnvelope("untitled-sequence", "Visible sequence title");
         sequence.Nodes.Add(Participant("client", "Client", SequenceArtifactParticipantKind.Actor, 0));
@@ -161,7 +161,7 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult sequenceResult = sequence.ToOfficeVisio(new OfficeVisioVisualOptions { IncludeTitle = false });
 
-        Assert.Contains(sequenceResult.Report.Diagnostics, diagnostic =>
+        Assert.Contains(sequenceResult.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.TitleNotProjected &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Artifact &&
             diagnostic.EntityId == "untitled-sequence" &&
@@ -185,17 +185,17 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
 
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.ArtworkNotProjected &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Participant &&
             diagnostic.EntityId == "client" &&
             diagnostic.Feature == "participantAdornment");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.DetailsNotRendered &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Participant &&
             diagnostic.EntityId == "client" &&
             diagnostic.Feature == "details");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == OfficeVisioVisualDiagnosticCode.EndpointLabelsNotRendered &&
             diagnostic.EntityKind == OfficeVisioVisualEntityKind.Message &&
             diagnostic.EntityId == "request" &&

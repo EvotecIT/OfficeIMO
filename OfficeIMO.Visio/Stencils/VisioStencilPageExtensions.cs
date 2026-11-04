@@ -4,73 +4,73 @@ namespace OfficeIMO.Visio.Stencils {
     /// <summary>
     /// Page helpers for placing OfficeIMO-native stencil shapes.
     /// </summary>
-    public static class VisioStencilPageExtensions {
+    public static partial class VisioStencilPageExtensions {
         /// <summary>
         /// Adds a stencil shape using its default size and the page default measurement unit.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text = null) {
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text = null) {
             if (stencil == null) throw new ArgumentNullException(nameof(stencil));
-            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true, catalogName: null);
+            return AddStencilShapeInches(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true, catalogName: null);
         }
 
         /// <summary>
         /// Adds a stencil shape using its default size and an explicit measurement unit.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text, VisioMeasurementUnit unit) {
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, string? text, VisioMeasurementUnit unit) {
             if (stencil == null) throw new ArgumentNullException(nameof(stencil));
-            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, unit, useStencilDefaultSize: true, catalogName: null);
+            return AddStencilShapeInches(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, unit, useStencilDefaultSize: true, catalogName: null);
         }
 
         /// <summary>
         /// Adds a stencil shape using an explicit size and the page default measurement unit.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text = null) {
-            return AddStencilShape(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: null);
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text = null) {
+            return AddStencilShapeInches(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: null);
         }
 
-        internal static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text, string? catalogName) {
-            return AddStencilShape(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: catalogName);
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text, string? catalogName) {
+            return AddStencilShapeInches(page, stencil, id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: catalogName);
         }
 
         /// <summary>
         /// Adds a stencil shape using an explicit size and measurement unit.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text, VisioMeasurementUnit unit) {
-            return AddStencilShape(page, stencil, id, x, y, width, height, text, (VisioMeasurementUnit?)unit, useStencilDefaultSize: false, catalogName: null);
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilShape stencil, string id, double x, double y, double width, double height, string? text, VisioMeasurementUnit unit) {
+            return AddStencilShapeInches(page, stencil, id, x, y, width, height, text, (VisioMeasurementUnit?)unit, useStencilDefaultSize: false, catalogName: null);
         }
 
         /// <summary>
         /// Adds a stencil shape from a catalog using its default size.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, VisioStencilCatalog catalog, string stencilIdOrName, string id, double x, double y, string? text = null) {
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilCatalog catalog, string stencilIdOrName, string id, double x, double y, string? text = null) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             VisioStencilShape stencil = catalog.Get(stencilIdOrName);
-            return AddStencilShape(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true, catalogName: catalog.Name);
+            return AddStencilShapeInches(page, stencil, id, x, y, stencil.DefaultWidth, stencil.DefaultHeight, text, null, useStencilDefaultSize: true, catalogName: catalog.Name);
         }
 
         /// <summary>
         /// Adds a stencil shape from a catalog using an explicit size.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, VisioStencilCatalog catalog, string stencilIdOrName, string id, double x, double y, double width, double height, string? text = null) {
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, VisioStencilCatalog catalog, string stencilIdOrName, string id, double x, double y, double width, double height, string? text = null) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            return AddStencilShape(page, catalog.Get(stencilIdOrName), id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: catalog.Name);
+            return AddStencilShapeInches(page, catalog.Get(stencilIdOrName), id, x, y, width, height, text, null, useStencilDefaultSize: false, catalogName: catalog.Name);
         }
 
         /// <summary>
         /// Adds a stencil shape from the combined built-in catalog using its default size.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, string stencilIdOrName, string id, double x, double y, string? text = null) {
-            return AddStencilShape(page, VisioStencils.All, stencilIdOrName, id, x, y, text);
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, string stencilIdOrName, string id, double x, double y, string? text = null) {
+            return AddStencilShapeInches(page, VisioStencils.All, stencilIdOrName, id, x, y, text);
         }
 
         /// <summary>
         /// Adds a stencil shape from the combined built-in catalog using an explicit size.
         /// </summary>
-        public static VisioShape AddStencilShape(this VisioPage page, string stencilIdOrName, string id, double x, double y, double width, double height, string? text = null) {
-            return AddStencilShape(page, VisioStencils.All, stencilIdOrName, id, x, y, width, height, text);
+        internal static VisioShape AddStencilShapeInches(this VisioPage page, string stencilIdOrName, string id, double x, double y, double width, double height, string? text = null) {
+            return AddStencilShapeInches(page, VisioStencils.All, stencilIdOrName, id, x, y, width, height, text);
         }
 
-        private static VisioShape AddStencilShape(
+        private static VisioShape AddStencilShapeInches(
             VisioPage page,
             VisioStencilShape stencil,
             string id,

@@ -13,7 +13,7 @@ public sealed class BookOnixAccessibilityTests {
         var metadata = new BookOnixAccessibilityMetadata {
             Summary = "Text & navigation; images have known limitations.", Status = BookOnixAccessibilityStatus.Limited,
             Features = [BookOnixAccessibilityFeature.LanguageTagging, BookOnixAccessibilityFeature.PageListNavigation],
-            AssessmentDate = new DateOnly(2026, 10, 5), PublisherInformationUrl = "https://example.org/accessibility?a=1&b=2",
+            AssessmentDate = new DateTime(2026, 10, 5, 8, 15, 0), PublisherInformationUrl = "https://example.org/accessibility?a=1&b=2",
             PublisherContactEmail = "accessibility@example.org"
         };
         var xml = Export(metadata); var features = xml.Descendants(Onix + "ProductFormFeature").ToArray();

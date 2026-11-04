@@ -22,7 +22,7 @@ internal sealed partial class ProjectCustomFieldCalculator {
     }
     internal ProjectCustomFieldCalculationResult Calculate() {
         _token.ThrowIfCancellationRequested();
-        _diagnostics.AddRange(_document.Validate(_token).Diagnostics.Where(d => d.Severity == ProjectDiagnosticSeverity.Error));
+        _diagnostics.AddRange(_document.Validate(_token).NativeDiagnostics.Where(d => d.Severity == ProjectDiagnosticSeverity.Error));
         if (_diagnostics.Count > 0) return Result();
         foreach (var definition in _document.CustomFields) {
             string id = ProjectCustomFieldIdentity.NormalizeId(definition.FieldId!);

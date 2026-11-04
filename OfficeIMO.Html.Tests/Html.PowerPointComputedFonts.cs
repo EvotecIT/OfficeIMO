@@ -63,14 +63,14 @@ public sealed class HtmlPowerPointComputedFontsTests {
     }
 
     private static PowerPointDocument ImportGeneric(string html) => HtmlConversionDocument.Parse(html)
-        .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic })
+        .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic })
         .RequireValue();
 
     private static void AssertFont(PowerPointDocument presentation, string text, string expectedFamily) {
         PowerPointTextRun run = Assert.Single(presentation.Slides.SelectMany(slide => slide.TextBoxes)
             .SelectMany(box => box.Paragraphs).SelectMany(paragraph => paragraph.Runs),
             candidate => candidate.Text == text);
-        Assert.Equal(expectedFamily, run.FontName);
+        Assert.Equal(expectedFamily, run.FontFamily);
     }
 
     private static void AssertBeforeAndAfterSaving(

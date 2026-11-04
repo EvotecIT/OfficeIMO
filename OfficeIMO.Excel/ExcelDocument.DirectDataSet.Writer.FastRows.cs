@@ -3,6 +3,113 @@ using System.Threading;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         private static partial class DirectDataSetWorkbookWriter {
+            private static void WriteCellValueBuffer(
+                TextWriter writer,
+                ExcelCellValueBuffer buffer,
+                string[] cellReferencePrefixes,
+                string?[]? styleAttributes,
+                DirectStylePlan stylePlan,
+                IReadOnlyDictionary<int, string>? rowAttributes,
+                Func<DateTimeOffset, DateTime> dateTimeOffsetWriteStrategy,
+                ExcelDateSystem dateSystem,
+                DirectSharedStringTable? sharedStrings,
+                CancellationToken ct) {
+                bool canCancel = ct.CanBeCanceled;
+                DirectWorkbookCellStyles? workbookStyles = stylePlan.WorkbookStyles;
+                string dateStyle = workbookStyles?.DateAttribute ?? CellValueDateStyleAttribute;
+                string timeStyle = workbookStyles?.TimeAttribute ?? CellValueTimeStyleAttribute;
+                if (workbookStyles != null) {
+                    styleAttributes = null;
+                }
+
+                int[]? attributedRows = rowAttributes?.Keys.OrderBy(static row => row).ToArray();
+                int attributedRow = 0;
+                for (int rowIndex = 0; rowIndex < buffer.WrittenRowCount; rowIndex++) {
+                    if (canCancel) ct.ThrowIfCancellationRequested();
+                    int rowNumber = buffer.GetRowNumber(rowIndex);
+                    string? attributes = null;
+                    if (attributedRows != null) {
+                        for (; attributedRow < attributedRows.Length && attributedRows[attributedRow] < rowNumber; attributedRow++) {
+                            WriteEmptyAttributedRow(writer, attributedRows[attributedRow], rowAttributes!);
+                        }
+
+                        if (attributedRow < attributedRows.Length && attributedRows[attributedRow] == rowNumber) {
+                            attributes = rowAttributes![rowNumber];
+                            attributedRow++;
+                        }
+                    }
+
+                    string rowReference = InvariantNumberText.Get(rowNumber);
+                    writer.Write("<row r=\"");
+                    writer.Write(rowReference);
+                    writer.Write('"');
+                    if (attributes != null) writer.Write(attributes);
+                    writer.Write('>');
+                    int endCellIndex = buffer.GetEndCellIndex(rowIndex);
+                    for (int cellIndex = buffer.GetFirstCellIndex(rowIndex); cellIndex < endCellIndex; cellIndex++) {
+                        int columnIndex = buffer.GetColumn(cellIndex) - 1;
+                        ExcelBufferedCell cell = buffer.GetCell(cellIndex);
+                        writer.Write(cellReferencePrefixes[columnIndex]);
+                        writer.Write(rowReference);
+                        writer.Write('"');
+                        uint cellStyle = buffer.GetStyle(cellIndex);
+                        string? styleAttribute = styleAttributes?[columnIndex];
+                        if (cellStyle != 0U) {
+                            writer.Write(" s=\"");
+                            writer.Write(InvariantNumberText.Get(cellStyle));
+                            writer.Write('"');
+                        } else if (styleAttribute == null) {
+                            styleAttribute = cell.Kind == ExcelBufferedCellKind.DateTime
+                                ? dateStyle
+                                : cell.Kind == ExcelBufferedCellKind.Value
+                                    ? GetBufferedValueStyle(cell.Reference, dateStyle, timeStyle)
+                                    : null;
+                        }
+
+                        if (styleAttribute != null && cellStyle == 0U) {
+                            writer.Write(styleAttribute);
+                        }
+
+                        switch (cell.Kind) {
+                            case ExcelBufferedCellKind.Text:
+                                WriteStringCellValue(writer, (string)cell.Reference!, sharedStrings);
+                                break;
+                            case ExcelBufferedCellKind.Number:
+                                WriteRawValueCell(writer, cell.NumberValue);
+                                break;
+                            case ExcelBufferedCellKind.DateTime:
+                                WriteDateTimeSerialCell(writer, cell.DateTimeValue, dateSystem);
+                                break;
+                            case ExcelBufferedCellKind.StyleOnly:
+                                writer.Write("/>");
+                                break;
+                            default:
+                                WriteCellValue(writer, cell.ToValue(), dateTimeOffsetWriteStrategy, dateSystem, sharedStrings);
+                                break;
+                        }
+                    }
+
+                    writer.Write("</row>");
+                }
+
+                for (; attributedRows != null && attributedRow < attributedRows.Length; attributedRow++) {
+                    WriteEmptyAttributedRow(writer, attributedRows[attributedRow], rowAttributes!);
+                }
+            }
+
+            private static void WriteEmptyAttributedRow(TextWriter writer, int row, IReadOnlyDictionary<int, string> rowAttributes) {
+                writer.Write("<row r=\"");
+                writer.Write(InvariantNumberText.Get(row));
+                writer.Write('"');
+                writer.Write(rowAttributes[row]);
+                writer.Write("/>");
+            }
+
+            private static string? GetBufferedValueStyle(object? value, string dateStyle, string timeStyle) {
+                string? attribute = CreateStyleAttributeForValue(value, useCellValueNumberFormats: true);
+                return attribute == null ? null : attribute == CellValueDateStyleAttribute ? dateStyle : timeStyle;
+            }
+
             private static void WriteCompactDirectValueRows(
                 TextWriter writer,
                 DirectDataSetSheetModel sheet,

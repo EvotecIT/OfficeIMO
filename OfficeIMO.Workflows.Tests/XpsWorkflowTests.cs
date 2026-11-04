@@ -71,7 +71,7 @@ public sealed class XpsWorkflowTests {
             OutputPath = output,
             ConversionOptions = (new OfficeConversionOptions() {
                 RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings {
-                    Xps = new XpsToPdfOptions {
+                    Xps = new XpsPdfExportOptions {
                         PreserveLogicalStructure = false
                     }
                 }
@@ -98,7 +98,7 @@ public sealed class XpsWorkflowTests {
             ConversionOptions = (new OfficeConversionOptions() {
                 CompressPdfOutput = compression,
                 RegisteredSettings = new OfficeIMO.Workflows.OfficeWorkflowRouteSettings {
-                    Xps = new XpsToPdfOptions {
+                    Xps = new XpsPdfExportOptions {
                         PdfOptions = new PdfCreateOptions().SetEncryption("open")
                     }
                 }

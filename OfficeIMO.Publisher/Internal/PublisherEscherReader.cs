@@ -131,20 +131,20 @@ internal sealed class PublisherEscherReader {
             _context.AccountImageStoreEntry();
             if (record.Kind != 0xF007) throw new InvalidDataException("Unexpected Publisher image store record.");
             index++;
-            int remaining = (int)(_context.Options.MaximumTotalImageBytes - _context.ImageBytes);
+            int remaining = (int)(_context.Options.MaxTotalImageBytes - _context.ImageBytes);
             bool read = _delayedImages != null
                 ? OfficeArtBlipStoreEntryReader.TryRead(_data.Bytes, record.Offset, record.Length,
                     (ushort)(record.Initial >> 4), _delay!.Bytes, out OfficeArtBlipStoreEntry? image,
-                    Math.Min(_context.Options.MaximumImageBytes, remaining), _delayedImages)
+                    Math.Min(_context.Options.MaxImageBytes, remaining), _delayedImages)
                 : OfficeArtBlipStoreEntryReader.TryRead(_data.Bytes, record.Offset, record.Length,
-                    (ushort)(record.Initial >> 4), null, out image, Math.Min(_context.Options.MaximumImageBytes, remaining));
+                    (ushort)(record.Initial >> 4), null, out image, Math.Min(_context.Options.MaxImageBytes, remaining));
             _context.Token.ThrowIfCancellationRequested();
             if (!read)
                 throw new InvalidDataException("Invalid Publisher image store entry.");
             _context.AccountImageProcessing(image!.BlipPayloadAvailableLength.GetValueOrDefault());
             if (image!.WasImageRejectedBySizeLimit) throw new InvalidDataException("Publisher decoded image byte limit exceeded.");
             if (image.IsPayloadTruncated) throw new InvalidDataException("Truncated Publisher image payload.");
-            byte[]? bytes = image.HasImportableImage ? image.ImageBytes : ReadPublisherGif(image, record, Math.Min(_context.Options.MaximumImageBytes, remaining));
+            byte[]? bytes = image.HasImportableImage ? image.ImageBytes : ReadPublisherGif(image, record, Math.Min(_context.Options.MaxImageBytes, remaining));
             if (bytes != null) {
                 _context.AccountImage(bytes.Length);
                 _result.Images.Add(index, new PublisherImage(index, image.HasImportableImage ? image.ContentType! : "image/gif", bytes));

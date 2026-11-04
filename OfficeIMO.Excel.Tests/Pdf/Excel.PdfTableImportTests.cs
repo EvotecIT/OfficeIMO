@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests;
 
 public partial class Excel {
     private static PdfExcelTableImportReport ExportTableFixture(PdfCore.PdfDocumentReadResult source,
-        Stream destination, ExcelPdfImportOptions? options = null) {
+        Stream destination, PdfExcelExportOptions? options = null) {
         PdfExcelTableImportResult imported = source.ConvertToExcelWithEvidence(options);
         using ExcelDocument workbook = imported.Value;
         workbook.Save(destination);
@@ -47,7 +47,7 @@ public partial class Excel {
     public void PdfTables_Export_PreservesHeaderWhenNarrativePrecedesAutoSizedTable() {
         byte[] pdf = PdfCore.PdfDocument.Create()
             .H1("Quarterly results")
-            .Paragraph(paragraph => paragraph.Text("Revenue improved in the current quarter."))
+            .Paragraph(paragraph => paragraph.AddText("Revenue improved in the current quarter."))
             .Table(new[] {
                 new[] { "Region", "Revenue", "Active" },
                 new[] { "North", "1250", "True" },
@@ -63,7 +63,7 @@ public partial class Excel {
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry result = Assert.Single(ExportTableFixture(
 logical,            workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false
             }).Entries);
 
@@ -80,12 +80,10 @@ logical,            workbook,
     [Fact]
     public void PdfTables_Export_ImportsDetectedTablesAsWorkbookTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -104,7 +102,7 @@ logical,            workbook,
         PdfExcelTableImportReport report = ExportTableFixture(
             LoadTables(pdf),
             workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false
             });
 
@@ -141,12 +139,10 @@ logical,            workbook,
     [Fact]
     public void PdfTables_Export_ReportsDocumentActionsOutsideTableScope() {
         var pdfOptions = new PdfCore.PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+            PageSetup = {
+                Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+            },
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         }.SetOpenAction(1, destinationMode: PdfCore.PdfOpenActionDestinationMode.Fit);
         byte[] tablePdf = PdfCore.PdfDocument.Create(pdfOptions)
@@ -163,7 +159,7 @@ logical,            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false });
+            new PdfExcelExportOptions { AutoFitColumns = false });
 
         Assert.Single(report.Entries);
         Assert.Equal(1, report.SourceScope.CatalogActionCount);
@@ -171,18 +167,16 @@ LoadTables(pdf),            workbook,
         Assert.Equal(2, report.SourceScope.DocumentActionCount);
         Assert.True(report.HasOmittedPageContent);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
     public void PdfTables_Export_SupportsNonSeekableDestinationStreams() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -201,7 +195,7 @@ LoadTables(pdf),            workbook,
         PdfExcelTableImportReport report = ExportTableFixture(
             LoadTables(pdf),
             workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false
             });
 
@@ -215,12 +209,10 @@ LoadTables(pdf),            workbook,
     [Fact]
     public void PdfTables_Export_WritesDetectedNumericColumnsAsNumberCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -239,7 +231,7 @@ LoadTables(pdf),            workbook,
         PdfExcelTableImportReport report = ExportTableFixture(
             LoadTables(pdf),
             workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false
             });
 
@@ -270,7 +262,7 @@ LoadTables(pdf),            workbook,
 ExportTableFixture(
             LoadTables(pdf),
             textWorkbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 ConvertNumericColumns = false
             });
@@ -301,12 +293,10 @@ ExportTableFixture(
             CellPaddingY = global::OfficeIMO.OfficeLength.Points(3)
         };
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: style)
@@ -322,7 +312,7 @@ ExportTableFixture(
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
 logical,            workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 SuppressRepeatedBodyHeaderRows = true
             });
@@ -390,12 +380,10 @@ logical,            workbook,
         }
 
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {
@@ -411,7 +399,7 @@ logical,            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
 logical,            workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 ContinuationGeometryTolerancePoints = 8D
             });
@@ -439,12 +427,10 @@ logical,            workbook,
         for (int index = 0; index < 30; index++) rows.Add(new[] { "Pending", "Team A" });
 
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {
@@ -459,7 +445,7 @@ logical,            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry entry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 ContinuationGeometryTolerancePoints = 8D
             }).Entries);
@@ -478,12 +464,10 @@ LoadTables(pdf),            workbook,
     [Fact]
     public void PdfTables_Export_WritesBooleanPercentageDateAndNumericColumnsAsTypedCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
@@ -513,7 +497,7 @@ LoadTables(pdf),            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
 logical,            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false });
+            new PdfExcelExportOptions { AutoFitColumns = false });
 
         Assert.Equal(2, report.Entries.Count);
         Assert.Equal(new[] {
@@ -567,7 +551,7 @@ logical,            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false });
+            new PdfExcelExportOptions { AutoFitColumns = false });
 
         PdfExcelTableImportEntry entry = Assert.Single(report.Entries);
         Assert.Equal(ExcelPdfTableColumnKind.Text, entry.ColumnKinds[0]);
@@ -593,7 +577,7 @@ LoadTables(pdf),            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry entry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false }).Entries);
+            new PdfExcelExportOptions { AutoFitColumns = false }).Entries);
 
         Assert.Equal(ExcelPdfTableColumnKind.Time, entry.ColumnKinds[0]);
         Assert.Equal(ExcelPdfTableColumnKind.Time, entry.ColumnKinds[1]);
@@ -626,7 +610,7 @@ LoadTables(pdf),            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry entry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false }).Entries);
+            new PdfExcelExportOptions { AutoFitColumns = false }).Entries);
 
         Assert.Equal(ExcelPdfTableColumnKind.Text, entry.ColumnKinds[0]);
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
@@ -653,7 +637,7 @@ LoadTables(pdf),            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry entry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false }).Entries);
+            new PdfExcelExportOptions { AutoFitColumns = false }).Entries);
 
         Assert.Equal(ExcelPdfTableColumnKind.Text, entry.ColumnKinds[0]);
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
@@ -681,7 +665,7 @@ LoadTables(pdf),            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry entry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false }).Entries);
+            new PdfExcelExportOptions { AutoFitColumns = false }).Entries);
 
         Assert.Equal(ExcelPdfTableColumnKind.Text, entry.ColumnKinds[0]);
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
@@ -705,7 +689,7 @@ LoadTables(pdf),            workbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportEntry entry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 DateTimeCulture = CultureInfo.GetCultureInfo("pl-PL")
             }).Entries);
@@ -733,7 +717,7 @@ LoadTables(pdf),            workbook,
         using var textWorkbook = new MemoryStream();
         PdfExcelTableImportEntry textEntry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            textWorkbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 NumericCulture = culture
             }).Entries);
@@ -746,7 +730,7 @@ LoadTables(pdf),            textWorkbook,
         using var dateWorkbook = new MemoryStream();
         PdfExcelTableImportEntry dateEntry = Assert.Single(ExportTableFixture(
 LoadTables(pdf),            dateWorkbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false,
                 NumericCulture = culture,
                 DateTimeCulture = culture
@@ -761,12 +745,10 @@ LoadTables(pdf),            dateWorkbook,
     [Fact]
     public void PdfTables_Export_KeepsPositionedCellRecoveryBoundedAndTableOnly() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(640),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(280),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(640), global::OfficeIMO.OfficeLength.Points(280)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(new[] {
@@ -783,7 +765,7 @@ LoadTables(pdf),            dateWorkbook,
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
 logical,            workbook,
-            new ExcelPdfImportOptions { AutoFitColumns = false });
+            new PdfExcelExportOptions { AutoFitColumns = false });
 
         IReadOnlyList<PdfCore.PdfTextSpan> spans = logical.Pages[0].TextBlocks.SelectMany(static block => block.Spans).ToArray();
         List<PdfCore.TextLayoutEngine.TextLine> lines = PdfCore.TextLayoutEngine.BuildLines(spans);
@@ -1521,7 +1503,7 @@ logical,            workbook,
     [Fact]
     public void PdfTables_PositionedContinuationsMatchStableColumnStartsInsteadOfTextWidths() {
         PdfCore.PdfLogicalPage page = Assert.Single(PdfCore.PdfDocumentReadResult.Load(
-            PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Page geometry")).ToBytes()).Pages);
+            PdfCore.PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Page geometry")).ToBytes()).Pages);
 
         static PdfCore.PdfLogicalTable Table(double firstWidth, double secondWidth) {
             var table = new PdfCore.PdfStructuredTable {
@@ -1561,12 +1543,10 @@ logical,            workbook,
     [Fact]
     public void PdfTables_Export_AppliesRowCapsAndKeepsWorkbookValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
@@ -1579,14 +1559,14 @@ logical,            workbook,
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
-            .Paragraph(p => p.Text("No table on this page."))
+            .Paragraph(p => p.AddText("No table on this page."))
             .ToBytes();
 
         using var workbook = new MemoryStream();
         PdfExcelTableImportReport report = ExportTableFixture(
             LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)),
             workbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 MaxRows = 2,
                 AutoFitColumns = false
             });
@@ -1597,7 +1577,7 @@ logical,            workbook,
         Assert.Equal(3, result.TotalRowCount);
         Assert.True(result.Truncated);
         Assert.True(report.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => report.ThrowIfLoss());
 
         using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
         object?[,] values = reader.GetSheet(result.SheetName).ReadRange(result.Range);
@@ -1610,7 +1590,7 @@ logical,            workbook,
         PdfExcelTableImportReport emptyReport = ExportTableFixture(
             LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)),
             emptyWorkbook,
-            new ExcelPdfImportOptions {
+            new PdfExcelExportOptions {
                 AutoFitColumns = false
             });
 
@@ -1636,12 +1616,10 @@ logical,            workbook,
             });
         }
         return PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(220),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(220)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
             })
             .Table(rows, style: new PdfCore.PdfTableStyle {

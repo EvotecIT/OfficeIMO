@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests {
     public class HtmlDiagnostics {
         [Fact]
         public void HtmlToWord_UnsupportedInlineCss_AddsDiagnostics() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<p style=\"color:red;display:grid;position:absolute\">Text</p>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
             Assert.Equal(2, diagnostics.Count);
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:display", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:position", StringComparison.OrdinalIgnoreCase));
@@ -23,13 +23,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_UnsupportedStylesheetCss_AddsDistinctDiagnostics() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<style>.warn{display:flex;position:absolute;color:#333}</style><p class=\"warn\">One</p><p class=\"warn\">Two</p>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
             Assert.Equal(2, diagnostics.Count);
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:display", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:position", StringComparison.OrdinalIgnoreCase));
@@ -38,13 +38,13 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_UnsupportedCssValues_AddDiagnostics() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
             string html = "<p style=\"font-size:clamp(12px,2vw,20px);text-align:match-parent;color:not-a-color\">Text</p>";
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-value").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-value").ToList();
             Assert.Equal(3, diagnostics.Count);
             Assert.All(diagnostics, diagnostic => Assert.Equal(HtmlDiagnosticSeverity.Warning, diagnostic.Severity));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:font-size", StringComparison.OrdinalIgnoreCase));
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
         [InlineData("transparent")]
         [InlineData("currentColor")]
         public void HtmlToWord_UnmappedColorKeywords_CanStopConversion(string colorValue) {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_UnsupportedCssDiagnostics_CanBeIgnored() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Ignore
             };
 
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_UnsupportedCssDiagnostics_CanStopConversion() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_UnsupportedStylesheetCssValues_CanStopConversion() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -111,24 +111,24 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_WidthAndHeightOnUnmappedParagraphAddDeclarationDiagnostics() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<p style=\"width:calc(100% - 1em);height:calc(10px + 1px)\">Text</p>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:width", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:height", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
         public void HtmlToWord_UnsupportedMappedCssValues_AddDiagnostics() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<p style=\"vertical-align:middle\">Text</p><table style=\"border-collapse:discard;border-spacing:calc(1px + 1px)\"><tr><td style=\"direction:sideways;vertical-align:middle\">Cell</td></tr></table>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-value").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-value").ToList();
             Assert.Contains(diagnostics, diagnostic =>
                 string.Equals(diagnostic.Source, "p:vertical-align", StringComparison.OrdinalIgnoreCase) &&
                 diagnostic.Detail?.Contains("middle", StringComparison.OrdinalIgnoreCase) == true);
@@ -147,14 +147,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_TextDecorationShorthandColor_AddsValueDiagnosticButMapsStyle() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<p style=\"text-decoration:underline wavy red\">Text</p>").ConvertToWordWithEvidence(options);
             using var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().Single();
             Assert.Equal(OfficeIMO.Word.WordUnderlineStyle.Wave, run.Underline);
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic =>
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics, diagnostic =>
                 string.Equals(diagnostic.Code, "unsupported-css-value", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(diagnostic.Source, "p:text-decoration", StringComparison.OrdinalIgnoreCase));
             Assert.Contains("color token 'red'", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);
@@ -162,14 +162,14 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_TextDecorationLonghandDiagnostics_MatchMappedProperties() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<p style=\"text-decoration-line:underline;text-decoration-style:wavy;text-decoration-color:red\">Text</p>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:text-decoration-line", StringComparison.OrdinalIgnoreCase));
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => string.Equals(diagnostic.Source, "p:text-decoration-style", StringComparison.OrdinalIgnoreCase));
-            Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => string.Equals(diagnostic.Source, "p:text-decoration-line", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => string.Equals(diagnostic.Source, "p:text-decoration-style", StringComparison.OrdinalIgnoreCase));
+            Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
                 string.Equals(diagnostic.Code, "unsupported-css-declaration", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(diagnostic.Source, "p:text-decoration-color", StringComparison.OrdinalIgnoreCase));
         }
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
         [InlineData("border-spacing:calc(1px + 1px)", "table:border-spacing", "calc")]
         [InlineData("direction:sideways", "table:direction", "sideways")]
         public void HtmlToWord_UnsupportedMappedCssValues_CanStopConversion(string style, string expectedSource, string expectedValue) {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -193,19 +193,19 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_BorderSideDiagnostics_MatchMappedProperties() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<table style=\"border-left:1px solid #123456;border-image:linear-gradient(red, blue) 1\"><tr><td>Cell</td></tr></table>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-left", StringComparison.OrdinalIgnoreCase));
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
+            Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-left", StringComparison.OrdinalIgnoreCase));
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border-image", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
         public void HtmlToWord_MappedCssPropertyOnUnmappedElement_AddsDeclarationDiagnostic() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
                 "<span style=\"border:1px solid red;border-collapse:collapse\">Text</span>" +
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
                 .ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
+            var diagnostics = conversion.Report.NativeDiagnostics.Where(diagnostic => diagnostic.Code == "unsupported-css-declaration").ToList();
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "span:border", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(diagnostics, diagnostic => string.Equals(diagnostic.Source, "span:border-collapse", StringComparison.OrdinalIgnoreCase));
             Assert.DoesNotContain(diagnostics, diagnostic => string.Equals(diagnostic.Source, "table:border", StringComparison.OrdinalIgnoreCase));
@@ -223,13 +223,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_InheritedBlockAlignmentIsNotRejectedOnInlineDescendants() {
             const string html = "<style>div { text-align:center }</style><div><span>Centered</span></div>";
-            var conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions {
+            var conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             });
             using var document = conversion.Value;
 
             Assert.Equal("Centered", Assert.Single(document.Paragraphs).Text);
-            var unsupported = conversion.Report.Diagnostics
+            var unsupported = conversion.Report.NativeDiagnostics
                 .Where(diagnostic => diagnostic.Code.StartsWith("unsupported-css-", StringComparison.OrdinalIgnoreCase))
                 .ToList();
             Assert.True(unsupported.Count == 0, string.Join(Environment.NewLine, unsupported.Select(diagnostic => $"{diagnostic.Code}:{diagnostic.Source}:{diagnostic.Detail}")));
@@ -239,10 +239,10 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_ContextSpecificImageCssIsReportedWhenAppliedToSpan() {
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
                     "<span style=\"float:left;width:20px;height:10px\">Text</span>")
-                .ConvertToWordWithEvidence(new WordHtmlImportOptions());
+                .ConvertToWordWithEvidence(new HtmlWordExportOptions());
             using var document = conversion.Value;
 
-            var diagnostics = conversion.Report.Diagnostics
+            var diagnostics = conversion.Report.NativeDiagnostics
                 .Where(diagnostic => diagnostic.Code == "unsupported-css-declaration")
                 .Select(diagnostic => diagnostic.Source)
                 .ToList();
@@ -253,7 +253,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_BorderLonghandDiagnostics_ReportDroppedProperties() {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
         [InlineData("caption")]
         [InlineData("italic 12pt/14pt Arial")]
         public void HtmlToWord_UnsupportedFontShorthandValues_CanStopConversion(string fontValue) {
-            var options = new WordHtmlImportOptions {
+            var options = new HtmlWordExportOptions {
                 UnsupportedCssHandling = WordHtmlUnsupportedCssHandling.Error
             };
 
@@ -282,12 +282,12 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_DocumentStylesheetLinks_AreSkippedByDefault() {
-            var options = new WordHtmlImportOptions();
+            var options = new HtmlWordExportOptions();
 
             HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<html><head><link rel=\"stylesheet\" href=\"https://example.invalid/site.css\"></head><body><p>Text</p></body></html>").ConvertToWordWithEvidence(options);
             using var document = conversion.Value;
 
-            var diagnostic = Assert.Single(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "html-stylesheet-link-skipped");
+            var diagnostic = Assert.Single(conversion.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "html-stylesheet-link-skipped");
             Assert.Equal(HtmlDiagnosticSeverity.Warning, diagnostic.Severity);
         }
     }

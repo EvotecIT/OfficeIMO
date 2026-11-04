@@ -10,7 +10,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder : IWorkNativeCreationGr
     private const ulong TextPresetId = 15, BlankSlideId = 30, BlankNodeId = 31;
     private readonly IWorkKeynoteWriteOptions _limits;
     internal IWorkKeynoteArchiveBuilder(IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken, byte[] modelHash)
-        : base(limits.MaximumPackageBytes, cancellationToken, modelHash, IWorkDocumentKind.Keynote, 5, 14) {
+        : base(limits.MaxPackageBytes, cancellationToken, modelHash, IWorkDocumentKind.Keynote, 5, 14) {
         _limits = limits;
     }
 
@@ -89,12 +89,12 @@ internal sealed partial class IWorkKeynoteArchiveBuilder : IWorkNativeCreationGr
         Version(metadata, 7, 14, 4, 1);
         byte[] document = Archive(_records.OrderBy(record => record.Id));
         byte[] metadataBytes = Archive(new[] { (MetadataId, 11006u, metadata) });
-        return (IWorkSnappy.EncodeIwa(document, _limits.MaximumPackageBytes, _cancellationToken),
-            IWorkSnappy.EncodeIwa(metadataBytes, _limits.MaximumPackageBytes, _cancellationToken));
+        return (IWorkSnappy.EncodeIwa(document, _limits.MaxPackageBytes, _cancellationToken),
+            IWorkSnappy.EncodeIwa(metadataBytes, _limits.MaxPackageBytes, _cancellationToken));
     }
 
     private byte[] Archive(IEnumerable<(ulong Id, uint Type, IWorkProtoWriter Message)> records) =>
-        IWorkNativeArchiveWriter.Encode(records, _limits.MaximumPackageBytes, _cancellationToken);
+        IWorkNativeArchiveWriter.Encode(records, _limits.MaxPackageBytes, _cancellationToken);
 
     private IWorkProtoWriter Transition() => P().Message(2, P().Message(8,
         P().String(1, "Transition").String(2, "none").Double(3, 1).Double(5, 0).Bool(6, false).UInt(11, 1).Bool(16, false)));

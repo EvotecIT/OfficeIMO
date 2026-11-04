@@ -14,6 +14,7 @@ internal sealed class PdfRedactionTextObjectScope {
 
         var sourceGlyphs = new List<PdfRedactionTextGlyphIdentity>();
         var expectedSurvivors = new List<PdfRedactionTextGlyphIdentity>();
+        var reviewedSpans = new List<PdfTextSpan>();
         bool reviewedIntersection = false;
         bool requiresWholeObjectFallback = false;
         for (int spanIndex = 0; spanIndex < spans.Length; spanIndex++) {
@@ -27,6 +28,7 @@ internal sealed class PdfRedactionTextObjectScope {
                 if (reviewedAreas != null && TargetsAny(reviewedAreas, aggregate.PreciseBounds, double.NaN, double.NaN, null)) {
                     reviewedIntersection = true;
                     requiresWholeObjectFallback = true;
+                    reviewedSpans.Add(span);
                 } else {
                     expectedSurvivors.Add(aggregate);
                 }
@@ -34,17 +36,22 @@ internal sealed class PdfRedactionTextObjectScope {
             }
 
             sourceGlyphs.AddRange(glyphs);
+            bool spanReviewed = false;
             for (int glyphIndex = 0; glyphIndex < glyphs.Length; glyphIndex++) {
                 PdfRedactionTextGlyphIdentity glyph = glyphs[glyphIndex];
                 if (reviewedAreas != null && TargetsAny(reviewedAreas, glyph.PreciseBounds, glyph.OriginX, glyph.OriginY, glyph.EncodedBytes)) {
                     reviewedIntersection = true;
+                    spanReviewed = true;
                 } else {
                     expectedSurvivors.Add(glyph);
                 }
             }
+            if (spanReviewed) reviewedSpans.Add(span);
         }
 
         SourceGlyphs = sourceGlyphs.ToArray();
+        // An unmapped span removes its whole text object, so every span in it is reviewed content.
+        ReviewedSpans = requiresWholeObjectFallback ? spans : reviewedSpans.ToArray();
         ExpectedSurvivors = requiresWholeObjectFallback
             ? Array.Empty<PdfRedactionTextGlyphIdentity>()
             : expectedSurvivors.ToArray();
@@ -53,6 +60,8 @@ internal sealed class PdfRedactionTextObjectScope {
 
     internal PdfContentOrderKey Key { get; }
     internal PdfTextSpan[] Spans { get; }
+    /// <summary>The spans the reviewed areas remove; the rest of the text object stays on the page.</summary>
+    internal PdfTextSpan[] ReviewedSpans { get; }
     internal int? ContentStreamObjectNumber { get; }
     internal PdfRedactionTextGlyphIdentity[] SourceGlyphs { get; }
     internal PdfRedactionTextGlyphIdentity[] ExpectedSurvivors { get; }

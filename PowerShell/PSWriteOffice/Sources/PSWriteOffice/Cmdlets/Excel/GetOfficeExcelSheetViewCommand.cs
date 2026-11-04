@@ -71,6 +71,6 @@ public sealed class GetOfficeExcelSheetViewCommand : OfficeCmdlet {
         ExcelSheet? current = useCurrentSheet && ExcelDslContext.Current?.CurrentSheet is ExcelSheet selected
             && ReferenceEquals(selected.Document, book) ? selected : null;
         foreach (ExcelSheet sheet in ExcelSheetResolver.ResolveMany(book, Sheet, current))
-            WriteObject(new ExcelSheetViewInfo(sheet.Name, sheet.GetViewInfo(), path));
+            WriteObject(new ExcelSheetViewInfo(sheet.Name, sheet.View.Inspect(), path));
     }
 }

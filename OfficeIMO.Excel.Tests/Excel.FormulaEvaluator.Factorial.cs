@@ -10,14 +10,14 @@ namespace OfficeIMO.Tests {
         public void Factorial_retains_finite_large_results_through_saved_output(double input, double expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Factorial");
-            sheet.CellValue(1, 1, input);
-            sheet.CellValue(1, 2, 42d); sheet.CellFormula(1, 2, "FACT(A1)");
+            sheet.Cell(1, 1).SetValue(input);
+            sheet.Cell(1, 2).SetValue(42d); sheet.Cell(1, 2).SetFormula("FACT(A1)");
             Assert.Equal(1, document.Calculate());
-            Assert.InRange(Math.Abs(sheet.CellAt(1, 2).GetValue<double>() / expected - 1), 0, 1e-14);
+            Assert.InRange(Math.Abs(sheet.Cell(1, 2).GetValue<double>() / expected - 1), 0, 1e-14);
             using var saved = new MemoryStream(); document.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
             Assert.Equal("FACT(A1)", reopened.Sheets[0].GetFormulaText(1, 2));
-            Assert.InRange(Math.Abs(reopened.Sheets[0].CellAt(1, 2).GetValue<double>() / expected - 1), 0, 1e-14);
+            Assert.InRange(Math.Abs(reopened.Sheets[0].Cell(1, 2).GetValue<double>() / expected - 1), 0, 1e-14);
             Assert.Contains("FACT", reopened.InspectFormulas().Capabilities.SupportedFunctions);
             Assert.Empty(reopened.ValidateOpenXml());
         }

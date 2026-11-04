@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound))) {
                     AssertLegacyDocumentProperties(document, created, modified, reviewedAt, binaryPayload, assertModified: true);
-                    Assert.Equal("7", document.BuiltinDocumentProperties.Revision);
+                    Assert.Equal("7", document.Properties.Revision);
                     document.Save(outputPath);
                 }
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("xls-ole-custom-document-property-unsupported", feature.Code);
             Assert.Equal("DocumentProperty:Custom:PropertyId:0x0002:Type:0x0048", feature.DetailCode);
             Assert.Contains("UnsupportedBlob", feature.Description);
-            Assert.Contains(result.Diagnostics, diagnostic =>
+            Assert.Contains(result.NativeDiagnostics, diagnostic =>
                 diagnostic.Severity == LegacyXlsDiagnosticSeverity.Info
                 && diagnostic.Code == "xls-ole-custom-document-property-unsupported"
                 && diagnostic.DetailCode == "DocumentProperty:Custom:PropertyId:0x0002:Type:0x0048");
@@ -84,41 +84,41 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertLegacyDocumentProperties(ExcelDocument document, DateTime created, DateTime modified, DateTime reviewedAt, byte[] binaryPayload, bool assertModified) {
-            Assert.Equal("Legacy Metadata Workbook", document.BuiltinDocumentProperties.Title);
-            Assert.Equal("XLS metadata parity", document.BuiltinDocumentProperties.Subject);
-            Assert.Equal("OfficeIMO Legacy Import", document.BuiltinDocumentProperties.Creator);
-            Assert.Equal("xls, metadata, parity", document.BuiltinDocumentProperties.Keywords);
-            Assert.Equal("OLE SummaryInformation comments", document.BuiltinDocumentProperties.Description);
-            Assert.Equal("Legacy Category", document.BuiltinDocumentProperties.Category);
-            Assert.Equal("Metadata Reviewer", document.BuiltinDocumentProperties.LastModifiedBy);
-            AssertSameInstant(created, document.BuiltinDocumentProperties.Created);
+            Assert.Equal("Legacy Metadata Workbook", document.Properties.Title);
+            Assert.Equal("XLS metadata parity", document.Properties.Subject);
+            Assert.Equal("OfficeIMO Legacy Import", document.Properties.Creator);
+            Assert.Equal("xls, metadata, parity", document.Properties.Keywords);
+            Assert.Equal("OLE SummaryInformation comments", document.Properties.Description);
+            Assert.Equal("Legacy Category", document.Properties.Category);
+            Assert.Equal("Metadata Reviewer", document.Properties.LastModifiedBy);
+            AssertSameInstant(created, document.Properties.Created);
             if (assertModified) {
-                AssertSameInstant(modified, document.BuiltinDocumentProperties.Modified);
+                AssertSameInstant(modified, document.Properties.Modified);
             }
             Assert.Equal("EvotecIT", document.ApplicationProperties.Company);
             Assert.Equal("Workbook Manager", document.ApplicationProperties.Manager);
-            Assert.Equal("Ready", document.CustomDocumentProperties["ReleaseStatus"].Text);
-            Assert.Equal(1998, document.CustomDocumentProperties["Ticket"].NumberInteger);
-            Assert.Equal(98.5D, document.CustomDocumentProperties["Score"].NumberDouble);
-            Assert.True(document.CustomDocumentProperties["Reviewed"].Bool);
-            AssertSameInstant(reviewedAt, document.CustomDocumentProperties["ReviewedAt"].Date);
-            Assert.Equal(ExcelCustomPropertyType.Binary, document.CustomDocumentProperties["BinaryPayload"].PropertyType);
-            Assert.Equal(binaryPayload, document.CustomDocumentProperties["BinaryPayload"].Binary);
+            Assert.Equal("Ready", document.CustomProperties["ReleaseStatus"].Text);
+            Assert.Equal(1998, document.CustomProperties["Ticket"].NumberInteger);
+            Assert.Equal(98.5D, document.CustomProperties["Score"].NumberDouble);
+            Assert.True(document.CustomProperties["Reviewed"].Bool);
+            AssertSameInstant(reviewedAt, document.CustomProperties["ReviewedAt"].Date);
+            Assert.Equal(ExcelCustomPropertyType.Binary, document.CustomProperties["BinaryPayload"].PropertyType);
+            Assert.Equal(binaryPayload, document.CustomProperties["BinaryPayload"].Binary);
         }
 
         private static void AssertScalarCustomPropertyVariantTypes(ExcelDocument document, DateTime oleDate) {
-            Assert.Equal(-12, document.CustomDocumentProperties["SignedByte"].Value);
-            Assert.Equal((byte)250, document.CustomDocumentProperties["UnsignedByte"].Value);
-            Assert.Equal(-32000, document.CustomDocumentProperties["SignedShort"].Value);
-            Assert.Equal((ushort)65000, document.CustomDocumentProperties["UnsignedShort"].Value);
-            Assert.Equal(-9000000000L, document.CustomDocumentProperties["SignedInt64"].Value);
-            Assert.Equal(4000000000U, document.CustomDocumentProperties["UnsignedInt32"].Value);
-            Assert.Equal(ulong.MaxValue, document.CustomDocumentProperties["UnsignedInt64"].Value);
-            Assert.Equal(-2048, document.CustomDocumentProperties["VariantInt"].Value);
-            Assert.Equal(3000000000U, document.CustomDocumentProperties["VariantUInt"].Value);
-            Assert.Equal(12.5D, document.CustomDocumentProperties["SinglePrecision"].NumberDouble);
-            Assert.Equal(1234.5678D, document.CustomDocumentProperties["Currency"].NumberDouble);
-            AssertSameInstant(oleDate.ToUniversalTime(), document.CustomDocumentProperties["OleDate"].Date);
+            Assert.Equal(-12, document.CustomProperties["SignedByte"].Value);
+            Assert.Equal((byte)250, document.CustomProperties["UnsignedByte"].Value);
+            Assert.Equal(-32000, document.CustomProperties["SignedShort"].Value);
+            Assert.Equal((ushort)65000, document.CustomProperties["UnsignedShort"].Value);
+            Assert.Equal(-9000000000L, document.CustomProperties["SignedInt64"].Value);
+            Assert.Equal(4000000000U, document.CustomProperties["UnsignedInt32"].Value);
+            Assert.Equal(ulong.MaxValue, document.CustomProperties["UnsignedInt64"].Value);
+            Assert.Equal(-2048, document.CustomProperties["VariantInt"].Value);
+            Assert.Equal(3000000000U, document.CustomProperties["VariantUInt"].Value);
+            Assert.Equal(12.5D, document.CustomProperties["SinglePrecision"].NumberDouble);
+            Assert.Equal(1234.5678D, document.CustomProperties["Currency"].NumberDouble);
+            AssertSameInstant(oleDate.ToUniversalTime(), document.CustomProperties["OleDate"].Date);
         }
 
         private static void AssertSameInstant(DateTime expected, DateTime? actual) {

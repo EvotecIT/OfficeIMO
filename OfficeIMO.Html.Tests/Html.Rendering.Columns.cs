@@ -165,8 +165,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
-        pdfOptions = new HtmlToPdfOptions {
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
+        pdfOptions = new HtmlPdfExportOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(120D / HtmlRenderOptions.CssPixelsPerInch), global::OfficeIMO.OfficeLength.Inches(30D / HtmlRenderOptions.CssPixelsPerInch)),
             HonorCssPageRules = false,
@@ -222,7 +222,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-columns' style='columns:wide 2;column-fill:spread;column-span:some;column-rule:wavy'>Text</div>";
         HtmlRenderDocument rendered = RenderColumns(html, 120D);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
         Assert.Equal("div#invalid-columns", diagnostic.Source);
         Assert.Contains("wide", diagnostic.Detail);
         Assert.Contains("column-fill=spread", diagnostic.Detail);

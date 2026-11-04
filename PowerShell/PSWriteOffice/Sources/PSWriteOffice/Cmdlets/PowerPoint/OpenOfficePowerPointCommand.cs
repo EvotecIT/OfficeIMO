@@ -1,6 +1,5 @@
 using System.IO;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using OfficeIMO.PowerPoint;
 using PSWriteOffice.Foundation;
@@ -41,7 +40,7 @@ public sealed class OpenOfficePowerPointCommand : OfficeLifecycleCmdlet<PowerPoi
         bool literal = ParameterSetName == "LiteralPath";
         foreach (string input in OfficePath.ResolveInput(SessionState, literal ? LiteralPath : Path, literal)) {
             RunDocument(input, isNew: false, force: false,
-                path => PowerPointDocumentService.LoadDocument(path!, Password == null ? null : new NetworkCredential(string.Empty, Password).Password),
+                path => PowerPointDocumentService.LoadDocument(path!, Password.ToPlainText()),
                 (document, path, allowLoss) => {
                     // The source password belongs to Load; omitting a save override
                     // keeps the native document's existing encryption policy.

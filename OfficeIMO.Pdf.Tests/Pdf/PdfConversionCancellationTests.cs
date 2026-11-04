@@ -17,12 +17,12 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void OpenedPdfHtmlConversionAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled HTML conversion must not start semantic reading"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled HTML conversion must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
+        PdfHtmlExportOptions options = CreateHtmlOptions(glyphStage);
 
         Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source)).ToHtml(options, cancellation.Token));
 
@@ -32,12 +32,12 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void OpenedPdfHtmlResultAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled HTML result must not start semantic reading"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled HTML result must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
+        PdfHtmlExportOptions options = CreateHtmlOptions(glyphStage);
 
         Assert.Throws<OperationCanceledException>(() => PdfDocument.Load(new System.IO.MemoryStream(source)).ToHtmlResult(options, cancellation.Token));
 
@@ -47,12 +47,12 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public async Task OpenedPdfHtmlExportAppliesMethodCancellationBeforeSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancelled HTML export must not start semantic reading"))
+            .Paragraph(paragraph => paragraph.AddText("Cancelled HTML export must not start semantic reading"))
             .ToBytes();
         var glyphStage = new TrackingGlyphStage();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
-        PdfToHtmlOptions options = CreateHtmlOptions(glyphStage);
+        PdfHtmlExportOptions options = CreateHtmlOptions(glyphStage);
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             PdfDocument.Load(new System.IO.MemoryStream(source)).SaveAsHtmlAsync(Stream.Null, options, cancellation.Token));
@@ -60,7 +60,7 @@ public sealed class PdfConversionCancellationTests {
         Assert.False(glyphStage.WasCalled);
     }
 
-    private static PdfToHtmlOptions CreateHtmlOptions(
+    private static PdfHtmlExportOptions CreateHtmlOptions(
         IPdfGlyphDecodingStage glyphStage) => new() {
             ReadOptions = new PdfLoadOptions {
                 Profile = PdfReadProfile.Structured,
@@ -71,26 +71,26 @@ public sealed class PdfConversionCancellationTests {
     [Fact]
     public void SynchronousPdfImportsPassMethodCancellationIntoTheInitialSemanticRead() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancellation must reach the semantic read"))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation must reach the semantic read"))
             .ToBytes();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToWordWithEvidence(new WordPdfImportOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToWordWithEvidence(new PdfWordExportOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToExcelWithEvidence(new ExcelPdfImportOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToExcelWithEvidence(new PdfExcelExportOptions(), cancellation.Token);
         });
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(new PowerPointPdfImportOptions(), cancellation.Token);
+            _ = PdfDocument.Load(new System.IO.MemoryStream(source)).ConvertToPowerPointWithEvidence(new PdfPowerPointExportOptions(), cancellation.Token);
         });
     }
 
     [Fact]
     public void InspectionAndTableContinuationOwnersExposeCancellation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Cancellation must reach inspection and table grouping"))
+            .Paragraph(paragraph => paragraph.AddText("Cancellation must reach inspection and table grouping"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(new System.IO.MemoryStream(source));
         PdfDocumentReadResult logical = document.Read();

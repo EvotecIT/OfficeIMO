@@ -7,8 +7,8 @@ internal static partial class EpubReaderAdapter {
     /// Creates Reader-owned EPUB options without mutating caller-owned configuration.
     /// Reader always needs chapter XHTML internally to preserve document structure.
     /// </summary>
-    private static EpubReadOptions CreateStructuredOptions(EpubReadOptions? options) {
-        EpubReadOptions source = options ?? new EpubReadOptions();
+    private static EpubLoadOptions CreateStructuredOptions(EpubLoadOptions? options) {
+        EpubLoadOptions source = options ?? new EpubLoadOptions();
         return CloneOptions(
             source,
             includeRawHtml: true,
@@ -18,19 +18,19 @@ internal static partial class EpubReaderAdapter {
     /// <summary>
     /// Creates options for the rich result, which includes bounded manifest payloads by default.
     /// </summary>
-    private static EpubReadOptions CreateRichOptions(EpubReadOptions? options) {
-        EpubReadOptions source = options ?? new EpubReadOptions();
+    private static EpubLoadOptions CreateRichOptions(EpubLoadOptions? options) {
+        EpubLoadOptions source = options ?? new EpubLoadOptions();
         return CloneOptions(
             source,
             includeRawHtml: true,
             includeResourceData: options == null || source.IncludeResourceData);
     }
 
-    private static EpubReadOptions CloneOptions(
-        EpubReadOptions source,
+    private static EpubLoadOptions CloneOptions(
+        EpubLoadOptions source,
         bool includeRawHtml,
         bool includeResourceData) {
-        return new EpubReadOptions {
+        return new EpubLoadOptions {
             MaxPackageBytes = source.MaxPackageBytes,
             MaxArchiveEntries = source.MaxArchiveEntries,
             MaxTotalUncompressedBytes = source.MaxTotalUncompressedBytes,

@@ -15,7 +15,7 @@ public abstract partial class OdfDocument {
     internal OdfDocument(OdfPackage package, string? sourcePath) {
         Package = package ?? throw new ArgumentNullException(nameof(package));
         _sourcePath = sourcePath;
-        Metadata = new OdfDocumentMetadata(this);
+        Properties = new OdfDocumentMetadata(this);
         Styles = new OdfStyleRepository(this);
     }
 
@@ -66,8 +66,8 @@ public abstract partial class OdfDocument {
     public string? FilePath => _sourcePath;
     /// <summary>Source or current output version.</summary>
     public OdfVersion Version => Package.Version;
-    /// <summary>Document metadata.</summary>
-    public OdfDocumentMetadata Metadata { get; }
+    /// <summary>Standard and user-defined document properties stored in meta.xml.</summary>
+    public OdfDocumentMetadata Properties { get; }
     /// <summary>Named and automatic styles stored in the document.</summary>
     public OdfStyleRepository Styles { get; }
     /// <summary>Non-fatal diagnostics produced while opening the package.</summary>

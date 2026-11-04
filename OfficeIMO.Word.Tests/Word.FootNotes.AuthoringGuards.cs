@@ -14,7 +14,7 @@ public partial class Word {
     public void AddFootNote_RunningParagraphRejectsWithoutChangingSource(bool footer, bool tableCell) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body remains unchanged");
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordHeaderFooter story = footer
             ? RequireSectionFooter(document, 0, HeaderFooterValues.Default)
             : RequireSectionHeader(document, 0, HeaderFooterValues.Default);

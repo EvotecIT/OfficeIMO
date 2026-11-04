@@ -18,8 +18,8 @@ namespace OfficeIMO.Excel.Tests {
         public void DataReader_BorrowedSdkIgnoresExtensionOwnedCellReferences(string kind, string placement) {
             using var document = ExcelDocument.Create(new MemoryStream());
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Number");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Number");
+            sheet.Cell(2, 1).SetValue(1);
             document.Save();
             Worksheet worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
             var payload = new OpenXmlUnknownElement("e", "metadata", "urn:officeimo:cell-ownership");
@@ -43,7 +43,7 @@ namespace OfficeIMO.Excel.Tests {
             Assert.Equal(1, reader.GetInt32(0));
             Assert.False(reader.Read());
             reader.Close();
-            sheet.CellValue(3, 1, 2);
+            sheet.Cell(3, 1).SetValue(2);
             Assert.NotNull(document.OpenXmlDocument.WorkbookPart);
         }
 
@@ -71,8 +71,8 @@ namespace OfficeIMO.Excel.Tests {
         public void DataReader_BorrowedSdkValidatesOwnedCellReferences(string kind) {
             using var document = ExcelDocument.Create(new MemoryStream());
             var sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Number");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Number");
+            sheet.Cell(2, 1).SetValue(1);
             document.Save();
             Worksheet worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet!;
             worksheet.GetFirstChild<SheetData>()!.Elements<Row>().Last().Append(CreateSdkOwnershipCell(kind));

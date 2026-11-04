@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
         public void Test_ColumnCellShiftAndMove_RemapCellWatchesAndSmartTags() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(2, 2, "Move");
-            sheet.CellValue(3, 3, "Keep");
+            sheet.Cell(2, 2).SetValue("Move");
+            sheet.Cell(3, 3).SetValue("Keep");
 
             var movedWatch = new CellWatch { CellReference = "B2" };
             var survivingWatch = new CellWatch { CellReference = "C3" };
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             tags.Append(movedTag, survivingTag);
             sheet.WorksheetPart.Worksheet.Append(tags);
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
             Assert.Equal("C2", movedWatch.CellReference!.Value);
             Assert.Equal("C2", GetCellSmartTagReference(movedTag));
             Assert.Equal("D3", survivingWatch.CellReference!.Value);
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("D2", movedWatch.CellReference!.Value);
             Assert.Equal("D2", GetCellSmartTagReference(movedTag));
 
-            sheet.MoveRange("D2", "E4");
+            sheet.Range("D2").MoveTo("E4");
             Assert.Equal("E4", movedWatch.CellReference!.Value);
             Assert.Equal("E4", GetCellSmartTagReference(movedTag));
 
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
         public void Test_FileBackedEdit_ReportsPackageSecuritySizeRuleForActiveLimit() {
             string path = Path.Combine(_directoryWithFiles, "FileBackedPackageSecurityLimit.xlsx");
             using (var created = ExcelDocument.Create()) {
-                created.AddSheet("Data").CellValue(1, 1, "value");
+                created.AddSheet("Data").Cell(1, 1).SetValue("value");
                 created.Save(path);
             }
 
@@ -74,8 +74,8 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaDependencies_ResolveDynamicArraySpillAnchor() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Spill");
-            sheet.CellValue(1, 2, 1);
-            sheet.CellFormula(1, 1, "SUM(B1#)");
+            sheet.Cell(1, 2).SetValue(1);
+            sheet.Cell(1, 1).SetFormula("SUM(B1#)");
 
             ExcelFormulaCellInfo formula = Assert.Single(sheet.InspectFormulas().Formulas);
 

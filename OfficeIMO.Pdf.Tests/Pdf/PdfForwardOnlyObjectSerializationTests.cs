@@ -12,7 +12,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
         {
             PdfDocument document = PdfDocument.Create(options)
             .H1("Forward-only objects")
-            .Paragraph(paragraph => paragraph.Text("Objects are emitted once; layout remains truthfully replayable."));
+            .Paragraph(paragraph => paragraph.AddText("Objects are emitted once; layout remains truthfully replayable."));
             using var output = new MemoryStream();
             PdfSaveResult save = document.SaveWithEvidence(output);
             first = output.ToArray();
@@ -21,7 +21,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
 
         byte[] second = PdfDocument.Create(CreateForwardOnlyOptions())
             .H1("Forward-only objects")
-            .Paragraph(paragraph => paragraph.Text("Objects are emitted once; layout remains truthfully replayable."))
+            .Paragraph(paragraph => paragraph.AddText("Objects are emitted once; layout remains truthfully replayable."))
             .ToBytes();
 
         Assert.Equal(first, second);
@@ -37,7 +37,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
     public void ForwardOnlyObjectSerialization_SupportsNonSeekableDestination() {
         using var destination = new NonSeekableWriteStream();
         PdfDocument document = PdfDocument.Create(CreateForwardOnlyOptions())
-            .Paragraph(paragraph => paragraph.Text("Non-seekable destination"));
+            .Paragraph(paragraph => paragraph.AddText("Non-seekable destination"));
 
         PdfSaveResult save = document.SaveWithEvidence(destination);
         byte[] bytes = destination.ToArray();
@@ -58,7 +58,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
         };
         using var destination = new NonSeekableWriteStream();
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Bounded non-seekable destination"));
+            .Paragraph(paragraph => paragraph.AddText("Bounded non-seekable destination"));
 
         PdfSaveResult result = document.SaveWithEvidence(destination);
 
@@ -73,7 +73,7 @@ public sealed class PdfForwardOnlyObjectSerializationTests {
             ObjectSerializationMode = PdfObjectSerializationMode.ForwardOnly
         };
         PdfDocument document = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Invalid profile"));
+            .Paragraph(paragraph => paragraph.AddText("Invalid profile"));
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => document.ToBytes());
 

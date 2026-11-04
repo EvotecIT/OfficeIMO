@@ -4,15 +4,15 @@ using Color = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Word;
 
 public partial class WordTableStyleDetails {
-    /// <summary>Gets or sets the direct table shading fill as RGB hex or <c>auto</c>.</summary>
+    /// <summary>Native direct table shading fill as RGB hex or <c>auto</c>.</summary>
     /// <remarks>
     /// A leading # is accepted. Empty or null removes direct table shading and restores style inheritance.
-    /// An explicit auto value clears inherited fill. With positive cell spacing, table fill colors the gaps.
+    /// An explicit auto value clears inherited fill.
     /// </remarks>
-    public string ShadingFillColorHex {
+    internal string ShadingFillValue {
         get => _tableProperties.GetFirstChild<Shading>()?.Fill?.Value?.ToUpperInvariant() ?? string.Empty;
         set {
-            string normalized = NormalizeTableShadingColor(value, nameof(ShadingFillColorHex));
+            string normalized = NormalizeTableShadingColor(value, nameof(ShadingFillColor));
             if (normalized.Length == 0) { _tableProperties.GetFirstChild<Shading>()?.Remove(); return; }
             Shading shading = GetOrCreateTableShading();
             shading.Fill = normalized;
@@ -23,17 +23,18 @@ public partial class WordTableStyleDetails {
     }
 
     /// <summary>Gets or sets the direct table fill color. Null removes direct table shading.</summary>
+    /// <remarks>With positive cell spacing, table fill colors the gaps.</remarks>
     public Color? ShadingFillColor {
-        get => ParseTableShadingColor(ShadingFillColorHex);
-        set => ShadingFillColorHex = value?.ToRgbHex() ?? string.Empty;
+        get => ParseTableShadingColor(ShadingFillValue);
+        set => ShadingFillValue = value?.ToRgbHex() ?? string.Empty;
     }
 
-    /// <summary>Gets or sets the direct shading pattern color as RGB hex or <c>auto</c>.</summary>
+    /// <summary>Native direct shading pattern color as RGB hex or <c>auto</c>.</summary>
     /// <remarks>Empty or null clears only the pattern color, retaining the fill and pattern.</remarks>
-    public string ShadingColorHex {
+    internal string ShadingColorValue {
         get => _tableProperties.GetFirstChild<Shading>()?.Color?.Value?.ToUpperInvariant() ?? string.Empty;
         set {
-            string normalized = NormalizeTableShadingColor(value, nameof(ShadingColorHex));
+            string normalized = NormalizeTableShadingColor(value, nameof(ShadingColor));
             Shading? shading = normalized.Length == 0 ? _tableProperties.GetFirstChild<Shading>() : GetOrCreateTableShading();
             if (shading == null) return;
             if (normalized.Length == 0) shading.Color = null;
@@ -46,8 +47,8 @@ public partial class WordTableStyleDetails {
 
     /// <summary>Gets or sets the direct shading pattern color. Null clears only that color.</summary>
     public Color? ShadingColor {
-        get => ParseTableShadingColor(ShadingColorHex);
-        set => ShadingColorHex = value?.ToRgbHex() ?? string.Empty;
+        get => ParseTableShadingColor(ShadingColorValue);
+        set => ShadingColorValue = value?.ToRgbHex() ?? string.Empty;
     }
 
     /// <summary>Gets or sets the direct table shading pattern. Null removes direct table shading.</summary>

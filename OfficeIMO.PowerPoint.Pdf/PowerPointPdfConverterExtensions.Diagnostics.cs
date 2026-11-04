@@ -48,11 +48,11 @@ public static partial class PowerPointPdfConverterExtensions {
             new PdfCore.PdfLayoutDiagnostic(kind, source, diagnosticMessage, global::OfficeIMO.OfficeLength.Points(x), global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height)));
     }
 
-    private static void AddPowerPointPictureAspectRatioDiagnostic(
+    private static void AddPowerPointImageAspectRatioDiagnostic(
         PowerPointPdfExportOptions options,
         int slideNumber,
         byte[] imageBytes,
-        PptCore.PowerPointPictureCrop crop,
+        PptCore.PowerPointImageCrop crop,
         OfficeImageFit fit,
         double x,
         double y,
@@ -79,7 +79,7 @@ public static partial class PowerPointPdfConverterExtensions {
             "picture-aspect-distortion",
             "Rendered an uncropped PowerPoint picture with Stretch fit into a frame whose aspect ratio differs from the source image. Set PowerPointPdfExportOptions.PictureFit to Contain or Cover to preserve aspect ratio.",
             PdfCore.PdfLayoutDiagnosticKind.SimplifiedContent,
-            "PowerPointPicture",
+            "PowerPointImage",
             "The mapped PDF picture frame can distort the source image aspect ratio.",
             x,
             y,

@@ -9,7 +9,7 @@ internal static partial class VisioForeignImage {
         if (!IsForeign(source)) return;
         foreach (string name in new[] { "ImgOffsetX", "ImgOffsetY", "ImgWidth", "ImgHeight" }) {
             bool horizontal = name == "ImgOffsetX" || name == "ImgWidth";
-            double fallback = name == "ImgWidth" ? source.Width : name == "ImgHeight" ? source.Height : 0;
+            double fallback = name == "ImgWidth" ? source.WidthInches : name == "ImgHeight" ? source.HeightInches : 0;
             double value = ReadCell(source, name, fallback, null, null) * (horizontal ? x : y);
             XElement? original = source.PreservedCellElements.FirstOrDefault(c => (string?)c.Attribute("N") == name);
             if (original == null || (string?)original.Attribute("F") == "Inh")

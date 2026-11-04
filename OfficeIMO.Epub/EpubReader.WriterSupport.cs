@@ -12,7 +12,7 @@ internal static partial class EpubReader {
         token.ThrowIfCancellationRequested();
         OfficeProvenanceZip.ValidateMimetypeEntry(bytes, "application/epub+zip", options.MaxEntries);
         token.ThrowIfCancellationRequested();
-        var readOptions = new EpubReadOptions {
+        var readOptions = new EpubLoadOptions {
             MaxPackageBytes = options.MaxInputBytes, MaxArchiveEntries = options.MaxEntries,
             MaxTotalUncompressedBytes = options.MaxExpandedBytes, MaxPackageMetadataBytes = options.MaxMetadataBytes
         };
@@ -49,7 +49,7 @@ internal static partial class EpubReader {
 
     // Inspection may skip unreadable declarations. Editing must identify every protected payload.
     private static IReadOnlyList<EpubEncryptionInfo> ReadEditableEncryption(
-        IReadOnlyDictionary<string, ZipArchiveEntry> index, EpubReadOptions options, CancellationToken token) {
+        IReadOnlyDictionary<string, ZipArchiveEntry> index, EpubLoadOptions options, CancellationToken token) {
         if (!index.TryGetValue("META-INF/encryption.xml", out ZipArchiveEntry? entry)) return Array.Empty<EpubEncryptionInfo>();
         if (entry.Length > options.MaxPackageMetadataBytes ||
             !TryParseEntryXml(entry, options.MaxPackageMetadataBytes, token, out XDocument? document) ||

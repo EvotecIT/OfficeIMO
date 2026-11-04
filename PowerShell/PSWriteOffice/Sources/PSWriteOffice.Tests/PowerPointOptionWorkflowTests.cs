@@ -46,7 +46,7 @@ public sealed partial class PowerPointOptionWorkflowTests {
             Assert.Equal(arguments.Contains("Block", StringComparison.Ordinal)
                 ? OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported : OdfConversionLossPolicy.ReportOnly, options.LossPolicy);
         } else if (format == "Html") {
-            var options = Assert.IsType<PowerPointHtmlSaveOptions>(value);
+            var options = Assert.IsType<PowerPointHtmlExportOptions>(value);
             Assert.Equal(included, options.IncludeNotes);
             Assert.Equal(included, options.IncludeTables);
             Assert.Equal(included, options.IncludeHeading);

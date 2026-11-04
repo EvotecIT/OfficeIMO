@@ -112,7 +112,7 @@ internal static partial class IWorkNumbersReader {
         int declaredSheetCount;
         try {
             declaredSheetCount = IWorkProtobuf.CountFields(document.Payload, 1,
-                source.Options.MaximumProtobufFieldCount);
+                source.Options.MaxProtobufFieldCount);
             documentMessage = index.Message(document);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(document, "$", null);
@@ -124,13 +124,13 @@ internal static partial class IWorkNumbersReader {
                 supportsEditableReconstruction: false, sourceIdentity: new IWorkObjectIdentity(document),
                 declarationIssues: references.Declarations.Issues);
         }
-        if (declaredSheetCount > source.Options.MaximumProjectedSheets) {
-            throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
+        if (declaredSheetCount > source.Options.MaxProjectedSheets) {
+            throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaxProjectedSheets}.");
         }
         IReadOnlyList<IWorkArchiveRecord> sheetRecords = references.ReadAll(
             document, documentMessage, 1, out int unresolvedSheetCount, allowedType: type => type == SheetArchive);
-        if (sheetRecords.Count > source.Options.MaximumProjectedSheets) {
-            throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaximumProjectedSheets}.");
+        if (sheetRecords.Count > source.Options.MaxProjectedSheets) {
+            throw new InvalidDataException($"Numbers sheet count exceeds the configured projection limit of {source.Options.MaxProjectedSheets}.");
         }
         if (unresolvedSheetCount > 0) {
             supportsEditableReconstruction = false;
@@ -164,7 +164,7 @@ internal static partial class IWorkNumbersReader {
             int drawableReferenceCount;
             try {
                 drawableReferenceCount = IWorkProtobuf.CountFields(
-                    sheetRecord.Payload, 2, projectionBudget.MaximumProtobufFieldCount);
+                    sheetRecord.Payload, 2, projectionBudget.MaxProtobufFieldCount);
             } catch (InvalidDataException exception)
                 when (!IWorkProtobuf.IsLimitException(exception)) {
                 references.Declarations.Record(sheetRecord, "$", null);

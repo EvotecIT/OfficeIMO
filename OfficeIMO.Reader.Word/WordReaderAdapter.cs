@@ -255,7 +255,7 @@ internal static class WordReaderAdapter {
             if (run.InlineImage?.Bytes is { Length: > 0 }) {
                 WordInlineImageInfo image = run.InlineImage;
                 string id = "word-image-" + imageIndex.ToString("D4", CultureInfo.InvariantCulture);
-                string imageMarkdown = " ![" + (image.Description ?? image.Title ?? image.FileName ?? "image") + "](" + id + ")";
+                string imageMarkdown = " ![" + (image.AltText ?? image.Title ?? image.FileName ?? "image") + "](" + id + ")";
                 AppendRunAnnotation(fragments, firstRunFragmentIndex,
                     prefix + imageMarkdown, limit, warningList);
                 prefix = string.Empty;

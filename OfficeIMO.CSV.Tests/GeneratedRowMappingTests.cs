@@ -12,7 +12,7 @@ public sealed class GeneratedRowMappingTests {
     [Fact]
     public void GeneratedMapperUsesPrimaryNamesAliasesAndTypedValuesWithoutReflection() {
         CsvDocument document = CsvDocument.Parse("Id,Display Name,Total,Source\n42,Alpha,12.50,imported\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
 
         GeneratedInvoiceRow row = reader
             .RowsAs<GeneratedInvoiceRow>(GeneratedInvoiceRowRowMapping.Configure)
@@ -28,7 +28,7 @@ public sealed class GeneratedRowMappingTests {
     public void GeneratedMapperPrefersPrimaryColumnWhenAliasIsAlsoPresent() {
         CsvDocument document = CsvDocument.Parse(
             "Invoice Id,Id,Name,Total,Origin\n42,99,Alpha,12.50,imported\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
 
         GeneratedInvoiceRow row = reader
             .RowsAs<GeneratedInvoiceRow>(GeneratedInvoiceRowRowMapping.Configure)
@@ -53,7 +53,7 @@ public sealed class GeneratedRowMappingTests {
     [InlineData("Legacy Id")]
     public void GeneratedMapperHonorsInheritedDataColumnAttributeOnOverride(string columnName) {
         CsvDocument document = CsvDocument.Parse(columnName + "\n42\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
 
         GeneratedOverrideRow row = reader
             .RowsAs<GeneratedOverrideRow>(GeneratedOverrideRowRowMapping.Configure)
@@ -66,7 +66,7 @@ public sealed class GeneratedRowMappingTests {
     public void GeneratedMapperDoesNotFallBackToBasePropertiesHiddenByIneligibleDerivedMembers() {
         CsvDocument document = CsvDocument.Parse("Value,Included\n99,5\n");
 
-        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+        using (var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true })) {
             GeneratedReadOnlyHiddenRow row = reader
                 .RowsAs<GeneratedReadOnlyHiddenRow>(GeneratedReadOnlyHiddenRowRowMapping.Configure)
                 .Single();
@@ -74,7 +74,7 @@ public sealed class GeneratedRowMappingTests {
             Assert.Equal(5, row.Included);
         }
 
-        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+        using (var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true })) {
             GeneratedInitOnlyHiddenRow row = reader
                 .RowsAs<GeneratedInitOnlyHiddenRow>(GeneratedInitOnlyHiddenRowRowMapping.Configure)
                 .Single();
@@ -82,7 +82,7 @@ public sealed class GeneratedRowMappingTests {
             Assert.Equal(5, row.Included);
         }
 
-        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+        using (var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true })) {
             GeneratedStaticHiddenRow row = reader
                 .RowsAs<GeneratedStaticHiddenRow>(GeneratedStaticHiddenRowRowMapping.Configure)
                 .Single();
@@ -90,7 +90,7 @@ public sealed class GeneratedRowMappingTests {
             Assert.Equal(5, row.Included);
         }
 
-        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+        using (var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true })) {
             GeneratedFieldHiddenRow row = reader
                 .RowsAs<GeneratedFieldHiddenRow>(GeneratedFieldHiddenRowRowMapping.Configure)
                 .Single();
@@ -99,7 +99,7 @@ public sealed class GeneratedRowMappingTests {
             Assert.Equal(5, row.Included);
         }
 
-        using (var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true })) {
+        using (var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true })) {
             GeneratedMethodHiddenRow row = reader
                 .RowsAs<GeneratedMethodHiddenRow>(GeneratedMethodHiddenRowRowMapping.Configure)
                 .Single();
@@ -112,7 +112,7 @@ public sealed class GeneratedRowMappingTests {
     [Fact]
     public async Task GeneratedMapperProjectsAsyncReaderRowsWithoutRuntimeDiscovery() {
         CsvDocument document = CsvDocument.Parse("Id,Name,Total,Origin\n1,Alpha,12.50,a\n2,Beta,20.00,b\n");
-        using var reader = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+        using var reader = document.CreateDataReader(new CsvReaderOptions { InferSchema = true });
         var rows = new List<GeneratedInvoiceRow>();
 
         await foreach (GeneratedInvoiceRow row in reader.RowsAsAsync<GeneratedInvoiceRow>(

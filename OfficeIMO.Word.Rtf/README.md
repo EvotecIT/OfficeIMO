@@ -10,14 +10,11 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf");
-RtfConversionResult<WordDocument> conversion = rtf.ToWordDocumentResult();
-
-using WordDocument word = conversion.Value;
-conversion.Report.RequireNoLoss();
+using WordDocument word = rtf.ToWord(new RtfWordExportOptions { FailOnLoss = true }, out OfficeConversionReport report);
 word.Save("output.docx");
 ```
 
-The reverse API is `word.ToRtfDocumentResult()`. Compatibility helpers such as `ToWordDocument()`, `ToRtfDocument()`, `LoadFromRtf()`, and `ToRtf()` remain available when the caller does not need the report.
+The reverse direction is `word.ToRtf(options, out report)` for the RTF model and `word.SaveAsRtf(path, options)` for a file; `WordRtfExportOptions` carries the RTF writer settings and encoding. A parsed `RtfReadResult` converts with `ToWord`, adding its read diagnostics to the report.
 
 Supported text, tabs, breaks, images and note references retain their order when combined within one Word run. Conversion keeps surrounding text and each note reference without changing the Word source.
 
@@ -29,7 +26,7 @@ RtfWordWorkflowResult<int> result = rtf.FindAndReplaceResult(
     "Contoso Europe");
 
 Console.WriteLine($"Replacements: {result.WorkflowResult}");
-result.RequireNoLoss();
+result.ThrowIfLoss();
 result.Document.Save("updated.rtf");
 ```
 
@@ -45,7 +42,7 @@ Each result contains the normalized RTF document, the workflow-specific result, 
 
 ## Fidelity boundary
 
-Common paragraphs, rich runs, tables, nested tables, images, notes, headers/footers, sections, styles, numbering, links, bookmarks, revisions, and comments map through the bridge. Unsupported Word elements and unsupported RTF objects/shapes are reported as omissions. Use `RequireNoLoss()` when those omissions must stop the workflow.
+Common paragraphs, rich runs, tables, nested tables, images, notes, headers/footers, sections, styles, numbering, links, bookmarks, revisions, and comments map through the bridge. Unsupported Word elements and unsupported RTF objects/shapes are reported as omissions. Use `ThrowIfLoss()` when those omissions must stop the workflow.
 
 Ordinary uncropped inline RTF pictures in headers and footers retain the legacy VML picture carrier when written to Word. The carrier preserves their exact-line overhang through saving, reopening and subsequent PDF conversion. The destination's modern compatibility mode is unchanged. Body, note, cell, text-box and cropped-picture paths retain their existing DrawingML mapping.
 
@@ -63,11 +60,11 @@ Word-to-RTF recovers a half-gap from symmetric direct table margins in twips and
 
 Parsed legacy RTF can project ordinary note destinations to section-end Word endnotes. Modern note mode retains ordinary footnotes; `\ftnalt` marks endnotes. The [RTF note-mode policy](../OfficeIMO.Rtf/README.md) distinguishes the effective projection from the unchanged raw source note kind and settings.
 
-Paragraph frames become ordinary text flow rather than positioned frames. RTF-to-Word reports `RtfWordParagraphFramesFlattened`; Word-to-RTF reports `WordRtfParagraphFramesFlattened`. Word tab-stop clearing instructions (`w:tab` with `w:val="clear"`) are omitted with `WordRtfTabClearsOmitted`; supported active tab stops are mapped separately. Word-side diagnostics include paragraph properties in document defaults, styles and individual stories. These are conversion losses, so `RequireNoLoss()` rejects them.
+Paragraph frames become ordinary text flow rather than positioned frames. RTF-to-Word reports `RtfWordParagraphFramesFlattened`; Word-to-RTF reports `WordRtfParagraphFramesFlattened`. Word tab-stop clearing instructions (`w:tab` with `w:val="clear"`) are omitted with `WordRtfTabClearsOmitted`; supported active tab stops are mapped separately. Word-side diagnostics include paragraph properties in document defaults, styles and individual stories. These are conversion losses, so `ThrowIfLoss()` rejects them.
 
 Legacy RTF paragraph numbering maps to editable Word lists for single-level decimal numbers and text bullets. Authored starts, cached numbering jumps, marker prefixes and suffixes, and basic marker formatting are retained. Body and table paragraphs share their numbering sequence; each header, footer, and note starts an independent sequence. Conversion leaves the source RTF model unchanged.
 
-Legacy multilevel and continuation forms, special table numbering, spacing controls, and other numeric formats use cached or resolved marker text and report `RtfWordLegacyNumberingFlattened`. `RequireNoLoss()` rejects these conversions because editable numbering or marker formatting is not fully retained.
+Legacy multilevel and continuation forms, special table numbering, spacing controls, and other numeric formats use cached or resolved marker text and report `RtfWordLegacyNumberingFlattened`. `ThrowIfLoss()` rejects these conversions because editable numbering or marker formatting is not fully retained.
 
 ## Dependency footprint
 

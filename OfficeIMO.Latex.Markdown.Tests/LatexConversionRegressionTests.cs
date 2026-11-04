@@ -16,7 +16,7 @@ public sealed class LatexConversionRegressionTests {
         HeadingBlock[] converted = result.Value.Blocks.OfType<HeadingBlock>().ToArray();
 
         Assert.Equal(new[] { firstLevel, secondLevel }, converted.Select(heading => heading.Level));
-        Assert.Equal(2, result.Report.Diagnostics.Count(diagnostic => diagnostic.Feature == "heading-numbering"));
+        Assert.Equal(2, result.Report.NativeDiagnostics.Count(diagnostic => diagnostic.Feature == "heading-numbering"));
     }
 
     [Theory]
@@ -64,7 +64,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.Equal("tab:values", table.Attributes.ElementId);
         Assert.Equal("Important values", table.Attributes.GetAttribute("caption"));
         Assert.Contains("A", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic =>
             diagnostic.Feature == "table-header" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
@@ -112,7 +112,7 @@ public sealed class LatexConversionRegressionTests {
 
         Assert.Contains("https://example.test/a\\%20b?q=x\\#part\\&v=1", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\label{section_0025_231}", result.Source, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "label");
+        Assert.Contains(result.Report.NativeDiagnostics, static diagnostic => diagnostic.Feature == "label");
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class LatexConversionRegressionTests {
 
         Assert.Single(result.Value.Blocks.OfType<ImageBlock>());
         Assert.Single(result.Value.Blocks.OfType<TableBlock>());
-        Assert.Equal(2, result.Report.Diagnostics.Count(static diagnostic =>
+        Assert.Equal(2, result.Report.NativeDiagnostics.Count(static diagnostic =>
             diagnostic.Code == "LATEXMD298" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback));
         Assert.Equal(2, result.Value.Blocks.OfType<CodeBlock>().Count(static block =>
             block.Content.IndexOf("\\centering", StringComparison.Ordinal) >= 0));
@@ -179,7 +179,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.Single(paragraph.Inlines.Nodes.OfType<SubscriptSequenceInline>());
         Assert.Single(paragraph.Inlines.Nodes.OfType<StrikethroughSequenceInline>());
         Assert.Equal(2, paragraph.Inlines.Nodes.OfType<HardBreakInline>().Count());
-        Assert.DoesNotContain(result.Report.Diagnostics, static diagnostic =>
+        Assert.DoesNotContain(result.Report.NativeDiagnostics, static diagnostic =>
             diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
     }
 
@@ -213,9 +213,9 @@ public sealed class LatexConversionRegressionTests {
         Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden", markdown, StringComparison.Ordinal);
         Assert.Contains("literal % value { \\command", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "LATEXMD210" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "LATEXMD213" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
@@ -283,9 +283,9 @@ public sealed class LatexConversionRegressionTests {
         Assert.Contains("Visible after", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("SECRET", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("Hidden", markdown, StringComparison.Ordinal);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD210" &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD210" &&
             diagnostic.Outcome == LatexMarkdownConversionOutcome.Omitted);
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD299" &&
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD299" &&
             diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
     }
 

@@ -15,11 +15,11 @@ public sealed class ProjectRetainedReferenceCostTests {
         using var document = ProjectDocument.Create(); document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = Monday;
         var resource = document.Resources.AddWork("Engineer"); resource.DisplayId = 1; resource.IsNull = false; resource.Cost = 125; resource.ActualCost = 25; resource.RemainingCost = 100;
-        var options = new ProjectSaveOptions { Format = format, LossPolicy = format == ProjectFileFormat.Mpx4 ? OfficeConversionLossPolicy.Allow : OfficeConversionLossPolicy.Block };
+        var options = new ProjectSaveOptions { Format = format, AllowLoss = format == ProjectFileFormat.Mpx4 };
         using var stream = new MemoryStream(); document.Save(stream, options); stream.Position = 0;
         using var copy = ProjectDocument.Load(stream); Assert.Equal(100m, copy.Resources.Single(r => r.Name == "Engineer").RemainingCost);
         copy.Resources.Single(r => r.Name == "Engineer").RemainingCost = 50;
-        options.LossPolicy = OfficeConversionLossPolicy.Allow;
+        options.AllowLoss = true;
         using var edited = new MemoryStream(); copy.Save(edited, options); edited.Position = 0;
         using var reopened = ProjectDocument.Load(edited); Assert.Equal(50m, reopened.Resources.Single(r => r.Name == "Engineer").RemainingCost);
     }

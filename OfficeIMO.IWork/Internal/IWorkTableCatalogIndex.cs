@@ -25,10 +25,10 @@ internal sealed class IWorkTableCatalogIndex {
         int bncFields;
         try {
             declaredEntries = IWorkProtobuf.CountFields(list.Payload, 3,
-                source.Options.MaximumProtobufFieldCount, out totalFields);
-            identifierFields = IWorkProtobuf.CountFields(list.Payload, 1, source.Options.MaximumProtobufFieldCount);
-            metadataFields = IWorkProtobuf.CountFields(list.Payload, 2, source.Options.MaximumProtobufFieldCount);
-            bncFields = IWorkProtobuf.CountFields(list.Payload, 5, source.Options.MaximumProtobufFieldCount);
+                source.Options.MaxProtobufFieldCount, out totalFields);
+            identifierFields = IWorkProtobuf.CountFields(list.Payload, 1, source.Options.MaxProtobufFieldCount);
+            metadataFields = IWorkProtobuf.CountFields(list.Payload, 2, source.Options.MaxProtobufFieldCount);
+            bncFields = IWorkProtobuf.CountFields(list.Payload, 5, source.Options.MaxProtobufFieldCount);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(list, "$", null);
             return result;

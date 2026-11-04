@@ -29,6 +29,35 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Grid columns a row occupies, counting spanned cells and the cells it skips.</summary>
+        internal static int GridColumnCount(TableRow row) =>
+            (row.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value ?? 0)
+            + Cells(row).Sum(GridSpanOf)
+            + (row.TableRowProperties?.GetFirstChild<GridAfter>()?.Val?.Value ?? 0);
+
+        internal static int GridSpanOf(TableCell cell) => Math.Max(1, cell.TableCellProperties?.GridSpan?.Val?.Value ?? 1);
+
+        /// <summary>The cell covering a grid column with the column it starts at, or null past the row's last cell.</summary>
+        internal static (TableCell Cell, int Column)? CellAtColumn(TableRow row, int column) {
+            int offset = row.TableRowProperties?.GetFirstChild<GridBefore>()?.Val?.Value ?? 0;
+            foreach (TableCell cell in Cells(row)) {
+                int span = GridSpanOf(cell);
+                if (column < offset + span) return (cell, offset);
+                offset += span;
+            }
+            return null;
+        }
+
+        internal static bool ContinuesVerticalMerge(TableCell? cell) {
+            VerticalMerge? merge = cell?.TableCellProperties?.VerticalMerge;
+            return merge != null && (merge.Val == null || merge.Val.Value == MergedCellValues.Continue);
+        }
+
+        internal static bool ContinuesHorizontalMerge(TableCell? cell) {
+            HorizontalMerge? merge = cell?.TableCellProperties?.HorizontalMerge;
+            return merge != null && (merge.Val == null || merge.Val.Value == MergedCellValues.Continue);
+        }
+
         internal static void InsertRowBefore(Table table, TableRow reference, TableRow row) =>
             RowInsertionAnchor(table, reference, before: true).InsertBeforeSelf(row);
 

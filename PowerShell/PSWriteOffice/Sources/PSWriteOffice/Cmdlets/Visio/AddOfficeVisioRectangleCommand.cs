@@ -22,5 +22,5 @@ public sealed class AddOfficeVisioRectangleCommand : OfficeVisioShapeCmdlet {
 
     /// <inheritdoc />
     protected override VisioShape CreateShape(VisioPage page) =>
-        page.AddRectangle(X.ToInches(), Y.ToInches(), Width.ToInches(), Height.ToInches(), Text, VisioMeasurementUnit.Inches);
+        page.AddRectangle(X, Y, Width, Height, Text);
 }

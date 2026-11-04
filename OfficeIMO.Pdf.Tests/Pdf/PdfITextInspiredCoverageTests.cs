@@ -11,7 +11,7 @@ public class PdfITextInspiredCoverageTests {
         byte[] pdf = BuildCoveragePdf();
 
         byte[] appendablePdf = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Append-only metadata plan"))
+            .Paragraph(paragraph => paragraph.AddText("Append-only metadata plan"))
             .ToBytes();
         PdfAppendOnlyMutationReport appendPlan = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(appendablePdf);
         Assert.True(appendPlan.CanAppendMetadata);
@@ -811,7 +811,7 @@ public class PdfITextInspiredCoverageTests {
 
         byte[] resized = PdfPageEditor.ResizePages(pdf, new PdfPageResizeOptions(new PdfPageSize(OfficeIMO.OfficeLength.Points(600),OfficeIMO.OfficeLength.Points(600))) {
             Mode = PdfPageResizeMode.Stretch
-        }, 1);
+        }, PdfPageSelection.From(1));
 
         PdfDocumentInfo info = PdfInspector.Inspect(resized);
         PdfLinkAnnotation link = Assert.Single(info.Pages[1].LinkAnnotations);
@@ -1080,14 +1080,14 @@ public class PdfITextInspiredCoverageTests {
                 new PdfCreateOptions()
                     .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4)
                     .SetEncryption("open"))
-            .Paragraph(p => p.Text("PDF/A and encryption should not mix."))
+            .Paragraph(p => p.AddText("PDF/A and encryption should not mix."))
             .ToBytes());
 
         Assert.Throws<ArgumentException>(() => PdfDocument.Create(
                 new PdfCreateOptions()
                     .ConfigureFacturXGroundwork(Encoding.UTF8.GetBytes("<rsm:CrossIndustryInvoice xmlns:rsm=\"urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100\" xmlns:ram=\"urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100\"><rsm:ExchangedDocumentContext><ram:GuidelineSpecifiedDocumentContextParameter><ram:ID>urn:cen.eu:en16931:2017</ram:ID></ram:GuidelineSpecifiedDocumentContextParameter></rsm:ExchangedDocumentContext></rsm:CrossIndustryInvoice>"))
                     .SetEncryption("open"))
-            .Paragraph(p => p.Text("Factur-X and encryption should not mix."))
+            .Paragraph(p => p.AddText("Factur-X and encryption should not mix."))
             .ToBytes());
     }
 

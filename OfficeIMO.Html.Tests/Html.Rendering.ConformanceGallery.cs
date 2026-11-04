@@ -116,7 +116,7 @@ public sealed partial class HtmlRenderingTests {
                 "Managed report",
                 "HTML PDF",
                 "Cross-artifact proof for paged layout, tables, columns, vertical text, and footnotes.")) {
-                RenderOptions = new HtmlToPdfOptions {
+                RenderOptions = new HtmlPdfExportOptions {
                     PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(5D), global::OfficeIMO.OfficeLength.Inches(4D)),
                     Margins = HtmlRenderMargins.All(24D),
                     HonorCssPageRules = true

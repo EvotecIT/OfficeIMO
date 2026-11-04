@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfStampAnnotationEditorTests {
     [Fact]
     public void ImageStampIsAReopenableAnnotationWithAnImageAppearance() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Image stamp source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Image stamp source")).ToBytes();
         byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(24, 12, OfficeColor.Black), OfficeImageExportFormat.Png);
         var options = new PdfStampAnnotationOptions {
             StampName = "Signature", ImageBytes = image, X = 72, Y = 600, Width = 120, Height = 60,
@@ -38,7 +38,7 @@ public class PdfStampAnnotationEditorTests {
 
     [Fact]
     public void ImageStampCanBeAppendedToAnnotationPermittedCertification() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signed source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Signed source")).ToBytes();
         byte[] certified = Certify(source, PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures);
         byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Black), OfficeImageExportFormat.Png);
 
@@ -75,7 +75,7 @@ public class PdfStampAnnotationEditorTests {
 
     [Fact]
     public void TransparentImageStampEmbedsItsSoftMask() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Signature area")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Signature area")).ToBytes();
         var raster = new OfficeRasterImage(4, 4, OfficeColor.Transparent);
         raster.SetPixel(1, 1, OfficeColor.Black);
         byte[] image = OfficeRasterImageEncoder.Encode(raster, OfficeImageExportFormat.Png);
@@ -103,7 +103,7 @@ public class PdfStampAnnotationEditorTests {
                 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
             ])
         });
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Oriented photo")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Oriented photo")).ToBytes();
 
         PdfAnnotationEditResult result = PdfDocument.Load(source).Annotations.AddStamp(
             new PdfStampAnnotationOptions { ImageBytes = image, Width = 80, Height = 80 });
@@ -122,7 +122,7 @@ public class PdfStampAnnotationEditorTests {
 
     [Fact]
     public void ImageStampRejectsOversizedInputBeforeProducingAnArtifact() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Source")).ToBytes();
         byte[] image = OfficeRasterImageEncoder.Encode(new OfficeRasterImage(4, 4, OfficeColor.Black), OfficeImageExportFormat.Png);
         Assert.Throws<InvalidDataException>(() => PdfDocument.Load(source).Annotations.AddStamp(
             new PdfStampAnnotationOptions { ImageBytes = image, MaximumEncodedImageBytes = image.Length - 1 }));
@@ -131,7 +131,7 @@ public class PdfStampAnnotationEditorTests {
     [Fact]
     public void AddStampAnnotation_CreatesVisualAppearanceDuringFullRewrite() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Stamp annotation source"))
+            .Paragraph(paragraph => paragraph.AddText("Stamp annotation source"))
             .ToBytes();
 
         PdfAnnotationEditResult result = PdfAnnotationEditor.AddStampAnnotation(
@@ -167,7 +167,7 @@ public class PdfStampAnnotationEditorTests {
     [Fact]
     public void CertifiedP3StampAnnotationUsesAppendOnlyRevision() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Certified stamp source"))
+            .Paragraph(paragraph => paragraph.AddText("Certified stamp source"))
             .ToBytes();
         byte[] certified = Certify(source, PdfCertificationPermissionLevel.FormFillingAnnotationsAndSignatures);
 
@@ -189,7 +189,7 @@ public class PdfStampAnnotationEditorTests {
     [Fact]
     public void CertifiedP2BlocksStampAnnotationCreation() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Restricted stamp source"))
+            .Paragraph(paragraph => paragraph.AddText("Restricted stamp source"))
             .ToBytes();
         byte[] certified = Certify(source, PdfCertificationPermissionLevel.FormFillingAndSignatures);
 
@@ -203,7 +203,7 @@ public class PdfStampAnnotationEditorTests {
     [Fact]
     public void EncryptedStampAnnotationUsesAuthenticatedAppendContext() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted stamp source"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted stamp source"))
             .ToBytes();
         var readOptions = new PdfLoadOptions { Password = "owner" };
 
@@ -225,7 +225,7 @@ public class PdfStampAnnotationEditorTests {
     public void AddStampAnnotation_ReservesGeneratedAnnotationAndAppearanceLimits() {
         byte[] source = PdfDocument.Create()
             .TextAnnotation("Existing note")
-            .Paragraph(paragraph => paragraph.Text("Tight stamp budget"))
+            .Paragraph(paragraph => paragraph.AddText("Tight stamp budget"))
             .ToBytes();
         int maximumSourceStreamBytes = PdfSyntax.ParseObjects(source).Map.Values
             .Select(static indirect => indirect.Value)

@@ -15,12 +15,12 @@ namespace OfficeIMO.Tests {
             using var output = new MemoryStream();
             using var document = streamBacked ? ExcelDocument.Create(source) : ExcelDocument.Create();
             var sheet = document.AddSheet("Data");
-            sheet.CellValues(new[] {
+            sheet.SetValues(new[] {
                 (1, 1, (object)"Description"), (1, 2, (object)"Amount"), (1, 3, (object)"Code")
             }, ExcelExecutionMode.Sequential);
             // Detached workbooks materialize the append and retain a nondeferred
             // direct-save candidate. Stream-backed workbooks can defer the append.
-            sheet.CellValues(new[] {
+            sheet.SetValues(new[] {
                 (2, 1, (object)"An extended service description that needs a wide column"),
                 (2, 2, (object)119.88D), (2, 3, (object)"A"),
                 (3, 1, (object)"Return credit"),
@@ -68,8 +68,8 @@ namespace OfficeIMO.Tests {
                 Assert.InRange(System.Math.Abs((beforeSave[i].Width?.CharacterCount)!.Value - (afterSave[i].Width?.CharacterCount)!.Value), 0D, 0.001D);
                 Assert.Equal(beforeSave[i].CustomWidth, afterSave[i].CustomWidth);
             }
-            Assert.Equal("Return credit", reopened.Sheets[0].CellAt(3, 1).GetValue<string>());
-            Assert.Equal(-13.50D, reopened.Sheets[0].CellAt(3, 2).GetValue<double>());
+            Assert.Equal("Return credit", reopened.Sheets[0].Cell(3, 1).GetValue<string>());
+            Assert.Equal(-13.50D, reopened.Sheets[0].Cell(3, 2).GetValue<double>());
         }
     }
 }

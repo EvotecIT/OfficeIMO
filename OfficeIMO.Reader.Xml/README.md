@@ -40,7 +40,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     })
     .Build();
 
-foreach (var chunk in reader.Read("configuration.xml")) {
+foreach (var chunk in reader.Enumerate("configuration.xml")) {
     Console.WriteLine($"{chunk.Id}: {chunk.Location.Path}");
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
@@ -57,7 +57,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 
 await using var stream = File.OpenRead("upload.xml");
-var chunks = reader.Read(stream, "upload.xml", new ReaderOptions {
+var chunks = reader.Enumerate(stream, "upload.xml", new ReaderOptions {
     MaxInputBytes = 10L * 1024L * 1024L,
     MaxChars = 4_000
 }).ToList();

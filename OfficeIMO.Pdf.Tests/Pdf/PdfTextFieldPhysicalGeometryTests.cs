@@ -11,7 +11,7 @@ public sealed class PdfTextFieldPhysicalGeometryTests {
     public void FlowAndTableCellDefaultsKeepTheirSavedWidgetDimensions() {
         using var document = PdfDocument.Create(builder => builder.Content(content => content
             .TextField("Flow", value: "Ada")
-            .Table(new[] { new[] { new PdfTableCell("Owner", formFields: new[] { PdfTableCellFormField.TextField("Cell", "Grace") }) } },
+            .AddTable(new[] { new[] { new PdfTableCell("Owner", formFields: new[] { PdfTableCellFormField.TextField("Cell", "Grace") }) } },
                 style: new PdfTableStyle { HeaderRowCount = 0 })));
         using var readback = PdfDocument.Load(document.ToBytes());
         var fields = readback.Reader.DocumentInfo().FormFields;
@@ -35,7 +35,7 @@ public sealed class PdfTextFieldPhysicalGeometryTests {
                     OfficeLength.Pixels(16), OfficeLength.Millimeters(4.233333333333333))
                 .ChoiceField("CanvasChoice", new[] { "EU", "US" }, new[] { "EU" }, OfficeLength.Inches(1), OfficeLength.Points(180),
                     OfficeLength.Centimeters(2.54), OfficeLength.Pixels(24), OfficeLength.Inches(0.125)))
-            .Table(new[] { new[] { new PdfTableCell("", formFields: new[] { cell }) } }, style: new PdfTableStyle { HeaderRowCount = 0 })));
+            .AddTable(new[] { new[] { new PdfTableCell("", formFields: new[] { cell }) } }, style: new PdfTableStyle { HeaderRowCount = 0 })));
         using var readback = PdfDocument.Load(document.ToBytes());
         var fields = readback.Reader.DocumentInfo().FormFields;
         AssertWidget(fields.Single(field => field.Name == "Flow"), 72, 18);
@@ -63,7 +63,7 @@ public sealed class PdfTextFieldPhysicalGeometryTests {
         var field = PdfTableCellFormField.ChoiceField("Choice", new[] { "EU", "US" }, "EU", global::OfficeIMO.OfficeLength.Points(72), global::OfficeIMO.OfficeLength.Points(18), global::OfficeIMO.OfficeLength.Points(9), style: style);
         var cell = new PdfTableCell("", formFields: new[] { field });
         style.IsRequired = false;
-        using var document = PdfDocument.Create(builder => builder.Content(content => content.Table(
+        using var document = PdfDocument.Create(builder => builder.Content(content => content.AddTable(
             new[] { new[] { cell } }, style: new PdfTableStyle { HeaderRowCount = 0 })));
         using var readback = PdfDocument.Load(document.ToBytes());
         var saved = Assert.Single(readback.Reader.DocumentInfo().FormFields);

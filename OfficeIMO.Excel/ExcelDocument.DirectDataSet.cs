@@ -291,6 +291,41 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        internal bool RegisterDeferredCellValueBufferSaveCandidate(ExcelSheet sheet, ExcelCellValueBuffer buffer) {
+            if (!ReferenceEquals(sheet.Document, this)
+                || !TryBeginDeferredDirectSaveCandidateRegistration(replacingPendingDirectCellValues: true)) {
+                return false;
+            }
+
+            try {
+                var model = DirectDataSetWorkbookModel.CreateSingle(
+                    sheet.Name,
+                    "Cells",
+                    tableName: null,
+                    buffer.TabularRange,
+                    DirectDataSetTableModel.FromCellValueBuffer(buffer),
+                    createTable: false,
+                    ExcelTableStyle.TableStyleMedium2,
+                    includeHeaders: false,
+                    includeAutoFilter: false,
+                    autoFit: false,
+                    _dateTimeOffsetWriteStrategy,
+                    CancellationToken.None,
+                    useCellValueNumberFormats: true,
+                    DateSystem,
+                    omitBlankCells: true);
+                _directDataSetSaveCandidate = new DirectDataSetSaveCandidate(DirectTabularSnapshotOwner, model, MaterializeDeferredDataSetImport, isDeferred: true, subscribeToSourceChanges: false);
+                _directDataSetMetadataSourceSheet = sheet;
+                _packageDirty = true;
+                _unchangedPackageBytes = null;
+                _requiresSavePreflight = false;
+                return true;
+            } catch {
+                ClearDirectDataSetSaveCandidate();
+                return false;
+            }
+        }
+
         internal bool RegisterDeferredDirectCellValuesSaveCandidate(
             ExcelSheet sheet,
             string tableNameForModel,

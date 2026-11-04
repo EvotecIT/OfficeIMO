@@ -335,7 +335,11 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private bool ReadCore(CancellationToken cancellationToken) {
+            private bool ReadCore(CancellationToken cancellationToken) => _utf8Source != null
+                ? ReadIndexedCore(cancellationToken)
+                : ReadXmlCore(cancellationToken);
+
+            private bool ReadXmlCore(CancellationToken cancellationToken) {
                 _ct.ThrowIfCancellationRequested();
                 cancellationToken.ThrowIfCancellationRequested();
                 _activeReadCancellationToken = cancellationToken;
@@ -414,17 +418,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 ThrowIfReadCancellationRequested();
-                if (_utf8Source != null) {
-                    bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow, _ct, _activeReadCancellationToken);
-                    ReleaseCurrentValueReferences();
-                    row = hasPhysicalRow ? _currentValues : _blankRow;
-                    _currentRow = row;
-                    _currentRowIsBlank = !hasPhysicalRow;
-                    _currentRowActive = hasPhysicalRow;
-                    _currentRowFinished = !hasPhysicalRow;
-                    _nextLogicalRow++;
-                    return true;
-                }
+                if (_utf8Source != null) return TryReadIndexedLogicalRow(_activeReadCancellationToken, out row);
 
                 if (_bufferedRows != null) {
                     return TryReadBufferedLogicalRow(out row);

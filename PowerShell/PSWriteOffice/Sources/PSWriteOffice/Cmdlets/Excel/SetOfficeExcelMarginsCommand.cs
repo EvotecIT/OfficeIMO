@@ -81,7 +81,7 @@ public sealed class SetOfficeExcelMarginsCommand : PSCmdlet
                 throw new PSArgumentException("Provide either Preset or custom margins, not both.");
             }
 
-            sheet.SetMarginsPreset(Preset.Value);
+            sheet.PageSetup.SetMargins(Preset.Value);
         }
         else
         {
@@ -90,7 +90,7 @@ public sealed class SetOfficeExcelMarginsCommand : PSCmdlet
                 throw new PSArgumentException("Provide Left, Right, Top, and Bottom margins or use a Preset.");
             }
 
-            sheet.SetMargins(
+            sheet.PageSetup.SetMargins(
                 left: OfficeLength.Inches(Left.Value),
                 right: OfficeLength.Inches(Right.Value),
                 top: OfficeLength.Inches(Top.Value),

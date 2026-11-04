@@ -8,7 +8,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void Edit_AddsListsAndReplacesNamedScriptsWithPlannerProof() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Document JavaScript preservation marker"))
+            .Paragraph(paragraph => paragraph.AddText("Document JavaScript preservation marker"))
             .ToBytes();
 
         PdfJavaScriptEditResult created = PdfDocument.Load(source).JavaScript.Edit(scripts => scripts
@@ -40,7 +40,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void RemoveAndClear_PruneNameTreeAndRemainCompatibleWithSanitizer() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("JavaScript cleanup"))
+            .Paragraph(paragraph => paragraph.AddText("JavaScript cleanup"))
             .ToBytes();
         PdfJavaScriptEditResult authored = PdfDocument.Load(source).JavaScript.Edit(scripts => scripts
             .AddOrReplace("One", "app.alert('one');")
@@ -91,7 +91,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void Edit_RejectsMissingCommandsAndEmptyScriptSource() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("JavaScript validation"))
+            .Paragraph(paragraph => paragraph.AddText("JavaScript validation"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source);
 
@@ -125,7 +125,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void Edit_MatchesWhitespaceKeysExactlyAndPreservesUntouchedScripts() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Exact key matching"))
+            .Paragraph(paragraph => paragraph.AddText("Exact key matching"))
             .ToBytes();
         PdfJavaScriptEditResult authored = PdfDocument.Load(source).JavaScript.Edit(scripts => scripts
             .AddOrReplace("Startup", "app.alert('plain');")
@@ -186,7 +186,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void Edit_EmitsByteSortedUnicodeKeysAndRetainsCustomReadLimitsForResult() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Unicode JavaScript keys"))
+            .Paragraph(paragraph => paragraph.AddText("Unicode JavaScript keys"))
             .ToBytes();
         var options = new PdfLoadOptions {
             Limits = new PdfReadLimits {
@@ -209,7 +209,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void Edit_ExplicitlyBlocksEncryptedInputsEvenWithOwnerAuthorization() {
         byte[] source = PdfDocument.Create(new PdfCreateOptions().SetEncryption("open", "owner"))
-            .Paragraph(paragraph => paragraph.Text("Encrypted JavaScript edit"))
+            .Paragraph(paragraph => paragraph.AddText("Encrypted JavaScript edit"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(source, new PdfLoadOptions { Password = "owner" });
 
@@ -245,7 +245,7 @@ public class PdfJavaScriptEditorTests {
     [Fact]
     public void EditResult_SnapshotsOperationsWhenTheCallbackRetainsItsSession() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Immutable JavaScript edit result"))
+            .Paragraph(paragraph => paragraph.AddText("Immutable JavaScript edit result"))
             .ToBytes();
         PdfJavaScriptEditSession? retained = null;
 

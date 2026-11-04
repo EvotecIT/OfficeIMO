@@ -62,7 +62,7 @@ internal static partial class VisioReaderAdapter {
             Forms = forms.Values.ToArray(),
             Visuals = visuals,
             Diagnostics = model.Diagnostics.Select(MapDiagnostic).Concat(source.ImportDiagnostics.Select(item => new ReaderDiagnostic {
-                Code = item.Code, Message = item.Message, Source = item.Source, Category = ReaderDiagnosticCategory.Content,
+                Code = item.Code, Message = item.Message, Source = item.Format, Category = ReaderDiagnosticCategory.Content,
                 Severity = ReaderDiagnosticSeverity.Warning, IsRecoverable = true
             })).ToArray()
         };

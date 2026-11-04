@@ -145,7 +145,7 @@ Manual row and column breaks also divide merged cells. Each fragment retains the
 - Worksheet-canvas conditional icons use shared vector artwork and reserve space before cell text. The flow-table profile retains generic indicators; exact native icon pixels and print insets are not guaranteed.
 - Shapes paint above worksheet pictures and charts. Mixed DrawingML object stacking and rich-text runs within a shape are not fully reproduced.
 - Worksheet column widths and fit scaling use layout estimates. Exact Excel printer geometry and derived fit percentages are not guaranteed; fit-to-width documents can have different scale and page counts. Use producer comparisons for workflows that depend on identical pagination.
-- PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables. `HasLoss` and `RequireNoLoss()` include both that omitted page content and table-row truncation.
+- PDF import is structured-data recovery. It reconstructs detected tables as worksheets; `SourceScope` and `HasOmittedPageContent` report text, source vector graphics, images, links, forms, annotations, or actions that are not represented by those tables. `HasLoss` and `ThrowIfLoss()` include both that omitted page content and table-row truncation.
 - The current reverse route recovers detected tables and structured values; arbitrary PDF page art is reported rather than presented as an editable workbook. Open recovery work is tracked in the repository [roadmap](../Docs/ROADMAP.md).
 
 ## Related packages

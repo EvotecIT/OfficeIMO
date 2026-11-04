@@ -40,7 +40,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
     internal OfficeMarkupPowerPointConversionResult Build(
         OfficeMarkupDocument document,
-        MarkupToPowerPointOptions options,
+        MarkupPowerPointExportOptions options,
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));

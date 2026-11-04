@@ -96,6 +96,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
             var job = OfficeBatchOptions.Load(path);
             job.RetryFailed |= RetryFailed.IsPresent;
             job.AllowEmpty |= AllowEmpty.IsPresent;
+            OfficeWorkflowCommandUtilities.ConfigureBatch(job);
             return job;
         }
         if (string.IsNullOrWhiteSpace(OutputDirectory))
@@ -137,6 +138,7 @@ public sealed partial class ConvertOfficeDocumentCommand {
             PdfPasswordEnvironmentVariable = PdfPasswordVariable,
             AllowEmpty = AllowEmpty.IsPresent
         };
+        OfficeWorkflowCommandUtilities.ConfigureBatch(batch);
         var routes = Options == null && Route == null && From == null ? null : OfficeBatchExecutor.SelectCapabilities(batch, CancelToken);
         var conversion = CaptureOptions(_inputs, target, routes);
         batch.ConversionOptions = conversion;

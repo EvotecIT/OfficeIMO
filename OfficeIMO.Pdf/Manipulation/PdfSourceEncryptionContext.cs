@@ -42,6 +42,18 @@ internal sealed class PdfSourceEncryptionContext {
         return new PdfSourceEncryptionContext(handler, dictionary, permanentId, options);
     }
 
+    /// <summary>Encrypts a complete generated PDF, allowing read budgets for its generated structure.</summary>
+    internal byte[] ProtectGenerated(byte[] plaintext, long? maximumOutputBytes, CancellationToken cancellationToken = default) {
+        PdfStructuralMarkerCounts generated = PdfSyntax.InspectStructuralMarkers(plaintext, _readOptions.Limits);
+        var growth = new PdfGeneratedOutputGrowth(
+            minimumRawStreamBytes: generated.MaximumRawStreamBytes,
+            minimumObjectCharacters: generated.MaximumObjectCharacters,
+            minimumTokensPerObject: generated.MaximumObjectCharacters);
+        return Protect(plaintext, maximumOutputBytes,
+            generatedReadOptions: PdfLoadOptions.WithGeneratedOutputGrowth(_readOptions, generated.IndirectObjectHeaders, growth),
+            cancellationToken: cancellationToken);
+    }
+
     /// <summary>Encrypts final object numbers without changing page/object mapping or password entries.</summary>
     internal byte[] Protect(byte[] plaintext, long? maximumOutputBytes = null, PdfLoadOptions? generatedReadOptions = null,
         CancellationToken cancellationToken = default) =>

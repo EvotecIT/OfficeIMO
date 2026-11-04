@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             document.AddSheet("Middle Sheet");
             document.AddSheet("Last Sheet");
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.CellFormula(1, 1, "SUM('First Sheet':'Last Sheet'!B2)");
+            summary.Cell(1, 1).SetFormula("SUM('First Sheet':'Last Sheet'!B2)");
 
             ExcelFormulaCellInfo match = Assert.Single(document.SearchFormulas(
                 new ExcelFormulaSearchOptions { Reference = "'Middle Sheet'!B2" }));
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet first = document.AddSheet("First");
             ExcelSheet second = document.AddSheet("Second");
-            first.CellValue(1, 1, "Replacement");
-            first.CellAt(1, 1).SetFillColor("C6EFCE");
+            first.Cell(1, 1).SetValue("Replacement");
+            first.Cell(1, 1).SetFillColor("C6EFCE");
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             CellStyle normal = stylesheet.CellStyles!.Elements<CellStyle>()
                 .Single(style => style.Name?.Value == "Normal");
@@ -65,11 +65,11 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_PreservesImplicitShownTotalsRow() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
-            sheet.CellValue(3, 1, "Total");
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
+            sheet.Cell(3, 1).SetValue("Total");
             sheet.AddTable("A1:B3", true, "DataTable", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             Table table = sheet.WorksheetPart.TableDefinitionParts.Single().Table!;
             table.TotalsRowShown = true;

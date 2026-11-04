@@ -37,11 +37,11 @@ namespace OfficeIMO.Tests {
                 var direct = new ExcelPivotAggregateAccumulator();
                 var leaves = new Dictionary<string, ExcelPivotAggregateAccumulator>();
                 for (int row = 2; row <= 9; row++) {
-                    string region = (string)sourceSheet.CellAt(row, 1).GetValue().Value!;
-                    string product = (string)sourceSheet.CellAt(row, 2).GetValue().Value!;
+                    string region = (string)sourceSheet.Cell(row, 1).GetValue().Value!;
+                    string product = (string)sourceSheet.Cell(row, 2).GetValue().Value!;
                     if ((filters[index].Region != null && filters[index].Region != region)
                         || (filters[index].Product != null && filters[index].Product != product)) continue;
-                    var value = sourceSheet.CellAt(row, 3).GetValue();
+                    var value = sourceSheet.Cell(row, 3).GetValue();
                     direct.Add(value.Value, value.Kind == ExcelCellDataKind.Error);
                     string key = region + "/" + product;
                     if (!leaves.TryGetValue(key, out var leaf)) leaves.Add(key, leaf = new ExcelPivotAggregateAccumulator());
@@ -62,10 +62,10 @@ namespace OfficeIMO.Tests {
                 var direct = new ExcelPivotAggregateAccumulator();
                 var merged = new ExcelPivotAggregateAccumulator();
                 for (int row = 2; row <= 8; row++) {
-                    if ((string)errorSource.CellAt(row, 1).GetValue().Value! != groups[index]) continue;
+                    if ((string)errorSource.Cell(row, 1).GetValue().Value! != groups[index]) continue;
                     errorSource.TryGetCellValueSnapshot(row, 2, out var snapshot);
                     bool isError = snapshot?.OpenXmlType == ExcelCellValueType.Error;
-                    var value = errorSource.CellAt(row, 2).GetValue();
+                    var value = errorSource.Cell(row, 2).GetValue();
                     Assert.Equal(errorValues[row - 2, 0]?.GetType(), value.Value?.GetType());
                     Assert.Equal(errorValues[row - 2, 0], value.Value);
                     direct.Add(value.Value, isError);

@@ -90,6 +90,14 @@ public sealed partial class OfficeWorkflowRunner {
         OfficeWorkflowConversionEvidence? evidence = null;
         HashSet<string>? importDiagnosticSources = tier1 ? new HashSet<string>(new[] { "Word", "Excel", "PowerPoint" }) : null;
         switch (route.Id) {
+            case "heic-pdf": {
+                PdfDocument document = PdfDocument.CreateFromImages(
+                    new[] { new PdfImageDocumentSource(input, Path.GetFileName(request.InputPath)) },
+                    options: null, cancellationToken: cancellationToken);
+                (bytes, evidence) = SerializePdfConversion(
+                    new PdfDocumentConversionResult(document, new PdfConversionReport()), maximumOutputBytes, cancellationToken);
+                break;
+            }
             case "publisher-pdf": {
                 (bytes, evidence) = ConvertPublisher(request, input, settings, cancellationToken);
                 hasLoss = evidence.HasLoss;
@@ -118,11 +126,11 @@ public sealed partial class OfficeWorkflowRunner {
                 break;
             }
             case "xps-pdf": {
-                var limits = new XpsReadOptions();
-                limits.MaximumInputBytes = (int)Math.Min(limits.MaximumInputBytes, request.Limits.MaximumInputBytes);
+                var limits = new XpsLoadOptions();
+                limits.Limits.MaxInputBytes = (int)Math.Min(limits.Limits.MaxInputBytes, request.Limits.MaximumInputBytes);
                 var document = XpsDocument.Load(input, limits, cancellationToken);
                 using var output = new OfficeWorkflowBoundedMemoryStream(maximumOutputBytes);
-                document.SavePdf(output, settings.Xps, cancellationToken);
+                document.SaveAsPdf(output, settings.Xps, cancellationToken);
                 bytes = output.ToArray();
                 break;
             }
@@ -206,13 +214,13 @@ public sealed partial class OfficeWorkflowRunner {
 
     private static void AddConversionDiagnostics(OfficeWorkflowConversionEvidence evidence, List<OfficeWorkflowDiagnostic> diagnostics,
         ISet<string>? importDiagnosticSources = null) {
-        foreach (OfficeConversionFidelityDiagnostic finding in evidence.FidelityDiagnostics) {
-            var details = new Dictionary<string, string> { ["source"] = finding.Source, ["lossKind"] = finding.LossKind.ToString() };
+        foreach (OfficeDiagnostic finding in evidence.Diagnostics) {
+            var details = new Dictionary<string, string> { ["source"] = finding.Format ?? string.Empty, ["lossKind"] = finding.LossKind.ToString() };
             if (finding.Location != null) details["location"] = finding.Location;
             diagnostics.Add(new OfficeWorkflowDiagnostic(finding.Code, finding.Message,
                 finding.LossKind == OfficeConversionLossKind.Failure ? OfficeWorkflowDiagnosticSeverity.Error
                     : finding.LossKind == OfficeConversionLossKind.None ? OfficeWorkflowDiagnosticSeverity.Information : OfficeWorkflowDiagnosticSeverity.Warning,
-                importDiagnosticSources?.Contains(finding.Source) == true ? "import" : "convert", details));
+                importDiagnosticSources?.Contains(finding.Format ?? string.Empty) == true ? "import" : "convert", details));
         }
     }
 

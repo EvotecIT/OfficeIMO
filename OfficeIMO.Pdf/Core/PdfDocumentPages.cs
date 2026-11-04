@@ -1,3 +1,4 @@
+#pragma warning disable RS0026, RS0027 // Existing optional-parameter overload families keep their shape.
 using System.Threading;
 
 namespace OfficeIMO.Pdf;
@@ -29,12 +30,13 @@ public sealed partial class PdfDocumentPages {
 
     /// <summary>Returns sections at a one-based outline level, retaining nested pages up to the next bookmark at the same or an outer level.</summary>
     public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, params string[] bookmarkTitles) =>
-        BookmarkPageRanges(level, CancellationToken.None, bookmarkTitles);
+        BookmarkPageRanges(level, bookmarkTitles, CancellationToken.None);
 
     /// <summary>Returns outline-level sections with cancellation and optional exact title selection.</summary>
-    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, CancellationToken cancellationToken, params string[] bookmarkTitles) {
+    public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(int level, IReadOnlyList<string> bookmarkTitles, CancellationToken cancellationToken = default) {
         if (level < 1) throw new ArgumentOutOfRangeException(nameof(level), "Outline levels are one-based.");
-        return GetBookmarkPageRanges(_document.ReadOptions, level, cancellationToken, bookmarkTitles);
+        Guard.NotNull(bookmarkTitles, nameof(bookmarkTitles));
+        return GetBookmarkPageRanges(_document.ReadOptions, level, cancellationToken, bookmarkTitles.ToArray());
     }
 
     private IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(PdfLoadOptions? options, CancellationToken cancellationToken, params string[] bookmarkTitles) =>
@@ -380,10 +382,11 @@ public sealed partial class PdfDocumentPages {
         return _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, pageSize, _document.ReadOptions, pageNumbers));
     }
 
-    /// <summary>Resizes selected pages with explicit fit, fill, alignment, and scaling settings.</summary>
-    public PdfDocument Resize(PdfPageResizeOptions options, params int[] pageNumbers) {
+    /// <summary>Resizes selected pages, or every page when <paramref name="selection"/> is null, with explicit fit, fill, alignment, and scaling settings.</summary>
+#pragma warning disable RS0027 // The page-size overloads keep their established shape beside the options form.
+    public PdfDocument Resize(PdfPageResizeOptions options, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) {
         Guard.NotNull(options, nameof(options));
-        return _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, options, _document.ReadOptions, pageNumbers), cancellationToken: options.CancellationToken);
+        return _document.ApplyMutation(input => PdfPageEditor.ResizePages(input, options, _document.ReadOptions, selection, cancellationToken), cancellationToken: cancellationToken);
     }
 
     /// <summary>Sets the media box for selected pages.</summary>
@@ -402,9 +405,11 @@ public sealed partial class PdfDocumentPages {
         _document.ApplyMutation(input => PdfPageEditor.CropAndTranslatePages(
             input, left, bottom, right, top, _document.ReadOptions, default, pageNumbers));
 
-    /// <summary>Destructively crops selected pages by replacing the retained visual rectangle with a validated opaque raster page.</summary>
-    public PdfDestructiveCropResult DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, params int[] pageNumbers) =>
-        PdfPageEditor.DestructiveCropPages(_document.GetBytesForOperation(options?.CancellationToken ?? default), left, bottom, right, top, options, _document.ReadOptions, pageNumbers);
+    /// <summary>Destructively crops selected pages, or every page when <paramref name="selection"/> is null, by replacing the retained visual rectangle with a validated opaque raster page.</summary>
+    public PdfDestructiveCropResult DestructiveCrop(double left, double bottom, double right, double top, PdfDestructiveCropOptions? options = null, PdfPageSelection? selection = null, CancellationToken cancellationToken = default) =>
+        PdfPageEditor.DestructiveCropPages(_document.GetBytesForOperation(cancellationToken), left, bottom, right, top,
+            PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken), _document.ReadOptions, PdfPageSelection.ToPageNumbers(selection));
+#pragma warning restore RS0027
 
     /// <summary>Sets the bleed box for selected pages.</summary>
     public PdfDocument SetBleedBox(double left, double bottom, double right, double top, params int[] pageNumbers) =>

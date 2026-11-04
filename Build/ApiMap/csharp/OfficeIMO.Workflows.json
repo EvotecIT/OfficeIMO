@@ -2,14 +2,15 @@
   "package": "OfficeIMO.Workflows",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 33,
+    "changes": 56,
     "byAction": {
-      "change": 12,
+      "change": 35,
       "internalize": 1,
       "merge": 19,
       "move": 1
     },
     "byCategory": {
+      "contract": 23,
       "conversion": 27,
       "options": 4,
       "package": 1,
@@ -528,6 +529,259 @@
       "phase": "M4",
       "applied": "not-applied-tier-2",
       "note": "Publishing ownership is a Tier 2 Workflows decision. Phase A ports the existing workflow code to all supported targets without moving its publishing API."
+    },
+    {
+      "old": "OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request, InvoiceValidator? validator = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.IOfficeInvoiceWorkflowRunner.RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request, CancellationToken cancellationToken = default) : Task<OfficeInvoiceStorageWorkflowResult>",
+      "replacement": "Implement and call the shared interface with request and cancellationToken on every target. On .NET 8/.NET 10, capture the provider in OfficeInvoiceStorageWorkflowRequest.StandardsValidator: var configuredRequest = request with { StandardsValidator = validator }; await runner.RunInvoiceAsync(configuredRequest, cancellationToken). The interface has no validator parameter.",
+      "reason": "Keep the same portable invoice entry points on every target framework while standards validation remains an explicit modern-only provider.",
+      "file": "OfficeIMO.Workflows/Invoicing/OfficeInvoiceStorageWorkflowRequest.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request, InvoiceValidator? validator = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflowRunner.RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request, CancellationToken cancellationToken = default) : Task<OfficeInvoiceStorageWorkflowResult> / OfficeWorkflowRunner.RunInvoiceAsync(OfficeInvoiceStorageWorkflowRequest request, InvoiceValidator? validator, CancellationToken cancellationToken = default) : Task<OfficeInvoiceStorageWorkflowResult>",
+      "replacement": "Use the common request/cancellationToken overload; on .NET 8/.NET 10 it reads request.StandardsValidator. The concrete runner also retains the modern provider overload with an explicit validator argument, which may be null. Parameter names remain request, validator and cancellationToken.",
+      "reason": "Keep the same portable invoice entry points on every target framework while standards validation remains an explicit modern-only provider.",
+      "file": "OfficeIMO.Workflows/Invoicing/OfficeWorkflowRunner.Invoice.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunAsync(OfficeInvoiceWorkflowRequest request, InvoiceValidator? validator = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunAsync(OfficeInvoiceWorkflowRequest request, CancellationToken cancellationToken = default) : Task<OfficeInvoiceWorkflowResult> / OfficeInvoiceBufferWorkflow.RunAsync(OfficeInvoiceWorkflowRequest request, InvoiceValidator? validator, CancellationToken cancellationToken = default) : Task<OfficeInvoiceWorkflowResult>",
+      "replacement": "Use RunAsync(request, cancellationToken) on every target for execution without a standards provider. On .NET 8/.NET 10, use RunAsync(request, validator, cancellationToken) for an explicit provider; validator may be null but is no longer optional. Public parameter names are unchanged. Requested standards validation without an available provider still fails closed.",
+      "reason": "Keep the same portable invoice entry points on every target framework while standards validation remains an explicit modern-only provider.",
+      "file": "OfficeIMO.Workflows/Invoicing/OfficeInvoiceBufferWorkflow.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests, OfficeInvoiceWorkflowBatchOptions? options = null, InvoiceValidator? validator = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeInvoiceBufferWorkflow.RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests, OfficeInvoiceWorkflowBatchOptions? options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<OfficeInvoiceWorkflowResult>> / OfficeInvoiceBufferWorkflow.RunBatchAsync(IEnumerable<OfficeInvoiceWorkflowRequest> requests, OfficeInvoiceWorkflowBatchOptions? options, InvoiceValidator? validator, CancellationToken cancellationToken = default) : Task<IReadOnlyList<OfficeInvoiceWorkflowResult>>",
+      "replacement": "Use OfficeInvoiceBufferWorkflow.RunBatchAsync(requests, options, cancellationToken) on every target without a standards provider. On .NET 8/.NET 10 the provider overload requires both options and validator arguments, although either may be null. To retain default batch options with a named provider, call OfficeInvoiceBufferWorkflow.RunBatchAsync(requests, options: null, validator: validator, cancellationToken: cancellationToken). Public parameter names are unchanged; unavailable requested standards validation still fails closed.",
+      "reason": "Keep the same portable invoice entry points on every target framework while standards validation remains an explicit modern-only provider.",
+      "file": "OfficeIMO.Workflows/Invoicing/OfficeInvoiceBufferWorkflow.Batch.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunAsync(OfficeInvoiceFileWorkflowRequest request, InvoiceValidator? validator = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunAsync(OfficeInvoiceFileWorkflowRequest request, CancellationToken cancellationToken = default) : Task<OfficeInvoiceFileWorkflowResult> / OfficeInvoiceFileWorkflow.RunAsync(OfficeInvoiceFileWorkflowRequest request, InvoiceValidator? validator, CancellationToken cancellationToken = default) : Task<OfficeInvoiceFileWorkflowResult>",
+      "replacement": "Use RunAsync(request, cancellationToken) on every target for execution without a standards provider. On .NET 8/.NET 10, use RunAsync(request, validator, cancellationToken) for an explicit provider; validator may be null but is no longer optional. Public parameter names are unchanged. Requested standards validation without an available provider still fails closed.",
+      "reason": "Keep the same portable invoice entry points on every target framework while standards validation remains an explicit modern-only provider.",
+      "file": "OfficeIMO.Workflows/Invoicing/OfficeInvoiceFileWorkflow.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests, OfficeInvoiceWorkflowBatchOptions? options = null, InvoiceValidator? validator = null, CancellationToken cancellationToken = default)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeInvoiceFileWorkflow.RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests, OfficeInvoiceWorkflowBatchOptions? options = null, CancellationToken cancellationToken = default) : Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>> / OfficeInvoiceFileWorkflow.RunBatchAsync(IEnumerable<OfficeInvoiceFileWorkflowRequest> requests, OfficeInvoiceWorkflowBatchOptions? options, InvoiceValidator? validator, CancellationToken cancellationToken = default) : Task<IReadOnlyList<OfficeInvoiceFileWorkflowResult>>",
+      "replacement": "Use OfficeInvoiceFileWorkflow.RunBatchAsync(requests, options, cancellationToken) on every target without a standards provider. On .NET 8/.NET 10 the provider overload requires both options and validator arguments, although either may be null. To retain default batch options with a named provider, call OfficeInvoiceFileWorkflow.RunBatchAsync(requests, options: null, validator: validator, cancellationToken: cancellationToken). Public parameter names are unchanged; unavailable requested standards validation still fails closed.",
+      "reason": "Keep the same portable invoice entry points on every target framework while standards validation remains an explicit modern-only provider.",
+      "file": "OfficeIMO.Workflows/Invoicing/OfficeInvoiceFileWorkflow.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixAccessibilityMetadata.AssessmentDate : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixAccessibilityMetadata.AssessmentDate : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixAccessibilityMetadata.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixCollateralText.PublishedOn : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixCollateralText.PublishedOn : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCollateralText.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixCollateralText.UsableFrom : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixCollateralText.UsableFrom : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCollateralText.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixCollateralText.UsableUntil : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixCollateralText.UsableUntil : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCollateralText.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixCollateralText.UpdatedOn : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixCollateralText.UpdatedOn : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCollateralText.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixExportOptions.PublicationDate : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixExportOptions.PublicationDate : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixExportOptions.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixLicense.ValidFrom : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixLicense.ValidFrom : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixLicense.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixLicense.ValidUntil : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixLicense.ValidUntil : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixLicense.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixPrice.ValidFrom : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixPrice.ValidFrom : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCommercialMetadata.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixPrice.ValidUntil : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixPrice.ValidUntil : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCommercialMetadata.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixSupply.ExpectedSupplyDate : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixSupply.ExpectedSupplyDate : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixCommercialMetadata.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixResourceVersion.UsableFrom : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixResourceVersion.UsableFrom : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixSupportingResource.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixResourceVersion.UsableUntil : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixResourceVersion.UsableUntil : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixSupportingResource.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixResourceVersion.UpdatedOn : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixResourceVersion.UpdatedOn : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixSupportingResource.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixSalesRestriction.ValidFrom : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixSalesRestriction.ValidFrom : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixSalesRestriction.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixSalesRestriction.ValidUntil : DateOnly? (.NET 8/.NET 10; DateTime? on older targets)",
+      "kind": "property",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixSalesRestriction.ValidUntil : DateTime? (all supported targets)",
+      "replacement": "Use new DateTime(year, month, day), or convert an existing DateOnly with date.ToDateTime(TimeOnly.MinValue) on modern .NET. Null remains unspecified. ONIX export uses the calendar date as yyyyMMdd; time of day is ignored and date-range checks compare calendar dates. The date is not converted to UTC.",
+      "reason": "One public calendar-date type across netstandard2.0, net472, net8.0 and net10.0 preserves the package contract without introducing a date wrapper.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixSalesRestriction.cs",
+      "category": "contract",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.BookOnixUsageLimit.Date(BookOnixUsageUnit unit, DateOnly value) (.NET 8/.NET 10; DateTime value on older targets)",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.BookOnixUsageLimit.Date(BookOnixUsageUnit unit, DateTime value) : BookOnixUsageLimit (all supported targets)",
+      "replacement": "Pass a DateTime calendar value with the existing unit and value parameter names. Convert DateOnly with value.ToDateTime(TimeOnly.MinValue) on modern .NET. The factory normalizes value.Date, ignores time of day, keeps the ValidFrom/ValidUntil unit restriction and compares whole calendar days. No timezone conversion is performed.",
+      "reason": "Use the same public calendar-date factory on every supported target while preserving ONIX yyyyMMdd quantities and day-based ordering.",
+      "file": "OfficeIMO.Workflows/Publishing/BookOnixUsageLimit.cs",
+      "category": "contract",
+      "applied": true
     }
   ],
   "packageMoves": [
@@ -575,12 +829,12 @@
     },
     {
       "subject": "Older-framework publishing dates",
-      "note": "DateOnly does not exist on netstandard2.0 or net472. ONIX publishing date options use System.DateTime on these targets and DateOnly on net8.0/net10.0. Calendar-date serialization and date-valued usage limits reject a nonzero time component. No external date polyfill is introduced.",
+      "note": "All 16 ONIX calendar-date properties and BookOnixUsageLimit.Date use System.DateTime on every supported target, replacing modern DateOnly signatures. Serialization uses the calendar date as yyyyMMdd, ignores time of day and performs date-range checks on Date values; usage limits normalize value.Date and compare whole days. No timezone conversion or date wrapper is introduced. The exact affected members and caller conversions are listed in changes.",
       "status": "applied"
     },
     {
       "subject": "Conditional standards validation",
-      "note": "Invoicing.Validation is referenced only on net8.0/net10.0. Validator parameters and standards-report properties are compiled only there. Invoice model inspection, conversion, editing and PDF rendering remain on every target; requesting standards validation on an older target fails closed without returning output.",
+      "note": "Invoicing.Validation remains modern-only. IOfficeInvoiceWorkflowRunner exposes only RunInvoiceAsync(request, cancellationToken) on every target; modern hosts capture a provider in OfficeInvoiceStorageWorkflowRequest.StandardsValidator. The concrete runner retains an explicit modern validator overload. Buffer/File RunAsync and RunBatchAsync have common portable overloads; their modern provider overloads require validator, and batch provider overloads also require options (both may be null). Public parameter names are retained. Standards-report properties remain modern-only. Invoice inspection, conversion, editing and PDF rendering remain available on every target; unavailable requested standards validation fails closed without output.",
       "status": "applied"
     },
     {

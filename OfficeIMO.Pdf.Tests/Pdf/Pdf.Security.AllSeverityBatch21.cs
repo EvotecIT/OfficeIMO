@@ -58,18 +58,16 @@ public class PdfAllSeverityBatch21Tests {
     [Fact]
     public void TopOfPageKeepTogetherIgnoresSuppressedSpacingBefore() {
         PdfCreateOptions options = new() {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
             .Paragraph(
-                paragraph => paragraph.Text("This visible paragraph fits."),
+                paragraph => paragraph.AddText("This visible paragraph fits."),
                 style: new PdfParagraphStyle {
                     KeepTogether = true,
                     SpacingBefore = global::OfficeIMO.OfficeLength.Points(500)
@@ -82,19 +80,17 @@ public class PdfAllSeverityBatch21Tests {
     [Fact]
     public void KeepTogetherCollapsesSpacingBeforeAfterMovingToFreshPage() {
         PdfCreateOptions options = new() {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(170),
-            MarginLeft = global::OfficeIMO.OfficeLength.Points(30),
-            MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30),
-            MarginBottom = global::OfficeIMO.OfficeLength.Points(30),
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(170)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            },
             DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Preceding content."))
+            .Paragraph(paragraph => paragraph.AddText("Preceding content."))
             .Paragraph(
-                paragraph => paragraph.Text("This paragraph fits after its spacing collapses."),
+                paragraph => paragraph.AddText("This paragraph fits after its spacing collapses."),
                 style: new PdfParagraphStyle {
                     KeepTogether = true,
                     SpacingBefore = global::OfficeIMO.OfficeLength.Points(500)

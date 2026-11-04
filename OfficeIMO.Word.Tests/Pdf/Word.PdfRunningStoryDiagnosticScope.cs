@@ -44,14 +44,14 @@ public partial class Word {
             item => item.Code == "native-header-footer-content-control-unsupported");
         Assert.Equal("first header", warning.Source);
         Assert.Equal(OfficeIMO.OfficeConversionLossKind.Omission, warning.LossKind);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
     }
 
     private static WordDocument CreateRunningDiagnosticScopeDocument(bool evenHeader, bool active) {
         WordDocument document = WordDocument.Create();
-        document.DifferentFirstPage = true;
-        document.DifferentOddAndEvenPages = true;
-        document.AddHeadersAndFooters();
+        document.PageSetup.DifferentFirstPage = true;
+        document.PageSetup.DifferentOddAndEvenPages = true;
+        _ = document.PageSetup.Header;
         RequireSectionHeader(document, 0, W.HeaderFooterValues.Default).AddParagraph("ACTIVE");
         WordHeader target = RequireSectionHeader(document, 0,
             evenHeader ? W.HeaderFooterValues.Even : W.HeaderFooterValues.First);

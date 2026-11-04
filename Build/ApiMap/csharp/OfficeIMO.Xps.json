@@ -1,0 +1,34 @@
+{
+  "package": "OfficeIMO.Xps",
+  "changes": [
+    {
+      "old": "XpsDocument.Save(CancellationToken)",
+      "kind": "method",
+      "action": "change",
+      "new": "XpsDocument.ToBytes(CancellationToken)",
+      "replacement": "Save writes native output and binds a path only after success; Save(stream) leaves association and stream ownership intact. ToBytes returns native bytes. SaveCopy remains the non-rebinding operation.",
+      "category": "lifecycle",
+      "reason": "Persistence and byte serialization have distinct names; PDF and Visio already implement this contract.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Xps.XpsReadOptions.MaximumInputBytes / MaximumExpandedBytes / MaximumPartBytes / MaximumParts / MaximumPages / MaximumXmlDepth",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeIMO.Xps.XpsLoadOptions.Limits (XpsReadLimits: MaxInputBytes, MaxExpandedBytes, MaxPartBytes, MaxParts, MaxPages, MaxDepth)",
+      "replacement": "new XpsLoadOptions { Limits = { MaxPages = 100 } }",
+      "category": "limits",
+      "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Xps.XpsReadOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Xps.XpsLoadOptions",
+      "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

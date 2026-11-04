@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork.Tests;
 internal static class IWorkTestPolicy {
     internal static void AssertCellPaddingOmission(IWorkConversionReport report) {
         Assert.True(report.IsPartialEditableReconstruction);
-        IWorkDiagnostic omission = Assert.Single(report.Diagnostics,
+        IWorkDiagnostic omission = Assert.Single(report.NativeDiagnostics,
             diagnostic => diagnostic.LossKind == global::OfficeIMO.OfficeConversionLossKind.Omission
                 && diagnostic.Code != "IWORK_PARTIAL_EDITABLE_RECONSTRUCTION");
         Assert.Equal("IWORK_NUMBERS_CELL_PADDING_OMITTED", omission.Code);

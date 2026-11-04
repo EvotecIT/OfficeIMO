@@ -11,7 +11,7 @@ public sealed class WordChartStoryPartTests {
     public void NativeChart_IsOwnedByItsHeaderOrFooterAndSurvivesReopen(bool footer) {
         using var document = WordDocument.Create();
         var bodyChart = document.AddChart(OfficeChartType.ColumnClustered,Data(1));
-        WordHeaderFooter region = footer ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default) : document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+        WordHeaderFooter region = footer ? document.Sections[0].PageSetup.Footer : document.Sections[0].PageSetup.Header;
         var paragraph = region.AddParagraph();
         var chart = paragraph.AddChart(OfficeChartType.ColumnClustered,Data(9));
         var owner = footer ? (DocumentFormat.OpenXml.Packaging.OpenXmlPart)region._footer!.FooterPart! : region._header!.HeaderPart!;
@@ -30,7 +30,7 @@ public sealed class WordChartStoryPartTests {
         Assert.Empty(document.ValidateDocument());
         using var stream = new MemoryStream(); document.Save(stream); stream.Position = 0;
         using var reopened = WordDocument.Load(stream);
-        WordHeaderFooter reopenedRegion = footer ? reopened.Sections[0].Footer.Default! : reopened.Sections[0].Header.Default!;
+        WordHeaderFooter reopenedRegion = footer ? reopened.Sections[0].PageSetup.Footer : reopened.Sections[0].PageSetup.Header;
         var reopenedChart = reopenedRegion.Paragraphs.SelectMany(p => p.GetRuns()).Single(p => p.IsChart).Chart!;
         Assert.True(reopenedChart.TryGetOfficeSnapshot(out snapshot));
         Assert.Equal(11d, snapshot.Data.Series.Single().Values.Single());

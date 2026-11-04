@@ -35,9 +35,9 @@ namespace OfficeIMO.Excel {
             _requiresSavePreflight = false;
         }
 
-        private void PreflightWorkbook(IEnumerable<ExcelSheet> sheets) {
+        private void PreflightWorkbook(IEnumerable<ExcelSheet> sheets, bool saveWorksheets = true) {
             foreach (var sheet in sheets) {
-                sheet.Preflight();
+                sheet.Preflight(saveWorksheets);
             }
             CleanupWorkbookViewArtifacts(save: true);
             CleanupStyleAndSharedStringArtifacts(save: true);
@@ -143,9 +143,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
 
             string? extendedPackageSkipReason = null;
@@ -156,7 +157,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -166,6 +167,10 @@ namespace OfficeIMO.Excel {
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
+                return;
+            }
+
+            if (TrySaveSplicedPackageToFile(path, options, extendedPackageSkipReason ?? fastPackageSkipReason)) {
                 return;
             }
 
@@ -301,9 +306,10 @@ namespace OfficeIMO.Excel {
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
 
             string? extendedPackageSkipReason = null;
@@ -314,7 +320,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -324,6 +330,11 @@ namespace OfficeIMO.Excel {
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
+                return;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TrySaveSplicedPackageToFile(target, options, extendedPackageSkipReason ?? fastPackageSkipReason)) {
                 return;
             }
 
@@ -408,14 +419,20 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (TryWritePropertiesOnlyPackage(destination, options)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.UnchangedPackage();
+                return;
+            }
+
             if (TryWriteDirectDataSetPackage(destination, options, updateDocumentState: true, CancellationToken.None, out _)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.DirectDataSetPackage();
                 return;
             }
 
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
 
             string? extendedPackageSkipReason = null;
@@ -427,7 +444,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -439,6 +456,11 @@ namespace OfficeIMO.Excel {
             if (!preferExtendedPackageWriter
                 && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
+                return;
+            }
+
+            if (TryWriteSplicedPackage(destination, options)) {
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
                 return;
             }
 
@@ -459,7 +481,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>
         /// Saves the workbook as a password-encrypted Office Open XML package to a stream.
-        /// Use the format overload for native XLS or XLSB output. Encrypting the associated stream disables implicit persistence.
+        /// Use the format overload for native XLS or XLSB output. Encrypting the associated stream disables implicit persistence unless the workbook retains a password.
         /// </summary>
         /// <param name="destination">Writable stream that receives the encrypted workbook.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>
@@ -559,9 +581,10 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            PrepareCellValueBuffersForExtendedSave(options);
             bool preferExtendedPackageWriter = _materializedDirectDataSetFastSaveModel != null;
             Stopwatch? saveStageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter);
+            PrepareWorkbookForSave(options, skipDirectFastSaveSheetPreparation: preferExtendedPackageWriter, fastWritersReadWorksheets: true);
             ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbook");
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -574,7 +597,7 @@ namespace OfficeIMO.Excel {
 
             if (preferExtendedPackageWriter) {
                 MaterializeDirectDataSetFastSaveModelIfNeeded();
-                PrepareWorkbookForSave(options);
+                PrepareWorkbookForSave(options, fastWritersReadWorksheets: true);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
 
@@ -586,6 +609,16 @@ namespace OfficeIMO.Excel {
             if (!preferExtendedPackageWriter
                 && TryWriteExtendedWorkbookPackage(destination, options, updateDocumentState: true, out extendedPackageSkipReason, cancellationToken)) {
                 LastSaveDiagnostics = ExcelSaveDiagnostics.ExtendedPackage();
+                return;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            if (TrySplicePackage(options) is byte[] splicedPackage) {
+                PrepareDestinationStreamForWrite(destination);
+                await destination.WriteAsync(splicedPackage, 0, splicedPackage.Length, cancellationToken).ConfigureAwait(false);
+                try { await destination.FlushAsync(cancellationToken).ConfigureAwait(false); } catch (NotSupportedException) { }
+                MarkPackageClean(splicedPackage);
+                LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
                 return;
             }
 

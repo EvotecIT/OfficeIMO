@@ -23,7 +23,7 @@ internal static partial class IWorkPagesReader {
             IWorkWireMessage? zOrderMessage = null;
             try {
                 zOrderReferenceCount = IWorkProtobuf.CountFields(
-                    zOrder.Payload, 1, projectionBudget.MaximumProtobufFieldCount);
+                    zOrder.Payload, 1, projectionBudget.MaxProtobufFieldCount);
                 if (!TryReadMessage(index, zOrder, references, out zOrderMessage)) complete = false;
             } catch (InvalidDataException exception)
                 when (!IWorkProtobuf.IsLimitException(exception)) {
@@ -50,7 +50,7 @@ internal static partial class IWorkPagesReader {
             int pageGroupCount = 0;
             try {
                 pageGroupCount = IWorkProtobuf.CountFields(floating.Payload, 1,
-                    projectionBudget.MaximumProtobufFieldCount, out int totalFieldCount);
+                    projectionBudget.MaxProtobufFieldCount, out int totalFieldCount);
                 if (totalFieldCount != pageGroupCount
                     || !TryReadMessage(index, floating, references, out IWorkWireMessage floatingMessage)) {
                     complete = false;

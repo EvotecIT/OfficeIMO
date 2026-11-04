@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void LoadFromMarkdown_ResolvesRelativeLinks_WithBaseUri() {
             string md = "See [Docs](./guide/index.html).";
-            var options = new WordMarkdownImportOptions { BaseUri = "https://docs.example.com/" };
+            var options = new MarkdownWordExportOptions { BaseUri = "https://docs.example.com/" };
 
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options.CreateReaderOptions()).ToWord(options);
 
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void LoadFromMarkdown_Ignores_NonHttp_BaseUri() {
             string md = "Go [Home](./index.html)";
-            var options = new WordMarkdownImportOptions { BaseUri = "file:///tmp/docs/" };
+            var options = new MarkdownWordExportOptions { BaseUri = "file:///tmp/docs/" };
 
             using var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md, options.CreateReaderOptions()).ToWord(options);
 

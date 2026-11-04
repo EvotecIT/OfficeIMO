@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
                 throw new ArgumentNullException(nameof(property));
             }
 
-            CustomDocumentProperties[name.Trim()] = property;
+            CustomProperties[name.Trim()] = property;
             _customDocumentPropertiesDirty = true;
             DisqualifyDirectDataSetFastSaveState();
             MarkPackageDirty();
@@ -36,7 +36,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            bool removed = CustomDocumentProperties.Remove(name.Trim());
+            bool removed = CustomProperties.Remove(name.Trim());
             if (removed) {
                 _customDocumentPropertiesDirty = true;
                 DisqualifyDirectDataSetFastSaveState();
@@ -51,7 +51,7 @@ namespace OfficeIMO.Excel {
             _customDocumentPropertiesDirty = false;
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
             if (customPart?.Properties == null) {
-                CustomDocumentProperties.ReplaceWith(loadedProperties);
+                CustomProperties.ReplaceWith(loadedProperties);
                 return;
             }
 
@@ -69,12 +69,12 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            CustomDocumentProperties.ReplaceWith(loadedProperties);
+            CustomProperties.ReplaceWith(loadedProperties);
         }
 
         internal void SaveCustomDocumentProperties() {
             CustomFilePropertiesPart? customPart = _spreadSheetDocument.CustomFilePropertiesPart;
-            if (CustomDocumentProperties.Count == 0) {
+            if (CustomProperties.Count == 0) {
                 if (_customDocumentPropertiesDirty && customPart != null) {
                     _spreadSheetDocument.DeletePart(customPart);
                 }
@@ -89,7 +89,7 @@ namespace OfficeIMO.Excel {
 
             customPart.Properties = new Properties();
             int propertyId = 2;
-            foreach (var pair in CustomDocumentProperties.OrderBy(property => property.Key, StringComparer.OrdinalIgnoreCase)) {
+            foreach (var pair in CustomProperties.OrderBy(property => property.Key, StringComparer.OrdinalIgnoreCase)) {
                 CustomDocumentProperty property = pair.Value.ToOpenXml(pair.Key);
                 property.PropertyId = propertyId++;
                 customPart.Properties.Append(property);

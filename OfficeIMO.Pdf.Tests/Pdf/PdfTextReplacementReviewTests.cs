@@ -75,5 +75,5 @@ public sealed class PdfTextReplacementReviewTests {
     }
 
     private static PdfDocument Create(string text) => PdfDocument.Create(compose =>
-        compose.Page(page => page.Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text(text))))));
+        compose.Page(page => page.Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText(text))))));
 }

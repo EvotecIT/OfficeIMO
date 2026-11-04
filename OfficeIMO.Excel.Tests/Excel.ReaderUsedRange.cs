@@ -14,10 +14,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(1, 2, "Value");
-                    sheet.CellValue(2, 1, "Alpha");
-                    sheet.CellValue(2, 2, 10);
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(1, 2).SetValue("Value");
+                    sheet.Cell(2, 1).SetValue("Alpha");
+                    sheet.Cell(2, 2).SetValue(10);
                     sheet.AddTable("A1:B2", hasHeader: true, name: "DataTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
                     document.Save();
                 }
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    document.AddSheet("Data").CellValue(3, 2, "Value");
+                    document.AddSheet("Data").Cell(3, 2).SetValue("Value");
                     document.Save();
                 }
 
@@ -74,10 +74,10 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     var sheet = document.AddSheet("Data");
-                    sheet.CellValue(1, 1, "Name");
-                    sheet.CellValue(2, 1, "Alpha");
+                    sheet.Cell(1, 1).SetValue("Name");
+                    sheet.Cell(2, 1).SetValue("Alpha");
                     sheet.AddTable("A1:A2", hasHeader: true, name: "DataTable", style: OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
-                    sheet.CellValue(4, 4, "Outside");
+                    sheet.Cell(4, 4).SetValue("Outside");
                     document.Save();
                 }
 

@@ -9,19 +9,19 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_IndexMatchFallbackFeedsDependentTotalsAndPersists() {
             using var document = ExcelDocument.Create();
             var products = document.AddSheet("Products");
-            products.CellValue(2, 1, "P1");
-            products.CellValue(2, 2, "Hardware");
+            products.Cell(2, 1).SetValue("P1");
+            products.Cell(2, 2).SetValue("Hardware");
             var orders = document.AddSheet("Orders");
-            orders.CellValue(2, 1, "P1");
-            orders.CellValue(3, 1, "PX");
-            orders.CellValue(2, 3, 10d);
-            orders.CellValue(3, 3, 25d);
+            orders.Cell(2, 1).SetValue("P1");
+            orders.Cell(3, 1).SetValue("PX");
+            orders.Cell(2, 3).SetValue(10d);
+            orders.Cell(3, 3).SetValue(25d);
             for (int row = 2; row <= 3; row++) {
-                orders.CellFormula(row, 2, $"IFERROR(INDEX(Products!$B$2:$B$2,MATCH(A{row},Products!$A$2:$A$2,0)),\"Unknown\")");
+                orders.Cell(row, 2).SetFormula($"IFERROR(INDEX(Products!$B$2:$B$2,MATCH(A{row},Products!$A$2:$A$2,0)),\"Unknown\")");
             }
-            orders.CellFormula(5, 2, "COUNTIFS(B2:B3,\"Unknown\")");
-            orders.CellFormula(6, 2, "SUMIFS(C2:C3,B2:B3,\"Unknown\")");
-            orders.CellFormula(7, 2, "B5+B6");
+            orders.Cell(5, 2).SetFormula("COUNTIFS(B2:B3,\"Unknown\")");
+            orders.Cell(6, 2).SetFormula("SUMIFS(C2:C3,B2:B3,\"Unknown\")");
+            orders.Cell(7, 2).SetFormula("B5+B6");
             Assert.Equal(5, document.Calculate());
             string[] expected = { "Hardware", "Unknown", "1", "25", "26" };
             int[] rows = { 2, 3, 5, 6, 7 };
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             using var reopened = ExcelDocument.Load(saved);
             for (int index = 0; index < rows.Length; index++) AssertFormulaCache(reopened.Sheets[1], rows[index], 2, expected[index]);
             Assert.Empty(reopened.ValidateOpenXml());
-            products.CellValue(2, 1, "PX");
+            products.Cell(2, 1).SetValue("PX");
             Assert.Equal(5, document.Calculate());
             AssertFormulaCache(orders, 2, 2, "Unknown");
             AssertFormulaCache(orders, 3, 2, "Hardware");
@@ -71,14 +71,14 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_LookupErrorsRemainTypedAndCatchable(string formula, string expected) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Lookup");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 2d);
-            sheet.CellValue(1, 2, 10d);
-            sheet.CellValue(2, 2, 20d);
-            sheet.CellFormula(1, 4, formula);
-            sheet.CellFormula(2, 4, "IFERROR(D1,99)");
-            sheet.CellFormula(3, 4, "IFNA(D1,FALSE)");
-            sheet.CellFormula(4, 4, "ISERROR(D1)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 2).SetValue(10d);
+            sheet.Cell(2, 2).SetValue(20d);
+            sheet.Cell(1, 4).SetFormula(formula);
+            sheet.Cell(2, 4).SetFormula("IFERROR(D1,99)");
+            sheet.Cell(3, 4).SetFormula("IFNA(D1,FALSE)");
+            sheet.Cell(4, 4).SetFormula("ISERROR(D1)");
             Assert.Equal(4, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, expected);
             AssertFormulaCache(sheet, 2, 4, "99");
@@ -105,14 +105,14 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_SelectedBlankLookupRetainsContextAndFallbackIsLazy(string formula, string count) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Lookup");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 2d);
-            sheet.CellFormula(1, 4, formula);
-            sheet.CellFormula(2, 4, "IFERROR(D1,UNKNOWN())");
-            sheet.CellFormula(3, 4, "D1+1");
-            sheet.CellFormula(4, 4, $"ISBLANK({formula})");
-            sheet.CellFormula(5, 4, $"{formula}&\"x\"");
-            sheet.CellFormula(6, 4, $"COUNT({formula})");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(2d);
+            sheet.Cell(1, 4).SetFormula(formula);
+            sheet.Cell(2, 4).SetFormula("IFERROR(D1,UNKNOWN())");
+            sheet.Cell(3, 4).SetFormula("D1+1");
+            sheet.Cell(4, 4).SetFormula($"ISBLANK({formula})");
+            sheet.Cell(5, 4).SetFormula($"{formula}&\"x\"");
+            sheet.Cell(6, 4).SetFormula($"COUNT({formula})");
             Assert.Equal(6, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "0");
             AssertFormulaCache(sheet, 2, 4, "0");
@@ -130,10 +130,10 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_IndexMatchFallbackPreservesValueType(string fallback, string expected, bool isText) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Lookup");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellFormula(1, 4, $"IFERROR(INDEX(A1:A1,MATCH(9,A1:A1,0)),{fallback})");
-            sheet.CellFormula(2, 4, "ISTEXT(D1)");
-            sheet.CellFormula(3, 4, "ISERROR(D1)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(1, 4).SetFormula($"IFERROR(INDEX(A1:A1,MATCH(9,A1:A1,0)),{fallback})");
+            sheet.Cell(2, 4).SetFormula("ISTEXT(D1)");
+            sheet.Cell(3, 4).SetFormula("ISERROR(D1)");
             Assert.Equal(3, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, expected);
             AssertFormulaCache(sheet, 2, 4, isText ? "1" : "0");
@@ -152,9 +152,9 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_UnsupportedLookupDoesNotActivateFallback(string formula) {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Lookup");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(1, 4, 42d);
-            sheet.CellFormula(1, 4, $"IFERROR({formula},99)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(1, 4).SetValue(42d);
+            sheet.Cell(1, 4).SetFormula($"IFERROR({formula},99)");
             Assert.Equal(0, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "42");
             Assert.False(Assert.Single(sheet.InspectFormulas().Formulas).IsSupportedByOfficeIMO);
@@ -164,13 +164,13 @@ namespace OfficeIMO.Tests {
         public void Test_FormulaEvaluator_OmittedLookupModesKeepTheirArgumentPositions() {
             using var document = ExcelDocument.Create();
             var sheet = document.AddSheet("Lookup");
-            sheet.CellValue(1, 1, 1d);
-            sheet.CellValue(2, 1, 1d);
-            sheet.CellValue(1, 2, 10d);
-            sheet.CellValue(2, 2, 20d);
-            sheet.CellFormula(1, 4, "XMATCH(1,A1:A2,,-1)");
-            sheet.CellFormula(2, 4, "INDEX(B1:B2,2,)");
-            sheet.CellFormula(3, 4, "MATCH(1,A1:A2,)");
+            sheet.Cell(1, 1).SetValue(1d);
+            sheet.Cell(2, 1).SetValue(1d);
+            sheet.Cell(1, 2).SetValue(10d);
+            sheet.Cell(2, 2).SetValue(20d);
+            sheet.Cell(1, 4).SetFormula("XMATCH(1,A1:A2,,-1)");
+            sheet.Cell(2, 4).SetFormula("INDEX(B1:B2,2,)");
+            sheet.Cell(3, 4).SetFormula("MATCH(1,A1:A2,)");
             Assert.Equal(3, document.Calculate());
             AssertFormulaCache(sheet, 1, 4, "2");
             AssertFormulaCache(sheet, 2, 4, "20");

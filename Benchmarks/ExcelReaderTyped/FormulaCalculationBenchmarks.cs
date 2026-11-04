@@ -21,8 +21,8 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _document = ExcelDocument.Create();
             var products = _document.AddSheet("Products");
             for (int p = 1; p <= 200; p++) {
-                products.CellValue(p + 1, 1, "P" + p);
-                products.CellValue(p + 1, 2, "C" + p % 23);
+                products.Cell(p + 1, 1).SetValue("P" + p);
+                products.Cell(p + 1, 2).SetValue("C" + p % 23);
             }
             _orders = _document.AddSheet("Orders");
             int[] counts = new int[23];
@@ -30,16 +30,16 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             for (int i = 1; i <= 1000; i++) {
                 int row = i + 1, product = (i - 1) % 200 + 1;
                 bool missing = Scenario != "IndexHit" && i % 97 == 0;
-                _orders.CellValue(row, 1, missing ? "PX" : "P" + product);
+                _orders.Cell(row, 1).SetValue(missing ? "PX" : "P" + product);
                 string expression = Scenario switch {
                     "VlookupMiss" => $"VLOOKUP(A{row},Products!$A$2:$B$201,2,FALSE)",
                     "XlookupMiss" => $"XLOOKUP(A{row},Products!$A$2:$A$201,Products!$B$2:$B$201)",
                     _ => $"INDEX(Products!$B$2:$B$201,MATCH(A{row},Products!$A$2:$A$201,0))"
                 };
-                _orders.CellFormula(row, 2, $"IFERROR({expression},\"Unknown\")");
+                _orders.Cell(row, 2).SetFormula($"IFERROR({expression},\"Unknown\")");
                 double amount = i % 11 + 1;
-                _orders.CellValue(row, 3, amount);
-                _orders.CellFormula(row, 4, $"C{row}*2");
+                _orders.Cell(row, 3).SetValue(amount);
+                _orders.Cell(row, 4).SetFormula($"C{row}*2");
                 _expected.Add((row, 2, missing ? "Unknown" : "C" + product % 23));
                 Expect(row, 4, amount * 2);
                 if (!missing) {
@@ -49,13 +49,13 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             }
             for (int category = 0; category < 23; category++) {
                 int row = 1003 + category;
-                _orders.CellFormula(row, 2, $"COUNTIFS(B2:B1001,\"C{category}\")");
-                _orders.CellFormula(row, 4, $"SUMIFS(D2:D1001,B2:B1001,\"C{category}\")");
+                _orders.Cell(row, 2).SetFormula($"COUNTIFS(B2:B1001,\"C{category}\")");
+                _orders.Cell(row, 4).SetFormula($"SUMIFS(D2:D1001,B2:B1001,\"C{category}\")");
                 Expect(row, 2, counts[category]);
                 Expect(row, 4, sums[category]);
             }
-            _orders.CellFormula(1027, 2, "SUM(B1003:B1025)");
-            _orders.CellFormula(1027, 4, "SUM(D1003:D1025)");
+            _orders.Cell(1027, 2).SetFormula("SUM(B1003:B1025)");
+            _orders.Cell(1027, 4).SetFormula("SUM(D1003:D1025)");
             Expect(1027, 2, counts.Sum());
             Expect(1027, 4, sums.Sum());
         }

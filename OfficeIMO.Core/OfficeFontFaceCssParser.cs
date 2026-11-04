@@ -18,11 +18,16 @@ internal static class OfficeFontFaceCssParser {
         return int.TryParse(normalized, NumberStyles.Integer, CultureInfo.InvariantCulture, out weight) && weight >= 1 && weight <= 1000;
     }
 
+    private static readonly string[] StretchNames = { "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "normal", "semi-expanded", "expanded", "extra-expanded", "ultra-expanded" };
+    private static readonly double[] StretchWidths = { 50D, 62.5D, 75D, 87.5D, 100D, 112.5D, 125D, 150D, 200D };
+
     internal static bool TryStretch(string value, double inherited, out double stretch) {
-        string normalized = value.Trim().ToLowerInvariant();
-        string[] names = { "ultra-condensed", "extra-condensed", "condensed", "semi-condensed", "normal", "semi-expanded", "expanded", "extra-expanded", "ultra-expanded" };
-        double[] widths = { 50D, 62.5D, 75D, 87.5D, 100D, 112.5D, 125D, 150D, 200D };
         stretch = inherited;
+        // Every resolved style asks; most carry no authored value.
+        if (value.Length == 0) return true;
+        string normalized = value.Trim().ToLowerInvariant();
+        string[] names = StretchNames;
+        double[] widths = StretchWidths;
         if (normalized.Length == 0 || normalized == "inherit") return true;
         for (int i = 0; i < names.Length; i++) if (normalized == names[i]) { stretch = widths[i]; return true; }
         if (normalized == "wider") {

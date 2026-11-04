@@ -24,7 +24,7 @@ public class HtmlPowerPointBubbleChartTests {
             .HideLegend();
 
         string html = presentation.ToHtml(
-            new PowerPointHtmlSaveOptions {
+            new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
 
@@ -38,7 +38,7 @@ public class HtmlPowerPointBubbleChartTests {
             System.StringComparison.Ordinal);
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult();
+            .ConvertToPowerPointWithEvidence();
         using PowerPointDocument imported = result.Value;
         Assert.True(imported.Slides[0].Charts.Single().TryGetOfficeSnapshot(
             out OfficeChartSnapshot positionedSnapshot));

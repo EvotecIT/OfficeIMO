@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.PackageTheme = new VisioPackageTheme { Name = "Office Theme" };
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
             document.Save();
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
+            page.Shapes.Add(new VisioShape("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
             document.Save();
 
             using (Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read)) {

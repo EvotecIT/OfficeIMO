@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests
                 {
                     var sheet1 = document.AddSheet("Data");
 
-                    sheet1.Cell(2, 3, "Hello");
+                    sheet1.Cell(2, 3).SetValue("Hello");
                 }
 
                 document.Save();
@@ -63,13 +63,13 @@ namespace OfficeIMO.Tests
                 {
                     var sheet3 = document.AddSheet("Data");
 
-                    sheet3.Cell(0, 1, "X");
+                    sheet3.Cell(0, 1).SetValue("X");
                 });
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                 {
                     var sheet5 = document.AddSheet("Data");
 
-                    sheet5.Cell(1, 0, "X");
+                    sheet5.Cell(1, 0).SetValue("X");
                 });
             }
 
@@ -123,10 +123,10 @@ namespace OfficeIMO.Tests
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Data");
                 for (int row = 1; row <= 160; row++) {
-                    sheet.CellAt(row, 1).SetValue("secret-" + row.ToString(CultureInfo.InvariantCulture));
+                    sheet.Cell(row, 1).SetValue("secret-" + row.ToString(CultureInfo.InvariantCulture));
                 }
 
-                sheet.ClearRange("A1:A160", ExcelClearOptions.Values);
+                sheet.Range("A1:A160").Clear(ExcelClearOptions.Values);
                 document.Save();
             }
 
@@ -230,33 +230,6 @@ namespace OfficeIMO.Tests
             Assert.Equal("AB12", ExcelA1.CellReference(12, 28));
             Assert.Throws<ArgumentOutOfRangeException>(() => ExcelA1.CellReference(0, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() => ExcelA1.CellReference(1, 0));
-        }
-
-        [Fact]
-        public void CellAndRangeStylePresetsApplyFormatsAndStatusColors() {
-            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
-
-            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddSheet("Styles");
-                sheet.CellAt(1, 1).SetValue("Amount").HeaderStyle();
-                sheet.CellAt(2, 1).SetValue(123.45).Currency(culture: CultureInfo.GetCultureInfo("en-US")).Success();
-                sheet.Range("B2:B3").Percent(1).Warning();
-                sheet.CellAt(2, 2).SetValue(0.42);
-                sheet.CellAt(3, 2).SetValue(0.67);
-                document.Save();
-            }
-
-            using (var spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
-                string stylesXml = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet.OuterXml;
-
-                Assert.Contains("$", stylesXml, StringComparison.Ordinal);
-                Assert.Contains("0.0%", stylesXml, StringComparison.Ordinal);
-                Assert.Contains("E7F6E7", stylesXml, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("FFF4CC", stylesXml, StringComparison.OrdinalIgnoreCase);
-                Assert.Contains("D9EAF7", stylesXml, StringComparison.OrdinalIgnoreCase);
-            }
-
-            File.Delete(filePath);
         }
     }
 }

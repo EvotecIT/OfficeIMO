@@ -15,10 +15,10 @@ public static partial class WordHtmlConverterExtensions {
     public static IReadOnlyList<WordElement> AddHtml(
         this WordTableCell cell,
         HtmlConversionDocument htmlDocument,
-        WordHtmlImportOptions? options = null) {
+        HtmlWordExportOptions? options = null) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
-        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         EnsureOfflineSynchronousImport(htmlDocument, resolved);
         return cell.AddHtmlAsync(htmlDocument, resolved).GetAwaiter().GetResult();
@@ -35,13 +35,13 @@ public static partial class WordHtmlConverterExtensions {
     public static async Task<IReadOnlyList<WordElement>> AddHtmlAsync(
         this WordTableCell cell,
         HtmlConversionDocument htmlDocument,
-        WordHtmlImportOptions? options = null,
+        HtmlWordExportOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         if (htmlDocument == null) throw new ArgumentNullException(nameof(htmlDocument));
         cancellationToken.ThrowIfCancellationRequested();
 
-        WordHtmlImportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
+        HtmlWordExportOptions resolved = ResolveWordOptionsForSharedDocument(htmlDocument, options);
         resolved.ConversionReport.AddRange(htmlDocument.Diagnostics);
         var converter = new HtmlToWordConverter();
         IReadOnlyList<WordElement> elements = await converter.AddHtmlToTableCellAsync(

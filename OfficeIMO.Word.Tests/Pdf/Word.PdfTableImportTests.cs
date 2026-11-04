@@ -12,12 +12,10 @@ public partial class Word {
     [Fact]
     public void PdfTables_SaveAsWord_ImportsDetectedTablesAsWordTables() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -36,7 +34,7 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        PdfWordConversionResult result = LoadTables(pdf).ConvertToWordWithEvidence(WordPdfImportOptions.CreateTablesOnly());
+        PdfWordConversionResult result = LoadTables(pdf).ConvertToWordWithEvidence(PdfWordExportOptions.CreateTablesOnly());
         using (result.Value) {
             result.Value.Save(document);
         }
@@ -44,7 +42,7 @@ public partial class Word {
         Assert.Contains(result.Report.Warnings, warning =>
             warning.Code == "pdf-editable-layout-reconstructed" &&
             warning.LossKind == OfficeConversionLossKind.Approximation);
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -66,12 +64,10 @@ public partial class Word {
     [Fact]
     public void PdfTables_SaveAsWord_AppliesRowCapsAndKeepsDocumentValidWhenEmpty() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .KeyValueTable(new[] {
@@ -84,11 +80,11 @@ public partial class Word {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(4)
             })
             .PageBreak()
-            .Paragraph(p => p.Text("No table on this page."))
+            .Paragraph(p => p.AddText("No table on this page."))
             .ToBytes();
 
         using var document = new MemoryStream();
-        WordPdfImportOptions tablesOnly = WordPdfImportOptions.CreateTablesOnly();
+        PdfWordExportOptions tablesOnly = PdfWordExportOptions.CreateTablesOnly();
         tablesOnly.MaxTableRows = 2;
         PdfWordConversionResult result = LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)).ConvertToWordWithEvidence(tablesOnly);
         using (result.Value) {
@@ -96,7 +92,7 @@ public partial class Word {
         }
         Assert.True(result.Report.HasLoss);
         Assert.Contains(result.Report.Warnings, warning => warning.Code == "pdf-table-truncated");
-        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
 
         using (WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -108,7 +104,7 @@ public partial class Word {
         }
 
         using var emptyDocument = new MemoryStream();
-        WordPdfImportOptions emptyOptions = WordPdfImportOptions.CreateTablesOnly();
+        PdfWordExportOptions emptyOptions = PdfWordExportOptions.CreateTablesOnly();
         emptyOptions.EmptyDocumentMessage = "Nothing tabular was detected.";
         PdfWordConversionResult emptyResult = LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)).ConvertToWordWithEvidence(emptyOptions);
         using (emptyResult.Value) {

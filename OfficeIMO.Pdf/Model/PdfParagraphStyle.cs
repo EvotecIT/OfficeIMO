@@ -97,7 +97,7 @@ public class PdfParagraphStyle {
     }
     private PdfTextWhitespaceMode? _textWhitespaceMode;
 
-    /// <summary>Expandable boundaries when the paragraph uses <see cref="PdfAlign.Justify"/>. The default expands word separators.</summary>
+    /// <summary>Expandable boundaries when the paragraph uses <see cref="OfficeAlignment.Justify"/>. The default expands word separators.</summary>
     public PdfJustificationMode JustificationMode {
         get => _justificationMode;
         set {

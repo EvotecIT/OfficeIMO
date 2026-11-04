@@ -5,9 +5,9 @@ internal static class AsciiDocToMarkdownConverter {
     /// <summary>Converts recognized AsciiDoc semantics and reports every fallback or omission.</summary>
     internal static AsciiDocToMarkdownResult Convert(
         AsciiDocDocument document,
-        AsciiDocToMarkdownOptions? options = null) {
+        AsciiDocMarkdownExportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        options ??= new AsciiDocToMarkdownOptions();
+        options ??= new AsciiDocMarkdownExportOptions();
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.Create(document, options.MaximumBlockNestingDepth));
 
@@ -32,10 +32,10 @@ internal static class AsciiDocToMarkdownConverter {
     internal static AsciiDocToMarkdownResult ConvertBlock(
         AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions? options = null) {
+        AsciiDocMarkdownExportOptions? options = null) {
         if (block == null) throw new ArgumentNullException(nameof(block));
         if (attributes == null) throw new ArgumentNullException(nameof(attributes));
-        options ??= new AsciiDocToMarkdownOptions();
+        options ??= new AsciiDocMarkdownExportOptions();
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.CreateForBlock(block, attributes, options.MaximumBlockNestingDepth));
         var markdown = MarkdownDocument.Create();
@@ -45,7 +45,7 @@ internal static class AsciiDocToMarkdownConverter {
         return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 
-    private static void AddFootnotes(MarkdownDocument markdown, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+    private static void AddFootnotes(MarkdownDocument markdown, AsciiDocMarkdownExportOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         if (options.References == null) return;
         foreach (var definition in options.References.Footnotes) {
             if (!options.UsedFootnotes.Contains(definition.Key)) continue;
@@ -61,7 +61,7 @@ internal static class AsciiDocToMarkdownConverter {
         MarkdownDocument markdown,
         AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         int depth = 0) {
         if (depth >= options.MaximumBlockNestingDepth) throw new System.IO.InvalidDataException("AsciiDoc conversion exceeds MaximumBlockNestingDepth.");
@@ -119,7 +119,7 @@ internal static class AsciiDocToMarkdownConverter {
     private static void AddFrontMatter(
         AsciiDocDocument source,
         MarkdownDocument target,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         AsciiDocAttributeEntry[] attributes = source.GetAttributeEntries(options.MaximumBlockNestingDepth).ToArray();
         if (attributes.Length == 0) return;
@@ -154,7 +154,7 @@ internal static class AsciiDocToMarkdownConverter {
         MarkdownDocument target,
         AsciiDocListBlock source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         int depth) {
         if (source.Kind == AsciiDocListKind.Callout) {
@@ -190,7 +190,7 @@ internal static class AsciiDocToMarkdownConverter {
         ListItem target,
         AsciiDocListItem source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         int depth) {
         for (int index = 0; index < source.AttachedBlocks.Count; index++) {
@@ -206,7 +206,7 @@ internal static class AsciiDocToMarkdownConverter {
         MarkdownDocument target,
         AsciiDocDescriptionListBlock source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         var list = new DefinitionListBlock();
         for (int index = 0; index < source.Items.Count; index++) {
@@ -227,7 +227,7 @@ internal static class AsciiDocToMarkdownConverter {
         MarkdownDocument target,
         AsciiDocAdmonitionBlock source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         InlineSequence body = AsciiDocInlineToMarkdownConverter.Convert(source.Inlines, attributes, options, diagnostics, source);
         var callout = new CalloutBlock(source.Kind.ToString().ToLowerInvariant(), string.Empty,
@@ -240,7 +240,7 @@ internal static class AsciiDocToMarkdownConverter {
         MarkdownDocument target,
         AsciiDocDelimitedBlock source,
         AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics,
         int depth) {
         string content = TrimOneTrailingLineEnding(source.Content);
@@ -306,7 +306,7 @@ internal static class AsciiDocToMarkdownConverter {
         }
     }
 
-    private static void AddCalloutList(MarkdownDocument target, AsciiDocListBlock source, AsciiDocDocumentAttributes attributes, AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
+    private static void AddCalloutList(MarkdownDocument target, AsciiDocListBlock source, AsciiDocDocumentAttributes attributes, AsciiDocMarkdownExportOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
         var numbers = new List<int>();
         int automatic = 0;
         foreach (var item in source.Items) numbers.Add(item.Marker == "<.>" ? ++automatic : int.Parse(item.Marker.Substring(1, item.Marker.Length - 2), System.Globalization.CultureInfo.InvariantCulture));
@@ -334,7 +334,7 @@ internal static class AsciiDocToMarkdownConverter {
     }
 
     private static MarkdownDocument ConvertCompoundBody(AsciiDocDelimitedBlock source, AsciiDocDocumentAttributes attributes,
-        AsciiDocToMarkdownOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
+        AsciiDocMarkdownExportOptions options, List<AsciiDocMarkdownConversionDiagnostic> diagnostics, int depth) {
         AsciiDocDocument children = source.Body!;
         var result = MarkdownDocument.Create();
         var attached = new HashSet<AsciiDocBlock>(children.BlocksOfType<AsciiDocListBlock>()
@@ -370,7 +370,7 @@ internal static class AsciiDocToMarkdownConverter {
     private static void AddMacro(
         MarkdownDocument target,
         AsciiDocBlockMacro source,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         if (string.Equals(source.Name, "image", StringComparison.Ordinal) && source.Target.Length > 0) {
             string? alt = FirstAttribute(source.AttributeList);
@@ -386,7 +386,7 @@ internal static class AsciiDocToMarkdownConverter {
     private static void AddComment(
         MarkdownDocument target,
         AsciiDocLineComment source,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         if (options.PreserveCommentsAsSource) {
             target.Code("asciidoc", source.OriginalText);
@@ -403,7 +403,7 @@ internal static class AsciiDocToMarkdownConverter {
         AsciiDocBlock source,
         string code,
         string feature,
-        AsciiDocToMarkdownOptions options,
+        AsciiDocMarkdownExportOptions options,
         List<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
         if (options.PreserveUnsupportedAsSource) {
             target.Code("asciidoc", source.OriginalText);

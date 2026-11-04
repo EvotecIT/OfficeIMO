@@ -76,7 +76,7 @@ internal static partial class IWorkTableReader {
         }
         int declaredHeaders;
         try {
-            declaredHeaders = IWorkProtobuf.CountFields(bucket.Payload, 2, source.Options.MaximumProtobufFieldCount);
+            declaredHeaders = IWorkProtobuf.CountFields(bucket.Payload, 2, source.Options.MaxProtobufFieldCount);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             complete = indicesComplete = false;
             references.Declarations.Record(bucket, "$", null);

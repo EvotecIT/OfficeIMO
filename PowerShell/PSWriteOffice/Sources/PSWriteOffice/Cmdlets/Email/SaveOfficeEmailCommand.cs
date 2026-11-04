@@ -41,7 +41,7 @@ public sealed class SaveOfficeEmailCommand : OfficeMutationCmdlet {
             var writer = new EmailStoreEmlxWriter(new EmailStoreEmlxWriterOptions(Options));
             var result = writer.Write(Document, output);
             if (result.HasErrors) {
-                result.RequireNoLoss();
+                result.ThrowIfLoss();
             }
 
             WritePassThru(result);

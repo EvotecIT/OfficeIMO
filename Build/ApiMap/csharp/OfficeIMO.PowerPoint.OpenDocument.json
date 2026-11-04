@@ -23,6 +23,34 @@
       "phase": "B",
       "applied": "phase-b-applied",
       "reason": "The rendering package now exposes one image options type. The adapter preserves source conversion, selection, diagnostic attachment and cancellation behavior."
+    },
+    {
+      "old": "PowerPointDocument.ToOpenDocument(options) / ToOpenDocumentResult(options) : OdfConversionResult<OdpPresentation>",
+      "kind": "method",
+      "action": "merge",
+      "new": "PowerPointDocument.ToOpenDocument(PowerPointOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken) : OdpPresentation; ToOpenDocumentAsync; SaveAsOpenDocument(path | stream); SaveAsOpenDocumentAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "replacement": "The out report is the typed OdfConversionReport with per-feature mappings.",
+      "applied": true
+    },
+    {
+      "old": "OdpPresentation.ToPowerPointDocument(options) / ToPowerPointDocumentResult(options)",
+      "kind": "method",
+      "action": "merge",
+      "new": "OdpPresentation.ToPowerPoint(PowerPointOpenDocumentConversionOptions options[, out OfficeConversionReport report], CancellationToken); ToPowerPointAsync; SaveAsPowerPoint(path | stream); SaveAsPowerPointAsync",
+      "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionOptions",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.PowerPoint.OpenDocument.PowerPointOpenDocumentConversionOptions.Clone()",
+      "reason": "Both directions share every setting, so one options type stays; LossPolicy keeps its three levels instead of FailOnLoss.",
+      "category": "options",
+      "applied": true
     }
   ]
 }

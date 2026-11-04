@@ -11,7 +11,7 @@ Creates a proof report for user-visible signals preserved by a PDF rewrite.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Test-OfficePdfRewrite [-ReferencePath] <string> [-DifferencePath] <string> [-Options <PdfRewritePreservationOptions>] [-FailOnLoss] [-ReferencePassword <string>] [-IgnoreReferencePermissionRestrictions] [-DifferencePassword <string>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
+Test-OfficePdfRewrite [-ReferencePath] <string> [-DifferencePath] <string> [-Options <PdfRewritePreservationOptions>] [-FailOnLoss] [-ReferencePassword <securestring>] [-IgnoreReferencePermissionRestrictions] [-DifferencePassword <securestring>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -31,7 +31,7 @@ Test-OfficePdfRewrite -ReferencePath 'C:\Path' -DifferencePath 'C:\Path'
 Password used to authenticate the rewritten PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Path
 Aliases: None
 Possible values:
@@ -127,7 +127,7 @@ Accept wildcard characters: False
 Password used to authenticate the original PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Path
 Aliases: None
 Possible values:

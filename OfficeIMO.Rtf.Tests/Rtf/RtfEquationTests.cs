@@ -14,28 +14,28 @@ public sealed class RtfEquationTests {
         using WordDocument word = WordDocument.Create();
         word.AddEquation(omml);
 
-        RtfConversionResult<RtfDocument> conversion = word.ToRtfDocumentResult();
+        RtfConversionResult<RtfDocument> conversion = word.ConvertToRtfWithEvidence();
         RtfField field = Assert.Single(Assert.Single(conversion.Value.Paragraphs).Inlines.OfType<RtfField>());
 
         Assert.True(field.IsEquation);
         Assert.Equal("(a)/(b)", field.ToPlainText());
         Assert.Contains("\\f(a,b)", field.Instruction, StringComparison.Ordinal);
-        Assert.Contains(conversion.Report.Diagnostics, diagnostic =>
+        Assert.Contains(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfEquationsMappedToEqFields" &&
             diagnostic.Action == RtfConversionAction.Substituted);
-        Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(conversion.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == "WordRtfElementOmitted" && diagnostic.Feature == nameof(WordEquation));
 
         string rtf = conversion.Value.ToRtf();
         Assert.Contains("\\field", rtf, StringComparison.Ordinal);
         Assert.Contains("EQ", rtf, StringComparison.Ordinal);
 
-        RtfReadResult read = RtfDocument.Read(rtf);
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
         RtfField readField = Assert.Single(Assert.Single(read.Document.Paragraphs).Inlines.OfType<RtfField>());
         Assert.True(readField.IsEquation);
         Assert.Equal("(a)/(b)", readField.ToPlainText());
 
-        using WordDocument roundTrip = read.Document.ToWordDocument();
+        using WordDocument roundTrip = read.Document.ToWord();
         WordEquation equation = Assert.Single(roundTrip.Equations);
         Assert.Equal(WordEquationRepresentation.EquationField, equation.Representation);
         Assert.Equal("(a)/(b)", equation.Text);
@@ -52,7 +52,7 @@ public sealed class RtfEquationTests {
         using WordDocument word = WordDocument.Create();
         word.AddEquation(omml);
 
-        RtfField field = Assert.Single(Assert.Single(word.ToRtfDocument().Paragraphs).Inlines.OfType<RtfField>());
+        RtfField field = Assert.Single(Assert.Single(word.ToRtf().Paragraphs).Inlines.OfType<RtfField>());
 
         Assert.Equal("a/bstack(c,d)e⁄f", field.ToPlainText());
         Assert.Contains("a/b", field.Instruction, StringComparison.Ordinal);
@@ -101,7 +101,7 @@ public sealed class RtfEquationTests {
                 Author = "Reviewer"
             });
 
-        RtfDocument rtf = word.ToRtfDocument();
+        RtfDocument rtf = word.ToRtf();
         RtfField[] fields = Assert.Single(rtf.Paragraphs).Inlines.OfType<RtfField>().ToArray();
 
         Assert.Equal(new[] { "inserted", "moved", "(a)/(b)", "simple field" }, fields.Select(field => field.ToPlainText()));
@@ -128,7 +128,7 @@ public sealed class RtfEquationTests {
             Anchor = "target"
         });
 
-        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtf().Paragraphs);
         RtfField hyperlinkField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
         RtfField[] fields = hyperlinkField.Result.Inlines.OfType<RtfField>().ToArray();
 
@@ -138,11 +138,11 @@ public sealed class RtfEquationTests {
         Assert.Equal("link-prefix linked nested-prefix nested nested-suffix link-suffix", rtfParagraph.ToPlainText());
         Assert.All(fields, field => Assert.True(field.IsEquation));
 
-        string serialized = word.ToRtfDocument().ToRtf();
-        RtfField parsedHyperlink = Assert.Single(Assert.Single(RtfDocument.Read(serialized).Document.Paragraphs).Inlines.OfType<RtfField>());
+        string serialized = word.ToRtf().ToRtf();
+        RtfField parsedHyperlink = Assert.Single(Assert.Single(RtfDocument.ParseResult(serialized).Document.Paragraphs).Inlines.OfType<RtfField>());
         Assert.Equal(2, parsedHyperlink.Result.Inlines.OfType<RtfField>().Count(field => field.IsEquation));
 
-        using WordDocument roundTrip = RtfDocument.Read(serialized).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(serialized).Document.ToWord();
         Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
         Assert.Equal(2, roundTripHyperlink.Elements<SimpleField>().Count());
         Assert.Equal(2, roundTrip.Equations.Count);
@@ -180,7 +180,7 @@ public sealed class RtfEquationTests {
             Anchor = "target"
         });
 
-        RtfField hyperlinkField = Assert.Single(Assert.Single(word.ToRtfDocument().Paragraphs).Inlines.OfType<RtfField>());
+        RtfField hyperlinkField = Assert.Single(Assert.Single(word.ToRtf().Paragraphs).Inlines.OfType<RtfField>());
 
         Assert.Equal("target", hyperlinkField.HyperlinkField?.SubAddress);
         RtfField equationField = Assert.Single(hyperlinkField.Result.Inlines.OfType<RtfField>());
@@ -201,13 +201,13 @@ public sealed class RtfEquationTests {
             Anchor = "target"
         });
 
-        RtfDocument rtf = word.ToRtfDocument();
+        RtfDocument rtf = word.ToRtf();
         RtfField hyperlinkField = Assert.Single(Assert.Single(rtf.Paragraphs).Inlines.OfType<RtfField>());
         RtfField equationField = Assert.Single(hyperlinkField.Result.Inlines.OfType<RtfField>());
         Assert.True(equationField.IsEquation);
         Assert.Contains("\\f(a,b)", equationField.Instruction, StringComparison.Ordinal);
 
-        using WordDocument roundTrip = RtfDocument.Read(rtf.ToRtf()).Document.ToWordDocument();
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf.ToRtf()).Document.ToWord();
         Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
         Assert.Single(roundTripHyperlink.Elements<SimpleField>());
         WordEquation equation = Assert.Single(roundTrip.Equations);
@@ -247,7 +247,7 @@ public sealed class RtfEquationTests {
             new Run(new Text(" suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtf().Paragraphs);
         RtfField hyperlinkField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
         RtfField[] equationFields = hyperlinkField.Result.Inlines.OfType<RtfField>().ToArray();
 
@@ -291,7 +291,7 @@ public sealed class RtfEquationTests {
             },
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtf().Paragraphs);
         RtfField outerHyperlink = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
         RtfField innerHyperlink = Assert.Single(
             outerHyperlink.Result.Inlines.OfType<RtfField>(),
@@ -355,13 +355,13 @@ public sealed class RtfEquationTests {
             new Run(new Text("safe split result")),
             new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
 
-        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtf().Paragraphs);
         RtfField field = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
 
         Assert.True(field.IsEquation);
         Assert.Equal("(a)/(b)", field.ToPlainText());
         Assert.Equal("safe cached image(a)/(b)safe simple resultsafe split result", rtfParagraph.ToPlainText());
-        string serialized = word.ToRtfDocument().ToRtf();
+        string serialized = word.ToRtf().ToRtf();
         Assert.DoesNotContain("INCLUDEPICTURE", serialized, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("example.test", serialized, StringComparison.OrdinalIgnoreCase);
     }
@@ -378,7 +378,7 @@ public sealed class RtfEquationTests {
                 new Run(new Text(" control-suffix") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }))));
         paragraph.AddText(" after");
 
-        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtf().Paragraphs);
 
         Assert.Equal("before control-prefix controlled control-suffix after", rtfParagraph.ToPlainText());
         RtfField equationField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());

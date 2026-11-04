@@ -122,7 +122,7 @@ internal static partial class PdfAnnotationFlattener {
         IReadOnlyList<double>? borderDashPattern = TryReadBorderDashPattern(objects, annotation);
         PdfFormFieldBorderStyle borderStyle = TryReadBorderStyle(objects, annotation);
         global::OfficeIMO.OfficeColor? fillColor = TryReadColor(objects, annotation, "IC");
-        PdfAlign textAlign = TryReadFreeTextAlignment(objects, annotation, defaultStyle.TextAlign);
+        OfficeAlignment textAlign = TryReadFreeTextAlignment(objects, annotation, defaultStyle.TextAlign);
         IReadOnlyList<PdfAnnotationPathPoint> calloutLine = TryReadFreeTextCalloutLine(objects, annotation, x, y, width, height);
         string? calloutLineEnding = TryReadFreeTextCalloutLineEnding(objects, annotation);
         double[]? rectangleDifferences = TryReadFreeTextRectangleDifferences(objects, annotation, width, height);
@@ -664,18 +664,18 @@ internal static partial class PdfAnnotationFlattener {
         return PdfFreeTextStyleParser.ExtractPlainText(TryReadString(objects, annotation, "RC")) ?? string.Empty;
     }
 
-    private static PdfAlign TryReadFreeTextAlignment(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PdfAlign? defaultAlignment) {
+    private static OfficeAlignment TryReadFreeTextAlignment(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, OfficeAlignment? defaultAlignment) {
         double? alignment = TryReadNumber(objects, annotation, "Q");
         if (!alignment.HasValue) {
-            return defaultAlignment ?? PdfAlign.Left;
+            return defaultAlignment ?? OfficeAlignment.Left;
         }
 
         int value = (int)Math.Round(alignment.Value);
         return value == 1
-            ? PdfAlign.Center
+            ? OfficeAlignment.Center
             : value == 2
-                ? PdfAlign.Right
-                : PdfAlign.Left;
+                ? OfficeAlignment.Right
+                : OfficeAlignment.Left;
     }
 
     private static double? TryReadFreeTextFontSize(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {

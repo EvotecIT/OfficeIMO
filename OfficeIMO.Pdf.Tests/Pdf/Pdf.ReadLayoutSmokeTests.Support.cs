@@ -10,24 +10,22 @@ namespace OfficeIMO.Tests;
 public sealed partial class PdfReadLayoutSmokeTests {
     private static byte[] BuildThreePageTablePdf() {
         return PdfDocument.Create(new PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(320),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(320)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
-            .Paragraph(p => p.Text("First page table."))
+            .Paragraph(p => p.AddText("First page table."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
                 new[] { "A-200", "Atlas", "4" }
             }, style: TableStyle())
             .PageBreak()
-            .Paragraph(p => p.Text("Second page marker."))
+            .Paragraph(p => p.AddText("Second page marker."))
             .PageBreak()
-            .Paragraph(p => p.Text("Third page table."))
+            .Paragraph(p => p.AddText("Third page table."))
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "C-300", "Gamma", "5" },

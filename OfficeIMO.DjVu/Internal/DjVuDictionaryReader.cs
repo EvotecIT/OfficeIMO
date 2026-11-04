@@ -8,7 +8,7 @@ internal static class DjVuDictionaryReader {
         return Resolve(page, 1);
         IReadOnlyList<DjVuChunk> Resolve(DjVuComponent component, int depth) {
             token.ThrowIfCancellationRequested();
-            if (depth > document.ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuReadOptions.MaxDepth));
+            if (depth > document.ReadOptions.MaxDepth) throw new DjVuResourceLimitException(nameof(DjVuLoadOptions.MaxDepth));
             if (cache.TryGetValue(component.Id, out var saved)) return saved;
             IReadOnlyList<DjVuChunk> inherited = Array.Empty<DjVuChunk>();
             foreach (var include in component.Form.Children.Where(c => c.Id == "INCL")) {

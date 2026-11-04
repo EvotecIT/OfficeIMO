@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderIntrinsicWidth("width:" + value, parentWidth);
 
         Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderIntrinsicWidth(declarations + ";box-sizing:" + sizing + ";padding:8px;border:2px solid black", 300D);
 
         Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(110D, shape.Width, 3);
         Assert.Equal(95D, shape.X, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(90D, TableGeometryShape(rendered, "span#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(90D, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -85,7 +85,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -96,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderIntrinsicWidth(declarations, 300D);
 
         Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(100D, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -139,11 +139,11 @@ public sealed partial class HtmlRenderingTests {
         string html = TableGeometrySource("<div id='sized' style='width:max-content;" + declarations + "'>"
             + (content.Length == 0 ? IntrinsicWidthAtoms : content) + "</div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported && item.Source == "div#sized");
 
         Assert.Contains("width=", diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     [Theory]
@@ -160,7 +160,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(expected, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
 
         Assert.Equal(80D, TableGeometryShape(rendered, "div#sized").Width, 3);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -218,11 +218,11 @@ public sealed partial class HtmlRenderingTests {
         string html = TableGeometrySource("<div style='width:300px'><div id='sized' style='width:" + width
             + ";background:lime'><span style='" + declarations + "'>" + IntrinsicWidthAtoms + "</span></div></div>");
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, TableGeometryOptions());
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics,
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.NativeDiagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.IntrinsicSizeUnsupported && item.Source == "div#sized");
 
         Assert.Contains("width=" + width, diagnostic.Detail);
-        Assert.Throws<HtmlConversionException>(() => rendered.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => rendered.ThrowIfLoss());
     }
 
     private static HtmlRenderDocument RenderIntrinsicWidth(string declarations, double parentWidth) {

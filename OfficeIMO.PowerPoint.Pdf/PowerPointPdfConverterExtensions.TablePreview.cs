@@ -14,7 +14,7 @@ public static partial class PowerPointPdfConverterExtensions {
         // Discover only this table's fonts, using the same registration path as
         // slide export, before creating the canonical layout measurer.
         PdfCore.PdfCreateOptions pdfOptions = PdfCore.PdfCreateOptions.CreateNeutralOptions();
-        pdfOptions.Margins = PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0));
+        pdfOptions.PageSetup.Margins.Set(PdfCore.PdfPageMargins.Uniform(OfficeIMO.OfficeLength.Points(0)));
         pdfOptions.UseContentStreamCompressionByDefault();
         pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.PowerPoint.Pdf");
         var families = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -31,8 +31,7 @@ public static partial class PowerPointPdfConverterExtensions {
             width = Math.Max(width, item.X + item.Width);
             height = Math.Max(height, item.Y + item.Height);
         }
-        pdfOptions.PageWidth = global::OfficeIMO.OfficeLength.Points(width);
-        pdfOptions.PageHeight = global::OfficeIMO.OfficeLength.Points(height);
+        pdfOptions.PageSetup.Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(width), global::OfficeIMO.OfficeLength.Points(height));
         PdfCore.PdfDocument document = PdfCore.PdfDocument.CreateForImportedLayout(pdfOptions);
         document.Canvas(target => target.AddItems(canvas.Items));
         return PdfCore.PdfReadDocument.Open(document.ToBytes()).Pages[0].ToDrawing();

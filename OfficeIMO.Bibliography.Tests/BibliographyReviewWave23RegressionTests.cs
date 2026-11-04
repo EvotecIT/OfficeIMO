@@ -58,9 +58,9 @@ public sealed class BibliographyReviewWave23RegressionTests {
         extension.Value = "<records><record><rec-number>promoted</rec-number><ref-type name=\"Book\">6</ref-type></record></records>";
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "extension");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV117" && diagnostic.Field == "extension");
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class BibliographyReviewWave23RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document;
 
         Assert.Single(reopened.Items);
@@ -84,9 +84,9 @@ public sealed class BibliographyReviewWave23RegressionTests {
         document.Items.Add(item);
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV241" && diagnostic.Field == "dates.Issued");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV241" && diagnostic.Field == "dates.Issued");
     }
 
     [Theory]
@@ -96,7 +96,7 @@ public sealed class BibliographyReviewWave23RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse("@Book{x,CustomField={value},title={Before}}", format).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
 
         Assert.Contains("CustomField = {value}", written.Content, StringComparison.Ordinal);
@@ -109,9 +109,9 @@ public sealed class BibliographyReviewWave23RegressionTests {
         BibliographyDiagnostic parserDiagnostic = Assert.Single(read.Diagnostics, diagnostic => diagnostic.Code == "BIBTAG004");
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            read.Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Equal("ER", parserDiagnostic.Field);
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV222" && diagnostic.Field == "ER");
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV222" && diagnostic.Field == "ER");
     }
 }

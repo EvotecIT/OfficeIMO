@@ -40,7 +40,7 @@ public sealed class DocumentTextTests {
         byte[] original = File.ReadAllBytes(Fixture("time-machine-selected.djvu"));
         byte[] bytes = new byte[original.Length + 7];
         original.CopyTo(bytes, 7);
-        var options = new DjVuReadOptions();
+        var options = new DjVuLoadOptions();
         using var stream = new MemoryStream(bytes);
         stream.Position = 7;
         var document = DjVuDocument.Load(stream, options);
@@ -55,9 +55,9 @@ public sealed class DocumentTextTests {
     [Fact]
     public void ExpansionAndSourceLimitsAndCancellationAreConsequential() {
         byte[] bytes = File.ReadAllBytes(Fixture("time-machine-selected.djvu"));
-        Assert.Equal(nameof(DjVuReadOptions.MaxSourceBytes), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(bytes, new DjVuReadOptions { MaxSourceBytes = bytes.Length - 1 })).LimitName);
-        Assert.Equal(nameof(DjVuReadOptions.MaxExpandedBytes), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(bytes, new DjVuReadOptions { MaxExpandedBytes = 8 })).LimitName);
-        Assert.Equal(nameof(DjVuReadOptions.MaxPages), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(bytes, new DjVuReadOptions { MaxPages = 1 })).LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxSourceBytes), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(bytes, new DjVuLoadOptions { MaxSourceBytes = bytes.Length - 1 })).LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxExpandedBytes), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(bytes, new DjVuLoadOptions { MaxExpandedBytes = 8 })).LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxPages), Assert.Throws<DjVuResourceLimitException>(() => DjVuDocument.Load(bytes, new DjVuLoadOptions { MaxPages = 1 })).LimitName);
         Assert.Throws<OperationCanceledException>(() => DjVuDocument.Load(bytes, cancellationToken: new CancellationToken(true)));
     }
 
@@ -69,9 +69,9 @@ public sealed class DocumentTextTests {
         stream.Position = 7;
 
         var exception = Assert.Throws<DjVuResourceLimitException>(() =>
-            DjVuDocument.Load(stream, new DjVuReadOptions { MaxSourceBytes = 64 }));
+            DjVuDocument.Load(stream, new DjVuLoadOptions { MaxSourceBytes = 64 }));
 
-        Assert.Equal(nameof(DjVuReadOptions.MaxSourceBytes), exception.LimitName);
+        Assert.Equal(nameof(DjVuLoadOptions.MaxSourceBytes), exception.LimitName);
         Assert.Equal(72, stream.Position);
         Assert.True(stream.CanRead);
     }

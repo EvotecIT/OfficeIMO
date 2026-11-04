@@ -118,6 +118,9 @@ public sealed class HtmlComputedStyle {
     internal bool IsInheritedValue(string propertyName) =>
         !string.IsNullOrWhiteSpace(propertyName) && _inheritedProperties.Contains(propertyName.Trim());
 
+    /// <summary>Content width this query container was resolved against; null when it isn't one.</summary>
+    internal double? ContainerInlineSize { get; set; }
+
     internal bool IsImplicitlyInheritedValue(string propertyName) {
         if (string.IsNullOrWhiteSpace(propertyName)) return false;
         string name = propertyName.Trim();

@@ -315,9 +315,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         var exception = Assert.Throws<Xunit.Sdk.XunitException>(() =>
             AssertScenarioRasterBaseline("page-count-mismatch", () =>
                 PdfDocument.Create()
-                    .Paragraph(p => p.Text("Page one"))
+                    .Paragraph(p => p.AddText("Page one"))
                     .PageBreak()
-                    .Paragraph(p => p.Text("Page two"))
+                    .Paragraph(p => p.AddText("Page two"))
                     .ToBytes()));
 
         Assert.Contains("produced 2 page(s), but the approved baseline expects 1 page(s)", exception.Message, StringComparison.Ordinal);

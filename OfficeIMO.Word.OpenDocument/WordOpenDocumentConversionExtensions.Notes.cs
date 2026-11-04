@@ -320,14 +320,14 @@ public static partial class WordOpenDocumentConversionExtensions {
             run.Text.Length > 0 && (
             run.Bold || run.Italic || run.Underline || run.Strike || run.DoubleStrike ||
             run.IsHyperlink ||
-            run.FontSize.HasValue || run.FontFamily != null || run.ColorHex != null ||
-            run.HighlightColor != null || run.RunShadingFillColorHex != null ||
+            run.FontSize.HasValue || run.FontFamily != null || run.Color?.ToRgbHex() != null ||
+            run.HighlightColor != null || run.BackgroundColor?.ToRgbHex() != null ||
             run.RunShadingPattern.HasValue || run.VerticalTextAlignment != null || run.CapsStyle != null)) ||
         paragraph.Alignment != null || paragraph.IndentStart.HasValue ||
         paragraph.IndentEnd.HasValue || paragraph.IndentFirstLine.HasValue ||
         paragraph.SpaceAbove.HasValue || paragraph.SpaceBelow.HasValue ||
         paragraph.LineSpacingValue.HasValue || paragraph.LineSpacingRule != null ||
-        paragraph.ShadingFillColorHex != null || paragraph.ShadingPattern.HasValue ||
+        paragraph.ShadingFillColor?.ToRgbHex() != null || paragraph.ShadingPattern.HasValue ||
         paragraph.LeftBorder != null || paragraph.RightBorder != null ||
         paragraph.TopBorder != null || paragraph.BottomBorder != null ||
         paragraph.TabStops.Count > 0 || paragraph.IsListItem || paragraph.IsRightToLeft ||

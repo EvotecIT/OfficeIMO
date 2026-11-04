@@ -106,10 +106,10 @@ public sealed partial class HtmlRenderingTests {
         AssertDescendantSpannerSourceOnce(cloned, labels);
         Assert.Equal(300D, DescendantSpannerBackground(cloned, "h2#spanner").Width, 3);
         AssertColumnBreaksQualified(sliced);
-        Assert.Contains(cloned.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported
+        Assert.Contains(cloned.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported
             && diagnostic.Source == "div#wrapper" && diagnostic.Detail?.Contains("box-decoration-break=clone", StringComparison.Ordinal) == true);
         Assert.True(cloned.HasLoss);
-        Assert.Throws<HtmlConversionException>(() => cloned.RequireNoLoss());
+        Assert.Throws<HtmlConversionException>(() => cloned.ThrowIfLoss());
     }
 
     [Fact]

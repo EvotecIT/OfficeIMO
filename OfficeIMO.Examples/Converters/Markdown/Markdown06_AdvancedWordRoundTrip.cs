@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word.Converters {
             document.SaveAsMarkdown(markdownPath, exportOptions);
 
             string markdown = ResolveSidecarResourceLinks(File.ReadAllText(markdownPath), markdownPath, resourcesPath);
-            var importOptions = new WordMarkdownImportOptions {
+            var importOptions = new MarkdownWordExportOptions {
                 FontFamily = "Calibri",
                 AllowLocalImages = true
             };
@@ -60,13 +60,12 @@ namespace OfficeIMO.Examples.Word.Converters {
         }
 
         private static void BuildSourceDocument(WordDocument document) {
-            document.BuiltinDocumentProperties.Title = "Advanced Markdown conversion sample";
-            document.BuiltinDocumentProperties.Subject = "Word to Markdown conversion with visual fallback";
-            document.BuiltinDocumentProperties.Creator = "OfficeIMO";
+            document.Properties.Title = "Advanced Markdown conversion sample";
+            document.Properties.Subject = "Word to Markdown conversion with visual fallback";
+            document.Properties.Creator = "OfficeIMO";
 
-            document.AddHeadersAndFooters();
-            document.Header!.Default!.AddParagraph("OfficeIMO advanced Markdown conversion");
-            document.Footer!.Default!.AddParagraph("Generated from OfficeIMO.Word.Markdown");
+            document.PageSetup.Header.AddParagraph("OfficeIMO advanced Markdown conversion");
+            document.PageSetup.Footer.AddParagraph("Generated from OfficeIMO.Word.Markdown");
 
             var toc = document.AddTableOfContent(minLevel: 1, maxLevel: 3);
             toc.Text = "Contents";

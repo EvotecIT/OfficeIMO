@@ -16,7 +16,7 @@ public static partial class EmailImageExportExtensions {
         var timer = Stopwatch.StartNew();
         EmailImageExportOptions resolved = options?.CloneEmail() ?? new EmailImageExportOptions();
         OfficeImageExportBatchSaveResult saved = CreateEmailDocumentImageBatchOperation(document, resolved).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("Email", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Email", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -28,7 +28,7 @@ public static partial class EmailImageExportExtensions {
         EmailImageExportOptions resolved = options?.CloneEmail() ?? new EmailImageExportOptions();
         OfficeImageExportBatchSaveResult saved = await CreateEmailDocumentImageBatchOperation(document, resolved)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("Email", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Email", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 

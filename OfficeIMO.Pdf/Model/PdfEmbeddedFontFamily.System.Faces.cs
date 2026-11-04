@@ -116,6 +116,7 @@ public sealed partial class PdfEmbeddedFontFamily {
                     out System.Collections.Generic.List<SystemFontFaceCandidate>? candidates)
                 || candidates == null) continue;
             foreach (SystemFontFaceCandidate candidate in candidates) {
+                if (!HasUsableProgram(candidate.Data)) continue;
                 OfficeFontFaceDescriptor descriptor = ReadSystemFaceDescriptor(candidate);
                 if (scores.TryGetValue(descriptor, out int score) && score >= candidate.Score) continue;
                 if (collection.TryAdd(familyName, candidate.Data, descriptor)) scores[descriptor] = candidate.Score;

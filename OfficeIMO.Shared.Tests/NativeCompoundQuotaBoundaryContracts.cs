@@ -106,7 +106,7 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
             try {
                 File.WriteAllBytes(path, bytes);
                 if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                else reader.ReadFolder(directory, options: options).ToArray();
+                else reader.EnumerateFolder(directory, options: options).ToArray();
             } finally { File.Delete(path); Directory.Delete(directory); }
         });
         Assert.EndsWith(".MaxDirectoryEntries", error.LimitName, StringComparison.Ordinal); Assert.Equal(3, error.Maximum);
@@ -161,7 +161,7 @@ public sealed class NativeCompoundQuotaBoundaryContracts {
             Assert.Contains(loaded.Paragraphs, paragraph => paragraph.Text.Contains("Ordinary full content", StringComparison.Ordinal));
         }
         using (ExcelDocument source = ExcelDocument.Create()) {
-            var sheet = source.AddSheet("Evidence"); sheet.CellValue(1, 1, "Ordinary full content");
+            var sheet = source.AddSheet("Evidence"); sheet.Cell(1, 1).SetValue("Ordinary full content");
             using var input = new MemoryStream(source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls }));
             using ExcelDocument loaded = ExcelDocument.Load(input);
             Assert.True(loaded.Sheets.Single().TryGetCellText(1, 1, out string value));

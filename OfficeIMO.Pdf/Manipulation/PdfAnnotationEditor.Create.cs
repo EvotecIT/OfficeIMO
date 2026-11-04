@@ -3,12 +3,16 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfAnnotationEditor {
     private static readonly double[] InvisibleLinkBorder = { 0D, 0D, 0D };
     /// <summary>Adds a standard annotation to an existing page and validates readback.</summary>
-    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options) => AddAnnotation(pdf, options, readOptions: null);
+    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return AddAnnotation(pdf, options, readOptions: null, cancellationToken: cancellationToken);
+    }
 
     /// <summary>Adds a standard annotation using explicit read limits or credentials and validates readback.</summary>
-    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, PdfLoadOptions? readOptions) {
+    public static PdfAnnotationEditResult AddAnnotation(byte[] pdf, PdfAnnotationCreateOptions options, PdfLoadOptions? readOptions, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(pdf, nameof(pdf)); Guard.NotNull(options, nameof(options));
-        var cancellationToken = options.CancellationToken;
+        cancellationToken = options.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         ValidateCreateOptions(options);
         PdfMutationPlan plan = PdfMutationPlanner.Require(pdf, PdfMutationOperation.ModifyAnnotations, readOptions, executionPreference: options.ExecutionPreference, cancellationToken: cancellationToken);

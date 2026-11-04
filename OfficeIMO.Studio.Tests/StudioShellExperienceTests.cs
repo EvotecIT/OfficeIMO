@@ -149,7 +149,7 @@ public sealed class StudioShellExperienceTests {
         Directory.CreateDirectory(root);
         string path = Path.Combine(root, "markup.pdf");
         PdfDocument.Create(compose => compose.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600D), global::OfficeIMO.OfficeLength.Points(800D))
-            .Content(content => content.Text("Highlight this sentence from the reader.")))).Save(path);
+            .Content(content => content.AddParagraph("Highlight this sentence from the reader.")))).Save(path);
         try {
             using var session = TestAppBuilder.StartSession();
             await session.Dispatch(async () => {

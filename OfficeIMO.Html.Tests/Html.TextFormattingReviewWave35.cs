@@ -61,7 +61,7 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
 
         using PowerPointDocument imported = HtmlConversionDocument
             .Parse(html, HtmlConversionDocumentOptions.CreateTrustedProfile())
-            .ToPowerPointDocumentResult()
+            .ConvertToPowerPointWithEvidence()
             .RequireValue();
         PowerPointTextBox[] boxes = Assert.Single(imported.Slides).TextBoxes.ToArray();
 

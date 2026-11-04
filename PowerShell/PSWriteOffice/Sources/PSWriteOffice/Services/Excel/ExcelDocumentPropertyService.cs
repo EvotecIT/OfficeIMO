@@ -68,7 +68,7 @@ internal static class ExcelDocumentPropertyService
         {
             foreach (var property in BuiltInReaders)
             {
-                var value = property.Value(document.BuiltinDocumentProperties);
+                var value = property.Value(document.Properties);
                 yield return new ExcelDocumentPropertyInfo(property.Key, "BuiltIn", value, value?.GetType().FullName);
             }
         }
@@ -84,7 +84,7 @@ internal static class ExcelDocumentPropertyService
 
         if (includeCustom)
         {
-            foreach (var property in document.CustomDocumentProperties)
+            foreach (var property in document.CustomProperties)
             {
                 var value = property.Value.Value;
                 yield return new ExcelDocumentPropertyInfo(
@@ -107,7 +107,7 @@ internal static class ExcelDocumentPropertyService
 
         if (BuiltInWriters.TryGetValue(name, out var builtInWriter))
         {
-            builtInWriter(document.BuiltinDocumentProperties, UnwrapValue(value));
+            builtInWriter(document.Properties, UnwrapValue(value));
             return;
         }
 

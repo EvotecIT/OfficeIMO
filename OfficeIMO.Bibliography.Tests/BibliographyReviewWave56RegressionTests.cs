@@ -16,15 +16,15 @@ public sealed class BibliographyReviewWave56RegressionTests {
 
         BibliographyWriteResult permissive = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException strict = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
         BibliographyDocument reopened = BibliographyDocument.Parse(permissive.Content, BibliographyFormat.EndNoteXml).Document;
         string reopenedCarrier = owner == "record"
             ? Assert.Single(reopened.Items[0].NativeFields, candidate => candidate.Name == field).Value
             : Assert.Single(reopened.NativeEntries, candidate => candidate.Kind == "attributes" && candidate.Name == field).Value;
 
         Assert.Contains("custom=\"A B C D\"", reopenedCarrier, StringComparison.Ordinal);
-        Assert.Contains(permissive.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV251" && diagnostic.Field == field);
-        Assert.Contains(strict.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV251" && diagnostic.Field == field);
+        Assert.Contains(permissive.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV251" && diagnostic.Field == field);
+        Assert.Contains(strict.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV251" && diagnostic.Field == field);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class BibliographyReviewWave56RegressionTests {
         document.NativeEntries.Add(new BibliographyNativeEntry(BibliographyFormat.EndNoteXml, "attributes", "<xml custom=\"A&#x9;B&#xA;C&#xD;D\" />", "xml"));
         document.Items.Add(new BibliographyItem { Key = "1", Type = BibliographyItemType.Book, Title = "Title" });
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyNativeEntry reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.NativeEntries,
             candidate => candidate.Kind == "attributes" && candidate.Name == "xml");
 

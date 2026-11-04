@@ -14,7 +14,7 @@ namespace OfficeIMO.Visio.Diagrams {
             style.Color ??= _theme.ControlConnector.TextStyle?.Color ?? OfficeColor.Black;
             style.Size ??= 9D;
             style.Bold = true;
-            style.HorizontalAlignment = VisioTextHorizontalAlignment.Left;
+            style.HorizontalAlignment = OfficeAlignment.Left;
             style.VerticalAlignment = VisioTextVerticalAlignment.Middle;
             style.LeftMargin = 0.06D;
             style.RightMargin = 0.04D;

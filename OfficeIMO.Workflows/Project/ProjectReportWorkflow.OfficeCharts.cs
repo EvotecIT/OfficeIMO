@@ -21,7 +21,7 @@ public static partial class ProjectReportWorkflow {
             double scale = Math.Min((view.PageWidth - 2 * view.PageMargin) / image.Width,
                 (view.PageHeight - 2 * view.PageMargin - 20) / image.Height);
             using var stream = new MemoryStream(image.Bytes);
-            paragraph.AddImage(stream, "project-chart-" + index + ".png", OfficeIMO.OfficeLength.Pixels(image.Width * scale * 96 / 72), OfficeIMO.OfficeLength.Pixels(image.Height * scale * 96 / 72), options: new OfficeIMO.Word.WordImageOptions { Description = view.Title + " · " + ProjectView.KindTitle(view.Kind) + " · page " + index });
+            paragraph.AddImage(stream, "project-chart-" + index + ".png", OfficeIMO.OfficeLength.Pixels(image.Width * scale * 96 / 72), OfficeIMO.OfficeLength.Pixels(image.Height * scale * 96 / 72), options: new OfficeIMO.Word.WordImageOptions { AltText = view.Title + " · " + ProjectView.KindTitle(view.Kind) + " · page " + index });
         }, options.Images, token);
         if (options.IncludeDataTables) document.AddPageBreak();
     }

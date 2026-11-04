@@ -39,21 +39,23 @@ public sealed class BibliographyConversionDiagnostic {
 }
 
 /// <summary>Fidelity evidence for one bibliography write or conversion.</summary>
-public sealed class BibliographyConversionReport : global::OfficeIMO.IOfficeConversionReport {
+public sealed class BibliographyConversionReport : OfficeConversionReport {
     private readonly List<BibliographyConversionDiagnostic> _diagnostics = new List<BibliographyConversionDiagnostic>();
 
     /// <summary>Conversion decisions in deterministic item and field order.</summary>
-    public IReadOnlyList<BibliographyConversionDiagnostic> Diagnostics => _diagnostics.AsReadOnly();
+    public IReadOnlyList<BibliographyConversionDiagnostic> NativeDiagnostics => _diagnostics.AsReadOnly();
     /// <summary>Category-preserving diagnostics for composed conversion routes.</summary>
-    public IReadOnlyList<global::OfficeIMO.OfficeConversionFidelityDiagnostic> FidelityDiagnostics =>
-        Array.AsReadOnly(_diagnostics.Select(static diagnostic => new global::OfficeIMO.OfficeConversionFidelityDiagnostic(
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics =>
+        Array.AsReadOnly(_diagnostics.Select(static diagnostic => new global::OfficeIMO.OfficeDiagnostic(
             string.IsNullOrWhiteSpace(diagnostic.Code) ? "BIBLIOGRAPHY_DIAGNOSTIC" : diagnostic.Code,
+            global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
             diagnostic.Message,
-            GetLossKind(diagnostic),
+            GetLocation(diagnostic),
             "OfficeIMO.Bibliography",
-            GetLocation(diagnostic))).ToArray());
+            GetLossKind(diagnostic))).ToArray());
     /// <summary>True when any value was approximated, omitted, or failed.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != global::OfficeIMO.OfficeConversionLossKind.None);
+    public override bool HasLoss => _diagnostics.Any(static diagnostic => GetLossKind(diagnostic) != global::OfficeIMO.OfficeConversionLossKind.None);
 
     internal void Add(string code, BibliographyDiagnosticSeverity severity, string message, BibliographyConversionAction action, BibliographyItem? item = null, string? field = null) =>
         _diagnostics.Add(new BibliographyConversionDiagnostic(code, severity, message, action, item?.Key, field));
@@ -64,13 +66,11 @@ public sealed class BibliographyConversionReport : global::OfficeIMO.IOfficeConv
     /// <summary>Adds decisions from another report in their original order.</summary>
     public void Merge(BibliographyConversionReport? report) {
         if (report == null || ReferenceEquals(report, this)) return;
-        foreach (BibliographyConversionDiagnostic diagnostic in report.Diagnostics) _diagnostics.Add(diagnostic);
+        foreach (BibliographyConversionDiagnostic diagnostic in report.NativeDiagnostics) _diagnostics.Add(diagnostic);
     }
 
     /// <summary>Throws when the report contains conversion loss.</summary>
-    public void RequireNoLoss() {
-        if (HasLoss) throw new BibliographyConversionLossException(this);
-    }
+    protected override OfficeConversionException CreateLossException() => new BibliographyConversionLossException(this);
 
     private static global::OfficeIMO.OfficeConversionLossKind GetLossKind(BibliographyConversionDiagnostic diagnostic) {
         if (diagnostic.Severity == BibliographyDiagnosticSeverity.Error) return global::OfficeIMO.OfficeConversionLossKind.Failure;
@@ -90,12 +90,12 @@ public sealed class BibliographyConversionReport : global::OfficeIMO.IOfficeConv
 }
 
 /// <summary>Thrown when strict conversion rejects a lossy result.</summary>
-public sealed class BibliographyConversionLossException : InvalidOperationException {
+public sealed class BibliographyConversionLossException : OfficeConversionException {
     internal BibliographyConversionLossException(BibliographyConversionReport report)
-        : base("The bibliography conversion would approximate or omit source data. Inspect Report.Diagnostics for details.") {
+        : base("The bibliography conversion would approximate or omit source data. Inspect Report.NativeDiagnostics for details.", report) {
         Report = report;
     }
 
     /// <summary>Conversion report that caused the failure.</summary>
-    public BibliographyConversionReport Report { get; }
+    public new BibliographyConversionReport Report { get; }
 }

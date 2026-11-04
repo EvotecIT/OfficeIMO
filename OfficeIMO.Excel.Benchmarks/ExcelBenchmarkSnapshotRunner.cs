@@ -213,11 +213,11 @@ internal static class ExcelBenchmarkSnapshotRunner {
 
         using (var document = ExcelDocument.Load(input)) {
             var sheet = document["Data"];
-            sheet.CellValue(1, 9, "ReviewStatus");
+            sheet.Cell(1, 9).SetValue("ReviewStatus");
 
             int limit = Math.Min(rowCount + 1, 101);
             for (int row = 2; row <= limit; row++) {
-                sheet.CellValue(row, 9, "Reviewed");
+                sheet.Cell(row, 9).SetValue("Reviewed");
             }
 
             document.Save(output);

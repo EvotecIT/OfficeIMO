@@ -9,7 +9,7 @@ public sealed partial class RtfDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         byte[] rtf,
         OfficeContentSafetyOptions? options = null,
-        RtfReadOptions? readOptions = null) {
+        RtfLoadOptions? readOptions = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(rtf);
 #else
@@ -25,7 +25,7 @@ public sealed partial class RtfDocument {
     public static OfficeContentSafetyReport InspectContentSafety(
         string filePath,
         OfficeContentSafetyOptions? options = null,
-        RtfReadOptions? readOptions = null) {
+        RtfLoadOptions? readOptions = null) {
         if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("A file path is required.", nameof(filePath));
         OfficeContentSafetyOptions effective = options ?? new OfficeContentSafetyOptions();
         return InspectContentSafety(OfficeContentSafetyInputGuard.ReadAllBytes(filePath, effective), effective, readOptions);
@@ -36,8 +36,8 @@ public sealed partial class RtfDocument {
         byte[] rtf,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        RtfReadOptions? readOptions = null,
-        RtfWriteOptions? writeOptions = null) {
+        RtfLoadOptions? readOptions = null,
+        RtfSaveOptions? writeOptions = null) {
 #if NET6_0_OR_GREATER
         ArgumentNullException.ThrowIfNull(rtf);
         ArgumentNullException.ThrowIfNull(selection);
@@ -71,8 +71,8 @@ public sealed partial class RtfDocument {
         string outputPath,
         OfficeContentCleanupSelection selection,
         OfficeContentCleanupOptions? options = null,
-        RtfReadOptions? readOptions = null,
-        RtfWriteOptions? writeOptions = null) {
+        RtfLoadOptions? readOptions = null,
+        RtfSaveOptions? writeOptions = null) {
         if (string.IsNullOrWhiteSpace(inputPath)) throw new ArgumentException("An input path is required.", nameof(inputPath));
         if (string.IsNullOrWhiteSpace(outputPath)) throw new ArgumentException("An output path is required.", nameof(outputPath));
         options ??= new OfficeContentCleanupOptions();

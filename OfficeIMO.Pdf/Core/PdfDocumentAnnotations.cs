@@ -25,16 +25,21 @@ public sealed class PdfDocumentAnnotations {
         return interactions;
     }
     /// <summary>Adds an annotation to an existing page.</summary>
-    public PdfAnnotationEditResult Add(PdfAnnotationCreateOptions options) {
+    public PdfAnnotationEditResult Add(PdfAnnotationCreateOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(options, nameof(options));
-        return PdfAnnotationEditor.AddAnnotation(_document.GetBytesForOperation(options.CancellationToken), options, _document.ReadOptions);
+        return PdfAnnotationEditor.AddAnnotation(_document.GetBytesForOperation(options.CancellationToken), options, _document.ReadOptions, cancellationToken: cancellationToken);
     }
     /// <summary>Adds a text or image-backed Stamp annotation without changing page content.</summary>
-    public PdfAnnotationEditResult AddStamp(PdfStampAnnotationOptions options) => PdfAnnotationEditor.AddStampAnnotation(_document.GetBytesForOperation(options?.CancellationToken ?? default), options, _document.ReadOptions);
+    public PdfAnnotationEditResult AddStamp(PdfStampAnnotationOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
+        return PdfAnnotationEditor.AddStampAnnotation(_document.GetBytesForOperation(options?.CancellationToken ?? default), options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
     /// <summary>Updates one indirect annotation.</summary>
-    public PdfAnnotationEditResult Update(int objectNumber, PdfAnnotationUpdateOptions options) {
+    public PdfAnnotationEditResult Update(int objectNumber, PdfAnnotationUpdateOptions options, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: false, cancellationToken)!;
         Guard.NotNull(options, nameof(options));
-        return PdfAnnotationEditor.UpdateAnnotation(_document.GetBytesForOperation(options.CancellationToken), objectNumber, options, _document.ReadOptions);
+        return PdfAnnotationEditor.UpdateAnnotation(_document.GetBytesForOperation(options.CancellationToken), objectNumber, options, _document.ReadOptions, cancellationToken: cancellationToken);
     }
     /// <summary>Moves one annotation and all supported subtype geometry by a user-space offset.</summary>
     public PdfAnnotationEditResult Move(int objectNumber, double deltaX, double deltaY) => Move(objectNumber, deltaX, deltaY, CancellationToken.None);
@@ -81,7 +86,10 @@ public sealed class PdfDocumentAnnotations {
     /// <summary>Performs this annotation edit with cooperative cancellation.</summary>
     public PdfAnnotationEditResult Resize(int objectNumber, PdfPageRectangle rectangle, CancellationToken cancellationToken) => PdfAnnotationEditor.ResizeAnnotation(_document.GetBytesForOperation(cancellationToken), objectNumber, rectangle, _document.ReadOptions, cancellationToken: cancellationToken);
     /// <summary>Adds a reply to one indirect annotation.</summary>
-    public PdfAnnotationEditResult AddReply(int parentObjectNumber, string contents, PdfAnnotationReplyOptions? options = null) => PdfAnnotationReviewEditor.AddReply(_document.GetBytesForOperation(options?.CancellationToken ?? default), parentObjectNumber, contents, options, _document.ReadOptions);
+    public PdfAnnotationEditResult AddReply(int parentObjectNumber, string contents, PdfAnnotationReplyOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return PdfAnnotationReviewEditor.AddReply(_document.GetBytesForOperation(options?.CancellationToken ?? default), parentObjectNumber, contents, options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
     /// <summary>Sets the standard review state on one indirect annotation.</summary>
     public PdfAnnotationEditResult SetReviewState(int objectNumber, PdfAnnotationReviewState state, PdfMutationExecutionPreference executionPreference = PdfMutationExecutionPreference.Automatic, bool allowResidualDataInAppendOnly = false) => SetReviewState(objectNumber, state, executionPreference, allowResidualDataInAppendOnly, CancellationToken.None);
     /// <summary>Sets an annotation review state with cooperative cancellation.</summary>
@@ -89,9 +97,15 @@ public sealed class PdfDocumentAnnotations {
     /// <summary>Reads annotation reply threads and review states.</summary>
     public PdfAnnotationReviewCatalog GetReviewCatalog() => GetReviewCatalog(CancellationToken.None);
     /// <summary>Reads annotation reply threads and states with cooperative cancellation.</summary>
-    public PdfAnnotationReviewCatalog GetReviewCatalog(CancellationToken cancellationToken) => PdfAnnotationReviewCatalog.Read(_document.GetBytesForOperation(cancellationToken), _document.ReadOptions, new PdfAnnotationReviewCatalogOptions { CancellationToken = cancellationToken });
+    public PdfAnnotationReviewCatalog GetReviewCatalog(CancellationToken cancellationToken) => PdfAnnotationReviewCatalog.Read(_document.GetBytesForOperation(cancellationToken), _document.ReadOptions, new PdfAnnotationReviewCatalogOptions { CancellationToken = cancellationToken }, cancellationToken: cancellationToken);
     /// <summary>Removes matching annotations.</summary>
-    public PdfAnnotationEditResult Remove(PdfAnnotationRemovalOptions? options = null) => PdfAnnotationEditor.RemoveAnnotations(_document.GetBytesForOperation(options?.CancellationToken ?? default), options, _document.ReadOptions);
+    public PdfAnnotationEditResult Remove(PdfAnnotationRemovalOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return PdfAnnotationEditor.RemoveAnnotations(_document.GetBytesForOperation(options?.CancellationToken ?? default), options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
     /// <summary>Flattens selected supported visual annotations.</summary>
-    public PdfAnnotationEditResult Flatten(PdfAnnotationFlattenOptions? options = null) => PdfAnnotationEditor.FlattenAnnotations(_document.GetBytesForOperation(options?.CancellationToken ?? default), options, _document.ReadOptions);
+    public PdfAnnotationEditResult Flatten(PdfAnnotationFlattenOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
+        return PdfAnnotationEditor.FlattenAnnotations(_document.GetBytesForOperation(options?.CancellationToken ?? default), options, _document.ReadOptions, cancellationToken: cancellationToken);
+    }
 }

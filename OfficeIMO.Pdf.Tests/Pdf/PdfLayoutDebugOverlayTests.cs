@@ -8,9 +8,9 @@ public class PdfLayoutDebugOverlayTests {
     [Fact]
     public void DebugOverlay_UsesSharedDrawingForWordsLinesRegionsAndReadingOrder() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Layout diagnostics"))
-            .Paragraph(paragraph => paragraph.Text("First paragraph has several selectable words."))
-            .Paragraph(paragraph => paragraph.Text("Second paragraph proves reading order."))
+            .Paragraph(paragraph => paragraph.AddText("Layout diagnostics"))
+            .Paragraph(paragraph => paragraph.AddText("First paragraph has several selectable words."))
+            .Paragraph(paragraph => paragraph.AddText("Second paragraph proves reading order."))
             .ToBytes();
 
         OfficeDrawing drawing = PdfDocument.Load(source).Reader.LayoutDebugOverlay(1);
@@ -29,7 +29,7 @@ public class PdfLayoutDebugOverlayTests {
     [Fact]
     public void DebugOverlay_EnforcesElementBudget() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Several words exceed one overlay element."))
+            .Paragraph(paragraph => paragraph.AddText("Several words exceed one overlay element."))
             .ToBytes();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
@@ -44,7 +44,7 @@ public class PdfLayoutDebugOverlayTests {
 
     [Fact]
     public void DebugOverlay_RejectsRasterDimensionsBeyondPixelBudget() {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Raster budget")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Raster budget")).ToBytes();
         var options = new PdfLayoutDebugOverlayOptions { MaxRasterPixels = 100 };
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>

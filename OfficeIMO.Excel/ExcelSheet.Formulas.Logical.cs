@@ -167,7 +167,7 @@ namespace OfficeIMO.Excel {
                 if (!TryResolveFormulaReferenceArgument(tokens[0], out ExcelSheet referenceSheet, out int referenceRow, out int referenceColumn))
                     return _formulaReferenceError.IsError;
 
-                bool isFormula = referenceSheet.TryGetExistingCell(referenceRow, referenceColumn)?.CellFormula != null;
+                bool isFormula = referenceSheet.TryGetDomCell(referenceRow, referenceColumn) is { } formulaCell && ExcelWorksheetScan.FindFormula(formulaCell) != null;
                 result = FormulaArgumentValue.Boolean(isFormula);
                 return true;
             }
@@ -272,13 +272,13 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            Cell? cell = referenceSheet.TryGetExistingCell(row, column);
-            formulaText = cell?.CellFormula == null
+            Cell? cell = referenceSheet.TryGetDomCell(row, column);
+            formulaText = (cell == null ? null : ExcelWorksheetScan.FindFormula(cell)) == null
                 ? string.Empty
                 : referenceSheet.ResolveCellFormulaText(
-                    cell,
-                    cell.CellFormula.FormulaType?.Value == CellFormulaValues.Shared
-                        && string.IsNullOrEmpty(cell.CellFormula.Text)
+                    cell!,
+                    ExcelWorksheetScan.FindFormula(cell!)!.FormulaType?.Value == CellFormulaValues.Shared
+                        && string.IsNullOrEmpty(ExcelWorksheetScan.FindFormula(cell!)!.Text)
                         ? GetFormulaEvaluationSharedDefinitions(referenceSheet)
                         : null);
             return formulaText.Length > 0;

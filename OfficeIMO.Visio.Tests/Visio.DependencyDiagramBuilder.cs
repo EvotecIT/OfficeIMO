@@ -28,15 +28,15 @@ namespace OfficeIMO.Tests {
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Service Dependencies", page.Name);
-            Assert.True(page.Width > 4);
+            Assert.True(page.Width.ToInches() > 4);
             Assert.Equal(new[] { "user", "web", "api", "policy", "db" }, page.Shapes.Select(shape => shape.Id).ToArray());
             Assert.Equal("Circle", page.Shapes.Single(shape => shape.Id == "user").MasterNameU);
             Assert.Equal("Process", page.Shapes.Single(shape => shape.Id == "api").MasterNameU);
             Assert.Equal("Decision", page.Shapes.Single(shape => shape.Id == "policy").MasterNameU);
             Assert.Equal("Data", page.Shapes.Single(shape => shape.Id == "db").MasterNameU);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "user").PinX < page.Shapes.Single(shape => shape.Id == "web").PinX);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "web").PinX < page.Shapes.Single(shape => shape.Id == "api").PinX);
-            Assert.True(page.Shapes.Single(shape => shape.Id == "api").PinX < page.Shapes.Single(shape => shape.Id == "db").PinX);
+            Assert.True(page.Shapes.Single(shape => shape.Id == "user").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "web").PinX.ToInches());
+            Assert.True(page.Shapes.Single(shape => shape.Id == "web").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "api").PinX.ToInches());
+            Assert.True(page.Shapes.Single(shape => shape.Id == "api").PinX.ToInches() < page.Shapes.Single(shape => shape.Id == "db").PinX.ToInches());
             Assert.Equal(4, page.Connectors.Count);
             Assert.Contains(page.Connectors, connector => connector.Label == "Authorize" && connector.LinePattern == 2);
             Assert.All(page.Connectors, connector => Assert.Equal(EndArrow.Triangle, connector.EndArrow));
@@ -85,10 +85,10 @@ namespace OfficeIMO.Tests {
             VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
             double highestNodeTop = page.Shapes
                 .Where(shape => shape.Id != "title")
-                .Max(shape => shape.PinY + shape.Height / 2D);
+                .Max(shape => shape.PinY.ToInches() + shape.Height.ToInches() / 2D);
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Service Dependencies", title.Text);
-            Assert.True(title.PinY - title.Height / 2D > highestNodeTop);
+            Assert.True(title.PinY.ToInches() - title.Height.ToInches() / 2D > highestNodeTop);
             Assert.Empty(page.AnalyzeVisualQuality(new VisioDiagramQualityOptions {
                 CheckConnectorShapeIntersections = false,
                 CheckConnectorLabelShapeOverlaps = false
@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Policy gates this data path", callout.Text);
             Assert.Equal(target.Id, callout.CalloutTargetId);
             Assert.Contains("Annotations", callout.LayerNames);
-            Assert.Equal(2.5, callout.Width);
-            Assert.Equal(0.72, callout.Height);
+            Assert.Equal(2.5, callout.Width.ToInches());
+            Assert.Equal(0.72, callout.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, callout));
             Assert.Same(target, leader.To);
@@ -187,17 +187,17 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "policy-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "api-callout");
 
-            Assert.True(explicitCallout.PinY > policy.PinY);
-            Assert.Equal(policy.PinX, explicitCallout.PinX, 6);
+            Assert.True(explicitCallout.PinY.ToInches() > policy.PinY.ToInches());
+            Assert.Equal(policy.PinX.ToInches(), explicitCallout.PinX.ToInches(), 6);
             Assert.Equal(policy.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.5, explicitCallout.Width);
-            Assert.True(generatedCallout.PinX < api.PinX);
+            Assert.Equal(2.5, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinX.ToInches() < api.PinX.ToInches());
             Assert.Equal(api.Id, generatedCallout.CalloutTargetId);
             OfficeIMO.Visio.VisioShapeBounds bounds = page.GetContentBounds();
-            Assert.True(bounds.Left >= 0);
-            Assert.True(bounds.Right <= page.Width);
-            Assert.True(bounds.Bottom >= 0);
-            Assert.True(bounds.Top <= page.Height);
+            Assert.True(bounds.Left.ToInches() >= 0);
+            Assert.True(bounds.Right.ToInches() <= page.Width.ToInches());
+            Assert.True(bounds.Bottom.ToInches() >= 0);
+            Assert.True(bounds.Top.ToInches() <= page.Height.ToInches());
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
             Assert.Same(policy, leader.To);

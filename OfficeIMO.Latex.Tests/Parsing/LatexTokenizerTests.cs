@@ -36,7 +36,7 @@ public sealed class LatexTokenizerTests {
 
     [Fact]
     public void TokenLimit_IsEnforcedWithoutPartialResult() {
-        var options = new LatexParseOptions { MaximumTokenCount = 2 };
+        var options = new LatexParseOptions { MaxTokenCount = 2 };
 
         Assert.Throws<InvalidDataException>(() => LatexTokenizer.Tokenize("a b c", options));
     }

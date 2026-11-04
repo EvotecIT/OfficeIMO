@@ -5,7 +5,7 @@ namespace OfficeIMO.OpenDocument;
 
 public abstract partial class OdfDocument {
     /// <summary>Validates META-INF/documentsignatures.xml and signed package-entry digests through an explicit provider.</summary>
-    public static OfficeXmlPackageSignatureValidationReport ValidatePackageSignatures(
+    public static OfficeXmlPackageSignatureValidationReport ValidateSignatures(
         string filePath,
         IOfficeSecurityProvider securityProvider,
         OfficeXmlPackageSignatureOptions? options = null) =>

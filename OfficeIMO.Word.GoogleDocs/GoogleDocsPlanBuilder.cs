@@ -28,12 +28,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
 
             foreach (var section in document.Sections) {
-                if (section.Header?.Default != null) plan.HeaderCount++;
-                if (section.Header?.Even != null) plan.HeaderCount++;
-                if (section.Header?.First != null) plan.HeaderCount++;
-                if (section.Footer?.Default != null) plan.FooterCount++;
-                if (section.Footer?.Even != null) plan.FooterCount++;
-                if (section.Footer?.First != null) plan.FooterCount++;
+                if (section.PageSetup.GetHeader(WordHeaderFooterType.Default) != null) plan.HeaderCount++;
+                if (section.PageSetup.GetHeader(WordHeaderFooterType.Even) != null) plan.HeaderCount++;
+                if (section.PageSetup.GetHeader(WordHeaderFooterType.First) != null) plan.HeaderCount++;
+                if (section.PageSetup.GetFooter(WordHeaderFooterType.Default) != null) plan.FooterCount++;
+                if (section.PageSetup.GetFooter(WordHeaderFooterType.Even) != null) plan.FooterCount++;
+                if (section.PageSetup.GetFooter(WordHeaderFooterType.First) != null) plan.FooterCount++;
             }
 
             plan.RequiresIndexAwareSections = plan.SectionCount > 1 || plan.HeaderCount > 0 || plan.FooterCount > 0 || plan.FootnoteCount > 0;

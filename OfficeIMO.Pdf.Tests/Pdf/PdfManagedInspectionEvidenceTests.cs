@@ -163,7 +163,7 @@ public sealed class PdfManagedInspectionEvidenceTests {
         Assert.True(PdfDocument.Load(noXref).ReadForInspection().RepairReport.HasRepairs);
 
         PdfDocument privateDocument = PdfDocument.Create();
-        privateDocument.Content.Text("Private");
+        privateDocument.Content.AddParagraph("Private");
         byte[] encrypted = privateDocument.Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
             }).Pdf;

@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture("native-exports/keynote-table-borders-v15.4.key");
         Assert.Equal("2032CE6CDEE7F75DA8DE21D502B47D4E5C7F4EB4D152786A84DD81FEDA176D45",
             Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))));
-        using var result = PowerPointIWorkConverter.ConvertKeynoteToPowerPointResult(path);
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult();
         Assert.False(result.IsVisualFallback);
         var table = Assert.Single(result.Projection.Slides[0].Tables);
         Assert.True(table.HasBorderDeclarations);
@@ -58,10 +58,10 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_border_layer_and_run_budget_is_source_wide_and_rejects_before_conversion() {
         string path = CorpusFixture("native-exports/keynote-table-borders-v15.4.key");
-        var source = IWorkSourceDocument.Open(path, new IWorkReadOptions { MaximumTableBorderEntries = 3 });
+        var source = IWorkSourceDocument.Open(path, new IWorkReadOptions { MaxTableBorderEntries = 3 });
         var error = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
         Assert.Contains("stroke declarations", error.Message);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkReadOptions { MaximumTableBorderEntries = 0 }.Clone());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkReadOptions { MaxTableBorderEntries = 0 }.Clone());
     }
 
     [Fact]

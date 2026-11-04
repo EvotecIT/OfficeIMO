@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_RenamesResizesAndRewritesStructuredReferences() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Amount");
-            sheet.CellValue(2, 1, "EU");
-            sheet.CellValue(2, 2, 10);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue("EU");
+            sheet.Cell(2, 2).SetValue(10);
             sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "SUM(Sales[Amount])");
+            sheet.Cell(4, 1).SetFormula("SUM(Sales[Amount])");
 
             ExcelTable renamed = sheet.Table("Sales").Rename("Ledger");
             renamed.SetSchema(new[] { "Region", "Net" }, "A1:B3");
@@ -30,10 +30,10 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_RejectsDuplicateColumnNamesWithoutMutation() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
 
             Assert.Throws<ArgumentException>(() =>
@@ -45,12 +45,12 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_SwapsColumnNamesWithoutCascadingStructuredReferences() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddTable("A1:B2", true, "DataTable", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "DataTable[A]+DataTable[B]");
+            sheet.Cell(4, 1).SetFormula("DataTable[A]+DataTable[B]");
 
             sheet.SetTableSchema("DataTable", new[] { "B", "A" });
 
@@ -61,10 +61,10 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_RejectsResizeOverlappingAnotherTable() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(1, 3, "B");
-            sheet.CellValue(2, 3, 2);
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(1, 3).SetValue("B");
+            sheet.Cell(2, 3).SetValue(2);
             sheet.AddTable("A1:A2", true, "First", ExcelTableStyle.TableStyleMedium2);
             sheet.AddTable("C1:C2", true, "Second", ExcelTableStyle.TableStyleMedium2);
 
@@ -76,12 +76,12 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_ShrinkInvalidatesRemovedStructuredColumn() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(1, 2, "B");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(1, 2).SetValue("B");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddTable("A1:B2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "SUM(Sales[B])");
+            sheet.Cell(4, 1).SetFormula("SUM(Sales[B])");
 
             sheet.ResizeTable("Sales", "A1:A2");
 
@@ -92,10 +92,10 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_RenamesRowContextStructuredReference() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Amount");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Amount");
+            sheet.Cell(2, 1).SetValue(1);
             sheet.AddTable("A1:A2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "Sales[@Amount]*2");
+            sheet.Cell(4, 1).SetFormula("Sales[@Amount]*2");
 
             sheet.SetTableSchema("Sales", new[] { "Net" });
 
@@ -106,8 +106,8 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_ExpansionGeneratesUnusedColumnName() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Column2");
-            sheet.CellValue(2, 1, 1);
+            sheet.Cell(1, 1).SetValue("Column2");
+            sheet.Cell(2, 1).SetValue(1);
             sheet.AddTable("A1:A2", true, "Sales", ExcelTableStyle.TableStyleMedium2);
 
             sheet.ResizeTable("Sales", "A1:B2");
@@ -119,12 +119,12 @@ namespace OfficeIMO.Tests {
         public void Test_TableSchema_RewritesAndInvalidatesEscapedBracketColumnNames() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Keep");
-            sheet.CellValue(1, 2, "Cost [ old");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(2, 2, 2);
+            sheet.Cell(1, 1).SetValue("Keep");
+            sheet.Cell(1, 2).SetValue("Cost [ old");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(2, 2).SetValue(2);
             sheet.AddTable("A1:B2", true, "Table1", ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(4, 1, "SUM(Table1[Cost '[ old])");
+            sheet.Cell(4, 1).SetFormula("SUM(Table1[Cost '[ old])");
 
             ExcelFormulaStructuredReferenceSyntax parsed = Assert.Single(
                 ExcelFormulaSyntaxTree.Parse("Table1[Cost '[ old]").Nodes

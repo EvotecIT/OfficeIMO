@@ -48,10 +48,10 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
-            data.CellValue(1, 1, "Region");
-            data.CellValue(1, 2, "Sales");
-            data.CellValue(2, 1, "East");
-            data.CellValue(2, 2, 10d);
+            data.Cell(1, 1).SetValue("Region");
+            data.Cell(1, 2).SetValue("Sales");
+            data.Cell(2, 1).SetValue("East");
+            data.Cell(2, 2).SetValue(10d);
             data.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             ExcelPivotInteractionInfo first = document.AddPivotSlicer("SalesPivot", "Region", data.Name, new ExcelSlicerViewOptions { Name = "FirstFilter", Row = 6, Column = 1 });
             ReaderWriterLockSlim workbookLock = document.EnsureLock();
@@ -109,10 +109,10 @@ namespace OfficeIMO.Tests
             sheet.InsertRows(3, 2);
             Assert.Contains("cell=\"A7\"", ReadConnectionPartText(part), StringComparison.Ordinal);
 
-            sheet.MoveRange("A7", "C9");
+            sheet.Range("A7").MoveTo("C9");
             Assert.Contains("cell=\"C9\"", ReadConnectionPartText(part), StringComparison.Ordinal);
 
-            sheet.InsertColumns(2, 1);
+            sheet.InsertColumnsTransactional(2, 1);
             Assert.Contains("cell=\"D9\"", ReadConnectionPartText(part), StringComparison.Ordinal);
 
             sheet.InsertCells("D5", ExcelCellShiftDirection.Down);
@@ -130,7 +130,7 @@ namespace OfficeIMO.Tests
             using var sourceDocument = ExcelDocument.Create(new MemoryStream());
             ExcelSheet source = sourceDocument.AddSheet("Source");
             source.SetInCellImage(1, 1, TinyPng, altText: "Shared A");
-            source.CellValue(1, 2, "placeholder");
+            source.Cell(1, 2).SetValue("placeholder");
             Cell first = source.WorksheetPart.Worksheet!.Descendants<Cell>()
                 .Single(cell => cell.CellReference?.Value == "A1");
             Cell second = source.WorksheetPart.Worksheet.Descendants<Cell>()

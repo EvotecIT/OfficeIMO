@@ -9,7 +9,7 @@ public sealed class BibliographyReviewWave29RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Items);
 
         BibliographyNativeField field = Assert.Single(reopened.NativeFields, candidate => candidate.Format == BibliographyFormat.Nbib && candidate.Name == "IS");
@@ -25,7 +25,7 @@ public sealed class BibliographyReviewWave29RegressionTests {
         Assert.Equal(new[] { "alpha", "", "beta", "" }, document.Items[0].Keywords);
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
 
         Assert.Equal(new[] { "alpha", "", "beta", "" }, reopened.Keywords);
@@ -39,7 +39,7 @@ public sealed class BibliographyReviewWave29RegressionTests {
         Assert.Equal(new[] { "" }, document.Items[0].Keywords);
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
 
         Assert.Equal(new[] { "" }, reopened.Keywords);
@@ -53,7 +53,7 @@ public sealed class BibliographyReviewWave29RegressionTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyDate reopened = Assert.Single(BibliographyDocument.Parse(written.Content, BibliographyFormat.EndNoteXml).Document.Items[0].Dates);
 
         Assert.Equal(2026, reopened.Year);
@@ -70,13 +70,13 @@ public sealed class BibliographyReviewWave29RegressionTests {
         document.Items.Add(new BibliographyItem { Key = "second", Type = BibliographyItemType.Book, Title = "Second" });
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV133" && diagnostic.Field == "title");
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV133" && diagnostic.Field == "title");
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, format).Document;
 
-        Assert.Contains(written.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV133" && diagnostic.Field == "title");
+        Assert.Contains(written.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV133" && diagnostic.Field == "title");
         Assert.Equal(2, reopened.Items.Count);
         Assert.Equal("Publisher", reopened.Items[0].Publisher);
         Assert.Equal("Second", reopened.Items[1].Title);
@@ -89,7 +89,7 @@ public sealed class BibliographyReviewWave29RegressionTests {
         var document = new BibliographyDocument(format);
         document.Items.Add(new BibliographyItem { Key = "x", Type = BibliographyItemType.Book, Title = "Exact\\\\", Publisher = "Publisher" });
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         BibliographyItem reopened = Assert.Single(BibliographyDocument.Parse(written.Content, format).Document.Items);
 
         Assert.Equal("Exact\\\\", reopened.Title);
@@ -108,8 +108,8 @@ public sealed class BibliographyReviewWave29RegressionTests {
         document.Items.Add(new BibliographyItem { Key = "second", Type = BibliographyItemType.Book, Title = "Second" });
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV133" && diagnostic.Field == "custom");
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV133" && diagnostic.Field == "custom");
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, format).Document;
@@ -129,8 +129,8 @@ public sealed class BibliographyReviewWave29RegressionTests {
         document.Items.Add(new BibliographyItem { Key = "second", Type = BibliographyItemType.Book, Title = "Second" });
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
-        Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV134" && diagnostic.Field == "author");
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
+        Assert.Contains(exception.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "BIBCONV134" && diagnostic.Field == "author");
 
         BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyDocument reopened = BibliographyDocument.Parse(written.Content, format).Document;

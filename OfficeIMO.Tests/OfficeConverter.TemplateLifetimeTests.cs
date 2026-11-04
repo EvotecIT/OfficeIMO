@@ -12,7 +12,7 @@ public sealed class OfficeConverterTemplateLifetimeTests {
         var retained = template.AddParagraph("Template prefix");
         using var source = new MemoryStream(Encoding.UTF8.GetBytes("Imported template evidence"));
         using var output = new MemoryStream();
-        var settings = new OfficeConversionOptions { MarkdownWord = new WordMarkdownImportOptions { Template = template } };
+        var settings = new OfficeConversionOptions { MarkdownWord = new MarkdownWordExportOptions { Template = template } };
         if (rejectOutput) settings.MaximumOutputBytes = 1;
         if (rejectOutput) {
             await Assert.ThrowsAsync<OfficeConversionException>(() => OfficeConverter.ConvertAsync(source,

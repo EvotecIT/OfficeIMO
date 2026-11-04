@@ -58,6 +58,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _canonicalGlyphText = new PdfCanonicalGlyphText(cmap);
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: false);
         CffTableLength = cffTableLength;
+        SharedIdentity = new object();
     }
 
     private PdfOpenTypeCffFontProgram(PdfOpenTypeCffFontProgram source) {
@@ -81,6 +82,7 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         _textPins = new PdfGlyphTextPins(_canonicalGlyphText, _advanceWidths1000.Length, allowAliases: false);
         CffTableLength = source.CffTableLength;
         _shortMeasurements = source._shortMeasurements;
+        SharedIdentity = source.SharedIdentity;
     }
 
     internal PdfOpenTypeCffFontProgram ForkForDocument() => new(this);
@@ -100,6 +102,10 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
     public int CffTableLength { get; }
     public int FontDataLength => _data.Length;
     internal byte[] FontDataForInspection => _data;
+
+    // Identifies the immutable program shared by every document fork, so per-program
+    // caches survive ForkForDocument.
+    internal object SharedIdentity { get; }
 
     public static PdfOpenTypeCffFontProgram Parse(byte[] data, string? fontNameOverride = null) {
         Guard.NotNull(data, nameof(data));

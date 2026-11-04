@@ -50,7 +50,7 @@ internal static class WordDocumentPropertyService
         {
             foreach (var property in BuiltInReaders)
             {
-                var value = property.Value(document.BuiltinDocumentProperties);
+                var value = property.Value(document.Properties);
                 yield return new WordDocumentPropertyInfo(
                     property.Key,
                     "BuiltIn",
@@ -62,7 +62,7 @@ internal static class WordDocumentPropertyService
 
         if (includeCustom)
         {
-            foreach (var property in document.CustomDocumentProperties)
+            foreach (var property in document.CustomProperties)
             {
                 var value = property.Value.Value;
                 yield return new WordDocumentPropertyInfo(
@@ -88,12 +88,12 @@ internal static class WordDocumentPropertyService
                 $"'{name}' is not a supported built-in document property. Use -Custom for custom properties.");
         }
 
-        writer(document.BuiltinDocumentProperties, UnwrapValue(value));
+        writer(document.Properties, UnwrapValue(value));
     }
 
     public static void SetCustomProperty(WordDocument document, string name, object? value)
     {
-        document.CustomDocumentProperties[name] = CreateCustomProperty(value);
+        document.CustomProperties[name] = CreateCustomProperty(value);
     }
 
     private static WordCustomProperty CreateCustomProperty(object? value)

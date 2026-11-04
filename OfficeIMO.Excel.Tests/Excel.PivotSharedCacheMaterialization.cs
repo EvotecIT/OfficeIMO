@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 Assert.Same(cache, columns.WorksheetPart.PivotTableParts.Single().PivotTableCacheDefinitionPart);
                 Assert.Equal(100d, rows.GetPivotData("RowsPivot", "Metric").Value);
                 Assert.Equal(100d, columns.GetPivotData("ColumnsPivot", "Metric").Value);
-                document.GetSheet("Source").CellValue(2, 2, 50d);
+                document.GetSheet("Source").Cell(2, 2).SetValue(50d);
 
                 var result = rows.MaterializePivotTable("RowsPivot");
 
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             string rowBefore = rows.WorksheetPart.Worksheet.OuterXml;
             string columnBefore = columns.WorksheetPart.Worksheet.OuterXml;
             string cacheBefore = cache.PivotCacheDefinition!.OuterXml;
-            document.GetSheet("Source").CellValue(2, 2, 50d);
+            document.GetSheet("Source").Cell(2, 2).SetValue(50d);
 
             Assert.Throws<InvalidOperationException>(() => rows.MaterializePivotTable("RowsPivot",
                 new ExcelMutationPlanOptions { MaximumAffectedCells = 20 }));
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             string rowBefore = rows.WorksheetPart.Worksheet.OuterXml;
             string columnBefore = columns.WorksheetPart.Worksheet.OuterXml;
             string cacheBefore = cache.PivotCacheDefinition!.OuterXml;
-            document.GetSheet("Source").CellValue(2, 2, 50d);
+            document.GetSheet("Source").Cell(2, 2).SetValue(50d);
 
             Assert.Throws<NotSupportedException>(() => rows.MaterializePivotTable("RowsPivot"));
 

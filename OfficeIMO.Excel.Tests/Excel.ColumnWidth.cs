@@ -74,7 +74,7 @@ public sealed class ExcelColumnWidthTests {
         ExcelWorkbookInfo snapshot;
         using (ExcelDocument document = ExcelDocument.Create()) {
             ExcelSheet sheet = document.AddSheet("Snapshot");
-            sheet.CellValue(1, 1, "Value");
+            sheet.Cell(1, 1).SetValue("Value");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(19.75));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeLength.Points(23.5)));
             snapshot = document.Inspect();

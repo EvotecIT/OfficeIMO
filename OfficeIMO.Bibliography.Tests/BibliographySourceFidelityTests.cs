@@ -9,7 +9,7 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse("{\"id\":\"x\",\"type\":\"book\",\"title\":\"Before\"}", BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         using JsonDocument json = JsonDocument.Parse(written.Content);
 
         Assert.Equal(JsonValueKind.Object, json.RootElement.ValueKind);
@@ -23,7 +23,7 @@ public sealed class BibliographySourceFidelityTests {
         document.Items.Add(new BibliographyItem { Key = "y", Type = BibliographyItemType.Book });
 
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV130");
     }
@@ -34,7 +34,7 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.CslJson).Document;
         document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         using JsonDocument json = JsonDocument.Parse(written.Content);
         JsonElement item = json.RootElement[0];
 
@@ -48,7 +48,7 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         XDocument xml = XDocument.Parse(written.Content);
         XElement root = xml.Root!;
         XElement records = root.Elements().Single(element => element.Name.LocalName == "records");
@@ -67,7 +67,7 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.EndNoteXml).Document;
         document.Items[0].Title = "After";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         XDocument xml = XDocument.Parse(written.Content);
 
         Assert.Equal("records", xml.Root?.Name.LocalName);
@@ -88,7 +88,7 @@ public sealed class BibliographySourceFidelityTests {
 
         BibliographyWriteResult canonical = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical });
         BibliographyConversionLossException exception = Assert.Throws<BibliographyConversionLossException>(() =>
-            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }));
+            document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }));
 
         Assert.Contains("@book{unsafe_key,", canonical.Content, StringComparison.Ordinal);
         Assert.Contains(exception.Report.Diagnostics, diagnostic => diagnostic.Code == "BIBCONV217");
@@ -101,11 +101,11 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
         document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains("TA  - J Abbrev", written.Content, StringComparison.Ordinal);
         Assert.DoesNotContain("JT  - J Abbrev", written.Content, StringComparison.Ordinal);
-        Assert.Equal(written.Content, BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }).Content);
+        Assert.Equal(written.Content, BibliographyDocument.Parse(written.Content, BibliographyFormat.Nbib).Document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }).Content);
     }
 
     [Fact]
@@ -114,7 +114,7 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Nbib).Document;
 
         Assert.Equal("1234-5678 (Electronic)", Assert.Single(document.Items[0].Identifiers, identifier => identifier.Scheme == "ISSN").Value);
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         Assert.Contains("IS  - 1234-5678 (Electronic)", written.Content, StringComparison.Ordinal);
     }
 
@@ -125,7 +125,7 @@ public sealed class BibliographySourceFidelityTests {
 
         Assert.Equal("Author keyword", Assert.Single(document.Items[0].Keywords));
         Assert.Equal("Controlled heading", Assert.Single(document.Items[0].NativeFields, field => field.Name == "MH").Value);
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         Assert.Contains("MH  - Controlled heading", written.Content, StringComparison.Ordinal);
         Assert.Contains("OT  - Author keyword", written.Content, StringComparison.Ordinal);
     }
@@ -145,7 +145,7 @@ public sealed class BibliographySourceFidelityTests {
         const string source = "TY  - BOOK\nID  - x\nAU  - Alpha, Alice\nED  - Editor, Erin\nAU  - Beta, Bob\nER  -\n";
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         int firstAuthor = written.Content.IndexOf("AU  - Alpha, Alice", StringComparison.Ordinal);
         int editor = written.Content.IndexOf("ED  - Editor, Erin", StringComparison.Ordinal);
         int secondAuthor = written.Content.IndexOf("AU  - Beta, Bob", StringComparison.Ordinal);
@@ -163,7 +163,7 @@ public sealed class BibliographySourceFidelityTests {
         BibliographyDocument document = BibliographyDocument.Parse(source, BibliographyFormat.Ris).Document;
         document.Items[0].Title = "Edited";
 
-        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult written = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
 
         Assert.Contains($"{contributorTag}  - Alpha, Alice", written.Content, StringComparison.Ordinal);
         Assert.Contains($"{dateTag}  - 2024", written.Content, StringComparison.Ordinal);

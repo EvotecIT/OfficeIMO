@@ -13,8 +13,8 @@ public partial class ExcelImageExportTests {
         using var workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Text");
         if (formula) sheet.CellFormulaWithTextCache(1, 1, "=\"-5\"", "-5");
-        else sheet.CellAt(1, 1).SetValue("-5");
-        sheet.CellAt(1, 1).SetNumberFormat("0;[Red]0;0;@").SetFontColor("0000FF");
+        else sheet.Cell(1, 1).SetValue("-5");
+        sheet.Cell(1, 1).SetNumberFormat("0;[Red]0;0;@").SetFontColor("0000FF");
         if (merged) sheet.Range("A1:B1").Merge();
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
@@ -24,7 +24,7 @@ public partial class ExcelImageExportTests {
         Assert.Equal("-5", cell.Text);
         Assert.Equal(ExcelVisualCellValueKind.Text, cell.ValueKind);
         Assert.Equal("0000FF", cell.Style.FontColorHex);
-        if (formula) Assert.IsType<string>(reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
+        if (formula) Assert.IsType<string>(reopened.Sheets[0].Cell(1, 1).GetValue().Value);
         Assert.Contains(">-5</text>", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.Ordinal);
     }
 
@@ -34,10 +34,10 @@ public partial class ExcelImageExportTests {
     public void Image_currency_grouping_uses_the_format_placeholders(string format, string expected) {
         using var workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Numeric");
-        sheet.CellAt(1, 1).SetValue(1234.5d).SetNumberFormat(format);
-        sheet.CellAt(2, 1).SetValue(1234.5d);
-        sheet.CellFormula(2, 1, "=1234.5");
-        sheet.CellAt(2, 1).SetNumberFormat(format);
+        sheet.Cell(1, 1).SetValue(1234.5d).SetNumberFormat(format);
+        sheet.Cell(2, 1).SetValue(1234.5d);
+        sheet.Cell(2, 1).SetFormula("=1234.5");
+        sheet.Cell(2, 1).SetNumberFormat(format);
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         ExcelRange range = reopened.Sheets[0].Range("A1:A2");
@@ -56,23 +56,23 @@ public partial class ExcelImageExportTests {
     public void Image_format_color_uses_the_numeric_value_selected_section(double value, string format, bool merged, string color) {
         using var workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Colors");
-        sheet.CellAt(1, 1).SetValue(value).SetNumberFormat(format).SetFontColor("0000FF");
+        sheet.Cell(1, 1).SetValue(value).SetNumberFormat(format).SetFontColor("0000FF");
         if (merged) sheet.Range("A1:B1").Merge();
         ExcelRange range = sheet.Range(merged ? "B1:B1" : "A1:A1");
         Assert.Equal(color, Assert.Single(range.CreateVisualSnapshot().Cells, c => c.Column == 1).Style.FontColorHex);
         Assert.Contains("fill=\"#" + color + "\"", System.Text.Encoding.UTF8.GetString(range.ExportImage(OfficeIMO.Drawing.OfficeImageExportFormat.Svg).Bytes), StringComparison.OrdinalIgnoreCase);
-        Assert.Equal("0000FF", sheet.CellAt(1, 1).GetStyle().FontColorHex);
+        Assert.Equal("0000FF", sheet.Cell(1, 1).GetStyle().FontColorHex);
     }
 
     [Fact]
     public void Image_percentage_overflow_retains_finite_raw_value() {
         using var workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Large");
-        sheet.CellAt(1, 1).SetValue(1e308).SetNumberFormat("0.00%");
+        sheet.Cell(1, 1).SetValue(1e308).SetNumberFormat("0.00%");
         using var saved = new MemoryStream(); workbook.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         Assert.Equal("1E+308", Assert.Single(reopened.Sheets[0].Range("A1:A1").CreateVisualSnapshot().Cells).Text);
-        Assert.Equal(1e308, reopened.Sheets[0].CellAt(1, 1).GetValue().Value);
+        Assert.Equal(1e308, reopened.Sheets[0].Cell(1, 1).GetValue().Value);
     }
 
 }

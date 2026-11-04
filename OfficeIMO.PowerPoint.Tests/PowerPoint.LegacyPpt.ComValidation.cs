@@ -53,7 +53,7 @@ public sealed class PowerPointLegacyPptComValidationTests {
                 presentation.AddSlide().AddTextBox("OfficeIMO modern to binary");
                 presentation.Save();
             }
-            PowerPointDocument.Convert(modernSource, binaryDestination).RequireNoLoss();
+            PowerPointDocument.Convert(modernSource, binaryDestination).Report.ThrowIfLoss();
             AssertPowerPointDesktopRenders(
                 binaryDestination,
                 Path.Combine(root, "officeimo-modern-to-binary-render"),

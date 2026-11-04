@@ -22,11 +22,11 @@ namespace OfficeIMO.Visio {
                     issues.Add($"Duplicate page id '{page.Id}' found for page '{page.Name}'.");
                 }
 
-                if (page.Width <= 0) {
+                if (page.WidthInches <= 0) {
                     issues.Add($"Page '{page.Name}' must have a positive width.");
                 }
 
-                if (page.Height <= 0) {
+                if (page.HeightInches <= 0) {
                     issues.Add($"Page '{page.Name}' must have a positive height.");
                 }
 
@@ -58,11 +58,11 @@ namespace OfficeIMO.Visio {
 
                     ReserveId(shape.Id, "Shape");
 
-                    if (shape.Width < 0) {
+                    if (shape.WidthInches < 0) {
                         issues.Add($"Shape '{shape.Id}' on page '{page.Name}' cannot have a negative width.");
                     }
 
-                    if (shape.Height < 0) {
+                    if (shape.HeightInches < 0) {
                         issues.Add($"Shape '{shape.Id}' on page '{page.Name}' cannot have a negative height.");
                     }
 

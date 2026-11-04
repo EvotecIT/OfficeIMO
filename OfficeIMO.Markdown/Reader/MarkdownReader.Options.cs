@@ -218,6 +218,7 @@ internal static partial class MarkdownReader {
         clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;
         clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
         clone.NestedBlockDepth = state.NestedBlockDepth;
+        clone.DiscardsNestedListSourceRemap = state.DiscardsNestedListSourceRemap;
         foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
         foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);
         foreach (var line in state.SuppressedSetextHeadingUnderlineLines) clone.SuppressedSetextHeadingUnderlineLines.Add(line);

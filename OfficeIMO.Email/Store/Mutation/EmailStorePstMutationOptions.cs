@@ -9,7 +9,7 @@ public sealed class EmailStorePstMutationOptions {
         int maxFolderCount = 100_000,
         int maxItemCount = 1_000_000,
         int maxNestedMessageDepth = 32,
-        bool failOnDataLoss = true,
+        bool failOnLoss = true,
         bool verifyAfterWrite = true,
         EmailSemanticComparisonOptions? verificationOptions = null,
         int maxVerificationIssues = 1_000,
@@ -24,7 +24,7 @@ public sealed class EmailStorePstMutationOptions {
         MaxFolderCount = maxFolderCount;
         MaxItemCount = maxItemCount;
         MaxNestedMessageDepth = maxNestedMessageDepth;
-        FailOnDataLoss = failOnDataLoss;
+        FailOnLoss = failOnLoss;
         VerifyAfterWrite = verifyAfterWrite;
         VerificationOptions = verificationOptions;
         MaxVerificationIssues = maxVerificationIssues;
@@ -44,7 +44,7 @@ public sealed class EmailStorePstMutationOptions {
     public int MaxNestedMessageDepth { get; }
 
     /// <summary>Whether any fidelity warning or error prevents replacement of the original PST.</summary>
-    public bool FailOnDataLoss { get; }
+    public bool FailOnLoss { get; }
 
     /// <summary>Whether every resulting item is reopened and semantically compared before replacement.</summary>
     public bool VerifyAfterWrite { get; }

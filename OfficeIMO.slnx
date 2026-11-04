@@ -161,6 +161,8 @@
   <Project Path="OfficeIMO.Drawing.CodeGlyphX/OfficeIMO.Drawing.CodeGlyphX.csproj" />
   <Project Path="OfficeIMO.Drawing.HarfBuzz.Tests/OfficeIMO.Drawing.HarfBuzz.Tests.csproj" />
   <Project Path="OfficeIMO.Drawing.HarfBuzz/OfficeIMO.Drawing.HarfBuzz.csproj" />
+  <Project Path="OfficeIMO.Drawing.ImageIO.Tests/OfficeIMO.Drawing.ImageIO.Tests.csproj" />
+  <Project Path="OfficeIMO.Drawing.ImageIO/OfficeIMO.Drawing.ImageIO.csproj" />
   <Project Path="OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj" />
   <Project Path="OfficeIMO.Email.Html/OfficeIMO.Email.Html.csproj" />
   <Project Path="OfficeIMO.Email.Image/OfficeIMO.Email.Image.csproj" />

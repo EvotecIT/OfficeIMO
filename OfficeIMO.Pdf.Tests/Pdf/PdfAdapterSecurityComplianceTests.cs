@@ -135,7 +135,7 @@ public class PdfAdapterSecurityComplianceTests {
     public void PdfA2BAndPasswordEncryptionRemainAnExplicitlyRejectedCombination() {
         PdfCore.PdfCreateOptions options = CreatePdfA2BOptions().SetEncryption("open", "owner");
         PdfCore.PdfDocument document = PdfCore.PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text(Marker("pdfa-encryption")));
+            .Paragraph(paragraph => paragraph.AddText(Marker("pdfa-encryption")));
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() => document.ToBytes());
 
@@ -198,7 +198,7 @@ public class PdfAdapterSecurityComplianceTests {
         "docx" => ConvertDocx(pdfOptions),
         "xlsx" => ConvertXlsx(pdfOptions),
         "pptx" => ConvertPptx(pdfOptions),
-        "html" => (HtmlConversionDocument.Parse("<h1>" + Marker(route) + "</h1><p>Adapter proof</p>").ToPdf(new HtmlToPdfOptions {
+        "html" => (HtmlConversionDocument.Parse("<h1>" + Marker(route) + "</h1><p>Adapter proof</p>").ToPdf(new HtmlPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         })).ToBytes(),
@@ -206,44 +206,48 @@ public class PdfAdapterSecurityComplianceTests {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
         })).ToBytes(),
-        "rtf" => (CreateRtf(route).ToPdf(new RtfToPdfOptions {
+        "rtf" => (CreateRtf(route).ToPdf(new RtfPdfExportOptions {
             PdfOptions = pdfOptions
         })).ToBytes(),
-        "asciidoc" => AsciiDocDocument.ParseResult("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdfBytes(
-            new AsciiDocToPdfOptions {
+        "asciidoc" => AsciiDocDocument.ParseResult("= " + Marker(route) + "\n\nAdapter proof").Document.ToPdf(
+            new AsciiDocPdfExportOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
-            }),
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
         "latex" => LatexDocument.ParseResult(
                 "\\documentclass{article}\\begin{document}\\section{" + Marker(route) + "}Adapter proof\\end{document}")
-            .Document.ToPdfBytes(new LatexToPdfOptions {
+            .Document.ToPdf(new LatexPdfExportOptions {
                 MarkdownOptions = CreateMarkdownOptions(pdfOptions)
-            }),
+            }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
         "mhtml" => new MhtmlDocument(
                 "<h1>" + Marker(route) + "</h1><p>Adapter proof</p>",
                 contentLocation: "https://proof.officeimo.test/report.html")
-            .ToPdfBytes(CreateHtmlOptions(pdfOptions)),
-        "onenote" => CreateOneNote(route).ToPdfBytes(new OneNoteToPdfOptions {
+            .ToPdf(CreateHtmlOptions(pdfOptions)).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "onenote" => CreateOneNote(route).ToPdf(new OneNotePdfExportOptions {
             MarkdownOptions = CreateMarkdownOptions(pdfOptions)
-        }),
-        "odt" => CreateOdt(route).ToPdfBytes(pdfOptions: new WordPdfExportOptions {
+        }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "odt" => CreateOdt(route).ToPdf(new OdtPdfExportOptions { PdfOptions = new WordPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }),
-        "ods" => CreateOds(route).ToPdfBytes(pdfOptions: new ExcelPdfExportOptions {
+        } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "ods" => CreateOds(route).ToPdf(new OdsPdfExportOptions { PdfOptions = new ExcelPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }),
-        "odp" => CreateOdp(route).ToPdfBytes(pdfOptions: new PowerPointPdfExportOptions {
+        } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "odp" => CreateOdp(route).ToPdf(new OdpPdfExportOptions { PdfOptions = new PowerPointPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
-        }),
-        "visio" => CreateVisio(route).ToPdfBytes(new VisioToPdfOptions {
+        } }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }),
+        "visio" => Serialize(CreateVisio(route).ToPdf(new VisioPdfExportOptions {
             ProjectionOptions = new PdfCore.PdfProjectionOptions { PdfOptions = pdfOptions }
-        }),
+        })),
         _ => throw new ArgumentOutOfRangeException(nameof(route))
     };
 
-    private static HtmlToPdfOptions CreateHtmlOptions(PdfCore.PdfCreateOptions pdfOptions) => new HtmlToPdfOptions {
+    private static byte[] Serialize(PdfCore.PdfDocument pdf) {
+        using (pdf) return pdf.ToBytes();
+    }
+
+    private static HtmlPdfExportOptions CreateHtmlOptions(PdfCore.PdfCreateOptions pdfOptions) => new HtmlPdfExportOptions {
         PdfOptions = pdfOptions,
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
     };
@@ -272,8 +276,8 @@ public class PdfAdapterSecurityComplianceTests {
     private static byte[] ConvertAutomaticXlsx(string text) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Proof");
-        sheet.Cell(1, 1, text);
-        sheet.Cell(2, 1, "Adapter proof");
+        sheet.Cell(1, 1).SetValue(text);
+        sheet.Cell(2, 1).SetValue("Adapter proof");
         return (document.ToPdf()).ToBytes(options:new global::OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
     }
 
@@ -297,8 +301,8 @@ public class PdfAdapterSecurityComplianceTests {
     private static byte[] ConvertXlsx(PdfCore.PdfCreateOptions pdfOptions) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Proof");
-        sheet.Cell(1, 1, Marker("xlsx"));
-        sheet.Cell(2, 1, "Adapter proof");
+        sheet.Cell(1, 1).SetValue(Marker("xlsx"));
+        sheet.Cell(2, 1).SetValue("Adapter proof");
         return (document.ToPdf(new ExcelPdfExportOptions {
             PdfOptions = pdfOptions,
             TextFallbacks = PdfCore.PdfTextFallbackFeatures.None
@@ -357,8 +361,8 @@ public class PdfAdapterSecurityComplianceTests {
 
     private static VisioDocument CreateVisio(string route) {
         VisioDocument document = VisioDocument.Create();
-        document.AddPage("Proof", 8.5, 11).Shapes.Add(
-            new VisioShape("proof", 4.25, 5.5, 6, 1, Marker(route) + " Adapter proof"));
+        document.AddPage("Proof", OfficeLength.Inches(8.5), OfficeLength.Inches(11)).Shapes.Add(
+            new VisioShape("proof", OfficeLength.Inches(4.25), OfficeLength.Inches(5.5), OfficeLength.Inches(6), OfficeLength.Inches(1), Marker(route) + " Adapter proof"));
         return document;
     }
 

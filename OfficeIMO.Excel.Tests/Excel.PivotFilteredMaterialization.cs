@@ -73,8 +73,8 @@ namespace OfficeIMO.Tests
                 new Dictionary<string, object?> { ["Region"] = "East" }
             };
             using (var document = ExcelDocument.Load(PivotFilteredOraclePath)) {
-                document.GetSheet("Source").CellValue(2, 1, "East");
-                document.GetSheet("Source").CellValue(2, 2, "B");
+                document.GetSheet("Source").Cell(2, 1).SetValue("East");
+                document.GetSheet("Source").Cell(2, 2).SetValue("B");
                 var sheet = document.GetSheet("Filtered");
                 Assert.Equal("A4:B7", sheet.MaterializePivotTable("PivotFiltered").OutputRange);
                 for (int index = 0; index < selections.Length; index++)
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests
                 var sheet = document.AddSheet("Source");
                 for (int row = 0; row < 7; row++)
                     for (int column = 0; column < 3; column++)
-                        sheet.CellValue(row + 1, column + 1, sourceValues[row, column]);
+                        sheet.Cell(row + 1, column + 1).SetValue(sourceValues[row, column]);
                 sheet.AddPivotTable("A1:C7", "E4", options: new ExcelPivotTableOptions { Name = "PivotFiltered", RowFields = new[] { "Region" }, PageFields = new[] { "Product" }, DataFields = new[] { new ExcelPivotDataField("Amount", ExcelPivotDataFunction.Sum, "Metric") }, FieldOptions = new[] { new ExcelPivotFieldOptions("Region", hiddenItems: new[] { "West" }), new ExcelPivotFieldOptions("Product", selectedItem: "B") }, Layout = ExcelPivotLayout.Tabular });
                 var result = sheet.MaterializePivotTable("PivotFiltered");
                 Assert.Equal("E4:F7", result.OutputRange);

@@ -27,7 +27,7 @@ namespace OfficeIMO.Visio.Diagrams {
                 double bottomY = firstMessageY - (activation.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.32D);
                 double height = Math.Max(ActivationMinimumHeight, topY - bottomY);
                 double y = (topY + bottomY) / 2D;
-                VisioShape shape = page.AddStencilShape(VisioStencils.Sequence, "seq.activation", activation.Id, participant.PinX, y, ActivationWidth, height, string.Empty);
+                VisioShape shape = page.AddStencilShapeInches(VisioStencils.Sequence, "seq.activation", activation.Id, participant.PinX, y, ActivationWidth, height, string.Empty);
                 _theme.Marker.ApplyTo(shape);
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.SequenceActivationKind, "STR", prompt: "OfficeIMO semantic kind");
                 shape.SetUserCell("OfficeIMO.SequenceParticipantId", activation.ParticipantId, "STR", prompt: "OfficeIMO sequence activation participant");
@@ -189,7 +189,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private bool IsActivationNearMessageRow(ActivationItem activation, double messageY) {
             double firstMessageY = _participants.Count == 0 || _participants[0].Header == null
                 ? messageY
-                : _participants[0].Header!.PinY - (_participantHeight / 2D) - _messageGap;
+                : _participants[0].Header!.PinYInches - (_participantHeight / 2D) - _messageGap;
             double activationTop = firstMessageY - (activation.StartRowIndex * _messageSpacing) + (_messageSpacing * 0.32D);
             double activationBottom = firstMessageY - (activation.EndRowIndex * _messageSpacing) - (_messageSpacing * 0.32D);
             return messageY <= activationTop && messageY >= activationBottom;
@@ -241,7 +241,7 @@ namespace OfficeIMO.Visio.Diagrams {
         private double GetSelfMessageLabelAvailableWidth(VisioPage page, ParticipantItem participant, bool rightSide) {
             double direction = rightSide ? 1D : -1D;
             double loopX = participant.PinX + (direction * _selfMessageWidth);
-            double pageWidth = page.Width.FromInches(_unit);
+            double pageWidth = page.WidthInches.FromInches(_unit);
             double pageLimit = rightSide
                 ? pageWidth - _rightMargin - loopX - SelfMessageLabelGap
                 : loopX - _leftMargin - SelfMessageLabelGap;

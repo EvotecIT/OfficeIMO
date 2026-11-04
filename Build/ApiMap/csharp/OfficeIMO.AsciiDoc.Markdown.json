@@ -1,0 +1,23 @@
+{
+  "package": "OfficeIMO.AsciiDoc.Markdown",
+  "changes": [
+    {
+      "old": "OfficeIMO.AsciiDoc.Markdown.AsciiDocToMarkdownOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.AsciiDoc.Markdown.MarkdownToAsciiDocOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.AsciiDoc.Markdown.MarkdownAsciiDocExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

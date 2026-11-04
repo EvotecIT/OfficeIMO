@@ -14,7 +14,7 @@ public static partial class BookManuscriptImporter {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (options == null) throw new ArgumentNullException(nameof(options));
         options = options.Clone();
-        options.Creator ??= document.BuiltinDocumentProperties.Creator;
+        options.Creator ??= document.Properties.Creator;
         cancellationToken.ThrowIfCancellationRequested();
         var wordOptions = WordHtmlExportOptions.CreateSemanticDocumentProfile();
         wordOptions.Title = options.Title;

@@ -10,7 +10,7 @@ public sealed class DrawLossEvidenceCommandTests {
         try {
             string input = Path.Combine(root, "source.fodg"), destination = Path.Combine(root, "result.pdf");
             var drawing = OdgDocument.Create();
-            drawing.Metadata.Title = "Unprojected source metadata";
+            drawing.Properties.Title = "Unprojected source metadata";
             drawing.AddPage("First").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), string.Empty)
                 .AddParagraph("native capitalization").TextTransform = OdfTextTransform.Capitalize;
             drawing.AddPage("Second").Shapes.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 5), char.ConvertFromUtf32(0x10FFFF));

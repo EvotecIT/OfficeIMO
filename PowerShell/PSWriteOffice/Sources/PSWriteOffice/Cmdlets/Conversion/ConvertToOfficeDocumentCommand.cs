@@ -4,9 +4,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
 using System.Threading.Tasks;
 using PSWriteOffice.Services;
 using OfficeIMO.Workflows;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Conversion;
 
@@ -22,7 +24,7 @@ namespace PSWriteOffice.Cmdlets.Conversion;
 /// </example>
 /// <example>
 ///   <summary>Run a resumable directory job with an explicit loss policy.</summary>
-///   <code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -RequireNoLoss)</code>
+///   <code>ConvertTo-OfficeDocument -InputDirectory ./source -OutputDirectory ./pdf -TargetExtension pdf -CheckpointDirectory ./state -ConversionOptions (New-OfficeConversionOptions -ThrowIfLoss)</code>
 /// </example>
 [Cmdlet(VerbsData.ConvertTo, "OfficeDocument", DefaultParameterSetName = "File", SupportsShouldProcess = true)]
 [OutputType(typeof(OfficeConversionReport), typeof(OfficeBatchSummary), typeof(OfficeBatchItemReport))]
@@ -74,7 +76,8 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
 
     /// <summary>Runtime-only password for encrypted Office or PDF source files.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>Maximum bytes read from one source.</summary>
     [Parameter]
@@ -148,15 +151,16 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
     /// <inheritdoc />
     protected override async Task EndProcessingAsync() {
         var options = ConversionOptions?.Clone() ?? new OfficeConversionOptions { WordLoad = new OfficeIMO.Word.WordLoadOptions { FailOnLoss = true } };
-        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) options.SourcePassword = Password;
+        if (MyInvocation.BoundParameters.ContainsKey(nameof(Password))) options.SourcePassword = Password.ToPlainText();
         OfficeWorkflowCommandUtilities.RegisterConversions();
         var conflict = (OfficePublicationPolicy)Enum.Parse(typeof(OfficePublicationPolicy), ConflictPolicy, ignoreCase: true);
         var profile = (OfficeConversionProfile)Enum.Parse(typeof(OfficeConversionProfile), OutputProfile, ignoreCase: true);
         if (ParameterSetName == "File") {
             if (_inputs.Count != 1) throw new PSArgumentException("Select exactly one source file.");
             string output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
-            if (!ShouldProcess(output, "Convert document")) return;
             options.RouteId = ConversionRouteId;
+            OfficeWorkflowCommandUtilities.EnsureSupportedInput(_inputs[0], output, options);
+            if (!ShouldProcess(output, "Convert document")) return;
             options.FileConflictPolicy = conflict; options.OutputProfile = profile;
             options.MaximumInputBytes = MaximumInputBytes; options.MaximumOutputBytes = MaximumOutputBytes;
             try {
@@ -169,8 +173,7 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
             return;
         }
         string directory = OfficeFileCommandUtilities.ResolvePath(this, OutputDirectory);
-        if (!ShouldProcess(directory, "Convert document batch")) return;
-        var report = await OfficeConverter.ConvertAsync(new OfficeBatchOptions {
+        var request = new OfficeBatchOptions {
             InputDirectory = ParameterSetName == "Directory" ? OfficeFileCommandUtilities.ResolvePath(this, InputDirectory) : null,
             InputPaths = ParameterSetName == "Files" ? _inputs.ToArray() : null,
             OutputDirectory = directory, TargetExtension = TargetExtension, ConversionRouteId = ConversionRouteId,
@@ -179,7 +182,10 @@ public sealed class ConvertToOfficeDocumentCommand : AsyncPSCmdlet {
             Recursive = !NoRecurse.IsPresent, Extensions = SourceExtension,
             MaximumFiles = MaximumFiles, MaxParallelism = MaximumConcurrency,
             MaximumInputBytes = MaximumInputBytes, MaximumOutputBytes = MaximumOutputBytes, RetryFailed = RetryFailed.IsPresent
-        }, new BatchProgress(this), CancelToken);
+        };
+        OfficeWorkflowCommandUtilities.ConfigureBatch(request);
+        if (!ShouldProcess(directory, "Convert document batch")) return;
+        var report = await OfficeConverter.ConvertAsync(request, new BatchProgress(this), CancelToken);
         var batch = report.Summary;
         SetSummary(batch);
         WriteProgress(new ProgressRecord(1, "Convert documents", "Finished") { RecordType = ProgressRecordType.Completed });

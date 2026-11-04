@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet data = document.AddSheet("Data");
             ExcelSheet summary = document.AddSheet("Summary");
-            summary.CellFormula(1, 1, "1+1");
+            summary.Cell(1, 1).SetFormula("1+1");
             CellFormula formula = Assert.Single(
                 summary.WorksheetPart.Worksheet.Descendants<CellFormula>());
             formula.CalculateCell = null;
@@ -34,9 +34,9 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet summary = document.AddSheet("Summary");
             for (int column = 1; column <= 128; column++) {
-                summary.CellValue(1, column, column);
+                summary.Cell(1, column).SetValue(column);
             }
-            summary.CellFormula(1, 129, "1+1");
+            summary.Cell(1, 129).SetFormula("1+1");
             Assert.True(document.HasPendingDirectCellValues);
             ExcelSheet data = AddWorksheetWithoutMaterializingPending(
                 document,
@@ -60,10 +60,10 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanIgnoresUnchangedHyperlinksAndTables() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Name");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
             sheet.SetInternalLink(3, 1, sheet, "A1", display: "Top");
             sheet.AddTable(
                 "A1:B2",
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_MutationPlanIncludesImplicitRowsNormalizedAboveBoundary() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "Value");
+            sheet.Cell(1, 1).SetValue("Value");
             Row row = Assert.Single(
                 sheet.WorksheetPart.Worksheet.GetFirstChild<SheetData>()!.Elements<Row>());
             row.RowIndex = null;

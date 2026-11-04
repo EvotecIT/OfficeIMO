@@ -128,6 +128,25 @@ public readonly struct OfficeLength : IEquatable<OfficeLength>, IComparable<Offi
         long significand = bits & 0x000fffffffffffffL;
         if (exponentBits != 0) significand |= 1L << 52;
         int shift = exponentBits == 0 ? -1074 : exponentBits - 1023 - 52;
+#if NET8_0_OR_GREATER
+        // Int64 times the IEEE-754 significand fits exactly in Int128. Keep the
+        // same whole-EMU rounding without allocating BigInteger storage.
+        Int128 numerator = (Int128)emus * significand;
+        if (bits < 0) numerator = -numerator;
+        if (shift >= 0) {
+            if (shift > 63 || numerator > ((Int128)long.MaxValue >> shift)
+                || numerator < ((Int128)long.MinValue >> shift)) throw new OverflowException();
+            return (long)(numerator << shift);
+        }
+        int fractionalBits = -shift;
+        if (fractionalBits >= 128) return 0;
+        UInt128 absolute = (UInt128)(numerator < 0 ? -numerator : numerator);
+        UInt128 denominator = (UInt128)1 << fractionalBits;
+        UInt128 rounded = absolute >> fractionalBits;
+        if ((absolute & (denominator - 1)) >= (denominator >> 1)) rounded++;
+        Int128 signed = numerator < 0 ? -(Int128)rounded : (Int128)rounded;
+        return checked((long)signed);
+#else
         BigInteger numerator = (BigInteger)emus * significand;
         if (bits < 0) numerator = -numerator;
         if (shift >= 0) return checked((long)(numerator << shift));
@@ -135,6 +154,7 @@ public readonly struct OfficeLength : IEquatable<OfficeLength>, IComparable<Offi
         BigInteger rounded = BigInteger.DivRem(BigInteger.Abs(numerator), denominator, out BigInteger remainder);
         if (remainder * 2 >= denominator) rounded++;
         return checked((long)(numerator.Sign < 0 ? -rounded : rounded));
+#endif
     }
     private static decimal Factor(string unit) {
         switch (unit.ToLowerInvariant()) {

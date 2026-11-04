@@ -26,27 +26,27 @@ public sealed partial class PowerPointContentWorkflowTests {
                 PowerPointSlide -Layout ImageFull -Title 'Evidence' {
                     $script:flowPicture = {{command}} -FocalPoint '0.85,0.5' -PassThru
                 }
-                $script:flowPicture.Description = 'Edited after layout'
+                $script:flowPicture.AltText = 'Edited after layout'
                 $script:fixedPicture = {{command}} -Slide 1 -X 2cm -Y 3cm -Width 3cm -Height 3cm -FocalPoint Right -PassThru
                 $script:gridPicture = {{command}} -Slide 1 -Column 2 -Span 3 -Y 200pt -Height 3cm -FocalPoint Left -PassThru
             }
             """);
         shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        Assert.IsType<PowerPointPicture>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("flowPicture")).BaseObject);
+        Assert.IsType<PowerPointImage>(PSObject.AsPSObject(runspace.SessionStateProxy.GetVariable("flowPicture")).BaseObject);
         using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
         var slide = Assert.Single(saved.Slides);
-        var pictures = slide.Pictures.ToArray();
+        var pictures = slide.Images.ToArray();
         Assert.Equal(3, pictures.Length);
         var flow = pictures[0];
-        Assert.Equal("Edited after layout", flow.Description);
+        Assert.Equal("Edited after layout", flow.AltText);
         Assert.Equal(saved.SlideSize.Width, flow.Width);
         Assert.Equal(saved.SlideSize.Height, flow.Height);
         Assert.InRange(flow.CropLeftRatio, 0.4, 0.42);
         Assert.Equal(0, flow.CropRightRatio, 5);
         var fixedPicture = pictures[1];
-        Assert.Equal("Three color bands", fixedPicture.Description);
+        Assert.Equal("Three color bands", fixedPicture.AltText);
         Assert.Equal(OfficeLength.Centimeters(2), fixedPicture.Left);
         Assert.Equal(OfficeLength.Centimeters(3), fixedPicture.Top);
         Assert.Equal(OfficeLength.Centimeters(3), fixedPicture.Width);
@@ -60,7 +60,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal(0, grid.CropLeftRatio, 5);
         Assert.True(grid.CropRightRatio > 0);
         Assert.Equal("Original visual metadata", visual.AlternativeText);
-        Assert.All(slide.Pictures, picture => {
+        Assert.All(slide.Images, picture => {
             Assert.Equal("image/svg+xml", picture.ContentType);
             Assert.Equal(preparedVisual ? visual.GetPlacementBytes() : File.ReadAllBytes(source), picture.GetImageBytes());
         });
@@ -81,7 +81,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         shell.AddScript("PowerPointImage -Slide $slide -Path $source -Column 10 -Span 4");
         Assert.Empty(shell.Invoke());
         Assert.True(shell.HadErrors);
-        Assert.Empty(slide.Pictures);
+        Assert.Empty(slide.Images);
         Assert.Equal("Retained title", Assert.Single(slide.TextBoxes).Text);
         Assert.Equal(relationships, document.OpenXmlDocument.PresentationPart.SlideParts.Single().Parts.Count());
         Assert.Empty(document.ValidateDocument());

@@ -1,7 +1,7 @@
 namespace OfficeIMO.Rtf.Writing;
 
 internal static partial class RtfDocumentWriter {
-    private static void WriteFontTable(StringBuilder builder, RtfDocument document, RtfWriteOptions options, int unicodeSkipCount) {
+    private static void WriteFontTable(StringBuilder builder, RtfDocument document, RtfSaveOptions options, int unicodeSkipCount) {
         IReadOnlyList<RtfFont> fonts = document.Fonts.Count == 0
             ? new[] { new RtfFont(0, options.DefaultFontName) }
             : document.Fonts;

@@ -44,8 +44,8 @@ namespace OfficeIMO.Excel {
             MaterializePendingDirectCellValues();
             Locking.ExecuteWrite(_excelDocument.EnsureLock(), () => {
                 var candidates = new List<(Cell Cell, int Row, int Column, string Reference)>();
-                foreach (Cell cell in WorksheetRoot.Descendants<Cell>()) {
-                    if (cell.CellFormula == null || cell.CellValue != null || cell.InlineString != null) continue;
+                foreach (Cell cell in ExcelWorksheetScan.Cells(WorksheetRoot)) {
+                    if (ExcelWorksheetScan.FindFormula(cell) == null || ExcelWorksheetScan.FindValue(cell) != null || cell.InlineString != null) continue;
                     string? reference = cell.CellReference?.Value;
                     if (reference == null || !TryParseCellReference(reference, out int row, out int column) ||
                         row < firstRow || row > lastRow || column < firstColumn || column > lastColumn) {
@@ -87,7 +87,7 @@ namespace OfficeIMO.Excel {
 
                         if (writeCache) {
                             SetFormulaCachedValue(cell, result);
-                            cell.CellFormula!.CalculateCell = null;
+                            ExcelWorksheetScan.FindFormula(cell)!.CalculateCell = null;
                             changed = true;
                         }
 

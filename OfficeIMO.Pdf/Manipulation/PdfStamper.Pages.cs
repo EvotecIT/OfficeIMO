@@ -7,17 +7,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStamper {
     /// <summary>Imports one source PDF page as a Form XObject above selected target pages.</summary>
-    public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null) {
+    public static byte[] OverlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: false), targetReadOptions);
     }
 
     /// <summary>Imports one source PDF page as a Form XObject below selected target pages.</summary>
-    public static byte[] UnderlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null) {
+    public static byte[] UnderlayPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return StampPageCore(targetPdf, sourcePdf, (options ?? new PdfPageOverlayOptions()).Clone(behindContent: true), targetReadOptions);
     }
 
     /// <summary>Imports one source PDF page as a Form XObject using the requested content order.</summary>
-    public static byte[] StampPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null) {
+    public static byte[] StampPage(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions? options = null, PdfLoadOptions? targetReadOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return StampPageCore(targetPdf, sourcePdf, options?.Clone() ?? new PdfPageOverlayOptions(), targetReadOptions);
     }
 
@@ -29,27 +32,30 @@ internal static partial class PdfStamper {
     }
 
     /// <summary>Imports a source PDF page onto target pages read from streams.</summary>
-    public static byte[] StampPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
+    public static byte[] StampPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return StampPage(
             ReadStream(targetPdf, nameof(targetPdf), cancellationToken: options?.CancellationToken ?? default),
             ReadStream(sourcePdf, nameof(sourcePdf), options?.SourceReadOptions, options?.CancellationToken ?? default),
-            options);
+            options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one source PDF page above selected target pages read from streams.</summary>
-    public static byte[] OverlayPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
+    public static byte[] OverlayPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return OverlayPage(
             ReadStream(targetPdf, nameof(targetPdf), cancellationToken: options?.CancellationToken ?? default),
             ReadStream(sourcePdf, nameof(sourcePdf), options?.SourceReadOptions, options?.CancellationToken ?? default),
-            options);
+            options, cancellationToken: cancellationToken);
     }
 
     /// <summary>Imports one source PDF page below selected target pages read from streams.</summary>
-    public static byte[] UnderlayPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null) {
+    public static byte[] UnderlayPage(Stream targetPdf, Stream sourcePdf, PdfPageOverlayOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         return UnderlayPage(
             ReadStream(targetPdf, nameof(targetPdf), cancellationToken: options?.CancellationToken ?? default),
             ReadStream(sourcePdf, nameof(sourcePdf), options?.SourceReadOptions, options?.CancellationToken ?? default),
-            options);
+            options, cancellationToken: cancellationToken);
     }
 
     private static byte[] StampPageCore(byte[] targetPdf, byte[] sourcePdf, PdfPageOverlayOptions options, PdfLoadOptions? targetReadOptions = null) {
@@ -517,9 +523,9 @@ internal static partial class PdfStamper {
         return array;
     }
 
-    private static double AlignHorizontal(double x, double available, double actual, PdfAlign align) => align switch {
-        PdfAlign.Center => x + (available - actual) / 2D,
-        PdfAlign.Right => x + available - actual,
+    private static double AlignHorizontal(double x, double available, double actual, OfficeAlignment align) => align switch {
+        OfficeAlignment.Center => x + (available - actual) / 2D,
+        OfficeAlignment.Right => x + available - actual,
         _ => x
     };
 

@@ -20,15 +20,15 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Basic paragraph - Page 4");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+                document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = DateTime.Today });
+                document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
 
-                Console.WriteLine("+ Custom properties: " + document.CustomDocumentProperties.Count);
-                Console.WriteLine("++ TestProperty: " + document.CustomDocumentProperties["TestProperty"].Value);
-                Console.WriteLine("++ MyName: " + document.CustomDocumentProperties["MyName"].Value);
-                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomDocumentProperties["IsTodayGreatDay"].Value);
-                Console.WriteLine("++ Count: " + document.CustomDocumentProperties.Keys.Count());
+                Console.WriteLine("+ Custom properties: " + document.CustomProperties.Count);
+                Console.WriteLine("++ TestProperty: " + document.CustomProperties["TestProperty"].Value);
+                Console.WriteLine("++ MyName: " + document.CustomProperties["MyName"].Value);
+                Console.WriteLine("++ IsTodayGreatDay: " + document.CustomProperties["IsTodayGreatDay"].Value);
+                Console.WriteLine("++ Count: " + document.CustomProperties.Keys.Count());
 
                 Console.WriteLine(document.DocumentIsValid);
                 Console.WriteLine(document.DocumentValidationErrors);

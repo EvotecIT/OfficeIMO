@@ -2,12 +2,14 @@
   "package": "OfficeIMO.Reader.Core",
   "status": "Search cancellation and regular-expression contract for the cross-format command surface.",
   "summary": {
-    "changes": 1,
+    "changes": 5,
     "byAction": {
-      "change": 1
+      "change": 1,
+      "rename": 4
     },
     "byCategory": {
-      "reading": 1
+      "reading": 1,
+      "naming": 4
     },
     "packageMoves": 0
   },
@@ -27,6 +29,46 @@
       "category": "reading",
       "phase": "M4",
       "applied": "applied"
+    },
+    {
+      "old": "OfficeDocumentReader.Read / EnumerateChunks / EnumerateChunksAsync",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeDocumentReader.Enumerate / EnumerateAsync",
+      "category": "naming",
+      "replacement": "Enumerate is lazy. Dispose the enumerator on early exit; document processors and handlers without incremental support use the documented materialized fallback.",
+      "reason": "Incremental sequences have the same vocabulary. EnumerateAsync remains available on .NET 8 and .NET 10.",
+      "applied": true
+    },
+    {
+      "old": "OfficeDocumentReader.ReadAsync(...)",
+      "kind": "method",
+      "action": "rename",
+      "new": "(await reader.ReadDocumentAsync(...)).Chunks",
+      "category": "naming",
+      "replacement": "(await reader.ReadDocumentAsync(...)).Chunks",
+      "reason": "Buffered asynchronous reads return the materialized document and its evidence; EnumerateAsync supplies asynchronous backpressure.",
+      "applied": true
+    },
+    {
+      "old": "OfficeDocumentReader.ReadFolder / ReadFolderDocuments",
+      "kind": "method",
+      "action": "rename",
+      "new": "EnumerateFolder / EnumerateFolderDocuments",
+      "category": "naming",
+      "replacement": "EnumerateFolder / EnumerateFolderDocuments",
+      "reason": "Folder sequences are explicitly incremental; detailed ingestion results retain their materialized names.",
+      "applied": true
+    },
+    {
+      "old": "OfficeDocumentReader.ReadTables / ReadTableExports / ReadVisuals / ReadVisualExports / ReadAssets / ReadStructured",
+      "kind": "method",
+      "action": "rename",
+      "new": "reader.ReadDocument(...).ExtractTables / ExportTables / ExtractVisuals / ExportVisuals / ExtractAssets / ExtractStructured",
+      "category": "naming",
+      "replacement": "Read the document once, then extract or export from its result. Existing chunks, tables and visuals have matching extraction/export extensions. Await ReadDocumentAsync before extraction.",
+      "reason": "Reading, extraction and export are explicit stages with one implementation each.",
+      "applied": true
     }
   ],
   "packageMoves": []

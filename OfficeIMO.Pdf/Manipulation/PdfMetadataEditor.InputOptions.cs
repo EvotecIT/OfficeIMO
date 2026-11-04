@@ -54,7 +54,7 @@ internal static partial class PdfMetadataEditor {
     }
 
     /// <summary>Finishes bounded metadata replacement before checking cancellation and changing the caller-owned output stream.</summary>
-    internal static void ReplaceMetadata(byte[] pdf, Stream output, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    internal static void ReplaceMetadata(byte[] pdf, Stream output, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         ValidateWritableOutputStream(output);
         byte[] rewritten = ReplaceMetadata(pdf, metadata, readOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -62,21 +62,21 @@ internal static partial class PdfMetadataEditor {
     }
 
     /// <summary>Replaces metadata from a bounded remaining stream snapshot while retaining caller stream ownership.</summary>
-    internal static byte[] ReplaceMetadata(Stream input, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    internal static byte[] ReplaceMetadata(Stream input, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         Guard.NotNull(metadata, nameof(metadata));
         PdfDocumentSource source = PdfDocumentSource.FromRemainingStream(input, readOptions, cancellationToken);
         return ReplaceMetadata(source.Bytes, metadata, source.Options, cancellationToken);
     }
 
     /// <summary>Replaces metadata from a bounded file snapshot with cooperative cancellation.</summary>
-    internal static byte[] ReplaceMetadataToBytes(string inputPath, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    internal static byte[] ReplaceMetadataToBytes(string inputPath, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         Guard.NotNull(metadata, nameof(metadata));
         PdfDocumentSource source = PdfDocumentSource.FromPath(inputPath, readOptions, cancellationToken);
         return ReplaceMetadata(source.Bytes, metadata, source.Options, cancellationToken);
     }
 
     /// <summary>Finishes metadata replacement before checking cancellation and changing the caller-owned output stream.</summary>
-    internal static void ReplaceMetadata(Stream input, Stream output, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    internal static void ReplaceMetadata(Stream input, Stream output, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         ValidateWritableOutputStream(output);
         byte[] rewritten = ReplaceMetadata(input, metadata, readOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -84,7 +84,7 @@ internal static partial class PdfMetadataEditor {
     }
 
     /// <summary>Finishes metadata replacement before checking cancellation and atomically publishing the destination file.</summary>
-    internal static void ReplaceMetadata(string inputPath, string outputPath, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    internal static void ReplaceMetadata(string inputPath, string outputPath, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         string destination = ValidateOutputPath(outputPath);
         byte[] rewritten = ReplaceMetadataToBytes(inputPath, metadata, readOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -92,7 +92,7 @@ internal static partial class PdfMetadataEditor {
     }
 
     /// <summary>Reads bounded file input and finishes metadata replacement before changing a caller-owned output stream.</summary>
-    internal static void ReplaceMetadata(string inputPath, Stream output, PdfMetadata metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
+    internal static void ReplaceMetadata(string inputPath, Stream output, PdfDocumentProperties metadata, PdfLoadOptions? readOptions, CancellationToken cancellationToken) {
         ValidateWritableOutputStream(output);
         byte[] rewritten = ReplaceMetadataToBytes(inputPath, metadata, readOptions, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();

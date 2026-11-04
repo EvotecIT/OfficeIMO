@@ -62,7 +62,7 @@ namespace OfficeIMO.PowerPoint {
                 yield return new OfficeRichTextRun(value,
                     mapping.MapFontSize(style.FontSizePoints ?? textBox.FontSize?.ToPoints() ?? PowerPointTextDefaults.DefaultFontSizePoints),
                     color, style.Bold ?? textBox.Bold, style.Italic ?? textBox.Italic,
-                    underline != OfficeTextDecorationStyle.None, style.FontName ?? textBox.FontName ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
+                    underline != OfficeTextDecorationStyle.None, style.FontName ?? textBox.FontFamily ?? ResolveTextBoxFallbackFont(textBox, defaultFontFamily),
                     style.StrikeStyle is { } strike && strike != PowerPointStrikeStyle.None,
                     ResolveTextRunBackgroundColor(run, textBox, colors, paragraph), underline, MapStrikeStyle(style.StrikeStyle),
                     MapBaseline(style.BaselinePercent)) { LinkUri = link, LinkDestinationName = destination };

@@ -19,14 +19,14 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Original");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Original snapshot");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Original snapshot");
                 document.Save();
             }
             using (var document = ExcelDocument.Create(replacementPath)) {
                 ExcelSheet sheet = document.AddSheet("Replacement");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Replacement snapshot");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Replacement snapshot");
                 document.Save();
             }
 
@@ -54,8 +54,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -80,8 +80,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -121,9 +121,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Plain");
-                sheet.CellValue(3, 1, "Trailing ");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Plain");
+                sheet.Cell(3, 1).SetValue("Trailing ");
                 document.Save();
             }
 
@@ -166,9 +166,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "First");
-                sheet.CellValue(3, 1, "Second");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("First");
+                sheet.Cell(3, 1).SetValue("Second");
                 document.Save();
             }
 
@@ -200,8 +200,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Ready");
                 document.Save();
             }
 
@@ -242,9 +242,9 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Shared");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellFormula(2, 1, "B2+1");
-                sheet.CellFormula(3, 1, "B3+1");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetFormula("B2+1");
+                sheet.Cell(3, 1).SetFormula("B3+1");
                 document.Save();
             }
 
@@ -298,8 +298,8 @@ public partial class Excel {
             using (var document = ExcelDocument.Create(path)) {
                 for (int index = 0; index < 2; index++) {
                     ExcelSheet sheet = document.AddSheet($"Sheet{index + 1}");
-                    sheet.CellValue(1, 1, "Value");
-                    sheet.CellValue(2, 1, $"Sheet {index + 1}");
+                    sheet.Cell(1, 1).SetValue("Value");
+                    sheet.Cell(2, 1).SetValue($"Sheet {index + 1}");
                 }
                 document.Save();
             }
@@ -348,8 +348,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Value");
-                sheet.CellValue(2, 1, "Ready");
+                sheet.Cell(1, 1).SetValue("Value");
+                sheet.Cell(2, 1).SetValue("Ready");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -385,8 +385,8 @@ public partial class Excel {
             using (var document = ExcelDocument.Create(path)) {
                 for (int index = 0; index < 2; index++) {
                     ExcelSheet sheet = document.AddSheet($"Sheet{index + 1}");
-                    sheet.CellValue(1, 1, "Value");
-                    sheet.CellValue(2, 1, $"Sheet {index + 1}");
+                    sheet.Cell(1, 1).SetValue("Value");
+                    sheet.Cell(2, 1).SetValue($"Sheet {index + 1}");
                 }
                 document.Save();
             }
@@ -436,11 +436,11 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet first = document.AddSheet("First");
-                first.CellValue(1, 1, "Value");
-                first.CellValue(2, 1, "Ready");
+                first.Cell(1, 1).SetValue("Value");
+                first.Cell(2, 1).SetValue("Ready");
                 ExcelSheet second = document.AddSheet("Second");
-                second.CellValue(1, 1, "Value");
-                second.CellValue(2, 1, "Never delivered");
+                second.Cell(1, 1).SetValue("Value");
+                second.Cell(2, 1).SetValue("Never delivered");
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             ReplaceXlsbTextCellWithSharedStringIndex(
@@ -476,8 +476,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.InvalidWorksheetRelationship.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddSheet("First").CellValue(1, 1, "Ready");
-                document.AddSheet("Second").CellValue(1, 1, "Never delivered");
+                document.AddSheet("First").Cell(1, 1).SetValue("Ready");
+                document.AddSheet("Second").Cell(1, 1).SetValue("Never delivered");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -510,8 +510,8 @@ public partial class Excel {
             $"OfficeIMO.Excel.UnrelatedWorksheetPart.{Guid.NewGuid():N}.xlsx");
         try {
             using (var document = ExcelDocument.Create(path)) {
-                document.AddSheet("First").CellValue(1, 1, "Ready");
-                document.AddSheet("Second").CellValue(1, 1, "Never delivered");
+                document.AddSheet("First").Cell(1, 1).SetValue("Ready");
+                document.AddSheet("Second").Cell(1, 1).SetValue("Never delivered");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -540,8 +540,8 @@ public partial class Excel {
         try {
             using (var document = ExcelDocument.Create(path)) {
                 ExcelSheet data = document.AddSheet("Data");
-                data.CellValue(1, 1, "Value");
-                data.CellValue(2, 1, "Ready");
+                data.Cell(1, 1).SetValue("Value");
+                data.Cell(2, 1).SetValue("Ready");
                 document.Save();
             }
             using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
@@ -622,9 +622,9 @@ public partial class Excel {
                 "AsInt64"
             };
             for (int column = 1; column <= headers.Length; column++) {
-                sheet.CellValue(1, column, headers[column - 1]);
-                sheet.CellValue(2, column, column == 3 ? 1E100 : 42D);
-                sheet.CellAt(2, column).SetNumberFormat("yyyy-mm-dd");
+                sheet.Cell(1, column).SetValue(headers[column - 1]);
+                sheet.Cell(2, column).SetValue(column == 3 ? 1E100 : 42D);
+                sheet.Cell(2, column).SetNumberFormat("yyyy-mm-dd");
             }
         }
 
@@ -652,12 +652,12 @@ public partial class Excel {
     public void CreateDataReader_NumericGettersPreserveWrappedDocumentDateSerials() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Valid");
-        sheet.CellValue(1, 2, "OutOfRange");
-        sheet.CellValue(2, 1, 45351D);
-        sheet.CellValue(2, 2, 1E100);
-        sheet.CellAt(2, 1).SetNumberFormat("yyyy-mm-dd");
-        sheet.CellAt(2, 2).SetNumberFormat("yyyy-mm-dd");
+        sheet.Cell(1, 1).SetValue("Valid");
+        sheet.Cell(1, 2).SetValue("OutOfRange");
+        sheet.Cell(2, 1).SetValue(45351D);
+        sheet.Cell(2, 2).SetValue(1E100);
+        sheet.Cell(2, 1).SetNumberFormat("yyyy-mm-dd");
+        sheet.Cell(2, 2).SetNumberFormat("yyyy-mm-dd");
 
         using DbDataReader reader = document.CreateDataReader(
             new ExcelReaderOptions { TreatDatesUsingNumberFormat = true });

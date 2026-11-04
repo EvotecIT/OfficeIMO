@@ -1,5 +1,7 @@
 using System.Management.Automation;
+using System.Security;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -38,7 +40,8 @@ public sealed class GetOfficePdfComplianceCommand : PSCmdlet
 
     /// <summary>Password used to inspect a Standard password-encrypted PDF.</summary>
     [Parameter(ParameterSetName = ParameterSetPath)]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</summary>
     [Parameter(ParameterSetName = ParameterSetPath)]

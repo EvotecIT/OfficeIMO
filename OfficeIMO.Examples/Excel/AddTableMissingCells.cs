@@ -12,8 +12,8 @@ namespace OfficeIMO.Examples.Excel {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Value");
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Value");
                 // intentionally leave row 2 cells empty
                 sheet.AddTable("A1:B2", true, "MyTable", ExcelTableStyle.TableStyleMedium9);
                 document.Save();

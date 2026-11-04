@@ -31,7 +31,7 @@ public sealed class ReaderPublisherTests {
         Assert.Equal(result.Blocks.Select(block => block.Id), result.EnumerateContent().Where(item => item.Block != null).Select(item => item.Block!.Id));
         OfficeDocumentReadResult transported = OfficeDocumentReadResultJson.Deserialize(OfficeDocumentReadResultJson.Serialize(result));
         Assert.Equal(result.Blocks.Select(block => block.Id), transported.EnumerateBlocks().Select(block => block.Id));
-        Assert.All(native.ReadReport.FidelityDiagnostics, finding => Assert.Contains(result.Diagnostics,
+        Assert.All(native.ReadReport.Diagnostics, finding => Assert.Contains(result.Diagnostics,
             retained => retained.Code == finding.Code && retained.Attributes["lossKind"] == finding.LossKind.ToString()));
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "PUB_READER_LAYOUT_OMITTED");
         Assert.Equal(native.Images.Count, result.Assets.Count); Assert.All(result.Assets, asset => Assert.Null(asset.PayloadBytes));
@@ -74,9 +74,9 @@ public sealed class ReaderPublisherTests {
 
     [Fact]
     public void PresetAndDetachedOptionsUseTheNativeOwnerAndOptionalImageCopies() {
-        var options = new ReaderPublisherOptions { ReadOptions = new() { MaximumPages = 8 }, IncludeImagePayloads = true };
+        var options = new ReaderPublisherOptions { ReadOptions = new() { MaxPages = 8 }, IncludeImagePayloads = true };
         OfficeDocumentReader reader = CreateReader(options);
-        options.ReadOptions.MaximumPages = 1; options.IncludeImagePayloads = false;
+        options.ReadOptions.MaxPages = 1; options.IncludeImagePayloads = false;
         byte[] input = Fixture("SampleNewsletter.pub");
         var result = reader.ReadDocument(input, "source.pub");
         PublisherDocument native = PublisherDocument.Load(input);
@@ -96,7 +96,7 @@ public sealed class ReaderPublisherTests {
     public void ReaderCeilingsAndCancellationReachTheSharedAndNativeBoundaries() {
         byte[] bytes = Fixture("Sample.pub");
         Assert.Throws<IOException>(() => CreateReader().ReadDocument(bytes, "source.pub", new ReaderOptions { MaxInputBytes = 32 }));
-        Assert.Throws<InvalidDataException>(() => CreateReader(new() { ReadOptions = new() { MaximumPages = 1 } }).ReadDocument(bytes, "source.pub"));
+        Assert.Throws<InvalidDataException>(() => CreateReader(new() { ReadOptions = new() { MaxPages = 1 } }).ReadDocument(bytes, "source.pub"));
         Assert.Throws<ReaderResourceLimitException>(() => CreateReader().ReadDocument(bytes, "source.pub",
             new ReaderOptions { MaxChars = 10, ResourceLimits = new() { MaxChunks = 1 } }));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();

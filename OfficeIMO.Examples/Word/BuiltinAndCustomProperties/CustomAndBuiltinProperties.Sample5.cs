@@ -18,9 +18,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "BasicDocument.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+                document.Properties.Title = "This is my title";
+                document.Properties.Creator = "Przemysław Kłys";
+                document.Properties.Keywords = "word, docx, test";
 
                 var paragraph = document.AddParagraph("Basic paragraph");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;

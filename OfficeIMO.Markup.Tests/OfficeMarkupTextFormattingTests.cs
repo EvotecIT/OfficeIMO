@@ -40,9 +40,9 @@ public class OfficeMarkupTextFormattingTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, legacyWarning.LossKind);
         Assert.Equal(
             new[] { OfficeConversionLossKind.Omission, OfficeConversionLossKind.Approximation },
-            report.FidelityDiagnostics.Select(static diagnostic => diagnostic.LossKind));
+            report.Diagnostics.Select(static diagnostic => diagnostic.LossKind));
         Assert.True(report.HasLoss);
-        Assert.Throws<OfficeMarkupConversionException>(() => report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -57,8 +57,8 @@ public class OfficeMarkupTextFormattingTests {
         Assert.False(report.Succeeded);
         Assert.True(report.HasLoss);
         Assert.Equal(OfficeConversionLossKind.Failure, diagnostic.LossKind);
-        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.FidelityDiagnostics).LossKind);
-        Assert.Throws<OfficeMarkupConversionException>(() => report.RequireNoLoss());
+        Assert.Equal(OfficeConversionLossKind.Failure, Assert.Single(report.Diagnostics).LossKind);
+        Assert.ThrowsAny<OfficeMarkupConversionException>(() => report.ThrowIfLoss());
     }
 
     [Fact]
@@ -70,21 +70,21 @@ public class OfficeMarkupTextFormattingTests {
         var powerPointSource = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         powerPointSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
         OfficeMarkupPowerPointConversionResult powerPoint = powerPointSource.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
 
         var wordSource = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
         wordSource.Blocks.Add(new OfficeMarkupExtensionBlock("custom", new Dictionary<string, string>(), "omitted"));
         OfficeMarkupConversionResult<WordDocument> word = wordSource.ToWordDocumentResult(
-            new MarkupToWordOptions { IncludeUnsupportedBlocksAsText = false });
+            new MarkupWordExportOptions { IncludeUnsupportedBlocksAsText = false });
 
         using (excel.Value)
         using (powerPoint.Value)
         using (word.Value) {
-            Assert.Contains(excel.Report.FidelityDiagnostics,
+            Assert.Contains(excel.Report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(powerPoint.Report.FidelityDiagnostics,
+            Assert.Contains(powerPoint.Report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(word.Report.FidelityDiagnostics,
+            Assert.Contains(word.Report.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
     }
@@ -95,7 +95,7 @@ public class OfficeMarkupTextFormattingTests {
         source.Blocks.Add(new OfficeMarkupSheetBlock("Invalid for presentations"));
 
         OfficeMarkupPowerPointConversionResult result = source.ToPowerPointDocumentResult(
-            new MarkupToPowerPointOptions { RenderMermaidDiagrams = false });
+            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         using (result.Value) {
             OfficeMarkupConversionException exception = Assert.Throws<OfficeMarkupConversionException>(
                 () => result.RequireValue());
@@ -174,7 +174,7 @@ public class OfficeMarkupTextFormattingTests {
         Assert.All(paragraphs.Where(item => item.Text.Contains("Nested", StringComparison.Ordinal)), paragraph => {
             WordRunInfo run = Assert.Single(paragraph.Runs);
             Assert.True(run.Italic);
-            Assert.Equal("336699", run.ColorHex);
+            Assert.Equal(OfficeColor.Parse("336699"), run.Color);
         });
     }
 
@@ -197,8 +197,8 @@ public class OfficeMarkupTextFormattingTests {
         Assert.True(run.DoubleStrike);
         Assert.Equal("Superscript", run.VerticalTextAlignment);
         Assert.Equal("SmallCaps", run.CapsStyle);
-        Assert.Equal("336699", run.ColorHex);
-        Assert.Equal("FFF2CC", run.RunShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
+        Assert.Equal(OfficeColor.Parse("FFF2CC"), run.BackgroundColor);
     }
 
     [Fact]
@@ -224,9 +224,9 @@ public class OfficeMarkupTextFormattingTests {
 
         using ExcelDocument workbook = source.ToExcelDocumentResult().RequireValue();
         ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCellStyleInfo style = sheet.GetCellStyle(1, 1);
+        ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
 
-        Assert.Equal("mIXED CASE", sheet.CellAt(1, 1).GetValue().Value?.ToString());
+        Assert.Equal("mIXED CASE", sheet.Cell(1, 1).GetValue().Value?.ToString());
         Assert.Equal("Aptos", style.FontName);
         Assert.Equal(17D, style.FontSize?.ToPoints());
         Assert.True(style.Bold);
@@ -259,8 +259,8 @@ public class OfficeMarkupTextFormattingTests {
         Assert.Equal(PowerPointStrikeStyle.Double, run.StrikeStyle);
         Assert.True(run.BaselinePercent < 0D);
         Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
-        Assert.Equal("336699", run.Color);
-        Assert.Equal("FFF2CC", run.HighlightColor);
+        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
+        Assert.Equal(OfficeColor.Parse("FFF2CC"), run.BackgroundColor);
     }
 
     private static void AddCommonStyle(IDictionary<string, string> attributes, string underline, string baseline, string textCase) {

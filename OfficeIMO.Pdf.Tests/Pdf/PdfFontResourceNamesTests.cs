@@ -27,8 +27,8 @@ public sealed class PdfFontResourceNamesTests {
         if (standardSlot) options.RegisterFontFamily(PdfStandardFont.Helvetica, family);
         else options.RegisterNamedFontFamily(family);
         using var document = PdfDocument.Create(options).Paragraph(paragraph => {
-            if (!standardSlot) paragraph.FontFamily(alias);
-            paragraph.Text("ABC");
+            if (!standardSlot) { paragraph.RunDefaults.FontFamily = alias; paragraph.RunDefaults.StandardFont = null; }
+            paragraph.AddText("ABC");
         });
 
         using var independent = UglyToad.PdfPig.PdfDocument.Open(document.ToBytes());

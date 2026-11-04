@@ -50,12 +50,12 @@ public sealed class ReaderNativeLeanProjectionTests {
     public void WordNativeSnapshotRetainsImageDescriptorsWithoutCopyingBytes() {
         using WordDocument document = WordDocument.Create();
         using var image = new MemoryStream(Pixel, writable: false);
-        document.AddParagraph("Body evidence").AddImage(image, "pixel.png", OfficeIMO.OfficeLength.Pixels(1), OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { Description = "Source alt text" });
+        document.AddParagraph("Body evidence").AddImage(image, "pixel.png", OfficeIMO.OfficeLength.Pixels(1), OfficeIMO.OfficeLength.Pixels(1), options: new OfficeIMO.Word.WordImageOptions { AltText = "Source alt text" });
         WordDocumentInfo lean = document.Inspect(includeImageBytes: false);
         WordRunInfo descriptor = lean.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
             .SelectMany(paragraph => paragraph.Runs).Single(run => run.InlineImage != null);
         Assert.Null(descriptor.InlineImage!.Bytes);
-        Assert.Equal("Source alt text", descriptor.InlineImage.Description);
+        Assert.Equal("Source alt text", descriptor.InlineImage.AltText);
         Assert.Equal("pixel.png", descriptor.InlineImage.FileName);
         WordDocumentInfo full = document.Inspect();
         Assert.Equal(Pixel, full.Sections.SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
@@ -126,7 +126,7 @@ public sealed class ReaderNativeLeanProjectionTests {
             using WordDocument ordinary = WordDocument.Load(new MemoryStream(source, writable: false));
             Assert.Contains(ordinary.Paragraphs, paragraph => paragraph.Text == "Legacy body");
         } else if (format == "excel") {
-            using ExcelDocument document = ExcelDocument.Create(); document.AddSheet("Legacy").CellValue(1, 1, "Legacy body");
+            using ExcelDocument document = ExcelDocument.Create(); document.AddSheet("Legacy").Cell(1, 1).SetValue("Legacy body");
             source = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xls });
             using var input = new MemoryStream(source, writable: false);
             Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
@@ -216,7 +216,7 @@ public sealed class ReaderNativeLeanProjectionTests {
 
     [Fact]
     public void XmlOnlyExcelLoadRefusesXlsbBeforeProjection() {
-        using ExcelDocument source = ExcelDocument.Create(); source.AddSheet("Binary").CellValue(1, 1, "Saved value");
+        using ExcelDocument source = ExcelDocument.Create(); source.AddSheet("Binary").Cell(1, 1).SetValue("Saved value");
         byte[] bytes = source.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var input = new MemoryStream(bytes, writable: false);
         Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(input, new ExcelLoadOptions { AllowBinaryProjection = false }));
@@ -236,7 +236,7 @@ public sealed class ReaderNativeLeanProjectionTests {
         var options = new ReaderOptions { Projection = ReaderProjection.TextAndMetadata, OpenXmlMaxPartUncompressedBytes = 1 };
         try {
             await Assert.ThrowsAsync<ReaderResourceLimitException>(() => reader.ReadDocumentsDetailedAsync(new[] { path }, options));
-            Assert.Throws<ReaderResourceLimitException>(() => reader.ReadFolder(directory, options: options).ToArray());
+            Assert.Throws<ReaderResourceLimitException>(() => reader.EnumerateFolder(directory, options: options).ToArray());
             File.WriteAllBytes(path, new byte[] { 0, 1, 2, 3 });
             ReaderDocumentReadOutcome malformed = Assert.Single(await reader.ReadDocumentsDetailedAsync(new[] { path }, new ReaderOptions {
                 Projection = ReaderProjection.TextAndMetadata, OpenXmlMaxPartUncompressedBytes = 1024 * 1024
@@ -258,7 +258,7 @@ public sealed class ReaderNativeLeanProjectionTests {
         }
         if (format == "excel") {
             using ExcelDocument document = ExcelDocument.Create();
-            var sheet = document.AddSheet("Evidence"); sheet.CellValue(1, 1, "Header"); sheet.CellValue(2, 1, "Body evidence");
+            var sheet = document.AddSheet("Evidence"); sheet.Cell(1, 1).SetValue("Header"); sheet.Cell(2, 1).SetValue("Body evidence");
             sheet.AddImage(1, 1, Pixel, new OfficeIMO.Excel.ExcelImageOptions { Width = OfficeIMO.OfficeLength.Pixels(1), Height = OfficeIMO.OfficeLength.Pixels(1) });
             return document.ToBytes();
         }

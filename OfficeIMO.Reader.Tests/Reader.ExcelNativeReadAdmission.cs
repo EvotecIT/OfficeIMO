@@ -55,9 +55,9 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
                 else if (route == "zip") reader.ReadDocument(Wrap(bytes), "source.zip", options);
                 else {
                     string path = Path.Combine(directory, "source.xlsx"); File.WriteAllBytes(path, bytes);
-                    if (route == "incremental") reader.EnumerateChunks(path, options).ToArray();
+                    if (route == "incremental") reader.Enumerate(path, options).ToArray();
                     else if (route == "batch") await reader.ReadDocumentsDetailedAsync(new[] { path }, options);
-                    else reader.ReadFolder(directory, options: options).ToArray();
+                    else reader.EnumerateFolder(directory, options: options).ToArray();
                 }
             });
             Assert.Equal("excel." + name, error.LimitName); Assert.Equal(maximum, error.Maximum);
@@ -158,7 +158,7 @@ public sealed class ReaderExcelNativeReadAdmissionTests {
 
     private static byte[] Workbook() {
         using ExcelDocument document = ExcelDocument.Create();
-        var sheet = document.AddSheet("Evidence"); sheet.CellValue(1, 1, "first"); sheet.CellValue(2, 1, "second"); document.AddSheet("Second");
+        var sheet = document.AddSheet("Evidence"); sheet.Cell(1, 1).SetValue("first"); sheet.Cell(2, 1).SetValue("second"); document.AddSheet("Second");
         WorkbookPart workbook = document.OpenXmlDocument.WorkbookPart!;
         SharedStringTablePart strings = workbook.SharedStringTablePart ?? workbook.AddNewPart<SharedStringTablePart>();
         strings.SharedStringTable = new SharedStringTable(new SharedStringItem(new Text("first")), new SharedStringItem(new Text("second"))) { Count = 2, UniqueCount = 2 };

@@ -11,9 +11,9 @@ public sealed class WorkflowViewModelTests {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "print.pdf");
         PdfDocument.Create(document => {
-            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("First")))));
-            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Second")))));
-            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(620)).Content(content => content.Item(item => item.Paragraph(paragraph => paragraph.Text("Third")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(600)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("First")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(600), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Second")))));
+            document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(620)).Content(content => content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Third")))));
         }).Save(input);
 
         using var session = TestAppBuilder.StartSession();
@@ -238,6 +238,30 @@ public sealed class WorkflowViewModelTests {
         Assert.Single(viewModel.Jobs);
     }
 
+    [Fact]
+    public async Task CodecDependentRoutesAreUnavailableForPickingDroppingAndTargeting() {
+        using var scope = new TestDirectory();
+        OfficeWorkflowRoute route = Assert.Single(OfficeWorkflowCatalog.Routes, item => item.RequiresImageCodec);
+        string[] paths = route.SourceExtensions.Select(extension => Path.Combine(scope.Path, "image" + extension)).ToArray();
+        using var viewModel = new ConversionWorkbenchViewModel(
+            _ => Task.FromResult<IReadOnlyList<string>>(paths),
+            _ => Task.FromResult<string?>(scope.Path));
+
+        Assert.DoesNotContain(viewModel.Routes, choice => choice.Route.RequiresImageCodec);
+        await viewModel.AddFilesCommand.ExecuteAsync(null);
+        Assert.Empty(viewModel.Jobs);
+        Assert.True(viewModel.HasUnmatchedInputs);
+        Assert.Empty(viewModel.MatchingInputRoutes);
+        viewModel.DismissUnmatchedInputsCommand.Execute(null);
+
+        Assert.True(viewModel.AddDroppedPaths(paths));
+        Assert.Empty(viewModel.Jobs);
+        Assert.True(viewModel.HasUnmatchedInputs);
+        Assert.Empty(viewModel.MatchingInputRoutes);
+        Assert.All(paths, path => Assert.False(viewModel.QueueForTarget(path, route.TargetExtension)));
+        Assert.Empty(viewModel.Jobs);
+    }
+
     [Theory]
     [InlineData("docx-pdf", "txt-pdf")]
     [InlineData("html-pdf", "html-pdf")]
@@ -314,7 +338,7 @@ public sealed class WorkflowViewModelTests {
         using var scope = new TestDirectory();
         string input = Path.Combine(scope.Path, "source.pdf");
         PdfDocument.Create(compose => compose.Page(page => page.Content(content => content.Item(item =>
-            item.Paragraph(paragraph => paragraph.Text("Studio health")))))).Save(input);
+            item.AddParagraph(paragraph => paragraph.AddText("Studio health")))))).Save(input);
         using var viewModel = new DocumentHealthViewModel(
             _ => Task.FromResult<string?>(input),
             _ => Task.FromResult<string?>(scope.Path));

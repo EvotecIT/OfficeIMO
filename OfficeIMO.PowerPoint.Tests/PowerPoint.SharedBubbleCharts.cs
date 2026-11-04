@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
                 slide.ExportImage(OfficeImageExportFormat.Svg).Bytes);
             Assert.DoesNotContain("Hidden Portfolio", svg, StringComparison.Ordinal);
 
-            string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
+            string html = presentation.ToHtml(new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
             });
             Assert.Contains("data-officeimo-show-in-legend=\"false\"", html,
@@ -764,10 +764,10 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(svg.Diagnostics,
                 diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
 
-            PowerPointToHtmlResult htmlResult = presentation.ToHtmlResult(new PowerPointHtmlSaveOptions {
+            string htmlResult = presentation.ToHtml(new PowerPointHtmlExportOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
-            });
-            string html = htmlResult.Value;
+            }, out OfficeConversionReport htmlResultReport);
+            string html = htmlResult;
             PdfDocumentConversionResult pdfResult = presentation.ConvertToPdfWithEvidence();
             byte[] pdf = pdfResult.ToBytes();
             // HTML can wrap or reserialize the SVG; all three authored point colors must still be painted.
@@ -795,8 +795,8 @@ namespace OfficeIMO.Tests {
                     }
                 Assert.True(count > 8, "Each authored bubble color must remain visible in raster output.");
             }
-            Assert.DoesNotContain(htmlResult.ImageDiagnostics,
-                diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.DoesNotContain(htmlResultReport.Diagnostics,
+                diagnostic => diagnostic.Severity == OfficeDiagnosticSeverity.Error);
             Assert.DoesNotContain(pdfResult.Warnings,
                 warning => warning.Code == "snapshot-selective-fallback");
             Assert.DoesNotContain(pdfResult.Warnings,

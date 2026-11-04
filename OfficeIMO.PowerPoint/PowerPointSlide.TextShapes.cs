@@ -32,7 +32,7 @@ namespace OfficeIMO.PowerPoint {
                 new TextBody(
                     new A.BodyProperties(),
                     new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(text)))));
+                    new A.Paragraph(PowerPointTextContent.CreateInlineContent(text))));
 
             CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             ShapeTree tree = data.ShapeTree ??= new ShapeTree();

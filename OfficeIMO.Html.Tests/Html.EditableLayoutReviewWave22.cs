@@ -50,7 +50,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<div style='position:absolute;width:180px;height:50px'>" + children + "</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlNodes = 12;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
@@ -68,7 +68,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<div style='position:absolute;width:180px;height:50px'>"
             + "<span><span><span><span>Deep</span></span></span></span></div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.MaxHtmlDepth = 5;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
@@ -86,7 +86,7 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             "<style>.bounded { position:absolute; width:180px; height:50px }</style>"
             + "<div class='bounded'>Bounded</div>",
             new HtmlConversionDocumentOptions { Trust = HtmlInputTrust.Trusted });
-        WordHtmlImportOptions options = WordHtmlImportOptions.CreateTrustedDocumentProfile();
+        HtmlWordExportOptions options = HtmlWordExportOptions.CreateTrustedDocumentProfile();
         options.Limits.MaxCssDeclarations = 1;
 
         HtmlConversionLimitException exception = Assert.Throws<HtmlConversionLimitException>(
@@ -117,8 +117,8 @@ public sealed class HtmlEditableLayoutReviewWave22Tests {
             .Where(imageItem => imageItem != null)
             .Cast<WordImage>()
             .ToList();
-        WordImage affected = Assert.Single(images, imageItem => imageItem.Description == "Affected");
-        WordImage clean = Assert.Single(images, imageItem => imageItem.Description == "Clean");
+        WordImage affected = Assert.Single(images, imageItem => imageItem.AltText == "Affected");
+        WordImage clean = Assert.Single(images, imageItem => imageItem.AltText == "Clean");
 
         Assert.Equal(60, affected.Transparency);
         Assert.True((affected.CropLeftRatio is double cropRatio2 ? (int?)System.Math.Round(cropRatio2 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue || (affected.CropRightRatio is double cropRatio4 ? (int?)System.Math.Round(cropRatio4 * 100000D, System.MidpointRounding.AwayFromZero) : null).HasValue

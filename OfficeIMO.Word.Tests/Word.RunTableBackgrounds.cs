@@ -80,7 +80,7 @@ public sealed class WordRunTableBackgroundTests {
     public void HigherPriorityRunSourcesOverrideTableBackground(string source) {
         using WordDocument document = CreateTableBackground("first-row", highlight: false);
         WordParagraph paragraph = document.Tables[0].Rows[0].Cells[0].Paragraphs[0];
-        if (source == "direct") paragraph.RunShadingFillColorHex = "00FF00";
+        if (source == "direct") paragraph.BackgroundColor = OfficeColor.Parse("00FF00");
         else {
             document.MainDocumentPartRoot.StyleDefinitionsPart!.Styles!.Append(new Style(new StyleRunProperties(Shade("00FF00"))) {
                 StyleId = "HigherBackground", Type = source == "character" ? StyleValues.Character : StyleValues.Paragraph

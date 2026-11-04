@@ -26,7 +26,7 @@ public sealed class XpsRadialGradientTests {
             Assert.InRange(Math.Abs(pixel.R - (255 * (1 - ratio) * opacity + 255 * (1 - opacity))), 0, 4);
             Assert.InRange(Math.Abs(pixel.B - (255 * ratio * opacity + 255 * (1 - opacity))), 0, 4);
         }
-        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages);
+        var pdfPage = Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
         var drawing = page.ToDrawing();
         var svg = OfficeDrawingSvgExporter.ToSvg(drawing);
         Assert.True(OfficeSvgDrawingReader.TryRead(System.Text.Encoding.UTF8.GetBytes(svg), out var roundtrip));
@@ -57,7 +57,7 @@ public sealed class XpsRadialGradientTests {
             if (ratio > 1) ratio = 2 - ratio;
             Assert.InRange(Math.Abs(image!.GetPixel(xy.Item1, xy.Item2).R - 255 * (1 - ratio)), 0, 3);
         }
-        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages);
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
     }
 
     [Theory]
@@ -78,7 +78,7 @@ public sealed class XpsRadialGradientTests {
             if (ratio > 1) ratio = 2 - ratio;
             Assert.InRange(Math.Abs(image!.GetPixel(xy.Item1, xy.Item2).R - 255 * (1 - ratio)), 0, 3);
         }
-        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).Pages);
+        Assert.Single(PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).Pages);
     }
 
     [Fact]

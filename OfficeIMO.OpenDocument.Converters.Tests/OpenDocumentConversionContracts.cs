@@ -22,7 +22,7 @@ public sealed class OpenDocumentConversionContracts {
         var second = new DisposableProbe();
 
         Assert.Throws<OdfConversionLossException>(() =>
-            new OdfConversionResult<DisposableProbe>(first, report).RequireNoLoss());
+            new OdfConversionResult<DisposableProbe>(first, report).ThrowIfLoss());
         Assert.Throws<OdfConversionLossException>(() =>
             new OdfConversionResult<DisposableProbe>(second, report)
                 .GetValue(OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported));
@@ -41,7 +41,7 @@ public sealed class OpenDocumentConversionContracts {
         sourceTable.Rows[0].Cells[0].Paragraphs[0].Text = "A";
         sourceTable.Rows[1].Cells[1].Paragraphs[0].Text = "B";
 
-        OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> toOdt = source.ConvertToOpenDocumentWithEvidence();
         OdtDocument odt = toOdt.Value;
         Assert.True(odt.Validate().IsValid);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "headings");
@@ -52,7 +52,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Contains(reopened.ContentBlocks, block => block.Paragraph?.Text == "Native OpenDocument conversion");
         Assert.Contains(reopened.ContentBlocks, block => block.Table != null);
 
-        OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> toWord = reopened.ConvertToWordWithEvidence();
         using WordDocument roundTrip = toWord.Value;
         roundTrip.AddParagraph("Detached conversion remains editable");
         Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
@@ -73,17 +73,17 @@ public sealed class OpenDocumentConversionContracts {
         paragraph.IndentationFirstLine = global::OfficeIMO.OfficeLength.Points(12D);
         paragraph.LineSpacingBefore = global::OfficeIMO.OfficeLength.Points(6D);
         paragraph.LineSpacingAfter = global::OfficeIMO.OfficeLength.Points(8D);
-        paragraph.ShadingFillColorHex = "EAF2F8";
+        paragraph.ShadingFillColor = OfficeColor.Parse("EAF2F8");
         paragraph.Bold = true;
         paragraph.Italic = true;
         paragraph.Underline = WordUnderlineStyle.Single;
         paragraph.Strike = true;
         paragraph.FontSize = global::OfficeIMO.OfficeLength.Points(13);
         paragraph.FontFamily = "Aptos";
-        paragraph.ColorHex = "123456";
+        paragraph.Color = OfficeColor.Parse("123456");
         paragraph.Highlight = WordHighlightColor.Yellow;
 
-        OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
+        OdfConversionResult<OdtDocument> toOdt = source.ConvertToOpenDocumentWithEvidence();
         OdtDocument reopened = OdtDocument.Load(new MemoryStream(toOdt.Value.ToBytes()));
         OdtParagraph odtParagraph = Assert.Single(reopened.Paragraphs);
         OdtSpan odtSpan = Assert.Single(odtParagraph.Spans);
@@ -104,7 +104,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.DoesNotContain(toOdt.Report.Mappings, mapping =>
             mapping.Feature == "paragraph-formatting" || mapping.Feature == "run-formatting");
 
-        OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> toWord = reopened.ConvertToWordWithEvidence();
         using WordDocument roundTrip = toWord.Value;
         WordParagraphInfo converted = Assert.Single(roundTrip.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -116,14 +116,14 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal(12, converted.IndentFirstLine!.Value.ToPoints(), 3);
         Assert.Equal(6, converted.SpaceAbove!.Value.ToPoints(), 3);
         Assert.Equal(8, converted.SpaceBelow!.Value.ToPoints(), 3);
-        Assert.Equal("EAF2F8", converted.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("EAF2F8"), converted.ShadingFillColor);
         Assert.True(run.Bold);
         Assert.True(run.Italic);
         Assert.True(run.Underline);
         Assert.True(run.Strike);
         Assert.Equal(13, run.FontSize?.ToPoints());
         Assert.Equal("Aptos", run.FontFamily);
-        Assert.Equal("123456", run.ColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), run.Color);
         Assert.Equal("Yellow", run.HighlightColor);
     }
 
@@ -149,7 +149,7 @@ public sealed class OpenDocumentConversionContracts {
             },
             reopenedParagraph.InlineNodes.Select(node => node.Kind));
 
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -189,7 +189,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal(new[] { OdtInlineNodeKind.Text, OdtInlineNodeKind.Span, OdtInlineNodeKind.Text },
             actual.InlineNodes[1].Children.Select(node => node.Kind));
 
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument converted = conversion.Value;
         using WordDocument target = WordDocument.Load(new MemoryStream(converted.ToBytes()));
         WordParagraphInfo output = Assert.Single(target.Inspect().Sections
@@ -231,7 +231,7 @@ public sealed class OpenDocumentConversionContracts {
         OdtSpan nested = reopened.Paragraphs.Single().InlineNodes.Single().Children[1].Span!;
         Assert.True(nested.HasTextBackgroundOverride);
         Assert.Null(nested.BackgroundColor);
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordRunInfo[] runs = target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>()
@@ -310,7 +310,7 @@ public sealed class OpenDocumentConversionContracts {
         paragraph.AddBookmark("Section_1");
         paragraph.AddHyperlink("Jump", "#Section%5F1");
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = source.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -342,7 +342,7 @@ public sealed class OpenDocumentConversionContracts {
             new[] { OdtInlineNodeKind.Text, OdtInlineNodeKind.Image, OdtInlineNodeKind.Bookmark, OdtInlineNodeKind.Text },
             Assert.Single(reopened.Paragraphs).InlineNodes.Select(node => node.Kind));
 
-        OdfConversionResult<WordDocument> conversion = reopened.ToWordDocumentResult();
+        OdfConversionResult<WordDocument> conversion = reopened.ConvertToWordWithEvidence();
         using WordDocument target = conversion.Value;
         WordParagraphInfo converted = Assert.Single(target.Inspect().Sections
             .SelectMany(section => section.Elements).OfType<WordParagraphInfo>());
@@ -357,7 +357,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal(OdfLength.Centimeters(1).ToPoints(), image.Height!.Value.ToPoints(), 1);
         using var savedWord = new MemoryStream(target.ToBytes());
         using WordDocument loadedWord = WordDocument.Load(savedWord);
-        OdtDocument roundTrip = loadedWord.ToOpenDocumentResult().Value;
+        OdtDocument roundTrip = loadedWord.ConvertToOpenDocumentWithEvidence().Value;
         OdtDocument loadedOdt = OdtDocument.Load(new MemoryStream(roundTrip.ToBytes()));
         var exportedImage = Assert.Single(loadedOdt.Paragraphs.SelectMany(item => item.Images));
         Assert.Equal(OdfLength.Centimeters(1).ToPoints(), exportedImage.Width.ToPoints(), 1);
@@ -370,15 +370,15 @@ public sealed class OpenDocumentConversionContracts {
     public void ExcelAndOdsRoundTripTypedCellsFormulaMergeAndSparseLimits() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.CellAt(1, 1).SetValue("Amount").SetBold();
-        sheet.CellAt(2, 1).SetValue(12.5m);
-        sheet.CellAt(2, 2).SetFormula("SUM(A2:A2)");
+        sheet.Cell(1, 1).SetValue("Amount").SetBold();
+        sheet.Cell(2, 1).SetValue(12.5m);
+        sheet.Cell(2, 2).SetFormula("SUM(A2:A2)");
         sheet.SetHyperlink(3, 1, "https://example.com", "Example");
-        sheet.MergeRange("A4:B4");
-        sheet.CellAt(4, 1).SetValue("Merged");
+        sheet.Range("A4:B4").Merge();
+        sheet.Cell(4, 1).SetValue("Merged");
         source.SetNamedRange("Amounts", "'Data'!$A$2:$A$2", save: false);
 
-        OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
+        OdfConversionResult<OdsDocument> toOds = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument ods = toOds.Value;
         Assert.True(ods.Validate().IsValid);
         Assert.Equal(12.5m, ods.GetSheet("Data")!.Cell(1, 0).Value.AsDecimal());
@@ -387,7 +387,7 @@ public sealed class OpenDocumentConversionContracts {
 
         using var package = new MemoryStream(ods.ToBytes());
         OdsDocument reopened = OdsDocument.Load(package);
-        OdfConversionResult<ExcelDocument> toExcel = reopened.ToExcelDocumentResult(new ExcelOpenDocumentConversionOptions {
+        OdfConversionResult<ExcelDocument> toExcel = reopened.ConvertToExcelWithEvidence(new ExcelOpenDocumentConversionOptions {
             MaximumExpandedCells = 1000
         });
         using ExcelDocument roundTrip = toExcel.Value;
@@ -413,7 +413,7 @@ public sealed class OpenDocumentConversionContracts {
         slide.Notes.Text = "Speaker note";
         slide.Transition = PowerPointSlideTransition.Fade;
 
-        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> toOdp = source.ConvertToOpenDocumentWithEvidence();
         OdpPresentation odp = toOdp.Value;
         Assert.True(odp.Validate().IsValid);
         OdpSlide odpSlide = Assert.Single(odp.Slides);
@@ -424,7 +424,7 @@ public sealed class OpenDocumentConversionContracts {
 
         using var package = new MemoryStream(odp.ToBytes());
         OdpPresentation reopened = OdpPresentation.Load(package);
-        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ConvertToPowerPointWithEvidence();
         using PowerPointDocument roundTrip = toPowerPoint.Value;
         Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
@@ -450,11 +450,11 @@ public sealed class OpenDocumentConversionContracts {
         run.Underline = true;
         run.Strikethrough = true;
         run.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-        run.FontName = "Aptos";
-        run.Color = "123456";
-        run.HighlightColor = "FFF200";
+        run.FontFamily = "Aptos";
+        run.Color = OfficeColor.Parse("123456");
+        run.BackgroundColor = OfficeColor.Parse("FFF200");
 
-        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> toOdp = source.ConvertToOpenDocumentWithEvidence();
         OdpRun odpRun = Assert.Single(Assert.IsType<OdpTextBox>(Assert.Single(toOdp.Value.Slides[0].Shapes))
             .Paragraphs[0].Runs);
         Assert.True(odpRun.Bold);
@@ -467,7 +467,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.DoesNotContain(toOdp.Report.Mappings, mapping => mapping.Feature == "run-format-details");
 
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(toOdp.Value.ToBytes()));
-        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ConvertToPowerPointWithEvidence();
         using PowerPointDocument roundTrip = toPowerPoint.Value;
         PowerPointTextRun converted = roundTrip.Slides[0].TextBoxes.Single().Paragraphs[0].Runs[0];
         Assert.True(converted.Bold);
@@ -475,9 +475,9 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(converted.Underline);
         Assert.True(converted.Strikethrough);
         Assert.Equal(global::OfficeIMO.OfficeLength.Points(18), converted.FontSize);
-        Assert.Equal("Aptos", converted.FontName);
-        Assert.Equal("123456", converted.Color);
-        Assert.Equal("FFF200", converted.HighlightColor);
+        Assert.Equal("Aptos", converted.FontFamily);
+        Assert.Equal(OfficeColor.Parse("123456"), converted.Color);
+        Assert.Equal(OfficeColor.Parse("FFF200"), converted.BackgroundColor);
     }
 
     [Fact]
@@ -488,12 +488,12 @@ public sealed class OpenDocumentConversionContracts {
             .GetCell(0, 0);
         IReadOnlyList<PowerPointParagraph> sourceParagraphs = sourceCell.SetParagraphs(new[] { "Bold", "Second" });
         sourceParagraphs[0].Runs[0].Bold = true;
-        PowerPointTextRun linkedRun = sourceParagraphs[0].AddRun(" link");
+        PowerPointTextRun linkedRun = sourceParagraphs[0].AddText(" link");
         linkedRun.Italic = true;
         linkedRun.SetHyperlink("https://example.com/table");
         sourceParagraphs[1].Runs[0].Underline = true;
 
-        OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> toOdp = source.ConvertToOpenDocumentWithEvidence();
         Assert.Contains(toOdp.Report.Mappings, mapping => mapping.Feature == "table-appearance" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported);
         Assert.True(toOdp.Value.Validate().IsValid);
@@ -506,7 +506,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.True(Assert.Single(odpCell.Paragraphs[1].Runs).Underline);
 
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(toOdp.Value.ToBytes()));
-        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ToPowerPointDocumentResult(
+        OdfConversionResult<PowerPointDocument> toPowerPoint = reopened.ConvertToPowerPointWithEvidence(
             new PowerPointOpenDocumentConversionOptions {
                 LossPolicy = OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported
             });
@@ -545,7 +545,7 @@ public sealed class OpenDocumentConversionContracts {
             },
             reopenedParagraph.InlineNodes.Select(node => node.Kind));
 
-        OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = reopened.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         var runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
         Assert.Equal(new[] { "Before ", "bold", " between ", "link", " after" }, runs.Select(run => run.Text));
@@ -583,7 +583,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Equal(new[] { OdpInlineNodeKind.Text, OdpInlineNodeKind.Run, OdpInlineNodeKind.Text },
             actual.InlineNodes[1].Children.Select(node => node.Kind));
 
-        OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = reopened.ConvertToPowerPointWithEvidence();
         using PowerPointDocument converted = conversion.Value;
         using PowerPointDocument target = PowerPointDocument.Load(new MemoryStream(converted.ToBytes()));
         IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
@@ -626,11 +626,11 @@ public sealed class OpenDocumentConversionContracts {
         OdpRun nested = actual.InlineNodes.Single().Children[1].Run!;
         Assert.True(nested.HasTextBackgroundOverride);
         Assert.Null(nested.BackgroundColor);
-        OdfConversionResult<PowerPointDocument> conversion = reopened.ToPowerPointDocumentResult();
+        OdfConversionResult<PowerPointDocument> conversion = reopened.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = conversion.Value;
         IReadOnlyList<PowerPointTextRun> runs = target.Slides[0].TextBoxes.Single().Paragraphs[0].Runs;
-        Assert.Equal("FFFF00", runs[0].HighlightColor);
-        Assert.Null(runs[1].HighlightColor);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), runs[0].BackgroundColor);
+        Assert.Null(runs[1].BackgroundColor);
     }
 
     [Fact]
@@ -641,7 +641,7 @@ public sealed class OpenDocumentConversionContracts {
         run.Bold = true;
         run.SetHyperlink("https://example.com/path");
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpParagraph paragraph = Assert.Single(Assert.IsType<OdpTextBox>(
             Assert.Single(conversion.Value.Slides[0].Shapes)).Paragraphs);
         OdpInlineNode node = Assert.Single(paragraph.InlineNodes);
@@ -659,7 +659,7 @@ public sealed class OpenDocumentConversionContracts {
         slide.AddTable(OdfRect.FromCentimeters(1, 1, 10, 4), 1, 3);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            source.ToPowerPointDocumentResult(new PowerPointOpenDocumentConversionOptions {
+            source.ConvertToPowerPointWithEvidence(new PowerPointOpenDocumentConversionOptions {
                 MaxTableRows = 2,
                 MaxTableColumns = 2
             }));
@@ -673,7 +673,7 @@ public sealed class OpenDocumentConversionContracts {
         source.AddSlide().AddTable(1,3,global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(10),global::OfficeIMO.OfficeLength.Points(120),global::OfficeIMO.OfficeLength.Points(40));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            source.ToOpenDocumentResult(new PowerPointOpenDocumentConversionOptions {
+            source.ConvertToOpenDocumentWithEvidence(new PowerPointOpenDocumentConversionOptions {
                 MaxTableRows = 2,
                 MaxTableColumns = 2
             }));

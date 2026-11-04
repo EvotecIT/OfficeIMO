@@ -46,10 +46,10 @@ namespace OfficeIMO.Tests {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             document.AddSheet("Other");
-            sheet.AutoFilterBlanks("A1:C3", 1);
+            sheet.Range("A1:C3").AutoFilter().Column(1).Blanks();
 
-            Assert.Throws<ArgumentException>(() => sheet.AutoFilterBlanks("Other!A1:C3", 1));
-            Assert.Throws<ArgumentException>(() => sheet.AutoFilterTopBottom("Data!A1:C3", 2, 5));
+            Assert.Throws<ArgumentException>(() => sheet.Range("Other!A1:C3").AutoFilter().Column(1).Blanks());
+            Assert.Throws<ArgumentException>(() => sheet.Range("Data!A1:C3").AutoFilter().Column(2).TopBottom(5));
 
             ExcelAutoFilterInfo filter = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", filter.Range);
@@ -60,9 +60,9 @@ namespace OfficeIMO.Tests {
         public void Test_TableResize_RejectsMergedCellIntersectionBeforeMutation() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellValue(1, 1, "A");
-            sheet.CellValue(2, 1, 1);
-            sheet.CellValue(3, 1, 2);
+            sheet.Cell(1, 1).SetValue("A");
+            sheet.Cell(2, 1).SetValue(1);
+            sheet.Cell(3, 1).SetValue(2);
             sheet.AddTable("A1:A3", true, "Sales", OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
             sheet.Range("B2:C2").Merge();
 
@@ -107,16 +107,16 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralColumns_RemapsWorksheetFilterCriteria() {
             using var document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.AutoFilterBlanks("A1:C3", 1);
-            sheet.AutoFilterTopBottom("A1:C3", 2, 5);
+            sheet.Range("A1:C3").AutoFilter().Column(1).Blanks();
+            sheet.Range("A1:C3").AutoFilter().Column(2).TopBottom(5);
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
 
             ExcelAutoFilterInfo inserted = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:D3", inserted.Range);
             Assert.Equal(new uint[] { 2U, 3U }, inserted.Columns.Select(column => column.ColumnOffset).OrderBy(value => value));
 
-            sheet.DeleteColumns(3);
+            sheet.DeleteColumnsTransactional(3);
 
             ExcelAutoFilterInfo deleted = Assert.Single(sheet.GetAutoFilters());
             Assert.Equal("A1:C3", deleted.Range);
@@ -130,10 +130,10 @@ namespace OfficeIMO.Tests {
             sheet.AddManualColumnPageBreak(2);
             sheet.AddManualColumnPageBreak(4);
 
-            sheet.InsertColumns(2);
+            sheet.InsertColumnsTransactional(2);
             Assert.Equal(new[] { 3, 5 }, sheet.GetManualColumnPageBreaks());
 
-            sheet.DeleteColumns(3);
+            sheet.DeleteColumnsTransactional(3);
             Assert.Equal(new[] { 4 }, sheet.GetManualColumnPageBreaks());
             ColumnBreaks columnBreaks = sheet.WorksheetPart.Worksheet.GetFirstChild<ColumnBreaks>()!;
             Assert.Equal(1U, columnBreaks.Count!.Value);

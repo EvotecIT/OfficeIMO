@@ -11,8 +11,8 @@ public sealed class WatermarkPreviewTests {
     [Fact]
     public async Task NormalizingPreviewPageDoesNotQueueSecondAutomaticRender() {
         byte[] source = PdfDocument.Create(document => {
-            document.Page(page => page.Content(content => content.Text("First")));
-            document.Page(page => page.Content(content => content.Text("Second")));
+            document.Page(page => page.Content(content => content.AddParagraph("First")));
+            document.Page(page => page.Content(content => content.AddParagraph("Second")));
         }).ToBytes();
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
@@ -66,8 +66,8 @@ public sealed class WatermarkPreviewTests {
         using var session = TestAppBuilder.StartSession();
         await session.Dispatch(async () => {
             byte[] source = PdfDocument.Create(document => {
-                document.Page(page => page.Content(content => content.Text("First page")));
-                document.Page(page => page.Content(content => content.Text("Second page")));
+                document.Page(page => page.Content(content => content.AddParagraph("First page")));
+                document.Page(page => page.Content(content => content.AddParagraph("Second page")));
             }).ToBytes();
             await WithDocument(async workspace => {
                 var settings = new PdfWatermarkOptions { Text = "SECOND PAGE MARK", TargetPages = PdfPageSelector.Parse("2") };
@@ -322,7 +322,7 @@ public sealed class WatermarkPreviewTests {
         Directory.CreateDirectory(root);
         try {
             string path = Path.Combine(root, "source.pdf");
-            if (bytes is null) PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Original content")))).Save(path);
+            if (bytes is null) PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Original content")))).Save(path);
             else File.WriteAllBytes(path, bytes);
             using var workspace = await PdfWorkspace.OpenAsync(path, CancellationToken.None);
             await action(workspace);

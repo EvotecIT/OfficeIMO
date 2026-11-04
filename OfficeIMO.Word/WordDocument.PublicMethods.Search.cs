@@ -2,13 +2,14 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
         private int CombineRuns(WordHeaderFooter wordHeaderFooter) {
             int count = 0;
             if (wordHeaderFooter != null) {
-                var defaultHeader = this.Header?.Default;
+                var defaultHeader = this.Sections[0].Headers?.Default;
                 if (defaultHeader != null) {
                     foreach (var p in defaultHeader.Paragraphs) count += CombineIdenticalRuns(p._paragraph);
                     foreach (var table in defaultHeader.Tables) {
@@ -53,31 +54,68 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Searches the document for paragraphs containing the specified text.
+        /// Finds literal text in the body, body tables, and the first section's headers and footers.
         /// </summary>
-        /// <param name="text">Text to search for.</param>
-        /// <param name="stringComparison">Comparison rules for the search.</param>
-        /// <returns>A list of found <see cref="WordParagraph"/> instances.</returns>
-        public List<WordParagraph> Find(string text, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
+        /// <param name="text">Text to find.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The paragraphs containing matches, grouped by document part, and the total match count.</returns>
+        /// <remarks>
+        /// A match may span runs within a paragraph. Without <see cref="OfficeTextSearchOptions.WholeWords"/>, a match may
+        /// also continue into the next paragraph of the same part; its result entry is the paragraph where it starts.
+        /// With <see cref="OfficeTextSearchOptions.WholeWords"/>, each match lies within one paragraph.
+        /// </remarks>
+        public WordSearchResult Find(string text, OfficeTextSearchOptions? options = null) {
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            var result = new WordSearchResult();
+            StringComparison comparison = OfficeTextSearch.GetComparison(options);
+            bool wholeWords = options?.WholeWords == true;
             int count = 0;
-            List<WordParagraph> list = FindAndReplaceInternal(text, "", ref count, false, stringComparison);
-            return list;
+            ForEachSearchScope((paragraphs, destination) =>
+                destination!.AddRange(ReplaceText(paragraphs, text, string.Empty, ref count, false, comparison, wholeWords)), result);
+            result.MatchCount = count;
+            return result;
         }
 
         /// <summary>
-        /// FindAdnReplace from the whole doc
+        /// Finds text matching a regular expression in the body, body tables, and the first section's headers and footers.
         /// </summary>
-        /// <param name="textToFind"></param>
-        /// <param name="textToReplace"></param>
-        /// <param name="stringComparison"></param>
-        /// <returns></returns>
-        public int FindAndReplace(string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
-            if (TryFindAndReplaceInSimpleTextNodes(textToFind, textToReplace, stringComparison, out int fastCount)) {
+        /// <param name="pattern">Regular expression applied to each paragraph's text. Its own options control case and boundaries.</param>
+        /// <returns>The paragraphs containing matches, grouped by document part, and the total match count.</returns>
+        /// <remarks>Each match lies within one paragraph.</remarks>
+        public WordSearchResult Find(Regex pattern) {
+            if (pattern == null) {
+                throw new ArgumentNullException(nameof(pattern));
+            }
+
+            var result = new WordSearchResult();
+            ForEachSearchScope((paragraphs, destination) => result.FindRegex(paragraphs, pattern, destination!), result);
+            return result;
+        }
+
+        /// <summary>
+        /// Replaces literal text in the body, body tables, and the first section's headers and footers.
+        /// </summary>
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>
+        /// A match may span runs within a paragraph.
+        /// Without <see cref="OfficeTextSearchOptions.WholeWords"/>, a match continuing into the next paragraph joins
+        /// those paragraphs. With <see cref="OfficeTextSearchOptions.WholeWords"/>, each match lies within one paragraph.
+        /// </remarks>
+#pragma warning disable RS0026 // Document and paragraph-scoped ReplaceAll overloads both keep the options parameter optional.
+        public int ReplaceAll(string text, string replacement, OfficeTextSearchOptions? options = null) {
+#pragma warning restore RS0026
+            OfficeTextSearch.ValidateSearchText(text, nameof(text));
+            StringComparison comparison = OfficeTextSearch.GetComparison(options);
+            bool wholeWords = options?.WholeWords == true;
+            if (!wholeWords && TryFindAndReplaceInSimpleTextNodes(text, replacement, comparison, out int fastCount)) {
                 return fastCount;
             }
-            int countFind = 0;
-            FindAndReplaceInternal(textToFind, textToReplace, ref countFind, true, stringComparison);
-            return countFind;
+            int count = 0;
+            ForEachSearchScope((paragraphs, _) => ReplaceText(paragraphs, text, replacement, ref count, true, comparison, wholeWords), null);
+            return count;
         }
 
         private bool TryFindAndReplaceInSimpleTextNodes(
@@ -152,25 +190,24 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// FindAdnReplace from the range parparagraphs
+        /// Replaces literal text within the supplied paragraphs, such as the paragraphs of one table cell.
         /// </summary>
-        /// <param name="paragraphs"></param>
-        /// <param name="textToFind"></param>
-        /// <param name="textToReplace"></param>
-        /// <param name="stringComparison"></param>
-        /// <returns></returns>
-        public static int FindAndReplace(List<WordParagraph> paragraphs, string textToFind, string textToReplace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
-            int countFind = 0;
-            FindAndReplaceNested(paragraphs, textToFind, textToReplace, ref countFind, true, stringComparison);
-            return countFind;
+        /// <param name="paragraphs">Paragraphs to search, in document order.</param>
+        /// <param name="text">Text to find.</param>
+        /// <param name="replacement">Replacement text; <c>null</c> removes each match.</param>
+        /// <param name="options">Comparison settings. <c>null</c> matches ordinally, ignoring case, inside or across words.</param>
+        /// <returns>The number of replaced matches.</returns>
+        /// <remarks>Matching follows <see cref="ReplaceAll(string, string, OfficeTextSearchOptions?)"/>, limited to <paramref name="paragraphs"/>.</remarks>
+#pragma warning disable RS0026 // Paragraph-scoped overload of the document ReplaceAll; both keep the options parameter optional.
+        public static int ReplaceAll(List<WordParagraph> paragraphs, string text, string replacement, OfficeTextSearchOptions? options = null) {
+#pragma warning restore RS0026
+            if (paragraphs == null) {
+                throw new ArgumentNullException(nameof(paragraphs));
+            }
+            int count = 0;
+            ReplaceText(paragraphs, text, replacement, ref count, true, OfficeTextSearch.GetComparison(options), options?.WholeWords == true);
+            return count;
         }
-
-
-        private static List<WordParagraph> FindAndReplaceNested(List<WordParagraph> paragraphs, string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
-            List<WordParagraph> foundParagraphs = ReplaceText(paragraphs, textToFind, textToReplace, ref count, replace, stringComparison);
-            return foundParagraphs;
-        }
-
 
         /// <summary>
         /// Replace text inside each paragraph
@@ -181,26 +218,27 @@ namespace OfficeIMO.Word {
         /// <param name="count"></param>
         /// <param name="replace"></param>
         /// <param name="stringComparison"></param>
+        /// <param name="wholeWords">Requires word boundaries and keeps each match within one paragraph.</param>
         /// <returns></returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        private static List<WordParagraph> ReplaceText(List<WordParagraph> paragraphs, string oldText, string newText, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
-            if (string.IsNullOrEmpty(oldText)) {
-                throw new ArgumentNullException("oldText should not be null");
-            }
+        private static List<WordParagraph> ReplaceText(List<WordParagraph> paragraphs, string oldText, string? newText, ref int count, bool replace, StringComparison stringComparison, bool wholeWords) {
+            OfficeTextSearch.ValidateSearchText(oldText, "text");
+            newText ??= string.Empty;
             List<WordParagraph> foundParagraphs = new List<WordParagraph>();
             string[] paragraphTexts = new string[paragraphs.Count];
             for (int index = 0; index < paragraphs.Count; index++) {
                 paragraphTexts[index] = paragraphs[index]?.Text ?? string.Empty;
             }
-            if (!HasCrossParagraphMatch(paragraphTexts, oldText, stringComparison)) {
+            if (wholeWords || !HasCrossParagraphMatch(paragraphTexts, oldText, stringComparison)) {
                 for (int index = 0; index < paragraphs.Count; index++) {
                     WordParagraph? paragraph = paragraphs[index];
                     if (paragraph == null) continue;
                     int localCount = 0;
-                    string updated = paragraphTexts[index].FindAndReplace(
+                    string updated = OfficeTextSearch.Replace(
+                        paragraphTexts[index],
                         oldText,
                         newText,
                         stringComparison,
+                        wholeWords,
                         ref localCount);
                     if (localCount == 0) continue;
 
@@ -398,57 +436,30 @@ namespace OfficeIMO.Word {
             return segList;
         }
 
-        private List<WordParagraph> FindAndReplaceInternal(string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
-            List<WordParagraph> list = new List<WordParagraph>();
-            list.AddRange(FindAndReplaceNested(this.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+        private delegate void SearchScopeVisitor(List<WordParagraph> paragraphs, List<WordParagraph>? destination);
 
+        private void ForEachSearchScope(SearchScopeVisitor visit, WordSearchResult? result) {
+            visit(this.Paragraphs, result?.MutableBodyParagraphs);
             foreach (var table in this.Tables) {
-                list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+                visit(table.Paragraphs, result?.MutableTableParagraphs);
             }
 
-            if (this.Header?.Default != null) {
-                list.AddRange(FindAndReplaceNested(this.Header.Default.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Header.Default.Tables) {
-                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
+            var headers = this.Sections[0].Headers;
+            var footers = this.Sections[0].Footers;
+            VisitHeaderFooter(headers.Default, result?.MutableDefaultHeaderParagraphs);
+            VisitHeaderFooter(headers.Even, result?.MutableEvenPageHeaderParagraphs);
+            VisitHeaderFooter(headers.First, result?.MutableFirstPageHeaderParagraphs);
+            VisitHeaderFooter(footers.Default, result?.MutableDefaultFooterParagraphs);
+            VisitHeaderFooter(footers.Even, result?.MutableEvenPageFooterParagraphs);
+            VisitHeaderFooter(footers.First, result?.MutableFirstPageFooterParagraphs);
+
+            void VisitHeaderFooter(WordHeaderFooter? part, List<WordParagraph>? destination) {
+                if (part == null) return;
+                visit(part.Paragraphs, destination);
+                foreach (var table in part.Tables) {
+                    visit(table.Paragraphs, destination);
                 }
             }
-
-            if (this.Header?.Even != null) {
-                list.AddRange(FindAndReplaceNested(this.Header.Even.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Header.Even.Tables) {
-                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                }
-            }
-
-            if (this.Header?.First != null) {
-                list.AddRange(FindAndReplaceNested(this.Header.First.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Header.First.Tables) {
-                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                }
-            }
-
-            if (this.Footer?.Default != null) {
-                list.AddRange(FindAndReplaceNested(this.Footer.Default.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Footer.Default.Tables) {
-                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                }
-            }
-
-            if (this.Footer?.Even != null) {
-                list.AddRange(FindAndReplaceNested(this.Footer.Even.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Footer.Even.Tables) {
-                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                }
-            }
-
-            if (this.Footer?.First != null) {
-                list.AddRange(FindAndReplaceNested(this.Footer.First.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                foreach (var table in this.Footer.First.Tables) {
-                    list.AddRange(FindAndReplaceNested(table.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
-                }
-            }
-
-            return list;
         }
 
         private static bool IsSegmentValid(List<WordParagraph> paragraphs, WordTextSegment ts) {

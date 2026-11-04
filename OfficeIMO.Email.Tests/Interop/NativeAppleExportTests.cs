@@ -23,7 +23,7 @@ public sealed partial class NativeAppleExportTests {
         Assert.Equal(new[] { "synthetic-pixel", null }, message.document.Attachments.Select(attachment => attachment.ContentId));
         Assert.Equal(AttachmentHashes, message.document.Attachments.Select(HashAttachment));
 
-        using EmailReadResult reopened = new EmailDocumentReader().Read(new EmailDocumentWriter().ToBytes(message.document));
+        using EmailReadResult reopened = new EmailDocumentReader().ReadDocument(new EmailDocumentWriter().ToBytes(message.document));
         Assert.Equal(message.document.Subject, reopened.Document.Subject);
         Assert.Equal(message.document.Body.Html, reopened.Document.Body.Html);
         Assert.Equal(AttachmentHashes, reopened.Document.Attachments.Select(HashAttachment));

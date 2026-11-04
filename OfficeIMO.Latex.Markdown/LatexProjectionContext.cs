@@ -5,7 +5,7 @@ namespace OfficeIMO.Latex.Markdown;
 // Indexes belong to one current source snapshot. Block and recursive inline projection
 // must query their source range instead of rescanning the complete document.
 internal sealed class LatexProjectionContext {
-    private const long MaximumProjectedTableCells = 65536;
+    private const long MaxProjectedTableCells = 65536;
     private long _projectedTableCells;
     private readonly LatexInlineCandidate[] _inlines;
     private readonly LatexProjectionComment[] _comments;
@@ -121,7 +121,7 @@ internal sealed class LatexProjectionContext {
         excluded.Start.Offset <= span.Start.Offset && excluded.End.Offset >= span.End.Offset);
     internal void CheckCancellation() => CancellationToken.ThrowIfCancellationRequested();
     internal void ChargeProjectedTableCells(long cells) {
-        if (cells < 0 || cells > MaximumProjectedTableCells - _projectedTableCells)
+        if (cells < 0 || cells > MaxProjectedTableCells - _projectedTableCells)
             throw new System.IO.InvalidDataException("LaTeX tables exceed the Markdown projection cell limit.");
         _projectedTableCells += cells;
     }

@@ -136,10 +136,10 @@ public sealed class ComparisonNavigationTests {
     }
 
     private static void Create(string path, string text, bool resize, bool extra) => PdfDocument.Create(c => {
-        c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(i => i.Paragraph(t => t.Text("Unchanged first page")))));
-        c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(i => i.Paragraph(t => t.Text(text)))));
+        c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(i => i.AddParagraph(t => t.AddText("Unchanged first page")))));
+        c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(i => i.AddParagraph(t => t.AddText(text)))));
         c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(resize ? 320 : 300), global::OfficeIMO.OfficeLength.Points(400)));
-        if (extra) c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(i => i.Paragraph(t => t.Text("Unpaired last page")))));
+        if (extra) c.Page(p => p.Size(global::OfficeIMO.OfficeLength.Points(300), global::OfficeIMO.OfficeLength.Points(400)).Content(content => content.Item(i => i.AddParagraph(t => t.AddText("Unpaired last page")))));
     }).Save(path);
 
     private static void Capture(Window window, string name) {

@@ -41,13 +41,13 @@ public sealed class WordImageVmlOwnershipTests {
         byte[] expected = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7");
         var source = sourceDocument.AddParagraph().AddImage(new MemoryStream(expected), "shared.gif", OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20))!;
         var targetDocument = otherDocument ? destination : sourceDocument;
-        var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var target = targetDocument.Sections[0].PageSetup.Header.AddParagraph();
         var clone = source.Clone(target);
         source.Remove();
         Assert.Equal(expected, clone.ToBytes());
         using var bytes = new System.IO.MemoryStream(targetDocument.ToBytes());
         using var reopened = WordDocument.Load(bytes);
-        Assert.Equal(expected, reopened.Sections[0].Header.Default!.Paragraphs.Single(item => item.IsImage).Image!.ToBytes());
+        Assert.Equal(expected, reopened.Sections[0].PageSetup.Header.Paragraphs.Single(item => item.IsImage).Image!.ToBytes());
     }
     [Theory]
     [InlineData(false, false)]
@@ -65,7 +65,7 @@ public sealed class WordImageVmlOwnershipTests {
         else { var part = owner.AddImagePart(ImagePartType.Gif); part.FeedData(new MemoryStream(expected)); id = owner.GetIdOfPart(part); }
         paragraph._run!.Append(new W.Picture(new V.Shape(new V.ImageData { RelationshipId = id }) { Id = "Original", Style = "width:15pt;height:15pt" }));
         var targetDocument = otherDocument ? destination : document;
-        var target = targetDocument.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph();
+        var target = targetDocument.Sections[0].PageSetup.Header.AddParagraph();
         var clone = paragraph.Image!.Clone(target);
         Assert.Equal(20, (clone.Width?.ToPixels()));
         Assert.Single(target._paragraph.Descendants<V.Shape>());
@@ -76,7 +76,7 @@ public sealed class WordImageVmlOwnershipTests {
         if (external) Assert.NotNull(clone.ExternalUri); else Assert.Equal(expected, clone.ToBytes());
         using var bytes = new System.IO.MemoryStream(targetDocument.ToBytes());
         using var reopened = WordDocument.Load(bytes);
-        var persisted = reopened.Sections[0].Header.Default!.Paragraphs.Single(item => item.IsImage).Image!;
+        var persisted = reopened.Sections[0].PageSetup.Header.Paragraphs.Single(item => item.IsImage).Image!;
         if (external) Assert.NotNull(persisted.ExternalUri); else Assert.Equal(expected, persisted.ToBytes());
     }
     [Fact]

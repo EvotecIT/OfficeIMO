@@ -96,7 +96,7 @@ public sealed class SetOfficeExcelColumnCommand : PSWriteOffice.Cmdlets.OfficeMu
                 var value = PowerShellObjectNormalizer.NormalizeCellValueForTable(Values[i]) ?? string.Empty;
                 cells.Add((StartRow + i, columnIndex, value));
             }
-            sheet.CellValues(cells);
+            sheet.SetValues(cells);
             hasAction = true;
         }
 

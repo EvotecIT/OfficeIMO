@@ -40,7 +40,7 @@ public static partial class MarkdownPdfConverterExtensions {
             options.Anchors?.RegisterNamed(pdf, anchor!);
         }
 
-        pdf.H1(title, PdfCore.PdfAlign.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
+        pdf.H1(title, global::OfficeIMO.OfficeAlignment.Left, visualTheme.DocumentHeaderTitleColorSnapshot, style: new PdfCore.PdfHeadingStyle {
             FontSize = visualTheme.DocumentHeaderTitleFontSizeSnapshot,
             LineHeight = 1.12,
             SpacingBefore = global::OfficeIMO.OfficeLength.Points(0),
@@ -54,11 +54,8 @@ public static partial class MarkdownPdfConverterExtensions {
             ?? GetFrontMatterMetadata(frontMatter, "summary")
             ?? GetFrontMatterMetadata(frontMatter, "subject");
         if (subtitle != null) {
-            pdf.Paragraph(builder => builder
-                    .FontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot)
-                    .Color(visualTheme.DocumentHeaderSubtitleColorSnapshot)
-                    .Text(subtitle),
-                defaultColor: visualTheme.DocumentHeaderSubtitleColorSnapshot,
+            pdf.Paragraph(builder => builder.AddText(subtitle).SetColor(visualTheme.DocumentHeaderSubtitleColorSnapshot).SetFontSize(visualTheme.DocumentHeaderSubtitleFontSizeSnapshot),
+                color: visualTheme.DocumentHeaderSubtitleColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.25,
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(4),
@@ -68,11 +65,8 @@ public static partial class MarkdownPdfConverterExtensions {
 
         string? metadataLine = BuildFrontMatterMetadataLine(frontMatter);
         if (metadataLine != null) {
-            pdf.Paragraph(builder => builder
-                    .FontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot)
-                    .Color(visualTheme.DocumentHeaderMetadataColorSnapshot)
-                    .Text(metadataLine),
-                defaultColor: visualTheme.DocumentHeaderMetadataColorSnapshot,
+            pdf.Paragraph(builder => builder.AddText(metadataLine).SetColor(visualTheme.DocumentHeaderMetadataColorSnapshot).SetFontSize(visualTheme.DocumentHeaderMetadataFontSizeSnapshot),
+                color: visualTheme.DocumentHeaderMetadataColorSnapshot,
                 style: new PdfCore.PdfParagraphStyle {
                     LineHeight = 1.2,
                     SpacingAfter = global::OfficeIMO.OfficeLength.Points(6),

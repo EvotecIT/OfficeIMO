@@ -243,7 +243,7 @@ public sealed class PrintDeliveryTests {
                 for (int index = 1; index <= 3; index++) {
                     int number = index;
                     document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(200), global::OfficeIMO.OfficeLength.Points(300)).Content(content =>
-                        content.Item(item => item.Paragraph(paragraph => paragraph.Text("Reviewed page " + number)))));
+                        content.Item(item => item.AddParagraph(paragraph => paragraph.AddText("Reviewed page " + number)))));
                 }
             }));
         }, printers: printer, jobHistory: history) { InputPath = Path.Combine(Path.GetTempPath(), "reviewed-snapshot.pdf") };

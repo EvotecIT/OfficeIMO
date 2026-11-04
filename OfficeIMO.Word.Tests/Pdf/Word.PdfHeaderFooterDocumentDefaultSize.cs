@@ -24,8 +24,8 @@ public partial class Word {
         W.Style normal = styles.Elements<W.Style>().Single(style => style.StyleId?.Value == "Normal");
         normal.StyleRunProperties!.RemoveAllChildren<W.FontSize>();
         normal.StyleRunProperties.RemoveAllChildren<W.FontSizeComplexScript>();
-        source.AddParagraph("BODY"); source.AddHeadersAndFooters();
-        (footer ? (WordHeaderFooter)source.Footer.Default : source.Header.Default).AddParagraph("ALPHA");
+        source.AddParagraph("BODY"); _ = source.PageSetup.Header;
+        (footer ? (WordHeaderFooter)source.PageSetup.GetFooter(WordHeaderFooterType.Default) : source.PageSetup.GetHeader(WordHeaderFooterType.Default)).AddParagraph("ALPHA");
         using WordDocument document = WordDocument.Load(new MemoryStream(source.ToBytes(nativeDoc ? WordFileFormat.Doc : WordFileFormat.Docx)));
         using var pdf = OpenJoinedParagraphPdf(document);
         var word = Assert.Single(pdf.GetPage(1).GetWords(), word => word.Text == "ALPHA");

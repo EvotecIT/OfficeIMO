@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.NotEqual(OfficeColor.White, raster.GetPixel((int)(box.X + 5), (int)(box.Y + 5)));
         Assert.Equal("BODY", rendered.Text.Trim());
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
             "background-image:linear-gradient(green,blue);@top-center{content:'';" + declaration + "}");
         Assert.DoesNotContain(EnumerateRenderVisuals(Assert.Single(rendered.Pages).Scene), visual =>
             visual.Source != null && visual.Source.StartsWith("@page @top-center:background", StringComparison.Ordinal));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -48,7 +48,7 @@ public sealed partial class HtmlRenderingTests {
             "--paint:linear-gradient(red,blue);background-image:var(--paint);@top-center{content:'';" + declaration + "}");
         HtmlRenderSemanticGroup box = PageMarginGeometryBox(Assert.Single(rendered.Pages), "top-center");
         Assert.Single(EnumerateRenderVisuals(box.Visuals).OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(Array.FindIndex(paints, visual => visual is HtmlRenderShape shape && shape.Shape.FillGradient != null)
             < Array.FindIndex(paints, visual => visual is HtmlRenderImage));
         Assert.Equal(data, Convert.ToBase64String(image.Bytes));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
             "@top-center{" + declaration + ";background-image:linear-gradient(red,blue)}");
         Assert.DoesNotContain(EnumerateRenderVisuals(rendered.Pages[0].Scene), visual =>
             visual.Source != null && visual.Source.StartsWith("@page @top-center:background", StringComparison.Ordinal));
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Theory]
@@ -90,8 +90,8 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPageMarginImages_UnsupportedPaintRetainsTheGeneratedSourceAndStrictLoss(string image, string code) {
         string html = "<style>@page{size:300px 300px;margin:60px 20px;@top-center{content:'';background-image:" + image + "}}</style><p>BODY</p>";
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions { MaxGradientStops = 2 });
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == code && diagnostic.Source == "@page @top-center");
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == code && diagnostic.Source == "@page @top-center");
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -103,9 +103,9 @@ public sealed partial class HtmlRenderingTests {
         var paints = EnumerateRenderVisuals(PageMarginGeometryBox(rendered.Pages[0], "top-center").Visuals).ToArray();
         Assert.Empty(paints.OfType<HtmlRenderImagePattern>());
         Assert.Single(paints.OfType<HtmlRenderImage>());
-        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded
             && diagnostic.Source == "@page @top-center");
-        Assert.ThrowsAny<InvalidOperationException>(() => rendered.RequireNoLoss());
+        Assert.ThrowsAny<InvalidOperationException>(() => rendered.ThrowIfLoss());
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(32D, Assert.Single(paints.OfType<HtmlRenderImage>()).Width, 6);
         OfficeLinearGradient gradient = Assert.Single(paints.OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         Assert.Equal(0.4D, gradient.Stops[1].Offset, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     [Fact]
@@ -137,6 +137,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(box.X + paperWidth * 0.01D, image.X, 6);
         OfficeLinearGradient gradient = Assert.Single(paints.OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
         Assert.Equal(paperWidth * 0.02D / 80D, gradient.Stops[1].Offset, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 }

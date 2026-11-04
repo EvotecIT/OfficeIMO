@@ -18,8 +18,8 @@ public partial class Word {
     [InlineData("mixed", "footer")]
     public void TextBoxWrappersSelectTheirOwnSourceInSharedRun(string kind, string story) {
         using WordDocument document = WordDocument.Create();
-        WordParagraph host = story == "header" ? document.HeaderDefaultOrCreate.AddParagraph("Host")
-            : story == "footer" ? document.FooterDefaultOrCreate.AddParagraph("Host") : document.AddParagraph("Host");
+        WordParagraph host = story == "header" ? document.PageSetup.Header.AddParagraph("Host")
+            : story == "footer" ? document.PageSetup.Footer.AddParagraph("Host") : document.AddParagraph("Host");
         WordTextBox first = kind == "vml" ? host.AddTextBoxVml("First") : host.AddTextBox("First", WordImageTextWrapping.Square);
         WordTextBox second = kind == "drawing" ? host.AddTextBox("Second", WordImageTextWrapping.Square) : host.AddTextBoxVml("Second");
         Assert.Equal("First", first.Paragraphs.Single().Text.TrimEnd('\n'));
@@ -33,8 +33,8 @@ public partial class Word {
         var parent = Assert.IsType<WordTextBox>(second.Paragraphs.Single().Parent);
         Assert.Equal("Second edited", parent.Paragraphs.Single().Text.TrimEnd('\n'));
         using WordDocument reopened = WordDocument.Load(new MemoryStream(document.ToBytes()));
-        var boxes = story == "header" ? reopened.Header!.Default!.TextBoxes
-            : story == "footer" ? reopened.Footer!.Default!.TextBoxes : reopened.TextBoxes;
+        var boxes = story == "header" ? reopened.PageSetup.Header.TextBoxes
+            : story == "footer" ? reopened.PageSetup.Footer.TextBoxes : reopened.TextBoxes;
         Assert.Equal(new[] { "First edited", "Second edited" }, boxes.Select(box => box.Paragraphs.Single().Text.TrimEnd('\n')).ToArray());
         Assert.Equal(new[] { "First description", "Second description" }, boxes.Select(box => box.Description).ToArray());
         Assert.Empty(reopened.ValidateDocument());

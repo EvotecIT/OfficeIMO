@@ -116,7 +116,7 @@ public sealed class ComparisonRangeReportTests {
 
     private static void Create(string path, bool comparison) => PdfDocument.Create(document => {
         for (int i = 1; i <= 110; i++) document.Page(page => page.Size(global::OfficeIMO.OfficeLength.Points(150), global::OfficeIMO.OfficeLength.Points(180)).Margin(global::OfficeIMO.OfficeLength.Points(12)).Content(content => {
-            if (i == (comparison ? 109 : 110)) content.Item(item => item.Paragraph(text => text.Text(comparison ? "Revised last section" : "Original last section")));
+            if (i == (comparison ? 109 : 110)) content.Item(item => item.AddParagraph(text => text.AddText(comparison ? "Revised last section" : "Original last section")));
         }));
     }).Save(path);
     private static void Capture(Avalonia.Controls.Window window, string name) {

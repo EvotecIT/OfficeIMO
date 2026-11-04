@@ -119,8 +119,8 @@ namespace OfficeIMO.Visio {
             path.Select(point => (point.X * _projection.DrawingToPhysical, point.Y * _projection.DrawingToPhysical)).ToList();
 
         private VisioShapeBounds ToPhysicalBounds(VisioShapeBounds bounds) =>
-            new(bounds.Left * _projection.DrawingToPhysical, bounds.Bottom * _projection.DrawingToPhysical,
-                bounds.Right * _projection.DrawingToPhysical, bounds.Top * _projection.DrawingToPhysical);
+            new(bounds.LeftInches * _projection.DrawingToPhysical, bounds.BottomInches * _projection.DrawingToPhysical,
+                bounds.RightInches * _projection.DrawingToPhysical, bounds.TopInches * _projection.DrawingToPhysical);
 
         private LabelPlacementSeed CreateSeed(VisioConnector connector, IReadOnlyList<(double X, double Y)> path) {
             VisioConnectorLabelPlacement? placement = VisioConnectorLabelFrame.ResolvePlacement(connector);
@@ -238,10 +238,10 @@ namespace OfficeIMO.Visio {
                 return 0D;
             }
 
-            double left = Math.Max(0D, -bounds.Left);
-            double bottom = Math.Max(0D, -bounds.Bottom);
-            double right = Math.Max(0D, bounds.Right - _projection.WidthInches);
-            double top = Math.Max(0D, bounds.Top - _projection.HeightInches);
+            double left = Math.Max(0D, -bounds.LeftInches);
+            double bottom = Math.Max(0D, -bounds.BottomInches);
+            double right = Math.Max(0D, bounds.RightInches - _projection.WidthInches);
+            double top = Math.Max(0D, bounds.TopInches - _projection.HeightInches);
             return left + bottom + right + top;
         }
 
@@ -249,7 +249,7 @@ namespace OfficeIMO.Visio {
             new VisioShapeBounds(x - locPinX, y - locPinY, x - locPinX + width, y - locPinY + height);
 
         private static VisioShapeBounds ExpandBounds(VisioShapeBounds bounds, double padding) =>
-            new VisioShapeBounds(bounds.Left - padding, bounds.Bottom - padding, bounds.Right + padding, bounds.Top + padding);
+            new VisioShapeBounds(bounds.LeftInches - padding, bounds.BottomInches - padding, bounds.RightInches + padding, bounds.TopInches + padding);
 
         private static bool SegmentIntersectsBounds((double X, double Y) first, (double X, double Y) second, VisioShapeBounds bounds) {
             if (bounds.IsEmpty) {
@@ -259,10 +259,10 @@ namespace OfficeIMO.Visio {
             return OfficeGeometry.SegmentIntersectsRectangle(
                 first,
                 second,
-                bounds.Left,
-                bounds.Bottom,
-                bounds.Right,
-                bounds.Top);
+                bounds.LeftInches,
+                bounds.BottomInches,
+                bounds.RightInches,
+                bounds.TopInches);
         }
 
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
@@ -277,9 +277,9 @@ namespace OfficeIMO.Visio {
 
         private static (double Left, double Bottom, double Right, double Top) GetPageBounds(VisioShape shape) {
             (double x1, double y1) = GetPagePoint(shape, 0, 0);
-            (double x2, double y2) = GetPagePoint(shape, shape.Width, 0);
-            (double x3, double y3) = GetPagePoint(shape, 0, shape.Height);
-            (double x4, double y4) = GetPagePoint(shape, shape.Width, shape.Height);
+            (double x2, double y2) = GetPagePoint(shape, shape.WidthInches, 0);
+            (double x3, double y3) = GetPagePoint(shape, 0, shape.HeightInches);
+            (double x4, double y4) = GetPagePoint(shape, shape.WidthInches, shape.HeightInches);
             double left = Math.Min(Math.Min(x1, x2), Math.Min(x3, x4));
             double right = Math.Max(Math.Max(x1, x2), Math.Max(x3, x4));
             double bottom = Math.Min(Math.Min(y1, y2), Math.Min(y3, y4));
@@ -318,10 +318,10 @@ namespace OfficeIMO.Visio {
 
         private static bool Contains(VisioShapeBounds outer, VisioShapeBounds inner) {
             const double tolerance = 1e-6;
-            return outer.Left <= inner.Left + tolerance &&
-                   outer.Bottom <= inner.Bottom + tolerance &&
-                   outer.Right + tolerance >= inner.Right &&
-                   outer.Top + tolerance >= inner.Top;
+            return outer.LeftInches <= inner.LeftInches + tolerance &&
+                   outer.BottomInches <= inner.BottomInches + tolerance &&
+                   outer.RightInches + tolerance >= inner.RightInches &&
+                   outer.TopInches + tolerance >= inner.TopInches;
         }
 
         private static double OverlapArea(VisioShapeBounds first, VisioShapeBounds second) {
@@ -329,8 +329,8 @@ namespace OfficeIMO.Visio {
                 return 0D;
             }
 
-            double width = Math.Max(0D, Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left));
-            double height = Math.Max(0D, Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom));
+            double width = Math.Max(0D, Math.Min(first.RightInches, second.RightInches) - Math.Max(first.LeftInches, second.LeftInches));
+            double height = Math.Max(0D, Math.Min(first.TopInches, second.TopInches) - Math.Max(first.BottomInches, second.BottomInches));
             return width * height;
         }
 

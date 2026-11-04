@@ -104,7 +104,7 @@ public sealed class SetOfficeExcelPrintLayoutCommand : PSCmdlet {
 
         var document = workbook.Document;
         var sheet = ExcelWorkbookCommandService.ResolveSheet(this, document, ParameterSetName, Sheet, SheetIndex);
-        sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
+        sheet.PageSetup.ApplyLayout(new ExcelPrintLayoutOptions {
             Preset = Preset,
             PrintArea = PrintArea,
             Orientation = Orientation,

@@ -34,20 +34,20 @@ namespace OfficeIMO.Tests {
             Assert.Null(imported.Value.FilePath);
             Assert.Equal(OfficeLegacyImportQuality.Structured, imported.Report.Quality);
             Assert.True(imported.Report.HasLoss);
-            Assert.Throws<InvalidOperationException>(() => imported.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => imported.Report.ThrowIfLoss());
             for (int index = 0; index < expected.Pages.Count; index++) {
                 VisioShape[] shapes = Flatten(imported.Value.Pages[index].Shapes).ToArray();
                 VisioShape[] originals = Flatten(expected.Pages[index].Shapes).ToArray();
                 Assert.Equal(33, shapes.Length);
                 Assert.Equal(originals.Select(shape => shape.Id), shapes.Select(shape => shape.Id));
                 for (int shapeIndex = 0; shapeIndex < shapes.Length; shapeIndex++) {
-                    Assert.Equal(originals[shapeIndex].PinX, shapes[shapeIndex].PinX, 8);
-                    Assert.Equal(originals[shapeIndex].PinY, shapes[shapeIndex].PinY, 8);
-                    Assert.Equal(originals[shapeIndex].Width, shapes[shapeIndex].Width, 8);
-                    Assert.Equal(originals[shapeIndex].Height, shapes[shapeIndex].Height, 8);
+                    Assert.Equal(originals[shapeIndex].PinX.ToInches(), shapes[shapeIndex].PinX.ToInches(), 8);
+                    Assert.Equal(originals[shapeIndex].PinY.ToInches(), shapes[shapeIndex].PinY.ToInches(), 8);
+                    Assert.Equal(originals[shapeIndex].Width.ToInches(), shapes[shapeIndex].Width.ToInches(), 8);
+                    Assert.Equal(originals[shapeIndex].Height.ToInches(), shapes[shapeIndex].Height.ToInches(), 8);
                 }
-                Assert.Equal(expected.Pages[index].Width, imported.Value.Pages[index].Width, 8);
-                Assert.Equal(expected.Pages[index].Height, imported.Value.Pages[index].Height, 8);
+                Assert.Equal(expected.Pages[index].Width.ToInches(), imported.Value.Pages[index].Width.ToInches(), 8);
+                Assert.Equal(expected.Pages[index].Height.ToInches(), imported.Value.Pages[index].Height.ToInches(), 8);
                 Assert.Contains(shapes, shape => (shape.Text ?? "").Contains("Office"));
                 Assert.Contains(shapes, shape => (shape.Text ?? "").Contains("80 sq. ft."));
             }
@@ -77,9 +77,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(64, shape.FillColor.A);
             }
             var drawing = imported.Value.Pages[0].ToDrawing();
-            Assert.DoesNotContain(drawing.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_GEOMETRY_FALLBACK");
-            Assert.Contains(drawing.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_FILL_PATTERN");
-            var conversion = imported.Value.ToPdfDocumentResult(new VisioToPdfOptions { Mode = VisioPdfProjectionMode.DiagramPages });
+            Assert.DoesNotContain(drawing.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_GEOMETRY_FALLBACK");
+            Assert.Contains(drawing.Report.Diagnostics, diagnostic => diagnostic.Code == "VISIO_DRAWING_FILL_PATTERN");
+            var conversion = imported.Value.ToPdf(new VisioPdfExportOptions { Mode = VisioPdfProjectionMode.DiagramPages }, out OfficeConversionReport conversionReport);
             byte[] pdf = conversion.ToBytes();
             Assert.True(pdf.Length > 100);
             Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5));

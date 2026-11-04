@@ -51,6 +51,7 @@ if ($PowerForgeDevelopmentEnabled) {
 
     if ($PowerForgeDevelopmentBinaryPath) {
         try {
+
             $ImportModule = Get-Command -Name Import-Module -Module Microsoft.PowerShell.Core
 
             if ($PSEdition -eq 'Core' -and $PowerForgeDevelopmentUseAssemblyLoadContext) {
@@ -59,6 +60,7 @@ if ($PowerForgeDevelopmentEnabled) {
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.Loader;
 
@@ -66,8 +68,61 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
 {
     public sealed class ModuleAssemblyLoadContext : AssemblyLoadContext
     {
+    private static readonly StringComparer ModulePathComparer =
+        System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows)
+            ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+
+    private static string ResolveModulePath(string path)
+    {
+        var fullPath = Path.GetFullPath(path);
+        if (!File.Exists(fullPath))
+            throw new FileNotFoundException("Module assembly was not found.", fullPath);
+
+        if (System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(System.Runtime.InteropServices.OSPlatform.Windows))
+        {
+            using (var file = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                var buffer = new System.Text.StringBuilder(512);
+                while (true)
+                {
+                    // FILE_NAME_OPENED keeps the resolved handle path without SMB component-normalization queries.
+                    // Normalizing a readable file can otherwise fail when a parent denies directory access.
+                    var length = GetFinalModulePathName(file.SafeFileHandle.DangerousGetHandle(), buffer, (uint)buffer.Capacity, 0x8);
+                    if (length == 0)
+                        throw new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error());
+                    if (length >= buffer.Capacity)
+                    {
+                        buffer.Capacity = checked((int)length + 1);
+                        continue;
+                    }
+
+                    var resolved = buffer.ToString();
+                    if (resolved.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase))
+                        return @"\\" + resolved.Substring(8);
+                    return resolved.StartsWith(@"\\?\", StringComparison.Ordinal) ? resolved.Substring(4) : resolved;
+                }
+            }
+        }
+
+        var physical = GetRealModulePath(fullPath, IntPtr.Zero);
+        if (physical == IntPtr.Zero)
+            throw new System.ComponentModel.Win32Exception(System.Runtime.InteropServices.Marshal.GetLastWin32Error());
+        try { return System.Runtime.InteropServices.Marshal.PtrToStringAnsi(physical) ?? fullPath; }
+        finally { FreeRealModulePath(physical); }
+    }
+
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", EntryPoint = "GetFinalPathNameByHandleW",
+        CharSet = System.Runtime.InteropServices.CharSet.Unicode, ExactSpelling = true, SetLastError = true)]
+    private static extern uint GetFinalModulePathName(IntPtr file, System.Text.StringBuilder path, uint length, uint flags);
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "realpath", SetLastError = true)]
+    private static extern IntPtr GetRealModulePath(string path, IntPtr resolved);
+
+    [System.Runtime.InteropServices.DllImport("libc", EntryPoint = "free")]
+    private static extern void FreeRealModulePath(IntPtr path);
+
         private static readonly object Sync = new object();
-        private static readonly Dictionary<string, ModuleAssemblyLoadContext> Contexts = new Dictionary<string, ModuleAssemblyLoadContext>(StringComparer.OrdinalIgnoreCase);
+        private static readonly Dictionary<string, ModuleAssemblyLoadContext> Contexts = new Dictionary<string, ModuleAssemblyLoadContext>(ModulePathComparer);
 
         private readonly string _assemblyDirectory;
         private readonly string _moduleAssemblyPath;
@@ -87,9 +142,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
             if (string.IsNullOrWhiteSpace(moduleAssemblyPath))
                 throw new ArgumentException("Module assembly path is required.", nameof(moduleAssemblyPath));
 
-            var fullPath = Path.GetFullPath(moduleAssemblyPath);
-            if (!File.Exists(fullPath))
-                throw new FileNotFoundException("Module assembly was not found.", fullPath);
+            var fullPath = ResolveModulePath(moduleAssemblyPath);
 
             lock (Sync)
             {
@@ -108,6 +161,7 @@ namespace PSWriteOffice.DevelopmentModuleLoadContext
         {
             if (assemblyName == null || string.IsNullOrWhiteSpace(assemblyName.Name))
                 return null;
+
 
             // Cmdlet and attribute types must come from the PowerShell host. Development
             // outputs can include SDK runtime copies that have a different ALC identity.

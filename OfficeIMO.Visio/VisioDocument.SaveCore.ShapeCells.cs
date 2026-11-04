@@ -80,10 +80,10 @@ namespace OfficeIMO.Visio {
             IReadOnlyDictionary<string, int> layerIndexes) {
             switch (cellName) {
                 case "PinX":
-                    WriteCell(writer, ns, "PinX", shape.PinX);
+                    WriteCell(writer, ns, "PinX", shape.PinXInches);
                     return true;
                 case "PinY":
-                    WriteCell(writer, ns, "PinY", shape.PinY);
+                    WriteCell(writer, ns, "PinY", shape.PinYInches);
                     return true;
                 case "Width":
                     WriteCell(writer, ns, "Width", width);

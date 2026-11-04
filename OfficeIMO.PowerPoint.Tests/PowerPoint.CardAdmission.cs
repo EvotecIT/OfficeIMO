@@ -27,6 +27,22 @@ public sealed class PowerPointCardAdmissionTests {
     }
 
     [Fact]
+    public void FailedSlideTakesEarlierSlidesOfTheSameComposeWithIt() {
+        using var document = PowerPointDocument.Create();
+        PowerPointSlide original = document.AddSlide();
+        var plan = new PowerPointDeckPlan()
+            .AddSection("Overview")
+            .AddContent("Evidence", new PowerPointLayoutBlock[] { new PowerPointLayoutText("Kept only if the deck composes.") })
+            .AddCustom("Review", context => context.AddCardGrid(Enumerable.Range(1, 9).Select(i => new PowerPointCardContent("Card " + i))));
+        var options = PowerPointCompositionOptions.FromDesign(PowerPointDeckDesign.FromBrand("#205040", "custom-admission"));
+        options.ApplyTheme = false;
+
+        Assert.Throws<ArgumentException>(() => document.Compose(plan, options));
+
+        Assert.Same(original, Assert.Single(document.Slides));
+    }
+
+    [Fact]
     public void TemplateCardContinuationsFitBelowTheActualTitlePlaceholder() {
         using var template = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = OfficeTheme.Modern });
         foreach (var layout in template.GetSlideLayouts()) {

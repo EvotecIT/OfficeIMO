@@ -10,21 +10,6 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Headers and Footers 1");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Document with Headers and Footers Default 1.docx");
 
-            WordHeaders RequireHeaders(WordHeaders? headers, string description) {
-                if (headers == null) {
-                    throw new InvalidOperationException($"{description} are not available.");
-                }
-
-                return headers;
-            }
-
-            WordHeader RequireHeader(WordHeader? header, string description) {
-                if (header == null) {
-                    throw new InvalidOperationException($"{description} is not available.");
-                }
-
-                return header;
-            }
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Sections[0].ColumnsSpace = global::OfficeIMO.OfficeLength.Points(2.5);
@@ -37,15 +22,14 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ Settings Zoom Preset: " + document.Settings.ZoomPreset);
                 Console.WriteLine("+ Settings Zoom Percent: " + document.Settings.ZoomPercentage);
 
-                document.AddHeadersAndFooters();
-                document.DifferentFirstPage = true;
+                document.PageSetup.DifferentFirstPage = true;
                 //document.DifferentOddAndEvenPages = false;
                 //var paragraphInFooter = document.Footer!.Default.InsertParagraph();
                 //paragraphInFooter.Text = "This is a test on odd pages (aka default if no options are set)";
 
-                var headers = RequireHeaders(document.Header, "Document headers");
-                var defaultHeader = RequireHeader(headers.Default, "Default header");
-                var firstHeader = RequireHeader(headers.First, "First header");
+                var setup = document.PageSetup;
+                var defaultHeader = setup.Header;
+                var firstHeader = setup.FirstPageHeader;
 
                 var paragraphInHeader = defaultHeader.AddParagraph();
                 paragraphInHeader.Text = "Default Header / Section 0";
@@ -99,19 +83,18 @@ namespace OfficeIMO.Examples.Word {
 
                 //var section2 = document.AddSection(WordSectionBreakType.NextPage);
                 var section2 = document.AddSection();
-                section2.AddHeadersAndFooters();
-                section2.DifferentFirstPage = true;
-                section2.DifferentOddAndEvenPages = true;
+                section2.PageSetup.DifferentFirstPage = true;
+                section2.PageSetup.DifferentOddAndEvenPages = true;
 
 
                 // Add header to section
                 //var paragraghInHeaderSection = section2.Header!.First.InsertParagraph();
                 //paragraghInHeaderSection.Text = "Ok, work please?";
 
-                var section2Headers = RequireHeaders(section2.Header, "Section 2 headers");
-                var section2DefaultHeader = RequireHeader(section2Headers.Default, "Section 2 default header");
-                var section2FirstHeader = RequireHeader(section2Headers.First, "Section 2 first header");
-                var section2EvenHeader = RequireHeader(section2Headers.Even, "Section 2 even header");
+                var section2Setup = section2.PageSetup;
+                var section2DefaultHeader = section2Setup.Header;
+                var section2FirstHeader = section2Setup.FirstPageHeader;
+                var section2EvenHeader = section2Setup.EvenPageHeader;
 
                 var paragraghInHeaderSection1 = section2DefaultHeader.AddParagraph();
                 paragraghInHeaderSection1.Text = "Section 1 header";

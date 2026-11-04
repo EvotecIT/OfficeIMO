@@ -31,9 +31,9 @@ public sealed class PdfConversionReportTests {
             PdfConversionWarningSeverity.Warning,
             OfficeConversionLossKind.Omission);
 
-        OfficeConversionFidelityDiagnostic diagnostic = warning.ToFidelityDiagnostic();
+        OfficeDiagnostic diagnostic = warning.ToFidelityDiagnostic();
 
-        Assert.Equal("OfficeIMO.Tests", diagnostic.Source);
+        Assert.Equal("OfficeIMO.Tests", diagnostic.Format);
         Assert.Equal("page:1", diagnostic.Location);
         Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
         Assert.False(string.IsNullOrWhiteSpace(diagnostic.Message));
@@ -191,7 +191,7 @@ public sealed class PdfConversionReportTests {
             "Stylesheet was blocked by the configured resource policy."));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Summary snapshot proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Summary snapshot proof")),
             report);
 
         report.Clear();
@@ -215,10 +215,10 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_WithDocumentRefreshesFromOriginalConversionReport() {
         var report = new PdfConversionReport();
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Refresh source proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Refresh source proof")),
             report);
 
-        PdfDocumentConversionResult processed = result.WithValue(result.Value.UpdateMetadata(title: "Processed refresh source proof"));
+        PdfDocumentConversionResult processed = result.WithValue(result.Value.UpdateProperties(title: "Processed refresh source proof"));
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Tests",
             "SaveTimeWarning",
@@ -237,7 +237,7 @@ public sealed class PdfConversionReportTests {
         var report = new PdfConversionReport();
         var options = new PdfCreateOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("مرحبا")),
             report);
 
         Assert.ThrowsAny<ArgumentException>(() => result.ToBytes());
@@ -260,10 +260,10 @@ public sealed class PdfConversionReportTests {
             "Table border details were simplified."));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Conversion proof text")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Conversion proof text")),
             report);
 
-        PdfDocumentConversionResult processed = result.Process(document => document.UpdateMetadata(title: "Proof metadata"));
+        PdfDocumentConversionResult processed = result.Process(document => document.UpdateProperties(title: "Proof metadata"));
         PdfConversionProofReport proof = processed.AssessProof(new PdfConversionProofOptions()
             .RequireTextMarkers("Conversion proof text")
             .RequireWarningCodes("AcceptedTableSimplification")
@@ -282,7 +282,7 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesArtifactHash() {
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Artifact hash proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Artifact hash proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -304,13 +304,13 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesAndCanRejectSourceStageLoss() {
         var result = new PdfDocumentConversionResult(
-                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Source loss proof")),
+                PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Source loss proof")),
                 new PdfConversionReport())
             .WithSourceConversionReport(new LossySourceConversionReport());
 
         PdfConversionProofReport observed = result.AssessProof();
         PdfConversionProofReport required = result.AssessProof(
-            new PdfConversionProofOptions().RequireNoLoss());
+            new PdfConversionProofOptions { RequireLosslessConversion = true });
 
         Assert.True(observed.IsSatisfied, observed.Summary);
         Assert.True(observed.HasLoss);
@@ -332,12 +332,12 @@ public sealed class PdfConversionReportTests {
             "pdf:page[1]",
             "The PDF stage approximated content."));
         var result = new PdfDocumentConversionResult(
-                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Typed loss proof")),
+                PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Typed loss proof")),
                 pdfReport)
             .WithSourceConversionReport(new LossySourceConversionReport());
 
         Assert.Collection(
-            result.FidelityDiagnostics,
+            result.Diagnostics,
             diagnostic => {
                 Assert.Equal("TEST_SOURCE_OMISSION", diagnostic.Code);
                 Assert.Equal(OfficeConversionLossKind.Omission, diagnostic.LossKind);
@@ -351,12 +351,12 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_SaveLosslessRejectsBeforeWriting() {
         var result = new PdfDocumentConversionResult(
-                PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reject before publication")),
+                PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Reject before publication")),
                 new PdfConversionReport())
             .WithSourceConversionReport(new LossySourceConversionReport());
         using var destination = new MemoryStream();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.SaveLossless(destination));
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() => result.Save(destination, failOnLoss: true));
 
         Assert.Contains("source stage is lossy", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0L, destination.Length);
@@ -367,12 +367,13 @@ public sealed class PdfConversionReportTests {
         var report = new PdfConversionReport();
         var pdfOptions = new PdfCreateOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create(pdfOptions).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            PdfDocument.Create(pdfOptions).Paragraph(paragraph => paragraph.AddText("مرحبا")),
             report);
         var proofOptions = new PdfConversionProofOptions {
             RequireReadablePdf = false,
-            IncludeArtifactHash = false
-        }.RequireNoLoss();
+            IncludeArtifactHash = false,
+            RequireLosslessConversion = true
+        };
 
         PdfConversionProofReport proof = result.AssessProof(proofOptions);
 
@@ -390,8 +391,8 @@ public sealed class PdfConversionReportTests {
         byte[] original = destination.ToArray();
         PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() =>
-            result.SaveLossless(destination));
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() =>
+            result.Save(destination, failOnLoss: true));
 
         Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(original, destination.ToArray());
@@ -405,8 +406,8 @@ public sealed class PdfConversionReportTests {
         try {
             PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                result.SaveLosslessAsync(path));
+            InvalidOperationException exception = await Assert.ThrowsAnyAsync<InvalidOperationException>(() =>
+                result.SaveAsync(path, failOnLoss: true));
 
             Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(original, File.ReadAllBytes(path));
@@ -419,7 +420,7 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_StrictByteOutputRejectsSerializationLoss() {
         PdfDocumentConversionResult result = CreateSerializationLossResult();
 
-        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => result.ToBytesLossless());
+        InvalidOperationException exception = Assert.ThrowsAny<InvalidOperationException>(() => result.ToBytes(failOnLoss: true));
 
         Assert.Contains("loss", exception.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(result.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
@@ -436,7 +437,7 @@ public sealed class PdfConversionReportTests {
             .SetTextShapingMode(PdfTextShapingMode.UnicodeScalar)
             .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Strict Arabic");
         return new PdfDocumentConversionResult(
-            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("مرحبا")),
             report);
     }
 
@@ -444,9 +445,9 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_AssessProofCapturesRequiredPageCount() {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create()
-                .Paragraph(paragraph => paragraph.Text("First page proof"))
+                .Paragraph(paragraph => paragraph.AddText("First page proof"))
                 .PageBreak()
-                .Paragraph(paragraph => paragraph.Text("Second page proof")),
+                .Paragraph(paragraph => paragraph.AddText("Second page proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -461,10 +462,9 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_AssessProofCapturesRequiredPageSize() {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(240)
+                    PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)) }
                 })
-                .Paragraph(paragraph => paragraph.Text("Page geometry proof")),
+                .Paragraph(paragraph => paragraph.AddText("Page geometry proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -486,7 +486,7 @@ public sealed class PdfConversionReportTests {
                     author: "OfficeIMO",
                     subject: "PDF proof contract",
                     keywords: "pdf, metadata, proof")
-                .Paragraph(paragraph => paragraph.Text("Metadata proof body")),
+                .Paragraph(paragraph => paragraph.AddText("Metadata proof body")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -509,7 +509,7 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofReportsPageCountMismatch() {
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Single page proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Single page proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -526,10 +526,9 @@ public sealed class PdfConversionReportTests {
     public void PdfDocumentConversionResult_AssessProofReportsPageSizeMismatch() {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create(new PdfCreateOptions {
-                    PageWidth = global::OfficeIMO.OfficeLength.Points(320),
-                    PageHeight = global::OfficeIMO.OfficeLength.Points(240)
+                    PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(320), global::OfficeIMO.OfficeLength.Points(240)) }
                 })
-                .Paragraph(paragraph => paragraph.Text("Page size mismatch proof")),
+                .Paragraph(paragraph => paragraph.AddText("Page size mismatch proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -547,7 +546,7 @@ public sealed class PdfConversionReportTests {
         var result = new PdfDocumentConversionResult(
             PdfDocument.Create()
                 .Meta(title: "Actual proof title", author: "OfficeIMO")
-                .Paragraph(paragraph => paragraph.Text("Metadata mismatch proof")),
+                .Paragraph(paragraph => paragraph.AddText("Metadata mismatch proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -563,7 +562,7 @@ public sealed class PdfConversionReportTests {
     [Fact]
     public void PdfDocumentConversionResult_AssessProofReportsArtifactHashMismatch() {
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Artifact mismatch proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Artifact mismatch proof")),
             new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -591,7 +590,7 @@ public sealed class PdfConversionReportTests {
             "CSS declaration was ignored."));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Accepted degradation proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Accepted degradation proof")),
             report);
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -620,7 +619,7 @@ public sealed class PdfConversionReportTests {
             "SmartArt fallback was not declared by the proof contract."));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Unexpected warning proof")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Unexpected warning proof")),
             report);
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -658,9 +657,10 @@ public sealed class PdfConversionReportTests {
             .AttachFile("proof.xml", new byte[] { 60, 112, 114, 111, 111, 102, 32, 47, 62 }, "application/xml", PdfAssociatedFileRelationship.Data, "Proof XML")
             .Bookmark("LogicalAnchor")
             .H1("Logical proof heading")
-            .Paragraph(paragraph => paragraph
-                .Text("Logical proof body with ")
-                .Link("support link", "https://evotec.xyz/support"))
+            .Paragraph(paragraph => {
+                paragraph.AddText("Logical proof body with ");
+                paragraph.AddLink("support link", "https://evotec.xyz/support");
+            })
             .TextField("Customer.Name", value: "Ada")
             .Table(new[] {
                 new[] { "Metric", "Value" },
@@ -796,7 +796,7 @@ public sealed class PdfConversionReportTests {
             PdfConversionWarningSeverity.Error));
 
         var result = new PdfDocumentConversionResult(
-            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Available proof text")),
+            PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Available proof text")),
             report);
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()
@@ -875,19 +875,22 @@ public sealed class PdfConversionReportTests {
         Assert.Throws<InvalidOperationException>(() => result.AssertProof(new PdfConversionProofOptions().RequireTextMarkers("Missing proof text")));
     }
 
-    private sealed class LossySourceConversionReport : IOfficeConversionReport {
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; } = new[] {
-            new OfficeConversionFidelityDiagnostic(
+    private sealed class LossySourceConversionReport : OfficeConversionReport {
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; } = new[] {
+            new global::OfficeIMO.OfficeDiagnostic(
                 "TEST_SOURCE_OMISSION",
+                global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                 "The test source omitted content.",
-                OfficeConversionLossKind.Omission,
-                "OfficeIMO.Pdf.Tests")
+                null,
+                "OfficeIMO.Pdf.Tests",
+                OfficeConversionLossKind.Omission)
         };
 
-        public bool HasLoss => true;
+        public override bool HasLoss => true;
 
-        public void RequireNoLoss() {
-            throw new InvalidOperationException("The test source stage is lossy.");
-        }
+        protected override OfficeConversionException CreateLossException() =>
+            new OfficeConversionException("The test source stage is lossy.", this);
+
     }
 }

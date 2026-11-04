@@ -11,7 +11,7 @@ using OfficeIMO.Reader.Latex;
 OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddLatexHandler()
     .Build();
-IReadOnlyList<ReaderChunk> chunks = reader.Read("article.tex").ToList();
+IReadOnlyList<ReaderChunk> chunks = reader.Enumerate("article.tex").ToList();
 ```
 
 Chunks retain source locations, heading hierarchy, block kind, Markdown projection, and parser/conversion warnings. Article, report, and book documents get ordered typed chunks for headings, paragraphs, lists (including description lists), figures with captions, tables, theorems, and math. Whole-document mode projects the same supported blocks instead of collapsing the file to paragraphs. Plain TeX or another document class receives an unrecognized-profile warning and a visible source fallback instead of empty output.

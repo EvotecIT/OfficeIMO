@@ -149,7 +149,7 @@ public sealed class ReaderOptions {
 }
 
 /// <summary>
-/// Options controlling folder enumeration for <see cref="OfficeDocumentReader.ReadFolder"/>.
+/// Options controlling folder enumeration for <see cref="OfficeDocumentReader.EnumerateFolder"/>.
 /// </summary>
 public sealed class ReaderFolderOptions {
     /// <summary>

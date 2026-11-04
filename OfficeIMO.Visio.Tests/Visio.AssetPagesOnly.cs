@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(target);
-            VisioPage page = document.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
+            VisioPage page = document.AddPage("Page-1", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
             page.ViewCenterX = 5.8424184863857;
             page.ViewCenterY = 4.133858091015;
             document.Save();

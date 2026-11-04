@@ -57,7 +57,7 @@ public sealed class BookOnixLicenseTests {
 
     [Fact]
     public void NamesOnlyOpenDatesAndSingleDayPeriodsArePreserved() {
-        var day = new DateOnly(2026, 10, 6);
+        var day = new DateTime(2026, 10, 6);
         var result = BookOnixTests.Project().ExportOnix(BookOnixTests.Options() with { CollateralTexts = [Item(
             License() with { Names = [new(new string('A', 100))] }, License() with { ValidFrom = day },
             License() with { ValidUntil = day }, License() with { ValidFrom = day, ValidUntil = day })]

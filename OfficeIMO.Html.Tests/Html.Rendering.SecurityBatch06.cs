@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported
             && diagnostic.Source == "div#overflowed");
         Assert.DoesNotContain(rendered.Pages[0].Visuals, visual => visual is HtmlRenderEffectGroup group && group.Source == "div#overflowed");

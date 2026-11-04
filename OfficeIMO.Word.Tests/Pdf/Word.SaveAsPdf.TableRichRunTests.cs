@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 paragraph.Text = string.Empty;
                 paragraph.AddText("CellPlain ");
                 WordParagraph red = paragraph.AddText("CellRed");
-                red.ColorHex = "FF0000";
+                red.Color = OfficeColor.Parse("FF0000");
                 paragraph.AddText(" ");
                 paragraph.AddText("CellBold").SetBold();
                 paragraph.AddText(" ");

@@ -48,7 +48,7 @@ namespace OfficeIMO.Visio {
             Color = Color.FromRgb(0, 0, 0),
             Size = 22,
             Bold = true,
-            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            HorizontalAlignment = OfficeAlignment.Center,
             VerticalAlignment = VisioTextVerticalAlignment.Middle
         };
 
@@ -57,7 +57,7 @@ namespace OfficeIMO.Visio {
             FontFamily = "Aptos",
             Color = Color.FromRgb(20, 75, 120),
             Size = 10,
-            HorizontalAlignment = VisioTextHorizontalAlignment.Left,
+            HorizontalAlignment = OfficeAlignment.Left,
             VerticalAlignment = VisioTextVerticalAlignment.Middle
         };
 
@@ -276,7 +276,7 @@ namespace OfficeIMO.Visio {
                 Color = color,
                 Size = 10,
                 Bold = true,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+                HorizontalAlignment = OfficeAlignment.Center,
                 VerticalAlignment = VisioTextVerticalAlignment.Middle
             };
         }
@@ -286,7 +286,7 @@ namespace OfficeIMO.Visio {
                 FontFamily = "Aptos",
                 Color = color,
                 Size = 9,
-                HorizontalAlignment = VisioTextHorizontalAlignment.Center
+                HorizontalAlignment = OfficeAlignment.Center
             };
         }
     }

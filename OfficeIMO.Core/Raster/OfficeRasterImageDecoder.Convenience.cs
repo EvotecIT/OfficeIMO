@@ -64,7 +64,9 @@ namespace OfficeIMO.Drawing {
             }
         }
 
-        private static InvalidDataException DecodeException(OfficeRasterDecodeInfo info) =>
-            new InvalidDataException($"{info.Diagnostic ?? "Raster decoding failed."} [{info.Failure}; {info.Format}]");
+        private static Exception DecodeException(OfficeRasterDecodeInfo info) =>
+            info.CodecUnavailableReason != OfficeRasterCodecUnavailableReason.None
+                ? new OfficeRasterDecodeException(info)
+                : new InvalidDataException($"{info.Diagnostic ?? "Raster decoding failed."} [{info.Failure}; {info.Format}]");
     }
 }

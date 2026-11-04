@@ -10,12 +10,7 @@ namespace OfficeIMO.PowerPoint.OpenDocument;
 /// <summary>Explicit conversions between OfficeIMO PowerPoint and native OpenDocument presentation models.</summary>
 public static partial class PowerPointOpenDocumentConversionExtensions {
     private const int MaximumOdpSlideNameLength = 128;
-    /// <summary>Converts a PowerPoint presentation to an in-memory ODP document.</summary>
-    public static OdpPresentation ToOpenDocument(this PowerPointDocument source,
-        PowerPointOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
-
-    /// <summary>Converts a PowerPoint presentation to an in-memory ODP document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdpPresentation> ToOpenDocumentResult(this PowerPointDocument source,
+    internal static OdfConversionResult<OdpPresentation> ConvertToOpenDocumentWithEvidence(this PowerPointDocument source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
@@ -111,7 +106,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                     CopyPowerPointParagraphsToOdp(textBox.Paragraphs,
                         () => converted.AddParagraph(), effective, textState);
                     textBoxes++;
-                } else if (shape is PowerPointPicture picture) {
+                } else if (shape is PowerPointImage picture) {
                     if (!effective.IncludeImages) { unsupportedPictures++; continue; }
                     try {
                         byte[] imageBytes = picture.GetImageBytes();
@@ -296,18 +291,13 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         return new OdfConversionResult<OdpPresentation>(target, report).ApplyPolicy(effective.LossPolicy);
     }
 
-    /// <summary>Converts an ODP document to an in-memory PowerPoint presentation.</summary>
-    public static PowerPointDocument ToPowerPointDocument(this OdpPresentation source,
-        PowerPointOpenDocumentConversionOptions? options = null) => source.ToPowerPointDocumentResult(options).Value;
-
-    /// <summary>Converts an ODP document to an in-memory PowerPoint presentation and reports every lossy mapping.</summary>
-    public static OdfConversionResult<PowerPointDocument> ToPowerPointDocumentResult(this OdpPresentation source,
+    internal static OdfConversionResult<PowerPointDocument> ConvertToPowerPointWithEvidence(this OdpPresentation source,
         PowerPointOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         PowerPointOpenDocumentConversionOptions effective = NormalizeOptions(options);
         PowerPointDocument target = PowerPointDocument.CreateForImport();
         var report = new OdfConversionReport("ODP", "PPTX");
-        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Metadata.Language);
+        CultureInfo textCaseCulture = OdfTextCultureResolver.Resolve(source.Properties.Language);
         CopyOdpMetadata(source, target, report);
         int unsupportedMeasurements = 0;
         if (source.PageWidth.TryToPoints(out double pageWidth) && source.PageHeight.TryToPoints(out double pageHeight)) {
@@ -409,7 +399,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                             continue;
                         }
                         using var stream = new MemoryStream(imageBytes, writable: false);
-                        PowerPointPicture converted = targetSlide.AddImage(stream, imageInfo.Format, imageBounds);
+                        PowerPointImage converted = targetSlide.AddImage(stream, imageInfo.Format, imageBounds);
                         // Import retains the source frame, including intentional stretching.
                         converted.Bounds = imageBounds;
                         converted.Name = image.Name;
@@ -699,9 +689,9 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
-        target.FontFamily = source.FontName;
-        if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
-        if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
+        target.FontFamily = source.FontFamily;
+        if (source.Color.HasValue) target.Color = ParseColor(source.Color.Value.ToRgbHex());
+        if (source.BackgroundColor.HasValue) target.BackgroundColor = ParseColor(source.BackgroundColor.Value.ToRgbHex());
     }
 
     private static void ApplyPowerPointRun(PowerPointTextRun source, OdpHyperlink target,
@@ -711,16 +701,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         target.Italic = source.Italic ? true : (bool?)null;
         ApplyPowerPointTextSemantics(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
-        target.FontFamily = source.FontName;
-        if (!string.IsNullOrWhiteSpace(source.Color)) target.Color = ParseColor(source.Color);
-        if (!string.IsNullOrWhiteSpace(source.HighlightColor)) target.BackgroundColor = ParseColor(source.HighlightColor);
+        target.FontFamily = source.FontFamily;
+        if (source.Color.HasValue) target.Color = ParseColor(source.Color.Value.ToRgbHex());
+        if (source.BackgroundColor.HasValue) target.BackgroundColor = ParseColor(source.BackgroundColor.Value.ToRgbHex());
     }
 
     private static bool HasBasicFormatting(PowerPointTextRun run) =>
         run.Bold || run.Italic || run.Underline || run.Strikethrough || run.FontSize.HasValue ||
         run.UnderlineStyle.HasValue || run.StrikeStyle.HasValue || run.BaselinePercent.HasValue || run.Capitalization.HasValue ||
-        !string.IsNullOrWhiteSpace(run.FontName) || !string.IsNullOrWhiteSpace(run.Color) ||
-        !string.IsNullOrWhiteSpace(run.HighlightColor);
+        !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue ||
+        run.BackgroundColor.HasValue;
 
     private static bool HasBasicFormatting(OdpRun run) =>
         run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||

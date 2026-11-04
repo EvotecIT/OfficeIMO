@@ -16,7 +16,7 @@ public static partial class VisioImageExportExtensions {
         var timer = Stopwatch.StartNew();
         VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
         OfficeImageExportBatchSaveResult saved = CreateVisioDocumentImageBatchOperation(document, resolved).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("Visio", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Visio", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -28,7 +28,7 @@ public static partial class VisioImageExportExtensions {
         VisioImageExportOptions resolved = options?.Clone() ?? new VisioImageExportOptions();
         OfficeImageExportBatchSaveResult saved = await CreateVisioDocumentImageBatchOperation(document, resolved)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("Visio", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("Visio", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 

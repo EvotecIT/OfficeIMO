@@ -15,7 +15,7 @@ public class PdfPanelStyle {
         }
     }
     internal bool AlignContentToBottom { get; set; }
-    private PdfAlign _align = PdfAlign.Left;
+    private OfficeAlignment _align = OfficeAlignment.Left;
     private global::OfficeIMO.OfficeLength _borderWidth = global::OfficeIMO.OfficeLength.Points(0.5);
     private global::OfficeIMO.OfficeLength _cornerRadius;
     private global::OfficeIMO.OfficeLength _paddingY = global::OfficeIMO.OfficeLength.Points(6);
@@ -159,10 +159,10 @@ public class PdfPanelStyle {
         }
     }
     /// <summary>Horizontal alignment of the panel box within the content area.</summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(Align), "Panel box");
+            value = Guard.LeftCenterRightAlign(value, nameof(Align), "Panel box");
             _align = value;
         }
     }

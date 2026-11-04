@@ -19,7 +19,7 @@ public sealed partial class DocumentAssistantTests {
             PdfDocument.Create(document => {
                 for (int page = 1; page <= 501; page++) {
                     int number = page;
-                    document.Page(item => item.Content(content => content.Text($"Source page {number}.")));
+                    document.Page(item => item.Content(content => content.AddParagraph($"Source page {number}.")));
                 }
             }).Save(path);
             using var model = new MainWindowViewModel(_ => Task.FromResult<string?>(null), services: services);
@@ -46,8 +46,8 @@ public sealed partial class DocumentAssistantTests {
             Directory.CreateDirectory(services.Paths.Root);
             string first = Path.Combine(services.Paths.Root, "first.pdf");
             string second = Path.Combine(services.Paths.Root, "second.pdf");
-            PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("First document evidence.")))).Save(first);
-            PdfDocument.Create(document => document.Page(page => page.Content(content => content.Text("Second document evidence.")))).Save(second);
+            PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("First document evidence.")))).Save(first);
+            PdfDocument.Create(document => document.Page(page => page.Content(content => content.AddParagraph("Second document evidence.")))).Save(second);
             var window = new MainWindow(services) { Width = 960, Height = 620 };
             try {
                 window.Show();

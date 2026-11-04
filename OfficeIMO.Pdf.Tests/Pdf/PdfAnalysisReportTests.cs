@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.Pdf;
 public class PdfAnalysisReportTests {
     [Fact]
     public void AnalyzeHonorsCancellationBeforeStartingTheHealthPass() {
-        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Cancelled analysis")).ToBytes();
+        byte[] bytes = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Cancelled analysis")).ToBytes();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -31,7 +31,7 @@ public class PdfAnalysisReportTests {
     public void AnalyzeReturnsOneCoherentHealthAndCapabilityReport() {
         byte[] bytes = PdfDocument.Create()
             .Meta(title: "Analysis source")
-            .Paragraph(paragraph => paragraph.Text("Readable analysis content"))
+            .Paragraph(paragraph => paragraph.AddText("Readable analysis content"))
             .ToBytes();
 
         PdfAnalysisReport report = PdfDocument.Load(bytes).Analyze();
@@ -50,7 +50,7 @@ public class PdfAnalysisReportTests {
     [Fact]
     public void AnalyzeCanIncludeComplianceReadbackForTheOpenedArtifact() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Compliance analysis source"))
+            .Paragraph(paragraph => paragraph.AddText("Compliance analysis source"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(bytes);
 
@@ -67,7 +67,7 @@ public class PdfAnalysisReportTests {
     public void AnalyzeDoesNotDecodeAttachmentPayloadsForProfilesThatOnlyNeedMetadata() {
         byte[] bytes = PdfDocument.Create()
             .AttachFile("large.bin", new byte[4096])
-            .Paragraph(paragraph => paragraph.Text("Attachment metadata only"))
+            .Paragraph(paragraph => paragraph.AddText("Attachment metadata only"))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(bytes, new PdfLoadOptions {
             Limits = new PdfReadLimits { MaxTotalAttachmentBytes = 1 }

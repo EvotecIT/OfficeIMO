@@ -27,7 +27,7 @@ public sealed partial class ChmDocument {
             if (source.Document.QuerySelectorAll("script,object,embed,iframe,frame,frameset").Count != 0 ||
                 source.Document.QuerySelectorAll("*").Any(element => element.Attributes.Any(attribute =>
                     attribute.LocalName.StartsWith("on", StringComparison.OrdinalIgnoreCase) || attribute.LocalName.Equals("srcdoc", StringComparison.OrdinalIgnoreCase))))
-                diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_ACTIVE_CONTENT_OMITTED", "Scripts, executable attributes, embedded controls and help-viewer frames are not reproduced in the document projection.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topic.Path));
+                diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_ACTIVE_CONTENT_OMITTED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Scripts, executable attributes, embedded controls and help-viewer frames are not reproduced in the document projection.", topic.Path, "OfficeIMO.Chm", OfficeConversionLossKind.Omission));
             HtmlDocument normalized = source.CreateDocumentForConversion(cancellationToken);
             string prefix = anchors[topic.Path];
             foreach (HtmlElement element in normalized.QuerySelectorAll("*")) {
@@ -54,7 +54,7 @@ public sealed partial class ChmDocument {
                     if (rewritten != null) element.SetAttribute("href", rewritten);
                     else if (Uri.TryCreate(href, UriKind.Absolute, out Uri? missing) && missing.Scheme == "chm") {
                         element.RemoveAttribute("href");
-                        diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_LINK_OMITTED", "The link targets a missing or unselected help topic.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm", topic.Path));
+                        diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_LINK_OMITTED", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "The link targets a missing or unselected help topic.", topic.Path, "OfficeIMO.Chm", OfficeConversionLossKind.Omission));
                     }
                 }
                 if (configured.EmbedImages && (element.LocalName == "img" || element.LocalName == "source"))
@@ -83,15 +83,13 @@ public sealed partial class ChmDocument {
                 container.AppendChild(copy);
             }
             // Topic headings own book/chapter boundaries. Demote authored headings one level.
-            if (DemoteTopicHeadings(output, section, heading, cancellationToken)) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_HEADING_LEVELS",
-                "Authored headings are demoted one level beneath the topic heading. Heading element selectors in retained CSS are not rewritten.",
-                OfficeConversionLossKind.Approximation, "OfficeIMO.Chm", topic.Path));
+            if (DemoteTopicHeadings(output, section, heading, cancellationToken)) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_HEADING_LEVELS", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Authored headings are demoted one level beneath the topic heading. Heading element selectors in retained CSS are not rewritten.", topic.Path, "OfficeIMO.Chm", OfficeConversionLossKind.Approximation));
             output.Body!.AppendChild(section);
-            diagnostics.AddRange(source.Diagnostics.Select(item => new OfficeConversionFidelityDiagnostic(item.Code, item.Message, item.LossKind, "OfficeIMO.Html", topic.Path)));
+            diagnostics.AddRange(source.Diagnostics.Select(item => new global::OfficeIMO.OfficeDiagnostic(item.Code, item.LossKind == global::OfficeIMO.OfficeConversionLossKind.None ? global::OfficeIMO.OfficeDiagnosticSeverity.Information : global::OfficeIMO.OfficeDiagnosticSeverity.Warning, item.Message, topic.Path, "OfficeIMO.Html", item.LossKind)));
         }
-        if (styles && topics.Count > 1) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_COMBINED_STYLE_SCOPE", "Independent topic styles share one cascade in the reflowable book projection.", OfficeConversionLossKind.Approximation, "OfficeIMO.Chm"));
-        if (styles) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_STYLE_IDENTIFIERS", "Topic anchor identifiers are prefixed for book-wide uniqueness; authored CSS identifier selectors are not rewritten.", OfficeConversionLossKind.Approximation, "OfficeIMO.Chm"));
-        if (Index.Count != 0) diagnostics.Add(new OfficeConversionFidelityDiagnostic("CHM_INDEX_METADATA", "The compiled keyword index remains in ChmDocument.Index; it is not a help-viewer index in this projection.", OfficeConversionLossKind.Omission, "OfficeIMO.Chm"));
+        if (styles && topics.Count > 1) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_COMBINED_STYLE_SCOPE", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Independent topic styles share one cascade in the reflowable book projection.", null, "OfficeIMO.Chm", OfficeConversionLossKind.Approximation));
+        if (styles) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_STYLE_IDENTIFIERS", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "Topic anchor identifiers are prefixed for book-wide uniqueness; authored CSS identifier selectors are not rewritten.", null, "OfficeIMO.Chm", OfficeConversionLossKind.Approximation));
+        if (Index.Count != 0) diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic("CHM_INDEX_METADATA", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "The compiled keyword index remains in ChmDocument.Index; it is not a help-viewer index in this projection.", null, "OfficeIMO.Chm", OfficeConversionLossKind.Omission));
         HtmlConversionDocumentOptions conversion = CreateHtmlOptions("/book.html");
         conversion.UseBodyContentsOnly = false;
         conversion.Limits.MaxInputCharacters = checked((int)Math.Min(configured.MaxOutputBytes, int.MaxValue));

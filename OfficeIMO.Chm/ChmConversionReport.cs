@@ -1,31 +1,33 @@
 namespace OfficeIMO.Chm;
 
 /// <summary>Operation-level CHM source and target fidelity evidence. It is not a layout or EPUB conformance certificate.</summary>
-public sealed class ChmConversionReport : IOfficeConversionReport {
-    internal ChmConversionReport(IEnumerable<string> topicPaths, IEnumerable<OfficeConversionFidelityDiagnostic> diagnostics) {
+public sealed class ChmConversionReport : OfficeConversionReport {
+    internal ChmConversionReport(IEnumerable<string> topicPaths, IEnumerable<OfficeDiagnostic> diagnostics) {
         TopicPaths = Array.AsReadOnly(topicPaths.ToArray());
         var retained = diagnostics.Take(10_001).ToArray();
         if (retained.Length > 10_000) retained = retained.Take(9_999).Concat(new[] {
-            new OfficeConversionFidelityDiagnostic("CHM_DIAGNOSTIC_LIMIT", "The conversion exceeds the 10,000-finding review bound. Select fewer topics before publishing.", OfficeConversionLossKind.Failure, "OfficeIMO.Chm")
+            new global::OfficeIMO.OfficeDiagnostic("CHM_DIAGNOSTIC_LIMIT", global::OfficeIMO.OfficeDiagnosticSeverity.Warning, "The conversion exceeds the 10,000-finding review bound. Select fewer topics before publishing.", null, "OfficeIMO.Chm", OfficeConversionLossKind.Failure)
         }).ToArray();
         FidelityDiagnostics = Array.AsReadOnly(retained);
     }
     /// <summary>Selected topic paths in export order.</summary>
     public IReadOnlyList<string> TopicPaths { get; }
     /// <inheritdoc />
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics { get; }
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics { get; }
     /// <inheritdoc />
-    public bool HasLoss => FidelityDiagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
+    public override bool HasLoss => FidelityDiagnostics.Any(diagnostic => diagnostic.LossKind != OfficeConversionLossKind.None);
     /// <inheritdoc />
-    public void RequireNoLoss() {
-        if (HasLoss) throw new OfficeConversionException("The CHM conversion reported possible fidelity loss.", this);
-    }
+    protected override OfficeConversionException CreateLossException() => new OfficeConversionException("The CHM conversion reported possible fidelity loss.", this);
 }
 
 /// <summary>A CHM conversion value and its source/target fidelity report.</summary>
 /// <typeparam name="T">Target artifact or document type.</typeparam>
-public sealed class ChmConversionResult<T> : OfficeConversionResult<T, ChmConversionReport> where T : class {
+public sealed class ChmConversionResult<T> : OfficeConversionResult<T> where T : class {
+    /// <summary>Gets the typed conversion report.</summary>
+    public new ChmConversionReport Report => (ChmConversionReport)base.Report;
+
     internal ChmConversionResult(T value, ChmConversionReport report) : base(value, report) { }
-    /// <inheritdoc />
-    public override bool Succeeded => !Report.FidelityDiagnostics.Any(item => item.LossKind == OfficeConversionLossKind.Failure);
+    /// <summary>Gets whether the conversion produced no failure diagnostic.</summary>
+    public bool Succeeded => !Report.Diagnostics.Any(item => item.LossKind == OfficeConversionLossKind.Failure);
 }

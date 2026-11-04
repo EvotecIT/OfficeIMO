@@ -6,161 +6,161 @@ public sealed class IWorkReadOptions {
     public bool PreserveSourceRecords { get; set; } = true;
 
     /// <summary>Gets or sets the maximum source package size in bytes.</summary>
-    public long MaximumPackageBytes { get; set; } = 512L * 1024 * 1024;
+    public long MaxPackageBytes { get; set; } = 512L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum number of outer and nested package entries.</summary>
-    public int MaximumEntryCount { get; set; } = 8192;
+    public int MaxEntryCount { get; set; } = 8192;
 
     /// <summary>Gets or sets the maximum uncompressed size of one package entry.</summary>
-    public long MaximumEntryBytes { get; set; } = 128L * 1024 * 1024;
+    public long MaxEntryBytes { get; set; } = 128L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum combined uncompressed package-entry size.</summary>
-    public long MaximumTotalEntryBytes { get; set; } = 512L * 1024 * 1024;
+    public long MaxTotalEntryBytes { get; set; } = 512L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum compressed size of one IWA archive.</summary>
-    public int MaximumIwaBytes { get; set; } = 64 * 1024 * 1024;
+    public int MaxIwaBytes { get; set; } = 64 * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum decompressed size of one IWA archive.</summary>
-    public int MaximumDecompressedIwaBytes { get; set; } = 256 * 1024 * 1024;
+    public int MaxDecompressedIwaBytes { get; set; } = 256 * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum combined decompressed size of all IWA archives in one source.</summary>
-    public long MaximumTotalDecompressedIwaBytes { get; set; } = 512L * 1024 * 1024;
+    public long MaxTotalDecompressedIwaBytes { get; set; } = 512L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum declared decompressed size of one raw Snappy chunk.</summary>
-    public int MaximumSnappyChunkBytes { get; set; } = 64 * 1024 * 1024;
+    public int MaxSnappyChunkBytes { get; set; } = 64 * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum encoded ArchiveInfo header size.</summary>
-    public int MaximumArchiveInfoBytes { get; set; } = 1024 * 1024;
+    public int MaxArchiveInfoBytes { get; set; } = 1024 * 1024;
 
     /// <summary>Gets or sets the maximum payload size of one archived record.</summary>
-    public int MaximumRecordBytes { get; set; } = 128 * 1024 * 1024;
+    public int MaxRecordBytes { get; set; } = 128 * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum number of IWA records across the package.</summary>
-    public int MaximumRecordCount { get; set; } = 1_000_000;
+    public int MaxRecordCount { get; set; } = 1_000_000;
 
     /// <summary>Gets or sets the maximum combined ArchiveInfo version, object-reference, and data-reference values across the package.</summary>
-    public int MaximumArchiveReferenceCount { get; set; } = 8_000_000;
+    public int MaxArchiveReferenceCount { get; set; } = 8_000_000;
 
     /// <summary>Gets or sets the maximum declared reference occurrences inspected in distinct source fields for unresolved-reference evidence across one semantic projection, including readable siblings in a field with failures.</summary>
-    public int MaximumSourceReferenceIssues { get; set; } = 100_000;
+    public int MaxSourceReferenceIssues { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum distinct selected source paths retained as unreadable or rejected declaration evidence across one semantic projection.</summary>
-    public int MaximumSourceDeclarationIssues { get; set; } = 100_000;
+    public int MaxSourceDeclarationIssues { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of fields decoded from one protobuf message.</summary>
-    public int MaximumProtobufFieldCount { get; set; } = 1_000_000;
+    public int MaxProtobufFieldCount { get; set; } = 1_000_000;
 
     /// <summary>Gets or sets the maximum nested protobuf message depth.</summary>
-    public int MaximumProtobufDepth { get; set; } = 64;
+    public int MaxProtobufDepth { get; set; } = 64;
 
     /// <summary>Gets or sets the maximum projected row count of one iWork table.</summary>
-    public int MaximumTableRows { get; set; } = 1_048_576;
+    public int MaxTableRows { get; set; } = 1_048_576;
 
     /// <summary>Gets or sets the maximum projected column count of one iWork table.</summary>
-    public int MaximumTableColumns { get; set; } = 16_384;
+    public int MaxTableColumns { get; set; } = 16_384;
 
     /// <summary>Gets or sets the maximum number of materialized non-empty cells across one iWork source.</summary>
-    public int MaximumMaterializedCells { get; set; } = 10_000_000;
+    public int MaxMaterializedCells { get; set; } = 10_000_000;
 
     /// <summary>Gets or sets the maximum combined string and formula catalog entries decoded across one iWork source.</summary>
-    public int MaximumTableCatalogEntries { get; set; } = 100_000;
+    public int MaxTableCatalogEntries { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum combined table dimension headers, bucket references, bounded modern row offset slots, hidden-state declarations, selected UUID position maps, grouping metadata and filter references inspected across one iWork source.</summary>
-    public int MaximumTableDimensionEntries { get; set; } = 1_100_000;
+    public int MaxTableDimensionEntries { get; set; } = 1_100_000;
 
     /// <summary>Gets or sets the maximum combined table stroke layer and run declarations inspected across one semantic projection.</summary>
-    public int MaximumTableBorderEntries { get; set; } = 100_000;
+    public int MaxTableBorderEntries { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of projected sheets across one Numbers source.</summary>
-    public int MaximumProjectedSheets { get; set; } = 4096;
+    public int MaxProjectedSheets { get; set; } = 4096;
 
     /// <summary>Gets or sets the maximum number of projected slides across one Keynote source.</summary>
-    public int MaximumProjectedSlides { get; set; } = 10_000;
+    public int MaxProjectedSlides { get; set; } = 10_000;
 
     /// <summary>Gets or sets the maximum number of projected tables across one iWork source.</summary>
-    public int MaximumProjectedTables { get; set; } = 4096;
+    public int MaxProjectedTables { get; set; } = 4096;
 
     /// <summary>Gets or sets the maximum number of projected images across one iWork source.</summary>
-    public int MaximumProjectedImages { get; set; } = 4096;
+    public int MaxProjectedImages { get; set; } = 4096;
 
     /// <summary>Gets or sets the maximum number of package image-metadata entries decoded across one iWork source.</summary>
-    public int MaximumImageMetadataEntries { get; set; } = 16_384;
+    public int MaxImageMetadataEntries { get; set; } = 16_384;
 
     /// <summary>Gets or sets the maximum combined encoded image bytes emitted by one semantic projection, counting repeated uses.</summary>
-    public long MaximumProjectedImageBytes { get; set; } = 512L * 1024 * 1024;
+    public long MaxProjectedImageBytes { get; set; } = 512L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum cumulative decoded image work for preview inspection and for each semantic projection. Default: 64 MiB.</summary>
-    public long MaximumDecodedImageBytes { get; set; } = 64L * 1024 * 1024;
+    public long MaxDecodedImageBytes { get; set; } = 64L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum number of merged ranges projected from one iWork table.</summary>
-    public int MaximumTableMergedRanges { get; set; } = 100_000;
+    public int MaxTableMergedRanges { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of syntax nodes decoded from one iWork formula.</summary>
     /// <remarks>Also bounds the cumulative referenced cell positions inspected while qualifying GCD/LCM operands in that formula. Repeated references count again; larger references retain their caches with incomplete expressions.</remarks>
-    public int MaximumFormulaNodes { get; set; } = 4096;
+    public int MaxFormulaNodes { get; set; } = 4096;
 
     /// <summary>Gets or sets the maximum reconstructed formula length in characters.</summary>
-    public int MaximumFormulaCharacters { get; set; } = 8192;
+    public int MaxFormulaCharacters { get; set; } = 8192;
 
     /// <summary>Gets or sets the maximum combined formula-rendering work across one semantic projection, counting repeated formula uses.</summary>
     /// <remarks>Includes numeric cell inspections for bounded GCD/LCM reference qualification.</remarks>
-    public long MaximumFormulaRenderingOperations { get; set; } = 64L * 1024 * 1024;
+    public long MaxFormulaRenderingOperations { get; set; } = 64L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum number of projected text items across one semantic projection.</summary>
-    public int MaximumProjectedTextItems { get; set; } = 100_000;
+    public int MaxProjectedTextItems { get; set; } = 100_000;
 
     /// <summary>Gets or sets the maximum number of decoded text characters across one semantic projection.</summary>
-    public long MaximumProjectedTextCharacters { get; set; } = 16L * 1024 * 1024;
+    public long MaxProjectedTextCharacters { get; set; } = 16L * 1024 * 1024;
 
     /// <summary>Gets or sets the maximum cross-record inheritance depth of an iWork text or table style.</summary>
-    public int MaximumTextStyleInheritanceDepth { get; set; } = 64;
+    public int MaxTextStyleInheritanceDepth { get; set; } = 64;
 
     /// <summary>Returns a validated copy suitable for an isolated reader registration.</summary>
     public IWorkReadOptions Clone() => Snapshot();
 
     internal IWorkReadOptions Snapshot() {
-        ValidatePositive(MaximumPackageBytes, nameof(MaximumPackageBytes));
-        ValidatePositive(MaximumEntryCount, nameof(MaximumEntryCount));
-        ValidatePositive(MaximumEntryBytes, nameof(MaximumEntryBytes));
-        ValidatePositive(MaximumTotalEntryBytes, nameof(MaximumTotalEntryBytes));
-        ValidatePositive(MaximumIwaBytes, nameof(MaximumIwaBytes));
-        ValidatePositive(MaximumDecompressedIwaBytes, nameof(MaximumDecompressedIwaBytes));
-        ValidatePositive(MaximumTotalDecompressedIwaBytes, nameof(MaximumTotalDecompressedIwaBytes));
-        ValidatePositive(MaximumSnappyChunkBytes, nameof(MaximumSnappyChunkBytes));
-        ValidatePositive(MaximumArchiveInfoBytes, nameof(MaximumArchiveInfoBytes));
-        ValidatePositive(MaximumRecordBytes, nameof(MaximumRecordBytes));
-        ValidatePositive(MaximumRecordCount, nameof(MaximumRecordCount));
-        ValidatePositive(MaximumArchiveReferenceCount, nameof(MaximumArchiveReferenceCount));
-        ValidatePositive(MaximumSourceReferenceIssues, nameof(MaximumSourceReferenceIssues));
-        ValidatePositive(MaximumSourceDeclarationIssues, nameof(MaximumSourceDeclarationIssues));
-        ValidatePositive(MaximumProtobufFieldCount, nameof(MaximumProtobufFieldCount));
-        ValidatePositive(MaximumProtobufDepth, nameof(MaximumProtobufDepth));
-        ValidatePositive(MaximumTableRows, nameof(MaximumTableRows));
-        ValidatePositive(MaximumTableColumns, nameof(MaximumTableColumns));
-        ValidatePositive(MaximumMaterializedCells, nameof(MaximumMaterializedCells));
-        ValidatePositive(MaximumTableCatalogEntries, nameof(MaximumTableCatalogEntries));
-        ValidatePositive(MaximumTableDimensionEntries, nameof(MaximumTableDimensionEntries));
-        ValidatePositive(MaximumTableBorderEntries, nameof(MaximumTableBorderEntries));
-        ValidatePositive(MaximumProjectedSheets, nameof(MaximumProjectedSheets));
-        ValidatePositive(MaximumProjectedSlides, nameof(MaximumProjectedSlides));
-        ValidatePositive(MaximumProjectedTables, nameof(MaximumProjectedTables));
-        ValidatePositive(MaximumProjectedImages, nameof(MaximumProjectedImages));
-        ValidatePositive(MaximumImageMetadataEntries, nameof(MaximumImageMetadataEntries));
-        ValidatePositive(MaximumProjectedImageBytes, nameof(MaximumProjectedImageBytes));
-        ValidatePositive(MaximumDecodedImageBytes, nameof(MaximumDecodedImageBytes));
-        ValidatePositive(MaximumTableMergedRanges, nameof(MaximumTableMergedRanges));
-        ValidatePositive(MaximumFormulaNodes, nameof(MaximumFormulaNodes));
-        ValidatePositive(MaximumFormulaCharacters, nameof(MaximumFormulaCharacters));
-        ValidatePositive(MaximumFormulaRenderingOperations, nameof(MaximumFormulaRenderingOperations));
-        ValidatePositive(MaximumProjectedTextItems, nameof(MaximumProjectedTextItems));
-        ValidatePositive(MaximumProjectedTextCharacters, nameof(MaximumProjectedTextCharacters));
-        ValidatePositive(MaximumTextStyleInheritanceDepth, nameof(MaximumTextStyleInheritanceDepth));
+        ValidatePositive(MaxPackageBytes, nameof(MaxPackageBytes));
+        ValidatePositive(MaxEntryCount, nameof(MaxEntryCount));
+        ValidatePositive(MaxEntryBytes, nameof(MaxEntryBytes));
+        ValidatePositive(MaxTotalEntryBytes, nameof(MaxTotalEntryBytes));
+        ValidatePositive(MaxIwaBytes, nameof(MaxIwaBytes));
+        ValidatePositive(MaxDecompressedIwaBytes, nameof(MaxDecompressedIwaBytes));
+        ValidatePositive(MaxTotalDecompressedIwaBytes, nameof(MaxTotalDecompressedIwaBytes));
+        ValidatePositive(MaxSnappyChunkBytes, nameof(MaxSnappyChunkBytes));
+        ValidatePositive(MaxArchiveInfoBytes, nameof(MaxArchiveInfoBytes));
+        ValidatePositive(MaxRecordBytes, nameof(MaxRecordBytes));
+        ValidatePositive(MaxRecordCount, nameof(MaxRecordCount));
+        ValidatePositive(MaxArchiveReferenceCount, nameof(MaxArchiveReferenceCount));
+        ValidatePositive(MaxSourceReferenceIssues, nameof(MaxSourceReferenceIssues));
+        ValidatePositive(MaxSourceDeclarationIssues, nameof(MaxSourceDeclarationIssues));
+        ValidatePositive(MaxProtobufFieldCount, nameof(MaxProtobufFieldCount));
+        ValidatePositive(MaxProtobufDepth, nameof(MaxProtobufDepth));
+        ValidatePositive(MaxTableRows, nameof(MaxTableRows));
+        ValidatePositive(MaxTableColumns, nameof(MaxTableColumns));
+        ValidatePositive(MaxMaterializedCells, nameof(MaxMaterializedCells));
+        ValidatePositive(MaxTableCatalogEntries, nameof(MaxTableCatalogEntries));
+        ValidatePositive(MaxTableDimensionEntries, nameof(MaxTableDimensionEntries));
+        ValidatePositive(MaxTableBorderEntries, nameof(MaxTableBorderEntries));
+        ValidatePositive(MaxProjectedSheets, nameof(MaxProjectedSheets));
+        ValidatePositive(MaxProjectedSlides, nameof(MaxProjectedSlides));
+        ValidatePositive(MaxProjectedTables, nameof(MaxProjectedTables));
+        ValidatePositive(MaxProjectedImages, nameof(MaxProjectedImages));
+        ValidatePositive(MaxImageMetadataEntries, nameof(MaxImageMetadataEntries));
+        ValidatePositive(MaxProjectedImageBytes, nameof(MaxProjectedImageBytes));
+        ValidatePositive(MaxDecodedImageBytes, nameof(MaxDecodedImageBytes));
+        ValidatePositive(MaxTableMergedRanges, nameof(MaxTableMergedRanges));
+        ValidatePositive(MaxFormulaNodes, nameof(MaxFormulaNodes));
+        ValidatePositive(MaxFormulaCharacters, nameof(MaxFormulaCharacters));
+        ValidatePositive(MaxFormulaRenderingOperations, nameof(MaxFormulaRenderingOperations));
+        ValidatePositive(MaxProjectedTextItems, nameof(MaxProjectedTextItems));
+        ValidatePositive(MaxProjectedTextCharacters, nameof(MaxProjectedTextCharacters));
+        ValidatePositive(MaxTextStyleInheritanceDepth, nameof(MaxTextStyleInheritanceDepth));
 
-        if (MaximumEntryBytes > MaximumTotalEntryBytes) {
-            throw new ArgumentException($"{nameof(MaximumEntryBytes)} cannot exceed {nameof(MaximumTotalEntryBytes)}.");
+        if (MaxEntryBytes > MaxTotalEntryBytes) {
+            throw new ArgumentException($"{nameof(MaxEntryBytes)} cannot exceed {nameof(MaxTotalEntryBytes)}.");
         }
-        if (MaximumSnappyChunkBytes > MaximumDecompressedIwaBytes) {
-            throw new ArgumentException($"{nameof(MaximumSnappyChunkBytes)} cannot exceed {nameof(MaximumDecompressedIwaBytes)}.");
+        if (MaxSnappyChunkBytes > MaxDecompressedIwaBytes) {
+            throw new ArgumentException($"{nameof(MaxSnappyChunkBytes)} cannot exceed {nameof(MaxDecompressedIwaBytes)}.");
         }
 
         return (IWorkReadOptions)MemberwiseClone();

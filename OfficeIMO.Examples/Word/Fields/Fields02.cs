@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddField(WordFieldType.GreetingLine);
 
                 // added page number using dedicated way
-                var pageNumber = document.HeaderDefaultOrCreate.AddPageNumber(WordPageNumberStyle.Roman);
+                var pageNumber = document.PageSetup.Header.AddPageNumber(WordPageNumberStyle.Roman);
 
                 document.Save();
                 if (openWord) document.OpenInApplication();

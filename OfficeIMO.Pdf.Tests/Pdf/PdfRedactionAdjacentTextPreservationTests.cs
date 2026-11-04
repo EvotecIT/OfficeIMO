@@ -11,8 +11,8 @@ public sealed class PdfRedactionAdjacentTextPreservationTests {
     public void LiteralRedactionPreservesTheLargerHeadingAboveTheSelectedAccount(PdfRedactionTextSelection selection) {
         byte[] bytes = PdfDocument.Create(pdf => pdf.Content(content => content
             .H1("Supplier onboarding")
-            .Paragraph(paragraph => paragraph.Text("Account: 123-45-6789"))
-            .Paragraph(paragraph => paragraph.Text("Delivery contact: service@example.test")))).ToBytes();
+            .AddParagraph(paragraph => paragraph.AddText("Account: 123-45-6789"))
+            .AddParagraph(paragraph => paragraph.AddText("Delivery contact: service@example.test")))).ToBytes();
         PdfDocument source = PdfDocument.Load(bytes);
         PdfRedactionPlan plan = source.Redactions.Search(new PdfRedactionSearchOptions {
             TextSelection = selection
@@ -87,7 +87,7 @@ public sealed class PdfRedactionAdjacentTextPreservationTests {
     }
 
     private static byte[] BuildSource(bool sameTextObject, string matrix) {
-        byte[] seed = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Fixture seed")).ToBytes();
+        byte[] seed = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Fixture seed")).ToBytes();
         int pageObject = PdfReadDocument.Open(seed).Pages[0].ObjectNumber;
         string split = sameTextObject ? string.Empty : "ET BT ";
         string text = "q " + matrix + " cm BT /F1 24 Tf 1 0 0 1 72 702.24 Tm "

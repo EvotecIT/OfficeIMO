@@ -13,15 +13,15 @@ namespace OfficeIMO.Word.Pdf {
                 if (options.Orientation == null) {
                     return size;
                 }
-            } else if (checked((uint?)(section.PageSettings.Width?.ToTwips())) > 0 && checked((uint?)(section.PageSettings.Height?.ToTwips())) > 0) {
+            } else if (checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) > 0 && checked((uint?)(section.PageSetup.Size.Height?.ToTwips())) > 0) {
                 size = new PdfCore.PdfPageSize(
-                    OfficeIMO.OfficeLength.Points(checked((uint?)(section.PageSettings.Width?.ToTwips())).GetValueOrDefault() / 20D),                    OfficeIMO.OfficeLength.Points(checked((uint?)(section.PageSettings.Height?.ToTwips())).GetValueOrDefault() / 20D));
+                    OfficeIMO.OfficeLength.Points(checked((uint?)(section.PageSetup.Size.Width?.ToTwips())).GetValueOrDefault() / 20D),                    OfficeIMO.OfficeLength.Points(checked((uint?)(section.PageSetup.Size.Height?.ToTwips())).GetValueOrDefault() / 20D));
                 // The stored physical dimensions already describe the page, even when
                 // the optional orientation flag is absent. Only an export override
                 // should normalize these dimensions into another orientation.
                 if (options?.Orientation == null && options?.DefaultOrientation == null) return size;
-            } else if (section.PageSettings.PageSize.HasValue) {
-                size = MapNativePageSize(section.PageSettings.PageSize.Value);
+            } else if (section.PageSetup.Size.PageSize.HasValue) {
+                size = MapNativePageSize(section.PageSetup.Size.PageSize.Value);
             } else if (options?.DefaultPageSize.HasValue == true) {
                 size = MapNativePageSize(options.DefaultPageSize.Value);
             } else {
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Pdf {
             OfficePageOrientation orientation;
             if (options?.Orientation != null) {
                 orientation = options.Orientation.Value;
-            } else if (section.PageSettings.Orientation == OfficePageOrientation.Landscape) {
+            } else if (section.PageSetup.Size.Orientation == OfficePageOrientation.Landscape) {
                 orientation = OfficePageOrientation.Landscape;
             } else if (options?.DefaultOrientation != null) {
                 orientation = options.DefaultOrientation == OfficePageOrientation.Landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait;
@@ -56,11 +56,11 @@ namespace OfficeIMO.Word.Pdf {
                 return options.Margins.Value;
             }
 
-            double left = checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) / 20D;
-            double top = (checked((int?)(section.Margins.Top?.ToTwips())) ?? 0) / 20D + headerFooterMarginExpansion.Header;
-            double right = checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips())) / 20D;
-            double bottom = (checked((int?)(section.Margins.Bottom?.ToTwips())) ?? 0) / 20D + headerFooterMarginExpansion.Footer;
-            double gutter = checked((uint)(section.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
+            double left = checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) / 20D;
+            double top = (checked((int?)(section.PageSetup.Margins.Top?.ToTwips())) ?? 0) / 20D + headerFooterMarginExpansion.Header;
+            double right = checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips())) / 20D;
+            double bottom = (checked((int?)(section.PageSetup.Margins.Bottom?.ToTwips())) ?? 0) / 20D + headerFooterMarginExpansion.Footer;
+            double gutter = checked((uint)(section.PageSetup.Margins.Gutter.GetValueOrDefault().ToTwips())) / 20D;
             if (section._document.Settings.GutterAtTop) top += gutter;
             else if (section.RtlGutter) right += gutter;
             else left += gutter;

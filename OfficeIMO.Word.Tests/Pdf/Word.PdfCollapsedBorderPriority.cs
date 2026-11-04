@@ -46,10 +46,10 @@ public partial class Word {
             table.StyleDetails!.SetBordersForAllSides(WordBorderStyle.Single, OfficeLength.Points((16U) / 8d), OfficeColor.Gray);
             var border = table.Rows[side == "bottom" ? 0 : 1].Cells[side == "left" ? 1 : 0].Borders;
             switch (side) {
-                case "top": border.TopStyle = WordBorderStyle.Single; border.TopColorHex = "FF0000"; border.TopSize = OfficeLength.Points((8U) / 8d); break;
-                case "bottom": border.BottomStyle = WordBorderStyle.Single; border.BottomColorHex = "FF0000"; border.BottomSize = OfficeLength.Points((8U) / 8d); break;
-                case "left": border.LeftStyle = WordBorderStyle.Single; border.LeftColorHex = "FF0000"; border.LeftSize = OfficeLength.Points((8U) / 8d); break;
-                case "right": border.RightStyle = WordBorderStyle.Single; border.RightColorHex = "FF0000"; border.RightSize = OfficeLength.Points((8U) / 8d); break;
+                case "top": border.TopStyle = WordBorderStyle.Single; border.TopColor = OfficeColor.Parse("FF0000"); border.TopSize = OfficeLength.Points((8U) / 8d); break;
+                case "bottom": border.BottomStyle = WordBorderStyle.Single; border.BottomColor = OfficeColor.Parse("FF0000"); border.BottomSize = OfficeLength.Points((8U) / 8d); break;
+                case "left": border.LeftStyle = WordBorderStyle.Single; border.LeftColor = OfficeColor.Parse("FF0000"); border.LeftSize = OfficeLength.Points((8U) / 8d); break;
+                case "right": border.RightStyle = WordBorderStyle.Single; border.RightColor = OfficeColor.Parse("FF0000"); border.RightSize = OfficeLength.Points((8U) / 8d); break;
             }
         }
         table.Rows[0].Cells[0].Paragraphs[0].Text = "Header";
@@ -117,9 +117,9 @@ public partial class Word {
             var cell = table.Rows[row].Cells[0];
             cell.Paragraphs[0].Text = row == 0 ? "Header" : "Body" + row;
             if (profile == "no-repeat-top") {
-                cell.Borders.BottomStyle = WordBorderStyle.Single; cell.Borders.BottomColorHex = "FF0000"; cell.Borders.BottomSize = OfficeLength.Points((8U) / 8d);
+                cell.Borders.BottomStyle = WordBorderStyle.Single; cell.Borders.BottomColor = OfficeColor.Parse("FF0000"); cell.Borders.BottomSize = OfficeLength.Points((8U) / 8d);
             } else if ((profile == "body-cell" && row > 1) || (profile == "no-repeat-bottom" && row > 0)) {
-                cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColorHex = "FF0000"; cell.Borders.TopSize = OfficeLength.Points((8U) / 8d);
+                cell.Borders.TopStyle = WordBorderStyle.Single; cell.Borders.TopColor = OfficeColor.Parse("FF0000"); cell.Borders.TopSize = OfficeLength.Points((8U) / 8d);
             }
         }
         if (profile == "header-nil") table.Rows[0].Cells[0].Borders.BottomStyle = WordBorderStyle.Nil;

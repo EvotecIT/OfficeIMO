@@ -86,7 +86,7 @@ public sealed partial class ReaderEpubModularTests {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
             BuildEpubWithSpine(epubPath);
-            var registeredOptions = new EpubReadOptions { MaxTotalRawHtmlBytes = 1 };
+            var registeredOptions = new EpubLoadOptions { MaxTotalRawHtmlBytes = 1 };
             OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
                 .AddEpubHandler(registeredOptions)
                 .Build();
@@ -106,7 +106,7 @@ public sealed partial class ReaderEpubModularTests {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
             BuildEpubWithSpine(epubPath);
-            var epubOptions = new EpubReadOptions {
+            var epubOptions = new EpubLoadOptions {
                 IncludeRawHtml = false,
                 PreferSpineOrder = true
             };
@@ -192,7 +192,7 @@ public sealed partial class ReaderEpubModularTests {
 
             OfficeDocumentReadResult result = EpubReaderAdapter.ReadDocument(
                 epubPath,
-                epubOptions: new EpubReadOptions { IncludeResourceData = false });
+                epubOptions: new EpubLoadOptions { IncludeResourceData = false });
 
             OfficeDocumentAsset asset = Assert.Single(result.Assets, item => item.MediaType == "image/png");
             Assert.Null(asset.PayloadBytes);
@@ -210,7 +210,7 @@ public sealed partial class ReaderEpubModularTests {
         try {
             BuildImageOnlyEpub(epubPath);
 
-            EpubDocument document = EpubDocument.Load(epubPath, new EpubReadOptions { IncludeRawHtml = true });
+            EpubDocument document = EpubDocument.Load(epubPath, new EpubLoadOptions { IncludeRawHtml = true });
             EpubChapter chapter = Assert.Single(document.Chapters);
             Assert.Equal(string.Empty, chapter.Text);
             Assert.NotNull(chapter.Html);
@@ -235,7 +235,7 @@ public sealed partial class ReaderEpubModularTests {
         try {
             BuildEpubWithSpine(epubPath);
 
-            var document = EpubDocument.Load(epubPath, new EpubReadOptions {
+            var document = EpubDocument.Load(epubPath, new EpubLoadOptions {
                 PreferSpineOrder = true,
                 IncludeNonLinearSpineItems = true
             });
@@ -277,7 +277,7 @@ public sealed partial class ReaderEpubModularTests {
             EpubResource imageMetadata = Assert.Single(metadataOnly.Resources, resource => resource.MediaType == "image/png");
             Assert.Null(imageMetadata.Data);
 
-            EpubDocument bounded = EpubDocument.Load(epubPath, new EpubReadOptions {
+            EpubDocument bounded = EpubDocument.Load(epubPath, new EpubLoadOptions {
                 IncludeResourceData = true,
                 MaxResourceBytes = 4,
                 MaxTotalResourceBytes = 32
@@ -286,7 +286,7 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Null(boundedImage.Data);
             Assert.Contains(bounded.Warnings, warning => warning.Contains("MaxResourceBytes", StringComparison.Ordinal));
 
-            EpubDocument withPayload = EpubDocument.Load(epubPath, new EpubReadOptions { IncludeResourceData = true });
+            EpubDocument withPayload = EpubDocument.Load(epubPath, new EpubLoadOptions { IncludeResourceData = true });
             EpubResource image = Assert.Single(withPayload.Resources, resource => resource.MediaType == "image/png");
             byte[] firstRead = Assert.IsType<byte[]>(image.Data);
             byte original = firstRead[0];
@@ -307,7 +307,7 @@ public sealed partial class ReaderEpubModularTests {
         try {
             BuildEpubWithSpine(epubPath);
 
-            EpubDocument document = EpubDocument.Load(epubPath, new EpubReadOptions {
+            EpubDocument document = EpubDocument.Load(epubPath, new EpubLoadOptions {
                 IncludeRawHtml = true,
                 MaxTotalRawHtmlBytes = 1
             });
@@ -332,7 +332,7 @@ public sealed partial class ReaderEpubModularTests {
             var chunks = EpubReaderAdapter.Read(
                 epubPath,
                 readerOptions: new ReaderOptions { MaxChars = 64 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
@@ -360,7 +360,7 @@ public sealed partial class ReaderEpubModularTests {
                 stream,
                 sourceName: "nonseekable.epub",
                 readerOptions: new ReaderOptions { MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true }).ToList();
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
@@ -384,7 +384,7 @@ public sealed partial class ReaderEpubModularTests {
                 stream,
                 sourceName: "nonseekable.epub",
                 readerOptions: new ReaderOptions { MaxInputBytes = 16, MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList());
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true }).ToList());
 
             Assert.Contains("Input exceeds MaxInputBytes", ex.Message, StringComparison.Ordinal);
         } finally {
@@ -401,7 +401,7 @@ public sealed partial class ReaderEpubModularTests {
             var chunks = EpubReaderAdapter.Read(
                 epubPath,
                 readerOptions: new ReaderOptions { MaxChars = 64 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
 
             Assert.NotEmpty(chunks);
 
@@ -431,7 +431,7 @@ public sealed partial class ReaderEpubModularTests {
             var chunks = EpubReaderAdapter.Read(
                 epubPath,
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 64 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }).ToList();
 
             var warningChunk = Assert.Single(chunks, c => c.Warnings?.Count > 0);
             var contentChunk = Assert.Single(chunks, c =>
@@ -459,7 +459,7 @@ public sealed partial class ReaderEpubModularTests {
                     stream,
                     sourceName: " malformed.epub ",
                     readerOptions: new ReaderOptions { MaxChars = 64 },
-                    epubOptions: new EpubReadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }),
+                    epubOptions: new EpubLoadOptions { PreferSpineOrder = true, FallbackToHtmlScan = true }),
                 c => c.Warnings?.Count > 0);
 
             Assert.Contains("malformed.epub::OEBPS/bad.xhtml", warningChunk.Location.Path, StringComparison.OrdinalIgnoreCase);
@@ -477,7 +477,7 @@ public sealed partial class ReaderEpubModularTests {
             var chunks = EpubReaderAdapter.Read(
                 epubPath,
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true }).ToList();
             string archiveHash = ComputeSha256Hex(File.ReadAllBytes(epubPath));
 
             Assert.NotEmpty(chunks);
@@ -512,7 +512,7 @@ public sealed partial class ReaderEpubModularTests {
             var chunks = EpubReaderAdapter.Read(
                 epubPath,
                 readerOptions: new ReaderOptions { MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true }).ToList();
 
             ReaderChunk chapter = Assert.Single(
                 chunks,
@@ -548,7 +548,7 @@ public sealed partial class ReaderEpubModularTests {
                 stream,
                 sourceName: " metadata.epub ",
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-                epubOptions: new EpubReadOptions { PreferSpineOrder = true }).ToList();
+                epubOptions: new EpubLoadOptions { PreferSpineOrder = true }).ToList();
             string archiveHash = ComputeSha256Hex(bytes);
 
             Assert.NotEmpty(chunks);
@@ -594,13 +594,13 @@ public sealed partial class ReaderEpubModularTests {
                 var relativeChunk = EpubReaderAdapter.Read(
                     relativePath,
                     readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-                    epubOptions: new EpubReadOptions { PreferSpineOrder = true })
+                    epubOptions: new EpubLoadOptions { PreferSpineOrder = true })
                     .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
 
                 var fullChunk = EpubReaderAdapter.Read(
                     epubPath,
                     readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 4_000 },
-                    epubOptions: new EpubReadOptions { PreferSpineOrder = true })
+                    epubOptions: new EpubLoadOptions { PreferSpineOrder = true })
                     .Single(c => c.Location.Path?.Contains("::OEBPS/chapter2.xhtml", StringComparison.OrdinalIgnoreCase) ?? false);
 
                 Assert.Equal(fullPath + "::OEBPS/chapter2.xhtml", relativeChunk.Location.Path);

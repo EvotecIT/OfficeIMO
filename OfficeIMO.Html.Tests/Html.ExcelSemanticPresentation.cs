@@ -10,16 +10,16 @@ public class HtmlExcelSemanticPresentation {
     private static ExcelDocument CreateReportWorkbook() {
         ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Report");
-        sheet.Cell(1, 1, "Title band");
-        sheet.CellFontColor(1, 1, "FFFFFF");
-        sheet.CellBackground(1, 1, "17365D");
-        sheet.Cell(2, 1, "Amount"); sheet.Cell(2, 2, "Share"); sheet.Cell(2, 3, "Due"); sheet.Cell(2, 4, "Ready");
-        sheet.Cell(3, 1, 1234567.5, numberFormat: "#,##0.00");
-        sheet.Cell(3, 2, 0.3755186721991701, numberFormat: "0.0%");
-        sheet.Cell(3, 3, new DateTime(2026, 10, 29), numberFormat: "yyyy-mm-dd");
-        sheet.Cell(3, 4, true);
-        sheet.Cell(4, 2, 0.9, numberFormat: "0.0%");
-        sheet.AddConditionalColorScale("B3:B4", "F8D7DA", "C9ECD3");
+        sheet.Cell(1, 1).SetValue("Title band");
+        sheet.Cell(1, 1).SetFontColor("FFFFFF");
+        sheet.Cell(1, 1).SetFillColor("17365D");
+        sheet.Cell(2, 1).SetValue("Amount"); sheet.Cell(2, 2).SetValue("Share"); sheet.Cell(2, 3).SetValue("Due"); sheet.Cell(2, 4).SetValue("Ready");
+        sheet.Cell(3, 1).SetValue(1234567.5).SetNumberFormat("#,##0.00");
+        sheet.Cell(3, 2).SetValue(0.3755186721991701).SetNumberFormat("0.0%");
+        sheet.Cell(3, 3).SetValue(new DateTime(2026, 10, 29)).SetNumberFormat("yyyy-mm-dd");
+        sheet.Cell(3, 4).SetValue(true);
+        sheet.Cell(4, 2).SetValue(0.9).SetNumberFormat("0.0%");
+        sheet.Range("B3:B4").ConditionalFormat().ColorScale("F8D7DA", "C9ECD3");
         return workbook;
     }
 
@@ -51,7 +51,7 @@ public class HtmlExcelSemanticPresentation {
     [Fact]
     public void SemanticTablesCanKeepRawCellText() {
         using ExcelDocument workbook = CreateReportWorkbook();
-        string html = workbook.ToHtml(new ExcelHtmlSaveOptions { ApplyCellPresentation = false });
+        string html = workbook.ToHtml(new ExcelHtmlExportOptions { ApplyCellPresentation = false });
 
         Assert.DoesNotContain("background-color:#17365D", html, StringComparison.Ordinal);
         Assert.DoesNotContain(">37.6%<", html, StringComparison.Ordinal);
@@ -61,10 +61,10 @@ public class HtmlExcelSemanticPresentation {
     public void SemanticTablesDrawChartsAndKeepDebugMetadataOptIn() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
         ExcelSheet sheet = workbook.AddSheet("Sales");
-        sheet.Cell(1, 1, "Quarter"); sheet.Cell(1, 2, "Actual");
-        sheet.Cell(2, 1, "Q1"); sheet.Cell(2, 2, 42);
-        sheet.Cell(3, 1, "Q2"); sheet.Cell(3, 2, 58);
-        sheet.CellFormula(4, 2, "SUM(B2:B3)");
+        sheet.Cell(1, 1).SetValue("Quarter"); sheet.Cell(1, 2).SetValue("Actual");
+        sheet.Cell(2, 1).SetValue("Q1"); sheet.Cell(2, 2).SetValue(42);
+        sheet.Cell(3, 1).SetValue("Q2"); sheet.Cell(3, 2).SetValue(58);
+        sheet.Cell(4, 2).SetFormula("SUM(B2:B3)");
         sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B3", new ExcelChartOptions { Row = 6, Column = 1, Width = OfficeLength.Pixels(320), Height = OfficeLength.Pixels(200), Title = "Actual by quarter" });
 
         string html = workbook.ToHtml();

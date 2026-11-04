@@ -18,7 +18,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     })
     .Build();
 
-foreach (ReaderChunk chunk in reader.Read("contacts.dbf")) {
+foreach (ReaderChunk chunk in reader.Enumerate("contacts.dbf")) {
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
 }
 ```

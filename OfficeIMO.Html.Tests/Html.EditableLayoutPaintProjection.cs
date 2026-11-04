@@ -58,7 +58,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
                 break;
             }
             case "excel": {
-                var result = source.ToExcelDocumentResult(new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+                var result = source.ConvertToExcelWithEvidence(new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
                 using ExcelDocument document = result.Value;
                 document.Save(stream);
                 using ExcelDocument reopened = ExcelDocument.Load(new MemoryStream(stream.ToArray()),
@@ -70,7 +70,7 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
                 break;
             }
             case "powerpoint": {
-                var result = source.ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+                var result = source.ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
                 using PowerPointDocument document = result.Value;
                 document.Save(stream);
                 using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(stream.ToArray()),
@@ -82,8 +82,8 @@ public sealed class HtmlEditableLayoutPaintProjectionTests {
                 break;
             }
             case "rtf": {
-                var result = source.ToRtfDocumentResult();
-                RtfReadResult reopened = RtfDocument.Read(result.Value.ToRtf());
+                var result = source.ConvertToRtfWithEvidence();
+                RtfReadResult reopened = RtfDocument.ParseResult(result.Value.ToRtf());
                 RtfParagraph frame = Assert.Single(reopened.Document.Paragraphs, paragraph => paragraph.Frame.HasAnyValue);
                 Assert.Equal("Lead Alpha Tail", frame.ToPlainText());
                 Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.RegionProjected);

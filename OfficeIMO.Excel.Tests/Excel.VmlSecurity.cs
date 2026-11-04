@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             byte[] pngBytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 ExcelSheet sheet = document.AddSheet("Sheet1");
-                sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, pngBytes, "image/png");
+                sheet.PageSetup.Header.Center.SetImage(pngBytes, "image/png");
                 document.Save();
             }
 

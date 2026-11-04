@@ -128,15 +128,6 @@ namespace OfficeIMO.Word {
             return this;
         }
         /// <summary>
-        /// Sets the text color using a hexadecimal value.
-        /// </summary>
-        /// <param name="color">Color in hexadecimal format.</param>
-        /// <returns>The current paragraph instance.</returns>
-        public WordParagraph SetColorHex(string color) {
-            this.ColorHex = color;
-            return this;
-        }
-        /// <summary>
         /// Sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         /// <param name="color">The color to apply.</param>

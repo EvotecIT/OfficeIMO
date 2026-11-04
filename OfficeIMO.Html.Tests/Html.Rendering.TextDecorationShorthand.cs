@@ -82,7 +82,7 @@ public sealed partial class HtmlRenderingTests {
             s => s.Source?.EndsWith(":decoration:underline", StringComparison.Ordinal) == true);
         Assert.Equal(1D, decoration.Height);
         Assert.Equal(OfficeColor.FromRgb(88,88,88), decoration.Shape.FillColor);
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
             && d.Detail?.Contains("pattern", StringComparison.Ordinal) == true);
     }
     [Theory]
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<span style='text-decoration:" + lines + " 2px dashed red'>Label</span>";
         HtmlRenderDocument scene = HtmlRenderTestDriver.Render(html, new HtmlRenderOptions());
         Assert.DoesNotContain(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationLineUnsupported");
-        Assert.Contains(scene.Diagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
+        Assert.Contains(scene.NativeDiagnostics, d => d.Code == "HtmlRenderTextDecorationThicknessApproximated"
             && d.Detail?.Contains("pattern", StringComparison.Ordinal) == true);
         HtmlRenderText label = Assert.Single(scene.Pages.SelectMany(p => EnumerateCorpusVisuals(p.Scene)).OfType<HtmlRenderText>(), t => t.Text == "Label");
         Assert.Equal(OfficeTextDecorationStyle.None, label.UnderlineStyle);

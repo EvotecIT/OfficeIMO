@@ -307,7 +307,7 @@ public static partial class PowerPointIWorkConverter {
             run.Text = text;
             canReuseInitialRun = false;
         } else {
-            run = paragraph.AddRun(text);
+            run = paragraph.AddText(text);
         }
         if (defaultStyle != null) ApplyTextStyle(run, defaultStyle);
         ApplyTextStyle(run, style);
@@ -324,9 +324,9 @@ public static partial class PowerPointIWorkConverter {
         if (style.Strikethrough.HasValue) run.Strikethrough = style.Strikethrough.Value;
         if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
         if (style.CharacterSpacingPoints.HasValue) run.CharacterSpacing = global::OfficeIMO.OfficeLength.Points(style.CharacterSpacingPoints.Value);
-        if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontName = style.FontName;
-        if (style.Color != null) run.Color = style.Color.RgbHex;
-        if (style.BackgroundColor != null) run.HighlightColor = style.BackgroundColor.RgbHex;
+        if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
+        if (style.Color != null) run.Color = OfficeIMO.OfficeColor.Parse(style.Color.RgbHex);
+        if (style.BackgroundColor != null) run.BackgroundColor = OfficeIMO.OfficeColor.Parse(style.BackgroundColor.RgbHex);
     }
 
     private static bool CanApplyCharacterTracking(IWorkTextStyle style) => !style.CharacterTrackingEm.HasValue

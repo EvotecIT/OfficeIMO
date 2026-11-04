@@ -3,32 +3,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
-    /// <summary>
-    /// Helper methods for adding and retrieving headers and footers in Word documents.
-    /// </summary>
-    public static partial class WordHeadersAndFooters {
-        /// <summary>
-        /// Add default header and footers to section. You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
-        /// </summary>
-        /// <param name="section"></param>
-        /// <returns>The attached default header and footer.</returns>
-        public static (WordHeader Header, WordFooter Footer) AddHeadersAndFooters(this WordSection section) {
-            AddHeaderReference(section._document, section, HeaderFooterValues.Default);
-            AddFooterReference(section._document, section, HeaderFooterValues.Default);
-            return (section.Header.Default!, section.Footer.Default!);
-        }
-
-        /// <summary>
-        /// Add default header and footers to document (section 0). You can control odd/even/first with DifferentOddAndEventPages/DifferentFirstPage properties.
-        /// </summary>
-        /// <param name="document"></param>
-        /// <returns>The attached default header and footer.</returns>
-        public static (WordHeader Header, WordFooter Footer) AddHeadersAndFooters(this WordDocument document) {
-            AddHeaderReference(document, document.Sections[0], HeaderFooterValues.Default);
-            AddFooterReference(document, document.Sections[0], HeaderFooterValues.Default);
-            return (document.Sections[0].Header.Default!, document.Sections[0].Footer.Default!);
-        }
-
+    // Creates header/footer parts and section properties.
+    internal static partial class WordHeadersAndFooters {
         /// <summary>
         /// Checks for existing header reference. Allow checking if different odd and even pages are set
         /// </summary>
@@ -90,7 +66,7 @@ namespace OfficeIMO.Word {
                 InsertHeaderFooterReference(sectionProperties, headerReference);
             }
 
-            var headers = section.Header ?? throw new InvalidOperationException("Headers collection is missing.");
+            var headers = section.Headers;
             if (headerFooterValue == HeaderFooterValues.Default) {
                 headers.Default = new WordHeader(document, HeaderFooterValues.Default, headerElement, section);
             } else if (headerFooterValue == HeaderFooterValues.First) {
@@ -131,7 +107,7 @@ namespace OfficeIMO.Word {
                 InsertHeaderFooterReference(sectionProperties, footerReference);
             }
 
-            var footers = section.Footer ?? throw new InvalidOperationException("Footers collection is missing.");
+            var footers = section.Footers;
             if (headerFooterValue == HeaderFooterValues.Default) {
                 footers.Default = new WordFooter(document, HeaderFooterValues.Default, footerElement, section);
             } else if (headerFooterValue == HeaderFooterValues.First) {

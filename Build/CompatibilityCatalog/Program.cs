@@ -319,10 +319,10 @@ static PowerPointTextBox AddText(
     bool bold = false,
     string color = "17324D") {
     PowerPointTextBox box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
-    box.FontName = "Carlito";
+    box.FontFamily = "Carlito";
     box.FontSize = global::OfficeIMO.OfficeLength.Points(fontSize);
     box.Bold = bold;
-    box.Color = color;
+    box.Color = OfficeIMO.OfficeColor.Parse(color);
     box.SetTextMargins(global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0));
     box.TextAutoFit = PowerPointTextAutoFit.Normal;
     return box;

@@ -11,7 +11,7 @@ internal static partial class IWorkTableReader {
         int totalFields;
         try {
             declaredRows = IWorkProtobuf.CountFields(tile.Payload, 5,
-                source.Options.MaximumProtobufFieldCount, out totalFields);
+                source.Options.MaxProtobufFieldCount, out totalFields);
         } catch (InvalidDataException exception) when (!IWorkProtobuf.IsLimitException(exception)) {
             references.Declarations.Record(tile, "$", null);
             MarkTileUnsupported(tile, "IWORK_TABLE_TILE_UNSUPPORTED",

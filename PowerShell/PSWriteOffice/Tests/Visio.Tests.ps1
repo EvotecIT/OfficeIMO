@@ -14,7 +14,7 @@ Describe 'Visio cmdlets' {
         $path = Join-Path $TestDrive 'diagram.vsdx'
 
         $document = New-OfficeVisio -Path $path -Title 'Visio smoke' -Author 'PSWriteOffice'
-        $document.Pages[0].AddRectangle(2, 2, 2, 1, 'Visio smoke') | Out-Null
+        Add-OfficeVisioRectangle -Page $document.Pages[0] -X 2in -Y 2in -Width 2in -Height 1in -Text 'Visio smoke' | Out-Null
         $document | Save-OfficeVisio -Path $path | Out-Null
 
         Test-Path $path | Should -BeTrue
@@ -37,7 +37,7 @@ Describe 'Visio cmdlets' {
         $pngPath = Join-Path $TestDrive 'export.png'
 
         $document = New-OfficeVisio -Path $path
-        $document.Pages[0].AddRectangle(2, 2, 2, 1, 'SVG smoke') | Out-Null
+        Add-OfficeVisioRectangle -Page $document.Pages[0] -X 2in -Y 2in -Width 2in -Height 1in -Text 'SVG smoke' | Out-Null
         $document | Save-OfficeVisio -Path $path | Out-Null
 
         Export-OfficeDocumentImage -Path $path -Page 1 -Format Svg -OutputPath $svgPath |
@@ -83,13 +83,13 @@ Describe 'Visio cmdlets' {
     It 'saves to the associated path without closing the Visio document' {
         $path = Join-Path $TestDrive 'associated-save.vsdx'
         $document = New-OfficeVisio -Path $path
-        $document.Pages[0].AddRectangle(2, 2, 2, 1, 'First save') | Out-Null
+        Add-OfficeVisioRectangle -Page $document.Pages[0] -X 2in -Y 2in -Width 2in -Height 1in -Text 'First save' | Out-Null
 
         $savedOutput = @($document | Save-OfficeVisio)
         $savedOutput | Should -HaveCount 0
         Test-Path -LiteralPath $path | Should -BeTrue
 
-        $document.Pages[0].AddRectangle(5, 2, 2, 1, 'Second save') | Out-Null
+        Add-OfficeVisioRectangle -Page $document.Pages[0] -X 5in -Y 2in -Width 2in -Height 1in -Text 'Second save' | Out-Null
         $returned = $document | Save-OfficeVisio -PassThru
         [object]::ReferenceEquals($document, $returned) | Should -BeTrue
         $document.Pages[0].Shapes.Count | Should -Be 2
@@ -317,8 +317,8 @@ Describe 'Visio cmdlets' {
 
         $document = Get-OfficeVisio -Path $path
         $shape = $document.Pages[1].Shapes[0]
-        [Math]::Round($shape.Width, 3) | Should -Be ([Math]::Round(30 / 25.4, 3))
-        [Math]::Round($shape.Height, 3) | Should -Be ([Math]::Round(20 / 25.4, 3))
+        [Math]::Round($shape.Width.ToInches(), 3) | Should -Be ([Math]::Round(30 / 25.4, 3))
+        [Math]::Round($shape.Height.ToInches(), 3) | Should -Be ([Math]::Round(20 / 25.4, 3))
     }
 
     It 'resolves relative PNG font paths from the PowerShell location' {
@@ -359,9 +359,9 @@ Describe 'Visio cmdlets' {
 
         $document = New-OfficeVisio -Path $path
         $page = $document.Pages[0]
-        $shape1 = $page.AddRectangle(1, 4, 1, 0.5, 'One')
-        $shape2 = $page.AddRectangle(3, 3, 1, 0.5, 'Two')
-        $shape3 = $page.AddRectangle(5, 2, 1, 0.5, 'Three')
+        $shape1 = Add-OfficeVisioRectangle -Page $page -X 1in -Y 4in -Width 1in -Height 0.5in -Text 'One' -PassThru
+        $shape2 = Add-OfficeVisioRectangle -Page $page -X 3in -Y 3in -Width 1in -Height 0.5in -Text 'Two' -PassThru
+        $shape3 = Add-OfficeVisioRectangle -Page $page -X 5in -Y 2in -Width 1in -Height 0.5in -Text 'Three' -PassThru
 
         @($shape1, $shape2, $shape3) |
             Set-OfficeVisioShapeLayout -Page $page -AlignVertical Top -Layer 'Milestones' -PassThru |
@@ -373,10 +373,10 @@ Describe 'Visio cmdlets' {
         $shape1.LayerNames | Should -Contain 'Milestones'
 
         Set-OfficeVisioShapeLayout -Page $page -ShapeId $shape1.Id, $shape2.Id, $shape3.Id -Grid -Columns 3 -HorizontalSpacing 0.25 -NoRouteInternalConnectors
-        $ordered = @($page.Shapes | Sort-Object PinX)
+        $ordered = @($page.Shapes | Sort-Object { $_.PinX.ToInches() })
         $ordered[0].Text | Should -Be 'One'
-        $ordered[1].PinX | Should -BeGreaterThan $ordered[0].PinX
-        $ordered[2].PinX | Should -BeGreaterThan $ordered[1].PinX
+        $ordered[1].PinX.ToInches() | Should -BeGreaterThan $ordered[0].PinX.ToInches()
+        $ordered[2].PinX.ToInches() | Should -BeGreaterThan $ordered[1].PinX.ToInches()
 
         $container = Add-OfficeVisioContainer -Page $page -ShapeId $shape1.Id, $shape2.Id, $shape3.Id -Id 'milestone-container' -Text 'Milestones' -Margin 0.2 -HeadingHeight 0.3 -FillColor '#E0F2FE' -LineColor '#0369A1' -PassThru
         $container.IsContainer | Should -BeTrue

@@ -11,12 +11,12 @@ Sets a simple or fully composed running PDF footer.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Set-OfficePdfFooter [[-Text] <string>] [-Compose <scriptblock>] [-Align <PdfAlign>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfFooter [[-Text] <string>] [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Set-OfficePdfFooter [[-Text] <string>] -Document <PdfDocument> [-Compose <scriptblock>] [-Align <PdfAlign>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficePdfFooter [[-Text] <string>] -Document <PdfDocument> [-Compose <scriptblock>] [-Align <OfficeAlignment>] [-FontSize <Double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -60,10 +60,10 @@ Styled page tokens remain live until the document is rendered.
 Footer alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

@@ -18,7 +18,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .Watermark("DRAFT", fontSize: 48, color: global::OfficeIMO.OfficeColor.FromRgb(120, 130, 150), opacity: 0.18, rotationAngle: -45)
             .H1("Watermark proof")
-            .Paragraph(p => p.Text("Body content stays readable above the watermark."))
+            .Paragraph(p => p.AddText("Body content stays readable above the watermark."))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -38,11 +38,11 @@ public partial class PdfDocumentVisualQualityTests {
             .Watermark("GLOBAL", fontSize: 30, opacity: 0.16)
             .Page(page => {
                 page.Watermark("SECTION", fontSize: global::OfficeIMO.OfficeLength.Points(30), opacity: 0.16);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Section page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Section page"))));
             })
             .Page(page => {
                 page.Watermark((PdfTextWatermark?)null);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Clean page"))));
             })
             .ToBytes();
 
@@ -77,7 +77,7 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .ImageWatermark(CreateMinimalRgbPng(), width: 120, height: 60, opacity: 0.2, rotationAngle: 30)
             .H1("Image watermark proof")
-            .Paragraph(p => p.Text("Body content stays readable above the image watermark."))
+            .Paragraph(p => p.AddText("Body content stays readable above the image watermark."))
             .ToBytes();
 
         string raw = PdfTestContentText.ReadDecoded(bytes);
@@ -98,11 +98,11 @@ public partial class PdfDocumentVisualQualityTests {
         byte[] bytes = PdfDocument.Create()
             .ImageWatermark(image, width: 80, height: 80, opacity: 0.18)
             .Page(page => {
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Marked page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Marked page"))));
             })
             .Page(page => {
                 page.ImageWatermark((PdfImageWatermark?)null);
-                page.Content(content => content.Column(column => column.Item().Paragraph(p => p.Text("Clean page"))));
+                page.Content(content => content.Column(column => column.Item().AddParagraph(p => p.AddText("Clean page"))));
             })
             .ToBytes();
 
@@ -117,8 +117,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void ImageWatermark_FirstAndEvenVariantsUseMatchingPageVariant() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfCreateOptions {
-            DifferentFirstPageHeaderFooter = true,
-            DifferentOddAndEvenPagesHeaderFooter = true,
+            PageSetup = { DifferentFirstPage = true, DifferentOddAndEvenPages = true },
             ImageWatermark = new PdfImageWatermark(image, width: global::OfficeIMO.OfficeLength.Points(20), height: global::OfficeIMO.OfficeLength.Points(20)) {
                 Opacity = 0.18
             },
@@ -131,11 +130,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Page one body."))
+            .Paragraph(p => p.AddText("Page one body."))
             .PageBreak()
-            .Paragraph(p => p.Text("Page two body."))
+            .Paragraph(p => p.AddText("Page two body."))
             .PageBreak()
-            .Paragraph(p => p.Text("Page three body."))
+            .Paragraph(p => p.AddText("Page three body."))
             .ToBytes();
 
         string firstPageStream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
@@ -150,20 +149,19 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void WatermarkVariants_DoNotEnableHeaderFooterVariantsByThemselves() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "DEFAULT HEADER",
+            PageSetup = { Header = { Show = true, Format = "DEFAULT HEADER" } },
             FirstPageTextWatermark = new PdfTextWatermark("FIRST") {
                 Opacity = 0.18,
                 FontSize = global::OfficeIMO.OfficeLength.Points(30)
             }
         };
 
-        Assert.False(options.DifferentFirstPageHeaderFooter);
+        Assert.False(options.PageSetup.DifferentFirstPage);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("First page body."))
+            .Paragraph(p => p.AddText("First page body."))
             .PageBreak()
-            .Paragraph(p => p.Text("Second page body."))
+            .Paragraph(p => p.AddText("Second page body."))
             .ToBytes();
 
         string text = PdfReadDocument.Open(bytes).ExtractText();
@@ -176,8 +174,7 @@ public partial class PdfDocumentVisualQualityTests {
     public void WatermarkVariants_FallBackToGlobalWatermarksWhenUnset() {
         byte[] image = CreateMinimalRgbPng();
         var options = new PdfCreateOptions {
-            DifferentFirstPageHeaderFooter = true,
-            DifferentOddAndEvenPagesHeaderFooter = true,
+            PageSetup = { DifferentFirstPage = true, DifferentOddAndEvenPages = true },
             TextWatermark = new PdfTextWatermark("GLOBAL") {
                 Opacity = 0.18,
                 FontSize = global::OfficeIMO.OfficeLength.Points(30)
@@ -188,11 +185,11 @@ public partial class PdfDocumentVisualQualityTests {
         };
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(p => p.Text("Page one body."))
+            .Paragraph(p => p.AddText("Page one body."))
             .PageBreak()
-            .Paragraph(p => p.Text("Page two body."))
+            .Paragraph(p => p.AddText("Page two body."))
             .PageBreak()
-            .Paragraph(p => p.Text("Page three body."))
+            .Paragraph(p => p.AddText("Page three body."))
             .ToBytes();
 
         string text = PdfReadDocument.Open(bytes).ExtractText();
@@ -215,9 +212,9 @@ public partial class PdfDocumentVisualQualityTests {
             .Page(page => {
                 page.SuppressFirstPageWatermark();
                 page.Content(content => content.Column(column => {
-                    column.Item().Paragraph(p => p.Text("First page body."));
+                    column.Item().AddParagraph(p => p.AddText("First page body."));
                     column.Item().PageBreak();
-                    column.Item().Paragraph(p => p.Text("Second page body."));
+                    column.Item().AddParagraph(p => p.AddText("Second page body."));
                 }));
             })
             .ToBytes();
@@ -237,8 +234,7 @@ public partial class PdfDocumentVisualQualityTests {
     [Fact]
     public void WatermarkSuppression_DoesNotEnableHeaderFooterVariantsByItself() {
         var options = new PdfCreateOptions {
-            ShowHeader = true,
-            HeaderFormat = "DEFAULT HEADER",
+            PageSetup = { Header = { Show = true, Format = "DEFAULT HEADER" } },
             TextWatermark = new PdfTextWatermark("GLOBAL") {
                 Opacity = 0.18,
                 FontSize = global::OfficeIMO.OfficeLength.Points(30)
@@ -249,9 +245,9 @@ public partial class PdfDocumentVisualQualityTests {
             .Page(page => {
                 page.SuppressFirstPageWatermark();
                 page.Content(content => content.Column(column => {
-                    column.Item().Paragraph(p => p.Text("First page body."));
+                    column.Item().AddParagraph(p => p.AddText("First page body."));
                     column.Item().PageBreak();
-                    column.Item().Paragraph(p => p.Text("Second page body."));
+                    column.Item().AddParagraph(p => p.AddText("Second page body."));
                 }));
             })
             .ToBytes();
@@ -260,7 +256,7 @@ public partial class PdfDocumentVisualQualityTests {
         string text = readDocument.ExtractText();
         string firstPageText = readDocument.Pages[0].ExtractText();
 
-        Assert.False(options.DifferentFirstPageHeaderFooter);
+        Assert.False(options.PageSetup.DifferentFirstPage);
         Assert.Equal(2, Regex.Matches(text, "DEFAULT HEADER").Count);
         Assert.DoesNotContain("GLOBAL", firstPageText, StringComparison.OrdinalIgnoreCase);
     }

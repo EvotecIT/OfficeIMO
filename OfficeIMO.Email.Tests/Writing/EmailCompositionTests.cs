@@ -39,7 +39,7 @@ public sealed class EmailCompositionTests {
         Assert.Empty(result.Document.Attachments);
         Assert.Null(result.Document.MessageId);
         Assert.Empty(result.Diagnostics);
-        using EmailReadResult reread = new EmailDocumentReader().Read(result.Document.ToBytes());
+        using EmailReadResult reread = new EmailDocumentReader().ReadDocument(result.Document.ToBytes());
         Assert.Equal("<parent@example.test>", reread.Document.MessageMetadata.InReplyToId);
         Assert.DoesNotContain(reread.Document.Recipients, item => item.Kind == EmailRecipientKind.Bcc);
         result.Document.Recipients[0].Address.DisplayName = "Changed";

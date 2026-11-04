@@ -25,12 +25,12 @@ internal static partial class PdfStamper {
         double radians = options.RotationDegrees * Math.PI / 180D;
         double cos = Math.Cos(radians), sin = Math.Sin(radians);
         double x;
-        if (options.Align == PdfAlign.Left) {
+        if (options.Align == OfficeAlignment.Left) {
             x = options.X?.ToPoints() / userUnit ?? (watermarkDefaults ? left + (size.Width - width) / 2D : 36D / userUnit);
         } else {
-            double anchorX = options.X?.ToPoints() / userUnit ?? (options.Align == PdfAlign.Center
+            double anchorX = options.X?.ToPoints() / userUnit ?? (options.Align == OfficeAlignment.Center
                 ? left + size.Width / 2D : left + size.Width - 36D / userUnit);
-            double offset = options.Align == PdfAlign.Center ? width / 2D : width;
+            double offset = options.Align == OfficeAlignment.Center ? width / 2D : width;
             x = anchorX - offset * cos;
             y -= offset * sin;
         }

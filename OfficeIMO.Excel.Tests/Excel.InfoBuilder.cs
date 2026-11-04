@@ -13,20 +13,20 @@ namespace OfficeIMO.Tests
             using (var doc = ExcelDocument.Create(filePath))
             {
                 {
-                    doc.BuiltinDocumentProperties.Title = "Report Title";
-                    doc.BuiltinDocumentProperties.Creator = "Alice";
+                    doc.Properties.Title = "Report Title";
+                    doc.Properties.Creator = "Alice";
                     doc.ApplicationProperties.Company = "Contoso";
                     doc.ApplicationProperties.Manager = "Bob";
-                    doc.BuiltinDocumentProperties.LastModifiedBy = "Alice";
+                    doc.Properties.LastModifiedBy = "Alice";
                     doc.Save();
                 }
             }
 
             using (var doc = ExcelDocument.Load(filePath))
             {
-                Assert.Equal("Report Title", doc.BuiltinDocumentProperties.Title);
-                Assert.Equal("Alice", doc.BuiltinDocumentProperties.Creator);
-                Assert.Equal("Alice", doc.BuiltinDocumentProperties.LastModifiedBy);
+                Assert.Equal("Report Title", doc.Properties.Title);
+                Assert.Equal("Alice", doc.Properties.Creator);
+                Assert.Equal("Alice", doc.Properties.LastModifiedBy);
                 Assert.Equal("Contoso", doc.ApplicationProperties.Company);
                 Assert.Equal("Bob", doc.ApplicationProperties.Manager);
             }

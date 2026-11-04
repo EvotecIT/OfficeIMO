@@ -141,6 +141,7 @@ public sealed class AddOfficeExcelConditionalRuleCommand : PSCmdlet
 
     private void ApplyRule(ExcelSheet sheet, string targetRange)
     {
+        var rules = sheet.Range(targetRange).ConditionalFormat();
         switch (RuleType)
         {
             case OfficeExcelConditionalRuleType.CellIs:
@@ -152,7 +153,7 @@ public sealed class AddOfficeExcelConditionalRuleCommand : PSCmdlet
                 {
                     throw new PSArgumentException("Formula1 is required for CellIs conditional formatting rules.", nameof(Formula1));
                 }
-                sheet.AddConditionalRule(targetRange, Operator.Value, Formula1!, Formula2);
+                rules.CellIs(Operator.Value, Formula1!, Formula2);
                 break;
             case OfficeExcelConditionalRuleType.Expression:
             case OfficeExcelConditionalRuleType.Formula:
@@ -160,58 +161,58 @@ public sealed class AddOfficeExcelConditionalRuleCommand : PSCmdlet
                 {
                     throw new PSArgumentException("Formula1 is required for formula conditional formatting rules.", nameof(Formula1));
                 }
-                sheet.AddConditionalFormulaRule(targetRange, Formula1!, StopIfTrue.IsPresent);
+                rules.Formula(Formula1!, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.DuplicateValues:
-                sheet.AddConditionalDuplicateValuesRule(targetRange);
+                rules.DuplicateValues();
                 break;
             case OfficeExcelConditionalRuleType.UniqueValues:
-                sheet.AddConditionalUniqueValuesRule(targetRange);
+                rules.UniqueValues();
                 break;
             case OfficeExcelConditionalRuleType.Top:
             case OfficeExcelConditionalRuleType.Top10:
-                sheet.AddConditionalTopBottomRule(targetRange, Rank, bottom: false, percent: Percent.IsPresent);
+                rules.TopBottom(Rank, bottom: false, percent: Percent.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.Bottom:
             case OfficeExcelConditionalRuleType.Bottom10:
-                sheet.AddConditionalTopBottomRule(targetRange, Rank, bottom: true, percent: Percent.IsPresent);
+                rules.TopBottom(Rank, bottom: true, percent: Percent.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.AboveAverage:
-                sheet.AddConditionalAboveAverageRule(targetRange, aboveAverage: true, equalAverage: EqualAverage.IsPresent, standardDeviation: StandardDeviation, stopIfTrue: StopIfTrue.IsPresent);
+                rules.AboveAverage(aboveAverage: true, equalAverage: EqualAverage.IsPresent, standardDeviation: StandardDeviation, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.BelowAverage:
-                sheet.AddConditionalAboveAverageRule(targetRange, aboveAverage: false, equalAverage: EqualAverage.IsPresent, standardDeviation: StandardDeviation, stopIfTrue: StopIfTrue.IsPresent);
+                rules.AboveAverage(aboveAverage: false, equalAverage: EqualAverage.IsPresent, standardDeviation: StandardDeviation, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.ContainsText:
-                sheet.AddConditionalTextRule(targetRange, ExcelConditionalFormatType.ContainsText, RequireText());
+                rules.Text(ExcelConditionalFormatType.ContainsText, RequireText());
                 break;
             case OfficeExcelConditionalRuleType.NotContainsText:
-                sheet.AddConditionalTextRule(targetRange, ExcelConditionalFormatType.NotContainsText, RequireText());
+                rules.Text(ExcelConditionalFormatType.NotContainsText, RequireText());
                 break;
             case OfficeExcelConditionalRuleType.BeginsWith:
-                sheet.AddConditionalTextRule(targetRange, ExcelConditionalFormatType.BeginsWith, RequireText());
+                rules.Text(ExcelConditionalFormatType.BeginsWith, RequireText());
                 break;
             case OfficeExcelConditionalRuleType.EndsWith:
-                sheet.AddConditionalTextRule(targetRange, ExcelConditionalFormatType.EndsWith, RequireText());
+                rules.Text(ExcelConditionalFormatType.EndsWith, RequireText());
                 break;
             case OfficeExcelConditionalRuleType.ContainsBlanks:
-                sheet.AddConditionalBlanksRule(targetRange, containsBlanks: true, stopIfTrue: StopIfTrue.IsPresent);
+                rules.Blanks(containsBlanks: true, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.NotContainsBlanks:
-                sheet.AddConditionalBlanksRule(targetRange, containsBlanks: false, stopIfTrue: StopIfTrue.IsPresent);
+                rules.Blanks(containsBlanks: false, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.ContainsErrors:
-                sheet.AddConditionalErrorsRule(targetRange, containsErrors: true, stopIfTrue: StopIfTrue.IsPresent);
+                rules.Errors(containsErrors: true, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.NotContainsErrors:
-                sheet.AddConditionalErrorsRule(targetRange, containsErrors: false, stopIfTrue: StopIfTrue.IsPresent);
+                rules.Errors(containsErrors: false, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             case OfficeExcelConditionalRuleType.TimePeriod:
                 if (!TimePeriod.HasValue)
                 {
                     throw new PSArgumentException("TimePeriod is required for time-period conditional formatting rules.", nameof(TimePeriod));
                 }
-                sheet.AddConditionalTimePeriodRule(targetRange, TimePeriod.Value, StopIfTrue.IsPresent);
+                rules.TimePeriod(TimePeriod.Value, stopIfTrue: StopIfTrue.IsPresent);
                 break;
             default:
                 throw new PSArgumentException($"Unknown conditional formatting rule type '{RuleType}'.", nameof(RuleType));

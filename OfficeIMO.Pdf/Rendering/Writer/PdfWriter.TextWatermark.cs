@@ -98,7 +98,7 @@ internal static partial class PdfWriter {
             italic: watermark.Italic,
             strike: false,
             fontSize: watermark.FontSize,
-            font: baseFont);
+            standardFont: baseFont);
         return NormalizeFallbackRuns(new[] { run }, baseFont, options);
     }
 

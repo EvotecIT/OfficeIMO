@@ -54,7 +54,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal("Status: Ready", paragraphs[0].Text);
         Assert.Equal("Next review", paragraphs[1].Text);
         Assert.True(paragraphs[0].Runs[0].Bold);
-        Assert.Equal("FF8F8F", paragraphs[0].Runs[0].Color);
+        Assert.Equal(OfficeColor.Parse("FF8F8F"), paragraphs[0].Runs[0].Color);
         Assert.True(paragraphs[0].Runs[1].Italic);
         Assert.Equal("https://example.org/status", paragraphs[0].Runs[1].Hyperlink!.AbsoluteUri);
         Assert.Equal(6, paragraphs[1].SpaceAfter!.Value.ToPoints());

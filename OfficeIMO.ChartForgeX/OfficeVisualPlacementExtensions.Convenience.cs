@@ -21,21 +21,21 @@ public static partial class OfficeVisualPlacementExtensions {
 
     /// <summary>Inserts a visual at a slide position expressed in points.</summary>
     /// <remarks>Use a layout box to constrain both dimensions, or the overload with an out result to inspect fidelity.</remarks>
-    public static PowerPointPicture AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
+    public static PowerPointImage AddVisualArtifact(this PowerPointSlide slide, VisualArtifact artifact,
         double leftPoints = 0D, double topPoints = 0D, OfficeVisualConversionOptions? options = null) =>
         slide.AddVisualArtifact(artifact, leftPoints, topPoints, out _, options);
 
     /// <summary>Adds a visual to PDF flow, with proportional width constrained to the actual content frame by default.</summary>
     /// <remarks>Use the overload with an out conversion result to inspect fidelity diagnostics.</remarks>
     public static PdfContentBuilder AddVisualArtifact(this PdfContentBuilder content, VisualArtifact artifact,
-        OfficeVisualConversionOptions? options = null, PdfAlign? align = null, double? spacingBefore = null,
+        OfficeVisualConversionOptions? options = null, OfficeAlignment? align = null, double? spacingBefore = null,
         double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         content.AddVisualArtifact(artifact, out _, options, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
 
     /// <summary>Adds a visual to an existing PDF document's flow.</summary>
     /// <remarks>Use the overload with an out conversion result to inspect fidelity diagnostics.</remarks>
     public static PdfDocument AddVisualArtifact(this PdfDocument document, VisualArtifact artifact,
-        OfficeVisualConversionOptions? options = null, PdfAlign? align = null, double? spacingBefore = null,
+        OfficeVisualConversionOptions? options = null, OfficeAlignment? align = null, double? spacingBefore = null,
         double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) =>
         document.AddVisualArtifact(artifact, out _, options, align, spacingBefore, spacingAfter, style, linkUri, linkContents);
 }

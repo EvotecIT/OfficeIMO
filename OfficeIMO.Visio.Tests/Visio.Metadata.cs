@@ -10,14 +10,14 @@ namespace OfficeIMO.Tests {
         public void TitleAndAuthorRoundTrip() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            document.Title = "My Diagram";
-            document.Author = "John Doe";
+            document.Properties.Title = "My Diagram";
+            document.Properties.Author = "John Doe";
             document.AddPage("Page1");
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal("My Diagram", loaded.Title);
-            Assert.Equal("John Doe", loaded.Author);
+            Assert.Equal("My Diagram", loaded.Properties.Title);
+            Assert.Equal("John Doe", loaded.Properties.Author);
         }
 
         [Fact]
@@ -31,8 +31,8 @@ namespace OfficeIMO.Tests {
             document.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal("Fluent Diagram", loaded.Title);
-            Assert.Equal("Jane Doe", loaded.Author);
+            Assert.Equal("Fluent Diagram", loaded.Properties.Title);
+            Assert.Equal("Jane Doe", loaded.Properties.Author);
         }
     }
 }

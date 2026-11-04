@@ -6,7 +6,7 @@ internal static partial class PdfPageExtractor {
     /// <summary>One validated input and catalog snapshot shared by a compound page extraction.</summary>
     internal sealed class ExtractionSession {
         private readonly PdfReadDocument _document;
-        private PdfMetadata? _metadata;
+        private PdfDocumentProperties? _metadata;
         private readonly CatalogRewriteState _catalog;
         private readonly PdfFileVersion _fileVersion;
         private readonly byte[] _source;

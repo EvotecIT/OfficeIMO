@@ -167,7 +167,7 @@ public class PdfSourceFontEditingTests {
         byte[] font = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Typography", "OfficeIMOBaselineSans-Regular.ttf"));
         var options = new PdfCreateOptions().RegisterFontFamily(PdfStandardFont.Helvetica, new PdfEmbeddedFontFamily("Baseline", font));
         if (encrypted) options.SetEncryption(new PdfStandardEncryptionOptions("open") { OwnerPassword = "owner", Algorithm = PdfStandardEncryptionAlgorithm.Aes256 });
-        byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content.Paragraph(p => p.Text("alpha beta gamma"))), options).ToBytes();
+        byte[] source = PdfDocument.Create(pdf => pdf.Content(content => content.AddParagraph(p => p.AddText("alpha beta gamma"))), options).ToBytes();
         var loadOptions = new PdfLoadOptions { Password = encrypted ? "owner" : null };
         PdfReadDocument read = PdfReadDocument.Open(source, loadOptions);
         // A conventional producer's single Tj run isolates font reuse from positioned-glyph shaping.

@@ -112,7 +112,7 @@ public class PdfPrintProductionReviewClosureTests {
         var options = new PdfCreateOptions()
             .EmbedStandardFont(PdfStandardFont.Helvetica, File.ReadAllBytes(fontPath), "Type0 validation font");
         byte[] pdf = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("Selected Type0 font."))
+            .Paragraph(paragraph => paragraph.AddText("Selected Type0 font."))
             .ToBytes();
         ReplaceAsciiOnce(pdf, "/Type /Font /Subtype /Type0", "/Type /Null /Subtype /Type0");
 

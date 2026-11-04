@@ -12,8 +12,8 @@ internal static partial class PdfTextDiagnostics {
     private const string ControlCharacterEncodingDescription = "PDF text output";
     private const string ControlCharacterRemediation = "Use paragraphs, line breaks, tables, or spacing primitives for layout instead of literal control characters.";
     private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfEmbeddedFontFallbackCandidate, EmbeddedFontFallbackProgramBox> FallbackProgramCache = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfTrueTypeFontProgram, OpenTypeFontInfoBox> TrueTypeLayoutInfoCache = new();
-    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<PdfOpenTypeCffFontProgram, OpenTypeFontInfoBox> CffLayoutInfoCache = new();
+    // Keyed by the program shared across document forks: inspection reads the whole cmap.
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<object, OpenTypeFontInfoBox> LayoutInfoCache = new();
 
     /// <summary>
     /// Removes automatic embedded-font fallback groups when every generated text
@@ -569,18 +569,14 @@ internal static partial class PdfTextDiagnostics {
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfTrueTypeFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        PdfOpenTypeFontInfo? info = TrueTypeLayoutInfoCache.GetValue(
-            font,
-            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        PdfOpenTypeFontInfo? info = GetLayoutInfo(font.SharedIdentity, font.FontDataForInspection, font.FontName);
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
     internal static IReadOnlyList<PdfTextShapingDiagnostic> AnalyzeAdvancedTextLayout(string text, PdfOpenTypeCffFontProgram font, string source = "", int indexOffset = 0, OfficeTextFeatureSettings? featureSettings = null) {
         Guard.NotNull(text, nameof(text));
         Guard.NotNull(font, nameof(font));
-        PdfOpenTypeFontInfo? info = CffLayoutInfoCache.GetValue(
-            font,
-            static value => new OpenTypeFontInfoBox(value.FontDataForInspection, value.FontName)).Info;
+        PdfOpenTypeFontInfo? info = GetLayoutInfo(font.SharedIdentity, font.FontDataForInspection, font.FontName);
         return AnalyzeAdvancedTextLayout(text, info, source, indexOffset, featureSettings);
     }
 
@@ -1097,7 +1093,7 @@ internal static partial class PdfTextDiagnostics {
     }
 
     private static PdfStandardFont ResolveRunFont(PdfStandardFont baseFont, PdfTextRun run) {
-        PdfStandardFont font = run.Font ?? baseFont;
+        PdfStandardFont font = run.StandardFont ?? baseFont;
         if (run.Bold && run.Italic) {
             return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);
         }
@@ -1179,11 +1175,13 @@ internal static partial class PdfTextDiagnostics {
 
     private static void AddFontLayoutDiagnostics(string text, PdfOpenTypeFontInfo info, List<PdfTextShapingDiagnostic> diagnostics, HashSet<string> reportedCodes, string source, int indexOffset, OfficeTextFeatureSettings? featureSettings = null) {
         // Preflight the same selected language-system lookups used by the shared shaper.
-        // A rejected required feature or custom ligature need not contain ff/fi/fl.
+        // A rejected required feature or custom ligature need not contain ff/fi/fl, but it
+        // only simplifies this run when it could start on one of the run's glyphs.
         int latinInputIndex = OfficeOpenTypeSubstitution.FindLatinDefaultInputIndex(text);
+        OfficeTextFeatureSettings effectiveSettings = featureSettings ?? OfficeTextFeatureSettings.Default;
         if (latinInputIndex >= 0 && info.LatinSubstitution != null &&
-            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(),
-                featureSettings ?? OfficeTextFeatureSettings.Default, default)) {
+            !info.LatinSubstitution.ApplyLatinDefaults(new List<OfficeOpenTypeSubstitution.GlyphToken>(), effectiveSettings, default) &&
+            info.LatinSubstitution.DeclinedLatinDefaultLookupMayApply(MapRunGlyphs(text, info), effectiveSettings, default)) {
             AddDiagnostic(diagnostics, reportedCodes, source, indexOffset + latinInputIndex, char.ConvertToUtf32(text, latinInputIndex),
                 "OpenType GSUB", "unsupported-font-ligature-substitution",
                 "Embedded font '" + info.FontName + "' selects an OpenType GSUB feature outside the managed shaping subset. Generated output may be visually simplified.");
@@ -1313,6 +1311,14 @@ internal static partial class PdfTextDiagnostics {
         return false;
     }
 
+    private static HashSet<int> MapRunGlyphs(string text, PdfOpenTypeFontInfo info) {
+        var glyphs = new HashSet<int>();
+        for (int index = 0; index < text.Length;) {
+            if (info.UnicodeCMap.TryGetValue(ReadScalar(text, ref index), out int glyphId) && glyphId > 0) glyphs.Add(glyphId);
+        }
+        return glyphs;
+    }
+
     private static bool IsCombiningMarkOrJoiner(int scalar) =>
         scalar == 0x200C || scalar == 0x200D || OfficeTextElements.IsCombiningMark(scalar);
 
@@ -1378,6 +1384,18 @@ internal static partial class PdfTextDiagnostics {
         fontData[1] == 0x54 &&
         fontData[2] == 0x54 &&
         fontData[3] == 0x4F;
+
+    private static PdfOpenTypeFontInfo? GetLayoutInfo(object identity, byte[] fontData, string fontName) {
+        if (LayoutInfoCache.TryGetValue(identity, out OpenTypeFontInfoBox? cached)) return cached.Info;
+        var created = new OpenTypeFontInfoBox(fontData, fontName);
+        try {
+            LayoutInfoCache.Add(identity, created);
+        } catch (ArgumentException) {
+            // Another thread inspected the same program first.
+            if (LayoutInfoCache.TryGetValue(identity, out cached)) return cached.Info;
+        }
+        return created.Info;
+    }
 
     private sealed class OpenTypeFontInfoBox {
         public OpenTypeFontInfoBox(byte[] fontData, string fontName) {

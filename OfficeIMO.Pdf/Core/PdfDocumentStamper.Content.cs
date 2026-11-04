@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // Existing optional-parameter overload families keep their shape.
 namespace OfficeIMO.Pdf;
 
 public sealed partial class PdfDocumentStamper {
@@ -9,7 +10,8 @@ public sealed partial class PdfDocumentStamper {
     public PdfDocument Content(
         Action<PdfPageCanvas, PdfStampPageContext> build,
         PdfCanvasStampOptions? options = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(build, nameof(build));
         return _document.ApplyMutation(input => PdfStamper.StampCanvas(input, build, options, readOptions ?? _document.ReadOptions), readOptions, cancellationToken: options?.CancellationToken ?? default);
     }
@@ -18,9 +20,10 @@ public sealed partial class PdfDocumentStamper {
     public PdfDocument Content(
         Action<PdfPageCanvas> build,
         PdfCanvasStampOptions? options = null,
-        PdfLoadOptions? readOptions = null) {
+        PdfLoadOptions? readOptions = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(build, nameof(build));
-        return Content((canvas, _) => build(canvas), options, readOptions);
+        return Content((canvas, _) => build(canvas), options, readOptions, cancellationToken: cancellationToken);
     }
 
     /// <summary>Attempts to stamp arbitrary visual canvas content and returns diagnostics when blocked or failed.</summary>

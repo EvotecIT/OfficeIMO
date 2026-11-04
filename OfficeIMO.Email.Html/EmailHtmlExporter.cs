@@ -145,7 +145,7 @@ public static class EmailHtmlExporter {
                 "A resource reference has no saved local resource.", EmailDiagnosticSeverity.Warning, reference));
             return null;
         };
-        var htmlOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        var htmlOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
         htmlOptions.ResourceUrlPolicy = resources;
         HtmlConversionDocument html = HtmlConversionDocument.Parse(projection.Html, htmlOptions, cancellationToken);
         return EmailBodyProjection.CreateSafeEmailHtml(html);
@@ -160,7 +160,7 @@ public static class EmailHtmlExporter {
         AppendHeaderField(header, "To", FormatRecipients(document, EmailRecipientKind.To));
         AppendHeaderField(header, "Cc", FormatRecipients(document, EmailRecipientKind.Cc));
         using var content = new HtmlConversionSourceWriter.BoundedWriter(
-            limits ?? HtmlConversionLimits.CreateTrustedProfile(), cancellationToken);
+            limits ?? new HtmlConversionLimits(), cancellationToken);
         content.Append("<!doctype html><html><head><meta charset=\"utf-8\"><meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'\"><title>")
             .Append(subject).Append("</title></head><body><header><h1>").Append(subject)
             .Append("</h1><p>").Append(header.ToString()).Append("</p></header><hr>").Append(body);

@@ -71,8 +71,8 @@ public class VisioGraphDiagramDensityTests {
         var page = document.Pages[0];
         var body = page.Shapes.Single(shape => shape.Id == "zone");
         var caption = page.Shapes.Single(shape => shape.Text == "Zone caption");
-        Assert.Equal(body.PinX, caption.PinX, 6);
-        Assert.InRange(caption.Width, 0, body.Width);
+        Assert.Equal(body.PinX.ToInches(), caption.PinX.ToInches(), 6);
+        Assert.InRange(caption.Width.ToInches(), 0, body.Width.ToInches());
     }
 
     [Theory]
@@ -88,8 +88,8 @@ public class VisioGraphDiagramDensityTests {
         var page = document.Pages[0];
         var body = page.Shapes.Single(shape => shape.Id == "zone");
         var caption = page.Shapes.Single(shape => shape.Text == "Zone caption");
-        Assert.Equal(body.PinX, caption.PinX, 6);
-        Assert.InRange(caption.Width, 0, body.Width);
+        Assert.Equal(body.PinX.ToInches(), caption.PinX.ToInches(), 6);
+        Assert.InRange(caption.Width.ToInches(), 0, body.Width.ToInches());
     }
 
     [Theory]
@@ -108,15 +108,15 @@ public class VisioGraphDiagramDensityTests {
             } }));
         var page = document.Pages[0];
         var bounds = page.GetContentBounds();
-        Assert.True(bounds.Left >= 0 && bounds.Bottom >= 0);
-        Assert.True(bounds.Right <= page.Width && bounds.Top <= page.Height);
+        Assert.True(bounds.Left.ToInches() >= 0 && bounds.Bottom.ToInches() >= 0);
+        Assert.True(bounds.Right.ToInches() <= page.Width.ToInches() && bounds.Top.ToInches() <= page.Height.ToInches());
         var a = page.Shapes.Single(shape => shape.Id == "a");
         var b = page.Shapes.Single(shape => shape.Id == "b");
         double scale = unit == VisioMeasurementUnit.Inches ? 1 : 1 / 2.54;
-        Assert.Equal(3 * scale, b.PinX - a.PinX, 6);
-        Assert.Equal(scale, b.PinY - a.PinY, 6);
+        Assert.Equal(3 * scale, b.PinX.ToInches() - a.PinX.ToInches(), 6);
+        Assert.Equal(scale, b.PinY.ToInches() - a.PinY.ToInches(), 6);
         Assert.Contains(Assert.Single(page.Connectors).Waypoints, point =>
-            Math.Abs(point.X - (a.PinX - 2 * scale)) < 1e-6 && Math.Abs(point.Y - (a.PinY - 2 * scale)) < 1e-6);
+            Math.Abs(point.X - (a.PinX.ToInches() - 2 * scale)) < 1e-6 && Math.Abs(point.Y - (a.PinY.ToInches() - 2 * scale)) < 1e-6);
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public class VisioGraphDiagramDensityTests {
         var page = document.Pages[0];
         var node = page.Shapes.Single(shape => shape.Id == "a");
         Assert.All(page.Shapes.Where(shape => shape.Id != "a"), shape =>
-            Assert.True(shape.PinY - shape.Height / 2 >= node.PinY + node.Height / 2));
+            Assert.True(shape.PinY.ToInches() - shape.Height.ToInches() / 2 >= node.PinY.ToInches() + node.Height.ToInches() / 2));
     }
 
     [Theory]
@@ -150,9 +150,9 @@ public class VisioGraphDiagramDensityTests {
             graph.PageSize(4, 4, unit).PreserveLayout().Import(nodes, edges));
         var page = document.Pages[0];
         var bounds = Assert.Single(page.Connectors).GetConnectorContentBounds();
-        Assert.True(page.Width >= bounds.Right);
-        Assert.True(page.Height >= bounds.Top);
-        Assert.True(page.Width > (unit == VisioMeasurementUnit.Inches ? 12 : 12 / 2.54));
+        Assert.True(page.Width.ToInches() >= bounds.Right.ToInches());
+        Assert.True(page.Height.ToInches() >= bounds.Top.ToInches());
+        Assert.True(page.Width.ToInches() > (unit == VisioMeasurementUnit.Inches ? 12 : 12 / 2.54));
     }
 
     [Theory]
@@ -169,14 +169,14 @@ public class VisioGraphDiagramDensityTests {
         Assert.Equal(count + 1, nodes.Length);
         for (int i = 0; i < nodes.Length; i++) {
             var a = nodes[i];
-            Assert.InRange(a.PinX - a.Width / 2, 0, page.Width);
-            Assert.InRange(a.PinY - a.Height / 2, 0, page.Height);
-            Assert.InRange(a.PinX + a.Width / 2, 0, page.Width);
-            Assert.InRange(a.PinY + a.Height / 2, 0, page.Height);
+            Assert.InRange(a.PinX.ToInches() - a.Width.ToInches() / 2, 0, page.Width.ToInches());
+            Assert.InRange(a.PinY.ToInches() - a.Height.ToInches() / 2, 0, page.Height.ToInches());
+            Assert.InRange(a.PinX.ToInches() + a.Width.ToInches() / 2, 0, page.Width.ToInches());
+            Assert.InRange(a.PinY.ToInches() + a.Height.ToInches() / 2, 0, page.Height.ToInches());
             for (int j = i + 1; j < nodes.Length; j++) {
                 var b = nodes[j];
-                Assert.True(Math.Abs(a.PinX - b.PinX) >= (a.Width + b.Width) / 2 ||
-                    Math.Abs(a.PinY - b.PinY) >= (a.Height + b.Height) / 2, $"{a.Id} overlaps {b.Id}");
+                Assert.True(Math.Abs(a.PinX.ToInches() - b.PinX.ToInches()) >= (a.Width.ToInches() + b.Width.ToInches()) / 2 ||
+                    Math.Abs(a.PinY.ToInches() - b.PinY.ToInches()) >= (a.Height.ToInches() + b.Height.ToInches()) / 2, $"{a.Id} overlaps {b.Id}");
             }
         }
     }

@@ -130,7 +130,7 @@ public sealed class EmailDocumentWriter {
         }
 
         EmailConversionReport conversion = EmailConversionAnalyzer.Analyze(document, format, _options, _preservesAppleMailMetadata);
-        diagnostics.AddRange(conversion.Diagnostics);
+        diagnostics.AddRange(conversion.NativeDiagnostics);
         if (!conversion.CanWrite) {
             return new WritePreparation(document, format, diagnostics, preservedSource: null,
                 hasPotentialDataLoss: conversion.HasPotentialDataLoss, canWrite: false);

@@ -19,7 +19,7 @@ public sealed class PowerPointThemeFontReferenceTests {
             new OfficeThemeFont("Georgia", new[] { "serif" }),
             new OfficeThemeFont("Courier New", new[] { "monospace" })));
         using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
-        document.AddSlide().AddTextBox("ResolvedFont", OfficeLength.Points(50), OfficeLength.Points(50), OfficeLength.Points(600), OfficeLength.Points(60)).FontName = reference;
+        document.AddSlide().AddTextBox("ResolvedFont", OfficeLength.Points(50), OfficeLength.Points(50), OfficeLength.Points(600), OfficeLength.Points(60)).FontFamily = reference;
         var options = new PowerPointPdfExportOptions { ResourcePolicy = PdfResourcePolicy.CreatePortableDeterministic() };
         using var converted = document.ToPdf(options, out var report);
         Assert.Contains(report.Diagnostics, warning => warning.Code == "font-family-substitution" && warning.Message.IndexOf(family, StringComparison.Ordinal) >= 0);
@@ -35,7 +35,7 @@ public sealed class PowerPointThemeFontReferenceTests {
             new OfficeThemeFont("BodyFixture", new[] { "sans-serif" })));
         using var document = PowerPointDocument.Create(new PowerPointCreateOptions { Theme = theme });
         var box = document.AddSlide().AddTextBox("ResolvedFont", OfficeLength.Points(50), OfficeLength.Points(50), OfficeLength.Points(600), OfficeLength.Points(60));
-        box.FontName = reference;
+        box.FontFamily = reference;
         var options = new PowerPointPdfExportOptions {
             PdfOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily(
                 family, OfficeIMO.TestAssets.PdfTestFontAssets.LoadBundledOpenTypeCffFont()))

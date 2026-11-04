@@ -8,7 +8,7 @@ public sealed partial class PdfProvenanceTests {
     public void ProvenanceExpandedByteLimitControlsTheAggregateParserBudget() {
         const long requested = 768L * 1024L * 1024L;
 
-        PdfReadLimits effective = PdfReadLimits.Default.WithMaximumContainerEntries(100, requested);
+        PdfReadLimits effective = new PdfReadLimits().WithMaximumContainerEntries(100, requested);
 
         Assert.Equal(requested, effective.MaxTotalDecodedStreamBytes);
     }

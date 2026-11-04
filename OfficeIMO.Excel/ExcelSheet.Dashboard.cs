@@ -1,14 +1,9 @@
 using System.Data;
+using OfficeIMO.Excel.Reports;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        /// <summary>
-        /// Builds a dashboard table and optional chart from a data table.
-        /// </summary>
-        /// <param name="data">Tabular data to write.</param>
-        /// <param name="options">Dashboard layout and styling options.</param>
-        /// <returns>Dashboard table range and generated chart metadata.</returns>
-        public ExcelDashboardResult AddDashboard(DataTable data, ExcelDashboardOptions? options = null) {
+        internal ExcelDashboardResult AddDashboardCore(DataTable data, ExcelDashboardOptions? options) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             var opts = options ?? new ExcelDashboardOptions();
             if (data.Columns.Count == 0) throw new ArgumentException("Dashboard data must contain at least one column.", nameof(data));
@@ -39,7 +34,7 @@ namespace OfficeIMO.Excel {
             if (opts.AddChart) {
                 int chartRow = opts.ChartRow ?? opts.TableRow;
                 int chartColumn = opts.ChartColumn ?? opts.TableColumn + data.Columns.Count + 2;
-                chart = AddDashboardChart(new ExcelDashboardChartOptions {
+                chart = this.AddDashboardChart(new ExcelDashboardChartOptions {
                     Preset = opts.ChartPreset,
                     Range = tableRange,
                     Row = chartRow,

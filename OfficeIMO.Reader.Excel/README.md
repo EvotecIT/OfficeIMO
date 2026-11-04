@@ -88,7 +88,7 @@ allocated. Select a smaller `ReaderExcelOptions.A1Range` for a targeted read.
 
 ## Incremental path reads
 
-`reader.EnumerateChunks(path, options)` yields the existing Excel row chunks on demand and releases the
+`reader.Enumerate(path, options)` yields the existing Excel row chunks on demand and releases the
 workbook when the enumerator is disposed. It opens the OfficeIMO.Excel workbook and metadata but avoids
 building the complete Reader rich graph. Use `ReadDocument` for workbook metadata and assets.
 Stream input and document processors retain the materialized contract.

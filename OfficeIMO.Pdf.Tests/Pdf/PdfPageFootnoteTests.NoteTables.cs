@@ -22,16 +22,16 @@ public partial class PdfPageFootnoteTests {
                 new PdfTableCell("Left" + index.ToString("00")), new PdfTableCell("Right" + index.ToString("00"))
             })).ToArray();
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            body.Text("BeforeTable", style: Style());
-            body.Table(rows, style: tableStyle);
-            body.Text("AfterTable", style: Style());
+            body.AddParagraph("BeforeTable", style: Style());
+            body.AddTable(rows, style: tableStyle);
+            body.AddParagraph("AfterTable", style: Style());
         }, new PdfFootnoteOptions {
-            ContinuationNotice = body => body.Text("TableContinues", style: Style())
+            ContinuationNotice = body => body.AddParagraph("TableContinues", style: Style())
         });
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
-        document.Content.Text("FollowingBody", style: Style());
+        document.Content.AddParagraph("FollowingBody", style: Style());
 
         foreach (byte[] bytes in new[] { document.ToBytes(), document.ToBytes() }) {
             using var pdf = PdfPigDocument.Open(bytes);
@@ -78,11 +78,11 @@ public partial class PdfPageFootnoteTests {
             } else runs.Add(PdfTextRun.Normal("CellLine" + line.ToString("00")));
             if (line < 23) runs.Add(PdfTextRun.Normal("\n"));
         }
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(new[] { new[] {
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddTable(new[] { new[] {
             new PdfTableCell(runs, namedDestinationName: "NoteCell"), new PdfTableCell("ShortNeighbor")
         } }, style: NoteGridStyle()));
-        document.Content.Text("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 
@@ -121,10 +121,10 @@ public partial class PdfPageFootnoteTests {
             new[] { PdfTableCell.Span("FinalWide", 3) }
         };
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => {
-            body.Table(rows, style: NoteGridStyle());
-            body.Text("NoteAfterMergedTable", style: Style());
+            body.AddTable(rows, style: NoteGridStyle());
+            body.AddParagraph("NoteAfterMergedTable", style: Style());
         });
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 
@@ -144,18 +144,18 @@ public partial class PdfPageFootnoteTests {
     [Fact]
     public void NoteTableRejectsRecursiveReferencesAndImpossibleUnbreakableFirstRow() {
         var document = PdfDocument.Create(Options());
-        var otherNote = document.Content.DefineFootnote(body => body.Text("OtherNote", style: Style()));
-        Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.Table(new[] { new[] {
+        var otherNote = document.Content.DefineFootnote(body => body.AddParagraph("OtherNote", style: Style()));
+        Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.AddTable(new[] { new[] {
             new PdfTableCell(new[] { PdfTextRun.Normal("Recursive").WithFootnoteReference(otherNote) })
         } }, style: NoteGridStyle())));
 
         PdfTableStyle style = NoteGridStyle();
         style.FixedRowHeights = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(100D) };
         style.RowAllowBreakAcrossPages = new List<bool?> { false };
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(new[] {
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddTable(new[] {
             new[] { "CannotFit" }
         }, style: style));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
         Assert.Throws<ArgumentException>(() => document.ToBytes());
@@ -169,17 +169,17 @@ public partial class PdfPageFootnoteTests {
         var heading = Style();
         heading.KeepWithNext = true;
         PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Panel(panel => {
-            panel.Text("TableHeading", style: heading);
-            panel.Table(new[] { new[] {
+            panel.AddParagraph("TableHeading", style: heading);
+            panel.AddTable(new[] { new[] {
                 new PdfTableCell(string.Join("\n", Enumerable.Range(0, 22).Select(index => "PanelCell" + index.ToString("00"))))
             } }, style: NoteGridStyle());
-            panel.Text("PanelAfterTable", style: Style());
+            panel.AddParagraph("PanelAfterTable", style: Style());
         }, new PdfPanelStyle {
             PaddingX = global::OfficeIMO.OfficeLength.Points(horizontalPadding), PaddingY = global::OfficeIMO.OfficeLength.Points(verticalPadding), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0),
             BorderColor = global::OfficeIMO.OfficeColor.FromNormalizedRgb(.2D, .2D, .2D), BorderWidth = global::OfficeIMO.OfficeLength.Points(.5D)
         }));
-        document.Content.Text("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        document.Content.AddParagraph("PreviousBody", style: Style()).Spacer(global::OfficeIMO.OfficeLength.Points(60));
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 
@@ -190,11 +190,11 @@ public partial class PdfPageFootnoteTests {
         for (int index = 0; index < 22; index++)
             Assert.Single(pdf.GetPages().SelectMany(page => page.GetWords()), word => word.Text == "PanelCell" + index.ToString("00"));
         Assert.Contains("PanelAfterTable", pdf.GetPage(pdf.NumberOfPages).Text, StringComparison.Ordinal);
-        Assert.All(pdf.GetPages().SelectMany(page => page.Letters), letter => Assert.True(letter.StartBaseLine.Y >= options.MarginBottom.ToPoints()));
+        Assert.All(pdf.GetPages().SelectMany(page => page.Letters), letter => Assert.True(letter.StartBaseLine.Y >= options.PageSetup.Margins.Bottom.ToPoints()));
         Assert.All(pdf.GetPages().SelectMany(page => page.GetWords()).Where(word => word.Text.StartsWith("PanelCell", StringComparison.Ordinal)),
             word => {
-                Assert.True(word.BoundingBox.Left >= options.MarginLeft.ToPoints() + horizontalPadding);
-                Assert.True(word.BoundingBox.Bottom >= options.MarginBottom.ToPoints() + verticalPadding - .001D);
+                Assert.True(word.BoundingBox.Left >= options.PageSetup.Margins.Left.ToPoints() + horizontalPadding);
+                Assert.True(word.BoundingBox.Bottom >= options.PageSetup.Margins.Bottom.ToPoints() + verticalPadding - .001D);
             });
     }
 
@@ -208,7 +208,7 @@ public partial class PdfPageFootnoteTests {
         PdfTableCellParagraph[]? paragraphs = inResolvedParagraph ? new[] { new PdfTableCellParagraph(imageRuns) } : null;
         var merged = new PdfTableCell(cellRuns, paragraphs, rowSpan: 2);
 
-        Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.Table(new[] {
+        Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.AddTable(new[] {
             new[] { merged, new PdfTableCell("FirstNeighbor") },
             new[] { new PdfTableCell("SecondNeighbor") }
         }, style: NoteGridStyle())));
@@ -231,11 +231,11 @@ public partial class PdfPageFootnoteTests {
             new[] { new PdfTableCell("SecondNeighbor") }
         };
         if (!supported) {
-            Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.Table(rows, style: style)));
+            Assert.Throws<NotSupportedException>(() => document.Content.DefineFootnote(body => body.AddTable(rows, style: style)));
             return;
         }
-        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.Table(rows, style: style));
-        document.Content.Paragraph(paragraph => paragraph.Runs(new[] {
+        PdfFootnoteDefinition note = document.Content.DefineFootnote(body => body.AddTable(rows, style: style));
+        document.Content.AddParagraph(paragraph => paragraph.AddRuns(new[] {
             PdfTextRun.Normal("Reference").WithFootnoteReference(note)
         }), style: Style());
 

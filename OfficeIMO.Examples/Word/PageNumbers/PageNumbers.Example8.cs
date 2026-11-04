@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 string safeFormat = System.Text.RegularExpressions.Regex.Replace(format, "[^A-Za-z0-9]", "_");
                 string filePath = System.IO.Path.Combine(folderPath, $"Document_PageNumbers_{safeFormat}.docx");
                 using (WordDocument document = WordDocument.Create(filePath)) {
-                    var pageNumber = document.FooterDefaultOrCreate.AddPageNumber(WordPageNumberStyle.PlainNumber);
+                    var pageNumber = document.PageSetup.Footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
                     pageNumber.CustomFormat = format;
                     document.Save();
                     if (openWord) document.OpenInApplication();

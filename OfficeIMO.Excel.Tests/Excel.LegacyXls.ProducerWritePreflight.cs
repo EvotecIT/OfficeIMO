@@ -15,12 +15,12 @@ public sealed class ExcelLegacyVbaProducerPreservationTests {
         Assert.NotEmpty(originalVba);
         using var document = ExcelDocument.LoadLegacyXls(new MemoryStream(source),
             new LegacyXlsImportOptions { PreserveExternalWorkbookLinks = true });
-        document.Sheets[0].CellValue(1, 1, "Cell edit with original VBA retained");
+        document.Sheets[0].Cell(1, 1).SetValue("Cell edit with original VBA retained");
         Assert.NotEmpty(document.LegacyXlsChartSheets);
         using var destination = new MemoryStream();
         document.Save(destination, ExcelFileFormat.Xls);
         using var reloaded = ExcelDocument.Load(new MemoryStream(destination.ToArray()));
-        Assert.Equal("Cell edit with original VBA retained", reloaded.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("Cell edit with original VBA retained", reloaded.Sheets[0].Cell(1, 1).GetValue<string>());
         Assert.Equal(document.LegacyXlsChartSheets.Count, reloaded.LegacyXlsChartSheets.Count);
         Assert.True(OfficeCompoundFileReader.TryRead(destination.ToArray(), out OfficeCompoundFile? saved, out string? error), error);
         foreach (var stream in originalVba) Assert.Equal(stream.Value, saved!.Streams[stream.Key]);

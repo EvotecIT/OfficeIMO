@@ -9,12 +9,12 @@ namespace OfficeIMO.CSV;
 internal sealed class CsvStreamingSource
 {
     private readonly Func<TextReader> _readerFactory;
-    private readonly CsvLoadOptions _options;
+    private readonly CsvParsingSettings _options;
     private readonly int _skipRecordCount;
     private readonly int _headerCount;
     private readonly string? _sourceText;
 
-    public CsvStreamingSource(Func<TextReader> readerFactory, CsvLoadOptions options, int skipRecordCount, int headerCount, string? sourceText = null)
+    public CsvStreamingSource(Func<TextReader> readerFactory, CsvParsingSettings options, int skipRecordCount, int headerCount, string? sourceText = null)
     {
         _readerFactory = readerFactory;
         _options = options.Clone();
@@ -23,7 +23,7 @@ internal sealed class CsvStreamingSource
         _sourceText = sourceText;
     }
 
-    public CsvLoadOptions Options => _options;
+    public CsvParsingSettings Options => _options;
 
     public int SourceColumnCount => _headerCount - (_options.StaticColumns?.Count ?? 0);
 
@@ -74,7 +74,7 @@ internal sealed class CsvStreamingSource
         return ReadReusableRows(_options);
     }
 
-    internal IEnumerable<object?[]> ReadReusableRows(CsvLoadOptions options)
+    internal IEnumerable<object?[]> ReadReusableRows(CsvParsingSettings options)
     {
         using var reader = _readerFactory();
         var skipped = 0;
@@ -97,7 +97,7 @@ internal sealed class CsvStreamingSource
         return ReadReusableStringRows(_options);
     }
 
-    internal IEnumerable<IReadOnlyList<string>> ReadReusableStringRows(CsvLoadOptions options)
+    internal IEnumerable<IReadOnlyList<string>> ReadReusableStringRows(CsvParsingSettings options)
     {
         using var reader = _readerFactory();
         var skipped = 0;

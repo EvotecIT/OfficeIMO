@@ -16,7 +16,7 @@ public sealed class OutlookItemProjectionTests {
         using MemoryStream stream = new MemoryStream();
         contact.Save(stream);
 
-        EmailReadResult result = new EmailDocumentReader().Read(stream.ToArray());
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(stream.ToArray());
 
         Assert.Equal("Ada", result.Document.Contact!.GivenName);
         Assert.Equal("Lovelace, Ada", result.Document.Contact.FileAs);
@@ -299,7 +299,7 @@ public sealed class OutlookItemProjectionTests {
         new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
     private static EmailDocument Read(byte[] bytes) {
-        EmailReadResult result = new EmailDocumentReader().Read(bytes);
+        EmailReadResult result = new EmailDocumentReader().ReadDocument(bytes);
         Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
         return result.Document;
     }

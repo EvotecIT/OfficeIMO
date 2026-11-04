@@ -22,10 +22,10 @@ namespace OfficeIMO.Tests {
             LegacyPptDocument legacy = LegacyPptDocument.Load(bytes);
             Assert.Empty(Assert.Single(legacy.Slides).Comments);
             LegacyPptImportReport report = legacy.CreateImportReport();
-            OfficeConversionFidelityDiagnostic omission = Assert.Single(report.FidelityDiagnostics,
+            OfficeDiagnostic omission = Assert.Single(report.Diagnostics,
                 item => item.Code == code);
             Assert.Equal(OfficeConversionLossKind.Omission, omission.LossKind);
-            Assert.Throws<InvalidDataException>(report.RequireNoLoss);
+            Assert.ThrowsAny<OfficeConversionException>(report.ThrowIfLoss);
         }
 
         [Fact]

@@ -21,7 +21,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
                 document.Save();
             }
 
-            IReadOnlyList<OfficeDocumentAsset> assets = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadAssets(path);
+            IReadOnlyList<OfficeDocumentAsset> assets = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ReadDocument(path).ExtractAssets();
 
             OfficeDocumentAsset asset = Assert.Single(assets);
             Assert.Equal("word-image-0000", asset.Id);
@@ -53,7 +53,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
             Assets = new[] { image, preview }
         };
 
-        IReadOnlyList<OfficeDocumentAsset> assets = OfficeIMO.Reader.Tests.ReaderTestReaders.All.ExtractAssets(result, asset => asset.Kind == "image");
+        IReadOnlyList<OfficeDocumentAsset> assets = result.ExtractAssets(asset => asset.Kind == "image");
 
         OfficeDocumentAsset asset = Assert.Single(assets);
         Assert.Same(image, asset);
@@ -67,7 +67,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Policy").Style = WordParagraphStyles.Heading1;
                 WordImage image = document.AddParagraph("Logo:").AddImage(imagePath);
-                image.Description = "Company logo alt text";
+                image.AltText = "Company logo alt text";
                 image.Title = "Company logo title";
                 document.Save();
             }
@@ -117,7 +117,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         using (PowerPointDocument presentation = PowerPointDocument.Create(stream)) {
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Intro slide");
-            PowerPointPicture picture = slide.AddImage(imagePath);
+            PowerPointImage picture = slide.AddImage(imagePath);
             picture.AltText = "Slide logo alt text";
             presentation.Save();
         }
@@ -233,7 +233,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.Cell(1, 1, "Logo sheet");
+                sheet.Cell(1, 1).SetValue("Logo sheet");
                 sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -242,7 +242,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
                     Description = "Company logo"
                 });
                 ExcelSheet otherSheet = document.AddSheet("Other");
-                otherSheet.Cell(1, 1, "Other sheet");
+                otherSheet.Cell(1, 1).SetValue("Other sheet");
                 otherSheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -301,7 +301,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Images");
-                sheet.Cell(1, 1, "Plain workbook");
+                sheet.Cell(1, 1).SetValue("Plain workbook");
                 sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(12),
@@ -404,8 +404,8 @@ public sealed class ReaderDocumentReadResultAssetTests {
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.Cell(1, 1, "Inside");
-                sheet.Cell(5, 5, "Outside");
+                sheet.Cell(1, 1).SetValue("Inside");
+                sheet.Cell(5, 5).SetValue("Outside");
                 sheet.AddImage(1, 1, png, new OfficeIMO.Excel.ExcelImageOptions {
                     ContentType = "image/png",
                     Width = OfficeIMO.OfficeLength.Pixels(12),

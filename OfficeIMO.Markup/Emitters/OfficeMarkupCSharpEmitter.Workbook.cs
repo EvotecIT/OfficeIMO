@@ -24,7 +24,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                 case OfficeMarkupFormulaBlock formula:
                     var (formulaSheetExpression, formulaCell) = ResolveWorkbookTarget(formula.Sheet, formula.Cell);
                     if (TryParseCellAddress(formulaCell, out var formulaRow, out var formulaColumn)) {
-                        sb.AppendLine($"{formulaSheetExpression}.CellFormula({formulaRow}, {formulaColumn}, {CsString(formula.Expression)});");
+                        sb.AppendLine($"{formulaSheetExpression}.Cell({formulaRow}, {formulaColumn}).SetFormula({CsString(formula.Expression)});");
                     } else {
                         sb.AppendLine($"// Set formula {CsString(formula.Expression)} in cell {CsString(formula.Cell)}.");
                     }
@@ -62,7 +62,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         for (int row = 0; row < range.Values.Count; row++) {
             var values = range.Values[row];
             for (int column = 0; column < values.Count; column++) {
-                sb.AppendLine($"{sheetExpression}.CellValue({startRow + row}, {startColumn + column}, {CsString(values[column])});");
+                sb.AppendLine($"{sheetExpression}.Cell({startRow + row}, {startColumn + column}).SetValue({CsString(values[column])});");
             }
         }
     }
@@ -85,48 +85,49 @@ public sealed partial class OfficeMarkupCSharpEmitter {
         var border = GetAttribute(formatting.Attributes, "border", "border-style", "borderStyle");
         var borderColor = GetAttribute(formatting.Attributes, "border-color", "borderColor", "line-color", "lineColor");
 
-        foreach (var (row, column) in cells) {
+        string subject = FormattingSubject(sheetExpression, cells, CsString);
+        {
             if (!string.IsNullOrWhiteSpace(formatting.NumberFormat)) {
-                sb.AppendLine($"{sheetExpression}.FormatCell({row}, {column}, {CsString(formatting.NumberFormat!)});");
+                sb.AppendLine($"{subject}.SetNumberFormat({CsString(formatting.NumberFormat!)});");
             }
 
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sb.AppendLine($"{sheetExpression}.CellBackground({row}, {column}, {CsString(fill!)});");
+                sb.AppendLine($"{subject}.SetFillColor({CsString(fill!)});");
             }
 
             if (!string.IsNullOrWhiteSpace(fontColor)) {
-                sb.AppendLine($"{sheetExpression}.CellFontColor({row}, {column}, {CsString(fontColor!)});");
+                sb.AppendLine($"{subject}.SetFontColor({CsString(fontColor!)});");
             }
 
             if (!string.IsNullOrWhiteSpace(bold) && IsTruthy(bold!)) {
-                sb.AppendLine($"{sheetExpression}.CellBold({row}, {column}, true);");
+                sb.AppendLine($"{subject}.SetBold();");
             }
 
             if (!string.IsNullOrWhiteSpace(italic) && IsTruthy(italic!)) {
-                sb.AppendLine($"{sheetExpression}.CellItalic({row}, {column}, true);");
+                sb.AppendLine($"{subject}.SetItalic();");
             }
 
             if (!string.IsNullOrWhiteSpace(underline) && IsTruthy(underline!)) {
-                sb.AppendLine($"{sheetExpression}.CellUnderline({row}, {column}, true);");
+                sb.AppendLine($"{subject}.SetUnderline();");
             }
 
             if (TryGetHorizontalAlignmentIdentifier(alignment, out var alignmentIdentifier)) {
-                sb.AppendLine($"{sheetExpression}.CellAlign({row}, {column}, ExcelHorizontalAlignment.{alignmentIdentifier});");
+                sb.AppendLine($"{subject}.SetHorizontalAlignment(ExcelHorizontalAlignment.{alignmentIdentifier});");
             }
 
             if (TryGetVerticalAlignmentIdentifier(verticalAlignment, out var verticalAlignmentIdentifier)) {
-                sb.AppendLine($"{sheetExpression}.CellVerticalAlign({row}, {column}, ExcelVerticalAlignment.{verticalAlignmentIdentifier});");
+                sb.AppendLine($"{subject}.SetVerticalAlignment(ExcelVerticalAlignment.{verticalAlignmentIdentifier});");
             }
 
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap!)) {
-                sb.AppendLine($"{sheetExpression}.WrapCells({row}, {row}, {column});");
+                sb.AppendLine($"{subject}.SetWrapText();");
             }
 
             if (TryGetBorderStyleIdentifier(border, out var borderStyleIdentifier)) {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
                     ? $", {CsString(borderColor!)}"
                     : string.Empty;
-                sb.AppendLine($"{sheetExpression}.CellBorder({row}, {column}, ExcelBorderStyle.{borderStyleIdentifier}{borderColorArgument});");
+                sb.AppendLine($"{subject}.SetBorder(ExcelBorderStyle.{borderStyleIdentifier}{borderColorArgument});");
             }
         }
     }

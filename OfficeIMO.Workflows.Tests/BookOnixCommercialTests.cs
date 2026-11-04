@@ -16,7 +16,7 @@ public sealed class BookOnixCommercialTests {
         PublishingStatus = BookOnixPublishingStatus.Active,
         SalesRights = [new(BookOnixSalesRightsKind.Exclusive, Countries("PL", "GB"))], Supplies = [Supply()]
     };
-    private static XDocument Export(BookOnixCommercialMetadata commercial, DateOnly? publicationDate = null) => XDocument.Load(new MemoryStream(
+    private static XDocument Export(BookOnixCommercialMetadata commercial, DateTime? publicationDate = null) => XDocument.Load(new MemoryStream(
         BookOnixTests.Project().ExportOnix(BookOnixTests.Options() with { Commercial = commercial, PublicationDate = publicationDate }, BookOnixTests.TestSchema()).Bytes));
 
     [Fact]
@@ -25,8 +25,8 @@ public sealed class BookOnixCommercialTests {
         try {
             CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pl-PL");
             var xml = Export(Commercial() with { Supplies = [Supply() with { Prices = [Price() with {
-                ValidFrom = new DateOnly(2026, 10, 1), ValidUntil = new DateOnly(2026, 11, 1)
-            }] }] }, new DateOnly(2026, 10, 1));
+                ValidFrom = new DateTime(2026, 10, 1), ValidUntil = new DateTime(2026, 11, 1)
+            }] }] }, new DateTime(2026, 10, 1));
             var price = xml.Descendants(Ns + "Price").Single();
             Assert.Equal("02", price.Element(Ns + "PriceType")!.Value);
             Assert.Equal("12.3400", price.Element(Ns + "PriceAmount")!.Value);
@@ -97,7 +97,7 @@ public sealed class BookOnixCommercialTests {
             "zero" => Supply() with { Prices = [Price() with { Amount = 0 }] },
             "negative" => Supply() with { Prices = [Price() with { Amount = -1 }] },
             "currency" => Supply() with { Prices = [Price() with { CurrencyCode = "pln" }] },
-            _ => Supply() with { Prices = [Price() with { ValidFrom = new DateOnly(2026, 11, 1), ValidUntil = new DateOnly(2026, 10, 1) }] }
+            _ => Supply() with { Prices = [Price() with { ValidFrom = new DateTime(2026, 11, 1), ValidUntil = new DateTime(2026, 10, 1) }] }
         };
         Assert.ThrowsAny<ArgumentException>(() => Export(Commercial() with { Supplies = [supply] }));
     }
@@ -105,11 +105,11 @@ public sealed class BookOnixCommercialTests {
     [Fact]
     public void AvailabilityDatesAndPublicationDatesHaveSeparateContracts() {
         var forthcoming = Commercial() with { PublishingStatus = BookOnixPublishingStatus.Forthcoming,
-            Supplies = [Supply() with { Availability = BookOnixAvailability.NotYetAvailable, ExpectedSupplyDate = new DateOnly(2026, 11, 3) }] };
+            Supplies = [Supply() with { Availability = BookOnixAvailability.NotYetAvailable, ExpectedSupplyDate = new DateTime(2026, 11, 3) }] };
         Assert.Throws<ArgumentException>(() => Export(forthcoming));
-        var xml = Export(forthcoming, new DateOnly(2026, 11, 1));
+        var xml = Export(forthcoming, new DateTime(2026, 11, 1));
         Assert.Equal("20261103", xml.Descendants(Ns + "SupplyDate").Single().Element(Ns + "Date")!.Value);
-        Assert.Throws<ArgumentException>(() => Export(Commercial() with { PublishingStatus = BookOnixPublishingStatus.Cancelled }, new DateOnly(2026, 11, 1)));
+        Assert.Throws<ArgumentException>(() => Export(Commercial() with { PublishingStatus = BookOnixPublishingStatus.Cancelled }, new DateTime(2026, 11, 1)));
         Assert.Throws<ArgumentException>(() => Export(Commercial() with { Supplies = [Supply() with { Availability = BookOnixAvailability.TemporarilyUnavailable }] }));
         xml = Export(Commercial() with { Supplies = [Supply() with { Availability = BookOnixAvailability.TemporarilyUnavailable, ExpectedSupplyDateUnknown = true }] });
         Assert.Empty(xml.Descendants(Ns + "SupplyDate"));

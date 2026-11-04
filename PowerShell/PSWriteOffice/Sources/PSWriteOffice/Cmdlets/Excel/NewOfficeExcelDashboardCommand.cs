@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.Reports;
 using PSWriteOffice.Services.Excel;
 using PSWriteOffice.Services.Table;
 

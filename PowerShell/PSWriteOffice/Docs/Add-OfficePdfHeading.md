@@ -11,12 +11,12 @@ Adds a heading to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfHeading [-Text] <string> [-Level <int>] [-Align <PdfAlign>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfHeading [-Text] <string> [-Level <int>] [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfHeading [-Text] <string> -Document <PdfDocument> [-Level <int>] [-Align <PdfAlign>] [-Color <string>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfHeading [-Text] <string> -Document <PdfDocument> [-Level <int>] [-Align <OfficeAlignment>] [-Color <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,10 +41,10 @@ Adds report headings before body content.
 Heading alignment.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

@@ -11,6 +11,15 @@ public partial class Excel {
     [InlineData("0")]
     [InlineData("-0")]
     [InlineData("+0")]
+    [InlineData("-0.0")]
+    [InlineData("-0.00")]
+    [InlineData("+0.00")]
+    [InlineData("-.25")]
+    [InlineData("+.25")]
+    [InlineData("99999999999999.9")]
+    [InlineData("9999999999999.99")]
+    [InlineData("100000000000000.0")]
+    [InlineData("10000000000000.00")]
     [InlineData("42")]
     [InlineData("-42")]
     [InlineData(".5")]
@@ -29,7 +38,7 @@ public partial class Excel {
         Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
         Assert.Equal(utf8.Length, consumed);
 
-        Assert.True(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out double actual));
+        Assert.True(ExcelUtf8NumberParser.TryParseDouble(utf8, out double actual));
         Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
     }
 
@@ -51,7 +60,7 @@ public partial class Excel {
                     ? digits.Insert(digits.Length - scale, ".")
                     : "0." + new string('0', scale - digits.Length) + digits;
                 string text = (sample & 1) == 0 ? unsigned : "-" + unsigned;
-                AssertCommonParserMatchesGeneralParser(text);
+                AssertParserMatchesGeneralParser(text);
             }
         }
     }
@@ -60,20 +69,19 @@ public partial class Excel {
     [InlineData("1234567890123456")]
     [InlineData("0.00000000000000000000001")]
     [InlineData("1.000000000000000")]
-    public void Utf8NumberParser_AdjacentPrecisionBoundariesUseGeneralFallback(string text) {
+    public void Utf8NumberParser_AdjacentPrecisionBoundariesMatchGeneralParser(string text) {
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
-        Assert.False(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out _));
         Assert.True(ExcelUtf8NumberParser.TryParseDouble(utf8, out double actual));
         Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
         Assert.Equal(utf8.Length, consumed);
         Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
     }
 
-    private static void AssertCommonParserMatchesGeneralParser(string text) {
+    private static void AssertParserMatchesGeneralParser(string text) {
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
         Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
         Assert.Equal(utf8.Length, consumed);
-        Assert.True(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out double actual));
+        Assert.True(ExcelUtf8NumberParser.TryParseDouble(utf8, out double actual));
         Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
     }
 #endif
@@ -83,11 +91,8 @@ public partial class Excel {
     [InlineData("1.234567890123456")]
     [InlineData("1E+100")]
     [InlineData("5e-324")]
-    public void Utf8NumberParser_UncommonFormsRetainGeneralParserFallback(string text) {
+    public void Utf8NumberParser_UncommonFormsMatchGeneralParser(string text) {
         byte[] utf8 = Encoding.UTF8.GetBytes(text);
-#if NET8_0_OR_GREATER
-        Assert.False(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out _));
-#endif
         Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
         Assert.Equal(utf8.Length, consumed);
 
@@ -124,11 +129,7 @@ public partial class Excel {
 
             Assert.True(Utf8Parser.TryParse(utf8, out double expected, out int consumed));
             Assert.Equal(utf8.Length, consumed);
-#if NET8_0_OR_GREATER
-            Assert.True(ExcelUtf8NumberParser.TryParseCommonFixedPoint(utf8, out double actual));
-#else
             Assert.True(ExcelUtf8NumberParser.TryParseDouble(utf8, out double actual));
-#endif
             Assert.Equal(BitConverter.DoubleToInt64Bits(expected), BitConverter.DoubleToInt64Bits(actual));
         }
     }

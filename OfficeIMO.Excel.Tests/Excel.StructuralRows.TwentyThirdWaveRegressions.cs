@@ -45,18 +45,18 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_InvalidatesEveryWrapperForEditedWorksheet() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet retained = document.AddSheet("Data");
-            retained.CellAt(5, 1).SetValue("Five");
-            retained.CellAt(6, 1).SetValue("Six");
-            Assert.Equal("Five", retained.CellAt(5, 1).GetValue<string>());
+            retained.Cell(5, 1).SetValue("Five");
+            retained.Cell(6, 1).SetValue("Six");
+            Assert.Equal("Five", retained.Cell(5, 1).GetValue<string>());
             ExcelSheet editor = document["Data"];
             Assert.NotSame(retained, editor);
 
             editor.InsertRows(5);
 
-            retained.CellAt(5, 1).SetValue("New");
-            Assert.Equal("New", editor.CellAt(5, 1).GetValue<string>());
-            Assert.Equal("Five", retained.CellAt(6, 1).GetValue<string>());
-            Assert.Equal("Six", retained.CellAt(7, 1).GetValue<string>());
+            retained.Cell(5, 1).SetValue("New");
+            Assert.Equal("New", editor.Cell(5, 1).GetValue<string>());
+            Assert.Equal("Five", retained.Cell(6, 1).GetValue<string>());
+            Assert.Equal("Six", retained.Cell(7, 1).GetValue<string>());
         }
 
         [Fact]
@@ -86,12 +86,12 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_InvalidatesInvariantDynamicNameChartCaches() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Category");
-            sheet.CellAt(1, 2).SetValue("Value");
-            sheet.CellAt(2, 1).SetValue("One");
-            sheet.CellAt(2, 2).SetValue(1);
-            sheet.CellAt(3, 1).SetValue("Two");
-            sheet.CellAt(3, 2).SetValue(2);
+            sheet.Cell(1, 1).SetValue("Category");
+            sheet.Cell(1, 2).SetValue("Value");
+            sheet.Cell(2, 1).SetValue("One");
+            sheet.Cell(2, 2).SetValue(1);
+            sheet.Cell(3, 1).SetValue("Two");
+            sheet.Cell(3, 2).SetValue(2);
             document.WorkbookRoot.DefinedNames = new DefinedNames(
                 new DefinedName("OFFSET(Data!$A$1,0,0,COUNTA(Data!$A:$A),1)") {
                     Name = "SeriesData"

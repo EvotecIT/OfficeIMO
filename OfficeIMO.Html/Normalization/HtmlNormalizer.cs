@@ -277,7 +277,7 @@ public static partial class HtmlNormalizer {
     }
 
     private static HtmlNormalizationOptions CopyOptions(HtmlNormalizationOptions options) {
-        HtmlConversionLimits limits = (options.Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone();
+        HtmlConversionLimits limits = (options.Limits ?? HtmlConversionLimits.UntrustedDefaults).Clone();
         return new HtmlNormalizationOptions {
             BaseUri = options.BaseUri,
             BaseElementBaseUri = options.BaseElementBaseUri,

@@ -12,8 +12,8 @@ public sealed class PdfPageImportByteInputLimitsTests {
     [InlineData("prepend", true)]
     [InlineData("insert", true)]
     public void AllPagesByteImportsEnforceTheOriginalInputLimit(string placement, bool flatten) {
-        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Incoming")).ToBytes();
-        byte[] targetBytes = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Original")).ToBytes();
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Incoming")).ToBytes();
+        byte[] targetBytes = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Original")).ToBytes();
         var target = PdfDocument.Load(targetBytes);
         var options = new PdfPageImportOptions {
             FlattenVisualAnnotations = flatten,

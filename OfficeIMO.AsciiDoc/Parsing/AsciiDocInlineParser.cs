@@ -18,7 +18,7 @@ internal sealed class AsciiDocInlineParser {
     internal AsciiDocInlineSequence Parse(int start, int end) => ParseRange(start, end, 0);
 
     private AsciiDocInlineSequence ParseRange(int start, int end, int depth) {
-        if (depth > _options.MaximumInlineNestingDepth) throw new InvalidDataException("AsciiDoc source exceeds MaximumInlineNestingDepth.");
+        if (depth > _options.MaxInlineNestingDepth) throw new InvalidDataException("AsciiDoc source exceeds MaxInlineNestingDepth.");
         var items = new List<AsciiDocInline>();
         var syntax = new List<AsciiDocSyntaxNode>();
         int textStart = start;
@@ -173,7 +173,7 @@ internal sealed class AsciiDocInlineParser {
 
     private void Add(AsciiDocInline item, List<AsciiDocInline> items, List<AsciiDocSyntaxNode> syntaxNodes) {
         _nodeCount++;
-        if (_nodeCount > _options.MaximumInlineNodeCount) throw new InvalidDataException("AsciiDoc source exceeds MaximumInlineNodeCount.");
+        if (_nodeCount > _options.MaxInlineNodeCount) throw new InvalidDataException("AsciiDoc source exceeds MaxInlineNodeCount.");
         items.Add(item);
         syntaxNodes.Add(item.Syntax);
     }

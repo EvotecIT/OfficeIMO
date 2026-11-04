@@ -33,9 +33,9 @@ internal abstract class RtfMarkdownConversionContext {
 }
 
 internal sealed class RtfToMarkdownConversionContext : RtfMarkdownConversionContext {
-    private readonly RtfToMarkdownOptions _options;
+    private readonly RtfMarkdownExportOptions _options;
 
-    internal RtfToMarkdownConversionContext(RtfToMarkdownOptions options) {
+    internal RtfToMarkdownConversionContext(RtfMarkdownExportOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
@@ -57,9 +57,9 @@ internal sealed class RtfToMarkdownConversionContext : RtfMarkdownConversionCont
 }
 
 internal sealed class MarkdownToRtfConversionContext : RtfMarkdownConversionContext {
-    private readonly MarkdownToRtfOptions _options;
+    private readonly MarkdownRtfExportOptions _options;
 
-    internal MarkdownToRtfConversionContext(MarkdownToRtfOptions options) {
+    internal MarkdownToRtfConversionContext(MarkdownRtfExportOptions options) {
         _options = options ?? throw new ArgumentNullException(nameof(options));
         if (_options.MaxListNestingDepth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(options.MaxListNestingDepth), _options.MaxListNestingDepth, "Maximum list nesting depth must be positive.");

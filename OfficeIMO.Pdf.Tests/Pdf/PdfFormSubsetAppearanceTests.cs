@@ -16,7 +16,7 @@ public sealed class PdfFormSubsetAppearanceTests {
         Assert.True(File.Exists(fontPath), "The bundled form font fixture must be available.");
         using PdfDocument source = PdfDocument.Create(new PdfCreateOptions { CompressContentStreams = false })
             .UseFontFamily("Form body", fontPath)
-            .Paragraph(p => p.Text("ABC abc"))
+            .Paragraph(p => p.AddText("ABC abc"))
             .TextField("inspector", width: OfficeLength.Points(280))
             .TextField("date", width: OfficeLength.Points(180))
             .TextField("notes", width: OfficeLength.Points(450), height: OfficeLength.Points(48), style: new PdfFormFieldStyle { IsMultiline = true })

@@ -153,10 +153,10 @@ public partial class Excel {
         try {
             using (ExcelDocument document = ExcelDocument.Create()) {
                 ExcelSheet sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, "Name");
-                sheet.CellValue(1, 2, "Amount");
-                sheet.CellValue(2, 1, "Alpha");
-                sheet.CellValue(2, 2, 42);
+                sheet.Cell(1, 1).SetValue("Name");
+                sheet.Cell(1, 2).SetValue("Amount");
+                sheet.Cell(2, 1).SetValue("Alpha");
+                sheet.Cell(2, 2).SetValue(42);
                 File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
             }
             ReplaceXlsbWorksheetLastColumn(path, 16_383);
@@ -190,11 +190,11 @@ public partial class Excel {
             $"OfficeIMO.Excel.SheetRelationships.{Guid.NewGuid():N}.xlsb");
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet first = document.AddSheet("First");
-        first.CellValue(1, 1, "Value");
-        first.CellValue(2, 1, "Ready");
+        first.Cell(1, 1).SetValue("Value");
+        first.Cell(2, 1).SetValue("Ready");
         ExcelSheet second = document.AddSheet("Second");
-        second.CellValue(1, 1, "Value");
-        second.CellValue(2, 1, "Ignored");
+        second.Cell(1, 1).SetValue("Value");
+        second.Cell(2, 1).SetValue("Ignored");
         File.WriteAllBytes(path, document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb }));
         return path;
     }

@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 tableList.AddItem("Table1");
                 tableList.AddItem("Table2");
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var headerList = header.AddList(WordListStyle.Bulleted);
                 headerList.AddItem("Header1");

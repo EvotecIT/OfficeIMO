@@ -20,7 +20,7 @@ public sealed class PdfModernTableReadbackTests {
             new[] { "West", "1430", "True" }
         };
         using var document = PdfDocument.Create();
-        document.Content.H1("Quarterly results").Text("Revenue improved in the current quarter.").Table(rows);
+        document.Content.H1("Quarterly results").AddParagraph("Revenue improved in the current quarter.").AddTable(rows);
         using var stream = new MemoryStream(document.ToBytes());
         using var loaded = PdfDocument.Load(stream);
         PdfLogicalTable table = Assert.Single(Assert.Single(loaded.Read().Pages).Tables);
@@ -37,7 +37,7 @@ public sealed class PdfModernTableReadbackTests {
             new[] { "West", "1430", "False pending approval" }
         };
         using var document = PdfDocument.Create();
-        document.Content.H1("Quarterly results").Text("Revenue improved in the current quarter.").Table(rows);
+        document.Content.H1("Quarterly results").AddParagraph("Revenue improved in the current quarter.").AddTable(rows);
         using var stream = new MemoryStream(document.ToBytes());
         using var loaded = PdfDocument.Load(stream);
         PdfLogicalTable table = Assert.Single(Assert.Single(loaded.Read().Pages).Tables);
@@ -56,7 +56,7 @@ public sealed class PdfModernTableReadbackTests {
             new[] { "South", "980", "False" }
         };
         using var document = PdfDocument.Create();
-        document.Content.Table(compactFirst ? compact : regular).Spacer(global::OfficeIMO.OfficeLength.Points(24)).Table(compactFirst ? regular : compact);
+        document.Content.AddTable(compactFirst ? compact : regular).Spacer(global::OfficeIMO.OfficeLength.Points(24)).AddTable(compactFirst ? regular : compact);
         using var stream = new MemoryStream(document.ToBytes());
         using var loaded = PdfDocument.Load(stream);
         var tables = Assert.Single(loaded.Read().Pages).Tables;

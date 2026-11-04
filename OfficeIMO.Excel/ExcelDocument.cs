@@ -20,6 +20,11 @@ namespace OfficeIMO.Excel {
     /// </summary>
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
         private const int StreamBufferSize = 4096;
+        private ExcelCopyOnWriteStream? _packageCopyOnWriteStream;
+        private SpreadsheetDocument? _packageOnCopyOnWriteStream;
+
+        /// <summary>The grid loader applies neither a part size limit nor markup-compatibility processing, as the streaming readers do not.</summary>
+        internal bool AllowsWorksheetGridLoader => _readSnapshotAllowed && FileOpenAccess != FileAccess.Read;
         private static readonly System.Text.RegularExpressions.Regex _multipleUnderscoresRegex =
             new System.Text.RegularExpressions.Regex("_+", System.Text.RegularExpressions.RegexOptions.Compiled);
 
@@ -359,7 +364,15 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Underlying Open XML spreadsheet document instance.
         /// </summary>
-        internal SpreadsheetDocument _spreadSheetDocument = null!;
+        internal SpreadsheetDocument _spreadSheetDocument {
+            get {
+                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                return _spreadSheetDocumentValue;
+            }
+            set => _spreadSheetDocumentValue = value;
+        }
+
+        private SpreadsheetDocument _spreadSheetDocumentValue = null!;
 
         /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
         public SpreadsheetDocument OpenXmlDocument {
@@ -370,7 +383,15 @@ namespace OfficeIMO.Excel {
         }
         private bool _openXmlDocumentExposed;
         internal bool IsOpenXmlDocumentExposed => _openXmlDocumentExposed;
-        private WorkbookPart _workBookPart = null!;
+        private WorkbookPart _workBookPart {
+            get {
+                if (_pendingRowDeletes != null) FlushPendingRowDeletes();
+                return _workBookPartValue;
+            }
+            set => _workBookPartValue = value;
+        }
+
+        private WorkbookPart _workBookPartValue = null!;
         private SharedStringTablePart? _sharedStringTablePart;
         private bool _sharedStringTableDirty;
         private Stream? _packageStream;
@@ -386,13 +407,25 @@ namespace OfficeIMO.Excel {
         private bool _preserveDirectDataSetSaveCandidateForNextDirtyMark;
         private int _directDataSetSaveCandidatePreservationDepth;
         private int _materializedDirectDataSetFastSaveModelPreservationDepth;
-        private byte[]? _unchangedPackageBytes;
+        private byte[]? _unchangedPackageBytesValue;
+        private byte[]? _propertiesOnlySourceBytes;
+        private byte[]? _packageBaselineBytes;
+
+        /// <summary>The package as last loaded or saved, while nothing has changed since.</summary>
+        private byte[]? _unchangedPackageBytes {
+            get => _unchangedPackageBytesValue;
+            set {
+                _unchangedPackageBytesValue = value;
+                _propertiesOnlySourceBytes = null;
+                if (value != null) _packageBaselineBytes = value;
+            }
+        }
         private bool _simplePackageContentKnown;
         private DirectDataSetSaveCandidate? _directDataSetSaveCandidate;
         private DirectDataSetWorkbookModel? _materializedDirectDataSetFastSaveModel;
         private bool _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet;
         private ExcelSheet? _directDataSetMetadataSourceSheet;
-        private ExcelSheet? _pendingDirectCellValueSheet;
+        private readonly List<ExcelSheet> _pendingDirectCellValueSheets = new List<ExcelSheet>();
         private bool _pendingDirectCellValueRequiresSavePreflight;
         private bool _materializingDeferredDataSetImport;
         private bool _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark;
@@ -407,13 +440,14 @@ namespace OfficeIMO.Excel {
 
         internal void MarkRequiresSavePreflight() {
             _requiresSavePreflight = true;
-            if (_pendingDirectCellValueSheet != null) {
+            if (_pendingDirectCellValueSheets.Count > 0) {
                 _pendingDirectCellValueRequiresSavePreflight = true;
             }
             MarkPackageDirty();
         }
 
         internal void MarkPackageDirty() {
+            _propertiesOnlySourceBytes = null;
             bool preserveMaterializedDirectModel = _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark
                 || _materializedDirectDataSetFastSaveModelPreservationDepth > 0;
             if (!preserveMaterializedDirectModel && !_materializingDeferredDataSetImport) {
@@ -431,6 +465,7 @@ namespace OfficeIMO.Excel {
 
             _packageDirty = true;
             _unchangedPackageBytes = null;
+            ReleaseReadSnapshotOnEdit();
             bool preserveDirectCandidate = _preserveDirectDataSetSaveCandidateForNextDirtyMark
                 || _directDataSetSaveCandidatePreservationDepth > 0;
             try {
@@ -447,9 +482,17 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        internal void MarkPackagePropertiesDirty() {
+        /// <summary>Application properties live in their own part, so they rule out replacing the core properties alone.</summary>
+        internal void MarkApplicationPropertiesDirty() {
             _packagePropertiesDirty = true;
             MarkPackageDirty();
+        }
+
+        internal void MarkPackagePropertiesDirty() {
+            byte[]? source = _unchangedPackageBytes ?? _propertiesOnlySourceBytes;
+            _packagePropertiesDirty = true;
+            MarkPackageDirty();
+            _propertiesOnlySourceBytes = source;
         }
 
         internal bool IsPackageDirty => _packageDirty;

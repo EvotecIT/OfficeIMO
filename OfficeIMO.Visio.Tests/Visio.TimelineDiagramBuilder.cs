@@ -69,8 +69,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(profile.Usages, usage => usage.StencilId == "time.decision" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "time.risk" && usage.Count == 1);
             Assert.Contains(profile.Usages, usage => usage.StencilId == "time.release" && usage.Count == 1);
-            Assert.True(page.FindShapeById("kickoff")!.PinX < page.FindShapeById("ga")!.PinX);
-            Assert.True(page.FindShapeById("discovery")!.Width < page.FindShapeById("build")!.Width);
+            Assert.True(page.FindShapeById("kickoff")!.PinX.ToInches() < page.FindShapeById("ga")!.PinX.ToInches());
+            Assert.True(page.FindShapeById("discovery")!.Width.ToInches() < page.FindShapeById("build")!.Width.ToInches());
             string[] qualityIssues = page.AnalyzeVisualQuality().Select(issue => issue.ToString()).ToArray();
             Assert.True(qualityIssues.Length == 0, string.Join(Environment.NewLine, qualityIssues));
 
@@ -107,10 +107,10 @@ namespace OfficeIMO.Tests {
             VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
             double highestRoadmapTop = page.Shapes
                 .Where(shape => shape.Id != "title")
-                .Max(shape => shape.PinY + shape.Height / 2D);
+                .Max(shape => shape.PinY.ToInches() + shape.Height.ToInches() / 2D);
             Assert.Equal("Text Box", title.NameU);
             Assert.Equal("Product Roadmap", title.Text);
-            Assert.True(title.PinY - title.Height / 2D > highestRoadmapTop);
+            Assert.True(title.PinY.ToInches() - title.Height.ToInches() / 2D > highestRoadmapTop);
             Assert.Contains(page.Shapes, shape => shape.Id == "kickoff-label");
             Assert.Empty(page.AnalyzeVisualQuality().Select(issue => issue.ToString()));
 
@@ -149,8 +149,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(risk.Id, riskCallout.CalloutTargetId);
             Assert.Equal(build.Id, buildCallout.CalloutTargetId);
             Assert.Contains("Annotations", riskCallout.LayerNames);
-            Assert.Equal(2.45, riskCallout.Width);
-            Assert.Equal(0.72, riskCallout.Height);
+            Assert.Equal(2.45, riskCallout.Width.ToInches());
+            Assert.Equal(0.72, riskCallout.Height.ToInches());
 
             VisioConnector riskLeader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, riskCallout));
             VisioConnector buildLeader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, buildCallout));
@@ -187,11 +187,11 @@ namespace OfficeIMO.Tests {
             VisioShape explicitCallout = Assert.Single(page.Callouts(), shape => shape.Id == "risk-note");
             VisioShape generatedCallout = Assert.Single(page.Callouts(), shape => shape.Id == "build-callout");
 
-            Assert.True(explicitCallout.PinY > risk.PinY);
-            Assert.Equal(risk.PinX, explicitCallout.PinX, 6);
+            Assert.True(explicitCallout.PinY.ToInches() > risk.PinY.ToInches());
+            Assert.Equal(risk.PinX.ToInches(), explicitCallout.PinX.ToInches(), 6);
             Assert.Equal(risk.Id, explicitCallout.CalloutTargetId);
-            Assert.Equal(2.45, explicitCallout.Width);
-            Assert.True(generatedCallout.PinY < build.PinY);
+            Assert.Equal(2.45, explicitCallout.Width.ToInches());
+            Assert.True(generatedCallout.PinY.ToInches() < build.PinY.ToInches());
             Assert.Equal(build.Id, generatedCallout.CalloutTargetId);
 
             VisioConnector leader = Assert.Single(page.Connectors, connector => ReferenceEquals(connector.From, explicitCallout));
@@ -217,9 +217,9 @@ namespace OfficeIMO.Tests {
             VisioPage page = Assert.Single(document.Pages);
             VisioShape callout = Assert.Single(page.Callouts());
 
-            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX, 6);
-            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY, 6);
-            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width, 6);
+            Assert.Equal(8D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinX.ToInches(), 6);
+            Assert.Equal(7D.ToInches(VisioMeasurementUnit.Centimeters), callout.PinY.ToInches(), 6);
+            Assert.Equal(3D.ToInches(VisioMeasurementUnit.Centimeters), callout.Width.ToInches(), 6);
         }
 
         [Fact]

@@ -44,7 +44,7 @@ public class OfficeMarkupPowerPointChartParityTests {
 
         string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
-            parsed.Document.SaveAsPowerPoint(outputPath, new MarkupToPowerPointOptions {
+            parsed.Document.SaveAsPowerPoint(outputPath, new MarkupPowerPointExportOptions {
                     RenderMermaidDiagrams = false
                 });
 

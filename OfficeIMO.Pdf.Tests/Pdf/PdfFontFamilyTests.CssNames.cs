@@ -17,11 +17,11 @@ public partial class PdfFontFamilyTests {
         string request = "Missing Family" + separator + OfficeFontFamilyParser.Quote(family);
         Assert.True(options.HasNamedFontFamily(request));
 
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.FontFamily(request).Text("BB")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("BB").SetFontFamily(request)).ToBytes();
         Assert.Equal(1, PdfFontInspector.Inspect(PdfReadDocument.Open(bytes)).EmbeddedFontCount);
         Assert.Contains("BB", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
         var plainOptions = new PdfCreateOptions().RegisterNamedFontFamily(new PdfEmbeddedFontFamily("PlainFixture", font));
-        byte[] control = PdfDocument.Create(plainOptions).Paragraph(paragraph => paragraph.FontFamily("PlainFixture").Text("BB")).ToBytes();
+        byte[] control = PdfDocument.Create(plainOptions).Paragraph(paragraph => paragraph.AddText("BB").SetFontFamily("PlainFixture")).ToBytes();
         Assert.Equal(OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(control)).GetPixels(),
             OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(bytes)).GetPixels());
     }
@@ -48,7 +48,7 @@ public partial class PdfFontFamilyTests {
             ManagedTextShapingTestAssets.CreateFontWithUniformAdvance(1000, 300, 'B')));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.FontFamily(OfficeFontFamilyParser.Quote(literal)).Text("BB"))
+            .Paragraph(paragraph => paragraph.AddText("BB").SetFontFamily(OfficeFontFamilyParser.Quote(literal)))
             .ToBytes();
 
         var page = Assert.Single(PdfReadDocument.Open(bytes).Pages);

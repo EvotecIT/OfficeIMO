@@ -298,10 +298,11 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     "The XLSB worksheet ended before the required BrtEndSheetData record.");
             }
 
-            Array.Clear(_kinds, 0, _kinds.Length);
-            Array.Clear(_strings, 0, _strings.Length);
+            // Typed span clears avoid the general Array.Clear dispatch on every row.
+            _kinds.AsSpan().Clear();
+            _strings.AsSpan().Clear();
             if (_options.CellValueConverter != null) {
-                Array.Clear(_customValues, 0, _customValues.Length);
+                _customValues.AsSpan().Clear();
             }
             if (_nextLogicalRowIndex < _pendingRowIndex) {
                 _logicalRowBudget.Consume();

@@ -14,7 +14,7 @@ public static partial class WordPdfConverterExtensions {
         if (options == null) return;
         Record(section.ResolveDefaultHeader(), "default header image", mapsHeader);
         Record(section.ResolveDefaultFooter(), "default footer image", mapsFooter);
-        if (section.DifferentFirstPage) {
+        if (section.PageSetup.DifferentFirstPage) {
             Record(section.ResolveFirstHeader(), "first header image", mapsHeader);
             Record(section.ResolveFirstFooter(), "first footer image", mapsFooter);
         }

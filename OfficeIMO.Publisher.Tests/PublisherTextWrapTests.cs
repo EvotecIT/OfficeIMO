@@ -19,7 +19,7 @@ public sealed class PublisherTextWrapTests {
         Assert.True(frame.Y < bounds.Y + bounds.Height && frame.Y + frame.Height > bounds.Y);
         Assert.All(regions, region => Assert.False(region.X < bounds.X + bounds.Width - .001 && region.X + region.Width > bounds.X + .001
             && region.Y < bounds.Y + bounds.Height - .001 && region.Y + region.Height > bounds.Y + .001));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED"
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED"
             && item.Location == "Contents/object/327" && item.LossKind == OfficeConversionLossKind.Approximation);
     }
 

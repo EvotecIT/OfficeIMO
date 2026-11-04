@@ -25,8 +25,8 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         using WordDocument document = result.Value;
 
         Assert.Empty(document.TextBoxes);
-        Assert.NotEmpty(document.Find("First-page region", StringComparison.Ordinal));
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.NotEmpty(document.Find("First-page region", new global::OfficeIMO.OfficeTextSearchOptions { MatchCase = true }).Paragraphs);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "forcedPageBreakAfter=true; semanticFlow=true");
     }
@@ -38,7 +38,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
             + "<div style='position:absolute;left:24px;top:20px;width:180px;height:70px'>Later-page region</div>"
             + "</section>";
 
-        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ToRtfDocumentResult();
+        HtmlToRtfResult result = HtmlConversionDocument.Parse(html).ConvertToRtfWithEvidence();
         IReadOnlyList<IRtfBlock> blocks = result.Value.Blocks;
         int pageBreakIndex = FindParagraphIndex(blocks, paragraph => paragraph.PageBreakBefore);
         int regionIndex = FindParagraphIndex(blocks, paragraph =>
@@ -48,7 +48,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         Assert.True(pageBreakIndex >= 0);
         Assert.True(regionIndex > pageBreakIndex);
         Assert.False(region.Frame.HasAnyValue);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "forcedPageBreakBefore=true; semanticFlow=true");
     }
@@ -104,12 +104,12 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
         const string html = "<h1>Title</h1>"
             + "<div style='display:grid;width:40px;height:60px'>Rejected flow</div>"
             + "<div style='position:absolute;left:20px;top:20px;width:20px;height:20px'>Retried positioned</div>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxShapes = 2;
         limits.MaxAbsoluteGeometry = 50D;
 
         HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions {
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions {
                 Mode = HtmlImportMode.Generic,
                 Limits = limits
             });
@@ -133,7 +133,7 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
             response.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
             return Task.FromResult(response);
         }));
-        var options = new WordHtmlImportOptions {
+        var options = new HtmlWordExportOptions {
             HttpClient = httpClient,
             ImageProcessing = WordHtmlImageProcessingMode.Embed
         };
@@ -146,8 +146,8 @@ public sealed class HtmlEditableLayoutReviewWave24Tests {
 
         Assert.Empty(document.TextBoxes);
         WordImage image = Assert.Single(document.Images);
-        Assert.Equal("Remote region", image.Description);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Equal("Remote region", image.AltText);
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlEditableLayoutDiagnosticCodes.PlacementSimplified
             && diagnostic.Detail == "unrenderedRegionImage=true; semanticFlow=true");
     }

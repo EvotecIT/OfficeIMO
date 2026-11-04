@@ -11,7 +11,7 @@ Extracts text or Markdown from a PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-Get-OfficePdfText [-Path] <string> [-PageRange <string>] [-AsMarkdown] [-ByPage] [-AsTextBlock] [-Password <string>] [-IgnorePermissionRestrictions] [-OutputPath <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Get-OfficePdfText [-Path] <string> [-PageRange <string>] [-AsMarkdown] [-ByPage] [-AsTextBlock] [-Password <securestring>] [-IgnorePermissionRestrictions] [-OutputPath <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -132,7 +132,7 @@ Accept wildcard characters: False
 Password used to extract from a Standard password-encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

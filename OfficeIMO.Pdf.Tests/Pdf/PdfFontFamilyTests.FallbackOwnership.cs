@@ -22,8 +22,8 @@ public partial class PdfFontFamilyTests {
                 new[] { PdfStandardFont.Helvetica }));
         string directText = fallbackOwned ? "★" : "AB";
 
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Runs(new[] {
-            new PdfTextRun(directText, font: PdfStandardFont.TimesRoman), new PdfTextRun("A😀B")
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddRuns(new[] {
+            new PdfTextRun(directText, standardFont: PdfStandardFont.TimesRoman), new PdfTextRun("A😀B")
         })).ToBytes();
 
         AssertRegistrationFonts(bytes, fallbackOwned ? "DirectSymbols-Regular" : "Times-Roman", "RunEmoji-Regular");
@@ -52,11 +52,11 @@ public partial class PdfFontFamilyTests {
         string directText = fallbackOwned ? "★" : "AB";
         var document = PdfDocument.Create(options);
         if (canvas) document.Canvas(paint => paint.Text(directText, global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(0), global::OfficeIMO.OfficeLength.Points(100), global::OfficeIMO.OfficeLength.Points(20), font: PdfStandardFont.TimesRoman));
-        else document.Paragraph(paragraph => paragraph.Font(PdfStandardFont.TimesRoman).Text(directText));
+        else document.Paragraph(paragraph => paragraph.AddText(directText).SetStandardFont(PdfStandardFont.TimesRoman));
 
         byte[] bytes = document.Panel(content => content
-            .Paragraph(paragraph => paragraph.Text("A"))
-            .Paragraph(paragraph => paragraph.Text("A😀B")),
+            .AddParagraph(paragraph => paragraph.AddText("A"))
+            .AddParagraph(paragraph => paragraph.AddText("A😀B")),
             new PdfPanelStyle { KeepTogether = false, KeepWithNext = false }).ToBytes();
 
         AssertRegistrationFonts(bytes, fallbackOwned ? "DirectSymbols-Regular" : "Times-Roman", "PanelEmoji-Regular");
@@ -77,10 +77,10 @@ public partial class PdfFontFamilyTests {
                 new[] { PdfStandardFont.Helvetica, PdfStandardFont.TimesRoman }));
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddText("A😀B"))
             .Panel(content => content
-                .Paragraph(paragraph => paragraph.Text("A"))
-                .Paragraph(paragraph => paragraph.Text("A★B")),
+                .AddParagraph(paragraph => paragraph.AddText("A"))
+                .AddParagraph(paragraph => paragraph.AddText("A★B")),
                 new PdfPanelStyle { KeepTogether = false, KeepWithNext = false })
             .ToBytes();
 
@@ -103,7 +103,7 @@ public partial class PdfFontFamilyTests {
             new[] { new PdfEmbeddedFontFallbackCandidate("New Emoji", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x1F600)) },
             new[] { PdfStandardFont.Helvetica }));
 
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("A😀B")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("A😀B")).ToBytes();
         AssertRegistrationFonts(bytes, "DocumentPrimary-Regular", "NewEmoji-Regular");
         Assert.Contains("A😀B", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }
@@ -120,13 +120,13 @@ public partial class PdfFontFamilyTests {
 
         byte[] bytes = PdfDocument.Create(options)
             .Panel(content => content
-                .Paragraph(paragraph => paragraph.Text("A"))
+                .AddParagraph(paragraph => paragraph.AddText("A"))
                 .Panel(nested => nested
-                    .Paragraph(paragraph => paragraph.Text("A"))
-                    .Paragraph(paragraph => paragraph.Text("A😀B")),
+                    .AddParagraph(paragraph => paragraph.AddText("A"))
+                    .AddParagraph(paragraph => paragraph.AddText("A😀B")),
                     new PdfPanelStyle { KeepTogether = false, KeepWithNext = false }),
                 new PdfPanelStyle { KeepTogether = false, KeepWithNext = false })
-            .Paragraph(paragraph => paragraph.Text(followingFallback ? "B😀A" : "B"))
+            .Paragraph(paragraph => paragraph.AddText(followingFallback ? "B😀A" : "B"))
             .ToBytes();
 
         AssertRegistrationFonts(bytes, "DocumentPrimary-Regular", "PanelEmoji-Regular");
@@ -147,8 +147,8 @@ public partial class PdfFontFamilyTests {
             .RegisterEmbeddedFontFallbacks(CreateRegistrationEmojiFallbacks());
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Font(PdfStandardFont.TimesRoman).Text("★"))
-            .Paragraph(paragraph => paragraph.Text("A😀B"))
+            .Paragraph(paragraph => paragraph.AddText("★").SetStandardFont(PdfStandardFont.TimesRoman))
+            .Paragraph(paragraph => paragraph.AddText("A😀B"))
             .ToBytes();
         AssertRegistrationFonts(bytes, "OldSymbols-Regular", "EmojiFallback-Regular");
         Assert.Contains("★", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
@@ -171,8 +171,8 @@ public partial class PdfFontFamilyTests {
         if (callerRegisteredAfterFallback) options.RegisterFontFamily(PdfStandardFont.TimesRoman, caller);
 
         byte[] bytes = PdfDocument.Create(options)
-            .Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun("A😀B", italic: true) }))
-            .Paragraph(paragraph => paragraph.Runs(new[] { new PdfTextRun("😀", italic: true, font: PdfStandardFont.TimesRoman) }))
+            .Paragraph(paragraph => paragraph.AddRuns(new[] { new PdfTextRun("A😀B", italic: true) }))
+            .Paragraph(paragraph => paragraph.AddRuns(new[] { new PdfTextRun("😀", italic: true, standardFont: PdfStandardFont.TimesRoman) }))
             .ToBytes();
 
         AssertRegistrationFonts(bytes, "CallerEmoji-Italic", "EmojiFallback-Italic");
@@ -191,7 +191,7 @@ public partial class PdfFontFamilyTests {
                 new[] { new PdfEmbeddedFontFallbackCandidate("New Emoji", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs(' ', 0x1F600)) },
                 new[] { PdfStandardFont.Helvetica }));
 
-        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("A😀B")).ToBytes();
+        byte[] bytes = PdfDocument.Create(options).Paragraph(paragraph => paragraph.AddText("A😀B")).ToBytes();
         AssertRegistrationFonts(bytes, "DocumentPrimary-Regular", "NewEmoji-Regular");
         Assert.Contains("A😀B", PdfReadDocument.Open(bytes).ExtractText(), StringComparison.Ordinal);
     }

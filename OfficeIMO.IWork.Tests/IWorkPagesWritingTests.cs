@@ -22,8 +22,7 @@ public sealed class IWorkPagesWritingTests {
         Assert.Equal(84, projection.Paragraphs.Count); // Native terminating LF also projects an empty trailing paragraph.
         Assert.Equal("", projection.Paragraphs[2]);
         VerifyRichRuns(projection, " plain reset");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -48,8 +47,7 @@ public sealed class IWorkPagesWritingTests {
         Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         Assert.Empty(projection.Diagnostics);
         VerifyRichRuns(projection, " plain edited");
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(path,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);
@@ -87,7 +85,7 @@ public sealed class IWorkPagesWritingTests {
         Assert.Equal(landscape, layout.IsLandscape);
         Assert.Equal(36, layout.LeftMarginPoints); Assert.Equal(54, layout.RightMarginPoints);
         Assert.Equal(45, layout.TopMarginPoints); Assert.Equal(63, layout.BottomMarginPoints);
-        using var result = WordIWorkConverter.ConvertPagesToWordResult(new MemoryStream(bytes));
+        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult();
         result.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var package = WordprocessingDocument.Open(saved, false);
@@ -124,10 +122,10 @@ public sealed class IWorkPagesWritingTests {
         document.AddParagraph("");
         var limits = new IWorkPagesWriteOptions();
         switch (budget) {
-            case "paragraphs": limits.MaximumParagraphs = 1; break;
-            case "runs": limits.MaximumTextRuns = 2; break;
-            case "characters": limits.MaximumTextCharacters = 5; break; // 4 UTF-16 units plus both terminators require 6.
-            case "bytes": limits.MaximumPackageBytes = 128; break;
+            case "paragraphs": limits.MaxParagraphs = 1; break;
+            case "runs": limits.MaxTextRuns = 2; break;
+            case "characters": limits.MaxTextCharacters = 5; break; // 4 UTF-16 units plus both terminators require 6.
+            case "bytes": limits.MaxPackageBytes = 128; break;
         }
         using var stream = new MemoryStream(new byte[] { 9, 8, 7 });
         Assert.Throws<InvalidDataException>(() => document.Save(stream, limits)); Assert.Equal(new byte[] { 9, 8, 7 }, stream.ToArray());
@@ -138,7 +136,7 @@ public sealed class IWorkPagesWritingTests {
             Assert.Equal(new byte[] { 9, 8, 7 }, File.ReadAllBytes(path)); Assert.Single(Directory.GetFiles(folder));
         } finally { Directory.Delete(folder, recursive: true); }
         if (budget == "characters") {
-            limits.MaximumTextCharacters = 6;
+            limits.MaxTextCharacters = 6;
             Assert.Equal("A😀B\n\n", IWorkSourceDocument.Open(new MemoryStream(document.SaveBytes(limits))).ReadPages().Body!.PlainText);
         }
     }
@@ -180,10 +178,10 @@ public sealed class IWorkPagesWritingTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => IWorkPagesDocument.Create(leftMarginPoints: -1));
         Assert.Throws<ArgumentException>(() => IWorkPagesDocument.Create(leftMarginPoints: 400, rightMarginPoints: 300));
         document.AddParagraph("valid");
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumParagraphs = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTextRuns = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumTextCharacters = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaximumPackageBytes = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxParagraphs = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTextRuns = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxTextCharacters = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SaveBytes(new() { MaxPackageBytes = 0 }));
     }
 
     private static void VerifyRichRuns(IWorkPagesProjection projection, string plain) {

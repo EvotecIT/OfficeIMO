@@ -12,9 +12,9 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document (empty)");
             string filePath = System.IO.Path.Combine(folderPath, "EmptyDocument.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+                document.Properties.Title = "This is my title";
+                document.Properties.Creator = "Przemysław Kłys";
+                document.Properties.Keywords = "word, docx, test";
                 document.Save();
                 if (openWord) document.OpenInApplication();
             }

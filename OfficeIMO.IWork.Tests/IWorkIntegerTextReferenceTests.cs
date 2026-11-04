@@ -17,9 +17,8 @@ public sealed partial class IWorkBoundaryTests {
             byte[] bytes = File.ReadAllBytes(CorpusFixture("native-exports/" + input.GetProperty("path").GetString()));
             Assert.Equal(input.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(CorpusFixture("native-exports/" +
-            evidence.GetProperty(changed ? "changedSource" : "source").GetString()),
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" +
+            evidence.GetProperty(changed ? "changedSource" : "source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL");
         IWorkTable operands = result.Projection.Sheets[0].Tables.Single(), checks = result.Projection.Sheets[1].Tables.Single();
         Assert.Equal(IWorkCellKind.Text, operands.GetCell(4, 2)!.Kind);
@@ -34,16 +33,16 @@ public sealed partial class IWorkBoundaryTests {
         using var bytesOut = new MemoryStream(); result.Value.Save(bytesOut); bytesOut.Position = 0;
         using var reopened = ExcelDocument.Load(bytesOut);
         Assert.Equal(new[] { "Inputs", "Checks" }, reopened.Sheets.Select(s => s.Name));
-        Assert.Equal(changed ? "18" : "12", reopened.Sheets[0].CellAt(4, 2).GetValue<string>());
+        Assert.Equal(changed ? "18" : "12", reopened.Sheets[0].Cell(4, 2).GetValue<string>());
         Verify(changed ? "changedCells" : "cells", true);
         Assert.Equal(10, reopened.Calculate()); Verify(changed ? "changedCells" : "cells", false);
-        reopened.Sheets[0].CellValue(4, 2, "18");
+        reopened.Sheets[0].Cell(4, 2).SetValue("18");
         Assert.Equal(10, reopened.Calculate()); Verify("changedCells", false);
         using var finalBytes = new MemoryStream(); reopened.Save(finalBytes); finalBytes.Position = 0;
         using var final = ExcelDocument.Load(finalBytes);
-        Assert.Equal("18", final.Sheets[0].CellAt(4, 2).GetValue<string>());
-        Assert.Equal(18d, final.Sheets[1].CellAt(4, 3).GetValue<double>());
-        Assert.Equal(18d, final.Sheets[1].CellAt(7, 2).GetValue<double>());
+        Assert.Equal("18", final.Sheets[0].Cell(4, 2).GetValue<string>());
+        Assert.Equal(18d, final.Sheets[1].Cell(4, 3).GetValue<double>());
+        Assert.Equal(18d, final.Sheets[1].Cell(7, 2).GetValue<double>());
         Assert.Empty(final.ValidateOpenXml());
 
         void Verify(string field, bool sourceToo) {
@@ -55,7 +54,7 @@ public sealed partial class IWorkBoundaryTests {
                     Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), cell.Value);
                 }
                 Assert.Equal(expected.GetProperty("excelFormula").GetString(), reopened.Sheets[1].GetFormulaText(row, column));
-                Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[1].CellAt(row, column).GetValue<double>());
+                Assert.Equal(expected.GetProperty("nativeValue").GetDouble(), reopened.Sheets[1].Cell(row, column).GetValue<double>());
             }
         }
     }
@@ -114,8 +113,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("12", true)]
     public void Integer_text_references_require_complete_decoded_rich_text(string nativeText, bool complete) {
         using var package = CreateNumbersWithPartialRichCell(hasFormula: false, richText: nativeText);
-        using var result = ExcelIWorkConverter.ConvertNumbersToExcelResult(package,
-            conversionOptions: new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
         IWorkTableCell source = table.Cells.Single();
         Assert.Equal("12", source.Value);

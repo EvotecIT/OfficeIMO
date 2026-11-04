@@ -53,7 +53,7 @@ public sealed partial class PdfTaggedMergeTests {
     [InlineData(false)]
     public void MixedInputsKeepExistingTagsWithoutInventingTagsForPlainPages(bool taggedFirst) {
         byte[] tagged = Report("Tagged", "en-US");
-        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Plain attachment")).ToBytes();
+        byte[] plain = PdfDocument.Create().Paragraph(paragraph => paragraph.AddText("Plain attachment")).ToBytes();
         byte[] output = PdfDocument.MergeToBytes(taggedFirst ? new[] { tagged, plain } : new[] { plain, tagged });
         var read = PdfReadDocument.Open(output);
         Assert.Equal(2, read.Pages.Count);
@@ -69,7 +69,7 @@ public sealed partial class PdfTaggedMergeTests {
     private static byte[] Report(string title, string language) => PdfDocument.Create(new PdfCreateOptions {
         Language = language
     }).TaggedPdfCatalogMarkers().H1(title + " report")
-        .Paragraph(paragraph => paragraph.Text(title + " report details")).ToBytes();
+        .Paragraph(paragraph => paragraph.AddText(title + " report details")).ToBytes();
 
     private static void AssertParentTreeMatchesPages(PdfReadDocument read, int expectedTaggedPages) {
         var catalog = (PdfDictionary)read.Objects[read.Security.RootObjectNumber!.Value].Value;

@@ -34,7 +34,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
         Assert.Contains(result.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Comment && item.Attributes["isReply"] == "true" && item.Value == "Reply evidence");
         OfficeDocumentReadResult restored = OfficeDocumentReadResultJson.Deserialize(result.ToJson());
         Assert.Contains(restored.Metadata, item => item.Category == OfficeDocumentInspectionCategories.Revision && item.Value == revision.Value && item.Attributes["partUri"] == revision.Attributes["partUri"]);
-        Assert.Contains(reader.ExtractStructured(restored).Records, item => item.Value == "Tracked source" && item.Location?.SourceBlockKind == "revision");
+        Assert.Contains(restored.ExtractStructured().Records, item => item.Value == "Tracked source" && item.Location?.SourceBlockKind == "revision");
         // Inspection must leave authored review markup intact for a subsequent read.
         using var input = new MemoryStream(bytes, writable: false);
         using WordDocument original = WordDocument.Load(input, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly });
@@ -46,7 +46,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
         using var stream = new MemoryStream();
         using (ExcelDocument workbook = ExcelDocument.Create(stream)) {
             ExcelSheet sheet = workbook.AddSheet("Hidden data");
-            sheet.Cell(1, 1, 1); sheet.Cell(2, 1, 99);
+            sheet.Cell(1, 1).SetValue(1); sheet.Cell(2, 1).SetValue(99);
             sheet.SetComment("A2", "Review cache", "Ada");
             var parent = sheet.AddThreadedComment("C4", "Blank-cell parent", "Grace");
             sheet.AddThreadedComment("C4", "Blank-cell reply", "Lin", parent.Id);
@@ -101,7 +101,7 @@ public sealed class ReaderNativeInspectionEvidenceTests {
 
     [Fact]
     public void OpenDocumentRichResultRetainsMetadataLinksAndImageBytesWithoutFetchingLinkTargets() {
-        OdtDocument document = OdtDocument.Create(); document.Metadata.Title = "Source title";
+        OdtDocument document = OdtDocument.Create(); document.Properties.Title = "Source title";
         OdtParagraph paragraph = document.AddParagraph("Body");
         paragraph.AddHyperlink("Target", "https://example.invalid/never-fetched");
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");

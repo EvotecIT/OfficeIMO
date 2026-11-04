@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlMathMlPdf_KeepsFormulaDescriptionThroughReorderedAndPagedContainers(string attributes, string prefix) {
         string html = "<html lang='en'><body style='margin:0'><div " + attributes + ">" + prefix
             + " <math alttext='x squared'><msup><mi>x</mi><mn>2</mn></msup></math> AFTER</div></body></html>";
-        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlToPdfOptions {
+        byte[] bytes = (HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfExportOptions {
             PageSize = new OfficeIMO.Drawing.OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(1D)),
             HonorCssPageRules = false, Margins = HtmlRenderMargins.All(0D)
         })).ToBytes();

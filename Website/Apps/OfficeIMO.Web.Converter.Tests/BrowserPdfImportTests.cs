@@ -29,8 +29,8 @@ public sealed class BrowserPdfImportTests {
     public void PdfImportRoutes_ProduceRealArtifactsAndReports(string routeId, string extension) {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content
             .H1("Quarterly report")
-            .Paragraph(paragraph => paragraph.Text("Local PDF import evidence"))
-            .Table([
+            .AddParagraph(paragraph => paragraph.AddText("Local PDF import evidence"))
+            .AddTable([
                 ["Metric", "Value"],
                 ["Ready", "Yes"],
                 ["Validated", "Yes"]
@@ -108,9 +108,9 @@ public sealed class BrowserPdfImportTests {
     public void PdfToPng_MultiplePages_ReturnsNumberedPngArchive() {
         PdfDocument document = PdfDocument.Create(compose => {
             compose.Page(page => page.Content(content => content.Column(column =>
-                column.Item().Paragraph(paragraph => paragraph.Text("First page")))));
+                column.Item().AddParagraph(paragraph => paragraph.AddText("First page")))));
             compose.Page(page => page.Content(content => content.Column(column =>
-                column.Item().Paragraph(paragraph => paragraph.Text("Second page")))));
+                column.Item().AddParagraph(paragraph => paragraph.AddText("Second page")))));
         });
         byte[] pdf = document.ToBytes();
         var source = new SelectedDocument("pages.pdf", ".pdf", "PDF", pdf.LongLength, pdf);
@@ -144,8 +144,8 @@ public sealed class BrowserPdfImportTests {
     [InlineData("CON.pdf", "document-CON.page-001.png")]
     public void PdfToPng_MultiplePages_UsesPortableSafeArchiveEntries(string uploadName, string expectedEntry) {
         PdfDocument document = PdfDocument.Create(compose => {
-            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("one"))));
-            compose.Page(page => page.Content(content => content.Paragraph(paragraph => paragraph.Text("two"))));
+            compose.Page(page => page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("one"))));
+            compose.Page(page => page.Content(content => content.AddParagraph(paragraph => paragraph.AddText("two"))));
         });
         byte[] pdf = document.ToBytes();
         var source = new SelectedDocument(uploadName, ".pdf", "PDF", pdf.LongLength, pdf);
@@ -175,7 +175,7 @@ public sealed class BrowserPdfImportTests {
         bool expectsTable) {
         byte[] pdf = PdfDocument.Create(document => document.Content(content => content
             .H1("Mode contract")
-            .Table([
+            .AddTable([
                 ["Metric", "Value"],
                 ["Ready", "Yes"],
                 ["Validated", "Yes"]

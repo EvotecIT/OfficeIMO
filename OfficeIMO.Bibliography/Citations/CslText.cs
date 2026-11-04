@@ -28,12 +28,12 @@ internal readonly partial struct CslText {
             string encoded = Escape(separator);
             MergePunctuationBoundary(plain, html, ref separator, ref encoded);
             if ((long)plain.Length + separator.Length > maximumCharacters || (long)html.Length + encoded.Length > maximumCharacters)
-                throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+                throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
             plain.Append(separator); html.Append(encoded);
             string body = value.Plain, markup = value.Html;
             MergePunctuationBoundary(plain, html, ref body, ref markup);
             if ((long)plain.Length + body.Length > maximumCharacters || (long)html.Length + markup.Length > maximumCharacters)
-                throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+                throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
             plain.Append(body); html.Append(markup);
         }
         if (suppressEmptyVariables && attempts > 0 && rendered == 0) return new CslText(string.Empty, string.Empty, attempts, 0);

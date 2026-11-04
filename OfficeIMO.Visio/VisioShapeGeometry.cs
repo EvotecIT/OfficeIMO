@@ -105,12 +105,12 @@ namespace OfficeIMO.Visio {
 
         private static List<VisioShapeGeometryPath> ScalePaths(VisioShape source, VisioShape target, List<VisioShapeGeometryPath> sourcePaths) {
             List<VisioShapeGeometryPath> scaledPaths = new();
-            if (source.Width <= 0D || source.Height <= 0D || target.Width <= 0D || target.Height <= 0D) {
+            if (source.WidthInches <= 0D || source.HeightInches <= 0D || target.WidthInches <= 0D || target.HeightInches <= 0D) {
                 return scaledPaths;
             }
 
-            double scaleX = target.Width / source.Width;
-            double scaleY = target.Height / source.Height;
+            double scaleX = target.WidthInches / source.WidthInches;
+            double scaleY = target.HeightInches / source.HeightInches;
             foreach (VisioShapeGeometryPath sourcePath in sourcePaths) {
                 List<(double X, double Y)> scaledPath = new();
                 for (int i = 0; i < sourcePath.Points.Count; i++) {
@@ -127,8 +127,8 @@ namespace OfficeIMO.Visio {
         }
 
         internal static List<(double X, double Y)> GetBuiltinClosedPath(VisioShape shape, string kind) {
-            double width = shape.Width;
-            double height = shape.Height;
+            double width = shape.WidthInches;
+            double height = shape.HeightInches;
             double midX = width / 2D;
             double midY = height / 2D;
             switch (kind) {

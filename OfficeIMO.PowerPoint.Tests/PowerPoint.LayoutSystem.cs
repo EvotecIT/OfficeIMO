@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             try {
                 using PowerPointDocument presentation = PowerPointDocument.Create();
                 PowerPointSlide slide = presentation.AddSlide();
-                PowerPointPicture picture = slide.AddImage(portrait, OfficeLength.Points(100), OfficeLength.Points(100), OfficeLength.Points(300), OfficeLength.Points(200));
+                PowerPointImage picture = slide.AddImage(portrait, OfficeLength.Points(100), OfficeLength.Points(100), OfficeLength.Points(300), OfficeLength.Points(200));
                 Assert.Equal(0.7, picture.Width.ToPoints() / picture.Height.ToPoints(), 2);
                 Assert.Equal(200, (picture.Height).ToPoints(), 1);
                 Assert.Equal(100 + (300 - 140) / 2D, (picture.Left).ToPoints(), 1);
@@ -416,8 +416,8 @@ namespace OfficeIMO.Tests {
             presentation.SetLayoutPlaceholderBounds(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title,
                 new PowerPointLayoutBox(OfficeLength.Points(60), OfficeLength.Points(40), OfficeLength.Points(600), OfficeLength.Points(120)));
             presentation.SetLayoutPlaceholderTextStyle(layout.MasterIndex, layout.LayoutIndex, PowerPointPlaceholderType.Title,
-                new PowerPointTextStyle(fontSize: OfficeLength.Points(36), fontName: "Arial", bold: false, italic: true)
-                    .WithUnderlineStyle(PowerPointUnderlineStyle.Double).WithColor("336699").WithHighlightColor("FFFF0080"));
+                new PowerPointTextStyle(fontSize: OfficeLength.Points(36), fontFamily: "Arial", bold: false, italic: true)
+                    .WithUnderlineStyle(PowerPointUnderlineStyle.Double).WithColor(OfficeColor.Parse("336699")).WithBackgroundColor(OfficeColor.Parse("FFFF0080")));
             var content = new PowerPointLayoutSlide { Title = "Edited template title", TemplateLayout = layout };
             content.Blocks.Add(new PowerPointLayoutKpi("99%", "Availability"));
             PowerPointLayoutEngine.AddSlides(presentation, content);

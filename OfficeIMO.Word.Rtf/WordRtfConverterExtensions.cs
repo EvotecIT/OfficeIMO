@@ -12,8 +12,7 @@ namespace OfficeIMO.Word.Rtf;
 /// Extension methods for converting between <see cref="WordDocument"/> and <see cref="RtfDocument"/>.
 /// </summary>
 public static partial class WordRtfConverterExtensions {
-    /// <summary>Converts a Word document to the semantic RTF model.</summary>
-    public static RtfDocument ToRtfDocument(this WordDocument document) {
+    internal static RtfDocument ConvertToRtfDocument(this WordDocument document) {
         if (document == null) throw new ArgumentNullException(nameof(document));
 
         RtfDocument rtf = RtfDocument.Create();
@@ -32,13 +31,6 @@ public static partial class WordRtfConverterExtensions {
         }
 
         return rtf;
-    }
-
-    /// <summary>Creates a Word document from a semantic RTF document.</summary>
-    public static WordDocument ToWordDocument(this RtfDocument rtfDocument) {
-        if (rtfDocument == null) throw new ArgumentNullException(nameof(rtfDocument));
-
-        return ToWordDocumentCore(rtfDocument, null);
     }
 
     private static WordDocument ToWordDocumentCore(RtfDocument rtfDocument, RtfConversionReport? report) {
@@ -70,12 +62,12 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void CopyHeaderFooters(WordDocument document, RtfDocument rtf, Dictionary<string, int> revisionAuthorIndexes) {
-        CopyHeaderFooter(document.Header?.Default, rtf, rtf.AddHeader, RtfHeaderFooterKind.Header, revisionAuthorIndexes);
-        CopyHeaderFooter(document.Header?.First, rtf, rtf.AddHeader, RtfHeaderFooterKind.FirstHeader, revisionAuthorIndexes);
-        CopyHeaderFooter(document.Header?.Even, rtf, rtf.AddHeader, RtfHeaderFooterKind.LeftHeader, revisionAuthorIndexes);
-        CopyHeaderFooter(document.Footer?.Default, rtf, rtf.AddFooter, RtfHeaderFooterKind.Footer, revisionAuthorIndexes);
-        CopyHeaderFooter(document.Footer?.First, rtf, rtf.AddFooter, RtfHeaderFooterKind.FirstFooter, revisionAuthorIndexes);
-        CopyHeaderFooter(document.Footer?.Even, rtf, rtf.AddFooter, RtfHeaderFooterKind.LeftFooter, revisionAuthorIndexes);
+        CopyHeaderFooter(document.PageSetup.GetHeader(WordHeaderFooterType.Default), rtf, rtf.AddHeader, RtfHeaderFooterKind.Header, revisionAuthorIndexes);
+        CopyHeaderFooter(document.PageSetup.GetHeader(WordHeaderFooterType.First), rtf, rtf.AddHeader, RtfHeaderFooterKind.FirstHeader, revisionAuthorIndexes);
+        CopyHeaderFooter(document.PageSetup.GetHeader(WordHeaderFooterType.Even), rtf, rtf.AddHeader, RtfHeaderFooterKind.LeftHeader, revisionAuthorIndexes);
+        CopyHeaderFooter(document.PageSetup.GetFooter(WordHeaderFooterType.Default), rtf, rtf.AddFooter, RtfHeaderFooterKind.Footer, revisionAuthorIndexes);
+        CopyHeaderFooter(document.PageSetup.GetFooter(WordHeaderFooterType.First), rtf, rtf.AddFooter, RtfHeaderFooterKind.FirstFooter, revisionAuthorIndexes);
+        CopyHeaderFooter(document.PageSetup.GetFooter(WordHeaderFooterType.Even), rtf, rtf.AddFooter, RtfHeaderFooterKind.LeftFooter, revisionAuthorIndexes);
     }
 
     private static void CopyHeaderFooter(WordHeaderFooter? source, RtfDocument rtf, Func<RtfHeaderFooterKind, RtfHeaderFooter> addDestination, RtfHeaderFooterKind kind, Dictionary<string, int> revisionAuthorIndexes) {
@@ -129,19 +121,19 @@ public static partial class WordRtfConverterExtensions {
     private static WordHeaderFooter GetWordHeaderFooter(WordDocument document, RtfHeaderFooterKind kind) {
         switch (kind) {
             case RtfHeaderFooterKind.FirstHeader:
-                return document.HeaderFirstOrCreate;
+                return document.PageSetup.FirstPageHeader;
             case RtfHeaderFooterKind.LeftHeader:
-                return document.HeaderEvenOrCreate;
+                return document.PageSetup.EvenPageHeader;
             case RtfHeaderFooterKind.RightHeader:
             case RtfHeaderFooterKind.Header:
-                return document.HeaderDefaultOrCreate;
+                return document.PageSetup.Header;
             case RtfHeaderFooterKind.FirstFooter:
-                return document.FooterFirstOrCreate;
+                return document.PageSetup.FirstPageFooter;
             case RtfHeaderFooterKind.LeftFooter:
-                return document.FooterEvenOrCreate;
+                return document.PageSetup.EvenPageFooter;
             case RtfHeaderFooterKind.RightFooter:
             case RtfHeaderFooterKind.Footer:
-                return document.FooterDefaultOrCreate;
+                return document.PageSetup.Footer;
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported RTF header or footer kind.");
         }

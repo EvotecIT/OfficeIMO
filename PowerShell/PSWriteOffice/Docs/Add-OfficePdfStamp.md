@@ -11,12 +11,12 @@ Adds a text or image stamp to an existing PDF.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficePdfStamp -Path <string> -OutputPath <string> -Text <string> [-Password <string>] [-IgnorePermissionRestrictions] [-PageRange <string>] [-X <Double>] [-Y <Double>] [-FontSize <double>] [-Color <string>] [-Rotation <double>] [-Watermark] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -Path <string> -OutputPath <string> -Text <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-PageRange <string>] [-X <Double>] [-Y <Double>] [-FontSize <double>] [-Color <string>] [-Rotation <double>] [-Watermark] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Image
 ```powershell
-Add-OfficePdfStamp -Path <string> -OutputPath <string> -Image <string> [-Password <string>] [-IgnorePermissionRestrictions] [-PageRange <string>] [-X <Double>] [-Y <Double>] [-Width <Double>] [-Height <Double>] [-Rotation <double>] [-Watermark] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficePdfStamp -Path <string> -OutputPath <string> -Image <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-PageRange <string>] [-X <Double>] [-Y <Double>] [-Width <Double>] [-Height <Double>] [-Rotation <double>] [-Watermark] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -179,7 +179,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted input PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: Text, Image
 Aliases: None
 Possible values:

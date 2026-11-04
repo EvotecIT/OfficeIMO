@@ -20,8 +20,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath, new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly })) {
                 Console.WriteLine("+ Document Path: " + document.FilePath);
-                Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
-                Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
+                Console.WriteLine("+ Document Title: " + document.Properties.Title);
+                Console.WriteLine("+ Document Author: " + document.Properties.Creator);
 
                 Console.WriteLine("+ Paragraphs: " + document.Paragraphs.Count);
                 Console.WriteLine("+ PageBreaks: " + document.PageBreaks.Count);

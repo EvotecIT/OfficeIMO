@@ -236,7 +236,7 @@ namespace OfficeIMO.Tests
                 {
                     {
                         var reportBuilder4 = document.AddSheet("Members", OfficeIMO.Excel.ExcelSheetNameValidationMode.Sanitize).Report();
-                        (reportBuilder4).Sheet.Cell(100, 1, "Footer");
+                        (reportBuilder4).Sheet.Cell(100, 1).SetValue("Footer");
                         string range = (reportBuilder4).AddTable(members, freezeHeaderRow: false).Range!;
                         Assert.Equal("A1:D3", range);
                     }

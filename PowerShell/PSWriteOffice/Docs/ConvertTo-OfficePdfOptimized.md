@@ -11,7 +11,7 @@ Applies lossless PDF optimization actions and writes a new PDF.
 ## SYNTAX
 ### __AllParameterSets
 ```powershell
-ConvertTo-OfficePdfOptimized [-Path] <string> [-OutputPath] <string> [-Password <string>] [-IgnorePermissionRestrictions] [-NoCompressStreams] [-KeepUnreferencedObjects] [-KeepDuplicateStreams] [-AllowLarger] [-MinimumStreamCompressionBytes <int>] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
+ConvertTo-OfficePdfOptimized [-Path] <string> [-OutputPath] <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-NoCompressStreams] [-KeepUnreferencedObjects] [-KeepDuplicateStreams] [-AllowLarger] [-MinimumStreamCompressionBytes <int>] [-PassThruReport] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -160,7 +160,7 @@ Accept wildcard characters: False
 Password used to authenticate an encrypted PDF.
 
 ```yaml
-Type: String
+Type: SecureString
 Parameter Sets: __AllParameterSets
 Aliases: None
 Possible values:

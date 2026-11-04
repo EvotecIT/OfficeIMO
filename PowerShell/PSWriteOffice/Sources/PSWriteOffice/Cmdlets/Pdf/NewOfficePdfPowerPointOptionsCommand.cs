@@ -14,7 +14,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <code>$options = New-OfficePdfPowerPointOptions -Mode VisualPages -Dpi 96 -MaximumPixelCountPerPage 2000000
 /// Convert-OfficeDocument -Path ./Review.pdf -To PowerPoint -OutputPath ./Review.pptx -Options $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficePdfPowerPointOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(PowerPointPdfImportOptions))]
+[OutputType(typeof(PdfPowerPointExportOptions))]
 public sealed class NewOfficePdfPowerPointOptionsCommand : OfficeCmdlet {
     /// <summary>Visual, editable-table, hybrid, editable-content, or automatic import mode.</summary>
     [Parameter(ParameterSetName = "Default")] public PowerPointPdfImportMode? Mode { get; set; }
@@ -59,7 +59,7 @@ public sealed class NewOfficePdfPowerPointOptionsCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = new PowerPointPdfImportOptions();
+        var options = new PdfPowerPointExportOptions();
         if (Mode.HasValue) options.Mode = Mode.Value;
         if (Page != null)
         {

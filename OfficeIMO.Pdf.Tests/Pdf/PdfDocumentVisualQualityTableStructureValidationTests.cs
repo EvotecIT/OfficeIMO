@@ -48,7 +48,7 @@ public partial class PdfDocumentVisualQualityTests {
         double firstColumnX = FindWordStartX(page, "A");
         double secondColumnX = FindWordStartX(page, "B");
 
-        Assert.Equal((options.PageWidth.ToPoints() - options.MarginLeft.ToPoints() - options.MarginRight.ToPoints()) / 2D,
+        Assert.Equal((options.PageSetup.Size.Width.ToPoints() - options.PageSetup.Margins.Left.ToPoints() - options.PageSetup.Margins.Right.ToPoints()) / 2D,
             secondColumnX - firstColumnX, 2);
     }
 
@@ -250,7 +250,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { PdfTableCell.Merge("TooTall", rowSpan: 3), PdfTableCell.TextCell("A1") },
                                         new[] { PdfTableCell.TextCell("A2") }
                                     })))))));
@@ -306,7 +306,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { PdfTableCell.Merge("HeaderBody", rowSpan: 2), PdfTableCell.TextCell("H1") },
                                         new[] { PdfTableCell.TextCell("B1") },
                                         new[] { PdfTableCell.TextCell("B2"), PdfTableCell.TextCell("B3") }
@@ -329,7 +329,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { PdfTableCell.TextCell("B0"), PdfTableCell.TextCell("B1") },
                                         new[] { PdfTableCell.Merge("BodyFooter", rowSpan: 2), PdfTableCell.TextCell("B2") },
                                         new[] { PdfTableCell.TextCell("F1") }
@@ -403,7 +403,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "B1", "B2" },
                                         new[] { "B3", "B4" }
                                     }, style: style))))))
@@ -425,7 +425,7 @@ public partial class PdfDocumentVisualQualityTests {
                         page.Content(content =>
                             content.Row(row =>
                                 row.PercentColumn(100, column =>
-                                    column.Table(new[] {
+                                    column.AddTable(new[] {
                                         new[] { "H1", "H2" },
                                         new[] { "B1", "B2" }
                                     }, style: style))))))
@@ -441,7 +441,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Text("KeepWithNextPrelude"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("KeepWithNextPrelude"), style: new PdfParagraphStyle {
                     KeepWithNext = true
                 })
                 .Table(new[] {
@@ -460,7 +460,7 @@ public partial class PdfDocumentVisualQualityTests {
 
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create()
-                .Paragraph(p => p.Text("KeepWithNextPrelude"), style: new PdfParagraphStyle {
+                .Paragraph(p => p.AddText("KeepWithNextPrelude"), style: new PdfParagraphStyle {
                     KeepWithNext = true
                 })
                 .Table(new[] {

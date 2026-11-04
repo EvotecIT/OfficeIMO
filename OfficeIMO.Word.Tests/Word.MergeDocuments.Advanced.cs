@@ -160,7 +160,7 @@ namespace OfficeIMO.Tests {
             destination.AddParagraph("Destination");
             source.AddParagraph("Source");
             destination._document.Body!.Elements<SectionProperties>().Last().Remove();
-            source.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+            source.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
             destination.AppendDocument(source);
             Assert.NotNull(destination._document.Body!.Descendants<ParagraphProperties>().FirstOrDefault(x => x.SectionProperties != null));
             Assert.Equal(2, destination.Sections.Count);
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Create(sourcePath)) {
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Landscape content");
                 document.Save();
             }
@@ -265,8 +265,8 @@ namespace OfficeIMO.Tests {
                 Assert.IsType<SectionProperties>(body.LastChild);
                 Assert.Single(body.Elements<SectionProperties>());
                 Assert.Equal(2, merged.Sections.Count);
-                Assert.Equal(OfficePageOrientation.Portrait, merged.Sections[0].PageSettings.Orientation);
-                Assert.Equal(OfficePageOrientation.Landscape, merged.Sections[1].PageSettings.Orientation);
+                Assert.Equal(OfficePageOrientation.Portrait, merged.Sections[0].PageSetup.Size.Orientation);
+                Assert.Equal(OfficePageOrientation.Landscape, merged.Sections[1].PageSetup.Size.Orientation);
                 Assert.Contains(merged.Sections[0].Paragraphs, _ => _.Text == "Portrait content");
                 Assert.Contains(merged.Sections[1].Paragraphs, _ => _.Text == "Landscape content");
                 AssertMergedDocumentIsValid(merged);
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = WordDocument.Create(sourcePath)) {
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("First source section");
                 document.AddSection();
                 document.AddParagraph("Second source section");
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests {
                 Assert.IsType<SectionProperties>(body.LastChild);
                 Assert.Single(body.Descendants<SectionProperties>());
                 Assert.Single(merged.Sections);
-                Assert.Equal(OfficePageOrientation.Portrait, merged.Sections[0].PageSettings.Orientation);
+                Assert.Equal(OfficePageOrientation.Portrait, merged.Sections[0].PageSetup.Size.Orientation);
                 Assert.Equal(new[] { "Portrait content", "First source section", "Second source section" },
                     merged.Paragraphs.Where(_ => !string.IsNullOrEmpty(_.Text)).Select(_ => _.Text).ToArray());
             }

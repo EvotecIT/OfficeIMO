@@ -113,7 +113,7 @@ public sealed class PdfCreationLifecycleWorkflowTests {
             string originalPath = Path.Combine(root, "Original.pdf");
             string protectedPath = Path.Combine(root, "Protected[final].pdf");
             using PdfDocument document = PdfDocument.Create(originalPath);
-            document.Compose(builder => builder.Content(content => content.Paragraph(paragraph => paragraph.Text("Saved protected evidence"))));
+            document.Compose(builder => builder.Content(content => content.AddParagraph(paragraph => paragraph.AddText("Saved protected evidence"))));
             using SecureString owner = new();
             foreach (char character in "owner-secret") owner.AppendChar(character);
             owner.MakeReadOnly();

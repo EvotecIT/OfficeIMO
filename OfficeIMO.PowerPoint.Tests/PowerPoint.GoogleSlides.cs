@@ -100,7 +100,8 @@ namespace OfficeIMO.Tests {
             PowerPointTextRun run = presentation.AddSlide()
                 .AddTextBox("Unsafe color",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80))
                 .Paragraphs[0].Runs[0];
-            run.Color = "GG0000";
+            run.Color = OfficeColor.Parse("FF0000");
+            run.RunProperties!.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val = "GG0000";
 
             GoogleSlidesTextBox text = Assert.Single(
                 Assert.Single(presentation.BuildGoogleSlidesBatch().Slides)
@@ -130,7 +131,7 @@ namespace OfficeIMO.Tests {
             first.Strikethrough = true;
             first.Capitalization = PowerPointCapitalization.SmallCaps;
             first.SetSuperscript();
-            PowerPointTextRun second = textBox.Paragraphs[0].AddRun(" caps");
+            PowerPointTextRun second = textBox.Paragraphs[0].AddText(" caps");
             second.Capitalization = PowerPointCapitalization.AllCaps;
             second.SetSubscript();
 
@@ -245,7 +246,7 @@ namespace OfficeIMO.Tests {
             PowerPointTextRun eastAsian = paragraph.Runs[0];
             eastAsian.Run.RunProperties = new A.RunProperties { Language = "ja-JP" };
             eastAsian.RunProperties.Append(new A.EastAsianFont { Typeface = "+mj-ea" });
-            PowerPointTextRun complexScript = paragraph.AddRun(" العربية");
+            PowerPointTextRun complexScript = paragraph.AddText(" العربية");
             complexScript.Run.RunProperties = new A.RunProperties { Language = "ar-SA" };
             complexScript.RunProperties.Append(new A.ComplexScriptFont { Typeface = "+mn-cs" });
 
@@ -289,7 +290,7 @@ namespace OfficeIMO.Tests {
                     Underline = A.TextUnderlineValues.Single,
                     Strike = A.TextStrikeValues.SingleStrike
                 });
-            PowerPointTextRun explicitOff = textBox.Paragraphs[0].AddRun(" off");
+            PowerPointTextRun explicitOff = textBox.Paragraphs[0].AddText(" off");
             explicitOff.Run.RunProperties = new A.RunProperties {
                 Bold = false,
                 Italic = false,
@@ -392,10 +393,10 @@ namespace OfficeIMO.Tests {
             paragraph.Text = "Before ";
             paragraph.AddField("2", "slidenum", fieldId: null, configure: run => {
                 run.Bold = true;
-                run.Color = "336699";
+                run.Color = OfficeColor.Parse("336699");
             });
             paragraph.AddLineBreak();
-            paragraph.AddRun("After").Italic = true;
+            paragraph.AddText("After").Italic = true;
 
             PowerPointParagraphInline field = Assert.Single(paragraph.InlineNodes,
                 node => node.Kind == PowerPointParagraphInlineKind.Field);
@@ -563,12 +564,13 @@ namespace OfficeIMO.Tests {
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
             PowerPointTextBox mixedText = authoredSlide.AddTextBox("Hello ",global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(300),global::OfficeIMO.OfficeLength.Points(80));
-            mixedText.Paragraphs[0].AddRun("Slides", run => {
+            {
+                PowerPointTextRun run = mixedText.Paragraphs[0].AddText("Slides");
                 run.Bold = true;
                 run.Strikethrough = true;
                 run.Capitalization = PowerPointCapitalization.SmallCaps;
                 run.SetSuperscript();
-            });
+            }
             authoredSlide.AddTextShape(OfficePresetShapeType.RightArrow, "Next step", OfficeIMO.OfficeLength.Points(340), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(80));
             PowerPointTableCell styledCell = authoredSlide.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(130),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(60)).GetCell(0, 0);
             styledCell.Text = "Styled cell";
@@ -1028,14 +1030,14 @@ namespace OfficeIMO.Tests {
                         Assert.True(run.Strikethrough);
                         Assert.Equal(PowerPointCapitalization.SmallCaps, run.Capitalization);
                         Assert.True(run.BaselinePercent > 0);
-                        Assert.Equal("336699", run.Color);
+                        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
                     },
                     run => {
                         Assert.Equal("text", run.Text);
                         Assert.True(run.Italic);
                         Assert.True(run.Underline);
                         Assert.True(run.BaselinePercent < 0);
-                        Assert.Equal("CC331A", run.Color);
+                        Assert.Equal(OfficeColor.Parse("CC331A"), run.Color);
                     });
                 GoogleSlidesTextBox roundTripText = Assert.Single(
                     Assert.Single(GoogleSlidesBatchCompiler.Build(imported.Document, new GoogleSlidesSaveOptions()).Slides)
@@ -1127,7 +1129,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(40d, rotatedShape.Left.ToPoints(), 6);
                 Assert.Equal(70d, rotatedShape.Top.ToPoints(), 6);
                 Assert.Equal(90d, Assert.Single(slide.Tables).Rotation ?? 0, 6);
-                Assert.Equal(90d, Assert.Single(slide.Pictures).Rotation ?? 0, 6);
+                Assert.Equal(90d, Assert.Single(slide.Images).Rotation ?? 0, 6);
                 Assert.Contains(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.TRANSFORM_PARTIAL"
                     && notice.Message.Contains("shape-skewed", StringComparison.Ordinal));
             }
@@ -1150,7 +1152,7 @@ namespace OfficeIMO.Tests {
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleWorkspaceImportMode.Native });
             using (imported.Document) {
                 PowerPointSlide slide = Assert.Single(imported.Document.Slides);
-                PowerPointPicture picture = Assert.Single(slide.Pictures);
+                PowerPointImage picture = Assert.Single(slide.Images);
                 Assert.Equal("image/gif", picture.ContentType);
                 Assert.Equal(PowerPointSlideBackgroundKind.Image, slide.GetBackground().Kind);
                 Assert.Equal("image/gif", slide.GetBackground().ImageContentType);
@@ -1185,7 +1187,7 @@ namespace OfficeIMO.Tests {
 
             using (imported.Document) {
                 Assert.Equal(0, untrustedRequests);
-                Assert.Empty(Assert.Single(imported.Document.Slides).Pictures);
+                Assert.Empty(Assert.Single(imported.Document.Slides).Images);
                 Assert.Contains(imported.Report.Notices, notice =>
                     notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
@@ -1217,7 +1219,7 @@ namespace OfficeIMO.Tests {
                     });
 
             using (imported.Document) {
-                Assert.Empty(Assert.Single(imported.Document.Slides).Pictures);
+                Assert.Empty(Assert.Single(imported.Document.Slides).Images);
                 Assert.Contains(imported.Report.Notices, notice =>
                     notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
@@ -1273,7 +1275,7 @@ namespace OfficeIMO.Tests {
             secondImage[secondImage.Length - 12] ^= 0x01;
             using PowerPointDocument presentation = PowerPointDocument.Create();
             using var firstStream = new MemoryStream(firstImage);
-            PowerPointPicture picture = presentation.AddSlide().AddImage(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
+            PowerPointImage picture = presentation.AddSlide().AddImage(firstStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, OfficeIMO.Drawing.OfficeImageFormat.Png);
@@ -1295,7 +1297,7 @@ namespace OfficeIMO.Tests {
             shape.Rotation = 22.5D;
             shape.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.25D);
             using var imageStream = new MemoryStream(imageBytes);
-            PowerPointPicture picture = slide.AddImage(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(10.5D), OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(40.75D), OfficeIMO.OfficeLength.Points(30.5D));
+            PowerPointImage picture = slide.AddImage(imageStream, OfficeIMO.Drawing.OfficeImageFormat.Png, OfficeIMO.OfficeLength.Points(10.5D), OfficeIMO.OfficeLength.Points(20.25D), OfficeIMO.OfficeLength.Points(40.75D), OfficeIMO.OfficeLength.Points(30.5D));
             picture.Crop(10, 5, 0, 0);
 
             CultureInfo previousCulture = CultureInfo.CurrentCulture;
@@ -1354,8 +1356,8 @@ namespace OfficeIMO.Tests {
 
             run.Bold = true;
             run.FontSize = global::OfficeIMO.OfficeLength.Points(18);
-            run.FontName = "Aptos";
-            run.Color = "336699";
+            run.FontFamily = "Aptos";
+            run.Color = OfficeColor.Parse("336699");
             run.Underline = true;
             run.Hyperlink = new Uri("https://example.test/");
             string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
@@ -1417,7 +1419,7 @@ namespace OfficeIMO.Tests {
             PowerPointParagraph paragraph = presentation.AddSlide()
                 .AddTextBox("First")
                 .Paragraphs.Single();
-            PowerPointTextRun second = paragraph.AddRun("Second");
+            PowerPointTextRun second = paragraph.AddText("Second");
             string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
 
             second.Capitalization = PowerPointCapitalization.SmallCaps;

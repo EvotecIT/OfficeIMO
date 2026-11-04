@@ -41,10 +41,9 @@ public sealed class PagesToWordResult : IDisposable {
     }
 
     /// <summary>Returns the converted Word document or throws when the conversion was lossy.</summary>
-    public WordDocument RequireNoLoss() {
+    public void ThrowIfLoss() {
         try {
-            Report.RequireNoLoss();
-            return Value;
+            Report.ThrowIfLoss();
         } catch {
             Value.Dispose();
             throw;

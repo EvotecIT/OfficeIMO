@@ -18,6 +18,28 @@ public sealed partial class OfficeTrueTypeFont {
     /// <summary>Whether this program has palette layers that shaped glyph substitution can select.</summary>
     internal bool HasColorGlyphs => _colorGlyphs != null;
 
+    private readonly bool _hasUnreadColorTable;
+
+    /// <summary>
+    /// Whether a mapped glyph depends on a bitmap, SVG or unreadable color table: its outline is
+    /// empty, so painting it as an ordinary glyph would leave a silent blank.
+    /// </summary>
+    internal bool ContainsUnpaintableColorGlyph(string text) {
+        if (!_hasUnreadColorTable) return false;
+        for (int index = 0; index < text.Length;) {
+            int glyph = ReadMappedGlyph(text, ref index, out int scalar);
+            if (glyph > 0 && _colorGlyphs?.HasColorGlyph(glyph) != true
+                && !char.IsWhiteSpace(char.ConvertFromUtf32(scalar), 0)
+                && HasEmptyOutline((ushort)glyph)) return true;
+        }
+        return false;
+    }
+
+    private bool HasEmptyOutline(ushort glyph) {
+        int start = GlyphOffset(glyph);
+        return start == GlyphOffset((ushort)(glyph + 1)) || ReadUInt16(_data, _glyf + start) == 0;
+    }
+
     internal bool TryGetColorTextContours(
         string text,
         double x,
@@ -124,7 +146,7 @@ public sealed partial class OfficeTrueTypeFont {
                     cancellationToken.ThrowIfCancellationRequested();
                     List<List<OfficePoint>> contours = ReadGlyphContours(
                         checked((ushort)layer.GlyphId),
-                        new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline),
+                        LayerPlacement(layer, scale, glyphX, glyphBaseline),
                         0,
                         verticalVariationBudget,
                         maximumPointCount,
@@ -165,7 +187,7 @@ public sealed partial class OfficeTrueTypeFont {
                 cancellationToken.ThrowIfCancellationRequested();
                 List<List<OfficePoint>> contours = ReadGlyphContours(
                     checked((ushort)layer.GlyphId),
-                    new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline),
+                    LayerPlacement(layer, scale, glyphX, glyphBaseline),
                     0,
                     variationBudget,
                     maximumPointCount,
@@ -177,5 +199,12 @@ public sealed partial class OfficeTrueTypeFont {
             if (!negativeDirection) cursor += glyph.AdvanceWidth * scale + (glyph.TrackingBoundary ? tracking : 0D);
         }
         return paintedLayers.Count > 0;
+    }
+
+    private static FontTransform LayerPlacement(OfficeColorGlyphLayer layer, double scale, double glyphX, double glyphBaseline) {
+        var placement = new FontTransform(scale, 0D, 0D, -scale, glyphX, glyphBaseline);
+        return layer.Transform is LayerTransform transform
+            ? placement.Compose(transform.Xx, transform.Xy, transform.Yx, transform.Yy, transform.Dx, transform.Dy)
+            : placement;
     }
 }

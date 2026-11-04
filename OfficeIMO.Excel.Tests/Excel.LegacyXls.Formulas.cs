@@ -977,7 +977,7 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedContent = true
             });
 
-            Assert.Equal("'NameFormula'!$C$1", document.GetNamedRange("TaxRate"));
+            Assert.Equal("'NameFormula'!$C$1", document.GetNamedRangeText("TaxRate"));
             Assert.True(document.Sheets[0].TryGetCellText(1, 2, out string? cachedText));
             Assert.Equal("2.5", cachedText);
 

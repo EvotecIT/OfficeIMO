@@ -227,12 +227,12 @@ public partial class Word {
             }
             if (kind.StartsWith("group", StringComparison.Ordinal)) {
                 p.AddShapeGroup(new[] {
-                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColorHex = "00A060" },
-                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColorHex = "00A060" }
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColor = OfficeColor.Parse("00A060") },
+                    new WordShapeGroupItem(WordShapeType.Rectangle, OfficeLength.Points(24), OfficeLength.Points(0), OfficeLength.Points(24), OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36)) { FillColor = OfficeColor.Parse("00A060") }
                 });
             } else if (kind.StartsWith("shape-inline", StringComparison.Ordinal)) {
                 WordShape shape = WordShape.AddDrawingShape(p, WordShapeType.Rectangle, OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36));
-                shape.FillColorHex = "00A060";
+                shape.FillColor = OfficeColor.Parse("00A060");
             } else if (kind.StartsWith("shape", StringComparison.Ordinal) || kind == "hidden-shape") {
                 WordShape shape = p.AddShape(OfficeIMO.OfficeLength.Points(48), OfficeIMO.OfficeLength.Points(kind.EndsWith("short", StringComparison.Ordinal) ? 6 : 36), OfficeIMO.OfficeColor.Parse("#00A060"));
                 if (kind == "hidden-shape") shape.Hidden = true;

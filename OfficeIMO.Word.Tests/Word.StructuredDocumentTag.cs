@@ -94,7 +94,7 @@ namespace OfficeIMO.Tests {
                 sdt1.Underline = WordUnderlineStyle.Single;
                 sdt1.FontFamily = "Calibri";
                 sdt1.FontSize = global::OfficeIMO.OfficeLength.Points(12);
-                sdt1.ColorHex = "2F5597";
+                sdt1.Color = OfficeColor.Parse("2F5597");
                 sdt1.Highlight = WordHighlightColor.Yellow;
 
                 var para2 = document.AddParagraph("Formatted fluent:");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                     .SetUnderline(WordUnderlineStyle.Single)
                     .SetFontFamily("Calibri")
                     .SetFontSize(global::OfficeIMO.OfficeLength.Points(14))
-                    .SetColorHex("C00000")
+                    .SetColor(OfficeColor.Parse("C00000"))
                     .SetHighlight(WordHighlightColor.LightGray);
 
                 document.Save();
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordUnderlineStyle.Single, props.Underline);
                 Assert.Equal(12, props.FontSize?.ToPoints());
                 Assert.Equal("Calibri", props.FontFamily);
-                Assert.Equal("2F5597", props.ColorHex);
+                Assert.Equal(OfficeColor.Parse("2F5597"), props.Color);
                 Assert.Equal(WordHighlightColor.Yellow, props.Highlight);
 
                 var fluent = document.GetStructuredDocumentTagByTag("TagFluent");
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordUnderlineStyle.Single, fluent.Underline);
                 Assert.Equal(14, fluent.FontSize?.ToPoints());
                 Assert.Equal("Calibri", fluent.FontFamily);
-                Assert.Equal("C00000", fluent.ColorHex);
+                Assert.Equal(OfficeColor.Parse("C00000"), fluent.Color);
                 Assert.Equal(WordHighlightColor.LightGray, fluent.Highlight);
             }
         }

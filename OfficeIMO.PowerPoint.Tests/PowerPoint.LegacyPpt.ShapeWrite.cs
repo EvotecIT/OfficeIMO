@@ -572,7 +572,7 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = source.AddSlide(
                     PowerPointSlideLayoutType.Blank);
                 using var stream = new MemoryStream(image, writable: false);
-                PowerPointPicture picture = slide.AddImage(stream,
+                PowerPointImage picture = slide.AddImage(stream,
                     OfficeIMO.Drawing.OfficeImageFormat.Png, global::OfficeIMO.OfficeLength.Emus(158750), global::OfficeIMO.OfficeLength.Emus(317500), global::OfficeIMO.OfficeLength.Emus(635000), global::OfficeIMO.OfficeLength.Emus(476250));
                 picture.Name = "Tertiary visibility picture";
                 picture.Hidden = true;
@@ -616,8 +616,8 @@ namespace OfficeIMO.Tests {
                        writable: false))
             using (PowerPointDocument imported = PowerPointDocument
                        .Load(input)) {
-                PowerPointPicture picture = Assert.Single(imported.Slides[0]
-                    .Pictures);
+                PowerPointImage picture = Assert.Single(imported.Slides[0]
+                    .Images);
                 Assert.False(picture.Hidden);
                 picture.Hidden = true;
 
@@ -642,7 +642,7 @@ namespace OfficeIMO.Tests {
                 writable: false);
             using PowerPointDocument reopened = PowerPointDocument
                 .Load(editedInput);
-            Assert.True(Assert.Single(reopened.Slides[0].Pictures).Hidden);
+            Assert.True(Assert.Single(reopened.Slides[0].Images).Hidden);
             Assert.Equal(editedBytes,
                 reopened.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));
         }

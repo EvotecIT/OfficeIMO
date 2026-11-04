@@ -149,16 +149,26 @@ Configure print settings:
 
 ```csharp
 sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
-sheet.PageSetup.PaperSize = 1;  // Letter
+sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
 sheet.PageSetup.FitToWidth = 1;
 sheet.PageSetup.FitToHeight = 0;  // 0 = as many pages as needed
+sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
+sheet.PageSetup.PrintArea = "A1:F40";
+sheet.PageSetup.SetPrintTitles(firstRow: 1, lastRow: 1);
 ```
 
 ## Sheet Headers and Footers
 
+Each header and footer has left, center and right sections. Excel codes such as `&P` (page), `&N` (pages) and `&D` (date) are kept.
+
 ```csharp
-sheet.HeaderFooter.OddHeader = "&CMonthly Sales Report";
-sheet.HeaderFooter.OddFooter = "&LPage &P of &N&R&D";
+sheet.PageSetup.Header.Center.Text = "Monthly Sales Report";
+sheet.PageSetup.Footer.Left.Text = "Page &P of &N";
+sheet.PageSetup.Footer.Right.Text = "&D";
+sheet.PageSetup.Header.Right.SetImage(File.ReadAllBytes("logo.png"), "image/png");
+
+// A different first page
+sheet.PageSetup.FirstPageHeader.Center.Text = "Monthly Sales Report - cover";
 ```
 
 ## Images
@@ -173,13 +183,20 @@ sheet.AddImageFromFile(10, 1, "chart.png", width: OfficeIMO.OfficeLength.Pixels(
 
 ```csharp
 // Freeze the top row
-sheet.FreezePane(1, 0);
+sheet.View.Freeze(topRows: 1);
 
 // Freeze the first column
-sheet.FreezePane(0, 1);
+sheet.View.Freeze(leftColumns: 1);
 
 // Freeze both (top-left corner stays fixed)
-sheet.FreezePane(1, 1);
+sheet.View.Freeze(1, 1);
+```
+
+Gridlines, zero values, row and column headings, direction and zoom are on `sheet.View` too:
+
+```csharp
+sheet.View.ShowGridlines = false;
+sheet.View.ZoomScale = 90;
 ```
 
 ## Iterating Over Sheets

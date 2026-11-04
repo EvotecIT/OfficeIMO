@@ -49,7 +49,7 @@ public sealed class XpsJpegXrExtendedColorTests {
                     "{ColorConvertedBitmap " + imageUri + " " + profileUri + "}");
                 page.ReplaceMarkup(markup);
             }
-            var svg = XpsDocument.Load(document.Save()).Pages[0].ToSvg();
+            var svg = XpsDocument.Load(document.ToBytes()).Pages[0].ToSvg();
             Assert.Empty(svg.Diagnostics);
             var markupSvg = XDocument.Parse(svg.Svg);
             string data = (string)markupSvg.Descendants().Single(e => e.Name.LocalName == "image").Attribute("href")!;

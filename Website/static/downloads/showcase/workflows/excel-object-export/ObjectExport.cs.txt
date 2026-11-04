@@ -120,13 +120,13 @@ internal static class ObjectExport
         }
 
         ExcelSheet sheet = document.Sheets[0];
-        sheet.Freeze(topRows: 1);
+        sheet.View.Freeze(topRows: 1);
         for (int column = 1; column <= 6; column++)
             sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(18));
         for (int row = 2; row <= assets.Length + 1; row++)
         {
-            sheet.FormatCell(row, 4, "d mmm yyyy");
-            sheet.FormatCell(row, 5, "#,##0.00");
+            sheet.Cell(row, 4).SetNumberFormat("d mmm yyyy");
+            sheet.Cell(row, 5).SetNumberFormat("#,##0.00");
         }
 
         sheet.Range("A1:F11").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);

@@ -74,7 +74,7 @@ public sealed class VisioTextInheritanceBoundaryTests {
                 OfficeImageExportResult result = candidate.Pages[0].ExportImage(format, new VisioImageExportOptions { Supersampling = 1 });
                 Assert.Contains(result.Diagnostics, d => d.Code == VisioNativeTextStyleResolver.DiagnosticCode && d.LossKind == OfficeConversionLossKind.Approximation);
                 OfficeImageExportPolicyException error = Assert.Throws<OfficeImageExportPolicyException>(() => candidate.Pages[0].ExportImage(format,
-                    new VisioImageExportOptions { Supersampling = 1, Policy = new OfficeImageExportPolicy { RequireNoLoss = true } }));
+                    new VisioImageExportOptions { Supersampling = 1, Policy = new OfficeImageExportPolicy { FailOnLoss = true } }));
                 Assert.Contains(error.Diagnostics, d => d.Code == VisioNativeTextStyleResolver.DiagnosticCode);
             }
         }
@@ -93,8 +93,8 @@ public sealed class VisioTextInheritanceBoundaryTests {
             }
             if (sectionDeleted) {
                 VisioXmlConversionReport report = document.ToLegacyXmlResult().Report;
-                Assert.Contains(report.FidelityDiagnostics, d => d.Code == "VDX_SECTION_DELETION");
-                Assert.Throws<OfficeConversionException>(() => report.RequireNoLoss());
+                Assert.Contains(report.Diagnostics, d => d.Code == "VDX_SECTION_DELETION");
+                Assert.Throws<OfficeConversionException>(() => report.ThrowIfLoss());
             }
         }
     }

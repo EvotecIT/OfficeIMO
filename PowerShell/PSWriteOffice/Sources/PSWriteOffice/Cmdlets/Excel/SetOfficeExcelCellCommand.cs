@@ -103,15 +103,19 @@ public sealed class SetOfficeExcelCellCommand : PSWriteOffice.Cmdlets.OfficeMuta
         }
 
         if (hasValueChange) {
-            sheet.Cell(row, column, PowerShellObjectNormalizer.NormalizeCellValueForTable(Value), Formula, NumberFormat);
+            ExcelCell cell = sheet.Cell(row, column);
+            object? normalizedValue = PowerShellObjectNormalizer.NormalizeCellValueForTable(Value);
+            if (normalizedValue != null) cell.SetValue(normalizedValue);
+            if (!string.IsNullOrEmpty(Formula)) cell.SetFormula(Formula!);
+            if (!string.IsNullOrEmpty(NumberFormat)) cell.SetNumberFormat(NumberFormat!);
         }
 
         if (!string.IsNullOrWhiteSpace(BackgroundColor)) {
-            sheet.CellBackground(row, column, BackgroundColor!);
+            sheet.Cell(row, column).SetFillColor(BackgroundColor!);
         }
 
         if (!string.IsNullOrWhiteSpace(GradientFrom) && !string.IsNullOrWhiteSpace(GradientTo)) {
-            sheet.CellGradientBackground(row, column, GradientFrom!, GradientTo!, GradientDegree);
+            sheet.Cell(row, column).SetGradientFill(GradientFrom!, GradientTo!, GradientDegree);
         }
         WritePassThru(sheet);
     }

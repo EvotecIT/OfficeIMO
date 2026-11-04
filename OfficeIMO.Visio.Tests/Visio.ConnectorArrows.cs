@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
 
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Page-1");
-            VisioShape start = new("1", 1, 1, 1, 1, "Start");
-            VisioShape end = new("2", 3, 2, 1, 1, "End");
+            VisioShape start = new("1", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(1), "Start");
+            VisioShape end = new("2", OfficeLength.Inches(3), OfficeLength.Inches(2), OfficeLength.Inches(1), OfficeLength.Inches(1), "End");
             page.Shapes.Add(start);
             page.Shapes.Add(end);
 

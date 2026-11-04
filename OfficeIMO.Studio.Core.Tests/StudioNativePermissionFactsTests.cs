@@ -52,8 +52,8 @@ public sealed class StudioNativePermissionFactsTests : IDisposable {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC");
         string path = Path.Combine(_root, "accessible-image.pdf");
         File.WriteAllBytes(path, PdfDocument.Create(document => document.Content(content => {
-                content.Paragraph(paragraph => paragraph.Text("Accessible text"));
-                content.Image(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24));
+                content.AddParagraph(paragraph => paragraph.AddText("Accessible text"));
+                content.AddImage(png, global::OfficeIMO.OfficeLength.Points(24), global::OfficeIMO.OfficeLength.Points(24));
             }))
             .Security.Encrypt(new PdfStandardEncryptionOptions("reader") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.Accessibility

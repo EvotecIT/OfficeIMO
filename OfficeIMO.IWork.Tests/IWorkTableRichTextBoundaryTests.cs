@@ -141,7 +141,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Plain_text_cell_does_not_traverse_style_inheritance() {
-        var options = new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 2 };
+        var options = new IWorkReadOptions { MaxTextStyleInheritanceDepth = 2 };
         const ulong listId = 1;
         const ulong wrapperId = 2;
         const ulong storageId = 3;
@@ -205,7 +205,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Unused_rich_catalog_aliases_do_not_consume_cell_text_budget() {
-        var options = new IWorkReadOptions { MaximumProjectedTextItems = 2 };
+        var options = new IWorkReadOptions { MaxProjectedTextItems = 2 };
         var records = new[] {
             Record(1, 6005, Message(VarintField(1, 8),
                 BytesField(3, Message(VarintField(1, 1), ReferenceField(9, 2))),

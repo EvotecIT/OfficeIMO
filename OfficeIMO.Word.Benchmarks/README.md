@@ -23,6 +23,17 @@ dependencies of `OfficeIMO.Word`.
 | Create structured report | Create a bold title, summary, header, footer, and a two-column table with 100 or 1,000 data rows | Exact structure, formatting signal, and every cell value |
 | Read paragraphs | Load the same styled DOCX and traverse every body paragraph through each library's public API | Paragraph count, character count, and deterministic checksum |
 | Replace and save | Load the same DOCX, replace every `{{Status}}` token, and serialize the result | Exact replacement count implied by every output paragraph and no remaining token |
+| Create with images | Create one caption and one inline PNG per item (10 or 100 distinct images) and return the bytes | Every caption, one embedded picture per item, and the exact source bytes of each image |
+| Fill a template | Load a single-run template, replace ten distinct `{{Field}}` tokens, and save | Every filled paragraph |
+| Read tables | Load a 100- or 1,000-row report and read every table cell through the library's table model | Cell count, character count, and deterministic checksum |
+
+Paragraph creation and paragraph reading also run at 10,000 items as the
+large-document case. Image payloads are distinct (each carries its own PNG text
+chunk) so no library can deduplicate them. Libraries without a document-level
+replace API, NPOI and the Open XML SDK, fill templates in one pass over runs or
+text nodes; OfficeIMO and DocX call their replace API once per field. The table
+fixture is the Open XML SDK report output with a minimal style catalog, which
+DocX requires before it enumerates content.
 
 Corpus construction and validation run in global setup, outside measured
 operations. Creation and replacement include serialization because the useful

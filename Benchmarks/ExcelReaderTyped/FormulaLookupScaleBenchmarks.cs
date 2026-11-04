@@ -25,13 +25,12 @@ namespace OfficeIMO.Excel.ReaderComparison.Benchmarks {
             _document = ExcelDocument.Create();
             var source = _document.AddSheet("Source");
             for (int key = 1; key <= KeyCount; key++) {
-                source.CellValue(key, 1, key);
-                source.CellValue(key, 2, key * 10);
+                source.Cell(key, 1).SetValue(key);
+                source.Cell(key, 2).SetValue(key * 10);
             }
             _report = _document.AddSheet("Report");
             for (int index = 0; index < 256; index++)
-                _report.CellFormula(index + 1, 1,
-                    $"XLOOKUP({ExpectedKey(index)},Source!A1:A{KeyCount},Source!B1:B{KeyCount},,0,{SearchMode})");
+                _report.Cell(index + 1, 1).SetFormula($"XLOOKUP({ExpectedKey(index)},Source!A1:A{KeyCount},Source!B1:B{KeyCount},,0,{SearchMode})");
         }
 
         [Benchmark]

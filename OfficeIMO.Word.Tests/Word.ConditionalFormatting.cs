@@ -23,8 +23,8 @@ namespace OfficeIMO.Tests {
                     "Status",
                     "Done",
                     WordTextMatchType.Equals,
-                    matchFillColorHex: "92D050",
-                    noMatchFillColorHex: "FF0000",
+                    matchFillColor: OfficeColor.Parse("92D050"),
+                    noMatchFillColor: OfficeColor.Parse("FF0000"),
                     matchTextFormat: p => p.SetBold(),
                     noMatchTextFormat: p => p.SetUnderline(WordUnderlineStyle.Single));
 
@@ -33,8 +33,8 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordTable table = document.Tables[0];
-                Assert.Equal("92D050", table.Rows[1].Cells[1].ShadingFillColorHex);
-                Assert.Equal("FF0000", table.Rows[2].Cells[1].ShadingFillColorHex);
+                Assert.Equal(OfficeColor.Parse("92D050"), table.Rows[1].Cells[1].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("FF0000"), table.Rows[2].Cells[1].ShadingFillColor);
                 Assert.True(table.Rows[1].Cells[1].Paragraphs[0].Bold);
                 Assert.Equal(WordUnderlineStyle.Single, table.Rows[2].Cells[1].Paragraphs[0].Underline);
             }
@@ -102,15 +102,15 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordTable table = document.Tables[0];
-                Assert.Equal("90EE90", table.Rows[1].Cells[1].ShadingFillColorHex);
-                Assert.Equal("FFFF00", table.Rows[2].Cells[1].ShadingFillColorHex);
-                Assert.Equal("FFB6C1", table.Rows[3].Cells[1].ShadingFillColorHex);
-                Assert.Equal("90EE90", table.Rows[4].Cells[1].ShadingFillColorHex);
+                Assert.Equal(OfficeColor.Parse("90EE90"), table.Rows[1].Cells[1].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("FFFF00"), table.Rows[2].Cells[1].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("FFB6C1"), table.Rows[3].Cells[1].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("90EE90"), table.Rows[4].Cells[1].ShadingFillColor);
 
-                Assert.Equal("90EE90", table.Rows[1].Cells[0].ShadingFillColorHex);
-                Assert.Equal("FFFF00", table.Rows[2].Cells[0].ShadingFillColorHex);
-                Assert.Equal("FFB6C1", table.Rows[3].Cells[0].ShadingFillColorHex);
-                Assert.Equal("87CEFA", table.Rows[4].Cells[0].ShadingFillColorHex);
+                Assert.Equal(OfficeColor.Parse("90EE90"), table.Rows[1].Cells[0].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("FFFF00"), table.Rows[2].Cells[0].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("FFB6C1"), table.Rows[3].Cells[0].ShadingFillColor);
+                Assert.Equal(OfficeColor.Parse("87CEFA"), table.Rows[4].Cells[0].ShadingFillColor);
 
                 Assert.True(table.Rows[1].Cells[1].Paragraphs[0].Bold);
                 Assert.True(table.Rows[1].Cells[0].Paragraphs[0].Bold);

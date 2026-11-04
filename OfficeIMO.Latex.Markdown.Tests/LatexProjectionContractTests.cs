@@ -78,7 +78,7 @@ public sealed class LatexProjectionContractTests {
         Assert.Equal("Cost 50%", Assert.Single(result.Value.Blocks.OfType<TableBlock>()).Attributes.GetAttribute("caption"));
         Assert.Equal("Useful 100%", Assert.Single(result.Value.Blocks.OfType<CalloutBlock>()).Title);
         foreach (string feature in new[] { "metadata:author", "figure-caption", "table-caption", "theorem-title" })
-            Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD115" && diagnostic.Feature == feature);
+            Assert.Contains(result.Report.NativeDiagnostics, diagnostic => diagnostic.Code == "LATEXMD115" && diagnostic.Feature == feature);
     }
 
     [Fact]

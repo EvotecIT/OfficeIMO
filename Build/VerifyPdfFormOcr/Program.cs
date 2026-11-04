@@ -12,7 +12,7 @@ if (Directory.Exists(folder)) throw new ArgumentException("Use a new task-owned 
 Directory.CreateDirectory(folder);
 string output = Path.Combine(folder, "reviewed-form.pdf");
 byte[] original = File.ReadAllBytes(sourcePath);
-var source = PdfDocument.Load(original);
+var source = PdfDocument.Load(new MemoryStream(original, writable: false));
 var engine = TesseractOcrEngine.CreateDefault(new() { ExecutablePath = args[3] });
 var review = await new OfficeWorkflowRunner().PreparePdfFormOcrAsync(source, engine, new() {
     Language = "eng", Dpi = 144, MaxPages = 5, MaxPixelsPerPage = 10_000_000,
@@ -23,7 +23,7 @@ var values = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAll
 var accepted = values.ToDictionary(pair => review.Proposals.Single(proposal => proposal.Field.Name == pair.Key),
     pair => PdfFormFieldValue.From(pair.Value));
 var result = review.Apply(source, accepted);
-result.Save(output).RequireSuccess();
+result.Save(output);
 var readback = PdfDocument.Load(output).Inspect();
 var report = new {
     review.SourceFingerprint, Provider = engine.Id,

@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderIntentProfile profile,
         HtmlRenderEncoder encoder,
         HtmlRenderOptions options) {
-        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, options);
+        HtmlRenderRequest request = HtmlRenderRequest.Create(profile, encoder, HtmlPdfExportOptions.ForImageExport(options));
         HtmlRenderResult result = HtmlRenderEngine.Execute(source, request);
         IReadOnlyList<OfficeImageExportResult> images = result.ExportImages();
 
@@ -78,7 +78,7 @@ public sealed partial class HtmlRenderingTests {
         string text = NormalizeCorpusWhitespace(document.Text);
         Assert.All(scenario.Manifest.TextMarkers, marker =>
             Assert.Contains(NormalizeCorpusWhitespace(marker), text, StringComparison.Ordinal));
-        Assert.DoesNotContain(document.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(document.NativeDiagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
     }
 
     private static HtmlRenderOptions CreateHeldOutScreenOptions() => new() {

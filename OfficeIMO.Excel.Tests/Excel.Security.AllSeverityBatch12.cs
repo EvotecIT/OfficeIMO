@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateBatch12Workbook() {
             using ExcelDocument document = ExcelDocument.Create();
-            document.AddSheet("Data").CellValue(1, 1, "safe");
+            document.AddSheet("Data").Cell(1, 1).SetValue("safe");
             return document.ToBytes();
         }
 

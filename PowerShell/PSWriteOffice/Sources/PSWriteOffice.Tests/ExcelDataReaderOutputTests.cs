@@ -87,9 +87,9 @@ public sealed class ExcelDataReaderOutputTests
             using (var workbook = ExcelDocument.Load(destination))
             {
                 var sheet = Assert.Single(workbook.Sheets);
-                Assert.Equal("Name", sheet.CellAt(1, 1).GetValue<string>());
-                Assert.Equal("first", sheet.CellAt(2, 1).GetValue<string>());
-                Assert.Equal(7, sheet.CellAt(2, 2).GetValue<int>());
+                Assert.Equal("Name", sheet.Cell(1, 1).GetValue<string>());
+                Assert.Equal("first", sheet.Cell(2, 1).GetValue<string>());
+                Assert.Equal(7, sheet.Cell(2, 2).GetValue<int>());
             }
 
             Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(directory));
@@ -156,7 +156,7 @@ public sealed class ExcelDataReaderOutputTests
             Assert.Equal(ownerOnly, File.GetUnixFileMode(destination));
             using (var workbook = ExcelDocument.Load(destination))
             {
-                Assert.Equal("first", Assert.Single(workbook.Sheets).CellAt(2, 1).GetValue<string>());
+                Assert.Equal("first", Assert.Single(workbook.Sheets).Cell(2, 1).GetValue<string>());
             }
             Assert.Equal(new[] { destination }, Directory.GetFileSystemEntries(directory));
         }

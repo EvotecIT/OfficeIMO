@@ -125,7 +125,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 left + (cellWidth - thumbWidth) / 2D, top, thumbWidth, thumbHeight, options);
             canvas.Text("Slide " + slides[index].Number.ToString(CultureInfo.InvariantCulture),
                 global::OfficeIMO.OfficeLength.Points(left), global::OfficeIMO.OfficeLength.Points(top + thumbHeight + 2D), global::OfficeIMO.OfficeLength.Points(cellWidth), global::OfficeIMO.OfficeLength.Points(labelHeight), fontSize: global::OfficeIMO.OfficeLength.Points(8D),
-                color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96), align: PdfCore.PdfAlign.Center);
+                color: global::OfficeIMO.OfficeColor.FromRgb(80, 86, 96), align: global::OfficeIMO.OfficeAlignment.Center);
             if (notesHeight > 0D && slides[index].Slide.Notes.TryGetText(out string notes) &&
                 !string.IsNullOrWhiteSpace(notes)) {
                 RenderSpeakerNotes(canvas, notes, left, top + thumbHeight + labelHeight + 2D, cellWidth, notesHeight,
@@ -311,10 +311,10 @@ public static partial class PowerPointPdfConverterExtensions {
         };
     }
 
-    private static void RenderPicture(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointPicture picture, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
+    private static void RenderPicture(PdfCore.PdfPageCanvas canvas, PptCore.PowerPointImage picture, double x, double y, double width, double height, int slideNumber, PowerPointPdfExportOptions options) {
         try {
             PdfCore.PdfImageStyle style = new();
-            PptCore.PowerPointPictureCrop crop = picture.GetCrop();
+            PptCore.PowerPointImageCrop crop = picture.GetCrop();
             if (crop.HasCrop) {
                 style.SourceCrop = new PdfCore.PdfImageSourceCrop(crop.Left, crop.Top, crop.Right, crop.Bottom);
             } else {
@@ -330,7 +330,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
             byte[] imageBytes = picture.GetImageBytes(GetImageReadLimit(options));
             options.EmbeddedImageBytesRead += imageBytes.Length;
-            AddPowerPointPictureAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
+            AddPowerPointImageAspectRatioDiagnostic(options, slideNumber, imageBytes, crop, style.Fit, x, y, width, height);
 
             canvas.Image(
                 imageBytes,
@@ -353,7 +353,7 @@ public static partial class PowerPointPdfConverterExtensions {
                 "unsupported-picture",
                 "Skipped a PowerPoint picture because it could not be embedded as a PDF image: " + ex.Message,
                 PdfCore.PdfLayoutDiagnosticKind.SkippedContent,
-                "PowerPointPicture",
+                "PowerPointImage",
                 "The PowerPoint picture could not be embedded as a PDF image.",
                 x,
                 y,
@@ -468,29 +468,29 @@ public static partial class PowerPointPdfConverterExtensions {
 
 
 
-    private static PdfCore.PdfAlign MapAlign(TextAlignmentTypeValues? alignment) {
+    private static global::OfficeIMO.OfficeAlignment MapAlign(TextAlignmentTypeValues? alignment) {
         if (alignment == TextAlignmentTypeValues.Center) {
-            return PdfCore.PdfAlign.Center;
+            return global::OfficeIMO.OfficeAlignment.Center;
         }
 
         if (alignment == TextAlignmentTypeValues.Right) {
-            return PdfCore.PdfAlign.Right;
+            return global::OfficeIMO.OfficeAlignment.Right;
         }
 
-        return PdfCore.PdfAlign.Left;
+        return global::OfficeIMO.OfficeAlignment.Left;
     }
 
-    private static PdfCore.PdfColumnAlign? MapColumnAlign(TextAlignmentTypeValues? alignment) {
+    private static global::OfficeIMO.OfficeAlignment? MapColumnAlign(TextAlignmentTypeValues? alignment) {
         if (alignment == TextAlignmentTypeValues.Center) {
-            return PdfCore.PdfColumnAlign.Center;
+            return global::OfficeIMO.OfficeAlignment.Center;
         }
 
         if (alignment == TextAlignmentTypeValues.Right) {
-            return PdfCore.PdfColumnAlign.Right;
+            return global::OfficeIMO.OfficeAlignment.Right;
         }
 
         if (alignment == TextAlignmentTypeValues.Left) {
-            return PdfCore.PdfColumnAlign.Left;
+            return global::OfficeIMO.OfficeAlignment.Left;
         }
 
         return null;

@@ -28,7 +28,7 @@ public class HtmlTableTextInheritance {
             </div></body>
             """;
         using var document = HtmlConversionDocument.Parse(html).ToWord(
-            new WordHtmlImportOptions { TableCaptionPosition = captionPosition });
+            new HtmlWordExportOptions { TableCaptionPosition = captionPosition });
         using var artifact = new System.IO.MemoryStream(document.ToBytes());
         using var package = WordprocessingDocument.Open(artifact, false);
         var errors = new OpenXmlValidator().Validate(package).ToArray();

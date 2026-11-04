@@ -68,7 +68,7 @@ public sealed class BrowserWordPdfMergeTests {
             BrowserPdfProfileCatalog.Faithful);
         byte[] converted = conversion.Bytes;
         byte[] additional = PdfDocument.Create(pdf => pdf.Content(content => content
-            .Paragraph(paragraph => paragraph.Text("Additional approval record")))).ToBytes();
+            .AddParagraph(paragraph => paragraph.AddText("Additional approval record")))).ToBytes();
         byte[] convertedSnapshot = (byte[])converted.Clone();
         byte[] additionalSnapshot = (byte[])additional.Clone();
         SelectedDocument[] files = convertedFirst

@@ -177,7 +177,7 @@ internal static class IWorkArchiveParser {
             cancellationToken.ThrowIfCancellationRequested();
             byte[] stream;
             try {
-                long remaining = options.MaximumTotalDecompressedIwaBytes - totalDecompressedBytes;
+                long remaining = options.MaxTotalDecompressedIwaBytes - totalDecompressedBytes;
                 stream = IWorkSnappy.DecodeIwa(entry.Bytes, options, remaining, cancellationToken);
                 totalDecompressedBytes = checked(totalDecompressedBytes + stream.LongLength);
                 ParseStream(stream, entry.Path, records, options, ref archiveReferenceCount,
@@ -199,7 +199,7 @@ internal static class IWorkArchiveParser {
         while (offset < stream.Length) {
             cancellationToken.ThrowIfCancellationRequested();
             ulong rawInfoLength = IWorkProtobuf.ReadVarint(stream, ref offset);
-            if (rawInfoLength > (ulong)options.MaximumArchiveInfoBytes || rawInfoLength > int.MaxValue) {
+            if (rawInfoLength > (ulong)options.MaxArchiveInfoBytes || rawInfoLength > int.MaxValue) {
                 throw new InvalidDataException($"ArchiveInfo length {rawInfoLength} exceeds the configured limit.");
             }
             int infoLength = (int)rawInfoLength;
@@ -207,12 +207,12 @@ internal static class IWorkArchiveParser {
             byte[] infoBytes = Slice(stream, offset, infoLength);
             offset += infoLength;
             int messageCount = IWorkProtobuf.CountFields(
-                infoBytes, 2, options.MaximumProtobufFieldCount);
+                infoBytes, 2, options.MaxProtobufFieldCount);
             if (messageCount == 0) {
                 throw new InvalidDataException("ArchiveInfo does not declare any payloads.");
             }
-            if (messageCount > options.MaximumRecordCount - records.Count) {
-                throw new InvalidDataException($"IWA record count exceeds the configured limit of {options.MaximumRecordCount}.");
+            if (messageCount > options.MaxRecordCount - records.Count) {
+                throw new InvalidDataException($"IWA record count exceeds the configured limit of {options.MaxRecordCount}.");
             }
             IWorkWireMessage archiveInfo = IWorkProtobuf.Parse(infoBytes, options);
             ulong? identifier = archiveInfo.GetUnsigned(1);
@@ -245,24 +245,24 @@ internal static class IWorkArchiveParser {
                 if (!rawType.HasValue || rawType.Value > uint.MaxValue) {
                     throw new InvalidDataException($"MessageInfo for object {identifier.Value} has an invalid registry type.");
                 }
-                if (!rawLength.HasValue || rawLength.Value > (ulong)options.MaximumRecordBytes || rawLength.Value > int.MaxValue) {
+                if (!rawLength.HasValue || rawLength.Value > (ulong)options.MaxRecordBytes || rawLength.Value > int.MaxValue) {
                     throw new InvalidDataException($"MessageInfo for object {identifier.Value} has an invalid payload length.");
                 }
                 int payloadLength = (int)rawLength.Value;
                 if (offset > stream.Length - payloadLength) {
                     throw new InvalidDataException($"Truncated payload for object {identifier.Value} at offset {offset}.");
                 }
-                int remainingArchiveReferences = options.MaximumArchiveReferenceCount
+                int remainingArchiveReferences = options.MaxArchiveReferenceCount
                     - archiveReferenceCount;
                 IReadOnlyList<ulong> versions = messageInfo.GetRepeatedUnsigned(
                     2, packed: true, remainingArchiveReferences);
                 archiveReferenceCount += versions.Count;
-                remainingArchiveReferences = options.MaximumArchiveReferenceCount
+                remainingArchiveReferences = options.MaxArchiveReferenceCount
                     - archiveReferenceCount;
                 IReadOnlyList<ulong> objectReferences = messageInfo.GetRepeatedUnsigned(
                     5, packed: true, remainingArchiveReferences);
                 archiveReferenceCount += objectReferences.Count;
-                remainingArchiveReferences = options.MaximumArchiveReferenceCount
+                remainingArchiveReferences = options.MaxArchiveReferenceCount
                     - archiveReferenceCount;
                 IReadOnlyList<ulong> dataReferences = messageInfo.GetRepeatedUnsigned(
                     6, packed: true, remainingArchiveReferences);

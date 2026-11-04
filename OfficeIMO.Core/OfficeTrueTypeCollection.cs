@@ -5,7 +5,12 @@ internal static class OfficeTrueTypeCollection {
     internal const int MaxExtractedTrueTypeCollectionFontBytes = 64 * 1024 * 1024;
     internal const int MaxExtractedTrueTypeCollectionBytes = 128 * 1024 * 1024;
 
-    internal static System.Collections.Generic.List<byte[]> ExtractPrograms(byte[] data) {
+    /// <summary>
+    /// Extracts TrueType programs. Every face is validated and counted against the limits, but only
+    /// faces accepted by <paramref name="selectedFace"/> are copied, so a large collection costs
+    /// what the caller needs from it.
+    /// </summary>
+    internal static System.Collections.Generic.List<byte[]> ExtractPrograms(byte[] data, System.Predicate<int>? selectedFace = null) {
         if (!IsTrueTypeCollection(data)) {
             return HasTrueTypeOutlines(data, 0)
                 ? new System.Collections.Generic.List<byte[]> { data }
@@ -31,13 +36,14 @@ internal static class OfficeTrueTypeCollection {
             // use them; reject them before copying potentially large shared tables.
             // ExtractFace remains the format-neutral single-face extraction boundary.
             if (!HasTrueTypeOutlines(data, (int)offset)) continue;
-            byte[] font = ExtractTrueTypeCollectionFont(data, (int)offset);
-            extractedBytes = checked(extractedBytes + font.Length);
+            System.Collections.Generic.List<FontTableCopyRecord> tables =
+                ReadCollectionFontTables(data, (int)offset, MaxExtractedTrueTypeCollectionFontBytes, out int fontLength);
+            extractedBytes = checked(extractedBytes + fontLength);
             if (extractedBytes > MaxExtractedTrueTypeCollectionBytes) {
                 throw new System.NotSupportedException("TrueType collection extracted font data exceeds supported limits.");
             }
 
-            fonts.Add(font);
+            if (selectedFace == null || selectedFace(i)) fonts.Add(CopyCollectionFont(data, (int)offset, tables, fontLength));
         }
 
         return fonts;
@@ -75,6 +81,13 @@ internal static class OfficeTrueTypeCollection {
         data[3] == (byte)'f';
 
     private static byte[] ExtractTrueTypeCollectionFont(byte[] collectionData, int fontOffset, int maximumFontBytes = MaxExtractedTrueTypeCollectionFontBytes) {
+        System.Collections.Generic.List<FontTableCopyRecord> tables =
+            ReadCollectionFontTables(collectionData, fontOffset, maximumFontBytes, out int fontLength);
+        return CopyCollectionFont(collectionData, fontOffset, tables, fontLength);
+    }
+
+    private static System.Collections.Generic.List<FontTableCopyRecord> ReadCollectionFontTables(
+        byte[] collectionData, int fontOffset, int maximumFontBytes, out int fontLength) {
         EnsureRange(collectionData, fontOffset, 12);
         ushort tableCount = ReadUInt16(collectionData, fontOffset + 4);
         if (tableCount == 0) {
@@ -104,9 +117,16 @@ internal static class OfficeTrueTypeCollection {
             throw new System.NotSupportedException("TrueType collection font data exceeds supported limits.");
         }
 
-        byte[] fontData = new byte[outputOffset];
+        fontLength = outputOffset;
+        return tables;
+    }
+
+    private static byte[] CopyCollectionFont(byte[] collectionData, int fontOffset,
+        System.Collections.Generic.List<FontTableCopyRecord> tables, int fontLength) {
+        int tableCount = tables.Count;
+        byte[] fontData = new byte[fontLength];
         System.Array.Copy(collectionData, fontOffset, fontData, 0, 4);
-        WriteUInt16(fontData, 4, tableCount);
+        WriteUInt16(fontData, 4, (ushort)tableCount);
         WriteSearchParameters(fontData, tableCount);
         for (int i = 0; i < tables.Count; i++) {
             FontTableCopyRecord table = tables[i];

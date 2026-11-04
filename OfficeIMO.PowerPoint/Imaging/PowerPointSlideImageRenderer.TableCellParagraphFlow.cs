@@ -202,7 +202,7 @@ namespace OfficeIMO.PowerPoint {
                     paragraph, cell.Cell.TextBody?.ListStyle,
                     cell.SlidePart?.SlideLayoutPart?.SlideMasterPart?.SlideMaster?.TextStyles?.OtherStyle);
                 return new OfficeFontInfo(effective.FontName ?? PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                        cell.FontName, cell.OwnerPart) ?? "Calibri",
+                        cell.FontFamily, cell.OwnerPart) ?? "Calibri",
                     mapping.MapFontSize(effective.FontSizePoints ?? cell.FontSize?.ToPoints() ?? 10),
                     ResolveEffectiveFontStyle(effective, cell.Bold, cell.Italic));
             }
@@ -226,7 +226,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return new OfficeFontInfo(PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                firstRun?.FontName ?? cell.FontName, firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
+                firstRun?.FontFamily ?? cell.FontFamily, firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
                 mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10), style);
         }
 

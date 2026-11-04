@@ -75,5 +75,5 @@ public sealed class EpubRegionInkInspectionTests {
         book.SetContentXml("page", xml); return book;
     }
     private static EpubDocument Read(EpubPublication book) => EpubDocument.Load(new MemoryStream(book.Write().Bytes),
-        new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
 }

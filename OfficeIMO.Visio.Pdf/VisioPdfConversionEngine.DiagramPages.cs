@@ -5,7 +5,7 @@ using OfficeIMO.Pdf;
 namespace OfficeIMO.Visio.Pdf;
 
 internal static partial class VisioPdfConversionEngine {
-    private static PdfDocumentConversionResult ConvertDiagramPages(VisioDocument source, VisioToPdfOptions options, CancellationToken token) {
+    private static PdfDocumentConversionResult ConvertDiagramPages(VisioDocument source, VisioPdfExportOptions options, CancellationToken token) {
         VisioDrawingOptions drawingOptions = options.DrawingOptions?.Clone() ?? new VisioDrawingOptions();
         if (options.SourceName != null) drawingOptions.SourceName = options.SourceName;
         var report = new PdfConversionReport();

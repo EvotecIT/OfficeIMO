@@ -67,7 +67,7 @@ internal static partial class RtfPdfConverter {
 
         public OfficeIMO.Pdf.PdfTextRun CreateDefaultRun(string text, bool bold = false, OfficeIMO.OfficeLength? fontSize = null) =>
             new OfficeIMO.Pdf.PdfTextRun(text, bold: bold, fontSize: fontSize,
-                font: ResolveFont(null, bold, italic: false), fontFamily: ResolveFontFamily(null));
+                standardFont: ResolveFont(null, bold, italic: false), fontFamily: ResolveFontFamily(null));
 
         public void AddNote(RtfNote note, string marker) {
             _noteReferences.Add(new PdfNoteReference(note, marker, _noteReferences.Count + 1));

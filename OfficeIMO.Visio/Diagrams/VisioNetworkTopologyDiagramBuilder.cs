@@ -377,7 +377,7 @@ namespace OfficeIMO.Visio.Diagrams {
             ValidateZones();
             SizePageForLayout();
 
-            VisioPage page = _document.AddPage(_pageName, _pageWidth, _pageHeight, _unit);
+            VisioPage page = _document.AddPageInches(_pageName, _pageWidth, _pageHeight, _unit);
             page.Grid(visible: false, snap: true);
             AddZones(page);
             AddNodes(page);
@@ -474,7 +474,7 @@ namespace OfficeIMO.Visio.Diagrams {
             }
 
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
-            VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
+            VisioShape title = page.AddTextBoxInches(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - _leftMargin - _rightMargin), _titleHeight, _titleText, _unit);
             title.TextStyle = CreateTitleTextStyle();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
@@ -551,9 +551,9 @@ namespace OfficeIMO.Visio.Diagrams {
                 }
 
                 if (callout.UsePlacement) {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.Placement, callout.Gap, callout.Options);
                 } else {
-                    page.AddCallout(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
+                    page.AddCalloutInches(target.Shape, callout.Id, callout.Text, callout.PinX, callout.PinY, callout.Options);
                 }
             }
         }

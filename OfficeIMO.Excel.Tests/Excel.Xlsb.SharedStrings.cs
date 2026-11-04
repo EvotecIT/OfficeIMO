@@ -233,13 +233,13 @@ public partial class Excel {
     private static byte[] CreateSstWorkbook(bool largeTable, bool repeatFirstValue = false) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Text");
-        sheet.CellValue(1, 2, "Value");
-        sheet.CellValue(2, 1, "Replace");
-        sheet.CellValue(2, 2, "Other");
-        sheet.CellValue(3, 1, "After");
-        if (repeatFirstValue) sheet.CellValue(4, 1, "Replace");
-        if (largeTable) for (int row = 4; row < 270; row++) sheet.CellValue(row, 1, "Item" + row);
+        sheet.Cell(1, 1).SetValue("Text");
+        sheet.Cell(1, 2).SetValue("Value");
+        sheet.Cell(2, 1).SetValue("Replace");
+        sheet.Cell(2, 2).SetValue("Other");
+        sheet.Cell(3, 1).SetValue("After");
+        if (repeatFirstValue) sheet.Cell(4, 1).SetValue("Replace");
+        if (largeTable) for (int row = 4; row < 270; row++) sheet.Cell(row, 1).SetValue("Item" + row);
         return document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb,  XlsbUseSharedStrings = true });
     }
 

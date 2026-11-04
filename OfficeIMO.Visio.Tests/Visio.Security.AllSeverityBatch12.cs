@@ -14,7 +14,7 @@ public sealed class VisioAllSeverityBatch12SecurityTests {
         source.AddPage("Page-1");
         byte[] package = source.ToBytes();
         var restrictive = new VisioLoadOptions {
-            MaxInputBytes = package.Length - 1L
+            Limits = { MaxInputBytes = package.Length - 1L }
         };
 
         using var stream = new Batch12NonSeekableStream(package);
@@ -28,7 +28,7 @@ public sealed class VisioAllSeverityBatch12SecurityTests {
 
         using var validStream = new MemoryStream(package, writable: false);
         VisioDocument valid = VisioDocument.Load(validStream,
-            new VisioLoadOptions { MaxInputBytes = package.Length });
+            new VisioLoadOptions { Limits = { MaxInputBytes = package.Length } });
         Assert.Single(valid.Pages);
     }
 
@@ -42,7 +42,7 @@ public sealed class VisioAllSeverityBatch12SecurityTests {
             source.AddPage("Page-1");
             source.Save();
             var restrictive = new VisioLoadOptions {
-                MaxInputBytes = new FileInfo(path).Length - 1L
+                Limits = { MaxInputBytes = new FileInfo(path).Length - 1L }
             };
 
             Assert.Throws<InvalidDataException>(() =>

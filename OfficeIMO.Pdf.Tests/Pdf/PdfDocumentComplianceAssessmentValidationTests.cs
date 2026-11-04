@@ -12,11 +12,11 @@ public partial class PdfDocumentComplianceAssessmentTests {
     [Fact]
     public void ImageAlternativeTextRejectsWhitespace() {
         Assert.Throws<ArgumentException>(() => new PdfImageStyle {
-            AlternativeText = " "
+            AltText = " "
         });
 
         Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24, alternativeText: " "));
+            PdfDocument.Create().Image(CreateMinimalRgbPng(), 24, 24, altText: " "));
 
         Assert.Throws<ArgumentException>(() => new PdfHeaderFooterImage(
             CreateMinimalRgbPng(),

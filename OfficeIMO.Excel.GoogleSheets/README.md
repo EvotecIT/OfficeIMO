@@ -20,10 +20,10 @@ using OfficeIMO.GoogleWorkspace;
 
 using var workbook = ExcelDocument.Create("report.xlsx");
 var sheet = workbook.AddSheet("Summary");
-sheet.CellValue(1, 1, "Quarter");
-sheet.CellValue(1, 2, "Revenue");
-sheet.CellValue(2, 1, "Q1");
-sheet.CellValue(2, 2, 125000);
+sheet.Cell(1, 1).SetValue("Quarter");
+sheet.Cell(1, 2).SetValue("Revenue");
+sheet.Cell(2, 1).SetValue("Q1");
+sheet.Cell(2, 2).SetValue(125000);
 
 var receipts = new List<GoogleWorkspaceOperationReceipt>();
 var sessionOptions = new GoogleWorkspaceSessionOptions {

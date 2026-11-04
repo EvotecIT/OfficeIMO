@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Html {
     /// Converts <see cref="WordDocument"/> instances into HTML markup.
     /// </summary>
     internal partial class WordToHtmlConverter {
-        public string Convert(WordDocument document, WordHtmlExportOptions options) {
+        public string Convert(WordDocument document, WordHtmlExportOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordHtmlExportOptions();
             lock (document) {
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Html {
                         : null;
                     using (WordRunFormatting.BeginConversionScope())
                     using (WordComplexFieldRunVisibility.BeginConversionScope())
-                        return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection);
+                        return ConvertPrepared(document, options, reviewInfo, fieldInfo, exportInspection, cancellationToken);
                 } finally {
                     restoreReviewProjection();
                 }
@@ -39,9 +39,10 @@ namespace OfficeIMO.Word.Html {
         }
 
         private string ConvertPrepared(WordDocument document, WordHtmlExportOptions options,
-            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection) {
+            IReadOnlyList<WordRevisionInfo>? reviewInfo, IReadOnlyList<WordFieldInfo>? fieldInfo, ExportInspection exportInspection,
+            CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
             var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
-            CancellationToken cancellationToken = CancellationToken.None;
             long embeddedImageBytes = 0;
 
             long MeasureCurrentHtmlCharacters() {
@@ -162,7 +163,7 @@ namespace OfficeIMO.Word.Html {
                 options,
                 SaturatingAdd(MeasureCurrentHtmlCharacters(), exportInspection.OutputConstructionCharacters));
 
-            AppendHeadMetadata(document, htmlDoc, head, options, CancellationToken.None);
+            AppendHeadMetadata(document, htmlDoc, head, options, cancellationToken);
 
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 SetOutputAttribute(
@@ -325,8 +326,8 @@ namespace OfficeIMO.Word.Html {
                                 if (imgObj.Height is { } displayHeight) {
                                     SetOutputAttribute(imgSvg, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                                 }
-                                if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                    SetOutputAttribute(imgSvg, "alt", imgObj.Description!, "Image:alt");
+                                if (!string.IsNullOrEmpty(imgObj.AltText)) {
+                                    SetOutputAttribute(imgSvg, "alt", imgObj.AltText!, "Image:alt");
                                 }
                                 if (!string.IsNullOrEmpty(imgObj.Title)) {
                                     SetOutputAttribute(imgSvg, "title", imgObj.Title!, "Image:title");
@@ -359,8 +360,8 @@ namespace OfficeIMO.Word.Html {
                             if (imgObj.Height is { } displayHeight) {
                                 SetOutputAttribute(img, "height", ((int)Math.Round(displayHeight.ToPixels())).ToString(CultureInfo.InvariantCulture), "Image:height");
                             }
-                            if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                SetOutputAttribute(img, "alt", imgObj.Description!, "Image:alt");
+                            if (!string.IsNullOrEmpty(imgObj.AltText)) {
+                                SetOutputAttribute(img, "alt", imgObj.AltText!, "Image:alt");
                             }
                             if (!string.IsNullOrEmpty(imgObj.Title)) {
                                 SetOutputAttribute(img, "title", imgObj.Title!, "Image:title");
@@ -405,7 +406,8 @@ namespace OfficeIMO.Word.Html {
                     IElement? hyperlinkNode = container is Hyperlink hyperlink
                         ? CreateEquationHyperlinkNode(
                             htmlDoc,
-                            new WordHyperLink(para._document, para._paragraph, hyperlink))
+                            new WordHyperLink(para._document, para._paragraph, hyperlink),
+                            options)
                         : null;
 
                     bool IncludeVisibleRunElement(DocumentFormat.OpenXml.OpenXmlElement element) {
@@ -427,7 +429,7 @@ namespace OfficeIMO.Word.Html {
                                 hyperlinkNode == null &&
                                 sourceRun.IsHyperLink &&
                                 sourceRun.Hyperlink != null) {
-                                IElement? sourceAnchor = CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink);
+                                IElement? sourceAnchor = CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink, options);
                                 if (sourceAnchor != null) {
                                     sourceAnchor.AppendChild(mathNode);
                                     expandedNodes.Add(sourceAnchor);
@@ -452,7 +454,7 @@ namespace OfficeIMO.Word.Html {
                                 artifactNodes = new List<INode> { revision };
                             }
                             IElement? sourceAnchor = hyperlinkNode == null && sourceRun.IsHyperLink && sourceRun.Hyperlink != null
-                                ? CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink) : null;
+                                ? CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink, options) : null;
                             if (sourceAnchor != null) {
                                 foreach (INode artifactNode in artifactNodes) sourceAnchor.AppendChild(artifactNode);
                                 if (artifactNodes.Count > 0) expandedNodes.Add(sourceAnchor);
@@ -487,7 +489,8 @@ namespace OfficeIMO.Word.Html {
                         paragraphChildren[occurrence.StartChildIndex] is Hyperlink hyperlink) {
                         IElement? anchor = CreateEquationHyperlinkNode(
                             htmlDoc,
-                            new WordHyperLink(para._document, para._paragraph, hyperlink));
+                            new WordHyperLink(para._document, para._paragraph, hyperlink),
+                            options);
                         if (anchor != null) {
                             anchor.AppendChild(mathNode);
                             return anchor;
@@ -644,7 +647,7 @@ namespace OfficeIMO.Word.Html {
                                 href = "#" + anchor;
                             }
                         }
-                        if (!string.IsNullOrEmpty(href)) {
+                        if (IsExportableLink(href, options, "Hyperlink")) {
                             var a = CreateOutputElement(htmlDoc, "a");
                             SetOutputAttribute(htmlDoc, a, "href", href!, "Hyperlink:href");
                             a.AppendChild(node);
@@ -702,7 +705,7 @@ namespace OfficeIMO.Word.Html {
                     if (options.IncludeRunColorStyles || options.IncludeRunHighlightStyles) {
                         var inlineStyles = new List<string>();
                         if (options.IncludeRunColorStyles) {
-                            var colorHex = run.ColorHex;
+                            var colorHex = run.RunColorValue;
                             if (!string.IsNullOrEmpty(colorHex) &&
                                 !string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
                                 string? normalized = NormalizeSixDigitHexColor(colorHex);
@@ -824,6 +827,7 @@ namespace OfficeIMO.Word.Html {
                 var root = CreateOutputElement(htmlDoc, "ul");
                 nav.AppendChild(root);
                 var stack = new List<(int Level, IElement List, IElement? LastItem)> { (minLevel, root, null) };
+                var listedHeadings = new HashSet<Paragraph>();
                 int entries = 0;
                 foreach (WordParagraph headingParagraph in document.Paragraphs) {
                     cancellationToken.ThrowIfCancellationRequested();
@@ -831,7 +835,7 @@ namespace OfficeIMO.Word.Html {
                     int level = WordHeadingStyleMapper.GetLevelForHeadingStyle(headingParagraph.Style.Value);
                     if (level < minLevel || level > maxLevel) continue;
                     Paragraph headingElement = headingParagraph._paragraph;
-                    if (tableOfContentsLinks.Any(link => ReferenceEquals(link.Heading, headingElement))) continue;
+                    if (!listedHeadings.Add(headingElement)) continue;
                     string text = string.Concat(headingElement.Descendants<Text>().Select(item => item.Text)).Trim();
                     if (text.Length == 0) continue;
 
@@ -1025,7 +1029,7 @@ namespace OfficeIMO.Word.Html {
                 if (!string.IsNullOrEmpty(alignCss)) {
                     pStyles.Add($"text-align:{alignCss}");
                 }
-                var pBg = para.ShadingFillColorHex;
+                var pBg = para.ShadingFillValue;
                 string? normalizedParagraphBackground = NormalizeSixDigitHexColor(pBg);
                 if (normalizedParagraphBackground != null) {
                     pStyles.Add($"background-color:#{normalizedParagraphBackground}");
@@ -1227,7 +1231,7 @@ namespace OfficeIMO.Word.Html {
                             }
                             cellStyles.Add($"vertical-align:{vAlign}");
                         }
-                        var bg = cell.ShadingFillColorHex;
+                        var bg = cell.ShadingFillValue;
                         string? normalizedCellBackground = NormalizeSixDigitHexColor(bg);
                         if (normalizedCellBackground != null) {
                             cellStyles.Add($"background-color:#{normalizedCellBackground}");

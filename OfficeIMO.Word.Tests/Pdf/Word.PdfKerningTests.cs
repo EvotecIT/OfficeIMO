@@ -177,7 +177,7 @@ public sealed class WordPdfKerningTests {
             // The pair-positioning font contains only A/V; keep filler text
             // in a complete font while the running story exercises kerning.
             document.AddParagraph("Body").FontFamily = "Arial";
-            WordHeaderFooter story = route == "header" ? document.HeaderDefaultOrCreate : document.FooterDefaultOrCreate;
+            WordHeaderFooter story = route == "header" ? document.PageSetup.Header : document.PageSetup.Footer;
             paragraph = story.AddParagraph("AV");
         } else {
             paragraph = document.AddParagraph(route == "link" ? string.Empty : "AV");

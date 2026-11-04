@@ -92,7 +92,7 @@ namespace OfficeIMO.Word {
         /// <example>
         /// <code><![CDATA[
         /// WordParagraphStyleDefinition style = new("MyStyle") {
-        ///     FontName = "Aptos",
+        ///     FontFamily = "Aptos",
         ///     Bold = true
         /// };
         ///
@@ -154,7 +154,7 @@ namespace OfficeIMO.Word {
 
             return new WordParagraphStyleDefinition(styleId) {
                 Name = styleName ?? styleId,
-                FontName = fontName
+                FontFamily = fontName
             };
         }
 

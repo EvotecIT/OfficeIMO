@@ -648,7 +648,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = RenderGrid(html, 220D);
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported
             && diagnostic.Source == "div#nested");
     }
@@ -663,14 +663,14 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = RenderGrid(html, 220D);
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported
             && diagnostic.Source == "div#nested");
         Assert.Throws<HtmlConversionException>(() => HtmlRenderTestDriver.Render(html, new HtmlRenderOptions {
             Mode = HtmlRenderMode.Continuous,
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D),
-            FidelityPolicy = HtmlRenderFidelityPolicy.RequireNoLoss
+            FidelityPolicy = HtmlRenderFidelityPolicy.FailOnLoss
         }));
     }
 
@@ -684,7 +684,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = RenderGrid(html, 140D);
 
-        Assert.Contains(rendered.Diagnostics, diagnostic =>
+        Assert.Contains(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported &&
             diagnostic.Detail != null && diagnostic.Detail.Contains("fractional automatic minimum", StringComparison.Ordinal));
     }
@@ -704,7 +704,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(60D, first.Width, 3);
         Assert.Equal(60D, second.Width, 3);
-        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported &&
             diagnostic.Detail != null && diagnostic.Detail.Contains("fractional automatic minimum", StringComparison.Ordinal));
     }
@@ -1063,7 +1063,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
         string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
-        HtmlToPdfOptions pdfOptions = new HtmlToPdfOptions();
+        HtmlPdfExportOptions pdfOptions = new HtmlPdfExportOptions();
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Open((OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ToBytes()).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));

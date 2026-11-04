@@ -14,18 +14,18 @@ namespace OfficeIMO.Examples.Word
             using (WordDocument document = WordDocument.Create(filePath))
             {
                 {
-                    document.DifferentFirstPage = true;
-                    document.DifferentOddAndEvenPages = true;
-                    document.HeaderDefaultOrCreate.AddParagraph("Default header");
-                    var paragraph1 = document.HeaderDefaultOrCreate.AddParagraph();
+                    document.PageSetup.DifferentFirstPage = true;
+                    document.PageSetup.DifferentOddAndEvenPages = true;
+                    document.PageSetup.Header.AddParagraph("Default header");
+                    var paragraph1 = document.PageSetup.Header.AddParagraph();
                     paragraph1 = paragraph1.AddText("Second header paragraph");
-                    document.HeaderDefaultOrCreate.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
-                    document.HeaderDefaultOrCreate.AddTable(2, 2);
-                    document.HeaderFirstOrCreate.AddParagraph("First page header");
-                    document.HeaderEvenOrCreate.AddParagraph("Even page header");
-                    document.FooterDefaultOrCreate.AddParagraph("Default footer");
-                    document.FooterFirstOrCreate.AddParagraph("First page footer");
-                    document.FooterEvenOrCreate.AddParagraph("Even page footer");
+                    document.PageSetup.Header.AddParagraph().AddImage(Path.Combine(imagesPath, "Kulek.jpg"), OfficeIMO.OfficeLength.Pixels(50), OfficeIMO.OfficeLength.Pixels(50));
+                    document.PageSetup.Header.AddTable(2, 2);
+                    document.PageSetup.FirstPageHeader.AddParagraph("First page header");
+                    document.PageSetup.EvenPageHeader.AddParagraph("Even page header");
+                    document.PageSetup.Footer.AddParagraph("Default footer");
+                    document.PageSetup.FirstPageFooter.AddParagraph("First page footer");
+                    document.PageSetup.EvenPageFooter.AddParagraph("Even page footer");
                     var paragraph2 = document.AddParagraph();
                     paragraph2 = paragraph2.AddText("Body paragraph");
                     var section3 = document.Sections.Last();

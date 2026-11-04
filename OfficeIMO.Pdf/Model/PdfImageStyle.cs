@@ -6,7 +6,7 @@ namespace OfficeIMO.Pdf;
 /// Reusable image placement and rhythm style.
 /// </summary>
 public sealed class PdfImageStyle {
-    private PdfAlign _align = PdfAlign.Left;
+    private OfficeAlignment _align = OfficeAlignment.Left;
     private OfficeImageFit _fit = OfficeImageFit.Stretch;
     private OfficeClipPath? _clipPath;
     private PdfImageSourceCrop? _sourceCrop;
@@ -16,10 +16,10 @@ public sealed class PdfImageStyle {
     private string? _alternativeText;
 
     /// <summary>Image alignment within the current content frame.</summary>
-    public PdfAlign Align {
+    public OfficeAlignment Align {
         get => _align;
         set {
-            Guard.LeftCenterRightAlign(value, nameof(Align), "Image");
+            value = Guard.LeftCenterRightAlign(value, nameof(Align), "Image");
             _align = value;
         }
     }
@@ -88,11 +88,11 @@ public sealed class PdfImageStyle {
     public bool VerticalFlip { get; set; }
 
     /// <summary>Optional alternate text for meaningful generated images.</summary>
-    public string? AlternativeText {
+    public string? AltText {
         get => _alternativeText;
         set {
             if (value != null) {
-                Guard.NotNullOrWhiteSpace(value, nameof(AlternativeText));
+                Guard.NotNullOrWhiteSpace(value, nameof(AltText));
             }
 
             _alternativeText = value;
@@ -113,7 +113,7 @@ public sealed class PdfImageStyle {
             RotationAngle = RotationAngle,
             HorizontalFlip = HorizontalFlip,
             VerticalFlip = VerticalFlip,
-            AlternativeText = AlternativeText
+            AltText = AltText
         };
     }
 

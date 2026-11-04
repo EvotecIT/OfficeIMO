@@ -15,20 +15,20 @@ namespace OfficeIMO.Tests {
             Assert.InRange(index, 0, doc.Sections.Count - 1);
 
             var section = doc.Sections[index];
-            if (type == HeaderFooterValues.Default && section.Header.Default == null) {
-                section.AddHeadersAndFooters();
+            if (type == HeaderFooterValues.Default && section.PageSetup.GetHeader(WordHeaderFooterType.Default) == null) {
+                _ = section.PageSetup.Header;
             }
 
             if (type == HeaderFooterValues.Default) {
-                return Assert.IsAssignableFrom<WordHeader>(section.Header.Default);
+                return Assert.IsAssignableFrom<WordHeader>(section.PageSetup.GetHeader(WordHeaderFooterType.Default));
             }
 
             if (type == HeaderFooterValues.Even) {
-                return Assert.IsAssignableFrom<WordHeader>(section.Header.Even);
+                return Assert.IsAssignableFrom<WordHeader>(section.PageSetup.GetHeader(WordHeaderFooterType.Even));
             }
 
             if (type == HeaderFooterValues.First) {
-                return Assert.IsAssignableFrom<WordHeader>(section.Header.First);
+                return Assert.IsAssignableFrom<WordHeader>(section.PageSetup.GetHeader(WordHeaderFooterType.First));
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported header type.");
@@ -39,20 +39,20 @@ namespace OfficeIMO.Tests {
             Assert.InRange(index, 0, doc.Sections.Count - 1);
 
             var section = doc.Sections[index];
-            if (type == HeaderFooterValues.Default && section.Footer.Default == null) {
-                section.AddHeadersAndFooters();
+            if (type == HeaderFooterValues.Default && section.PageSetup.GetFooter(WordHeaderFooterType.Default) == null) {
+                _ = section.PageSetup.Header;
             }
 
             if (type == HeaderFooterValues.Default) {
-                return Assert.IsAssignableFrom<WordFooter>(section.Footer.Default);
+                return Assert.IsAssignableFrom<WordFooter>(section.PageSetup.GetFooter(WordHeaderFooterType.Default));
             }
 
             if (type == HeaderFooterValues.Even) {
-                return Assert.IsAssignableFrom<WordFooter>(section.Footer.Even);
+                return Assert.IsAssignableFrom<WordFooter>(section.PageSetup.GetFooter(WordHeaderFooterType.Even));
             }
 
             if (type == HeaderFooterValues.First) {
-                return Assert.IsAssignableFrom<WordFooter>(section.Footer.First);
+                return Assert.IsAssignableFrom<WordFooter>(section.PageSetup.GetFooter(WordHeaderFooterType.First));
             }
 
             throw new ArgumentOutOfRangeException(nameof(type), type, "Unsupported footer type.");
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HeaderFooter_Elements_Preserve_Document_Order() {
             using var document = WordDocument.Create();
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
 
             var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
             header.AddParagraph("Alpha");
@@ -146,8 +146,8 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFootersOddEven() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault2.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
+                _ = document.PageSetup.Header;
+                document.PageSetup.DifferentOddAndEvenPages = true;
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -208,9 +208,9 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentWithDefaultHeadersAndFootersOddEvenFirst() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst1.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.AddHeadersAndFooters();
-                document.DifferentOddAndEvenPages = true;
-                document.DifferentFirstPage = true;
+                _ = document.PageSetup.Header;
+                document.PageSetup.DifferentOddAndEvenPages = true;
+                document.PageSetup.DifferentFirstPage = true;
 
                 var paragraph = document.AddParagraph("Basic paragraph - Page 1");
                 paragraph.ParagraphAlignment = WordParagraphAlignment.Center;
@@ -282,9 +282,9 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeaders.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var defaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
@@ -292,13 +292,13 @@ namespace OfficeIMO.Tests {
                 defaultHeader.AddParagraph().SetText("Test Section 0 - Header");
                 defaultFooter.AddParagraph().SetText("Test Section 0 - Footer");
 
-                Assert.True(document.Sections[0].Header.First == null);
-                Assert.True(document.Sections[0].Footer.First == null);
+                Assert.True(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.First) == null);
+                Assert.True(document.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.First) == null);
 
-                document.DifferentFirstPage = true;
+                document.PageSetup.DifferentFirstPage = true;
 
-                Assert.True(document.Sections[0].Header.First != null);
-                Assert.True(document.Sections[0].Footer.First != null);
+                Assert.True(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.First) != null);
+                Assert.True(document.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.First) != null);
 
                 var firstHeader = RequireSectionHeader(document, 0, HeaderFooterValues.First);
                 var firstFooter = RequireSectionFooter(document, 0, HeaderFooterValues.First);
@@ -306,13 +306,13 @@ namespace OfficeIMO.Tests {
                 firstHeader.AddParagraph().SetText("Test Section 0 - First Header");
                 firstFooter.AddParagraph().SetText("Test Section 0 - First Footer");
 
-                Assert.True(document.Sections[0].Header.Even == null);
-                Assert.True(document.Sections[0].Footer.Even == null);
+                Assert.True(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Even) == null);
+                Assert.True(document.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.Even) == null);
 
-                document.DifferentOddAndEvenPages = true;
+                document.PageSetup.DifferentOddAndEvenPages = true;
 
-                Assert.True(document.Sections[0].Header.Even != null);
-                Assert.True(document.Sections[0].Footer.Even != null);
+                Assert.True(document.Sections[0].PageSetup.GetHeader(WordHeaderFooterType.Even) != null);
+                Assert.True(document.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.Even) != null);
 
                 var evenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
                 var evenFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Even);
@@ -374,9 +374,9 @@ namespace OfficeIMO.Tests {
         public void Test_CreatingWordDocumentHeadersAndFootersAndDeletingHeadersAndFooters() {
             string filePath = Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndRemoveThem.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.Sections[0].PageOrientation = OfficePageOrientation.Landscape;
+                document.Sections[0].PageSetup.Orientation = OfficePageOrientation.Landscape;
                 document.AddParagraph("Test Section0");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
 
                 var section0DefaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var section0DefaultFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Default);
@@ -384,10 +384,10 @@ namespace OfficeIMO.Tests {
                 section0DefaultHeader.AddParagraph().SetText("Test Section 0 - Header");
                 section0DefaultFooter.AddParagraph().SetText("Test Section 0 - Footer");
 
-                Assert.True(document.Header!.First == null);
-                Assert.True(document.Footer!.First == null);
+                Assert.True(document.PageSetup.GetHeader(WordHeaderFooterType.First) == null);
+                Assert.True(document.PageSetup.GetFooter(WordHeaderFooterType.First) == null);
 
-                document.DifferentFirstPage = true;
+                document.PageSetup.DifferentFirstPage = true;
 
                 var section0FirstHeader = RequireSectionHeader(document, 0, HeaderFooterValues.First);
                 var section0FirstFooter = RequireSectionFooter(document, 0, HeaderFooterValues.First);
@@ -397,10 +397,10 @@ namespace OfficeIMO.Tests {
                 section0FirstHeader.AddParagraph().SetText("Test Section 0 - First Header");
                 section0FirstFooter.AddParagraph().SetText("Test Section 0 - First Footer");
 
-                Assert.True(document.Header!.Even == null);
-                Assert.True(document.Footer!.Even == null);
+                Assert.True(document.PageSetup.GetHeader(WordHeaderFooterType.Even) == null);
+                Assert.True(document.PageSetup.GetFooter(WordHeaderFooterType.Even) == null);
 
-                document.DifferentOddAndEvenPages = true;
+                document.PageSetup.DifferentOddAndEvenPages = true;
 
                 var section0EvenHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Even);
                 var section0EvenFooter = RequireSectionFooter(document, 0, HeaderFooterValues.Even);
@@ -412,9 +412,9 @@ namespace OfficeIMO.Tests {
 
 
                 var section1 = document.AddSection();
-                section1.AddHeadersAndFooters();
-                section1.DifferentFirstPage = true;
-                section1.DifferentOddAndEvenPages = true;
+                _ = section1.PageSetup.Header;
+                section1.PageSetup.DifferentFirstPage = true;
+                section1.PageSetup.DifferentOddAndEvenPages = true;
 
                 var section1DefaultHeader = RequireSectionHeader(document, 1, HeaderFooterValues.Default);
                 var section1DefaultFooter = RequireSectionFooter(document, 1, HeaderFooterValues.Default);
@@ -459,29 +459,25 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndRemoveThem.docx"))) {
 
-                var section0Headers = document.Header;
-                Assert.NotNull(section0Headers);
-                Assert.Null(section0Headers.Default);
-                Assert.Null(section0Headers.First);
-                Assert.Null(section0Headers.Even);
+                var section0Headers = document.PageSetup;
+                Assert.Null(section0Headers.GetHeader(WordHeaderFooterType.Default));
+                Assert.Null(section0Headers.GetHeader(WordHeaderFooterType.First));
+                Assert.Null(section0Headers.GetHeader(WordHeaderFooterType.Even));
 
-                var section0Footers = document.Footer;
-                Assert.NotNull(section0Footers);
-                Assert.Null(section0Footers.Default);
-                Assert.Null(section0Footers.First);
-                Assert.Null(section0Footers.Even);
+                var section0Footers = document.PageSetup;
+                Assert.Null(section0Footers.GetFooter(WordHeaderFooterType.Default));
+                Assert.Null(section0Footers.GetFooter(WordHeaderFooterType.First));
+                Assert.Null(section0Footers.GetFooter(WordHeaderFooterType.Even));
 
-                var section1Headers = document.Sections[1].Header;
-                Assert.NotNull(section1Headers);
-                Assert.Null(section1Headers.Default);
-                Assert.Null(section1Headers.First);
-                Assert.Null(section1Headers.Even);
+                var section1Headers = document.Sections[1].PageSetup;
+                Assert.Null(section1Headers.GetHeader(WordHeaderFooterType.Default));
+                Assert.Null(section1Headers.GetHeader(WordHeaderFooterType.First));
+                Assert.Null(section1Headers.GetHeader(WordHeaderFooterType.Even));
 
-                var section1Footers = document.Sections[1].Footer;
-                Assert.NotNull(section1Footers);
-                Assert.Null(section1Footers.Default);
-                Assert.Null(section1Footers.First);
-                Assert.Null(section1Footers.Even);
+                var section1Footers = document.Sections[1].PageSetup;
+                Assert.Null(section1Footers.GetFooter(WordHeaderFooterType.Default));
+                Assert.Null(section1Footers.GetFooter(WordHeaderFooterType.First));
+                Assert.Null(section1Footers.GetFooter(WordHeaderFooterType.Even));
 
                 Assert.True(document.Paragraphs.Count == 1, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
                 Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during creation is wrong. Current: " + document.PageBreaks.Count);

@@ -6,7 +6,7 @@ namespace OfficeIMO.Examples.Pdf {
         public static void Example_Pdf_DefaultStyles(string folderPath, bool open = false) {
             string path = Path.Combine(folderPath, "Pdf.DefaultStyles.pdf");
             var options = new PdfCreateOptions {
-                ShowPageNumbers = true
+                PageSetup = { Footer = { Show = true } }
             };
 
             var rows = new[] {
@@ -18,11 +18,11 @@ namespace OfficeIMO.Examples.Pdf {
 
             PdfDocument.Create(pdf => pdf.Content(content => content
                 .Title("Quarterly delivery review")
-                .Paragraph(p => p.Text("This report uses the default Modern theme's type scale, page margins, table styling and list spacing."))
+                .AddParagraph(p => p.AddText("This report uses the default Modern theme's type scale, page margins, table styling and list spacing."))
                 .H2("Delivery results")
-                .Table(rows)
+                .AddTable(rows)
                 .H2("Next steps")
-                .Bullets(new[] { "Complete the remaining follow-ups.", "Confirm the next quarter's delivery target." })), options)
+                .AddList(new[] { "Complete the remaining follow-ups.", "Confirm the next quarter's delivery target." })), options)
                 .Meta(title: "OfficeIMO.Pdf Default Styles", author: "OfficeIMO")
                 .Save(path);
 

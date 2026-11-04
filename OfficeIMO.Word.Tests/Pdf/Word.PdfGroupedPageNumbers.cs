@@ -17,8 +17,7 @@ public partial class Word {
         document.AddParagraph("First page");
         document.AddPageBreak();
         document.AddParagraph("Second page");
-        document.AddHeadersAndFooters();
-        document.Footer!.Default.AddPageNumber(style);
+        document.PageSetup.Footer.AddPageNumber(style);
 
         using PdfPigDocument pdf = OpenAuditPdf(document);
         Assert.Equal(2, pdf.NumberOfPages);

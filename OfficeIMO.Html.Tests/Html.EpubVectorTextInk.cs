@@ -23,7 +23,7 @@ public sealed class EpubVectorTextInkTests {
         var xml = book.GetContentXml("page"); XNamespace html = "http://www.w3.org/1999/xhtml";
         xml.Root!.Element(html + "head")!.Add(new XElement(html + "style", "@font-face{font-family:Ink;src:url('ink.ttf')}"));
         book.SetContentXml("page", xml);
-        var source = EpubDocument.Load(new MemoryStream(book.Write().Bytes), new EpubReadOptions { IncludeRawHtml = true, IncludeResourceData = true });
+        var source = EpubDocument.Load(new MemoryStream(book.Write().Bytes), new EpubLoadOptions { IncludeRawHtml = true, IncludeResourceData = true });
         var report = source.InspectFixedLayoutPage(0);
         Assert.Contains(report.Rendering.Pages[0].Visuals, v => v is HtmlRenderDrawing);
         Assert.DoesNotContain(report.TextInkDiagnostics, d => d.Code == HtmlRenderDiagnosticCodes.TextInkNotInspected);

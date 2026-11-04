@@ -7,7 +7,7 @@ public class PdfRawStructureTests {
     [Fact]
     public void RawStructure_ProjectsActiveObjectsWithoutExposingMutableParserObjectsOrStreamBytes() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("Raw structure"))
+            .Paragraph(paragraph => paragraph.AddText("Raw structure"))
             .ToBytes();
 
         PdfRawDocumentView raw = PdfReadDocument.Open(bytes).RawStructure();
@@ -26,7 +26,7 @@ public class PdfRawStructureTests {
     [Fact]
     public void RawStructure_EnforcesProjectionBoundsAndTrySurface() {
         byte[] bytes = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text(new string('x', 200)))
+            .Paragraph(paragraph => paragraph.AddText(new string('x', 200)))
             .ToBytes();
         PdfDocument document = PdfDocument.Load(bytes);
 

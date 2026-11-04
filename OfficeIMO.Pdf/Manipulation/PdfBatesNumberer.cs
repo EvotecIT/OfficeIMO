@@ -43,9 +43,13 @@ public sealed class PdfBatesDocument {
 }
 
 /// <summary>Controls continuous Bates numbering across one or more PDFs.</summary>
-public sealed class PdfBatesNumberingOptions {
-    /// <summary>Cancels input enumeration, numbering, rendering, and output preservation checks.</summary>
-    public System.Threading.CancellationToken CancellationToken { get; set; }
+public sealed class PdfBatesNumberingOptions : IPdfOperationCancellation {
+    // Operation cancellation; public methods take it as a parameter and bind it to a per-call copy.
+    System.Threading.CancellationToken IPdfOperationCancellation.CancellationToken { get => CancellationToken; set => CancellationToken = value; }
+
+    internal System.Threading.CancellationToken CancellationToken { get; set; }
+
+    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
 
     /// <summary>First numeric value assigned to a selected page.</summary>
     public long StartNumber { get; set; } = 1L;
@@ -165,10 +169,11 @@ public static class PdfBatesNumberer {
     }
 
     /// <summary>Numbers the supplied documents continuously and returns output and preservation evidence.</summary>
-    public static PdfBatesBatchResult Apply(IEnumerable<PdfBatesDocument> documents, PdfBatesNumberingOptions? options = null) {
+    public static PdfBatesBatchResult Apply(IEnumerable<PdfBatesDocument> documents, PdfBatesNumberingOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
+        options = PdfOperationCancellation.Bind(options, createWhenNull: true, cancellationToken);
         Guard.NotNull(documents, nameof(documents));
         PdfBatesNumberingOptions effective = options ?? new PdfBatesNumberingOptions();
-        var cancellationToken = effective.CancellationToken;
+        cancellationToken = effective.CancellationToken;
         cancellationToken.ThrowIfCancellationRequested();
         var inputList = new List<PdfBatesDocument>();
         foreach (PdfBatesDocument input in documents) {
@@ -257,9 +262,9 @@ public static class PdfBatesNumberer {
             throw new InvalidOperationException("Bates label does not fit the configured page rectangle.");
         }
         bool top = options.Position is PdfBatesPosition.TopLeft or PdfBatesPosition.TopCenter or PdfBatesPosition.TopRight;
-        PdfAlign alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
-            ? PdfAlign.Center
-            : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? PdfAlign.Right : PdfAlign.Left;
+        OfficeAlignment alignment = options.Position is PdfBatesPosition.BottomCenter or PdfBatesPosition.TopCenter
+            ? OfficeAlignment.Center
+            : options.Position is PdfBatesPosition.BottomRight or PdfBatesPosition.TopRight ? OfficeAlignment.Right : OfficeAlignment.Left;
         double y = top ? options.VerticalMargin.ToPoints() : context.Height.ToPoints() - options.VerticalMargin.ToPoints() - options.Height.ToPoints();
         canvas.Text(text, options.HorizontalMargin, global::OfficeIMO.OfficeLength.Points(y), global::OfficeIMO.OfficeLength.Points(availableWidth), options.Height, options.FontSize, options.Color, alignment, options.Font);
     }

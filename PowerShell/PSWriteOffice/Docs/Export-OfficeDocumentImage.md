@@ -139,7 +139,7 @@ Output image encoding. File destinations infer it when omitted.
 Type: OfficeImageFormat
 Parameter Sets: Path, PathFile, LiteralPath, LiteralPathFile, Document, DocumentFile, Text, TextFile
 Aliases: None
-Possible values: Unknown, Png, Jpeg, Gif, Bmp, Tiff, Svg, Emf, Wmf, Icon, Pcx, Webp, Jpeg2000, Jpeg2000Codestream, Avif, JpegXr, PortableMap, Tga
+Possible values: Unknown, Png, Jpeg, Gif, Bmp, Tiff, Svg, Emf, Wmf, Icon, Pcx, Webp, Jpeg2000, Jpeg2000Codestream, Avif, JpegXr, PortableMap, Tga, Heic
 
 Required: False
 Position: named

@@ -46,9 +46,8 @@ public class MarkPflug65KCsvBenchmarks {
 
     [Benchmark]
     public CsvReadObservation OfficeIMO() {
-        using DbDataReader reader = CsvDocument.OpenDataReader(
-            MarkPflug65KFixture.CsvPath,
-            new CsvLoadOptions { DetectDelimiter = false });
+        using DbDataReader reader = CsvDocument.OpenReader(MarkPflug65KFixture.CsvPath,
+            options: new CsvReaderOptions { DetectDelimiter = false });
         return Observe(reader);
     }
 
@@ -60,7 +59,11 @@ public class MarkPflug65KCsvBenchmarks {
         long characters = 0;
         ulong checksum = ChecksumOffset;
         bool header = true;
+#if NET10_0_OR_GREATER
+        foreach (Row row in reader.FirstSheet) {
+#else
         foreach (Row row in reader) {
+#endif
             if (header) {
                 header = false;
                 continue;

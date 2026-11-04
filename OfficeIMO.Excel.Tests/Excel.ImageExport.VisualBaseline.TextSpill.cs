@@ -66,22 +66,21 @@ namespace OfficeIMO.Tests {
             ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Spill");
 
-            sheet.CellValue(1, 1, "Excel Text Spill");
+            sheet.Cell(1, 1).SetValue("Excel Text Spill");
             sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();
-            sheet.CellValue(2, 1, "Plain text spills through blanks");
-            sheet.CellValue(2, 4, "Stop");
-            sheet.CellValue(2, 5, "occupied cell blocks");
-            sheet.CellAt(3, 1).SetRichText(
+            sheet.Cell(2, 1).SetValue("Plain text spills through blanks");
+            sheet.Cell(2, 4).SetValue("Stop");
+            sheet.Cell(2, 5).SetValue("occupied cell blocks");
+            sheet.Cell(3, 1).SetRichText(
                 new ExcelRichTextRun("Rich") { Bold = true, FontColor = "0F766E", FontSize = global::OfficeIMO.OfficeLength.Points(12D) },
                 new ExcelRichTextRun(" spill keeps runs") { Italic = true, FontColor = "7C3AED", FontSize = global::OfficeIMO.OfficeLength.Points(12D) });
-            sheet.CellValue(3, 4, "Stop");
-            sheet.CellValue(3, 5, "rich text path");
-            sheet.CellValue(4, 1, "Wrapped\ncell text");
-            sheet.WrapCells(4,1,1);
-            sheet.CellValue(4, 4, "No spill");
-            sheet.CellValue(5, 1, "Centered");
-            sheet.CellAlign(5, 1, ExcelHorizontalAlignment.Center);
-            sheet.CellValue(5, 4, "Policy");
+            sheet.Cell(3, 4).SetValue("Stop");
+            sheet.Cell(3, 5).SetValue("rich text path");
+            sheet.Cell(4, 1).SetValue("Wrapped\ncell text");
+            sheet.Cell(4, 4).SetValue("No spill");
+            sheet.Cell(5, 1).SetValue("Centered");
+            sheet.Cell(5, 1).SetHorizontalAlignment(ExcelHorizontalAlignment.Center);
+            sheet.Cell(5, 4).SetValue("Policy");
 
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(9));
             sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(16));
@@ -95,14 +94,14 @@ namespace OfficeIMO.Tests {
             sheet.SetRowHeight(5, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(28)));
 
             for (int row = 2; row <= 5; row++) {
-                sheet.CellAt(row, 1).SetFillColor("F8FAFC");
-                sheet.CellAt(row, 4).SetFillColor("E2E8F0").SetBold();
-                sheet.CellAt(row, 5).SetFontColor("475569");
+                sheet.Cell(row, 1).SetFillColor("F8FAFC");
+                sheet.Cell(row, 4).SetFillColor("E2E8F0").SetBold();
+                sheet.Cell(row, 5).SetFontColor("475569");
             }
 
             for (int row = 1; row <= 5; row++) {
                 for (int column = 1; column <= 5; column++) {
-                    sheet.CellAt(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
+                    sheet.Cell(row, column).SetBorder(ExcelBorderStyle.Thin, "CBD5E1");
                 }
             }
 

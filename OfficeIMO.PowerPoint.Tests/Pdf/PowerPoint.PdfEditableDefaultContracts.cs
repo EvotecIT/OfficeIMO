@@ -24,7 +24,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             warning.Code == "pdf-text-not-reconstructed" &&
             warning.Details.TryGetValue("Disposition", out string? disposition) &&
             disposition == "Omitted");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -94,7 +94,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
         Assert.Equal(PowerPointPdfImportMode.EditableContent, result.Report.Mode);
         Assert.True(result.HasLoss);
         Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -153,7 +153,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
 
         Assert.True(result.HasLoss);
         Assert.Contains(result.Warnings, warning => warning.Code == "pdf-text-not-reconstructed");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
 
         using var presentation = new MemoryStream();
         using (result.Value) result.Value.Save(presentation);
@@ -182,19 +182,17 @@ public sealed class PowerPointPdfEditableDefaultContracts {
             warning.Code == "pdf-forms-not-reconstructed" &&
             warning.Details.TryGetValue("Disposition", out string? disposition) &&
             disposition == "Omitted");
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         result.Value.Dispose();
     }
 
     [Fact]
     public void LogicalPdfAutoProfileResolvesToEditableTablesForNullAndDefaultOptions() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfCreateOptions {
-                PageWidth = global::OfficeIMO.OfficeLength.Points(420),
-                PageHeight = global::OfficeIMO.OfficeLength.Points(360),
-                MarginLeft = global::OfficeIMO.OfficeLength.Points(36),
-                MarginRight = global::OfficeIMO.OfficeLength.Points(36),
-                MarginTop = global::OfficeIMO.OfficeLength.Points(36),
-                MarginBottom = global::OfficeIMO.OfficeLength.Points(36),
+                PageSetup = {
+                    Size = new global::OfficeIMO.Pdf.PdfPageSize(global::OfficeIMO.OfficeLength.Points(420), global::OfficeIMO.OfficeLength.Points(360)),
+                    Margins = { Left = global::OfficeIMO.OfficeLength.Points(36), Right = global::OfficeIMO.OfficeLength.Points(36), Top = global::OfficeIMO.OfficeLength.Points(36), Bottom = global::OfficeIMO.OfficeLength.Points(36) }
+                },
                 DefaultFontSize = global::OfficeIMO.OfficeLength.Points(10)
             })
             .Table(new[] {
@@ -214,7 +212,7 @@ public sealed class PowerPointPdfEditableDefaultContracts {
 
         PdfPowerPointConversionResult implicitResult = logical.ConvertToPowerPointWithEvidence();
         PdfPowerPointConversionResult explicitDefaultResult = logical.ConvertToPowerPointWithEvidence(
-            new PowerPointPdfImportOptions());
+            new PdfPowerPointExportOptions());
 
         Assert.Equal(PowerPointPdfImportMode.EditableTables, implicitResult.Report.Mode);
         Assert.Equal(PowerPointPdfImportMode.EditableTables, explicitDefaultResult.Report.Mode);

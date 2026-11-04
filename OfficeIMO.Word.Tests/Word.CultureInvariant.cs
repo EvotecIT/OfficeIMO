@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
                 using var document = WordDocument.Create();
                 document.AddParagraph("Section 0");
-                document.AddHeadersAndFooters();
+                _ = document.PageSetup.Header;
                 var header = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
                 var watermark = header.AddWatermark(WordWatermarkStyle.Text, "Watermark");
 

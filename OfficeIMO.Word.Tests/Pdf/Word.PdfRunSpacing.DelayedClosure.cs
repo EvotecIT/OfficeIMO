@@ -18,7 +18,7 @@ public partial class Word {
         styles.Append(new W.Style(formatting) {
             Type = characterStyle ? W.StyleValues.Character : W.StyleValues.Paragraph, StyleId = "InheritedCase"
         });
-        WordHeaderFooter story = footer ? document.FooterDefaultOrCreate : document.HeaderDefaultOrCreate;
+        WordHeaderFooter story = footer ? document.PageSetup.Footer : document.PageSetup.Header;
         WordParagraph paragraph = story.AddParagraph();
         paragraph.SetStyleId(characterStyle ? "Normal" : "InheritedCase");
         WordParagraph run = paragraph.AddText("mmmmx");

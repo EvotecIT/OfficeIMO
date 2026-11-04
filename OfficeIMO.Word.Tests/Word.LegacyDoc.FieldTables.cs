@@ -55,8 +55,7 @@ public partial class Word {
         WordParagraph paragraph;
         if (story == "cell") paragraph = document.AddTable(1, 1, WordTableStyle.TableGrid).Rows[0].Cells[0].Paragraphs[0];
         else if (story == "header") {
-            document.AddHeadersAndFooters();
-            paragraph = document.Sections[0].Header.Default!.AddParagraph();
+            paragraph = document.Sections[0].PageSetup.Header.AddParagraph();
         } else if (story == "footnote") {
             WordParagraph reference = document.AddParagraph("Footnote ").AddFootNote("Note prefix ").Paragraph;
             paragraph = reference.FootNote!.Paragraphs![1];
@@ -82,7 +81,7 @@ public partial class Word {
         Assert.Equal(0x80, table[offset + 21]); // The result separator is present.
         using WordDocument reopened = WordDocument.Load(new MemoryStream(bytes));
         IEnumerable<WordHyperLink> links = story switch {
-            "header" => reopened.Sections[0].Header.Default!.HyperLinks,
+            "header" => reopened.Sections[0].PageSetup.Header.HyperLinks,
             "footnote" => reopened.FootNotes.SelectMany(note => note.Paragraphs!)
                 .Where(run => run.IsHyperLink).Select(run => run.Hyperlink!),
             "endnote" => reopened.EndNotes.SelectMany(note => note.Paragraphs!)

@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 var result = document.Compose(new PowerPointDeckPlan().AddContent("Evidence", new PowerPointLayoutBlock[] {
                     new PowerPointLayoutCard("Review", "Keep the image and the narrative.", image: path)
                 }), Options());
-                Assert.Single(result.Slides.SelectMany(slide => slide.Pictures));
+                Assert.Single(result.Slides.SelectMany(slide => slide.Images));
                 Assert.Contains(result.Slides.SelectMany(slide => slide.TextBoxes), box => box.Text.Contains("Keep the image"));
             } finally { File.Delete(path); }
         }
@@ -292,6 +292,35 @@ namespace OfficeIMO.Tests {
             using var loaded = PowerPointDocument.Load(stream);
             Assert.Equal(result.Slides.Count, loaded.Slides.Count);
             Assert.Equal(35, loaded.Slides.Sum(slide => slide.Tables.Single().Rows - 1));
+        }
+
+        [Fact]
+        public void LayoutTextMapsVerticalTabToLineBreakAndRejectsOtherControlCharacters() {
+            var design = PowerPointCompositionOptions.FromBrief(new PowerPointDesignBrief("#2F5597", "plan"));
+            using var document = PowerPointDocument.Create();
+
+            document.Compose(new PowerPointDeckPlan().AddContent("One\vTwo",
+                new PowerPointLayoutBlock[] { new PowerPointLayoutText("left\vright") }), design);
+
+            var breaks = document.Slides.Single().SlidePart.Slide!.Descendants<DocumentFormat.OpenXml.Drawing.Break>();
+            Assert.Equal(2, breaks.Count());
+            Assert.DoesNotContain('\v', document.Slides.Single().SlidePart.Slide!.OuterXml);
+
+            var invalid = new PowerPointDeckPlan().AddContent("Valid title",
+                new PowerPointLayoutBlock[] { new PowerPointLayoutText("bad\u0001text") });
+            var error = Assert.Throws<ArgumentException>(() => document.Compose(invalid, design));
+            Assert.Contains("not valid in Open XML", error.Message);
+            Assert.Single(document.Slides);
+
+            var table = new PowerPointDeckPlan().AddContent("Table", new PowerPointLayoutBlock[] {
+                new PowerPointLayoutTable(new[] { "Heading" }, new[] { new[] { "left\vright" } }) });
+            document.Compose(table, design);
+            Assert.Single(document.Slides.Last().SlidePart.Slide!.Descendants<DocumentFormat.OpenXml.Drawing.Break>());
+
+            var invalidTable = new PowerPointDeckPlan().AddContent("Table", new PowerPointLayoutBlock[] {
+                new PowerPointLayoutTable(new[] { "Heading" }, new[] { new[] { "bad\u0001cell" } }) });
+            Assert.Throws<ArgumentException>(() => document.Compose(invalidTable, design));
+            Assert.Equal(2, document.Slides.Count);
         }
     }
 }

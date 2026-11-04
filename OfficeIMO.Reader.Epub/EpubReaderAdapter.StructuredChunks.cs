@@ -83,7 +83,7 @@ internal static partial class EpubReaderAdapter {
         ReaderHtmlOptions htmlOptions,
         string sourcePath,
         EpubChapter chapter) {
-        MarkdownHtmlImportOptions? markdownOptions = htmlOptions.HtmlToMarkdownOptions;
+        HtmlMarkdownExportOptions? markdownOptions = htmlOptions.HtmlToMarkdownOptions;
         if (markdownOptions == null) return;
 
         Func<string, string?> transform = value => ResolveEpubMarkdownReference(sourcePath, chapter, value);
@@ -92,7 +92,7 @@ internal static partial class EpubReaderAdapter {
         resourcePolicy.ResolvedUrlTransform = transform;
         markdownOptions.ResourceUrlPolicy = resourcePolicy;
 
-        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.CreateUntrustedProfile();
+        HtmlConversionDocumentOptions conversionOptions = HtmlConversionDocumentOptions.UntrustedDefaults;
         AllowEpubVirtualFileLocations(conversionOptions.UrlPolicy);
         AllowEpubVirtualFileLocations(conversionOptions.ResourceUrlPolicy);
         htmlOptions.ConversionOptions = conversionOptions;

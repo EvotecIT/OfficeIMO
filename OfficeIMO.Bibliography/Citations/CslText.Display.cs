@@ -144,7 +144,7 @@ internal readonly partial struct CslText {
 
     private static void AppendDisplayMarkup(string value, StringBuilder output, int maximumCharacters) {
         if ((long)output.Length + value.Length > maximumCharacters)
-            throw new InvalidDataException("CSL rendering exceeds MaximumIntermediateCharacters.");
+            throw new InvalidDataException("CSL rendering exceeds MaxIntermediateCharacters.");
         output.Append(value);
     }
 }

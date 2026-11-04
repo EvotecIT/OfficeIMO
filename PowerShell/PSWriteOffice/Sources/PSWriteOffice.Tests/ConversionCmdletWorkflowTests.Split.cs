@@ -154,7 +154,7 @@ public sealed partial class ConversionCmdletWorkflowTests {
             using (var document = PdfDocument.Create(new PdfCreateOptions().SetEncryption(new PdfStandardEncryptionOptions("open") {
                 OwnerPassword = "owner", AllowedPermissions = PdfStandardPermissions.None
             }))) {
-                document.Content.Paragraph(p => p.Text("Authenticated split evidence"));
+                document.Content.AddParagraph(p => p.AddText("Authenticated split evidence"));
                 document.Save(source);
             }
             var settings = new PdfLoadOptions { PermissionPolicy = PdfPermissionPolicy.Enforce };
@@ -184,9 +184,9 @@ public sealed partial class ConversionCmdletWorkflowTests {
 
     private static void WriteSplitFixture(string path) {
         using var document = PdfDocument.Create(new PdfCreateOptions { CreateOutlineFromHeadings = true });
-        document.Content.H1("Chapter One").Paragraph(p => p.Text("Page 1 evidence"))
-            .PageBreak().H2("Nested section").Paragraph(p => p.Text("Page 2 evidence"))
-            .PageBreak().H1("Chapter Two").Paragraph(p => p.Text("Page 3 evidence"));
+        document.Content.H1("Chapter One").AddParagraph(p => p.AddText("Page 1 evidence"))
+            .PageBreak().H2("Nested section").AddParagraph(p => p.AddText("Page 2 evidence"))
+            .PageBreak().H1("Chapter Two").AddParagraph(p => p.AddText("Page 3 evidence"));
         document.Save(path);
     }
 }

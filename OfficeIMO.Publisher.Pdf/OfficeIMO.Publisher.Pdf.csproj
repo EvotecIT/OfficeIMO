@@ -28,4 +28,7 @@
     <Using Include="System.IO" />
     <Using Include="System.Threading" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Workflows" />
+  </ItemGroup>
 </Project>

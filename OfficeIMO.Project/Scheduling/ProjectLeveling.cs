@@ -48,7 +48,7 @@ public sealed class ProjectLevelingResult {
         IEnumerable<ProjectLevelingSplit>? splits = null) {
         Schedule = schedule; Capacity = capacity; Moves = new ReadOnlyCollection<ProjectLevelingMove>(moves.ToArray());
         Splits = new ReadOnlyCollection<ProjectLevelingSplit>((splits ?? Array.Empty<ProjectLevelingSplit>()).ToArray());
-        Report = new ProjectReport(schedule.ModelRevision, schedule.Report.Diagnostics.Concat(diagnostics));
+        Report = new ProjectReport(schedule.ModelRevision, schedule.Report.NativeDiagnostics.Concat(diagnostics));
     }
     /// <summary>Last proposed schedule; use ApplyLeveling to enforce the leveling report as well as the schedule report.</summary>
     public ProjectScheduleResult Schedule { get; }

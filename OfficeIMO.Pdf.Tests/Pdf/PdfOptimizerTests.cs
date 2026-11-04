@@ -13,9 +13,7 @@ public class PdfOptimizerTests {
         cancellation.Cancel();
 
         Assert.Throws<OperationCanceledException>(() => {
-            _ = PdfOptimizer.Optimize(source, new PdfOptimizationOptions {
-                CancellationToken = cancellation.Token
-            });
+            _ = PdfOptimizer.Optimize(source, new PdfOptimizationOptions(), cancellationToken: cancellation.Token);
         });
     }
 

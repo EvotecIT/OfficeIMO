@@ -12,9 +12,9 @@ public partial class PdfExternalEngineProofTests {
     public void GenerateSyntaxRenderingAndSignatureProofFixtures() {
         byte[] source = PdfDocument.Create()
             .Meta(title: "OfficeIMO external engine proof")
-            .Paragraph(paragraph => paragraph.Text("External syntax and rendering proof"))
+            .Paragraph(paragraph => paragraph.AddText("External syntax and rendering proof"))
             .PageBreak()
-            .Paragraph(paragraph => paragraph.Text("Second proof page"))
+            .Paragraph(paragraph => paragraph.AddText("Second proof page"))
             .ToBytes();
         byte[] rewritten = PdfPageEditor.ReversePages(
             PdfMetadataEditor.UpdateMetadata(source, subject: "Mutation proof"));

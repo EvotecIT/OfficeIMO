@@ -11,9 +11,9 @@ namespace OfficeIMO.Examples.Word {
             Console.WriteLine("[*] Creating standard document with Save");
             string filePath = System.IO.Path.Combine(folderPath, "EmptyDocumentFirst.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
-                document.BuiltinDocumentProperties.Title = "This is my title";
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+                document.Properties.Title = "This is my title";
+                document.Properties.Creator = "Przemysław Kłys";
+                document.Properties.Keywords = "word, docx, test";
 
                 document.AddParagraph("This is my test");
 
@@ -28,9 +28,9 @@ namespace OfficeIMO.Examples.Word {
             string filePathOutput2 = System.IO.Path.Combine(folderPath, "EmptyDocumentSaveAs2.docx");
 
             WordDocument document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
             document.AddParagraph("This is my test in document");
 
             // We're checking if the file is locked (it should be)
@@ -54,9 +54,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "FirstDocument1.docx");
 
             WordDocument document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
 
             document.AddParagraph("This is my test in document");
 
@@ -71,9 +71,9 @@ namespace OfficeIMO.Examples.Word {
             string filePath3 = System.IO.Path.Combine(folderPath, "FirstDocument13.docx");
 
             WordDocument document = WordDocument.Create();
-            document.BuiltinDocumentProperties.Title = "This is my title";
-            document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-            document.BuiltinDocumentProperties.Keywords = "word, docx, test";
+            document.Properties.Title = "This is my title";
+            document.Properties.Creator = "Przemysław Kłys";
+            document.Properties.Keywords = "word, docx, test";
 
             document.AddParagraph("This is my test in document 1");
 

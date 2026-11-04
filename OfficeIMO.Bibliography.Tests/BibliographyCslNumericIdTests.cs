@@ -12,13 +12,13 @@ public sealed class BibliographyCslNumericIdTests {
         Assert.Equal(key, document.Items.Single().Key);
         Assert.Equal(source, document.Write().Content);
         document.Items.Single().Title = "After";
-        BibliographyWriteResult result = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true });
+        BibliographyWriteResult result = document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true });
         using JsonDocument json = JsonDocument.Parse(result.Content);
         Assert.Equal(JsonValueKind.Number, json.RootElement[0].GetProperty("id").ValueKind);
         Assert.Equal(raw, json.RootElement[0].GetProperty("id").GetRawText());
         Assert.Equal(key, BibliographyDocument.Parse(result.Content, BibliographyFormat.CslJson).Document.Items.Single().Key);
         document.Items.Single().Key = "new-key";
-        using JsonDocument edited = JsonDocument.Parse(document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, RequireNoLoss = true }).Content);
+        using JsonDocument edited = JsonDocument.Parse(document.Write(new BibliographyWriteOptions { Mode = BibliographyWriterMode.Canonical, FailOnLoss = true }).Content);
         Assert.Equal("new-key", edited.RootElement[0].GetProperty("id").GetString());
     }
 }

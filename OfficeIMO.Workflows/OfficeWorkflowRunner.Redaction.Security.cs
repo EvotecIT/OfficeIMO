@@ -14,8 +14,7 @@ public sealed partial class OfficeWorkflowRunner {
         if (request.Recipe.SignaturePolicy == PdfRedactionSignaturePolicy.CreateAndSignDerivative) {
             if (request.OutputSigner is null) throw new RedactionWorkflowException("CreateAndSignDerivative requires a runtime output signer.");
             PdfExternalSignatureOptions options = request.OutputSignatureOptions ?? new PdfExternalSignatureOptions();
-            options.CancellationToken = cancellationToken;
-            PdfExternalSignatureCompletion completion = PdfDocument.Load(output, readOptions).Security.SignExternal(request.OutputSigner, options);
+            PdfExternalSignatureCompletion completion = PdfDocument.Load(output, readOptions).Security.SignExternal(request.OutputSigner, options, cancellationToken: cancellationToken);
             output = completion.Pdf;
             signerName = completion.SignerName;
         }
@@ -85,11 +84,10 @@ public sealed partial class OfficeWorkflowRunner {
         if (request.ExternalValidators.Count == 0) return Array.Empty<string>();
         var options = new PdfRedactionVerificationOptions {
             RequireCompleteStreamInspection = true,
-            CheckManagedRendering = true,
-            CancellationToken = cancellationToken
+            CheckManagedRendering = true
         };
         foreach (IPdfRedactionCancellationAwareExternalValidator validator in request.ExternalValidators) options.ExternalValidators.Add(validator);
-        PdfRedactionVerificationReport report = PdfDocument.Load(output, readOptions).Redactions.Verify(options);
+        PdfRedactionVerificationReport report = PdfDocument.Load(output, readOptions).Redactions.Verify(options, cancellationToken: cancellationToken);
         if (!report.IsVerified) throw new RedactionWorkflowException("One or more independent validators rejected the final redacted artifact.");
         return report.ExternalValidationResults.Select(static result => result.ValidatorName).Distinct(StringComparer.Ordinal).ToArray();
     }

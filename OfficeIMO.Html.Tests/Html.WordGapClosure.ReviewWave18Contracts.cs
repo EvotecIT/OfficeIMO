@@ -18,10 +18,10 @@ public partial class HtmlWordGapClosure {
         using WordDocument document = HtmlConversionDocument.Parse(html).ToWord();
         WordTableCell cell = Assert.Single(Assert.Single(document.Tables).Rows).Cells[0];
 
-        Assert.Equal("0000FF", cell.Borders.LeftColorHex);
-        Assert.Equal("0000FF", cell.Borders.RightColorHex);
-        Assert.Equal("0000FF", cell.Borders.TopColorHex);
-        Assert.Equal("0000FF", cell.Borders.BottomColorHex);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.RightColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.TopColor);
+        Assert.Equal(OfficeColor.Parse("0000FF"), cell.Borders.BottomColor);
     }
 
     [Fact]
@@ -36,7 +36,7 @@ public partial class HtmlWordGapClosure {
             });
         WordParagraph run = document.AddParagraph("Layered");
         run.SetCharacterStyleId("StyledHighlight");
-        run.RunShadingFillColorHex = "FF0000";
+        run.BackgroundColor = OfficeColor.Parse("FF0000");
 
         string html = document.ToHtml(new WordHtmlExportOptions { IncludeRunHighlightStyles = true });
 
@@ -57,7 +57,7 @@ public partial class HtmlWordGapClosure {
 
         Assert.Null(transparent.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, blended.Borders.LeftStyle);
-        Assert.Equal("800080", blended.Borders.LeftColorHex);
+        Assert.Equal(OfficeColor.Parse("800080"), blended.Borders.LeftColor);
     }
 
     [Fact]

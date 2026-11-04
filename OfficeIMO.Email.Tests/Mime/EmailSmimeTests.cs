@@ -17,7 +17,7 @@ public sealed class EmailSmimeTests {
             "Hello from clear-signed S/MIME");
         byte[] signature = CmsSignedDataSigner.SignDetached(signedEntity, certificate);
         byte[] message = CreateClearSignedMessage(signedEntity, signature);
-        using EmailReadResult read = new EmailDocumentReader().Read(message);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(message);
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
             read.Document,
@@ -48,7 +48,7 @@ public sealed class EmailSmimeTests {
         byte[] signedEntity = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nOriginal");
         byte[] signature = CmsSignedDataSigner.SignDetached(signedEntity, certificate);
         byte[] tamperedEntity = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nTampered");
-        using EmailReadResult read = new EmailDocumentReader().Read(
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(
             CreateClearSignedMessage(tamperedEntity, signature));
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
@@ -71,7 +71,7 @@ public sealed class EmailSmimeTests {
         byte[] normalizedByTransport = Encoding.ASCII.GetBytes(
             Encoding.ASCII.GetString(CreateClearSignedMessage(canonical, signature))
                 .Replace("\r\n", "\n"));
-        using EmailReadResult read = new EmailDocumentReader().Read(normalizedByTransport);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(normalizedByTransport);
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
             read.Document,
@@ -99,7 +99,7 @@ public sealed class EmailSmimeTests {
         byte[] normalizedByTransport = Encoding.ASCII.GetBytes(
             Encoding.ASCII.GetString(CreateClearSignedMessage(canonical, signature))
                 .Replace("\r\n", "\n"));
-        using EmailReadResult read = new EmailDocumentReader().Read(normalizedByTransport);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(normalizedByTransport);
         CmsVerificationOptions options = TrustSelfSigned();
         options.MaxContentBytes = normalizedEntity.LongLength;
 
@@ -135,7 +135,7 @@ public sealed class EmailSmimeTests {
             Length = protectedEntity.Length,
             MapiAttachMethod = 1
         });
-        using EmailReadResult read = new EmailDocumentReader().Read(
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(
             new EmailDocumentWriter().ToBytes(source, format));
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
@@ -154,7 +154,7 @@ public sealed class EmailSmimeTests {
         using X509Certificate2 certificate = CreateCertificate("OfficeIMO Opaque Signer");
         byte[] content = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nOpaque signed body");
         byte[] cms = CmsSignedDataSigner.SignEncapsulated(content, certificate);
-        using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "signed-data"));
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(CreateOpaqueMessage(cms, "signed-data"));
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
             read.Document,
@@ -174,7 +174,7 @@ public sealed class EmailSmimeTests {
             "1.3.6.1.5.5.7.3.3");
         byte[] content = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nNot an email signer");
         byte[] cms = CmsSignedDataSigner.SignEncapsulated(content, certificate);
-        using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "signed-data"));
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(CreateOpaqueMessage(cms, "signed-data"));
 
         EmailSmimeVerificationResult result = EmailSmime.Verify(
             read.Document,
@@ -192,7 +192,7 @@ public sealed class EmailSmimeTests {
         byte[] content = Encoding.ASCII.GetBytes(
             "Content-Type: text/plain; charset=utf-8\r\n\r\nConfidential message body");
         byte[] cms = CmsEnvelopedDataService.Encrypt(content, new[] { recipient });
-        using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "enveloped-data"));
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(CreateOpaqueMessage(cms, "enveloped-data"));
 
         EmailSmimeDecryptionResult result = EmailSmime.Decrypt(
             read.Document,
@@ -217,7 +217,7 @@ public sealed class EmailSmimeTests {
         byte[] signedCms = CmsSignedDataSigner.SignEncapsulated(content, signer);
         byte[] signedMessage = CreateOpaqueMessage(signedCms, innerSmimeType);
         byte[] envelope = CmsEnvelopedDataService.Encrypt(signedMessage, new[] { recipient });
-        using EmailReadResult read = new EmailDocumentReader().Read(
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(
             CreateOpaqueMessage(envelope, "enveloped-data"));
 
         EmailSmimeProcessingResult result = EmailSmime.DecryptThenVerify(
@@ -246,7 +246,7 @@ public sealed class EmailSmimeTests {
         byte[] innerEnvelope = CmsEnvelopedDataService.Encrypt(content, new[] { recipient });
         byte[] innerMessage = CreateOpaqueMessage(innerEnvelope, "signed-data");
         byte[] outerEnvelope = CmsEnvelopedDataService.Encrypt(innerMessage, new[] { recipient });
-        using EmailReadResult read = new EmailDocumentReader().Read(
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(
             CreateOpaqueMessage(outerEnvelope, "enveloped-data"));
 
         EmailSmimeProcessingResult result = EmailSmime.DecryptThenVerify(
@@ -269,7 +269,7 @@ public sealed class EmailSmimeTests {
         byte[] cms = CmsEnvelopedDataService.Encrypt(
             Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nSecret"),
             new[] { recipient });
-        using EmailReadResult read = new EmailDocumentReader().Read(CreateOpaqueMessage(cms, "enveloped-data"));
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(CreateOpaqueMessage(cms, "enveloped-data"));
 
         EmailSmimeDecryptionResult result = EmailSmime.Decrypt(
             read.Document,
@@ -293,7 +293,7 @@ public sealed class EmailSmimeTests {
             signer,
             OfficeSecurityProvider.Default,
             mode);
-        using EmailReadResult read = new EmailDocumentReader().Read(created.Message);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(created.Message);
         EmailSmimeVerificationResult verified = EmailSmime.Verify(
             read.Document,
             OfficeSecurityProvider.Default,
@@ -315,7 +315,7 @@ public sealed class EmailSmimeTests {
             source,
             new[] { recipient },
             OfficeSecurityProvider.Default);
-        using EmailReadResult read = new EmailDocumentReader().Read(created.Message);
+        using EmailReadResult read = new EmailDocumentReader().ReadDocument(created.Message);
         EmailSmimeDecryptionResult decrypted = EmailSmime.Decrypt(
             read.Document,
             recipient,
@@ -336,7 +336,7 @@ public sealed class EmailSmimeTests {
             signer,
             new[] { recipient },
             OfficeSecurityProvider.Default);
-        using EmailReadResult outer = new EmailDocumentReader().Read(created.Message);
+        using EmailReadResult outer = new EmailDocumentReader().ReadDocument(created.Message);
         EmailSmimeDecryptionResult decrypted = EmailSmime.Decrypt(
             outer.Document,
             recipient,

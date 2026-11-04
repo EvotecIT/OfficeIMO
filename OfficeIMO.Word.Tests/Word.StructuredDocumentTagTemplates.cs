@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
 
             document.AddParagraph("Section");
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             document.Sections[0].AddWatermark(WordWatermarkStyle.Text, "Draft");
 
             var watermarkBlocks = FindDocPartBlocks(document, "Watermarks");
@@ -51,8 +51,8 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
 
             document.AddParagraph("Section");
-            document.AddHeadersAndFooters();
-            var footer = document.Sections[0].Footer.Default
+            _ = document.PageSetup.Header;
+            var footer = document.Sections[0].PageSetup.GetFooter(WordHeaderFooterType.Default)
                 ?? throw new InvalidOperationException("Default footer was not initialized.");
             footer.AddPageNumber(WordPageNumberStyle.PlainNumber);
 

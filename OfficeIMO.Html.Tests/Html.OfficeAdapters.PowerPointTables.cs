@@ -22,7 +22,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             """;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Equal(presentation.SlideSize.Width.ToPoints() - 128D, table.Width.ToPoints(), 3);
@@ -49,7 +49,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             """;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointTable[] tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
         Assert.NotEmpty(tables);
@@ -71,7 +71,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             + "<div role='row'><div role='cell'>Long</div><div role='cell'>" + definition + "</div></div></div>";
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
 
@@ -90,9 +90,9 @@ public class HtmlOfficeAdaptersPowerPointTables {
             + text + "</span></td></tr></table>";
 
         using PowerPointDocument plain = OfficeIMO.Html.HtmlConversionDocument.Parse(plainHtml)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         using PowerPointDocument styled = OfficeIMO.Html.HtmlConversionDocument.Parse(styledHtml)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic }).RequireValue();
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic }).RequireValue();
         PowerPointTable plainTable = Assert.Single(plain.Slides.SelectMany(slide => slide.Tables));
         PowerPointTable styledTable = Assert.Single(styled.Slides.SelectMany(slide => slide.Tables));
 
@@ -108,14 +108,14 @@ public class HtmlOfficeAdaptersPowerPointTables {
         string html = "<div role='table'>" + rows + "</div>";
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
 
         PowerPointTable[] tables = presentation.Slides.SelectMany(slide => slide.Tables).ToArray();
         Assert.InRange(tables.Length, 2, 15);
         Assert.Equal(15, tables.Sum(table => table.Rows));
         Assert.Equal("Term 14", tables.Last().GetCell(tables.Last().Rows - 1, 0).Text);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.ContentApproximated
             && diagnostic.Detail?.Contains("projection=paginatedNativeTable", StringComparison.Ordinal) == true);
         Assert.All(tables, table =>
@@ -131,7 +131,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             + "<tbody>" + rows + "</tbody></table>";
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointSlide[] tableSlides = presentation.Slides.Where(slide => slide.Tables.Any()).ToArray();
         Assert.InRange(tableSlides.Length, 2, 5);
@@ -161,17 +161,17 @@ public class HtmlOfficeAdaptersPowerPointTables {
             $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
         string html = "<table><tr><th>Term</th><th>Standard</th></tr>" + rows
             + "</table><p>Content after the limited table</p>";
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.RequireValue();
 
         Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes), box =>
             box.Text == "Content after the limited table");
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
     }
@@ -180,17 +180,17 @@ public class HtmlOfficeAdaptersPowerPointTables {
     public void PowerPointHtml_TableLimitDoesNotAppendAnEmptyContinuationSlide() {
         string rows = string.Concat(Enumerable.Range(1, 20).Select(index =>
             $"<tr><td>Term {index}</td><td>Standard {index}</td></tr>"));
-        HtmlImportLimits limits = HtmlImportLimits.CreateDefault();
+        HtmlImportLimits limits = new HtmlImportLimits();
         limits.MaxTables = 1;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(
                 "<table><tr><th>Term</th><th>Standard</th></tr>" + rows + "</table>")
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, Limits = limits });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, Limits = limits });
         using PowerPointDocument presentation = result.RequireValue();
 
         Assert.Single(presentation.Slides);
         Assert.Single(presentation.Slides[0].Tables);
-        Assert.Contains(result.Report.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.NativeDiagnostics, diagnostic =>
             diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded
             && diagnostic.Detail?.Contains("firstOmittedRow=", StringComparison.Ordinal) == true);
     }
@@ -204,7 +204,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         string html = "<table><tr><th colspan='2'>Standards</th></tr>" + rows + "</table>";
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using var stream = new MemoryStream();
         using (PowerPointDocument presentation = result.RequireValue()) presentation.Save(stream);
         using PowerPointDocument reopened = PowerPointDocument.Load(new MemoryStream(stream.ToArray()));
@@ -231,7 +231,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             + "<tr><th>Term</th><th>Standard</th></tr>" + rows + "</table>";
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointSlide firstTableSlide = presentation.Slides.First(slide => slide.Tables.Any());
         PowerPointTable firstTable = Assert.Single(firstTableSlide.Tables);
@@ -255,7 +255,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             """;
 
         HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.RequireValue();
         PowerPointTable table = Assert.Single(presentation.Slides.SelectMany(slide => slide.Tables));
         Assert.Equal(2, result.MergedRanges);
@@ -277,7 +277,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         table.MergeCells(2, 1, 2, 2);
 
         string html = presentation.ToHtml();
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument imported = result.Value;
         PowerPointTable importedTable = Assert.Single(Assert.Single(imported.Slides).Tables);
 
@@ -304,7 +304,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             </section>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument presentation = result.Value;
         PowerPointTable table = Assert.Single(Assert.Single(presentation.Slides).Tables);
 
@@ -326,7 +326,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             </section>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(new HtmlToPowerPointOptions { MaxTableCells = 4 });
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { MaxTableCells = 4 });
         using PowerPointDocument presentation = result.Value;
 
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
@@ -341,8 +341,8 @@ public class HtmlOfficeAdaptersPowerPointTables {
             </table>
             """;
 
-        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic, MaxTableCells = 4 });
         using PowerPointDocument presentation = result.Value;
         PowerPointTable table = Assert.Single(Assert.Single(presentation.Slides).Tables);
 

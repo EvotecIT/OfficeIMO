@@ -33,7 +33,7 @@ public class PdfAttachmentExtractorTests {
         byte[] pdf = PdfDocument.Create()
             .AttachFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML")
             .AttachFile("source.txt", sourceBytes, "text/plain", PdfAssociatedFileRelationship.Source)
-            .Paragraph(p => p.Text("Attachment readback proof."))
+            .Paragraph(p => p.AddText("Attachment readback proof."))
             .ToBytes();
 
         IReadOnlyList<PdfExtractedAttachment> attachments = PdfAttachmentExtractor.ExtractAttachments(pdf);
@@ -75,7 +75,7 @@ public class PdfAttachmentExtractorTests {
             })
             .AttachFile("z.xml", Encoding.UTF8.GetBytes("<z />"), "application/xml", PdfAssociatedFileRelationship.Data)
             .AttachFile("a.xml", Encoding.UTF8.GetBytes("<a />"), "application/xml", PdfAssociatedFileRelationship.Data)
-            .Paragraph(p => p.Text("Sorted attachment name tree."))
+            .Paragraph(p => p.AddText("Sorted attachment name tree."))
             .ToBytes();
 
         string content = Encoding.ASCII.GetString(pdf);
@@ -220,7 +220,7 @@ public class PdfAttachmentExtractorTests {
         byte[] pdf = PdfDocument.Create()
             .AttachFile("first.bin", new byte[] { 1, 2, 3 })
             .AttachFile("second.bin", new byte[] { 4, 5, 6 })
-            .Paragraph(p => p.Text("Aggregate attachment budget."))
+            .Paragraph(p => p.AddText("Aggregate attachment budget."))
             .ToBytes();
 
         PdfReadDocument document = PdfReadDocument.Open(pdf, new PdfLoadOptions {
@@ -260,7 +260,7 @@ public class PdfAttachmentExtractorTests {
         byte[] pdf = PdfDocument.Create()
             .AttachFile("first.bin", new byte[] { 1, 2, 3 })
             .AttachFile("second.bin", new byte[] { 4, 5, 6 })
-            .Paragraph(p => p.Text("Attachment count ordering."))
+            .Paragraph(p => p.AddText("Attachment count ordering."))
             .ToBytes();
 
         PdfReadLimitException exception = Assert.Throws<PdfReadLimitException>(() =>
@@ -281,7 +281,7 @@ public class PdfAttachmentExtractorTests {
         byte[] payload = Encoding.UTF8.GetBytes("directory payload");
         byte[] pdf = PdfDocument.Create()
             .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Supplement)
-            .Paragraph(p => p.Text("Directory extraction proof."))
+            .Paragraph(p => p.AddText("Directory extraction proof."))
             .ToBytes();
 
         string tempRoot = Path.Combine(Path.GetTempPath(), "officeimo-pdf-attachments-" + Guid.NewGuid().ToString("N"));

@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             try {
                 File.WriteAllBytes(path, OfficePngWriter.Encode(new OfficeRasterImage(40, 40)));
                 using WordDocument document = WordDocument.Create();
-                WordHeader header = document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default);
+                WordHeader header = document.Sections[0].PageSetup.Header;
                 WordWatermark watermark = header.AddWatermark(WordWatermarkStyle.Image, path);
                 Assert.Throws<OperationCanceledException>(() =>
                     watermark.TryGetImageBytes(out _, out _, new CancellationToken(true)));
@@ -110,8 +110,8 @@ namespace OfficeIMO.Tests {
             WordDocument document = WordDocument.Create();
             document.AddParagraph("SVG preview");
             WordParagraph paragraph = story == "cell" ? document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0] :
-                story == "header" ? document.Sections[0].GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph() :
-                story == "footer" ? document.Sections[0].GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph() :
+                story == "header" ? document.Sections[0].PageSetup.Header.AddParagraph() :
+                story == "footer" ? document.Sections[0].PageSetup.Footer.AddParagraph() :
                 document.AddParagraph();
             byte[] bytes = extension ? OfficePngWriter.Encode(new OfficeRasterImage(40, 40, OfficeColor.FromRgb(0, 0, 255))) :
                 Encoding.UTF8.GetBytes(svg!);

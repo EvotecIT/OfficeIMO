@@ -12,7 +12,7 @@ public static partial class EpubManuscript {
     }
 
     private static List<Chapter> SplitChapters(XElement body, int headingLevel, string title,
-        List<OfficeConversionFidelityDiagnostic> diagnostics, CancellationToken token) {
+        List<OfficeDiagnostic> diagnostics, CancellationToken token) {
         HashSet<XElement> boundaries = PlanChapterBoundaries(body, headingLevel, diagnostics, token);
         var chapters = new List<Chapter>();
         var ancestors = new List<XElement>();
@@ -69,7 +69,7 @@ public static partial class EpubManuscript {
         element.Name.LocalName.Length == 2 && element.Name.LocalName[0] == 'h' && element.Name.LocalName[1] >= '1' && element.Name.LocalName[1] <= '6'
             ? element.Name.LocalName[1] - '0' : 0;
 
-    private static void AssignAnchors(List<Chapter> chapters, List<OfficeConversionFidelityDiagnostic> diagnostics) {
+    private static void AssignAnchors(List<Chapter> chapters, List<OfficeDiagnostic> diagnostics) {
         var used = new HashSet<string>(StringComparer.Ordinal);
         int next = 0;
         foreach (XElement element in chapters.SelectMany(chapter => chapter.Body.DescendantsAndSelf())) {
@@ -89,7 +89,7 @@ public static partial class EpubManuscript {
     }
 
     private static void RewriteChapterLinks(List<Chapter> chapters, HtmlConversionDocument manuscript,
-        List<OfficeConversionFidelityDiagnostic> diagnostics) {
+        List<OfficeDiagnostic> diagnostics) {
         var anchors = chapters.SelectMany(chapter => chapter.Body.DescendantsAndSelf()
             .SelectMany(element => EpubContentIdentifiers.GetIdentifiers(element).Select(id => new { Id = id, Chapter = chapter })))
             // Matching id/xml:id identify one target. Content validation reports invalid

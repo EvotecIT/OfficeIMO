@@ -56,7 +56,7 @@ public static partial class BookManuscriptImporter {
             package.Macros = package.ActiveX = OfficePackageContentPolicy.Reject;
             using WordDocument document = WordDocument.Load(input, new WordLoadOptions { AccessMode = DocumentAccessMode.ReadOnly,
                 MaxInputBytes = 64L * 1024 * 1024, PackageSecurity = package });
-            if ((document.BuiltinDocumentProperties.Title == null || string.IsNullOrWhiteSpace(document.BuiltinDocumentProperties.Title))) operation.Title ??= fallbackTitle;
+            if ((document.Properties.Title == null || string.IsNullOrWhiteSpace(document.Properties.Title))) operation.Title ??= fallbackTitle;
             return await ImportWordAsync(document, operation, htmlOptions, cancellationToken).ConfigureAwait(false);
         }
         using var stream = new MemoryStream(bytes, false);

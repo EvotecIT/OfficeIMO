@@ -1,8 +1,8 @@
 namespace OfficeIMO.Email.Store;
 
 /// <summary>Corruption-tolerant export result for indexed items absent from normal folder tables.</summary>
-public sealed class EmailStoreRecoveryExportReport : IOfficeConversionReport {
-    private readonly IReadOnlyList<OfficeConversionFidelityDiagnostic> _fidelityDiagnostics;
+public sealed class EmailStoreRecoveryExportReport : OfficeConversionReport {
+    private readonly IReadOnlyList<OfficeDiagnostic> _fidelityDiagnostics;
 
     internal EmailStoreRecoveryExportReport(string destinationDirectory,
         EmailStoreRecoveryReport discovery, string? manifestPath,
@@ -12,7 +12,7 @@ public sealed class EmailStoreRecoveryExportReport : IOfficeConversionReport {
         Discovery = discovery;
         ManifestPath = manifestPath;
         Entries = entries;
-        Diagnostics = diagnostics;
+        NativeDiagnostics = diagnostics;
         int failedCount = entries.Count(static entry => !entry.Succeeded);
         _fidelityDiagnostics = EmailStoreFidelityProjection.ProjectExport(
             diagnostics,
@@ -35,7 +35,7 @@ public sealed class EmailStoreRecoveryExportReport : IOfficeConversionReport {
     /// <summary>Per-recovered-item export outcomes.</summary>
     public IReadOnlyList<EmailStoreExportEntry> Entries { get; }
     /// <summary>Discovery, source, export, and manifest diagnostics.</summary>
-    public IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
+    public IReadOnlyList<EmailStoreDiagnostic> NativeDiagnostics { get; }
     /// <summary>Successfully preserved recovered items.</summary>
     public int RecoveredCount => Entries.Count(entry => entry.Succeeded);
     /// <summary>Recovered references that could not be read or serialized.</summary>
@@ -43,16 +43,15 @@ public sealed class EmailStoreRecoveryExportReport : IOfficeConversionReport {
     /// <summary>Whether discovery covered its selected scope and every discovered item was preserved.</summary>
     public bool IsComplete => !Discovery.StoppedAtLimit && FailedCount == 0;
     /// <summary>Whether discovery, export, or manifest processing produced an error.</summary>
-    public bool HasErrors => FailedCount > 0 || Diagnostics.Any(diagnostic =>
+    public bool HasErrors => FailedCount > 0 || NativeDiagnostics.Any(diagnostic =>
         diagnostic.Severity == EmailStoreDiagnosticSeverity.Error);
 
     /// <summary>Category-preserving discovery, item, truncation, and publication diagnostics.</summary>
-    public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
+    protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+    private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics => _fidelityDiagnostics;
 
     /// <summary>Whether recovery approximated, omitted, or failed to preserve discovered source content.</summary>
-    public bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
+    public override bool HasLoss => _fidelityDiagnostics.Any(static diagnostic =>
         diagnostic.LossKind != OfficeConversionLossKind.None);
 
-    /// <summary>Throws when recovery export reported possible content loss.</summary>
-    public void RequireNoLoss() => EmailStoreFidelityProjection.RequireNoLoss(_fidelityDiagnostics);
 }

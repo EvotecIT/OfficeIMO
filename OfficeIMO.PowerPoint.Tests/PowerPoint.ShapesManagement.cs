@@ -47,9 +47,9 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTextBox box1 = slide.AddTextBox("First");
-                PowerPointPicture pic1 = slide.AddImage(imagePath);
+                PowerPointImage pic1 = slide.AddImage(imagePath);
                 PowerPointTextBox box2 = slide.AddTextBox("Second");
-                PowerPointPicture pic2 = slide.AddImage(imagePath);
+                PowerPointImage pic2 = slide.AddImage(imagePath);
 
                 Assert.Equal("TextBox 1", box1.Name);
                 Assert.Equal("TextBox 2", box2.Name);
@@ -57,11 +57,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Picture 2", pic2.Name);
 
                 Assert.Same(box1, slide.GetTextBox("TextBox 1"));
-                Assert.Same(pic2, slide.GetPicture("Picture 2"));
+                Assert.Same(pic2, slide.GetImage("Picture 2"));
                 Assert.Same(box1, slide.GetShape("TextBox 1"));
 
                 slide.RemoveShape(pic1);
-                Assert.Null(slide.GetPicture("Picture 1"));
+                Assert.Null(slide.GetImage("Picture 1"));
                 Assert.Equal(3, slide.Shapes.Count);
 
                 presentation.Save();
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    PowerPointPicture picture = slide.AddImage(svgPath,left: global::OfficeIMO.OfficeLength.Emus(1000),top: global::OfficeIMO.OfficeLength.Emus(1000),width: global::OfficeIMO.OfficeLength.Emus(2000),height: global::OfficeIMO.OfficeLength.Emus(1200));
+                    PowerPointImage picture = slide.AddImage(svgPath,left: global::OfficeIMO.OfficeLength.Emus(1000),top: global::OfficeIMO.OfficeLength.Emus(1000),width: global::OfficeIMO.OfficeLength.Emus(2000),height: global::OfficeIMO.OfficeLength.Emus(1200));
                     picture.Name = "Vector Logo";
 
                     Assert.Equal("image/svg+xml", picture.ContentType);
@@ -186,7 +186,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
-                    PowerPointPicture? picture = presentation.Slides[0].GetShapeByName<PowerPointPicture>("Vector Logo");
+                    PowerPointImage? picture = presentation.Slides[0].GetShapeByName<PowerPointImage>("Vector Logo");
 
                     Assert.NotNull(picture);
                     Assert.Equal("image/svg+xml", picture!.ContentType);

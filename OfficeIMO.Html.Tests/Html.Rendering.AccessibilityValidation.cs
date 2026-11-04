@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         string raster = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1, 1));
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<html lang='en'><body><p>Print report</p><img width='12' height='12' src='data:image/png;base64," + raster + "'></body></html>");
-        var options = new HtmlToPdfOptions();
+        var options = new HtmlPdfExportOptions();
         options.AdditionalStylesheets.Add("img {display:none}");
         HtmlPdfRenderRequestResult rendered = source.RenderToPdfResult(
             HtmlRenderRequest.Create(HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Pdf, options));
@@ -45,7 +45,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<html lang='en'><head><link rel='stylesheet' href='https://assets.example.test/report.css'></head>" +
             "<body><p>Responsive report</p><img width='12' height='12' src='data:image/png;base64," + raster + "'></body></html>");
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ViewportWidth = viewportWidth,
             ResourcePolicy = OfficeIMO.Pdf.PdfResourcePolicy.CreateTrustedHost(),
             ResourceResolver = (request, cancellationToken) => {
@@ -94,7 +94,7 @@ public sealed partial class HtmlRenderingTests {
             """.Replace("RASTER_DATA", rasterData);
 
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
-        byte[] pdf = (source.ToPdf(new HtmlToPdfOptions())).ToBytes();
+        byte[] pdf = (source.ToPdf(new HtmlPdfExportOptions())).ToBytes();
 
         HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, pdf);
 
@@ -106,7 +106,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdfAccessibilityValidator_ReportsMissingLanguageAndFigureAlt() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<main><h1>Missing metadata</h1><img width='12' height='12' src='data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(1, 1)) + "'></main>");
-        byte[] pdf = (source.ToPdf(new HtmlToPdfOptions())).ToBytes();
+        byte[] pdf = (source.ToPdf(new HtmlPdfExportOptions())).ToBytes();
 
         HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, pdf);
 
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlPdfAccessibilityValidator_ReportsExplicitlyUntaggedOutput() {
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PdfOptions = new OfficeIMO.Pdf.PdfCreateOptions {
                 Language = "en-US",
                 TaggedStructureMode = OfficeIMO.Pdf.PdfTaggedStructureMode.None
@@ -146,7 +146,7 @@ public sealed partial class HtmlRenderingTests {
             """.Replace("RASTER", raster);
         HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
 
-        HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, (source.ToPdf(new HtmlToPdfOptions())).ToBytes());
+        HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, (source.ToPdf(new HtmlPdfExportOptions())).ToBytes());
 
         Assert.True(result.IsValid, string.Join(Environment.NewLine, result.Issues.Select(issue => $"{issue.Code}: {issue.Message}")));
         Assert.DoesNotContain(result.Issues, issue => issue.Code == "HtmlPdfAccessibilityImageNameMissing");
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<!doctype html><html lang='en'><body><div aria-hidden='true'><input type='image'></div><p>Visible content</p></body></html>");
 
-        HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, (source.ToPdf(new HtmlToPdfOptions())).ToBytes());
+        HtmlPdfAccessibilityValidationResult result = HtmlPdfAccessibilityValidator.Validate(source, (source.ToPdf(new HtmlPdfExportOptions())).ToBytes());
 
         Assert.False(result.IsValid);
         Assert.Contains(result.Issues, issue => issue.Code == "HtmlPdfAccessibilityImageNameMissing");

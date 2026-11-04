@@ -571,9 +571,8 @@ namespace OfficeIMO.Tests {
         public void CompareStructureIncludesHeaderFooterParagraphsAndTables() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_header_footer.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph("Classification: Internal");
-                WordTable footerTable = doc.Footer.Default!.AddTable(1, 2);
+                doc.PageSetup.Header.AddParagraph("Classification: Internal");
+                WordTable footerTable = doc.PageSetup.Footer.AddTable(1, 2);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
                 footerTable.Rows[0].Cells[1].Paragraphs[0].SetText("Platform");
                 doc.Save();
@@ -581,9 +580,8 @@ namespace OfficeIMO.Tests {
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_header_footer.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph("Classification: Confidential");
-                WordTable footerTable = doc.Footer.Default!.AddTable(1, 2);
+                doc.PageSetup.Header.AddParagraph("Classification: Confidential");
+                WordTable footerTable = doc.PageSetup.Footer.AddTable(1, 2);
                 footerTable.Rows[0].Cells[0].Paragraphs[0].SetText("Owner");
                 footerTable.Rows[0].Cells[1].Paragraphs[0].SetText("Security");
                 doc.Save();
@@ -631,15 +629,13 @@ namespace OfficeIMO.Tests {
         public void CompareStructureIncludesHeaderImages() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_header_image.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
-                doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+                doc.PageSetup.Header.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
                 doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_header_image.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
-                doc.AddHeadersAndFooters();
-                doc.Header.Default!.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"));
+                doc.PageSetup.Header.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"));
                 doc.Save();
             }
 

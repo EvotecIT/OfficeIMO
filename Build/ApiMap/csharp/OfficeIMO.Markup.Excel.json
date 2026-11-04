@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Markup.Excel",
+  "changes": [
+    {
+      "old": "OfficeIMO.Markup.Excel.MarkupToExcelOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markup.Excel.MarkupExcelExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

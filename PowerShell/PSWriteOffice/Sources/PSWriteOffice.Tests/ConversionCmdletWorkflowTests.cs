@@ -413,6 +413,23 @@ public sealed partial class ConversionCmdletWorkflowTests {
         } finally { Directory.Delete(root, true); }
     }
 
+    [Fact]
+    public void PipedPathStringWithToAndOutputPathConvertsRelativeToTheCurrentLocation() {
+        string root = Directory.CreateTempSubdirectory("officeimo-conversion-piped-path-").FullName;
+        try {
+            File.WriteAllText(Path.Combine(root, "notes.md"), "# Piped heading");
+            using var runspace = OpenRunspace();
+            runspace.SessionStateProxy.SetVariable("root", root);
+            using var shell = PowerShell.Create();
+            shell.Runspace = runspace;
+            shell.AddScript("Set-Location -LiteralPath $root; 'note?.md' | Convert-OfficeDocument -To Html -OutputPath notes.html -ErrorAction Stop");
+            var report = Assert.IsType<OfficeConversionReport>(Assert.Single(shell.Invoke()).BaseObject);
+            Assert.Empty(shell.Streams.Error);
+            Assert.Equal(Path.Combine(root, "notes.md"), report.Source);
+            Assert.Contains("Piped heading", File.ReadAllText(Path.Combine(root, "notes.html")));
+        } finally { Directory.Delete(root, true); }
+    }
+
     private static Runspace OpenRunspace() {
         var state = InitialSessionState.CreateDefault();
         state.ImportPSModule(new[] { typeof(ConvertOfficeDocumentCommand).Assembly.Location });

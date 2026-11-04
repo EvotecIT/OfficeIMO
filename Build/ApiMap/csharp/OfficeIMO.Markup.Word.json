@@ -1,0 +1,14 @@
+{
+  "package": "OfficeIMO.Markup.Word",
+  "changes": [
+    {
+      "old": "OfficeIMO.Markup.Word.MarkupToWordOptions",
+      "kind": "type",
+      "action": "rename",
+      "new": "OfficeIMO.Markup.Word.MarkupWordExportOptions",
+      "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
+      "category": "options",
+      "applied": true
+    }
+  ]
+}

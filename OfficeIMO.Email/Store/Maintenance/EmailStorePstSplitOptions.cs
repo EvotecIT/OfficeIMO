@@ -12,7 +12,7 @@ public sealed class EmailStorePstSplitOptions {
         long perItemOverheadBytes = 16L * 1024L,
         int maxParts = 1000,
         bool overwriteExisting = false,
-        bool failOnDataLoss = true,
+        bool failOnLoss = true,
         bool continueOnItemError = false,
         bool includeSearchFolders = false,
         int maxNestedMessageDepth = 32,
@@ -32,7 +32,7 @@ public sealed class EmailStorePstSplitOptions {
         PerItemOverheadBytes = perItemOverheadBytes;
         MaxParts = maxParts;
         OverwriteExisting = overwriteExisting;
-        FailOnDataLoss = failOnDataLoss;
+        FailOnLoss = failOnLoss;
         ContinueOnItemError = continueOnItemError;
         IncludeSearchFolders = includeSearchFolders;
         MaxNestedMessageDepth = maxNestedMessageDepth;
@@ -58,7 +58,7 @@ public sealed class EmailStorePstSplitOptions {
     /// <summary>Whether an existing complete output set may be transactionally replaced.</summary>
     public bool OverwriteExisting { get; }
     /// <summary>Whether any preservation warning/error or verification mismatch aborts before commit.</summary>
-    public bool FailOnDataLoss { get; }
+    public bool FailOnLoss { get; }
     /// <summary>Whether an unreadable selected item is reported and skipped.</summary>
     public bool ContinueOnItemError { get; }
     /// <summary>Whether search folders are retained as static folders.</summary>

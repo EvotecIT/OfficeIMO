@@ -371,8 +371,8 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(path)) {
                     ExcelSheet sheet = document.AddSheet("Legacy");
-                    sheet.CellValue(1, 1, "Id");
-                    sheet.CellValue(2, 1, 7);
+                    sheet.Cell(1, 1).SetValue("Id");
+                    sheet.Cell(2, 1).SetValue(7);
                     document.Save();
                 }
 
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.AddSheet("Remote");
-                sheet.CellValue(1, 1, "Value");
+                sheet.Cell(1, 1).SetValue("Value");
             }
 
             return memory.ToArray();

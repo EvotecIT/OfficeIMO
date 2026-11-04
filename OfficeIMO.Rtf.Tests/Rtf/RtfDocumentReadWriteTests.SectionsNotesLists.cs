@@ -9,7 +9,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Page_Setup_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\paperw11906\paperh16838\margl1440\margr720\margt1080\margb1080\gutter180\headery360\footery540\rtlgutter\pgnstarts5\pgnrestart\pgnx720\pgny900\pgnlcrm\pgbrdrhead\pgbrdrfoot\pgbrdropt34\pgbrdrsnap\pgbrdrt\brdrs\brdrw12\brsp24\brdrcf1\pgbrdrb\brdrdb\brdrw18\brsp30\brdrcf2\landscape\titlepg\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(11906, result.Document.PageSetup.PaperWidthTwips);
@@ -50,7 +50,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Note_Settings_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\ftnstart5\ftnrestart\ftnnrlc\ftntj\aftnstart7\aftnrstcont\aftnnar\aenddoc\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
         RtfNoteSettings settings = result.Document.NoteSettings;
 
         Assert.Equal(rtf, result.ToRtfLossless());
@@ -69,7 +69,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Document_Settings_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\uc2\deftab720\deflang1045\deflangfe1041\adeflang1033\viewkind4\viewscale125\viewzk2\viewbksp1\widowctrl\hyphauto0\hyphcaps\hyphconsec3\hyphhotz360\facingp\margmirror\formprot\revprot0\annotprot\readprot0\revisions\revprop3\revbar2\dghspace120\dgvspace180\dghorigin720\dgvorigin900\dghshow2\dgvshow3\dgsnap\dgmargin0\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
         RtfDocumentSettings settings = result.Document.Settings;
 
         Assert.Equal(rtf, result.ToRtfLossless());
@@ -111,7 +111,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Sections_Columns_And_Section_Page_Setup_Losslessly() {
         const string rtf = @"{\rtf1\ansi\sectd\sbkodd\cols2\colsx720\colno1\colw3000\colsr360\colno2\colw4000\colsr0\linebetcol\linemod2\linex360\linestarts10\lineppage\vertalj\pgwsxn10000\pghsxn12000\marglsxn720\guttersxn240\headery300\footery420\rtlgutter\pgnstarts3\pgnrestart\pgnucrm\lndscpsxn\titlepg\ftnstart3\ftnrstpg\ftnnauc\ftnbj\aftnstart9\aftnrestart\aftnnalc\aendnotes\pgbrdropt41\pgbrdrl\brdrdot\brdrw8\brsp12\brdrcf3\pgbrdrr\brdrdash\brdrw10\brsp14\brdrcf4\pard First\par\sect\sectd\sbknone\vertalt\cols1\linemod0\linecont\pgncont\pgndec\pard Second\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.False(result.Document.PageSetup.HasAnyValue);
@@ -182,7 +182,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Header_Footer_Destinations_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\header\pard Header {\b bold}\par}{\footer\pard Footer\par}\pard Body\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal("Body", Assert.Single(result.Document.Paragraphs).ToPlainText());
@@ -199,7 +199,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Footnotes_Without_Leaking_Note_Text_Into_Body() {
         const string rtf = @"{\rtf1\ansi\pard Body{\super 1}{\footnote\pard Footnote {\i text}\par} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph body = Assert.Single(result.Document.Paragraphs);
@@ -219,7 +219,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Endnotes_Without_Leaking_Note_Text_Into_Body() {
         const string rtf = @"{\rtf1\ansi\pard Body{\super i}{\endnote\pard Endnote {\b text}\par} after\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph body = Assert.Single(result.Document.Paragraphs);
@@ -239,7 +239,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_List_Table_Overrides_And_Paragraph_List_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\listtable{\list{\listlevel\levelnfc23\levelnfcn23\levelstartat1{\leveltext\'01\u8226 ?;}{\levelnumbers;}\fi-360\li720}{\listname Bullet;}\listid100}}{\*\listoverridetable{\listoverride\listid100\listoverridecount0\ls3}}\pard\ls3\ilvl0 Item\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfListDefinition definition = Assert.Single(result.Document.ListDefinitions);
@@ -265,7 +265,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Rich_List_Level_Metadata_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\listtable{\list{\listlevel\levelnfc0\levelnfcn2\leveljc2\leveljcn1\levelfollow1\levelstartat7\levelspace120\levelindent240\levellegal1\levelnorestart1\levelpicture3\levelpicturenosize{\leveltext\'03\'00.;}{\levelnumbers\'01\'00;}\fi-360\li1080}{\listname Rich;}\listid100}}{\*\listoverridetable{\listoverride\listid100\listoverridecount0\ls3}}\pard\ls3\ilvl0 Item\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfListDefinition definition = Assert.Single(result.Document.ListDefinitions);
@@ -290,7 +290,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_List_Level_Overrides_Losslessly() {
         const string rtf = @"{\rtf1\ansi{\*\listtable{\list{\listlevel\levelnfc0\levelnfcn0\levelstartat1{\leveltext\'03\'00.;}{\levelnumbers\'01\'00;}\fi-360\li720}{\listname Decimal;}\listid100}}{\*\listoverridetable{\listoverride\listid100\listoverridecount2{\lfolevel\listoverrideformat1\listoverridestartat1\levelstartat9}{\lfolevel\listoverridestartat0}\ls3}}\pard\ls3\ilvl0 Item\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfListOverride listOverride = Assert.Single(result.Document.ListOverrides);
@@ -314,7 +314,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Tab_Stops_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard\tx1440\tqr\tldot\tx2880\tqdec\tlmdot\tx4320\tb5000 Name\tab Amount\tab 12.34\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -346,7 +346,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_Binds_Inline_Breaks_And_Preserves_Source_Losslessly() {
         const string rtf = @"{\rtf1\ansi\pard Before\line Line\softline SoftLine\page Page\softpage SoftPage\column Column\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
@@ -369,7 +369,7 @@ public partial class RtfDocumentReadWriteTests {
     public void Read_And_Write_Bound_Hostile_List_Levels() {
         const string rtf = @"{\rtf1\ansi\pard\ls1\ilvl2147483647 Item\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
         RtfParagraph paragraph = Assert.Single(result.Document.Paragraphs);
 
         Assert.Equal(8, paragraph.ListLevel);

@@ -38,7 +38,7 @@ public static class PowerPointOpenDocumentImageExportExtensions {
             imageOptions?.Clone() ??
             new PowerPointImageExportOptions();
         OdfConversionResult<PowerPointDocument> conversion =
-            source.ToPowerPointDocumentResult(conversionOptions);
+            source.ConvertToPowerPointWithEvidence(conversionOptions);
         using (conversion.Value) {
             conversion.Value.ExportImages(
                 format,

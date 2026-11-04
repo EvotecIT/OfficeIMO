@@ -40,12 +40,12 @@ namespace OfficeIMO.Examples.Excel
             {
                 // Document properties via fluent Info
                 {
-                    doc.BuiltinDocumentProperties.Title = "Domain Detective — Mail Classification";
-                    doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
-                    doc.BuiltinDocumentProperties.LastModifiedBy = "OfficeIMO";
+                    doc.Properties.Title = "Domain Detective — Mail Classification";
+                    doc.Properties.Creator = "OfficeIMO";
+                    doc.Properties.LastModifiedBy = "OfficeIMO";
                     doc.ApplicationProperties.Company = "Evotec";
                     doc.ApplicationProperties.ApplicationName = "OfficeIMO.Excel";
-                    doc.BuiltinDocumentProperties.Keywords = "email,security,classification,excel";
+                    doc.Properties.Keywords = "email,security,classification,excel";
                 }
 
                 // Sheet 1: Summary of all domains as a table (ExcelReportBuilder)
@@ -108,41 +108,42 @@ namespace OfficeIMO.Examples.Excel
                 }
 
                 // Make Summary sheet print nicely
-                composer.Sheet.SetGridlinesVisible(false);
-                composer.Sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0);
-                doc.SetPrintArea(composer.Sheet, summaryRange);
+                composer.Sheet.View.ShowGridlines = false;
+                composer.Sheet.PageSetup.FitToWidth = 1; composer.Sheet.PageSetup.FitToHeight = 0;
+                composer.Sheet.PageSetup.PrintArea = summaryRange;
                 // Legend
                 composer.Section("Legend");
                 var legendHeaderRow = composer.CurrentRow;
-                composer.Sheet.Cell(legendHeaderRow, 1, "Status");
-                composer.Sheet.CellBold(legendHeaderRow, 1, true);
-                composer.Sheet.CellBackground(legendHeaderRow, 1, "#F2F2F2");
-                composer.Sheet.Cell(legendHeaderRow, 2, "Meaning");
-                composer.Sheet.CellBold(legendHeaderRow, 2, true);
-                composer.Sheet.CellBackground(legendHeaderRow, 2, "#F2F2F2");
+                composer.Sheet.Cell(legendHeaderRow, 1).SetValue("Status");
+                composer.Sheet.Cell(legendHeaderRow, 1).SetBold(true);
+                composer.Sheet.Cell(legendHeaderRow, 1).SetFillColor("#F2F2F2");
+                composer.Sheet.Cell(legendHeaderRow, 2).SetValue("Meaning");
+                composer.Sheet.Cell(legendHeaderRow, 2).SetBold(true);
+                composer.Sheet.Cell(legendHeaderRow, 2).SetFillColor("#F2F2F2");
                 var palette = ReportStatusColors.Create(OfficeTheme.Default);
                 // OK / Success
-                composer.Sheet.Cell(legendHeaderRow + 1, 1, "OK");
+                composer.Sheet.Cell(legendHeaderRow + 1, 1).SetValue("OK");
                 if (palette.FillHexMap.TryGetValue("OK", out var okHex))
-                    composer.Sheet.CellBackground(legendHeaderRow + 1, 1, okHex);
-                composer.Sheet.Cell(legendHeaderRow + 1, 2, "All checks passed or acceptable");
+                    composer.Sheet.Cell(legendHeaderRow + 1, 1).SetFillColor(okHex);
+                composer.Sheet.Cell(legendHeaderRow + 1, 2).SetValue("All checks passed or acceptable");
                 // Warning
-                composer.Sheet.Cell(legendHeaderRow + 2, 1, "Warning");
+                composer.Sheet.Cell(legendHeaderRow + 2, 1).SetValue("Warning");
                 if (palette.FillHexMap.TryGetValue("Warning", out var warnHex))
-                    composer.Sheet.CellBackground(legendHeaderRow + 2, 1, warnHex);
-                composer.Sheet.Cell(legendHeaderRow + 2, 2, "Requires attention; not blocking");
+                    composer.Sheet.Cell(legendHeaderRow + 2, 1).SetFillColor(warnHex);
+                composer.Sheet.Cell(legendHeaderRow + 2, 2).SetValue("Requires attention; not blocking");
                 // Error
-                composer.Sheet.Cell(legendHeaderRow + 3, 1, "Error");
+                composer.Sheet.Cell(legendHeaderRow + 3, 1).SetValue("Error");
                 if (palette.FillHexMap.TryGetValue("Error", out var errHex))
-                    composer.Sheet.CellBackground(legendHeaderRow + 3, 1, errHex);
-                composer.Sheet.Cell(legendHeaderRow + 3, 2, "Blocking or invalid configuration");
+                    composer.Sheet.Cell(legendHeaderRow + 3, 1).SetFillColor(errHex);
+                composer.Sheet.Cell(legendHeaderRow + 3, 2).SetValue("Blocking or invalid configuration");
                 composer.Spacer();
                 // Header text and an optional embedded logo
                 var logoPath = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "OfficeIMO.png");
                 byte[]? logo = System.IO.File.Exists(logoPath) ? System.IO.File.ReadAllBytes(logoPath) : null;
-                composer.Sheet.SetHeaderFooter(headerCenter: "Domain Detective", headerRight: "Page &P of &N");
+                composer.Sheet.PageSetup.Header.Center.Text = "Domain Detective";
+                composer.Sheet.PageSetup.Header.Right.Text = "Page &P of &N";
                 if (logo != null)
-                    composer.Sheet.SetHeaderImage(ExcelHeaderFooterPosition.Center, logo, "image/png", OfficeLength.Points(96), OfficeLength.Points(32));
+                    composer.Sheet.PageSetup.Header.Center.SetImage(logo, "image/png", OfficeLength.Points(96), OfficeLength.Points(32));
                 // Back links to TOC on all sheets
                 doc.AddBackLinksToToc();
                 // Horizontal band: avoid full-sheet auto-fit to prevent column width fights
@@ -183,25 +184,25 @@ namespace OfficeIMO.Examples.Excel
                     // Legend per domain
                     rs.SectionWithAnchor("Legend");
                     int lhdr = rs.CurrentRow;
-                    rs.Sheet.Cell(lhdr, 1, "Status");
-                    rs.Sheet.CellBold(lhdr, 1, true);
-                    rs.Sheet.CellBackground(lhdr, 1, "#F2F2F2");
-                    rs.Sheet.Cell(lhdr, 2, "Meaning");
-                    rs.Sheet.CellBold(lhdr, 2, true);
-                    rs.Sheet.CellBackground(lhdr, 2, "#F2F2F2");
+                    rs.Sheet.Cell(lhdr, 1).SetValue("Status");
+                    rs.Sheet.Cell(lhdr, 1).SetBold(true);
+                    rs.Sheet.Cell(lhdr, 1).SetFillColor("#F2F2F2");
+                    rs.Sheet.Cell(lhdr, 2).SetValue("Meaning");
+                    rs.Sheet.Cell(lhdr, 2).SetBold(true);
+                    rs.Sheet.Cell(lhdr, 2).SetFillColor("#F2F2F2");
                     var pal = ReportStatusColors.Create(OfficeTheme.Default);
-                    rs.Sheet.Cell(lhdr + 1, 1, "OK");
+                    rs.Sheet.Cell(lhdr + 1, 1).SetValue("OK");
                     if (pal.FillHexMap.TryGetValue("OK", out var ok2))
-                        rs.Sheet.CellBackground(lhdr + 1, 1, ok2);
-                    rs.Sheet.Cell(lhdr + 1, 2, "All checks passed or acceptable");
-                    rs.Sheet.Cell(lhdr + 2, 1, "Warning");
+                        rs.Sheet.Cell(lhdr + 1, 1).SetFillColor(ok2);
+                    rs.Sheet.Cell(lhdr + 1, 2).SetValue("All checks passed or acceptable");
+                    rs.Sheet.Cell(lhdr + 2, 1).SetValue("Warning");
                     if (pal.FillHexMap.TryGetValue("Warning", out var wr2))
-                        rs.Sheet.CellBackground(lhdr + 2, 1, wr2);
-                    rs.Sheet.Cell(lhdr + 2, 2, "Requires attention; not blocking");
-                    rs.Sheet.Cell(lhdr + 3, 1, "Error");
+                        rs.Sheet.Cell(lhdr + 2, 1).SetFillColor(wr2);
+                    rs.Sheet.Cell(lhdr + 2, 2).SetValue("Requires attention; not blocking");
+                    rs.Sheet.Cell(lhdr + 3, 1).SetValue("Error");
                     if (pal.FillHexMap.TryGetValue("Error", out var er2))
-                        rs.Sheet.CellBackground(lhdr + 3, 1, er2);
-                    rs.Sheet.Cell(lhdr + 3, 2, "Blocking or invalid configuration");
+                        rs.Sheet.Cell(lhdr + 3, 1).SetFillColor(er2);
+                    rs.Sheet.Cell(lhdr + 3, 2).SetValue("Blocking or invalid configuration");
                     rs.Spacer();
                     if (d.Recommendations.Length > 0)
                     {
@@ -239,16 +240,16 @@ namespace OfficeIMO.Examples.Excel
                 using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.DocumentAccessMode.ReadOnly }))
                 {
                     Console.WriteLine("[=] Verifying saved workbook properties and header/footer...");
-                    Console.WriteLine("    Title   : " + (verify.BuiltinDocumentProperties.Title ?? "<null>"));
-                    Console.WriteLine("    Author  : " + (verify.BuiltinDocumentProperties.Creator ?? "<null>"));
+                    Console.WriteLine("    Title   : " + (verify.Properties.Title ?? "<null>"));
+                    Console.WriteLine("    Author  : " + (verify.Properties.Creator ?? "<null>"));
                     Console.WriteLine("    Company : " + (verify.ApplicationProperties.Company ?? "<null>"));
                     var summary = verify.Sheets.FirstOrDefault(s => string.Equals(s.Name, "Summary", System.StringComparison.Ordinal));
                     if (summary != null)
                     {
-                        var hf = summary.GetHeaderFooter();
-                        Console.WriteLine("    Header (L/C/R): [" + hf.HeaderLeft + "] [" + hf.HeaderCenter + "] [" + hf.HeaderRight + "]");
-                        Console.WriteLine("    Footer (L/C/R): [" + hf.FooterLeft + "] [" + hf.FooterCenter + "] [" + hf.FooterRight + "]");
-                        Console.WriteLine("    Header has &G: " + hf.HeaderHasPicturePlaceholder + ", Footer has &G: " + hf.FooterHasPicturePlaceholder);
+                        var page = summary.PageSetup;
+                        Console.WriteLine("    Header (L/C/R): [" + page.Header.Left.Text + "] [" + page.Header.Center.Text + "] [" + page.Header.Right.Text + "]");
+                        Console.WriteLine("    Footer (L/C/R): [" + page.Footer.Left.Text + "] [" + page.Footer.Center.Text + "] [" + page.Footer.Right.Text + "]");
+                        Console.WriteLine("    Header picture: " + (page.Header.Center.Image != null));
                     }
                     else
                     {
@@ -272,7 +273,7 @@ namespace OfficeIMO.Examples.Excel
             if (!ExcelA1.TryParseRange(summaryRange, out _, out int firstColumn, out _, out int lastColumn)) return;
             sheet.SetColumnWidth(firstColumn, ExcelColumnWidth.Characters(22));
             for (int column = firstColumn + 1; column <= lastColumn; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(15));
-            sheet.SetOrientation(OfficePageOrientation.Landscape);
+            sheet.PageSetup.Orientation = OfficePageOrientation.Landscape;
         }
     }
 }

@@ -12,15 +12,15 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_HonorsEscapedStructuredReferenceBrackets() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Cost [ old");
-            sheet.CellAt(2, 1).SetValue(10);
-            sheet.CellAt(5, 1).SetValue(20);
+            sheet.Cell(1, 1).SetValue("Cost [ old");
+            sheet.Cell(2, 1).SetValue(10);
+            sheet.Cell(5, 1).SetValue(20);
             sheet.AddTable(
                 "A1:A2",
                 hasHeader: true,
                 name: "Table1",
                 OfficeIMO.Excel.ExcelTableStyle.TableStyleMedium2);
-            sheet.CellFormula(1, 3, "Table1[Cost '[ old]+Data!A5");
+            sheet.Cell(1, 3).SetFormula("Table1[Cost '[ old]+Data!A5");
 
             sheet.InsertRows(5);
 
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
         public void Test_StructuralRows_PreflightsQueryTableRefreshSortRanges() {
             using var document = ExcelDocument.Create(new MemoryStream());
             ExcelSheet sheet = document.AddSheet("Data");
-            sheet.CellAt(1, 1).SetValue("Keep");
+            sheet.Cell(1, 1).SetValue("Keep");
             string reference = $"A{ExcelA1.MaxRows}:C{ExcelA1.MaxRows}";
             SortState sortState = AddQueryTableRefreshSortState(
                 document,
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("row limit", exception.Message);
             Assert.Equal(reference, sortState.Reference!.Value);
-            Assert.Equal("Keep", sheet.CellAt(1, 1).GetValue<string>());
+            Assert.Equal("Keep", sheet.Cell(1, 1).GetValue<string>());
         }
 
         [Fact]

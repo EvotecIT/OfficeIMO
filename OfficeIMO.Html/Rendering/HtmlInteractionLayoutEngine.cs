@@ -26,7 +26,7 @@ internal static class HtmlInteractionLayoutEngine {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (target == null) throw new ArgumentNullException(nameof(target));
         token.ThrowIfCancellationRequested();
-        var limits = HtmlConversionLimits.CreateUntrustedProfile();
+        var limits = HtmlConversionLimits.UntrustedDefaults;
         limits.MaxInputCharacters = maximumCharacters;
         limits.MaxHtmlNodes = maximumNodes;
         limits.MaxHtmlDepth = maximumDepth;

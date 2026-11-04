@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Html {
                 </main>
                 """;
 
-            var options = new HtmlToPdfOptions {
+            var options = new HtmlPdfExportOptions {
                 PageSize = OfficePageSizes.A4,
                 Margins = HtmlRenderMargins.All(32D),
                 BackgroundColor = OfficeColor.White,

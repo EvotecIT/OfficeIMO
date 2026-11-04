@@ -26,7 +26,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Scene).OfType<HtmlRenderShape>(),
             shape => shape.Shape.FillColor == OfficeColor.FromRgb(0, 95, 184));
 
-        using PdfCore.PdfDocument pdf = source.ToPdf(new HtmlToPdfOptions {
+        using PdfCore.PdfDocument pdf = source.ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         byte[] bytes = pdf.ToBytes();
@@ -39,7 +39,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_StaticTextareaRetainsEveryAuthoredRowWithFractionalLineHeight() {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(
             "<textarea rows='3' style='font:16px/1.4 Georgia'>Alpha\nBeta\nGamma</textarea>");
-        using PdfCore.PdfDocument pdf = source.ToPdf(new HtmlToPdfOptions {
+        using PdfCore.PdfDocument pdf = source.ToPdf(new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         });
         using var independent = UglyToad.PdfPig.PdfDocument.Open(pdf.ToBytes());

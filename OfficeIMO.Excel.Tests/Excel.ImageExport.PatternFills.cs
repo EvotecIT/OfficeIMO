@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Patterns");
-            sheet.CellValue(1, 1, "Pattern");
+            sheet.Cell(1, 1).SetValue("Pattern");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyPatternFill(sheet, 1, 1, PatternValues.DarkGrid, "FFC00000", "FFFFE5E5");
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Patterns");
-            sheet.CellValue(1, 1, "Gray");
+            sheet.Cell(1, 1).SetValue("Gray");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyPatternFill(sheet, 1, 1, PatternValues.Gray125, "FF00A000", "FFFFFFFF");
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Gradients");
-            sheet.CellValue(1, 1, "Gradient");
+            sheet.Cell(1, 1).SetValue("Gradient");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1, "FF0000FF", "FF00FF00", 0D);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Gradients");
-            sheet.CellValue(1, 1, "Multi");
+            sheet.Cell(1, 1).SetValue("Multi");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1, "FF0000FF", "FF00FF00", "FFFF0000", 0D);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Gradients");
-            sheet.CellValue(1, 1, "Near");
+            sheet.Cell(1, 1).SetValue("Near");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1, 0.0000005D, 0.5D, 0.9999995D);
@@ -145,7 +145,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Gradients");
-            sheet.CellValue(1, 1, "Gradient");
+            sheet.Cell(1, 1).SetValue("Gradient");
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(18));
             sheet.SetRowHeight(1, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(42)));
             ApplyGradientFill(sheet, 1, 1);

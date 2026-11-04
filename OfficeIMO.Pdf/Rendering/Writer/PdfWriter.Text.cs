@@ -125,7 +125,7 @@ internal static partial class PdfWriter {
     }
 
     private static PdfStandardFont ResolveFontForRun(PdfTextRun run, PdfStandardFont baseFont) {
-        PdfStandardFont runBaseFont = run.Font.HasValue ? ChooseNormal(run.Font.Value) : baseFont;
+        PdfStandardFont runBaseFont = run.StandardFont.HasValue ? ChooseNormal(run.StandardFont.Value) : baseFont;
         return (run.Bold && run.Italic)
             ? ChooseBoldItalic(runBaseFont)
             : run.Bold
@@ -231,7 +231,7 @@ internal static partial class PdfWriter {
         string.Equals(run.Text, "\n", StringComparison.Ordinal) ||
         string.Equals(run.Text, "\t", StringComparison.Ordinal);
 
-    private static PdfAlign ResolveRichLineAlignment(PdfAlign fallback, System.Collections.Generic.IReadOnlyList<PdfAlign?>? lineAlignments, int lineIndex) =>
+    private static OfficeAlignment ResolveRichLineAlignment(OfficeAlignment fallback, System.Collections.Generic.IReadOnlyList<OfficeAlignment?>? lineAlignments, int lineIndex) =>
         lineAlignments != null && lineIndex >= 0 && lineIndex < lineAlignments.Count && lineAlignments[lineIndex].HasValue
             ? lineAlignments[lineIndex]!.Value
             : fallback;

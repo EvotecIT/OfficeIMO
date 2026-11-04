@@ -221,7 +221,7 @@ public sealed class EmailMailboxReader {
 
     internal static EmailReadResult ReadEntryMessage(EmailDocumentReader reader, Stream messageStream,
         EmailReaderOptions options, CancellationToken cancellationToken) {
-        EmailReadResult result = reader.ReadStreaming(messageStream, "indexed.eml", cancellationToken);
+        EmailReadResult result = reader.ReadDocument(messageStream, OfficeIMO.Email.EmailReadContentStorage.TemporaryFiles, "indexed.eml", cancellationToken);
         if (!RequiresHeaderlessFallback(result)) return result;
         result.Dispose();
         messageStream.Position = 0;
@@ -236,7 +236,7 @@ public sealed class EmailMailboxReader {
 
     internal static EmailReadResult ReadEntryMessage(EmailDocumentReader reader, byte[] messageBytes,
         EmailReaderOptions options, CancellationToken cancellationToken) {
-        EmailReadResult result = reader.Read(messageBytes, cancellationToken);
+        EmailReadResult result = reader.ReadDocument(messageBytes, cancellationToken);
         if (!RequiresHeaderlessFallback(result)) return result;
 
         var diagnostics = result.Diagnostics

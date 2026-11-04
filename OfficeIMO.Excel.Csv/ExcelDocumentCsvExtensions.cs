@@ -31,8 +31,8 @@ public static class ExcelDocumentCsvExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
-        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenDataReader(path, loadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenReader(path, loadOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
@@ -44,14 +44,14 @@ public static class ExcelDocumentCsvExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
-        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenDataReader(stream, loadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenReader(stream, loadOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
     /// <summary>
     /// Parses CSV text and imports it into a new worksheet. Because the input is already decoded,
-    /// <see cref="CsvLoadOptions.Encoding"/> applies only to file and stream imports.
+    /// <see cref="CsvReaderOptions.Encoding"/> applies only to file and stream imports.
     /// </summary>
     public static ExcelCsvImportResult ImportCsvText(
         this ExcelDocument document,
@@ -61,9 +61,9 @@ public static class ExcelDocumentCsvExtensions {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (text == null) throw new ArgumentNullException(nameof(text));
         ExcelCsvImportOptions resolved = ResolveOptions(options);
-        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvLoadOptions loadOptions);
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            text, loadOptions, resolved.ReaderOptions);
+        using var linkedCancellation = CreateLinkedLoadOptions(resolved, cancellationToken, out CsvReaderOptions loadOptions);
+        using DbDataReader reader = CsvDocument.OpenReader(
+            new StringReader(text), loadOptions);
         return ImportIntoNewWorksheet(document, reader, resolved, cancellationToken);
     }
 
@@ -125,7 +125,6 @@ public static class ExcelDocumentCsvExtensions {
 
     internal static ExcelCsvImportOptions ResolveOptions(ExcelCsvImportOptions? options) {
         ExcelCsvImportOptions resolved = options ?? new ExcelCsvImportOptions();
-        if (resolved.LoadOptions == null) throw new ArgumentException("LoadOptions cannot be null.", nameof(options));
         if (resolved.ReaderOptions == null) throw new ArgumentException("ReaderOptions cannot be null.", nameof(options));
         if (resolved.StartRow < 1) throw new ArgumentOutOfRangeException(nameof(options), "StartRow must be at least 1.");
         if (resolved.StartColumn < 1) throw new ArgumentOutOfRangeException(nameof(options), "StartColumn must be at least 1.");
@@ -135,11 +134,11 @@ public static class ExcelDocumentCsvExtensions {
     internal static CancellationTokenSource CreateLinkedLoadOptions(
         ExcelCsvImportOptions options,
         CancellationToken cancellationToken,
-        out CsvLoadOptions loadOptions) {
+        out CsvReaderOptions loadOptions) {
         var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken,
-            options.LoadOptions.CancellationToken);
-        loadOptions = options.LoadOptions.Clone();
+            options.ReaderOptions.CancellationToken);
+        loadOptions = options.ReaderOptions.Clone();
         loadOptions.CancellationToken = linkedCancellation.Token;
         return linkedCancellation;
     }

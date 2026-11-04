@@ -65,7 +65,7 @@ public class RtfPdfTableGapTests {
                 CellPaddingY = global::OfficeIMO.OfficeLength.Points(3D)
             }
         };
-        RtfToPdfOptions options = Options();
+        RtfPdfExportOptions options = Options();
         options.PdfOptions = caller;
         PdfCore.PdfDocument mapped = ReadTable(gapTwips: gapTwips).ToPdf(options);
         PdfCore.TableBlock table = Assert.Single(mapped.Blocks.OfType<PdfCore.TableBlock>());
@@ -99,7 +99,7 @@ public class RtfPdfTableGapTests {
         Assert.InRange(marker.StartBaseLine.X, 72D + expectedLeft - 0.01D, 72D + expectedLeft + 0.01D);
     }
 
-    private static RtfDocument ReadTable(string cellControls = "", int gapTwips = 0) => RtfDocument.Read(
+    private static RtfDocument ReadTable(string cellControls = "", int gapTwips = 0) => RtfDocument.ParseResult(
         @"{\rtf1\ansi\deff0{\fonttbl{\f0\fnil Helvetica;}}{\colortbl;\red255\green0\blue0;}" +
         @"\paperw12240\paperh15840\margl1440\margr1440\margt1440\margb1440" +
         @"\trowd\trgaph" + gapTwips.ToString(System.Globalization.CultureInfo.InvariantCulture) +
@@ -111,7 +111,7 @@ public class RtfPdfTableGapTests {
 
     private static string WithoutWhiteSpace(string value) => new string(value.Where(character => !char.IsWhiteSpace(character)).ToArray());
 
-    private static RtfToPdfOptions Options(bool includePdfOptions = true) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions Options(bool includePdfOptions = true) => new RtfPdfExportOptions {
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None,
         PdfOptions = includePdfOptions ? new PdfCore.PdfCreateOptions {

@@ -41,7 +41,7 @@ public static partial class OfficeVisioVisualConversionExtensions {
             throw new NotSupportedException("Preserve layout is supported only for topology envelopes.");
 
         VisioDocument document = VisioDocument.Create();
-        document.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
+        document.Properties.Title = HasTitle(validated) ? CombineLabel(validated.Title, validated.Subtitle) : null;
         return ProjectPage(validated, document, options, enforceFidelity);
     }
 
@@ -319,8 +319,8 @@ public static partial class OfficeVisioVisualConversionExtensions {
         ApplySequenceMessageData(page, messages, ids, options, report);
         ApplySequenceAnnotationData(page, envelope.Annotations, activationProjections, ids, options, report);
         if (options.UseNaturalPageSize) {
-            page.Width = Math.Max(page.Width, width);
-            page.Height = Math.Max(page.Height, height);
+            page.Width = OfficeLength.Inches(Math.Max(page.Width.ToInches(), width));
+            page.Height = OfficeLength.Inches(Math.Max(page.Height.ToInches(), height));
             page.CenterContent();
         } else {
             page.FitToContent(0.5D);

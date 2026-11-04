@@ -67,7 +67,7 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
         using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
         var document = workbook.Document;
         foreach (var sheet in ExcelWorkbookCommandService.ResolveSheets(this, document, ParameterSetName, Sheet, SheetIndex)) {
-            var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRangeA1 : Range!;
+            var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRange.Address : Range!;
             foreach (var cell in sheet.EnumerateRange(range)) {
                 var cellText = Convert.ToString(cell.Value, CultureInfo.InvariantCulture) ?? string.Empty;
                 if (IsMatch(cellText)) {

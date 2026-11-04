@@ -132,7 +132,7 @@ public static partial class PowerPointIWorkConverter {
                     : OfficeImageFormat.Jpeg;
                 (double left, double top, double width, double height) = PreviewLayout(preview,
                     canvasWidth / 72d, canvasHeight / 72d);
-                PowerPointPicture picture = slide.AddImage(image, format, OfficeIMO.OfficeLength.Inches(left), OfficeIMO.OfficeLength.Inches(top), OfficeIMO.OfficeLength.Inches(width), OfficeIMO.OfficeLength.Inches(height));
+                PowerPointImage picture = slide.AddImage(image, format, OfficeIMO.OfficeLength.Inches(left), OfficeIMO.OfficeLength.Inches(top), OfficeIMO.OfficeLength.Inches(width), OfficeIMO.OfficeLength.Inches(height));
                 picture.Bounds = new PowerPointLayoutBox(OfficeLength.Inches(left), OfficeLength.Inches(top), OfficeLength.Inches(width), OfficeLength.Inches(height));
                 picture.AltText = "Visual fallback from the source Keynote package";
             }
@@ -181,7 +181,7 @@ public static partial class PowerPointIWorkConverter {
         width = QuantizePositiveEmuPoints(width);
         height = QuantizePositiveEmuPoints(height);
         using var stream = new MemoryStream(source.GetBytes(), writable: false);
-        PowerPointPicture picture = slide.AddImage(stream,
+        PowerPointImage picture = slide.AddImage(stream,
             source.MediaType == "image/png" ? OfficeImageFormat.Png : OfficeImageFormat.Jpeg,
             OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(width), OfficeIMO.OfficeLength.Points(height));
         picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(left), OfficeLength.Points(top), OfficeLength.Points(width), OfficeLength.Points(height));

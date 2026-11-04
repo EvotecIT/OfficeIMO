@@ -16,7 +16,7 @@ public partial class HtmlOfficeAdapters {
         using ExcelDocument document = ExcelDocument.Create();
         document.AddSheet("Results").AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 1 })
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
-        using ExcelDocument restored = HtmlConversionDocument.Parse(document.ToHtml()).ToExcelDocument();
+        using ExcelDocument restored = HtmlConversionDocument.Parse(document.ToHtml()).ToExcel();
         var chart = restored.Sheets.SelectMany(s => s.Charts).Single();
         Assert.Equal(135, chart.RadialLayout.FirstSliceAngleDegrees);
         Assert.Equal(kind == OfficeChartType.Doughnut ? 75 : 50, chart.RadialLayout.DoughnutHolePercent);
@@ -31,7 +31,7 @@ public partial class HtmlOfficeAdapters {
         presentation.AddSlide().AddChart(kind, new OfficeChartData(new[] { "A", "B" }, new[] { new OfficeSeries("Status", new[] { 7d, 3d }) }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(10), Top = global::OfficeIMO.OfficeLength.Points(10), Width = global::OfficeIMO.OfficeLength.Points(300), Height = global::OfficeIMO.OfficeLength.Points(200) })
             .SetRadialLayout(new OfficeChartRadialLayout(135, 75));
         string html = presentation.ToHtml();
-        using PowerPointDocument restored = HtmlConversionDocument.Parse(html).ToPowerPointDocument();
+        using PowerPointDocument restored = HtmlConversionDocument.Parse(html).ToPowerPoint();
         var chart = restored.Slides.SelectMany(s => s.Charts).Single();
         Assert.Equal(135, chart.RadialLayout.FirstSliceAngleDegrees);
         Assert.Equal(kind == OfficeChartType.Doughnut ? 75 : 50, chart.RadialLayout.DoughnutHolePercent);
@@ -48,7 +48,7 @@ public partial class HtmlOfficeAdapters {
             .SetRadialLayout(new OfficeChartRadialLayout(90, 75));
         string html = presentation.ToHtml().Replace("data-officeimo-first-slice-angle=\"90\"", "data-officeimo-first-slice-angle=\"" + angle + "\"")
             .Replace("data-officeimo-doughnut-hole=\"75\"", "data-officeimo-doughnut-hole=\"" + hole + "\"");
-        var result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult();
+        var result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence();
         using PowerPointDocument restored = result.Value;
         Assert.Empty(restored.Slides.SelectMany(s => s.Charts));
         Assert.Contains(result.Report.Diagnostics, d => d.Message.Contains("invalid radial geometry"));

@@ -70,8 +70,8 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            double width = Math.Min(first.Right, second.Right) - Math.Max(first.Left, second.Left);
-            double height = Math.Min(first.Top, second.Top) - Math.Max(first.Bottom, second.Bottom);
+            double width = Math.Min(first.RightInches, second.RightInches) - Math.Max(first.LeftInches, second.LeftInches);
+            double height = Math.Min(first.TopInches, second.TopInches) - Math.Max(first.BottomInches, second.BottomInches);
             return width > 0D && height > 0D;
         }
 
@@ -80,10 +80,10 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            return inner.Left >= outer.Left &&
-                   inner.Right <= outer.Right &&
-                   inner.Bottom >= outer.Bottom &&
-                   inner.Top <= outer.Top;
+            return inner.LeftInches >= outer.LeftInches &&
+                   inner.RightInches <= outer.RightInches &&
+                   inner.BottomInches >= outer.BottomInches &&
+                   inner.TopInches <= outer.TopInches;
         }
 
         private static void EnsureShapeBelongsToPage(VisioPage page, VisioShape shape) {

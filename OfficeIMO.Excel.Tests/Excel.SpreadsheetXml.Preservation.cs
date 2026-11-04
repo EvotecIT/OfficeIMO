@@ -57,7 +57,9 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
              </Table><x:WorksheetOptions><x:PageSetup><x:Layout x:Orientation="Landscape" x:CenterHorizontal="1"/><x:PageMargins x:Left="0.4" x:Right="0.5" x:Top="0.6" x:Bottom="0.7"/><x:Header x:Margin="0.2" x:Data="&amp;CReport"/></x:PageSetup><x:Print><x:PaperSizeIndex>9</x:PaperSizeIndex><x:FitWidth>1</x:FitWidth><x:FitHeight>0</x:FitHeight></x:Print><x:FitToPage/><x:DoNotDisplayGridlines/><x:Zoom>125</x:Zoom></x:WorksheetOptions>
             </Worksheet>
             """);
-        using var document = ExcelDocument.ImportSpreadsheetXml(source).RequireNoLoss();
+        var documentResult = ExcelDocument.ImportSpreadsheetXml(source);
+        documentResult.ThrowIfLoss();
+        using var document = documentResult.Value;
         using var reopened = ExcelDocument.ImportSpreadsheetXml(document.ExportSpreadsheetXml().Value).Value;
         foreach (var workbook in new[] { document, reopened }) {
             var book = workbook.OpenXmlDocument.WorkbookPart!; var sheet = book.WorksheetParts.Single().Worksheet!;
@@ -100,7 +102,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     [InlineData(true)]
     public void Unstyled_cells_keep_effective_column_or_row_styles(bool rowStyle) {
         using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Inherited"); sheet.CellBold(1, 1);
+        sheet.Cell(1, 1).SetValue("Inherited"); sheet.Cell(1, 1).SetBold();
         var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
         var cell = worksheet.Descendants<Cell>().Single(); uint id = cell.StyleIndex!.Value; cell.StyleIndex = null;
         if (rowStyle) { var row = worksheet.Descendants<Row>().Single(); row.StyleIndex = id; row.CustomFormat = true; }
@@ -113,10 +115,10 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
 
     [Fact]
     public void Unmapped_nested_metadata_is_visible_in_export_diagnostics() {
-        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data"); sheet.CellValue(1, 1, "Protected");
+        using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data"); sheet.Cell(1, 1).SetValue("Protected");
         sheet.SetTabColor("FF0000"); sheet.Protect(new() { AllowSelectLockedCells = false });
         var result = document.ExportSpreadsheetXml();
-        Assert.Contains(result.Report.FidelityDiagnostics, item => item.Message.Contains("tabColor"));
+        Assert.Contains(result.Report.Diagnostics, item => item.Message.Contains("tabColor"));
         using var copy = ExcelDocument.ImportSpreadsheetXml(result.Value).Value;
         Assert.True(copy.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet.GetFirstChild<SheetProtection>()!.SelectLockedCells!.Value);
     }
@@ -124,17 +126,19 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     [Fact]
     public void Styleless_fast_package_export_obeys_cell_budget_and_preserves_values() {
         using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "first"); sheet.CellValue(2, 1, "second");
+        sheet.Cell(1, 1).SetValue("first"); sheet.Cell(2, 1).SetValue("second");
         using var copy = ExcelDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Contains("MaxCells", Assert.Throws<InvalidDataException>(() => copy.ExportSpreadsheetXml(new() { MaxCells = 1 })).Message);
         using var xml = ExcelDocument.ImportSpreadsheetXml(copy.ExportSpreadsheetXml().Value).Value;
-        Assert.Equal("first", xml.Sheets[0].CellAt(1, 1).GetValue<string>());
+        Assert.Equal("first", xml.Sheets[0].Cell(1, 1).GetValue<string>());
     }
 
     [Fact]
     public void Rich_text_cell_and_comment_runs_keep_the_supported_html_emphasis_and_fonts() {
         byte[] xml = Xml("<Worksheet ss:Name='Data'><Table><Row><Cell><Data ss:Type='String' xmlns:h='http://www.w3.org/TR/REC-html40'>Plain <h:B>bold <h:I>italic</h:I></h:B><h:Font h:Face='Arial' h:Size='14' h:Color='#FF0000'>red</h:Font></Data><Comment ss:Author='A'><Data xmlns:h='http://www.w3.org/TR/REC-html40'><h:U>Note</h:U></Data></Comment></Cell></Row></Table></Worksheet>");
-        using var document = ExcelDocument.ImportSpreadsheetXml(xml).RequireNoLoss();
+        var documentResult = ExcelDocument.ImportSpreadsheetXml(xml);
+        documentResult.ThrowIfLoss();
+        using var document = documentResult.Value;
         using var copy = ExcelDocument.ImportSpreadsheetXml(document.ExportSpreadsheetXml().Value).Value;
         foreach (var current in new[] { document, copy }) {
             var part = current.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single();
@@ -176,7 +180,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
         worksheet.AddChild(new MergeCells(new MergeCell { Reference = "C3:D4" }), true);
         using var copy = ExcelDocument.ImportSpreadsheetXml(document.ExportSpreadsheetXml().Value).Value;
         Assert.Equal("C3:D4", copy.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet.GetFirstChild<MergeCells>()!.Elements<MergeCell>().Single().Reference!.Value);
-        sheet.CellValue(4, 4, "Cannot discard");
+        sheet.Cell(4, 4).SetValue("Cannot discard");
         Assert.Throws<InvalidDataException>(() => document.ExportSpreadsheetXml());
     }
 }

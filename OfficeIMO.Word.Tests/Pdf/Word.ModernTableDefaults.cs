@@ -23,12 +23,12 @@ public partial class Word {
     public void SaveAsPdf_ModernTablesRetainDirectCellTextOverrides(string scope, string role) {
         using WordDocument document = WordDocument.Create();
         document.AddParagraph("Body marker");
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordTable table = scope switch {
             "body" => document.AddTable(2, 2),
             "nested" => document.AddTable(1, 1).Rows[0].Cells[0].AddTable(2, 2),
-            "header" => document.Header.Default!.AddTable(2, 2),
-            "footer" => document.Footer.Default!.AddTable(2, 2),
+            "header" => document.PageSetup.Header.AddTable(2, 2),
+            "footer" => document.PageSetup.Footer.AddTable(2, 2),
             _ => throw new ArgumentOutOfRangeException(nameof(scope))
         };
         int row = role == "header" ? 0 : 1;
@@ -43,11 +43,11 @@ public partial class Word {
         WordParagraph text = cell.Paragraphs[0];
         text.Text = "OVERRIDE";
         text.FontSize = OfficeLength.Points(18);
-        text.ColorHex = "008000";
+        text.Color = OfficeColor.Parse("008000");
         text.Bold = false;
         text.Italic = false;
         text.ParagraphAlignment = WordParagraphAlignment.Right;
-        cell.ShadingFillColorHex = "FF0000";
+        cell.ShadingFillColor = OfficeColor.Parse("FF0000");
         Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
         document.CleanupDocument();
         using var saved = WordDocument.Load(new MemoryStream(document.ToBytes()));

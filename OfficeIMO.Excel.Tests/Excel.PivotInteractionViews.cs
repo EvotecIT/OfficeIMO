@@ -24,15 +24,15 @@ namespace OfficeIMO.Tests
             {
                 document.AddSheet("Dummy");
                 ExcelSheet data = document.AddSheet("Sales");
-                data.CellValue(1, 1, "Region");
-                data.CellValue(1, 2, "OrderDate");
-                data.CellValue(1, 3, "Sales");
-                data.CellValue(2, 1, "East");
-                data.CellValue(2, 2, new DateTime(2026, 1, 2));
-                data.CellValue(2, 3, 10d);
-                data.CellValue(3, 1, "West");
-                data.CellValue(3, 2, new DateTime(2026, 2, 3));
-                data.CellValue(3, 3, 20d);
+                data.Cell(1, 1).SetValue("Region");
+                data.Cell(1, 2).SetValue("OrderDate");
+                data.Cell(1, 3).SetValue("Sales");
+                data.Cell(2, 1).SetValue("East");
+                data.Cell(2, 2).SetValue(new DateTime(2026, 1, 2));
+                data.Cell(2, 3).SetValue(10d);
+                data.Cell(3, 1).SetValue("West");
+                data.Cell(3, 2).SetValue(new DateTime(2026, 2, 3));
+                data.Cell(3, 3).SetValue(20d);
                 data.AddPivotTable("A1:C3", "E2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 data.AddPivotTable("A1:C3", "E10", options: new ExcelPivotTableOptions { Name = "SalesPivot2", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
                 PivotTablePart[] pivotParts = data.WorksheetPart.PivotTableParts.OrderBy(part => part.PivotTableDefinition!.Name!.Value, StringComparer.Ordinal).ToArray();
@@ -121,10 +121,10 @@ namespace OfficeIMO.Tests
         {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Sales");
-            sheet.CellValue(1, 1, "Region");
-            sheet.CellValue(1, 2, "Sales");
-            sheet.CellValue(2, 1, "East");
-            sheet.CellValue(2, 2, 10d);
+            sheet.Cell(1, 1).SetValue("Region");
+            sheet.Cell(1, 2).SetValue("Sales");
+            sheet.Cell(2, 1).SetValue("East");
+            sheet.Cell(2, 2).SetValue(10d);
             sheet.AddPivotTable("A1:B2", "D2", options: new ExcelPivotTableOptions { Name = "SalesPivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Sales", ExcelPivotDataFunction.Sum) } });
             var beforeErrors = document.ValidateOpenXml().ToArray();
             Assert.True(beforeErrors.Length == 0, string.Join(Environment.NewLine, beforeErrors) + Environment.NewLine + sheet.WorksheetPart.PivotTableParts.Single().PivotTableDefinition!.OuterXml);

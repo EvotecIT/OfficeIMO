@@ -54,7 +54,8 @@ public static partial class HtmlComputedStyleEngine {
         internal ComputedStyleReuseKey? CreateKey(IElement element,
             IReadOnlyDictionary<string, CascadedProperty> properties,
             IReadOnlyDictionary<string, string>? parentProperties, bool includeCascadeTraces) {
-            if (includeCascadeTraces || _styles.Count >= MaximumEntries || properties.Count > MaximumDeclarations) return null;
+            if (includeCascadeTraces || _styles.Count >= MaximumEntries || properties.Count > MaximumDeclarations
+                || element.HasAttribute("align")) return null;
             long characters = 0;
             int nodes = 0;
             int hash = 17;

@@ -27,12 +27,12 @@ public sealed partial class HtmlRenderingTests {
         MhtmlDocument document = MhtmlDocument.Load(stream);
 
         Assert.Null(Assert.Single(document.Resources).ContentId);
-        PdfCore.PdfDocumentConversionResult result = await document.ToPdfDocumentResultAsync();
-        string text = PdfCore.PdfReadDocument.Open(result.ToBytes()).ExtractText();
+        var result = await document.ToPdfAsync();
+        string text = PdfCore.PdfReadDocument.Open(result.Value.ToBytes()).ExtractText();
 
         Assert.Contains("VisibleArchiveText", text, StringComparison.Ordinal);
         Assert.DoesNotContain("HiddenByArchiveCss", text, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
-            && warning.Source == location);
+        Assert.DoesNotContain(result.Report.Diagnostics, warning => warning.Code == HtmlRenderDiagnosticCodes.ResourceUnavailable
+            && warning.Location == location);
     }
 }

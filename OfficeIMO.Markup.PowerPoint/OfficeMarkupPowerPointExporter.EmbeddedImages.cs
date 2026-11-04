@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markup.PowerPoint;
 
 internal sealed partial class OfficeMarkupPowerPointExporter {
-    private static bool TryReadEmbeddedImage(string source, MarkupToPowerPointOptions options,
+    private static bool TryReadEmbeddedImage(string source, MarkupPowerPointExportOptions options,
         out byte[] bytes, out OfficeImageInfo info) {
         if (options.AllowDataUriImages) {
             return OfficeImageReader.TryReadBase64DataUri(source, options.MaximumDataUriImageBytes, out bytes, out info);

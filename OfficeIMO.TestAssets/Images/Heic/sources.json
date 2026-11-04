@@ -1,0 +1,58 @@
+[
+  {
+    "file": "basic-8bit-srgb.heic",
+    "sha256": "3fe7d32e5568f8bfd6b5d3290e61ac9b964d08464d388fa064f69cddddfee82c",
+    "bytes": 183061,
+    "source": "https://heic.fyi/samples/basic-8bit-srgb.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "grid-12mp-512px-tiles.heic",
+    "sha256": "ed14b6e639fc61ce19b933163579ea23f226aa2f0a78cb757753628bcee0e55e",
+    "bytes": 802404,
+    "source": "https://heic.fyi/samples/grid-12mp-512px-tiles.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "orientation-2.heic",
+    "sha256": "3a316089f67cb43b6f92667b964c3ebff2542c72db1f1d0328f400fa5db48111",
+    "bytes": 60381,
+    "source": "https://heic.fyi/samples/orientation-2.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "orientation-6.heic",
+    "sha256": "80b615ae433d7ec53e9aaaeee081ecd11c0d9931350da13d6ce4e2b363d12c12",
+    "bytes": 64356,
+    "source": "https://heic.fyi/samples/orientation-6.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "orientation-8.heic",
+    "sha256": "3bf743e5ce553ea01a8d6b2747e06abfeb05d19c6e492d62840a19f7c4afc634",
+    "bytes": 65033,
+    "source": "https://heic.fyi/samples/orientation-8.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "display-p3-10bit.heic",
+    "sha256": "ad1a2e753f04071074c2c7cac8ac0b28d1c31b4dcc40ab3cb8894aad47b7e3a1",
+    "bytes": 165698,
+    "source": "https://heic.fyi/samples/display-p3-10bit.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "alpha-transparency.heic",
+    "sha256": "5a2a4552c6aaa8787b396f5ba4c2a4fa762fb23cd320fbada007cd04ec4f007d",
+    "bytes": 87769,
+    "source": "https://heic.fyi/samples/alpha-transparency.heic",
+    "license": "CC0-1.0"
+  },
+  {
+    "file": "generic-mif1-brand.heif",
+    "sha256": "1c3cb942025bce0d3d45c7d98ecb94846c9da760700d5c025d3e80852027dede",
+    "bytes": 183754,
+    "source": "https://heic.fyi/samples/generic-mif1-brand.heif",
+    "license": "CC0-1.0"
+  }
+]

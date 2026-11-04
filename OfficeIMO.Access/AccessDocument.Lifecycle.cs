@@ -173,7 +173,7 @@ namespace OfficeIMO.Access {
         }
         /// <summary>Requests native file output. Unsupported codecs fail before creating directories, files or temporary output.</summary>
         public void Save(string path, AccessSaveOptions? options = null, CancellationToken cancellationToken = default) {
-            EnsureSaveAllowed(); AssessSave(path, options, cancellationToken).RequireNoLoss();
+            EnsureSaveAllowed(); AssessSave(path, options, cancellationToken).ThrowIfLoss();
             options ??= new AccessSaveOptions(); ValidateSourceIdentity(cancellationToken);
             OfficeFileCommit.ConflictPolicy conflict = options.FileConflictPolicy == OfficeConversionFileConflictPolicy.FailIfExists ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace;
             if (Inspection != null && _path != null && SameSourcePath(path, _path) && conflict == OfficeFileCommit.ConflictPolicy.Replace) {
@@ -202,7 +202,7 @@ namespace OfficeIMO.Access {
         public void Save(Stream stream, AccessSaveOptions? options = null, CancellationToken cancellationToken = default) {
             EnsureSaveAllowed();
             if (stream == null) throw new ArgumentNullException(nameof(stream));
-            AssessSave(options, cancellationToken).RequireNoLoss();
+            AssessSave(options, cancellationToken).ThrowIfLoss();
             ValidateSourceIdentity(cancellationToken); cancellationToken.ThrowIfCancellationRequested();
             if (Inspection != null && _vbaMutation == null) OfficeStreamWriter.WriteAllBytes(stream, NativeDatabase!.Snapshot());
             else OfficeStreamWriter.Write(stream, destination => {

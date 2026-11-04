@@ -22,7 +22,7 @@ internal static partial class PdfWriter {
             TableCellContentFrame contentFrame = textFrame.Content;
             double innerW = textFrame.InnerWidth;
             double cellBottom = cellTop - cellHeight;
-            PdfColumnAlign align = GetTableCellAlignment(style, rowIndex, c, cell.Text);
+            OfficeAlignment align = GetTableCellAlignment(style, rowIndex, c, cell.Text);
             var cellFont = GetTableRowFont(currentOpts, rowUsesBold);
             // A neighboring horizontal cell can continue the row after the
             // turned cell's content has already been painted on its first fragment.
@@ -43,11 +43,6 @@ internal static partial class PdfWriter {
             string? linkUri = cell.LinkUri;
             string? linkDestinationName = cell.LinkDestinationName;
             string? linkContents = cell.LinkContents;
-            if (table.Links.TryGetValue((rowIndex, c), out var uri)) {
-                linkUri = uri;
-                linkDestinationName = null;
-                linkContents = cell.Text;
-            }
 
             if (sourceStartLine == 0 && includeNamedDestination) {
                 AddTableCellNamedDestinationName(cell.NamedDestinationName, cellTop);

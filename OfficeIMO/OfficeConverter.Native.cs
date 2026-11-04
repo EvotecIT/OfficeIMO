@@ -31,27 +31,27 @@ public static partial class OfficeConverter {
                 switch (FormatForExtension(Path.GetExtension(inputPath))) {
                     case OfficeDocumentFormat.Word:
                         diagnostics = analyzeOnly
-                            ? (await WordDocument.AnalyzeConversionAsync(inputPath, outputPath, WordNativeOptions(options), token).ConfigureAwait(false)).Diagnostics
-                            : (await WordDocument.ConvertAsync(inputPath, outputPath, WordNativeOptions(options), token).ConfigureAwait(false)).Report.Diagnostics;
+                            ? (await WordDocument.AnalyzeConversionAsync(inputPath, outputPath, WordNativeOptions(options), token).ConfigureAwait(false)).NativeDiagnostics
+                            : (await WordDocument.ConvertAsync(inputPath, outputPath, WordNativeOptions(options), token).ConfigureAwait(false)).Report.NativeDiagnostics;
                         break;
                     case OfficeDocumentFormat.Excel:
                         diagnostics = analyzeOnly
-                            ? (await ExcelDocument.AnalyzeConversionAsync(inputPath, outputPath, ExcelNativeOptions(options), token).ConfigureAwait(false)).Diagnostics
-                            : (await ExcelDocument.ConvertAsync(inputPath, outputPath, ExcelNativeOptions(options), token).ConfigureAwait(false)).Report.Diagnostics;
+                            ? (await ExcelDocument.AnalyzeConversionAsync(inputPath, outputPath, ExcelNativeOptions(options), token).ConfigureAwait(false)).NativeDiagnostics
+                            : (await ExcelDocument.ConvertAsync(inputPath, outputPath, ExcelNativeOptions(options), token).ConfigureAwait(false)).Report.NativeDiagnostics;
                         break;
                     case OfficeDocumentFormat.PowerPoint:
                         diagnostics = analyzeOnly
-                            ? (await PowerPointDocument.AnalyzeConversionAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Diagnostics
-                            : (await PowerPointDocument.ConvertAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Report.Diagnostics;
+                            ? (await PowerPointDocument.AnalyzeConversionAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).NativeDiagnostics
+                            : (await PowerPointDocument.ConvertAsync(inputPath, outputPath, PowerPointNativeOptions(options), token).ConfigureAwait(false)).Report.NativeDiagnostics;
                         break;
                     default: throw new NotSupportedException("Choose a supported native Office format pair.");
                 }
             } catch (WordDocumentConversionException error) {
-                throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.Diagnostics, timer.Elapsed), error);
+                throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.NativeDiagnostics, timer.Elapsed), error);
             } catch (ExcelDocumentConversionException error) {
-                throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.Diagnostics, timer.Elapsed), error);
+                throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.NativeDiagnostics, timer.Elapsed), error);
             } catch (PowerPointDocumentConversionException error) {
-                throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.Diagnostics, timer.Elapsed), error);
+                throw new OfficeConversionException(error.Message, NativeReport(options, error.Result.Report.NativeDiagnostics, timer.Elapsed), error);
             }
             var report = NativeReport(options, diagnostics, timer.Elapsed, itemsWritten: analyzeOnly ? 0 : 1);
             if (options.FailOnLoss) report.ThrowIfLoss();

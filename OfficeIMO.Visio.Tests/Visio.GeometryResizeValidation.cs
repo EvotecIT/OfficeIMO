@@ -38,11 +38,11 @@ public sealed class VisioGeometryResizeValidationTests {
             if (creation) page = document.AddPage("Destination");
             string before = NativeParts(document);
             Assert.Throws<NotSupportedException>(() => {
-                if (creation) page.AddShape("instance", master!, 3, 3, 2, 2);
-                else page.ResizeShape(shape, 2, 2);
+                if (creation) page.AddShape("instance", master!, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
+                else page.ResizeShape(shape, OfficeLength.Inches(2), OfficeLength.Inches(2));
             });
             Assert.Equal(before, NativeParts(document));
-            Assert.Equal(1, shape.Width); Assert.Equal(1, shape.Height);
+            Assert.Equal(1, shape.Width.ToInches()); Assert.Equal(1, shape.Height.ToInches());
             if (creation) Assert.Empty(page.Shapes);
         }
     }
@@ -55,14 +55,14 @@ public sealed class VisioGeometryResizeValidationTests {
     public void IncompleteNativeCoordinateRowsRejectBeforeMutation(string type, string cellName) {
         var document = Load(type, cellName, missing: true); var page = document.Pages[0];
         string before = NativeParts(document);
-        Assert.Throws<NotSupportedException>(() => page.ResizeShape(page.Shapes[0], 2, 3));
+        Assert.Throws<NotSupportedException>(() => page.ResizeShape(page.Shapes[0], OfficeLength.Inches(2), OfficeLength.Inches(3)));
         Assert.Equal(before, NativeParts(document));
     }
 
     [Fact]
     public void FiniteCacheAllowsUnsupportedFormulaToBeMaterializedAndProducerMetadataToSurvive() {
         var document = Load("LineTo", "X", cache: "0.5"); var page = document.Pages[0];
-        page.ResizeShape(page.Shapes[0], 2, 3);
+        page.ResizeShape(page.Shapes[0], OfficeLength.Inches(2), OfficeLength.Inches(3));
         var reopened = VisioDocument.Load(new MemoryStream(document.ToBytes()));
         XElement row = PageXml(reopened).Descendants(Modern + "Row").Single(r => (string?)r.Attribute("IX") == "2");
         XElement coordinate = row.Elements(Modern + "Cell").Single(c => (string?)c.Attribute("N") == "X");
@@ -86,8 +86,8 @@ public sealed class VisioGeometryResizeValidationTests {
             if (creation) page = document.AddPage("Destination");
             string before = NativeParts(document);
             Assert.Throws<NotSupportedException>(() => {
-                if (creation) page.AddShape("instance", master!, 3, 3, 2, 2);
-                else page.ResizeShape(shape, 2, 2);
+                if (creation) page.AddShape("instance", master!, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(3, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)));
+                else page.ResizeShape(shape, OfficeLength.Inches(2), OfficeLength.Inches(2));
             });
             Assert.Equal(before, NativeParts(document));
             if (creation) Assert.Empty(page.Shapes);
@@ -98,8 +98,8 @@ public sealed class VisioGeometryResizeValidationTests {
     public void EvaluableNurbsScalarArgumentsKeepTheOriginalRationalCurveDuringResize() {
         var document = Load("NURBSTo", "X", cache: "1", controlFormula: "NURBS(Width*2,Width+1,1,1,0.5,0.8,Width,Width)");
         var page = document.Pages[0]; double[] before = PaintedCoordinates(page);
-        double centerX = 2 * 40, centerY = (page.Height - 2) * 40;
-        page.ResizeShape(page.Shapes[0], 2, 2);
+        double centerX = 2 * 40, centerY = (page.Height.ToInches() - 2) * 40;
+        page.ResizeShape(page.Shapes[0], OfficeLength.Inches(2), OfficeLength.Inches(2));
         foreach (var candidate in new[] { document, VisioDocument.Load(new MemoryStream(document.ToBytes())),
                      VisioDocument.LoadLegacyXml(new MemoryStream(document.ToLegacyXmlResult().Value)).Value }) {
             double[] after = PaintedCoordinates(candidate.Pages[0]); Assert.Equal(before.Length, after.Length);
@@ -114,7 +114,7 @@ public sealed class VisioGeometryResizeValidationTests {
     }
 
     private static VisioDocument Load(string type, string cellName, bool missing = false, string? cache = null, string? controlFormula = null) {
-        var document = VisioDocument.Create(); var page = document.AddPage("Source"); page.AddRectangle(2, 2, 1, 1);
+        var document = VisioDocument.Create(); var page = document.AddPage("Source"); page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)));
         using var bytes = new MemoryStream();
         byte[] packageBytes = document.ToBytes();
         bytes.Write(packageBytes, 0, packageBytes.Length);

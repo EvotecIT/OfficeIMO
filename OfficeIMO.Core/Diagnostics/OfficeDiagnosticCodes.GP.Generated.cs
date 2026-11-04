@@ -38,6 +38,8 @@ public static partial class OfficeDiagnosticCodes {
     public const string ImageBlendModeApproximated = "image-blend-mode-approximated";
     /// <summary>Stable code: <c>image-clip-not-safely-editable</c>.</summary>
     public const string ImageClipNotSafelyEditable = "image-clip-not-safely-editable";
+    /// <summary>Stable code: <c>image-codec-unavailable</c>.</summary>
+    public const string ImageCodecUnavailable = "image-codec-unavailable";
     /// <summary>Stable code: <c>image-content-type-rejected</c>.</summary>
     public const string ImageContentTypeRejected = "image-content-type-rejected";
     /// <summary>Stable code: <c>image-data-too-large</c>.</summary>

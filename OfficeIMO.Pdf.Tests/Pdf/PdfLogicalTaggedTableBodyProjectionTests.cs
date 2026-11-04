@@ -38,7 +38,7 @@ public sealed class PdfLogicalTaggedTableBodyProjectionTests {
         string[] projections = {
             read.Text,
             read.ExtractMarkdown(),
-            read.ToHtml(new PdfToHtmlOptions { Profile = PdfHtmlProfile.Semantic }),
+            read.ToHtml(new PdfHtmlExportOptions { Profile = PdfHtmlProfile.Semantic }),
             package.MainDocumentPart!.Document!.InnerText,
             document.Reader.Text()
         };

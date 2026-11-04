@@ -7,8 +7,9 @@ public sealed partial class PdfEmbeddedFontFamily {
     internal const int MaxExtractedTrueTypeCollectionFontBytes = OfficeTrueTypeCollection.MaxExtractedTrueTypeCollectionFontBytes;
     internal const int MaxExtractedTrueTypeCollectionBytes = OfficeTrueTypeCollection.MaxExtractedTrueTypeCollectionBytes;
 
-    private static System.Collections.Generic.List<byte[]> ExtractTrueTypeFontPrograms(byte[] data) =>
-        OfficeTrueTypeCollection.ExtractPrograms(data);
+    private static System.Collections.Generic.List<byte[]> ExtractTrueTypeFontPrograms(byte[] data,
+        System.Predicate<int>? selectedFace = null) =>
+        OfficeTrueTypeCollection.ExtractPrograms(data, selectedFace);
 
     private static bool IsTrueTypeCollection(byte[] data) => OfficeTrueTypeCollection.IsTrueTypeCollection(data);
 }

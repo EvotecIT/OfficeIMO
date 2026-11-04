@@ -1,3 +1,4 @@
+using OfficeIMO.Html.Pdf;
 using System;
 using System.IO;
 using System.Threading;

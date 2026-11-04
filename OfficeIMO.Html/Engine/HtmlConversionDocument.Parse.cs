@@ -85,7 +85,7 @@ public sealed partial class HtmlConversionDocument {
     /// parser entry point as converters. The returned DOM may be safely mutated by the caller.
     /// </summary>
     internal static IHtmlDocument ParseSourceDocumentForAnalysis(string html) =>
-        ParseSourceDocumentForAnalysis(html, HtmlConversionLimits.CreateUntrustedProfile());
+        ParseSourceDocumentForAnalysis(html, HtmlConversionLimits.UntrustedDefaults);
 
     /// <summary>Parses a low-level analysis clone using the caller's resolved shared limits.</summary>
     internal static IHtmlDocument ParseSourceDocumentForAnalysis(string html, HtmlConversionLimits limits) =>
@@ -93,7 +93,7 @@ public sealed partial class HtmlConversionDocument {
             html,
             new HtmlConversionDocumentOptions {
                 IncludeNormalizedHtml = false,
-                Limits = (limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone()
+                Limits = (limits ?? HtmlConversionLimits.UntrustedDefaults).Clone()
             })
         .CreateSourceDocumentForConversion();
 

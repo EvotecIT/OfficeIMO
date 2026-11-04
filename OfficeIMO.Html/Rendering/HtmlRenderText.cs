@@ -322,9 +322,60 @@ public sealed class HtmlRenderText : HtmlRenderVisual {
 
     internal override HtmlRenderVisual TranslateCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY + offsetY, SemanticNodeId, TextAdvanceWidth, _bidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier, EstimatedFontMetrics).WithPreparedShaping(PreparedShaping).WithWrappedLines(WrappedLines);
+        new HtmlRenderText(this, X + offsetX, Y + offsetY, paintOrder, LayoutY + offsetY, TranslateLinkBounds(offsetX, offsetY));
 
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         offsetX == 0D && offsetY == 0D && paintOrder == PaintOrder ? this :
-        new HtmlRenderText(Text, X + offsetX, Y + offsetY, Width, Height, Font, Color, Alignment, LineHeight, paintOrder, LinkUri, Source, SemanticRole, LayoutY, SemanticNodeId, TextAdvanceWidth, _bidiVisualOrderResolved, SemanticFragmentOrder, LogicalTextOrder, UnderlineStyle, StrikethroughStyle, Baseline, BaselineLevel, BaselineScale, BaselineOffset, TextPaintWidth, DecorationColor, FeatureSettings, FontPalette, LayoutHeight, FontDescriptor, PaintTopOverflow, IsPaintOnly, TranslateLinkBounds(offsetX, offsetY), UsesOrdinaryLineCarrier, EstimatedFontMetrics).WithPreparedShaping(PreparedShaping).WithWrappedLines(WrappedLines);
+        new HtmlRenderText(this, X + offsetX, Y + offsetY, paintOrder, LayoutY, TranslateLinkBounds(offsetX, offsetY));
+
+    internal override HtmlRenderVisual TranslateThrough(HtmlRenderOffset[] offsets, int paintOrder) {
+        double x = X, y = Y, layoutY = LayoutY;
+        HtmlRenderRectangle? linkBounds = LinkBounds;
+        bool copied = false;
+        foreach (HtmlRenderOffset offset in offsets) {
+            // Each step returns the visual unchanged when it neither moves nor renumbers it.
+            if (offset.IsZero && (copied ? paintOrder : PaintOrder) == paintOrder) continue;
+            copied = true;
+            x += offset.X;
+            y += offset.Y;
+            if (!offset.PaintOnly) layoutY += offset.Y;
+            if (linkBounds is HtmlRenderRectangle bounds)
+                linkBounds = new HtmlRenderRectangle(bounds.X + offset.X, bounds.Y + offset.Y, bounds.Width, bounds.Height);
+        }
+        return copied ? CopyStackingContextTo(new HtmlRenderText(this, x, y, paintOrder, layoutY, linkBounds)) : this;
+    }
+
+    // A position-only copy keeps every resolved text value, including prepared glyphs and wrapped lines.
+    private HtmlRenderText(HtmlRenderText source, double x, double y, int paintOrder, double layoutY, HtmlRenderRectangle? linkBounds)
+        : base(HtmlRenderVisualKind.Text, x, y, source.Width, source.Height, paintOrder, source.LinkUri, source.Source, layoutY, source.LayoutHeight) {
+        Text = source.Text;
+        IsPaintOnly = source.IsPaintOnly;
+        UsesOrdinaryLineCarrier = source.UsesOrdinaryLineCarrier;
+        EstimatedFontMetrics = source.EstimatedFontMetrics;
+        LinkBounds = linkBounds;
+        Font = source.Font;
+        FontDescriptor = source.FontDescriptor;
+        Color = source.Color;
+        Alignment = source.Alignment;
+        LineHeight = source.LineHeight;
+        SemanticRole = source.SemanticRole;
+        SemanticNodeId = source.SemanticNodeId;
+        SemanticFragmentOrder = source.SemanticFragmentOrder;
+        LogicalTextOrder = source.LogicalTextOrder;
+        TextAdvanceWidth = source.TextAdvanceWidth;
+        TextPaintWidth = source.TextPaintWidth;
+        _bidiVisualOrderResolved = source._bidiVisualOrderResolved;
+        UnderlineStyle = source.UnderlineStyle;
+        StrikethroughStyle = source.StrikethroughStyle;
+        DecorationColor = source.DecorationColor;
+        FeatureSettings = source.FeatureSettings;
+        FontPalette = source.FontPalette;
+        Baseline = source.Baseline;
+        BaselineLevel = source.BaselineLevel;
+        BaselineScale = source.BaselineScale;
+        BaselineOffset = source.BaselineOffset;
+        PaintTopOverflow = source.PaintTopOverflow;
+        WrappedLines = source.WrappedLines;
+        PreparedShaping = source.PreparedShaping;
+    }
 }

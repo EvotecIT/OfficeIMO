@@ -19,12 +19,12 @@ public partial class Excel {
         ExcelPdfWorksheetLayoutMode layout, bool cellStyles, bool hasHeader) {
         using ExcelDocument workbook = ExcelDocument.Create();
         ExcelSheet sheet = workbook.AddSheet("Report");
-        sheet.Cell(1, 1, "Delivery overview");
-        sheet.Cell(4, 2, "Name");
-        sheet.Cell(4, 3, "Status");
-        sheet.Cell(4, 4, "Outside table");
-        sheet.Cell(5, 2, "Platform");
-        sheet.Cell(5, 3, "Ready");
+        sheet.Cell(1, 1).SetValue("Delivery overview");
+        sheet.Cell(4, 2).SetValue("Name");
+        sheet.Cell(4, 3).SetValue("Status");
+        sheet.Cell(4, 4).SetValue("Outside table");
+        sheet.Cell(5, 2).SetValue("Platform");
+        sheet.Cell(5, 3).SetValue("Ready");
         sheet.AddTable("B4:C5", hasHeader: hasHeader, name: "Delivery", style: ExcelTableStyle.TableStyleLight9);
         sheet.Range("A1:D5").SetFontName("Helvetica").SetFontSize(global::OfficeIMO.OfficeLength.Points(9));
         for (int column = 1; column <= 4; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
@@ -62,12 +62,12 @@ public partial class Excel {
         global::OfficeIMO.OfficeColor expectedAccent;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = document.Sheets[0];
-            sheet.Cell(10, 8, "Column1");
-            sheet.Cell(10, 9, "SamAccountName");
-            sheet.Cell(10, 10, "Group Name");
-            sheet.Cell(11, 8, "DE-IPH-SQLDIST1");
-            sheet.Cell(11, 9, "gMSADE189Acz5SS$");
-            sheet.Cell(11, 10, "gMSA-de-DE-IPH-SQLDIST1_TR_Distribution");
+            sheet.Cell(10, 8).SetValue("Column1");
+            sheet.Cell(10, 9).SetValue("SamAccountName");
+            sheet.Cell(10, 10).SetValue("Group Name");
+            sheet.Cell(11, 8).SetValue("DE-IPH-SQLDIST1");
+            sheet.Cell(11, 9).SetValue("gMSADE189Acz5SS$");
+            sheet.Cell(11, 10).SetValue("gMSA-de-DE-IPH-SQLDIST1_TR_Distribution");
             sheet.AddTable(
                 "H10:J11",
                 hasHeader: true,
@@ -109,12 +109,12 @@ public partial class Excel {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBoundedStreaming.xlsx");
         using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
             ExcelSheet sheet = source.Sheets[0];
-            sheet.Cell(1, 1, "Name");
-            sheet.Cell(1, 2, "Status");
-            sheet.Cell(2, 1, "Platform");
-            sheet.Cell(2, 2, "Ready");
-            sheet.Cell(3, 1, "Ignored");
-            sheet.Cell(3, 2, "Outside limit");
+            sheet.Cell(1, 1).SetValue("Name");
+            sheet.Cell(1, 2).SetValue("Status");
+            sheet.Cell(2, 1).SetValue("Platform");
+            sheet.Cell(2, 2).SetValue("Ready");
+            sheet.Cell(3, 1).SetValue("Ignored");
+            sheet.Cell(3, 2).SetValue("Outside limit");
             sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
             source.Save();
         }
@@ -148,8 +148,8 @@ public partial class Excel {
     public void ToPdfDocument_BoundedReadFallsBackToCreatedWorksheetStyles() {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Report");
-        sheet.Cell(1, 1, "Name");
-        sheet.Cell(2, 1, "Platform");
+        sheet.Cell(1, 1).SetValue("Name");
+        sheet.Cell(2, 1).SetValue("Platform");
         sheet.Range("A1").SetFillColor("C00000").SetFontColor("FFFFFF").SetBold();
 
         PdfCore.PdfDocumentConversionResult conversion = document.ConvertToPdfWithEvidence(new ExcelPdfExportOptions {
@@ -172,7 +172,7 @@ public partial class Excel {
     public void ToPdfDocument_BoundedReadIgnoresStaleDefaultWorksheetDimension() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfBoundedStaleDimension.xlsx");
         using (ExcelDocument source = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" })) {
-            source.Sheets[0].Cell(3, 2, "Preserved");
+            source.Sheets[0].Cell(3, 2).SetValue("Preserved");
             source.Save();
         }
 

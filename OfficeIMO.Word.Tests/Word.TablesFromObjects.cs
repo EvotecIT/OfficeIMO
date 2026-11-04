@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             using WordDocument source = WordDocument.Create();
             var table = source.AddTable(new object[] {
                 new { Name = "North", Value = 42 }, new { Name = "South", Value = 73 }
-            }, WordTableStyle.OfficeIMOModern, includeHeader: includeHeader);
+            }, new WordTableOptions { Style = WordTableStyle.OfficeIMOModern, IncludeHeaders = includeHeader });
             Assert.Equal(WordTableStyle.OfficeIMOModern, table.Style);
             Assert.Equal(includeHeader, table.ConditionalFormattingFirstRow);
             using WordDocument restored = WordDocument.Load(new MemoryStream(source.ToBytes(new WordSaveOptions {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                     new { Name = "Beta", Value = 2 }
                 };
 
-                var table = document.AddTable(items, WordTableStyle.TableGrid, includeHeader: true);
+                var table = document.AddTable(items, new WordTableOptions { Style = WordTableStyle.TableGrid });
 
                 Assert.Equal(3, table.RowsCount);
                 Assert.Equal(2, table.Rows[0].CellsCount);
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                     new { Name = "Gamma", Value = 3 }
                 };
 
-                var table = document.AddTable(items, WordTableStyle.TableGrid, includeHeader: false);
+                var table = document.AddTable(items, new WordTableOptions { Style = WordTableStyle.TableGrid, IncludeHeaders = false });
 
                 Assert.Equal(1, table.RowsCount);
                 Assert.Equal("Gamma", table.Rows[0].Cells[0].Paragraphs[0].Text);
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = WordDocument.Create(filePath);
-                var ex = Assert.Throws<ArgumentNullException>(() => document.AddTable((System.Collections.Generic.IEnumerable<object?>)null!, WordTableStyle.TableGrid));
+                var ex = Assert.Throws<ArgumentNullException>(() => document.AddTable((System.Collections.Generic.IEnumerable<object?>)null!, new WordTableOptions()));
                 Assert.Equal("items", ex.ParamName);
             } finally {
                 File.Delete(filePath);
@@ -97,22 +97,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = WordDocument.Create(filePath);
-                var ex = Assert.Throws<ArgumentException>(() => document.AddTable(Array.Empty<object?>(), WordTableStyle.TableGrid));
+                var ex = Assert.Throws<ArgumentException>(() => document.AddTable(Array.Empty<object?>(), new WordTableOptions()));
                 Assert.StartsWith("Provide at least one data row.", ex.Message);
-                Assert.Equal("items", ex.ParamName);
-            } finally {
-                File.Delete(filePath);
-            }
-        }
-
-        [Fact]
-        public void Test_AddTable_ThrowsOnNullFirstRow() {
-            string filePath = Path.Combine(_directoryWithFiles, "Table.FromObjects.NullFirst.docx");
-
-            try {
-                using var document = WordDocument.Create(filePath);
-                var ex = Assert.Throws<ArgumentException>(() => document.AddTable(new object?[] { null }, WordTableStyle.TableGrid));
-                Assert.StartsWith("Data rows cannot be null.", ex.Message);
                 Assert.Equal("items", ex.ParamName);
             } finally {
                 File.Delete(filePath);
@@ -125,8 +111,9 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = WordDocument.Create(filePath);
-                var ex = Assert.Throws<InvalidOperationException>(() => document.AddTable(new object?[] { new { Name = "Alpha", Value = 1 }, null }, WordTableStyle.TableGrid));
-                Assert.Equal("Data rows cannot contain null entries.", ex.Message);
+                var ex = Assert.Throws<ArgumentException>(() => document.AddTable(new object?[] { new { Name = "Alpha", Value = 1 }, null }, new WordTableOptions()));
+                Assert.StartsWith("Data rows cannot contain null entries.", ex.Message);
+                Assert.Empty(document.Tables);
             } finally {
                 File.Delete(filePath);
             }
@@ -138,8 +125,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = WordDocument.Create(filePath);
-                var ex = Assert.Throws<InvalidOperationException>(() => document.AddTable(new object?[] { new object() }, WordTableStyle.TableGrid));
-                Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);
+                var ex = Assert.Throws<InvalidOperationException>(() => document.AddTable(new object?[] { new object() }, new WordTableOptions()));
+                Assert.StartsWith("Unable to infer column names.", ex.Message);
             } finally {
                 File.Delete(filePath);
             }

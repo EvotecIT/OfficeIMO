@@ -28,14 +28,14 @@ public sealed class CsvDataReaderFailureStateTests {
         string csv = source == 1 ? "10,kept\n20\n30,later\n"
             : source == 2 ? "Id,Name\n\"10\",\"kept\"\n20\n30,later\n"
             : "Id,Name\n10,kept\n20\n30,later\n";
-        var options = new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict };
+        var options = new CsvReaderOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict };
         if (source == 1) options.Header = new[] { "Id", "Name" };
         if (source == 3) options.ProgressCallback = _ => { };
         if (source == 4) options.InternStrings = true;
         using var input = source < 3 ? new MemoryStream(Encoding.UTF8.GetBytes(csv)) : null;
         using DbDataReader reader = source < 3
-            ? CsvDocument.OpenDataReader(input!, options)
-            : CsvDocument.OpenTextDataReader(csv, options);
+            ? CsvDocument.OpenReader(input!, options: options)
+            : CsvDocument.OpenReader(new System.IO.StringReader(csv), options: options);
 
         Assert.True(asynchronous ? await reader.ReadAsync() : reader.Read());
         Assert.Equal("10", reader.GetValue(0));
@@ -74,7 +74,7 @@ public sealed class CsvDataReaderFailureStateTests {
     }
     [Fact]
     public async Task FailedAdvanceCannotBufferThroughHasRows() {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader("Id,Name\n10,kept\n20,later\n");
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n10,kept\n20,later\n"));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             reader.ReadAsync(new CancellationToken(canceled: true)));
 
@@ -85,9 +85,8 @@ public sealed class CsvDataReaderFailureStateTests {
 
     [Fact]
     public async Task RejectedLookaheadIsTerminal() {
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(
-            "Id,Name\n20\n10,kept\n",
-            new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict });
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader("Id,Name\n20\n10,kept\n"),
+            options: new CsvReaderOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict });
         Assert.Throws<CsvException>(() => reader.HasRows);
 
         Assert.Throws<InvalidOperationException>(() => reader.Read());
@@ -102,11 +101,11 @@ public sealed class CsvDataReaderFailureStateTests {
     public async Task FailedAdvanceCannotResumeThroughParallelMapping() {
         const string csv = "Id,Name\n10,kept\n20,later\n";
         var options = new ParallelRowMappingOptions { MaxDegreeOfParallelism = 2 };
-        using (DbDataReader control = CsvDocument.OpenTextDataReader(csv)) {
+        using (DbDataReader control = CsvDocument.OpenReader(new System.IO.StringReader(csv))) {
             Assert.Equal(new[] { "kept", "later" }, control.RowsAsParallel(
                 (IDataRecord row) => row.GetString(1), options).ToArray());
         }
-        using DbDataReader reader = CsvDocument.OpenTextDataReader(csv);
+        using DbDataReader reader = CsvDocument.OpenReader(new System.IO.StringReader(csv));
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             reader.ReadAsync(new CancellationToken(canceled: true)));
 

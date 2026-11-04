@@ -7,21 +7,26 @@ namespace OfficeIMO.Drawing;
 
 internal interface IOfficeColorFontProgram {
     bool HasColorGlyph(int glyphId);
+    bool IsColorGlyphApproximated(int glyphId);
     bool TryGetColorLayers(int glyphId, string? palette, OfficeColor foreground, out IReadOnlyList<OfficeColorGlyphLayer> layers);
 }
 
 internal readonly struct OfficeColorGlyphLayer {
-    internal OfficeColorGlyphLayer(int glyphId, OfficeColor color) {
+    internal OfficeColorGlyphLayer(int glyphId, OfficeColor color, LayerTransform? transform = null) {
         GlyphId = glyphId;
         Color = color;
+        Transform = transform;
     }
 
     internal int GlyphId { get; }
     internal OfficeColor Color { get; }
+
+    /// <summary>Font-unit placement of this layer's outline; COLR v0 layers have none.</summary>
+    internal LayerTransform? Transform { get; }
 }
 
-/// <summary>Bounded COLR v0 and CPAL v0/v1 reader shared by raster and vector renderers.</summary>
-internal sealed class OfficeOpenTypeColorGlyphs {
+/// <summary>Bounded COLR v0/v1 and CPAL v0/v1 reader shared by raster and vector renderers.</summary>
+internal sealed partial class OfficeOpenTypeColorGlyphs {
     private const int MaximumBaseGlyphs = 65535;
     private const int MaximumLayers = 262144;
     private const int MaximumExpandedLayers = 262144;
@@ -31,12 +36,15 @@ internal sealed class OfficeOpenTypeColorGlyphs {
     private readonly IReadOnlyDictionary<int, LayerRecord[]> _layers;
     private readonly OfficeColor[][] _palettes;
     private readonly uint[] _paletteTypes;
+    private readonly HashSet<int> _approximatedGlyphs;
 
     private OfficeOpenTypeColorGlyphs(
         IReadOnlyDictionary<int, LayerRecord[]> layers,
+        HashSet<int> approximatedGlyphs,
         OfficeColor[][] palettes,
         uint[] paletteTypes) {
         _layers = layers;
+        _approximatedGlyphs = approximatedGlyphs;
         _palettes = palettes;
         _paletteTypes = paletteTypes;
     }
@@ -52,7 +60,7 @@ internal sealed class OfficeOpenTypeColorGlyphs {
             int colrEnd = checked(colr + colrLength);
             int cpalEnd = checked(cpal + cpalLength);
             ushort colrVersion = reader.ReadUInt16(colr);
-            if (colrVersion != 0) return null;
+            if (colrVersion > 1) return null;
 
             int baseGlyphCount = reader.ReadUInt16(colr + 2);
             int baseRecords = Relative32(reader, colr, colr + 4, colr, colrEnd, 6);
@@ -93,6 +101,8 @@ internal sealed class OfficeOpenTypeColorGlyphs {
                 }
                 layerMap.Add(glyphId, glyphLayers);
             }
+            var approximatedGlyphs = new HashSet<int>();
+            if (colrVersion == 1) PaintGraph.Flatten(reader, colr, colrEnd, layerMap, approximatedGlyphs);
 
             ushort cpalVersion = reader.ReadUInt16(cpal);
             if (cpalVersion > 1) return null;
@@ -143,6 +153,7 @@ internal sealed class OfficeOpenTypeColorGlyphs {
 
             return new OfficeOpenTypeColorGlyphs(
                 new ReadOnlyDictionary<int, LayerRecord[]>(layerMap),
+                approximatedGlyphs,
                 palettes,
                 paletteTypes);
         } catch (Exception exception) when (exception is InvalidDataException
@@ -154,6 +165,8 @@ internal sealed class OfficeOpenTypeColorGlyphs {
     }
 
     internal bool HasColorGlyph(int glyphId) => _layers.ContainsKey(glyphId);
+
+    internal bool IsApproximated(int glyphId) => _approximatedGlyphs.Contains(glyphId);
 
     internal bool TryGetLayers(
         int glyphId,
@@ -170,12 +183,7 @@ internal sealed class OfficeOpenTypeColorGlyphs {
         var resolved = new OfficeColorGlyphLayer[records.Length];
         for (int index = 0; index < records.Length; index++) {
             LayerRecord record = records[index];
-            OfficeColor color = record.PaletteEntry == ushort.MaxValue
-                ? foreground
-                : record.PaletteEntry < colors.Length
-                    ? colors[record.PaletteEntry]
-                    : foreground;
-            resolved[index] = new OfficeColorGlyphLayer(record.GlyphId, color);
+            resolved[index] = new OfficeColorGlyphLayer(record.GlyphId, record.ResolveColor(colors, foreground), record.Transform);
         }
         layers = Array.AsReadOnly(resolved);
         return true;
@@ -219,12 +227,42 @@ internal sealed class OfficeOpenTypeColorGlyphs {
     }
 
     private readonly struct LayerRecord {
-        internal LayerRecord(int glyphId, int paletteEntry) {
+        private readonly ColorStop[] _stops;
+        private readonly double _alpha;
+
+        internal LayerRecord(int glyphId, int paletteEntry) : this(glyphId, new[] { new ColorStop(paletteEntry, 1D) }, 1D, null) {
+        }
+
+        internal LayerRecord(int glyphId, ColorStop[] stops, double alpha, LayerTransform? transform) {
             GlyphId = glyphId;
-            PaletteEntry = paletteEntry;
+            _stops = stops;
+            _alpha = alpha;
+            Transform = transform;
         }
 
         internal int GlyphId { get; }
-        internal int PaletteEntry { get; }
+        internal LayerTransform? Transform { get; }
+
+        internal OfficeColor ResolveColor(OfficeColor[] palette, OfficeColor foreground) {
+            if (_stops.Length == 1 && _stops[0].Alpha == 1D && _alpha == 1D) return Entry(_stops[0].PaletteEntry);
+            double red = 0D, green = 0D, blue = 0D, alpha = 0D;
+            foreach (ColorStop stop in _stops) {
+                OfficeColor color = Entry(stop.PaletteEntry);
+                double weight = color.A / 255D * Math.Max(0D, Math.Min(1D, stop.Alpha));
+                red += color.R * weight;
+                green += color.G * weight;
+                blue += color.B * weight;
+                alpha += weight;
+            }
+            if (alpha <= 0D) return OfficeColor.FromRgba(0, 0, 0, 0);
+            return OfficeColor.FromRgba(
+                (byte)Math.Round(red / alpha),
+                (byte)Math.Round(green / alpha),
+                (byte)Math.Round(blue / alpha),
+                (byte)Math.Round(255D * alpha / _stops.Length * Math.Max(0D, Math.Min(1D, _alpha))));
+
+            OfficeColor Entry(int entry) =>
+                entry != ushort.MaxValue && entry < palette.Length ? palette[entry] : foreground;
+        }
     }
 }

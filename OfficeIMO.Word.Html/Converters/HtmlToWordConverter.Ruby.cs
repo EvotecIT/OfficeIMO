@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
-        private bool TryProcessRubyElement(IElement element, WordSection section, WordHtmlImportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private bool TryProcessRubyElement(IElement element, WordSection section, HtmlWordExportOptions options, WordParagraph? currentParagraph, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
             if (!TryExtractRubyPairs(element, out var pairs, out bool approximated)) {
                 return false;
             }
@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.Html {
             return true;
         }
 
-        private static Run CreateRubyContainer(RubyPair pair, TextFormatting formatting, WordHtmlImportOptions options) =>
+        private static Run CreateRubyContainer(RubyPair pair, TextFormatting formatting, HtmlWordExportOptions options) =>
             new(new Ruby(
                 new RubyProperties(
                     new RubyAlign { Val = RubyAlignValues.Center },
@@ -99,7 +99,7 @@ namespace OfficeIMO.Word.Html {
             IElement? element,
             string fallbackText,
             TextFormatting formatting,
-            WordHtmlImportOptions options) {
+            HtmlWordExportOptions options) {
             var state = new RubyTextEmissionState();
             if (element == null) {
                 Run? fallback = CreateRubyTextRun(fallbackText, formatting, options, state);
@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Html {
         private static IEnumerable<Run> CreateRubyRuns(
             IEnumerable<INode> nodes,
             TextFormatting formatting,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             RubyTextEmissionState state) {
             foreach (INode node in nodes) {
                 if (node is IText textNode) {
@@ -145,7 +145,7 @@ namespace OfficeIMO.Word.Html {
         private static Run? CreateRubyTextRun(
             string text,
             TextFormatting formatting,
-            WordHtmlImportOptions options,
+            HtmlWordExportOptions options,
             RubyTextEmissionState state) {
             if (text.Length == 0) return null;
 
@@ -233,7 +233,7 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private static Run CreateRubyRun(string text, TextFormatting formatting, WordHtmlImportOptions options) {
+        private static Run CreateRubyRun(string text, TextFormatting formatting, HtmlWordExportOptions options) {
             var run = new Run();
             var properties = CreateRubyRunProperties(formatting, options);
             if (properties.HasChildren || properties.HasAttributes) {
@@ -243,7 +243,7 @@ namespace OfficeIMO.Word.Html {
             return run;
         }
 
-        private static RunProperties CreateRubyRunProperties(TextFormatting formatting, WordHtmlImportOptions options) {
+        private static RunProperties CreateRubyRunProperties(TextFormatting formatting, HtmlWordExportOptions options) {
             var properties = new RunProperties();
             if (formatting.Bold) properties.AppendChild(new Bold());
             if (formatting.Italic) properties.AppendChild(new Italic());

@@ -1,6 +1,5 @@
 using System;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Threading.Tasks;
 using OfficeIMO;
@@ -38,7 +37,7 @@ public sealed class TestOfficePowerPointCommand : OfficeInputCmdlet {
         _options.IncludeContent = false;
         _options.Detailed = true;
         if (MyInvocation.BoundParameters.ContainsKey(nameof(Password)))
-            _options.Reader.OpenPassword = Password == null ? null : new NetworkCredential(string.Empty, Password).Password;
+            _options.Reader.OpenPassword = Password.ToPlainText();
         return Task.CompletedTask;
     }
 

@@ -22,12 +22,12 @@ namespace OfficeIMO.Word.Html {
                 if (options.ExportHeadersAndFooters) {
                     var projectedRegions = new Dictionary<OpenXmlPartRootElement, OpenXmlPartRootElement>();
                     foreach (WordSection section in document.Sections) {
-                        ProjectHeaderFooter(section.Header.Default, projectedRegions, options.TrackedChangePolicy, restore);
-                        ProjectHeaderFooter(section.Header.First, projectedRegions, options.TrackedChangePolicy, restore);
-                        ProjectHeaderFooter(section.Header.Even, projectedRegions, options.TrackedChangePolicy, restore);
-                        ProjectHeaderFooter(section.Footer.Default, projectedRegions, options.TrackedChangePolicy, restore);
-                        ProjectHeaderFooter(section.Footer.First, projectedRegions, options.TrackedChangePolicy, restore);
-                        ProjectHeaderFooter(section.Footer.Even, projectedRegions, options.TrackedChangePolicy, restore);
+                        ProjectHeaderFooter(section.PageSetup.GetHeader(WordHeaderFooterType.Default), projectedRegions, options.TrackedChangePolicy, restore);
+                        ProjectHeaderFooter(section.PageSetup.GetHeader(WordHeaderFooterType.First), projectedRegions, options.TrackedChangePolicy, restore);
+                        ProjectHeaderFooter(section.PageSetup.GetHeader(WordHeaderFooterType.Even), projectedRegions, options.TrackedChangePolicy, restore);
+                        ProjectHeaderFooter(section.PageSetup.GetFooter(WordHeaderFooterType.Default), projectedRegions, options.TrackedChangePolicy, restore);
+                        ProjectHeaderFooter(section.PageSetup.GetFooter(WordHeaderFooterType.First), projectedRegions, options.TrackedChangePolicy, restore);
+                        ProjectHeaderFooter(section.PageSetup.GetFooter(WordHeaderFooterType.Even), projectedRegions, options.TrackedChangePolicy, restore);
                     }
                 }
 

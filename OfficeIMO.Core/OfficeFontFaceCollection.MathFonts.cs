@@ -74,8 +74,8 @@ public sealed partial class OfficeFontFaceCollection {
             if (registered != null) {
                 int index = _faces.FindLastIndex(face => face.FamilyName == "math"
                     && face.ResourceFamilyName == registered.ResourceFamilyName);
-                if (index >= 0) _faces[index] = registered;
-                else _faces.Add(registered);
+                if (index >= 0) FacesToChange[index] = registered;
+                else FacesToChange.Add(registered);
                 return true;
             }
             // Static mathematical programs stay regular; synthetic styling remains the

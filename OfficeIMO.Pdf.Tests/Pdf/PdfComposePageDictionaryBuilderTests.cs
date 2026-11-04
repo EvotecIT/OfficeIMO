@@ -530,7 +530,7 @@ namespace OfficeIMO.Tests.Pdf {
                 global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 0D, 0D),
                 0.75,
                 global::OfficeIMO.OfficeColor.FromNormalizedRgb(1D, 1D, 0.8D),
-                PdfAlign.Center,
+                OfficeAlignment.Center,
                 4D,
                 11D);
             Assert.True(CountOccurrences(freeTextAppearance, " Tj ET") >= 2);
@@ -701,7 +701,7 @@ namespace OfficeIMO.Tests.Pdf {
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildFreeTextAnnotation(10, 20, 110, 44, "note", 0));
             Assert.Throws<ArgumentException>(() =>
-                PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(100, 40, "note", textAlign: PdfAlign.Justify));
+                PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(100, 40, "note", textAlign: OfficeAlignment.Justify));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(100, 40, "note", padding: -1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>

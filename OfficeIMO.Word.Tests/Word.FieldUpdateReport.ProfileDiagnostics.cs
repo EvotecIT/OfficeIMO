@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_UpdateFieldsAndGetReport_MapsRelatedPartPageLayoutRequirement() {
             using WordDocument document = WordDocument.Create();
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
             header.Append(new Paragraph(BuildSimpleField(" PAGE ", "preserved")));
 

@@ -28,7 +28,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             WordParagraph headerEquation = RequireSectionHeader(document, 0, HeaderFooterValues.Default)
                 .AddParagraph("Native header equation: ");
             headerEquation.AddEquation(headerOmml);
@@ -221,7 +221,7 @@ public partial class Word {
         };
 
         using (WordDocument document = WordDocument.Create(docPath)) {
-            document.AddHeadersAndFooters();
+            _ = document.PageSetup.Header;
             RequireSectionHeader(document, 0, HeaderFooterValues.Default)
                 .AddParagraph("Native header content control: ")
                 .AddStructuredDocumentTag("Header control", "HeaderAlias", "HeaderTag");

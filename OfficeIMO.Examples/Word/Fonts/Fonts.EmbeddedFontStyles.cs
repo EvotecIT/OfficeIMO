@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             }
 
             var style = new WordParagraphStyleDefinition("EmbeddedStyle") {
-                FontName = "DejaVu Sans"
+                FontFamily = "DejaVu Sans"
             };
             WordParagraphStyle.RegisterCustomStyle("EmbeddedStyle", style);
 

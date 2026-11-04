@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             document.AddParagraph("Visible body");
             string hiddenText = new string('x', 8192);
             var section = document.Sections[0];
-            section.GetOrCreateHeader(WordHeaderFooterType.Default).AddParagraph(hiddenText);
-            section.GetOrCreateFooter(WordHeaderFooterType.Default).AddParagraph(hiddenText);
+            section.PageSetup.Header.AddParagraph(hiddenText);
+            section.PageSetup.Footer.AddParagraph(hiddenText);
             document.AddParagraph("Footnote anchor").AddFootNote(hiddenText);
             document.AddParagraph("Endnote anchor").AddEndNote(hiddenText);
             document.AddParagraph("Comment anchor").AddComment("Reviewer", "R", hiddenText);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Visible body");
             WordParagraph header = document.Sections[0]
-                .GetOrCreateHeader(WordHeaderFooterType.Default)
+                .PageSetup.Header
                 .AddParagraph();
             header._paragraph.Append(new SimpleField(new Run(new Text("Header field result"))) {
                 Instruction = "DATE"

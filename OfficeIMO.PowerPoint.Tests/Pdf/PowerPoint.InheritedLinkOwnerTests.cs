@@ -48,7 +48,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         PowerPointSlide first = presentation.AddSlide();
         PowerPointSlide second = presentation.AddSlide();
         PowerPointTable table = first.AddTable(1,1,global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(30),global::OfficeIMO.OfficeLength.Points(240),global::OfficeIMO.OfficeLength.Points(60));
-        PowerPointTextRun run = table.GetCell(0, 0).AddRun("Inherited link");
+        PowerPointTextRun run = table.GetCell(0, 0).AddText("Inherited link");
         OpenXmlPart owner = Owner(first, master);
         if (kind == "external") owner.AddHyperlinkRelationship(new Uri("https://example.com/correct-owner"), true, "inherited-link");
         else if (kind == "slide") owner.AddHyperlinkRelationship(PowerPointHyperlinkResolver.CreatePartRelativeUri(owner, second.SlidePart), false, "inherited-link");
@@ -70,7 +70,7 @@ public sealed partial class PowerPointInheritedLinkOwnerTests {
         Assert.Equal(kind == "next" ? 1 : 2, pdf.LinkAnnotations.Count);
         if (kind == "external") Assert.All(pdf.LinkAnnotations, link => Assert.Equal(expected, link.Uri));
         else Assert.All(pdf.LinkAnnotations, link => Assert.Equal("powerpoint-slide-2", link.DestinationName));
-        if (kind == "next") Assert.Contains(conversion.Report.FidelityDiagnostics, diagnostic => diagnostic.Code == "internal-slide-target-omitted");
+        if (kind == "next") Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "internal-slide-target-omitted");
     }
 
     private static OpenXmlPart Owner(PowerPointSlide slide, bool master) => master

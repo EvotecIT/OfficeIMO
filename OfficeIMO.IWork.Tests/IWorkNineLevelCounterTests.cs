@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Saved_PPTX_retains_all_nine_levels_and_deep_counters_through_the_existing_drawing_owner() {
         using var package = NineLevelCounterPackage(IWorkDocumentKind.Keynote);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointDocumentResult(new() {
+        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var content = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);

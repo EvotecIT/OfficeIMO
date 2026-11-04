@@ -31,19 +31,19 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         WordTextBox positionedWordBox = Assert.Single(word.TextBoxes, box => box.Paragraphs.Any(paragraph =>
             paragraph.Text.Contains("Editable positioned", StringComparison.Ordinal)));
         HtmlRenderMargins margins = new HtmlRenderOptions().Margins;
-        Assert.Equal("DBEAFE", positionedWordBox.FillColorHex);
+        Assert.Equal(OfficeColor.Parse("DBEAFE"), positionedWordBox.FillColor);
         Assert.Equal((int)((32D + margins.Left) * 9525D), positionedWordBox.HorizontalPositionOffset?.ToEmus());
         Assert.Equal((int)((200D + margins.Top) * 9525D), positionedWordBox.VerticalPositionOffset?.ToEmus());
         Assert.Equal(240L * 9525L, positionedWordBox.Width.ToEmus());
         Assert.Equal(72L * 9525L, positionedWordBox.Height.ToEmus());
         byte[] wordPng = word.ToImage(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
-        HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
+        HtmlToRtfResult rtfResult = source.ConvertToRtfWithEvidence();
         byte[] rtf = Encoding.ASCII.GetBytes(rtfResult.Value.ToRtf());
-        RtfReadResult reopenedRtf = RtfDocument.Read(Encoding.ASCII.GetString(rtf));
+        RtfReadResult reopenedRtf = RtfDocument.ParseResult(Encoding.ASCII.GetString(rtf));
 
-        HtmlToExcelResult excelResult = source.ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult excelResult = source.ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         byte[] xlsx = SaveExcel(excelResult.Value);
         using ExcelDocument excel = ExcelDocument.Load(
             new MemoryStream(xlsx),
@@ -51,8 +51,8 @@ public sealed class HtmlEditableLayoutVisualEvidenceTests {
         byte[] excelPng = Assert.Single(excel.Sheets).ToImage(
             new ExcelImageExportOptions { Range = "A1:E16" });
 
-        HtmlToPowerPointResult powerPointResult = source.ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        HtmlToPowerPointResult powerPointResult = source.ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         byte[] pptx = SavePowerPoint(powerPointResult.Value);
         using PowerPointDocument powerPoint = PowerPointDocument.Load(
             new MemoryStream(pptx),

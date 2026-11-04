@@ -16,7 +16,7 @@ public static partial class OneNoteImageExportExtensions {
         var timer = Stopwatch.StartNew();
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         OfficeImageExportBatchSaveResult saved = CreateOneNoteNotebookImageBatchOperation(document, resolved).SaveFiles(folderPath, cancellationToken);
-        return OfficeImageExportEvidence.CreateReport("OneNote", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("OneNote", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 
@@ -28,7 +28,7 @@ public static partial class OneNoteImageExportExtensions {
         OneNotePageBatchRenderingOptions resolved = options?.CloneBatch() ?? new OneNotePageBatchRenderingOptions();
         OfficeImageExportBatchSaveResult saved = await CreateOneNoteNotebookImageBatchOperation(document, resolved)
             .SaveFilesAsync(folderPath, cancellationToken).ConfigureAwait(false);
-        return OfficeImageExportEvidence.CreateReport("OneNote", resolved.Format, saved.Report.Diagnostics,
+        return OfficeImageExportEvidence.CreateReport("OneNote", resolved.Format, saved.Report.NativeDiagnostics,
             saved.Report.ResultCount, timer.Elapsed, Path.GetFullPath(folderPath));
     }
 

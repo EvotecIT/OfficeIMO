@@ -118,7 +118,10 @@ public partial class PdfPageImageRendererTests {
         OfficeDrawing Read(double shear) => PdfReadDocument.Open(
             BuildAffineOutlineTextPdf(1D, 0D, shear, 1D, "B")).Pages[0].ToDrawing();
         byte[] Write(OfficeDrawing drawing) => PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(240D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D), MarginLeft = global::OfficeIMO.OfficeLength.Points(0D), MarginRight = global::OfficeIMO.OfficeLength.Points(0D), MarginTop = global::OfficeIMO.OfficeLength.Points(0D), MarginBottom = global::OfficeIMO.OfficeLength.Points(0D)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(200D)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(0D), Right = global::OfficeIMO.OfficeLength.Points(0D), Top = global::OfficeIMO.OfficeLength.Points(0D), Bottom = global::OfficeIMO.OfficeLength.Points(0D) }
+            }
         }).Canvas(canvas => canvas.Drawing(drawing, global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(0D), global::OfficeIMO.OfficeLength.Points(240D), global::OfficeIMO.OfficeLength.Points(200D))).ToBytes();
 
         Assert.Throws<NotSupportedException>(() => Write(Read(0.5D)));

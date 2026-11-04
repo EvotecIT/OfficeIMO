@@ -49,7 +49,7 @@ if (generated.Report.HasErrors) {
 }
 ```
 
-The policy copies its lists and compares names case-sensitively. Null lists leave that category unrestricted; empty lists permit none. Restrictions apply throughout nested content and report up to 1,000 destination errors as `ADF_DESTINATION_NODE` and `ADF_DESTINATION_MARK`. They add to schema checks without rewriting the document. Generated ADF remains inspectable when validation fails, and `Report.RequireNoLoss()` rejects those errors. The three-argument `FromHtml(html, htmlOptions, adfOptions)` overload accepts the same generation options.
+The policy copies its lists and compares names case-sensitively. Null lists leave that category unrestricted; empty lists permit none. Restrictions apply throughout nested content and report up to 1,000 destination errors as `ADF_DESTINATION_NODE` and `ADF_DESTINATION_MARK`. They add to schema checks without rewriting the document. Generated ADF remains inspectable when validation fails, and `Report.ThrowIfLoss()` rejects those errors. The three-argument `FromHtml(html, htmlOptions, adfOptions)` overload accepts the same generation options.
 
 Caller lists describe the destination capabilities the caller has qualified. They do not prove current Jira or Confluence API acceptance, attribute-specific product rules, permissions, or tenant configuration.
 
@@ -71,7 +71,7 @@ Native `content`, `marks` and `attrs` properties retain explicit empty values th
 
 Mentions, emoji, status/date nodes, cards, media, expand/panel/decision containers, nested tasks, and rich table cells have visible projections where the target model can carry them. The library uses local labels and metadata and does not fetch card, media, or mention resources.
 
-Known nodes also report attributes, marks, and extension properties omitted or approximated by projection. Inspect `Report.Diagnostics`, or call `Report.RequireNoLoss()` to reject a lossy result. Retaining data in native JSON does not make a Markdown or HTML projection lossless.
+Known nodes also report attributes, marks, and extension properties omitted or approximated by projection. Inspect `Report.Diagnostics`, or call `Report.ThrowIfLoss()` to reject a lossy result. Retaining data in native JSON does not make a Markdown or HTML projection lossless.
 
 Adjacent styled text retains its text and marks through Markdown round trips; empty inline HTML comments separate delimiter runs when needed. Standalone Markdown images become external `mediaSingle` nodes. Inline images retain linked alternate text and report lost image semantics. Nested task lists retain hierarchy and completion state.
 

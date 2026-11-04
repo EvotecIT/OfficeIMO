@@ -591,6 +591,11 @@ namespace OfficeIMO.PowerPoint {
                 || part is SlidePart;
         }
 
+        // Within one package, image payloads are immutable for OfficeIMO: replacing a picture or background
+        // writes a new part. Duplicates therefore reference the source media, as PowerPoint does.
+        private static bool ShouldShareDuplicatedSlidePart(OpenXmlPart part) =>
+            ShouldSharePart(part) || part is ImagePart;
+
         private static void RemapDuplicatedNotesSlideBacklink(
             SlidePart sourceSlidePart, SlidePart targetSlidePart) {
             NotesSlidePart? sourceNotesPart = sourceSlidePart.NotesSlidePart;

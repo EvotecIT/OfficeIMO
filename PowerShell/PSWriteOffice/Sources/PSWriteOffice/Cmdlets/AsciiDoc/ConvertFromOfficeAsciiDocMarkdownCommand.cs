@@ -27,7 +27,7 @@ public sealed class ConvertFromOfficeAsciiDocMarkdownCommand : PSCmdlet
 
     /// <summary>Optional conversion settings.</summary>
     [Parameter]
-    public MarkdownToAsciiDocOptions? Options { get; set; }
+    public MarkdownAsciiDocExportOptions? Options { get; set; }
 
     /// <summary>Throw when a source feature cannot be mapped exactly.</summary>
     [Parameter]
@@ -40,7 +40,7 @@ public sealed class ConvertFromOfficeAsciiDocMarkdownCommand : PSCmdlet
             ? MarkdownDocument.Load(SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path))
             : Document;
         var result = document.ToAsciiDocDocumentResult(Options);
-        if (FailOnLoss.IsPresent) result.RequireNoLoss();
+        if (FailOnLoss.IsPresent) result.ThrowIfLoss();
         if (!string.IsNullOrWhiteSpace(OutputPath))
         {
             var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(OutputPath);

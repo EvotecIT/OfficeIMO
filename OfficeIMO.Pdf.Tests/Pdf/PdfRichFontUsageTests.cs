@@ -15,8 +15,7 @@ public class PdfRichFontUsageTests {
     public void TableHeaderBoldCombinesWithRunItalicAcrossRenderingSurfaces(TableSurface surface, bool namedFont) {
         var options = new PdfCreateOptions {
             CompressContentStreams = false,
-            PageWidth = global::OfficeIMO.OfficeLength.Points(300D),
-            PageHeight = global::OfficeIMO.OfficeLength.Points(200D)
+            PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(200D)) }
         };
         if (namedFont) {
             byte[] font = ManagedTextShapingTestAssets.CreateFont("StyledHeaderMarker".Distinct().Select(ch => (int)ch).ToArray());
@@ -39,7 +38,7 @@ public class PdfRichFontUsageTests {
             TableSurface.Flow => PdfDocument.Create(options)
                 .Table(rows, style: style),
             TableSurface.RowColumn => PdfDocument.Create(options)
-                .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
+                .Row(row => row.PercentColumn(100D, column => column.AddTable(rows, style: style))),
             TableSurface.Canvas => PdfDocument.Create(options)
                 .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D), style)),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))
@@ -64,18 +63,18 @@ public class PdfRichFontUsageTests {
     [InlineData(TableSurface.RowColumn, PdfStandardFont.TimesItalic, "Times-Italic")]
     [InlineData(TableSurface.Canvas, PdfStandardFont.TimesItalic, "Times-Italic")]
     public void TableHeaderRetainsExplicitRunFontFace(TableSurface surface, PdfStandardFont font, string expectedFont) {
-        var options = new PdfCreateOptions { PageWidth = global::OfficeIMO.OfficeLength.Points(300D), PageHeight = global::OfficeIMO.OfficeLength.Points(200D) };
+        var options = new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(300D), global::OfficeIMO.OfficeLength.Points(200D)) } };
         var style = new PdfTableStyle {
             HeaderRowCount = 1, HeaderBold = true,
             ColumnWidths = new List<global::OfficeIMO.OfficeLength?> { global::OfficeIMO.OfficeLength.Points(180D) }
         };
         IReadOnlyList<PdfTableCell[]> rows = new[] {
-            new[] { PdfTableCell.RichTextCell(new[] { new PdfTextRun("ExplicitFace", font: font) }) }
+            new[] { PdfTableCell.RichTextCell(new[] { new PdfTextRun("ExplicitFace", standardFont: font) }) }
         };
         PdfDocument document = surface switch {
             TableSurface.Flow => PdfDocument.Create(options).Table(rows, style: style),
             TableSurface.RowColumn => PdfDocument.Create(options)
-                .Row(row => row.PercentColumn(100D, column => column.Table(rows, style: style))),
+                .Row(row => row.PercentColumn(100D, column => column.AddTable(rows, style: style))),
             TableSurface.Canvas => PdfDocument.Create(options)
                 .Canvas(canvas => canvas.Table(rows, global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(40D), global::OfficeIMO.OfficeLength.Points(180D), global::OfficeIMO.OfficeLength.Points(60D), style)),
             _ => throw new ArgumentOutOfRangeException(nameof(surface))

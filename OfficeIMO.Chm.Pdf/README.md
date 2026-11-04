@@ -7,15 +7,15 @@ using OfficeIMO.Chm;
 using OfficeIMO.Html.Pdf;
 
 ChmDocument book = ChmDocument.Load("manual.chm");
-ChmConversionResult<byte[]> result = book.ToPdfBytesResult(
-    new ChmConversionOptions { MaxOutputBytes = 32L * 1024 * 1024 },
-    new HtmlToPdfOptions());
-File.WriteAllBytes("manual.pdf", result.RequireValue());
-foreach (var diagnostic in result.Report.FidelityDiagnostics)
+OfficeConversionReport report = book.SaveAsPdf("manual.pdf", new ChmPdfExportOptions {
+    ConversionOptions = new ChmConversionOptions { MaxOutputBytes = 32L * 1024 * 1024 },
+    PdfOptions = new HtmlPdfExportOptions()
+});
+foreach (var diagnostic in report.Diagnostics)
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Message}");
 ```
 
-`ToPdfDocumentResult()` and its async counterpart return the existing `PdfDocumentConversionResult`, with CHM source evidence attached. Pass renderer options for page geometry, fonts and the supported PDF policy. All resources resolve inside the archive; conversion never fetches remote resources or opens external files. Encryption, when requested, applies once to the completed PDF.
+`ToPdf(options, out report)` returns the PDF model with the CHM source diagnostics in its `OfficeConversionReport`, `ToPdfAsync` returns both, and `SaveAsPdf`/`SaveAsPdfAsync` write a path or caller-owned stream. `ChmPdfExportOptions.ConversionOptions` selects topics and limits; `PdfOptions` carries page geometry, fonts and the supported PDF policy; `FailOnLoss` makes reported loss an error. All resources resolve inside the archive; conversion never fetches remote resources or opens external files. Encryption, when requested, applies once to the completed PDF.
 
 Multi-topic PDFs are untagged because the shared merger cannot preserve a merged structure tree. Cross-topic links and the keyword index are not rebuilt. These losses are reported. Select one topic to retain the renderer's tagging behavior. This adapter does not claim PDF/UA or browser-equivalent layout. See [CHM support](../OfficeIMO.Chm/SUPPORT.md) and [HTML PDF rendering](../OfficeIMO.Html.Pdf/README.md).
 

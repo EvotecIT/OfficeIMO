@@ -32,14 +32,14 @@ public enum PdfTableVerticalAlignment {
 public sealed class PdfTablePosition {
     /// <summary>Creates placement relative to the selected anchor rectangles.</summary>
     public PdfTablePosition(PdfTableAnchor horizontalAnchor = PdfTableAnchor.Margin,
-        PdfTableAnchor verticalAnchor = PdfTableAnchor.Flow, PdfAlign horizontalAlignment = PdfAlign.Left,
+        PdfTableAnchor verticalAnchor = PdfTableAnchor.Flow, OfficeAlignment horizontalAlignment = OfficeAlignment.Left,
         PdfTableVerticalAlignment verticalAlignment = PdfTableVerticalAlignment.Top,
         global::OfficeIMO.OfficeLength horizontalOffset = default, global::OfficeIMO.OfficeLength verticalOffset = default,
         global::OfficeIMO.OfficeLength distanceLeft = default, global::OfficeIMO.OfficeLength distanceRight = default, global::OfficeIMO.OfficeLength distanceTop = default, global::OfficeIMO.OfficeLength distanceBottom = default,
         bool mirrorHorizontalOnEvenPages = false, bool allowOverlap = true) {
         if (horizontalAnchor < PdfTableAnchor.Flow || horizontalAnchor > PdfTableAnchor.Page) throw new ArgumentOutOfRangeException(nameof(horizontalAnchor));
         if (verticalAnchor < PdfTableAnchor.Flow || verticalAnchor > PdfTableAnchor.Page) throw new ArgumentOutOfRangeException(nameof(verticalAnchor));
-        if (horizontalAlignment != PdfAlign.Left && horizontalAlignment != PdfAlign.Center && horizontalAlignment != PdfAlign.Right) throw new ArgumentOutOfRangeException(nameof(horizontalAlignment));
+        if (horizontalAlignment != OfficeAlignment.Left && horizontalAlignment != OfficeAlignment.Center && horizontalAlignment != OfficeAlignment.Right) throw new ArgumentOutOfRangeException(nameof(horizontalAlignment));
         if (verticalAlignment < PdfTableVerticalAlignment.Top || verticalAlignment > PdfTableVerticalAlignment.Outside) throw new ArgumentOutOfRangeException(nameof(verticalAlignment));
         Validate(horizontalOffset.ToPoints(), nameof(horizontalOffset), false);
         Validate(verticalOffset.ToPoints(), nameof(verticalOffset), false);
@@ -65,7 +65,7 @@ public sealed class PdfTablePosition {
     /// <summary>Vertical reference rectangle.</summary>
     public PdfTableAnchor VerticalAnchor { get; }
     /// <summary>Horizontal alignment in the reference rectangle.</summary>
-    public PdfAlign HorizontalAlignment { get; }
+    public OfficeAlignment HorizontalAlignment { get; }
     /// <summary>Vertical alignment in the reference rectangle.</summary>
     public PdfTableVerticalAlignment VerticalAlignment { get; }
     /// <summary>Horizontal offset to the right, as a physical length.</summary>

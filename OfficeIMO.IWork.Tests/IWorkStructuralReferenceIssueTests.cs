@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal((ulong)record, issue.TargetIdentifier);
         Assert.Equal(IWorkSourceReferenceIssueKind.UnexpectedTargetType, issue.Kind);
         Assert.Equal(1, issue.ReferenceIndex);
-        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.FidelityDiagnostics,
+        Assert.Equal(OfficeConversionLossKind.Unassessed, Assert.Single(report.Diagnostics,
             d => d.Code == "IWORK_SOURCE_REFERENCES_UNRESOLVED").LossKind);
         Assert.DoesNotContain(report.SourceUnits, unit => unit.Identity.RecordIdentifier == (ulong)record);
     }
@@ -128,7 +128,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(ArchiveRecord(13, 6006, BytesField(2, Message(VarintField(1, 0), FloatField(2, 22), VarintField(3, 0)))),
                 ArchiveRecord(14, 2021, Message()),
                 ArchiveRecord(15, 6006, BytesField(2, Message(VarintField(1, 0), FloatField(2, 44), VarintField(3, 0))))));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceReferenceIssues = 2 });
+        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = 2 });
         var projection = source.ReadNumbers();
         var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.Empty(table.RowHeights);
@@ -140,7 +140,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Contains(projection.SourceDeclarationIssues, declaration => declaration.Owner.RecordIdentifier == 14
             && declaration.FieldPath == "$" && declaration.Kind == IWorkSourceDeclarationIssueKind.RejectedMessageSet);
         package.Position = 0;
-        var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaximumSourceReferenceIssues = 1 });
+        var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Contains("source reference issues", Assert.Throws<InvalidDataException>(() => bounded.ReadNumbers()).Message);
     }
 
@@ -151,7 +151,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(IWorkDocumentKind.Numbers, aliases: true, wrongTypeRecord: record);
         int physicalLinks = record == 14 ? 2 : 1;
         var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaximumSourceReferenceIssues = physicalLinks }), IWorkDocumentKind.Numbers);
+            new IWorkReadOptions { MaxSourceReferenceIssues = physicalLinks }), IWorkDocumentKind.Numbers);
         Assert.Equal(2, table.Cells.Count);
         Assert.Equal(physicalLinks, issues.Count);
         Assert.All(issues, issue => {
@@ -194,7 +194,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(ArchiveRecord(10, 2022, Message(BytesField(1, ReferenceField(3, 12)), BytesField(11, FloatField(3, 18)))),
                 ArchiveRecord(12, 2021, Message())));
         IWorkConversionReport report = ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { MaximumTextStyleInheritanceDepth = 1 });
+            readOptions: new IWorkReadOptions { MaxTextStyleInheritanceDepth = 1 });
         var issue = Assert.Single(report.SourceReferenceIssues);
         Assert.Equal(10ul, issue.Owner.RecordIdentifier);
         Assert.Equal("1/3", issue.FieldPath);

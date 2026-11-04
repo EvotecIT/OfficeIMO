@@ -1,3 +1,4 @@
+using System.Threading;
 using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
@@ -15,11 +16,11 @@ namespace OfficeIMO.Excel {
         /// chose are never changed; defaults applied here are refreshed when columns are fitted.
         /// </summary>
         private void ApplyTablePrintDefaults(int headerRow) {
-            ExcelPrintTitles titles = GetPrintTitles();
+            ExcelPrintTitles titles = ReadPrintTitles();
             bool ownsDefaults = Persistence.OwnsTablePrintDefaults;
             if (!ownsDefaults && HasAuthoredPageSetup()) return;
             if (!titles.HasRows && headerRow > 0) {
-                _excelDocument.SetPrintTitles(this, headerRow, headerRow, null, null, save: false);
+                _excelDocument.SetPrintTitlesCore(this, headerRow, headerRow, null, null, save: false);
             }
 
             ApplyTableOrientationDefaults();
@@ -41,9 +42,9 @@ namespace OfficeIMO.Excel {
             // A table that fits a portrait page needs no page setup unless an earlier
             // default has to be undone.
             if (!landscape && !Persistence.OwnsTablePrintDefaults) return;
-            SetOrientation(landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait);
+            SetOrientationCore(landscape ? OfficePageOrientation.Landscape : OfficePageOrientation.Portrait);
             if (fit) {
-                SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
+                SetPageSetupCore(fitToWidth: 1U, fitToHeight: 0U);
             } else {
                 SetPageSetupAndClearStaleFit();
             }
@@ -68,7 +69,9 @@ namespace OfficeIMO.Excel {
             }
 
             if (lastColumn == 0) return 0D;
-            IReadOnlyList<ExcelColumnInfo> columns = GetColumnDefinitions();
+            IReadOnlyList<ExcelColumnInfo> columns = _excelDocument.HasPendingDirectCellValues
+                ? GetColumnDefinitionsCore(CancellationToken.None)
+                : GetColumnDefinitions();
             double defaultWidth = DefaultColumnWidth is ExcelColumnWidth configured && configured.ToCharacters(this) > 0D ? configured.ToCharacters(this) : 8.43D;
             double width = 0D;
             for (int column = 1; column <= lastColumn; column++) {

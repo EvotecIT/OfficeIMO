@@ -19,7 +19,7 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 /// <code>$visual | PowerPointImage -Slide $slide -X 36 -Y 54 -PassThru</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointImage", DefaultParameterSetName = "Path")]
 [Alias("PowerPointImage")]
-[OutputType(typeof(PowerPointPicture))]
+[OutputType(typeof(PowerPointImage))]
 public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
     /// <summary>Accessible description for the visual or placed image.</summary>
     [Parameter]
@@ -66,7 +66,7 @@ public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        PowerPointPicture? picture = null;
+        PowerPointImage? picture = null;
         var scope = PowerPointContentScope.Current;
         try {
             if (Width.HasValue && Width.Value <= OfficeLength.Zero) throw new ArgumentOutOfRangeException(nameof(Width));
@@ -80,7 +80,7 @@ public sealed class AddOfficePowerPointImageCommand : OfficeVisualCommandBase {
             OfficeLength left = horizontal.X ?? OfficeLength.Zero, top = Y ?? OfficeLength.Zero;
             picture = visual == null ? target.Slide.AddImage(path!, left, top, width, height)
                 : target.Slide.AddVisualArtifact(visual, new PowerPointLayoutBox(left, top, width, height));
-            if (AlternativeText != null) picture.Description = AlternativeText;
+            if (AlternativeText != null) picture.AltText = AlternativeText;
             if (Title != null) picture.Title = Title;
             bool fixedPlacement = Slide != null || Column.HasValue || Span.HasValue
                 || PowerPointManualPlacement.HasExplicitBounds(MyInvocation.BoundParameters.Keys);

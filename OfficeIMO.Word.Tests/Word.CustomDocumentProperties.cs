@@ -19,139 +19,139 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
-                document.BuiltinDocumentProperties.Title = "Test document";
+                document.Properties.Creator = "Przemysław Kłys";
+                document.Properties.Title = "Test document";
 
-                document.BuiltinDocumentProperties.Description = "Test document used during testing";
-                document.BuiltinDocumentProperties.Category = "Some Category";
-                document.BuiltinDocumentProperties.Subject = "Some Subject";
-                document.BuiltinDocumentProperties.LastModifiedBy = "Zenon Jaskuła";
-                document.BuiltinDocumentProperties.Keywords = "Keyword1,Keyword2";
+                document.Properties.Description = "Test document used during testing";
+                document.Properties.Category = "Some Category";
+                document.Properties.Subject = "Some Subject";
+                document.Properties.LastModifiedBy = "Zenon Jaskuła";
+                document.Properties.Keywords = "Keyword1,Keyword2";
 
-                document.BuiltinDocumentProperties.Created = new DateTime(2000, 05, 01);
-                document.BuiltinDocumentProperties.Modified = new DateTime(2000, 06, 01);
-                document.BuiltinDocumentProperties.LastPrinted = new DateTime(2000, 07, 01);
-                document.BuiltinDocumentProperties.Version = "0.1.0";
-                document.BuiltinDocumentProperties.Revision = "0.5.0";
+                document.Properties.Created = new DateTime(2000, 05, 01);
+                document.Properties.Modified = new DateTime(2000, 06, 01);
+                document.Properties.LastPrinted = new DateTime(2000, 07, 01);
+                document.Properties.Version = "0.1.0";
+                document.Properties.Revision = "0.5.0";
 
-                document.CustomDocumentProperties.Add("TestProperty", new WordCustomProperty { Value = new DateTime(2000,1,1, 5, 5, 5) });
-                document.CustomDocumentProperties.Add("MyName", new WordCustomProperty("Some text"));
-                document.CustomDocumentProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
-                document.CustomDocumentProperties.Add("Number", new WordCustomProperty(1500));
-                document.CustomDocumentProperties.Add("NumberDouble", new WordCustomProperty(15.00));
+                document.CustomProperties.Add("TestProperty", new WordCustomProperty { Value = new DateTime(2000,1,1, 5, 5, 5) });
+                document.CustomProperties.Add("MyName", new WordCustomProperty("Some text"));
+                document.CustomProperties.Add("IsTodayGreatDay", new WordCustomProperty(true));
+                document.CustomProperties.Add("Number", new WordCustomProperty(1500));
+                document.CustomProperties.Add("NumberDouble", new WordCustomProperty(15.00));
 
-                document.CustomDocumentProperties.Add("TestDifferentWay", new WordCustomProperty("String", WordCustomPropertyType.Text));
-                document.CustomDocumentProperties.Add("TestDifferentWayNumber", new WordCustomProperty(15, WordCustomPropertyType.NumberInteger));
+                document.CustomProperties.Add("TestDifferentWay", new WordCustomProperty("String", WordCustomPropertyType.Text));
+                document.CustomProperties.Add("TestDifferentWayNumber", new WordCustomProperty(15, WordCustomPropertyType.NumberInteger));
 
-                Assert.True(document.BuiltinDocumentProperties.Creator == "Przemysław Kłys", "Wrong creator");
-                Assert.True(document.BuiltinDocumentProperties.Title == "Test document", "Wrong Title");
-                Assert.True(document.BuiltinDocumentProperties.Description == "Test document used during testing", "Wrong Description");
-                Assert.True(document.BuiltinDocumentProperties.Category == "Some Category", "Wrong Category");
-                Assert.True(document.BuiltinDocumentProperties.Subject == "Some Subject", "Wrong Subject");
-                Assert.True(document.BuiltinDocumentProperties.LastModifiedBy == "Zenon Jaskuła", "Wrong LastModifiedBy");
-                Assert.True(document.BuiltinDocumentProperties.Keywords == "Keyword1,Keyword2", "Wrong Keywords");
-                Assert.True(document.BuiltinDocumentProperties.Created == new DateTime(2000, 05, 01), "Wrong Created");
-                Assert.True(document.BuiltinDocumentProperties.Modified == new DateTime(2000, 06, 01), "Wrong Modified");
-                Assert.True(document.BuiltinDocumentProperties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
-                Assert.True(document.BuiltinDocumentProperties.Version == "0.1.0", "Wrong Version");
-                Assert.True(document.BuiltinDocumentProperties.Revision == "0.5.0", "Wrong Revision");
+                Assert.True(document.Properties.Creator == "Przemysław Kłys", "Wrong creator");
+                Assert.True(document.Properties.Title == "Test document", "Wrong Title");
+                Assert.True(document.Properties.Description == "Test document used during testing", "Wrong Description");
+                Assert.True(document.Properties.Category == "Some Category", "Wrong Category");
+                Assert.True(document.Properties.Subject == "Some Subject", "Wrong Subject");
+                Assert.True(document.Properties.LastModifiedBy == "Zenon Jaskuła", "Wrong LastModifiedBy");
+                Assert.True(document.Properties.Keywords == "Keyword1,Keyword2", "Wrong Keywords");
+                Assert.True(document.Properties.Created == new DateTime(2000, 05, 01), "Wrong Created");
+                Assert.True(document.Properties.Modified == new DateTime(2000, 06, 01), "Wrong Modified");
+                Assert.True(document.Properties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
+                Assert.True(document.Properties.Version == "0.1.0", "Wrong Version");
+                Assert.True(document.Properties.Revision == "0.5.0", "Wrong Revision");
 
                 // check custom properties
-                Assert.True((DateTime) document.CustomDocumentProperties["TestProperty"].Value == new DateTime(2000, 1, 1, 5, 5, 5));
-                Assert.True(document.CustomDocumentProperties["TestProperty"].Date == new DateTime(2000, 1, 1, 5, 5, 5));
-                Assert.True(((string)document.CustomDocumentProperties["MyName"].Value) == "Some text");
-                Assert.True(document.CustomDocumentProperties["MyName"].Text == "Some text");
-                Assert.True((bool) document.CustomDocumentProperties["IsTodayGreatDay"].Value == true);
-                Assert.True(document.CustomDocumentProperties["IsTodayGreatDay"].Bool == true);
+                Assert.True((DateTime) document.CustomProperties["TestProperty"].Value == new DateTime(2000, 1, 1, 5, 5, 5));
+                Assert.True(document.CustomProperties["TestProperty"].Date == new DateTime(2000, 1, 1, 5, 5, 5));
+                Assert.True(((string)document.CustomProperties["MyName"].Value) == "Some text");
+                Assert.True(document.CustomProperties["MyName"].Text == "Some text");
+                Assert.True((bool) document.CustomProperties["IsTodayGreatDay"].Value == true);
+                Assert.True(document.CustomProperties["IsTodayGreatDay"].Bool == true);
 
-                Assert.True(document.CustomDocumentProperties["Number"].NumberInteger == 1500);
-                Assert.True((int) document.CustomDocumentProperties["Number"].Value == 1500);
+                Assert.True(document.CustomProperties["Number"].NumberInteger == 1500);
+                Assert.True((int) document.CustomProperties["Number"].Value == 1500);
 
-                Assert.True(document.CustomDocumentProperties["NumberDouble"].NumberDouble == 15.00);
-                Assert.True((double)document.CustomDocumentProperties["NumberDouble"].Value == 15.00);
+                Assert.True(document.CustomProperties["NumberDouble"].NumberDouble == 15.00);
+                Assert.True((double)document.CustomProperties["NumberDouble"].Value == 15.00);
                 
-                Assert.True(((string)document.CustomDocumentProperties["TestDifferentWay"].Value) == "String");
-                Assert.True(document.CustomDocumentProperties["TestDifferentWay"].Text == "String");
-                Assert.True(document.CustomDocumentProperties["TestDifferentWayNumber"].NumberInteger == 15);
-                Assert.True((int)document.CustomDocumentProperties["TestDifferentWayNumber"].Value == 15);
+                Assert.True(((string)document.CustomProperties["TestDifferentWay"].Value) == "String");
+                Assert.True(document.CustomProperties["TestDifferentWay"].Text == "String");
+                Assert.True(document.CustomProperties["TestDifferentWayNumber"].NumberInteger == 15);
+                Assert.True((int)document.CustomProperties["TestDifferentWayNumber"].Value == 15);
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx"))) {
 
-                Assert.True(document.BuiltinDocumentProperties.Creator == "Przemysław Kłys", "Wrong creator");
-                Assert.True(document.BuiltinDocumentProperties.Title == "Test document", "Wrong Title");
-                Assert.True(document.BuiltinDocumentProperties.Description == "Test document used during testing", "Wrong Description");
-                Assert.True(document.BuiltinDocumentProperties.Category == "Some Category", "Wrong Category");
-                Assert.True(document.BuiltinDocumentProperties.Subject == "Some Subject", "Wrong Subject");
-                Assert.True(document.BuiltinDocumentProperties.LastModifiedBy == "Zenon Jaskuła", "Wrong LastModifiedBy");
-                Assert.True(document.BuiltinDocumentProperties.Keywords == "Keyword1,Keyword2", "Wrong Keywords");
-                Assert.True(document.BuiltinDocumentProperties.Created == new DateTime(2000, 05, 01), "Wrong Created");
-                Assert.True(document.BuiltinDocumentProperties.Modified == new DateTime(2000, 06, 01), "Wrong Modified");
-                Assert.True(document.BuiltinDocumentProperties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
-                Assert.True(document.BuiltinDocumentProperties.Version == "0.1.0", "Wrong Version");
-                Assert.True(document.BuiltinDocumentProperties.Revision == "0.5.0", "Wrong Revision");
-                document.BuiltinDocumentProperties.Modified = new DateTime(2001, 06, 01);
-                document.BuiltinDocumentProperties.Creator = "Evotec Services";
+                Assert.True(document.Properties.Creator == "Przemysław Kłys", "Wrong creator");
+                Assert.True(document.Properties.Title == "Test document", "Wrong Title");
+                Assert.True(document.Properties.Description == "Test document used during testing", "Wrong Description");
+                Assert.True(document.Properties.Category == "Some Category", "Wrong Category");
+                Assert.True(document.Properties.Subject == "Some Subject", "Wrong Subject");
+                Assert.True(document.Properties.LastModifiedBy == "Zenon Jaskuła", "Wrong LastModifiedBy");
+                Assert.True(document.Properties.Keywords == "Keyword1,Keyword2", "Wrong Keywords");
+                Assert.True(document.Properties.Created == new DateTime(2000, 05, 01), "Wrong Created");
+                Assert.True(document.Properties.Modified == new DateTime(2000, 06, 01), "Wrong Modified");
+                Assert.True(document.Properties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
+                Assert.True(document.Properties.Version == "0.1.0", "Wrong Version");
+                Assert.True(document.Properties.Revision == "0.5.0", "Wrong Revision");
+                document.Properties.Modified = new DateTime(2001, 06, 01);
+                document.Properties.Creator = "Evotec Services";
 
                 // check custom properties
-                Assert.True((DateTime)document.CustomDocumentProperties["TestProperty"].Value == new DateTime(2000, 1, 1, 5, 5, 5));
-                Assert.True(document.CustomDocumentProperties["TestProperty"].Date == new DateTime(2000, 1, 1,5,5,5));
-                Assert.True(((string) document.CustomDocumentProperties["MyName"].Value) == "Some text");
-                Assert.True(document.CustomDocumentProperties["MyName"].Text == "Some text");
-                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true);
-                Assert.True(document.CustomDocumentProperties["IsTodayGreatDay"].Bool == true);
+                Assert.True((DateTime)document.CustomProperties["TestProperty"].Value == new DateTime(2000, 1, 1, 5, 5, 5));
+                Assert.True(document.CustomProperties["TestProperty"].Date == new DateTime(2000, 1, 1,5,5,5));
+                Assert.True(((string) document.CustomProperties["MyName"].Value) == "Some text");
+                Assert.True(document.CustomProperties["MyName"].Text == "Some text");
+                Assert.True((bool)document.CustomProperties["IsTodayGreatDay"].Value == true);
+                Assert.True(document.CustomProperties["IsTodayGreatDay"].Bool == true);
 
-                Assert.True(document.CustomDocumentProperties["Number"].NumberInteger == 1500);
-                Assert.True((int)document.CustomDocumentProperties["Number"].Value == 1500);
+                Assert.True(document.CustomProperties["Number"].NumberInteger == 1500);
+                Assert.True((int)document.CustomProperties["Number"].Value == 1500);
 
-                Assert.True(document.CustomDocumentProperties["NumberDouble"].NumberDouble == 15.00);
-                Assert.True((double)document.CustomDocumentProperties["NumberDouble"].Value == 15.00);
+                Assert.True(document.CustomProperties["NumberDouble"].NumberDouble == 15.00);
+                Assert.True((double)document.CustomProperties["NumberDouble"].Value == 15.00);
 
-                Assert.True(((string)document.CustomDocumentProperties["TestDifferentWay"].Value) == "String");
-                Assert.True(document.CustomDocumentProperties["TestDifferentWay"].Text == "String");
-                Assert.True(document.CustomDocumentProperties["TestDifferentWayNumber"].NumberInteger == 15);
-                Assert.True((int)document.CustomDocumentProperties["TestDifferentWayNumber"].Value == 15);
+                Assert.True(((string)document.CustomProperties["TestDifferentWay"].Value) == "String");
+                Assert.True(document.CustomProperties["TestDifferentWay"].Text == "String");
+                Assert.True(document.CustomProperties["TestDifferentWayNumber"].NumberInteger == 15);
+                Assert.True((int)document.CustomProperties["TestDifferentWayNumber"].Value == 15);
 
-                document.CustomDocumentProperties["NumberDouble"].Value = 6.15;
-                document.CustomDocumentProperties["TestProperty"].Value = new DateTime(2010, 1, 1, 5, 5, 5);
+                document.CustomProperties["NumberDouble"].Value = 6.15;
+                document.CustomProperties["TestProperty"].Value = new DateTime(2010, 1, 1, 5, 5, 5);
 
                 document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx"))) {
 
-                Assert.True(document.BuiltinDocumentProperties.Creator == "Evotec Services", "Wrong creator");
-                Assert.True(document.BuiltinDocumentProperties.Title == "Test document", "Wrong Title");
-                Assert.True(document.BuiltinDocumentProperties.Description == "Test document used during testing", "Wrong Description");
-                Assert.True(document.BuiltinDocumentProperties.Category == "Some Category", "Wrong Category");
-                Assert.True(document.BuiltinDocumentProperties.Subject == "Some Subject", "Wrong Subject");
-                Assert.True(document.BuiltinDocumentProperties.LastModifiedBy == "Zenon Jaskuła", "Wrong LastModifiedBy");
-                Assert.True(document.BuiltinDocumentProperties.Keywords == "Keyword1,Keyword2", "Wrong Keywords");
-                Assert.True(document.BuiltinDocumentProperties.Created == new DateTime(2000, 05, 01), "Wrong Created");
-                Assert.True(document.BuiltinDocumentProperties.Modified == new DateTime(2001, 06, 01), "Wrong Modified");
-                Assert.True(document.BuiltinDocumentProperties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
-                Assert.True(document.BuiltinDocumentProperties.Version == "0.1.0", "Wrong Version");
-                Assert.True(document.BuiltinDocumentProperties.Revision == "0.5.0", "Wrong Revision");
+                Assert.True(document.Properties.Creator == "Evotec Services", "Wrong creator");
+                Assert.True(document.Properties.Title == "Test document", "Wrong Title");
+                Assert.True(document.Properties.Description == "Test document used during testing", "Wrong Description");
+                Assert.True(document.Properties.Category == "Some Category", "Wrong Category");
+                Assert.True(document.Properties.Subject == "Some Subject", "Wrong Subject");
+                Assert.True(document.Properties.LastModifiedBy == "Zenon Jaskuła", "Wrong LastModifiedBy");
+                Assert.True(document.Properties.Keywords == "Keyword1,Keyword2", "Wrong Keywords");
+                Assert.True(document.Properties.Created == new DateTime(2000, 05, 01), "Wrong Created");
+                Assert.True(document.Properties.Modified == new DateTime(2001, 06, 01), "Wrong Modified");
+                Assert.True(document.Properties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
+                Assert.True(document.Properties.Version == "0.1.0", "Wrong Version");
+                Assert.True(document.Properties.Revision == "0.5.0", "Wrong Revision");
 
 
                 // check custom properties
-                Assert.True((DateTime)document.CustomDocumentProperties["TestProperty"].Value == new DateTime(2010, 1, 1, 5, 5, 5));
-                Assert.True(document.CustomDocumentProperties["TestProperty"].Date == new DateTime(2010, 1, 1, 5, 5, 5));
-                Assert.True(((string)document.CustomDocumentProperties["MyName"].Value) == "Some text");
-                Assert.True(document.CustomDocumentProperties["MyName"].Text == "Some text");
-                Assert.True((bool)document.CustomDocumentProperties["IsTodayGreatDay"].Value == true);
-                Assert.True(document.CustomDocumentProperties["IsTodayGreatDay"].Bool == true);
+                Assert.True((DateTime)document.CustomProperties["TestProperty"].Value == new DateTime(2010, 1, 1, 5, 5, 5));
+                Assert.True(document.CustomProperties["TestProperty"].Date == new DateTime(2010, 1, 1, 5, 5, 5));
+                Assert.True(((string)document.CustomProperties["MyName"].Value) == "Some text");
+                Assert.True(document.CustomProperties["MyName"].Text == "Some text");
+                Assert.True((bool)document.CustomProperties["IsTodayGreatDay"].Value == true);
+                Assert.True(document.CustomProperties["IsTodayGreatDay"].Bool == true);
 
-                Assert.True(document.CustomDocumentProperties["Number"].NumberInteger == 1500);
-                Assert.True((int)document.CustomDocumentProperties["Number"].Value == 1500);
+                Assert.True(document.CustomProperties["Number"].NumberInteger == 1500);
+                Assert.True((int)document.CustomProperties["Number"].Value == 1500);
 
-                Assert.True(document.CustomDocumentProperties["NumberDouble"].NumberDouble == 6.15);
-                Assert.True((double)document.CustomDocumentProperties["NumberDouble"].Value == 6.15);
+                Assert.True(document.CustomProperties["NumberDouble"].NumberDouble == 6.15);
+                Assert.True((double)document.CustomProperties["NumberDouble"].Value == 6.15);
 
-                Assert.True(((string)document.CustomDocumentProperties["TestDifferentWay"].Value) == "String");
-                Assert.True(document.CustomDocumentProperties["TestDifferentWay"].Text == "String");
-                Assert.True(document.CustomDocumentProperties["TestDifferentWayNumber"].NumberInteger == 15);
-                Assert.True((int)document.CustomDocumentProperties["TestDifferentWayNumber"].Value == 15);
+                Assert.True(((string)document.CustomProperties["TestDifferentWay"].Value) == "String");
+                Assert.True(document.CustomProperties["TestDifferentWay"].Text == "String");
+                Assert.True(document.CustomProperties["TestDifferentWayNumber"].NumberInteger == 15);
+                Assert.True((int)document.CustomProperties["TestDifferentWayNumber"].Value == 15);
 
                 document.Save();
             }
@@ -164,7 +164,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Binary custom property");
-                document.CustomDocumentProperties.Add("BinaryPayload", new WordCustomProperty(payload));
+                document.CustomProperties.Add("BinaryPayload", new WordCustomProperty(payload));
                 document.Save();
             }
 
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                WordCustomProperty property = document.CustomDocumentProperties["BinaryPayload"];
+                WordCustomProperty property = document.CustomProperties["BinaryPayload"];
                 Assert.Equal(WordCustomPropertyType.Binary, property.PropertyType);
                 Assert.Equal(payload, property.Binary);
             }

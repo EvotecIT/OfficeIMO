@@ -12,19 +12,19 @@ public sealed class HtmlConversionDocumentOptions {
     private HtmlInputTrust _trust = HtmlInputTrust.Untrusted;
     private HtmlUrlPolicy _urlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
     private HtmlUrlPolicy _resourceUrlPolicy = CreateResourcePolicy(HtmlUrlPolicy.CreateWebOnlyProfile());
-    private HtmlConversionLimits _limits = HtmlConversionLimits.CreateUntrustedProfile();
+    private HtmlConversionLimits _limits = HtmlConversionLimits.UntrustedDefaults;
     private bool _urlPolicyExplicit;
     private bool _resourceUrlPolicyExplicit;
     private bool _limitsExplicit;
 
-    /// <summary>Creates bounded, web-only defaults for untrusted HTML.</summary>
-    public static HtmlConversionDocumentOptions CreateUntrustedProfile() => new HtmlConversionDocumentOptions();
+    /// <summary>Creates bounded, web-only options for untrusted HTML. They match the defaults.</summary>
+    public static HtmlConversionDocumentOptions UntrustedDefaults => new HtmlConversionDocumentOptions();
 
     /// <summary>Creates compatibility-oriented defaults for caller-trusted HTML.</summary>
     public static HtmlConversionDocumentOptions CreateTrustedProfile() => new HtmlConversionDocumentOptions {
         Trust = HtmlInputTrust.Trusted,
         UrlPolicy = HtmlUrlPolicy.CreateOfficeIMOProfile(),
-        Limits = HtmlConversionLimits.CreateTrustedProfile()
+        Limits = new HtmlConversionLimits()
     };
 
     /// <summary>Conversion profile the document should advertise to downstream adapters.</summary>
@@ -89,8 +89,8 @@ public sealed class HtmlConversionDocumentOptions {
             BaseUri = BaseUri,
             UrlPolicy = (UrlPolicy ?? ResolveDefaultUrlPolicy(Trust)).Clone(),
             ResourceUrlPolicy = (ResourceUrlPolicy ?? ResolveDefaultResourceUrlPolicy(Trust)).Clone(),
-            Limits = (Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).Clone(),
-            MaxResponsiveImageCandidates = (Limits ?? HtmlConversionLimits.CreateUntrustedProfile()).MaxResponsiveImageCandidates,
+            Limits = (Limits ?? HtmlConversionLimits.UntrustedDefaults).Clone(),
+            MaxResponsiveImageCandidates = (Limits ?? HtmlConversionLimits.UntrustedDefaults).MaxResponsiveImageCandidates,
             MediaContext = Profile == HtmlConversionProfile.HighFidelityPrint
                 ? HtmlCssMediaContext.Print
                 : HtmlCssMediaContext.Screen
@@ -138,8 +138,8 @@ public sealed class HtmlConversionDocumentOptions {
 
     private static HtmlConversionLimits ResolveDefaultLimits(HtmlInputTrust trust) =>
         trust == HtmlInputTrust.Trusted
-            ? HtmlConversionLimits.CreateTrustedProfile()
-            : HtmlConversionLimits.CreateUntrustedProfile();
+            ? new HtmlConversionLimits()
+            : HtmlConversionLimits.UntrustedDefaults;
 
     private static HtmlUrlPolicy ResolveDefaultUrlPolicy(HtmlInputTrust trust) =>
         trust == HtmlInputTrust.Trusted

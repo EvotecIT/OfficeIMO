@@ -4,32 +4,32 @@ namespace OfficeIMO.OneNote.Markdown;
 
 /// <summary>Validates caller-owned model graphs before recursive text or Markdown projection.</summary>
 internal static class OneNoteMarkdownModelValidator {
-    internal static void ValidateElement(OneNoteElement element, OneNoteMarkdownOptions options) {
+    internal static void ValidateElement(OneNoteElement element, OneNoteMarkdownExportOptions options) {
         if (element == null) throw new ArgumentNullException(nameof(element));
         if (options == null) throw new ArgumentNullException(nameof(options));
         new ValidationState(options).ValidateElement(element, 1);
     }
 
-    internal static void ValidateCell(OneNoteTableCell cell, OneNoteMarkdownOptions options) {
+    internal static void ValidateCell(OneNoteTableCell cell, OneNoteMarkdownExportOptions options) {
         if (cell == null) throw new ArgumentNullException(nameof(cell));
         if (options == null) throw new ArgumentNullException(nameof(options));
         var state = new ValidationState(options);
         foreach (OneNoteElement element in cell.Content) state.ValidateElement(element, 1);
     }
 
-    internal static void ValidatePageContent(OneNotePage page, OneNoteMarkdownOptions options) {
+    internal static void ValidatePageContent(OneNotePage page, OneNoteMarkdownExportOptions options) {
         if (page == null) throw new ArgumentNullException(nameof(page));
         if (options == null) throw new ArgumentNullException(nameof(options));
         new ValidationState(options).ValidatePageContent(page);
     }
 
-    internal static void ValidateSection(OneNoteSection section, OneNoteMarkdownOptions options) {
+    internal static void ValidateSection(OneNoteSection section, OneNoteMarkdownExportOptions options) {
         if (section == null) throw new ArgumentNullException(nameof(section));
         if (options == null) throw new ArgumentNullException(nameof(options));
         new ValidationState(options).ValidateSection(section);
     }
 
-    internal static void ValidateNotebook(OneNoteNotebook notebook, OneNoteMarkdownOptions options) {
+    internal static void ValidateNotebook(OneNoteNotebook notebook, OneNoteMarkdownExportOptions options) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
         if (options == null) throw new ArgumentNullException(nameof(options));
         var state = new ValidationState(options);
@@ -38,7 +38,7 @@ internal static class OneNoteMarkdownModelValidator {
     }
 
     private sealed class ValidationState {
-        private readonly OneNoteMarkdownOptions _options;
+        private readonly OneNoteMarkdownExportOptions _options;
         private readonly HashSet<OneNoteSectionGroup> _activeGroups = new HashSet<OneNoteSectionGroup>(ReferenceComparer<OneNoteSectionGroup>.Instance);
         private readonly HashSet<OneNoteSectionGroup> _visitedGroups = new HashSet<OneNoteSectionGroup>(ReferenceComparer<OneNoteSectionGroup>.Instance);
         private readonly HashSet<OneNoteSection> _visitedSections = new HashSet<OneNoteSection>(ReferenceComparer<OneNoteSection>.Instance);
@@ -47,7 +47,7 @@ internal static class OneNoteMarkdownModelValidator {
         private readonly HashSet<OneNoteElement> _activeElements = new HashSet<OneNoteElement>(ReferenceComparer<OneNoteElement>.Instance);
         private readonly HashSet<OneNoteElement> _visitedElements = new HashSet<OneNoteElement>(ReferenceComparer<OneNoteElement>.Instance);
 
-        internal ValidationState(OneNoteMarkdownOptions options) {
+        internal ValidationState(OneNoteMarkdownExportOptions options) {
             _options = options;
         }
 

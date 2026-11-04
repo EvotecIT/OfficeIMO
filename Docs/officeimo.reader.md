@@ -39,7 +39,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .WithMaxConcurrentReads(4)
     .Build();
 
-foreach (ReaderChunk chunk in reader.Read("Policy.docx", new ReaderOptions {
+foreach (ReaderChunk chunk in reader.Enumerate("Policy.docx", new ReaderOptions {
     MaxChars = 8_000,
     MaxTableRows = 200,
     ComputeHashes = true
@@ -68,7 +68,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .WithMaxConcurrentReads(4)
     .Build();
 
-foreach (ReaderSourceDocument source in reader.ReadFolderDocuments(
+foreach (ReaderSourceDocument source in reader.EnumerateFolderDocuments(
     "KnowledgeBase",
     new ReaderFolderOptions {
         Recurse = true,
@@ -86,12 +86,12 @@ providers, and native tools remain explicit host choices and are not pulled into
 
 ## Result contracts
 
-- `Read(...)` returns deterministic `ReaderChunk` sequences for indexing and RAG.
+- `Enumerate(...)` returns deterministic `ReaderChunk` sequences for indexing and RAG.
 - `ReadDocument(...)` returns the stable rich result with pages, blocks, tables, links, forms, assets, visuals, OCR
   candidates, metadata, and structured diagnostics.
 - Async path, stream, byte, folder, and bounded batch APIs preserve cancellation, ordering, input limits, and
   caller-owned stream lifetime.
-- `ReadStructured(...)` and `ReadHierarchical(...)` provide bounded structured records and hierarchy-aware RAG leaves.
+- `ReadDocument(...).ExtractStructured(...)` and `ReadHierarchical(...)` provide bounded structured records and hierarchy-aware RAG leaves.
 - Ordered processors can normalize or filter every rich result in one immutable reader instance.
 
 The detailed API guide and package-ownership rules are in [OfficeIMO.Reader.Core/README.md](../OfficeIMO.Reader.Core/README.md). Open Reader and document-intelligence work is tracked in the repository [roadmap](ROADMAP.md).

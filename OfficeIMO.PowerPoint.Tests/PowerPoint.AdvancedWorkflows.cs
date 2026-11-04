@@ -313,11 +313,11 @@ namespace OfficeIMO.Tests {
 
             Assert.False(smartArt.TryGetOfficeDiagramSnapshot(out _));
             Assert.True(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(slide));
+                .HasExpectedVisibleContent(presentation, slide));
 
             smartArt.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(slide));
+                .HasExpectedVisibleContent(presentation, slide));
         }
 
         [Fact]
@@ -956,7 +956,7 @@ namespace OfficeIMO.Tests {
                 OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20));
             offCanvasShape.FillColor = "FF0000";
             Assert.False(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(offCanvas));
+                .HasExpectedVisibleContent(presentation, offCanvas));
 
             PowerPointSlide unpainted = presentation.AddSlide();
             PowerPointAutoShape unpaintedShape = unpainted.AddRectangle(
@@ -968,7 +968,7 @@ namespace OfficeIMO.Tests {
                 unpaintedProperties.GetFirstChild<A.PresetGeometry>()!);
             unpaintedProperties.Append(new A.Outline(new A.NoFill()));
             Assert.False(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(unpainted));
+                .HasExpectedVisibleContent(presentation, unpainted));
 
             PowerPointSlide transparent = presentation.AddSlide();
             PowerPointAutoShape transparentShape = transparent
@@ -976,14 +976,14 @@ namespace OfficeIMO.Tests {
             transparentShape.FillColor = "FF0000";
             transparentShape.FillTransparency = 100;
             Assert.False(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(transparent));
+                .HasExpectedVisibleContent(presentation, transparent));
 
             PowerPointSlide visible = presentation.AddSlide();
             PowerPointAutoShape visibleShape = visible.AddRectangle(
                 OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(40));
             visibleShape.FillColor = "FF0000";
             Assert.True(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(visible));
+                .HasExpectedVisibleContent(presentation, visible));
         }
 
         [Fact]
@@ -1007,11 +1007,11 @@ namespace OfficeIMO.Tests {
                 && diagnostic.Message.Contains("chart",
                     StringComparison.OrdinalIgnoreCase));
             Assert.True(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(slide));
+                .HasExpectedVisibleContent(presentation, slide));
 
             chart.Left= OfficeIMO.OfficeLength.Points(700);
             Assert.False(PowerPointDesktopReferenceRenderer
-                .HasExpectedVisibleContent(slide));
+                .HasExpectedVisibleContent(presentation, slide));
         }
 
         [Fact]

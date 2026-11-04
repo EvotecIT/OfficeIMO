@@ -12,18 +12,18 @@ namespace OfficeIMO.Examples.Pdf {
             string extractedTextPath = Path.Combine(folderPath, "Pdf.Showcase.Manipulation.ExtractedText.txt");
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source A", PdfAlign.Left)
-                .Paragraph(p => p.Text("This page is created first, then merged with Source B through the fluent PdfDocument API."))
-                .Table(new[] {
+                .H1("Source A", OfficeAlignment.Left)
+                .AddParagraph(p => p.AddText("This page is created first, then merged with Source B through the fluent PdfDocument API."))
+                .AddTable(new[] {
                     new[] { "Capability", "Status", "Notes" },
                     new[] { "Create", "Ready", "Dependency-free writer surface" },
                     new[] { "Inspect", "Ready", "Metadata, pages, links, outlines, blockers" },
                     new[] { "Extract", "Ready", "Page ranges and reordered pages" }
                 }, style: UtilityTableStyle())
                 .PageBreak()
-                .H1("Source A \u2013 details", PdfAlign.Left)
-                .PanelParagraph(
-                    p => p.Bold("Page two is extracted later. ").Text("This proves the example is not just visual; it also exercises read/rewrite operations."),
+                .H1("Source A \u2013 details", OfficeAlignment.Left)
+                .AddPanelParagraph(
+                    p => { p.AddText("Page two is extracted later. ").SetBold(); p.AddText("This proves the example is not just visual; it also exercises read/rewrite operations."); },
                     new PdfPanelStyle {
                         Background = global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252),
                         BorderColor = global::OfficeIMO.OfficeColor.FromRgb(148, 163, 184),
@@ -35,14 +35,14 @@ namespace OfficeIMO.Examples.Pdf {
                 .Save(sourceAPath);
 
             PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Source B", PdfAlign.Left)
-                .Paragraph(p => p.Text("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
-                .Bullets(new[] {
+                .H1("Source B", OfficeAlignment.Left)
+                .AddParagraph(p => p.AddText("A second input document is merged into the final pack, then a stamp is applied to the combined output."))
+                .AddList(new[] {
                     "Merge reads source pages and rewrites a new document.",
                     "Stamp adds a content stream to selected pages.",
                     "Text extraction writes a sidecar text file for PowerShell-friendly workflows."
                 })
-                .Table(new[] {
+                .AddTable(new[] {
                     new[] { "Operation", "Output" },
                     new[] { "MergeWith", Path.GetFileName(mergedPath) },
                     new[] { "Pages.Extract", Path.GetFileName(extractedPath) },
@@ -67,9 +67,9 @@ namespace OfficeIMO.Examples.Pdf {
                     "OfficeIMO.Pdf examples \u00B7 Page " + page + " of " + pageCount,
                     new PdfTextStampOptions {
                         PageNumbers = new[] { page },
-                        X = pageGeometry.PageWidth - pageGeometry.MarginRight,
+                        X = pageGeometry.PageSetup.Size.Width - pageGeometry.PageSetup.Margins.Right,
                         Y = OfficeLength.Points(36),
-                        Align = PdfAlign.Right,
+                        Align = OfficeAlignment.Right,
                         Font = PdfStandardFont.Helvetica,
                         FontSize = OfficeLength.Points(8.5),
                         Color = OfficeTheme.Default.Palette.TextMuted
@@ -85,9 +85,7 @@ namespace OfficeIMO.Examples.Pdf {
 
         private static PdfCreateOptions StandardOptions(string header) {
             return new PdfCreateOptions {
-                HeaderFormat = header,
-                HeaderAlign = PdfAlign.Left,
-                ShowHeader = true,
+                PageSetup = { Header = { Format = header, Alignment = OfficeAlignment.Left, Show = true } },
                 CreateOutlineFromHeadings = true
             };
         }

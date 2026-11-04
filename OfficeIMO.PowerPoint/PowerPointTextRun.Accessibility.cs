@@ -10,6 +10,7 @@ namespace OfficeIMO.PowerPoint {
             set {
                 A.RunProperties properties = EnsureRunProperties();
                 properties.Language = NormalizeLanguage(value);
+                SyncLineContinuation();
             }
         }
 
@@ -23,6 +24,7 @@ namespace OfficeIMO.PowerPoint {
                     throw new InvalidOperationException("A hyperlink must be assigned before setting its tooltip.");
                 }
                 hyperlink.Tooltip = string.IsNullOrWhiteSpace(value) ? null : value!.Trim();
+                SyncLineContinuation();
             }
         }
 

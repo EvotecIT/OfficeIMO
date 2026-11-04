@@ -24,7 +24,7 @@ public sealed partial class AsciiDocDocument {
     public static AsciiDocParseResult LoadResult(Stream stream, AsciiDocParseOptions? options, Encoding? encoding, CancellationToken cancellationToken) {
         options ??= new AsciiDocParseOptions();
         AsciiDocParser.ValidateOptions(string.Empty, options);
-        return ParseResult(OfficeTextReader.ReadAllText(stream, options.MaximumInputLength, encoding, cancellationToken), options, cancellationToken);
+        return ParseResult(OfficeTextReader.ReadAllText(stream, options.MaxInputLength, encoding, cancellationToken), options, cancellationToken);
     }
 
     /// <summary>Asynchronously loads and parses an AsciiDoc file.</summary>
@@ -63,7 +63,7 @@ public sealed partial class AsciiDocDocument {
         CancellationToken cancellationToken = default) {
         options ??= new AsciiDocParseOptions();
         AsciiDocParser.ValidateOptions(string.Empty, options);
-        string text = await OfficeTextReader.ReadAllTextAsync(stream, options.MaximumInputLength, encoding, cancellationToken).ConfigureAwait(false);
+        string text = await OfficeTextReader.ReadAllTextAsync(stream, options.MaxInputLength, encoding, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return ParseResult(text, options, cancellationToken);
     }

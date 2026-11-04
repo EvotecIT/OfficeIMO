@@ -114,10 +114,9 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
     [Fact]
     public void Saved_cross_table_formulas_use_actual_worksheet_names_and_preserve_caches() {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Fixture("json")));
-        using var converted = ExcelIWorkConverter.ConvertNumbersToExcelResult(Fixture("numbers"),
-            conversionOptions: new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
+        using var converted = IWorkSourceDocument.Open(Fixture("numbers"), IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true, NormalizeWorksheetNames = true });
         Assert.False(converted.IsVisualFallback);
-        Assert.Throws<InvalidOperationException>(() => converted.Report.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => converted.Report.ThrowIfLoss());
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);
         foreach (JsonElement expected in manifest.RootElement.GetProperty("cases").EnumerateArray()) {
@@ -125,7 +124,7 @@ public sealed class IWorkCrossTableFormulaCorpusTests {
                 m.SourceSheetName == expected.GetProperty("sourceSheet").GetString()
                 && m.SourceTableName == expected.GetProperty("sourceTable").GetString()).DestinationName;
             ExcelSheet sheet = Assert.Single(reopened.Sheets, s => s.Name == sheetName);
-            ExcelCellData cell = sheet.CellAt(expected.GetProperty("row").GetInt32(),
+            ExcelCellData cell = sheet.Cell(expected.GetProperty("row").GetInt32(),
                 expected.GetProperty("column").GetInt32()).GetValue();
             IWorkTable table = Assert.Single(Assert.Single(converted.Projection.Sheets,
                 s => s.Name == expected.GetProperty("sourceSheet").GetString()).Tables,

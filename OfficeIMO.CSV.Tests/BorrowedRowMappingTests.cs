@@ -14,7 +14,7 @@ public sealed class BorrowedRowMappingTests {
     public void FactoryMapsBorrowedUtf8AndNativeValuesInSourceOrder() {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes(
             "Id,Value,Name,Date\n1,1.25,Zażółć 🚀,2024-01-02\n2,2.5,second,2024-01-03\n"));
-        using var reader = CsvDocument.OpenDataReader(input);
+        using var reader = CsvDocument.OpenReader(input);
         int name = reader.GetOrdinal("Name"), id = reader.GetOrdinal("Id");
         int date = reader.GetOrdinal("Date"), value = reader.GetOrdinal("Value");
         int count = 0;
@@ -36,7 +36,7 @@ public sealed class BorrowedRowMappingTests {
     [Fact]
     public void CurrentIsCachedAndEarlyDisposalKeepsCallerReaderOpen() {
         using var input = new MemoryStream(Encoding.UTF8.GetBytes("Id\n1\n2\n3\n"));
-        using var reader = CsvDocument.OpenDataReader(input);
+        using var reader = CsvDocument.OpenReader(input);
         int calls = 0;
         var enumerator = reader.RowsAsBorrowed<BorrowedRecord>(record => {
             calls++;
@@ -63,7 +63,7 @@ public sealed class BorrowedRowMappingTests {
 
     [Fact]
     public void EnumerationStartsAtNextUnreadRowAndInvalidatesCurrentAtEnd() {
-        using var reader = CsvDocument.OpenTextDataReader("Id\n1\n2\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\n"));
         Assert.True(reader.Read());
         int calls = 0;
         var enumerator = reader.RowsAsBorrowed<BorrowedRecord>(record => {
@@ -81,7 +81,7 @@ public sealed class BorrowedRowMappingTests {
 
     [Fact]
     public void ZeroColumnReaderDoesNotInvokeFactory() {
-        using var reader = CsvDocument.OpenTextDataReader(string.Empty);
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader(string.Empty));
         int calls = 0;
         var enumerator = reader.RowsAsBorrowed<BorrowedRecord>(_ => {
             calls++;
@@ -98,7 +98,7 @@ public sealed class BorrowedRowMappingTests {
     [InlineData(true)]
     [InlineData(false)]
     public void CancellationStopsBeforeAnotherSourceAdvanceOrFactoryCall(bool beforeFirstRow) {
-        using var reader = CsvDocument.OpenTextDataReader("Id\n1\n2\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\n"));
         using var cancellation = new CancellationTokenSource();
         int calls = 0;
         var enumerator = reader.RowsAsBorrowed<BorrowedRecord>(record => {
@@ -124,7 +124,7 @@ public sealed class BorrowedRowMappingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void FactoryFailurePreservesOriginalExceptionAndEndsOnlyThisEnumeration(bool cancellationFailure) {
-        using var reader = CsvDocument.OpenTextDataReader("Id\n1\n2\n");
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Id\n1\n2\n"));
         using var otherCancellation = new CancellationTokenSource();
         Exception original = cancellationFailure
             ? new OperationCanceledException("caller factory cancellation", new Exception("inner"), otherCancellation.Token)
@@ -149,8 +149,8 @@ public sealed class BorrowedRowMappingTests {
         CsvSchema schema = new CsvSchemaBuilder()
             .Column("Name").AsString().ConvertUsing(value => "mapped:" + value).Done()
             .Column("Id").AsInt32().WithDefault(42).Done().Build();
-        using var reader = CsvDocument.OpenTextDataReader("Name,Id\nfirst,-1\n",
-            new CsvLoadOptions { NullValue = "-1" }, new CsvDataReaderOptions { Schema = schema });
+        using var reader = CsvDocument.OpenReader(new System.IO.StringReader("Name,Id\nfirst,-1\n"),
+            options: new CsvReaderOptions { NullValue = "-1", Schema = schema });
         int count = 0;
         foreach (BorrowedTextRecord row in reader.RowsAsBorrowed<BorrowedTextRecord>(record => {
             Assert.False(record.TryGetUtf8Text(0, out _));

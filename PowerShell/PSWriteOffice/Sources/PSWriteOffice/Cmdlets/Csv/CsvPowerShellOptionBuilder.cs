@@ -9,6 +9,25 @@ namespace PSWriteOffice.Cmdlets.Csv;
 internal static class CsvPowerShellOptionBuilder
 {
     public static void ApplyLoadOptions(
+        CsvReaderOptions options,
+        CsvDuplicateHeaderBehavior duplicateHeaderBehavior,
+        string? nullValue,
+        string[]? dateTimeFormats,
+        CsvQuoteParsingMode quoteParsingMode,
+        IDictionary? staticColumns,
+        CsvCompressionType compressionType,
+        long? maxDecompressedBytes)
+    {
+        options.DuplicateHeaderBehavior = duplicateHeaderBehavior;
+        options.NullValue = nullValue;
+        options.DateTimeFormats = dateTimeFormats;
+        options.QuoteParsingMode = quoteParsingMode;
+        options.StaticColumns = ToStaticColumnDictionary(staticColumns);
+        options.CompressionType = compressionType;
+        options.MaxDecompressedBytes = maxDecompressedBytes;
+    }
+
+    public static void ApplyLoadOptions(
         CsvLoadOptions options,
         CsvDuplicateHeaderBehavior duplicateHeaderBehavior,
         string? nullValue,
@@ -25,6 +44,21 @@ internal static class CsvPowerShellOptionBuilder
         options.StaticColumns = ToStaticColumnDictionary(staticColumns);
         options.CompressionType = compressionType;
         options.MaxDecompressedBytes = maxDecompressedBytes;
+    }
+
+    public static void ApplyTextLoadOptions(
+        CsvReaderOptions options,
+        CsvDuplicateHeaderBehavior duplicateHeaderBehavior,
+        string? nullValue,
+        string[]? dateTimeFormats,
+        CsvQuoteParsingMode quoteParsingMode,
+        IDictionary? staticColumns)
+    {
+        options.DuplicateHeaderBehavior = duplicateHeaderBehavior;
+        options.NullValue = nullValue;
+        options.DateTimeFormats = dateTimeFormats;
+        options.QuoteParsingMode = quoteParsingMode;
+        options.StaticColumns = ToStaticColumnDictionary(staticColumns);
     }
 
     public static void ApplyTextLoadOptions(

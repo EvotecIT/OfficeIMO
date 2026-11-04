@@ -63,7 +63,7 @@ internal static partial class EmailArtifactReaderAdapter {
                     includeEmbeddedMessageContent: options.MailboxOptions!.MessageOptions.IncludeEmbeddedMessages, concealedTextPolicy: options.ConcealedTextPolicy);
         } else {
             using EmailReadResult read = await new EmailDocumentReader(EffectiveMessageOptions(options, readerOptions))
-                .ReadAsync(stream, logicalName, cancellationToken).ConfigureAwait(false);
+                .ReadDocumentAsync(stream, logicalName, cancellationToken).ConfigureAwait(false);
             result = pathSource
                 ? EmailReaderProjection.ProjectEmailDocumentsToPathResult(new[] { read.Document },
                     new string?[] { logicalName }, read.Diagnostics, read.Document.Format, logicalName, logicalName,

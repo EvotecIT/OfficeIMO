@@ -40,13 +40,13 @@ public partial class HtmlWordGapClosure {
         WordTableCell last = table.Rows[0].Cells[1];
 
         Assert.Empty(document.Sections[0].Paragraphs);
-        Assert.Equal("ABCDEF", first.ShadingFillColorHex);
-        Assert.Equal("ABCDEF", last.ShadingFillColorHex);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), first.ShadingFillColor);
+        Assert.Equal(OfficeColor.Parse("ABCDEF"), last.ShadingFillColor);
         Assert.Equal(WordBorderStyle.Single, first.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, first.Borders.LeftStyle);
         Assert.Equal(WordBorderStyle.Single, last.Borders.TopStyle);
         Assert.Equal(WordBorderStyle.Single, last.Borders.RightStyle);
-        Assert.Equal("123456", first.Borders.LeftColorHex);
-        Assert.Equal("123456", last.Borders.RightColorHex);
+        Assert.Equal(OfficeColor.Parse("123456"), first.Borders.LeftColor);
+        Assert.Equal(OfficeColor.Parse("123456"), last.Borders.RightColor);
     }
 }

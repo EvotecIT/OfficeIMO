@@ -11,7 +11,7 @@ public class RtfParagraphLayoutTests {
     public void Read_Binds_Paragraph_Layout_Controls_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi\pard\pagebb\keepn\keep\noline\hyphpar0\contextualspace\adjustright\nosnaplinegrid\nowidctlpar\outlinelevel2\sb120\sa240\sbauto1\saauto0\sl360\slmult0 Layout\par\pard Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(2, result.Document.Paragraphs.Count);
@@ -75,8 +75,8 @@ public class RtfParagraphLayoutTests {
             .SetSnapToLineGrid();
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\pagebb", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\keepn", rtf, StringComparison.Ordinal);
@@ -171,9 +171,9 @@ public class RtfParagraphLayoutTests {
         paragraph._paragraph.ParagraphProperties.WidowControl = new WidowControl { Val = false };
         paragraph._paragraph.ParagraphProperties.OutlineLevel = new OutlineLevel { Val = 2 };
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.True(rtfParagraph.PageBreakBefore);
@@ -240,7 +240,7 @@ public class RtfParagraphLayoutTests {
             .SetParagraphSpacing(beforeTwips: 180, afterTwips: 300, beforeAuto: false, afterAuto: true)
             .SetLineSpacing(480, multiple: true);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         WordParagraph paragraph = Assert.Single(word.Paragraphs);
         Assert.True(paragraph.PageBreakBefore);
@@ -265,8 +265,8 @@ public class RtfParagraphLayoutTests {
     public void Rtf_To_Word_Bridge_Applies_Paragraph_Alignment_And_Indents() {
         const string rtf = @"{\rtf1\ansi\pard\qc Centred.\par\pard\qr Right.\par\pard\qj Justified.\par\pard\li720\ri360\fi-360 Indented.\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
-        using WordDocument word = result.Document.ToWordDocument();
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
+        using WordDocument word = result.Document.ToWord();
 
         Assert.Equal(4, word.Paragraphs.Count);
         Assert.Equal(WordParagraphAlignment.Center, word.Paragraphs[0].ParagraphAlignment);
@@ -291,9 +291,9 @@ public class RtfParagraphLayoutTests {
         indented.IndentationAfter = global::OfficeIMO.OfficeLength.Points(18D);
         indented.IndentationHanging = global::OfficeIMO.OfficeLength.Points(18D);
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         Assert.Equal(RtfTextAlignment.Center, rtfDocument.Paragraphs[0].DirectAlignment);
         Assert.Equal(RtfTextAlignment.Justify, rtfDocument.Paragraphs[1].DirectAlignment);
@@ -321,7 +321,7 @@ public class RtfParagraphLayoutTests {
     public void Read_Binds_Paragraph_Direction_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi\pard\rtlpar RTL\par\pard Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(2, result.Document.Paragraphs.Count);
@@ -335,8 +335,8 @@ public class RtfParagraphLayoutTests {
         document.AddParagraph("RTL").SetDirection(RtfTextDirection.RightToLeft);
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult result = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\pard\rtlpar\ql RTL", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\pard\ql Plain", rtf, StringComparison.Ordinal);
@@ -350,9 +350,9 @@ public class RtfParagraphLayoutTests {
         WordParagraph paragraph = word.AddParagraph("RTL");
         paragraph.BiDi = true;
 
-        RtfDocument rtfDocument = word.ToRtfDocument();
-        string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
+        RtfDocument rtfDocument = word.ToRtf();
+        string rtf = word.ToRtf().ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        using WordDocument roundTrip = RtfDocument.ParseResult(rtf).Document.ToWord();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal(RtfTextDirection.RightToLeft, rtfParagraph.Direction);
@@ -365,7 +365,7 @@ public class RtfParagraphLayoutTests {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("RTL").SetDirection(RtfTextDirection.RightToLeft);
 
-        using WordDocument word = document.ToWordDocument();
+        using WordDocument word = document.ToWord();
 
         Assert.True(Assert.Single(word.Paragraphs).BiDi);
     }
@@ -374,7 +374,7 @@ public class RtfParagraphLayoutTests {
     public void Read_Binds_Paragraph_Frame_Positioning_Without_Leaking() {
         const string rtf = @"{\rtf1\ansi\pard\absw5040\absh-720\phpg\posxc\pvpg\posyt\abslock\absnoovrlp0\nowrap\dxfrtext173\dfrmtxtx240\dfrmtxty360\overlay\dropcapli3\dropcapt2 Framed\par\pard Plain\par}";
 
-        RtfReadResult result = RtfDocument.Read(rtf);
+        RtfReadResult result = RtfDocument.ParseResult(rtf);
 
         Assert.Equal(rtf, result.ToRtfLossless());
         Assert.Equal(2, result.Document.Paragraphs.Count);
@@ -421,8 +421,8 @@ public class RtfParagraphLayoutTests {
         });
         document.AddParagraph("Plain");
 
-        string rtf = document.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        RtfReadResult read = RtfDocument.Read(rtf);
+        string rtf = document.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
+        RtfReadResult read = RtfDocument.ParseResult(rtf);
 
         Assert.Contains(@"\absw3600\absh0\phmrg\posnegx-180\pvpara\posy720\abslock\absnoovrlp1\nowrap\dxfrtext120\dfrmtxtx240\dfrmtxty360\overlay\dropcapli2\dropcapt1", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\phcol\posxi\pvmrg\posyout\ql Inside", rtf, StringComparison.Ordinal);

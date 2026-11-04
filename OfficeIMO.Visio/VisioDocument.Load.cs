@@ -97,7 +97,7 @@ namespace OfficeIMO.Visio {
             cancellationToken.ThrowIfCancellationRequested();
             using var buffer = new MemoryStream(bytes, writable: false);
             using Package package = Package.Open(buffer, FileMode.Open, FileAccess.Read);
-            VisioDocument document = LoadCore(package, filePath, cancellationToken, options.MaxPackageXmlCharacters);
+            VisioDocument document = LoadCore(package, filePath, cancellationToken, (options.Limits ?? throw new ArgumentNullException(nameof(options.Limits))).MaxPackageXmlCharacters);
             document._loadedSignatureInfo = InspectPackageSignatures(bytes);
             document._sourceStream = sourceStream;
             cancellationToken.ThrowIfCancellationRequested();
@@ -105,9 +105,9 @@ namespace OfficeIMO.Visio {
         }
 
         private static long? ResolveInputLimit(VisioLoadOptions options) {
-            long? configured = options.MaxInputBytes;
+            long? configured = (options.Limits ?? throw new ArgumentNullException(nameof(options.Limits))).MaxInputBytes;
             if (configured.HasValue && configured.Value < 1) {
-                throw new ArgumentOutOfRangeException(nameof(options.MaxInputBytes));
+                throw new ArgumentOutOfRangeException(nameof(VisioLoadLimits.MaxInputBytes));
             }
             if (options.PackageSecurity == null) return configured;
             long packageLimit = options.PackageSecurity.MaxPackageBytes;

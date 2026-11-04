@@ -10,7 +10,7 @@ namespace OfficeIMO.Excel {
         /// Creates a format-neutral visual snapshot for this range.
         /// </summary>
         public ExcelRangeVisualInfo CreateVisualSnapshot(ExcelImageExportOptions? options = null) =>
-            ExcelRangeVisualSnapshotBuilder.Build(Sheet, Address, NormalizeOptions(options));
+            ExcelRangeVisualSnapshotBuilder.Build(Sheet, SingleArea("Image export"), NormalizeOptions(options));
 
         /// <summary>
         /// Exports this range as a supported raster format or SVG.
@@ -26,7 +26,7 @@ namespace OfficeIMO.Excel {
                 token => {
                     ExcelRangeVisualInfo snapshot = ExcelRangeVisualSnapshotBuilder.Build(
                         Sheet,
-                        Address,
+                        SingleArea("Image export"),
                         resolved,
                         cancellationToken: token);
                     return ExcelRangeImageRenderer.Render(snapshot, format, resolved, token);

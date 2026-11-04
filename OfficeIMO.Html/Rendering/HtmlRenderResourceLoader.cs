@@ -115,7 +115,7 @@ public sealed partial class HtmlResourceSession {
             manifest,
             options,
             diagnostics ?? new HtmlDiagnosticReport(),
-            HtmlConversionLimits.CreateUntrustedProfile(),
+            HtmlConversionLimits.UntrustedDefaults,
             cancellationToken);
 
     /// <summary>Resolves a manifest asynchronously using one operation-scoped session.</summary>
@@ -128,7 +128,7 @@ public sealed partial class HtmlResourceSession {
             manifest,
             options,
             diagnostics ?? new HtmlDiagnosticReport(),
-            HtmlConversionLimits.CreateUntrustedProfile(),
+            HtmlConversionLimits.UntrustedDefaults,
             cancellationToken);
 
     internal void MarkAttempted(HtmlResourceReference reference) {

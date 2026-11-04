@@ -28,19 +28,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
             foreach (var sheet in document.Sheets) {
                 plan.ChartCount += sheet.Charts.Count();
 
-                var headerFooter = sheet.GetHeaderFooter();
-                if (!string.IsNullOrEmpty(headerFooter.HeaderLeft)
-                    || !string.IsNullOrEmpty(headerFooter.HeaderCenter)
-                    || !string.IsNullOrEmpty(headerFooter.HeaderRight)
-                    || !string.IsNullOrEmpty(headerFooter.FooterLeft)
-                    || !string.IsNullOrEmpty(headerFooter.FooterCenter)
-                    || !string.IsNullOrEmpty(headerFooter.FooterRight)
-                    || headerFooter.DifferentFirstPage
-                    || headerFooter.DifferentOddEven) {
+                ExcelSheetPageSetup pageSetup = sheet.PageSetup;
+                if (HasText(pageSetup.Header) || HasText(pageSetup.Footer)
+                    || pageSetup.DifferentFirstPage
+                    || pageSetup.DifferentOddEven) {
                     plan.HeaderFooterSheetCount++;
                 }
 
-                if (headerFooter.HeaderHasPicturePlaceholder || headerFooter.FooterHasPicturePlaceholder) {
+                if (HasPicture(pageSetup)) {
                     plan.HeaderFooterImageSheetCount++;
                 }
             }
@@ -135,6 +130,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 default:
                     throw new ArgumentOutOfRangeException(nameof(mode));
             }
+        }
+
+        private static bool HasText(ExcelHeaderFooter headerFooter) =>
+            headerFooter.Left.Text.Length > 0 || headerFooter.Center.Text.Length > 0 || headerFooter.Right.Text.Length > 0;
+
+        private static bool HasPicture(ExcelSheetPageSetup pageSetup) {
+            foreach (ExcelHeaderFooter headerFooter in new[] {
+                pageSetup.Header, pageSetup.Footer, pageSetup.FirstPageHeader, pageSetup.FirstPageFooter, pageSetup.EvenPageHeader, pageSetup.EvenPageFooter
+            }) {
+                foreach (ExcelHeaderFooterSection section in new[] { headerFooter.Left, headerFooter.Center, headerFooter.Right }) {
+                    if (section.Text.IndexOf("&G", StringComparison.Ordinal) >= 0 || section.Image != null) return true;
+                }
+            }
+
+            return false;
         }
     }
 }

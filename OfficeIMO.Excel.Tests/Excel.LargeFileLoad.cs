@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests
         {
             using var document = ExcelDocument.Create(filePath);
             var sheet = document.AddSheet("Large");
-            sheet.CellValue(1, 1, "Payload");
+            sheet.Cell(1, 1).SetValue("Payload");
             document.Save();
 
             var buffer = new byte[payloadBytes];

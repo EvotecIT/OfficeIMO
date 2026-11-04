@@ -82,7 +82,7 @@ public sealed class PublisherNativeTests {
         Assert.Equal(stories, document.TextStories.Count);
         Assert.Equal(images, document.Images.Count);
         Assert.All(document.Images, image => Assert.True(image.ByteCount > 0));
-        Assert.DoesNotContain(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_GROUP_COORDINATES_UNRESOLVED");
+        Assert.DoesNotContain(document.ReadReport.Diagnostics, item => item.Code == "PUB_GROUP_COORDINATES_UNRESOLVED");
         Assert.True(document.ReadReport.HasLoss);
         Assert.All(document.Pages, page => Assert.NotEmpty(Elements(page.Drawing).OfType<OfficeDrawingImage>()));
     }
@@ -90,10 +90,10 @@ public sealed class PublisherNativeTests {
     [Fact]
     public void Publication_text_overflow_is_reported_while_complete_stories_remain_available() {
         PublisherDocument document = PublisherDocument.Load(Fixture("SampleNewsletter.pub"));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW" && item.LossKind == OfficeConversionLossKind.Omission);
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_LINKED_TEXT_LAYOUT_APPROXIMATED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_FRAME_OVERFLOW" && item.LossKind == OfficeConversionLossKind.Omission);
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_LINKED_TEXT_LAYOUT_APPROXIMATED");
         Assert.Contains(document.TextStories, story => story.Text.Contains("Living and Learning in"));
-        Assert.Contains(document.ReadReport.FidelityDiagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED");
+        Assert.Contains(document.ReadReport.Diagnostics, item => item.Code == "PUB_TEXT_WRAP_APPROXIMATED");
     }
 
     [Fact]
@@ -116,8 +116,8 @@ public sealed class PublisherNativeTests {
         Assert.EndsWith("pt", svg.Attribute("width")!.Value);
         Assert.Contains("Table on page 2", result.Value);
         Assert.Contains("Bottom Right", result.Value);
-        Assert.Same(document.ReadReport, result.Report.ReadReport);
-        Assert.Throws<OfficeConversionException>(() => result.RequireNoLoss());
+        Assert.Same(document.ReadReport, ((PublisherConversionReport)result.Report).ReadReport);
+        Assert.Throws<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ToSvg(-1));
     }
 

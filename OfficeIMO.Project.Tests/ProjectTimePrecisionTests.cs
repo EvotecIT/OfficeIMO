@@ -54,7 +54,7 @@ public class ProjectTimePrecisionTests {
         var task = authored.Tasks.Add("Minute"); task.Duration = ProjectDuration.WorkingMinutes(1); task.RemainingDuration = task.Duration;
         string xml = authored.ToXml().Replace("<DurationFormat>3</DurationFormat>", "<DurationFormat>7</DurationFormat>");
         using var imported = ProjectDocument.Parse(xml);
-        var options = new ProjectSaveOptions { Format = format, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = format, AllowLoss = true };
         imported.AssessSave(options).ThrowIfErrors();
         using var first = new MemoryStream(); imported.Save(first, options);
         using var native = ProjectDocument.Load(new MemoryStream(first.ToArray()));
@@ -63,7 +63,7 @@ public class ProjectTimePrecisionTests {
         using var reopened = ProjectDocument.Load(new MemoryStream(second.ToArray()));
         Assert.Equal(ProjectDurationUnit.Day, reopened.Tasks[0].Duration!.Value.Unit);
         reopened.Settings.CurrencyCode = "USD";
-        string exported = reopened.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        string exported = reopened.ToXml(new ProjectSaveOptions { AllowLoss = true });
         Assert.Equal(TimeSpan.FromMinutes(1), XmlConvert.ToTimeSpan(XDocument.Parse(exported).Descendants(Ns + "Duration").Single().Value));
     }
 
@@ -76,7 +76,7 @@ public class ProjectTimePrecisionTests {
         using var document = ProjectDocument.Create();
         var custom = document.Tasks.Add("Custom duration").CustomFields.Add();
         custom.FieldId = "188743783"; custom.Value = text; custom.DurationFormat = format;
-        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpx4, AllowLoss = true };
         document.AssessSave(options).ThrowIfErrors(); using var output = new MemoryStream(); document.Save(output, options);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
         var value = Assert.Single(reopened.Tasks[0].CustomFields);
@@ -99,7 +99,7 @@ public class ProjectTimePrecisionTests {
         document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Settings.StartDate = new DateTime(2026, 10, 5, 8, 0, 0);
         Assert.Equal("10", XDocument.Parse(document.ToXml()).Descendants(Ns + "LinkLag").Single().Value);
-        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, LossPolicy = OfficeConversionLossPolicy.Allow };
+        var options = new ProjectSaveOptions { Format = ProjectFileFormat.Mpp14, AllowLoss = true };
         document.AssessSave(options).ThrowIfErrors();
         using var output = new MemoryStream(); document.Save(output, options);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
@@ -113,8 +113,8 @@ public class ProjectTimePrecisionTests {
         var resource = document.Resources.AddWork("Engineer"); resource.StandardRate = 60;
         var assignment = document.Assignments.Add(document.Tasks[0], resource, ProjectUnits.Percent(100)); assignment.Work = document.Tasks[0].Work;
         document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
-        document.AssessSave(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }).ThrowIfErrors();
-        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        document.AssessSave(new ProjectSaveOptions { AllowLoss = true }).ThrowIfErrors();
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Duration").Single().Value));
         Assert.All(xml.Descendants(Ns + "Work"), value => Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(value.Value)));
         Assert.All(xml.Descendants(Ns + "RemainingWork"), value => Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(value.Value)));
@@ -135,7 +135,7 @@ public class ProjectTimePrecisionTests {
         }
         document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
         document.CaptureBaseline(document.CalculateSchedule(new ProjectScheduleOptions { CalculateAssignments = true }));
-        using var output = new MemoryStream(); document.Save(output, new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow });
+        using var output = new MemoryStream(); document.Save(output, new ProjectSaveOptions { AllowLoss = true });
         var xml = XDocument.Parse(Encoding.UTF8.GetString(output.ToArray()));
         var summary = xml.Descendants(Ns + "Task").Single(t => t.Element(Ns + "UID")!.Value == "10");
         Assert.Equal(TimeSpan.FromSeconds(3), XmlConvert.ToTimeSpan(summary.Element(Ns + "Work")!.Value));
@@ -150,13 +150,13 @@ public class ProjectTimePrecisionTests {
     public void ExactSecondTimesSurviveMappedDataAndScaledWorkEquations() {
         using var source = ProjectDocument.Parse($"<Project xmlns='{Ns}'><Tasks><Task><UID>1</UID><Name>Second</Name><Duration>PT1S</Duration><DurationFormat>7</DurationFormat><Work>PT1S</Work></Task></Tasks></Project>");
         using var imported = ProjectDocument.ImportTables(source.ExportTables(allowLossyProjection: true).Tables).Document;
-        var xml = XDocument.Parse(imported.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var xml = XDocument.Parse(imported.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Duration").Single().Value));
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Work").Single().Value));
         var scaled = ProjectWorkEquation.Work(source.Tasks[0].Work!.Value.Minutes, ProjectUnits.Percent(300));
         Assert.Equal(3m, ProjectWorkEquation.Units(scaled, source.Tasks[0].Work!.Value.Minutes).Value);
         imported.Tasks[0].Work = scaled;
-        xml = XDocument.Parse(imported.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        xml = XDocument.Parse(imported.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         Assert.Equal(TimeSpan.FromSeconds(3), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Work").Single().Value));
     }
 
@@ -165,7 +165,7 @@ public class ProjectTimePrecisionTests {
         using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>1</UID><Name>Progress</Name><Duration>PT2S</Duration><DurationFormat>3</DurationFormat><ActualDuration>PT1S</ActualDuration><RemainingDuration>PT1S</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart><ActualWork>PT1S</ActualWork><RemainingWork>PT1S</RemainingWork></Task></Tasks></Project>");
         document.Calendar = document.Calendars.AddStandardWorkingWeek();
         document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
-        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         Assert.Equal(TimeSpan.FromSeconds(2), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "Work").Single().Value));
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "ActualWork").Single().Value));
         Assert.Equal(TimeSpan.FromSeconds(1), XmlConvert.ToTimeSpan(xml.Descendants(Ns + "RemainingWork").Single().Value));
@@ -186,7 +186,7 @@ public class ProjectTimePrecisionTests {
             assignment.OvertimeWork = times.Tasks[0].Work; assignment.ActualOvertimeWork = times.Tasks[0].ActualWork;
         }
         document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
-        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         var values = xml.Descendants(Ns + "Assignment").Single();
         Assert.Equal(TimeSpan.FromSeconds(work), XmlConvert.ToTimeSpan(values.Element(Ns + "Work")!.Value));
         Assert.Equal(TimeSpan.FromSeconds(actual), XmlConvert.ToTimeSpan(values.Element(Ns + "ActualWork")!.Value));
@@ -200,7 +200,7 @@ public class ProjectTimePrecisionTests {
     public void SummaryProgressScalesExactChildDuration(string total, string actual, string remaining, int actualSeconds, int remainingSeconds) {
         using var document = ProjectDocument.Parse($"<Project xmlns='{Ns}'><StartDate>2026-10-05T08:00:00</StartDate><Tasks><Task><UID>10</UID><Name>Summary</Name><OutlineLevel>1</OutlineLevel><Summary>1</Summary></Task><Task><UID>1</UID><Name>Progress</Name><OutlineLevel>2</OutlineLevel><Duration>{total}</Duration><DurationFormat>3</DurationFormat><ActualDuration>{actual}</ActualDuration><RemainingDuration>{remaining}</RemainingDuration><ActualStart>2026-10-05T08:00:00</ActualStart></Task></Tasks></Project>");
         document.Calendar = document.Calendars.AddStandardWorkingWeek(); document.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
-        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }));
+        var xml = XDocument.Parse(document.ToXml(new ProjectSaveOptions { AllowLoss = true }));
         var summary = xml.Descendants(Ns + "Task").Single(t => t.Element(Ns + "UID")!.Value == "10");
         Assert.Equal(TimeSpan.FromSeconds(actualSeconds), XmlConvert.ToTimeSpan(summary.Element(Ns + "ActualDuration")!.Value));
         Assert.Equal(TimeSpan.FromSeconds(remainingSeconds), XmlConvert.ToTimeSpan(summary.Element(Ns + "RemainingDuration")!.Value));
@@ -227,7 +227,7 @@ public class ProjectTimePrecisionTests {
         document.CaptureBaseline(schedule);
         var baseline = assignment.TimephasedData.Where(v => v.Type == 4).OrderBy(v => v.Start).ToArray();
         Assert.Equal(new[] { TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(40) }, baseline.Select(v => XmlConvert.ToTimeSpan(v.Value!)).ToArray());
-        document.AssessSave(new ProjectSaveOptions { LossPolicy = OfficeConversionLossPolicy.Allow }).ThrowIfErrors();
+        document.AssessSave(new ProjectSaveOptions { AllowLoss = true }).ThrowIfErrors();
     }
 
     [Theory]

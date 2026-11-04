@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.SingleRange." + width + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 2, "A label that must grow beyond twelve characters when fitted");
+                sheet.Cell(1, 2).SetValue("A label that must grow beyond twelve characters when fitted");
                 var worksheet = document.OpenXmlDocument.WorkbookPart!.WorksheetParts.Single().Worksheet;
                 worksheet.InsertAt(new Columns(new Column {
                     Min = 1, Max = 3, Width = 30D, CustomWidth = true, BestFit = true,
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
             const string label = "A long label whose content needs more than twelve characters of column width";
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                sheet.CellValue(1, 1, label);
+                sheet.Cell(1, 1).SetValue(label);
                 if (previouslyFitted) sheet.AutoFitColumns();
                 if (batch) sheet.SetColumnWidths(new Dictionary<int, ExcelColumnWidth> { [1] = ExcelColumnWidth.Characters(12D) });
                 else sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(12D));
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(filePath);
-            Assert.Equal(label, reopened.Sheets[0].CellAt(1, 1).GetValue<string>());
+            Assert.Equal(label, reopened.Sheets[0].Cell(1, 1).GetValue<string>());
             Assert.True(Assert.Single(reopened.Sheets[0].GetColumnDefinitions()).Width?.CharacterCount > 12D);
         }
 
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ColumnWidths.Batch." + withRange + ".xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 var sheet = document.AddSheet("Data");
-                for (int column = 1; column <= 64; column++) sheet.CellValue(1, column, "Cell " + column);
+                for (int column = 1; column <= 64; column++) sheet.Cell(1, column).SetValue("Cell " + column);
                 sheet.AutoFitColumns();
                 var package = document.OpenXmlDocument;
                 var worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
             using var reopened = ExcelDocument.Load(filePath);
-            Assert.Equal("Cell 64", reopened.Sheets[0].CellAt(1, 64).GetValue<string>());
+            Assert.Equal("Cell 64", reopened.Sheets[0].Cell(1, 64).GetValue<string>());
             Assert.Equal(18.4D, (reopened.Sheets[0].GetColumnDefinitions().Single(column => column.StartIndex == 64).Width?.CharacterCount));
         }
 

@@ -15,7 +15,7 @@ public partial class Html {
     public void Test_Html_Ruby_ImportsAsWordRuby() {
         var html = "<p><ruby lang=\"ja-JP\"><rb>漢字</rb><rp>(</rp><rt>かんじ</rt><rp>)</rp></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions { FontFamily = "Calibri" });
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions { FontFamily = "Calibri" });
 
         var paragraph = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
         var ruby = Assert.Single(paragraph.Descendants<Ruby>());
@@ -28,7 +28,7 @@ public partial class Html {
     public void Test_Html_Ruby_FallbackWithoutAnnotationKeepsText() {
         var html = "<p><ruby>漢字</ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
         var paragraph = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
         Assert.Empty(paragraph.Elements<Ruby>());
@@ -41,7 +41,7 @@ public partial class Html {
         var path = Path.Combine(Path.GetTempPath(), "officeimo-html-ruby-" + Guid.NewGuid().ToString("N") + ".docx");
 
         try {
-            using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions())) {
+            using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions())) {
                 document.Save(path);
             }
 
@@ -60,7 +60,7 @@ public partial class Html {
     public void Test_Html_Ruby_RoundTripsToHtml() {
         var html = "<p>Word <ruby><rb>東</rb><rt>とう</rt></ruby> ruby</p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
 
         string roundTrip = document.ToHtml();
 
@@ -73,7 +73,7 @@ public partial class Html {
     public void Test_Html_Ruby_PreservesExplicitSegmentPairs() {
         const string html = "<p><ruby><rb>東</rb><rt>とう</rt><rb>京</rb><rt>きょう</rt></ruby></p>";
 
-        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new HtmlWordExportOptions());
         using var document = conversion.Value;
 
         var rubies = document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>().ToList();
@@ -91,7 +91,7 @@ public partial class Html {
     public void Test_Html_Ruby_AppliesTextTransformToBaseAndAnnotationText() {
         const string html = "<p><ruby><rb style=\"text-transform:uppercase\">ab<span>cd</span></rb><rt style=\"text-transform:capitalize\">alpha beta</rt></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
         Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
 
         Assert.Equal("ABCD", ruby.RubyBase!.InnerText);
@@ -102,7 +102,7 @@ public partial class Html {
     public void Test_Html_Ruby_CapitalizeSpansInlineFormattingBoundaries() {
         const string html = "<p><ruby><rb style=\"text-transform:capitalize\">foo<strong>bar</strong> baz</rb><rt>x</rt></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
         Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
 
         Assert.Equal("Foobar Baz", ruby.RubyBase!.InnerText);
@@ -113,7 +113,7 @@ public partial class Html {
     public void Test_Html_Ruby_CapitalizeKeepsCombiningMarkWordAcrossFormattingBoundary() {
         const string html = "<p><ruby><rb style=\"text-transform:capitalize\">e\u0301<strong>clair</strong></rb><rt>x</rt></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
         Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
 
         Assert.Equal("E\u0301clair", ruby.RubyBase!.InnerText);
@@ -123,7 +123,7 @@ public partial class Html {
     public void Test_Html_Ruby_CollapsesDefaultWhitespaceAtSegmentBoundaries() {
         const string html = "<p><ruby><rb>\n  A   B \n</rb><rt>\n alpha   beta \n</rt></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
         Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
 
         Assert.Equal("A B", ruby.RubyBase!.InnerText);
@@ -134,7 +134,7 @@ public partial class Html {
     public void Test_Html_Ruby_PreservesWhitespaceWhenExplicitlyRequested() {
         const string html = "<p><ruby><rb style=\"white-space:pre\"> A   B </rb><rt style=\"white-space:pre\"> x   y </rt></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
         Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
 
         Assert.Equal(" A   B ", ruby.RubyBase!.InnerText.Replace('\u00A0', ' '));
@@ -145,7 +145,7 @@ public partial class Html {
     public void Test_Html_Ruby_ReportsAmbiguousSegmentPairing() {
         const string html = "<p><ruby><rb>東</rb><rb>京</rb><rt>とうきょう</rt></ruby></p>";
 
-        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new WordHtmlImportOptions());
+        HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(new HtmlWordExportOptions());
         using var document = conversion.Value;
 
         var ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
@@ -159,7 +159,7 @@ public partial class Html {
     public void Test_Html_Ruby_PreservesIndependentBaseAndAnnotationFormatting() {
         const string html = "<p><ruby><rb><strong style=\"color:#123456;background-color:#abcdef\">東</strong><mark>京</mark></rb><rt><em style=\"font-size:8pt;background-color:#fedcba\">とう</em>きょう</rt></ruby></p>";
 
-        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new WordHtmlImportOptions());
+        using var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord(new HtmlWordExportOptions());
         Ruby ruby = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document.Body!.Descendants<Ruby>());
         Run[] baseRuns = ruby.RubyBase!.Elements<Run>().ToArray();
         Run[] annotationRuns = ruby.RubyContent!.Elements<Run>().ToArray();

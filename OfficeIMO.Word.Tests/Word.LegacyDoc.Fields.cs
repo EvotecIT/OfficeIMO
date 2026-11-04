@@ -21,12 +21,12 @@ namespace OfficeIMO.Tests {
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     AppendBookmarkedSimpleField(cellParagraph._paragraph, "82", "CellSimpleFieldBookmark", " NUMPAGES ");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header ");
                     AppendBookmarkedSimpleField(headerParagraph._paragraph, "83", "HeaderSimpleFieldBookmark", " PAGE ");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer ");
                     AppendBookmarkedSimpleField(footerParagraph._paragraph, "84", "FooterSimpleFieldBookmark", " NUMPAGES ");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
@@ -100,12 +100,12 @@ namespace OfficeIMO.Tests {
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
                     AppendBookmarkedComplexField(cellParagraph._paragraph, "92", "CellComplexFieldBookmark", " NUMPAGES ");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header ");
                     AppendBookmarkedComplexField(headerParagraph._paragraph, "93", "HeaderComplexFieldBookmark", " PAGE ");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer ");
                     AppendBookmarkedComplexField(footerParagraph._paragraph, "94", "FooterComplexFieldBookmark", " NUMPAGES ");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
@@ -149,12 +149,12 @@ namespace OfficeIMO.Tests {
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell date ", removeExistingParagraphs: true);
                     AppendComplexField(cellParagraph._paragraph, dateInstruction, "2026-07-02");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header date ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header date ");
                     AppendSimpleField(headerParagraph._paragraph, dateInstruction, "2026-07-03");
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer date ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer date ");
                     AppendComplexField(footerParagraph._paragraph, dateInstruction, "2026-07-04");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
@@ -239,10 +239,10 @@ namespace OfficeIMO.Tests {
                         "Cell",
                         BreakValues.Page);
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
                     AppendSimpleFieldWithResultRun(
-                        section.Header.Default!.AddParagraph("Header inline field ")._paragraph,
+                        section.PageSetup.Header.AddParagraph("Header inline field ")._paragraph,
                         " CREATEDATE \\@ \"yyyy-MM-dd\" ",
                         "Header",
                         BreakValues.Column);
@@ -294,10 +294,10 @@ namespace OfficeIMO.Tests {
                     WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Title ", removeExistingParagraphs: true);
                     AppendComplexField(cellParagraph._paragraph, " TITLE ", "Quarterly Plan");
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    AppendSimpleField(section.Header.Default!.AddParagraph("Client ")._paragraph, " DOCPROPERTY \"ClientName\" ", "Evotec");
-                    AppendComplexField(section.Footer.Default!.AddParagraph("Subject ")._paragraph, " SUBJECT ", "Legacy DOC subject");
+                    AppendSimpleField(section.PageSetup.Header.AddParagraph("Client ")._paragraph, " DOCPROPERTY \"ClientName\" ", "Evotec");
+                    AppendComplexField(section.PageSetup.Footer.AddParagraph("Subject ")._paragraph, " SUBJECT ", "Legacy DOC subject");
 
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
                     WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
@@ -368,14 +368,14 @@ namespace OfficeIMO.Tests {
                         "Legacy DOC table inline field",
                         CreateSimpleField(" TIME \\@ \"HH:mm\" ", "09:30")));
 
-                    document.AddHeadersAndFooters();
+                    _ = document.PageSetup.Header;
                     WordSection section = document.Sections[0];
-                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header controlled ");
+                    WordParagraph headerParagraph = section.PageSetup.Header.AddParagraph("Header controlled ");
                     headerParagraph._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC header inline field",
                         CreateSimpleField(" CREATEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-01")));
 
-                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer controlled ");
+                    WordParagraph footerParagraph = section.PageSetup.Footer.AddParagraph("Footer controlled ");
                     footerParagraph._paragraph.Append(CreateInlineContentControl(
                         "Legacy DOC footer inline field",
                         CreateSimpleField(" SAVEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-02")));
@@ -432,9 +432,8 @@ namespace OfficeIMO.Tests {
                     document.AddEquation(noBarFractionOmml);
                     WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
                     table.Rows[0].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true).AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>t</m:t>"));
-                    document.AddHeadersAndFooters();
-                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddEquation(fractionOmml);
-                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>f</m:t>"));
+                    document.Sections[0].PageSetup.Header.AddParagraph("Header ").AddEquation(fractionOmml);
+                    document.Sections[0].PageSetup.Footer.AddParagraph("Footer ").AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>f</m:t>"));
                     WordParagraph noteReferences = document.AddParagraph("Notes ");
                     WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder").Paragraph;
                     footnoteReference.FootNote!.Paragraphs![1].AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>n</m:t>"));
@@ -500,8 +499,7 @@ namespace OfficeIMO.Tests {
                         Anchor = "equation-target"
                     });
 
-                    document.AddHeadersAndFooters();
-                    WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                    WordParagraph header = document.Sections[0].PageSetup.Header.AddParagraph();
                     header._paragraph.Append(new Hyperlink(
                         new M.OfficeMath(new M.Run(new M.Text("header-linked")))) {
                         Anchor = "header-equation-target"

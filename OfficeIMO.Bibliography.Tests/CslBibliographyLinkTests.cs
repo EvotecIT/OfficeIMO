@@ -48,7 +48,7 @@ public sealed class CslBibliographyLinkTests {
     [Fact]
     public void LinkMarkupCountsTowardTheIntermediateOutputBudget() =>
         Assert.Throws<InvalidDataException>(() => Render("DOI", "10.1234/example", options: new CslRenderOptions {
-            OutputFormat = CslOutputFormat.Html, MaximumIntermediateCharacters = 30
+            OutputFormat = CslOutputFormat.Html, MaxIntermediateCharacters = 30
         }));
 
     private static CslRenderResult Render(string variable, string value, string? layout = null, CslRenderOptions? options = null) {

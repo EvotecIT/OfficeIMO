@@ -164,6 +164,35 @@ namespace OfficeIMO.Word {
             return chart;
         }
 
+        /// <summary>
+        /// Chart groups precede the axes in c:plotArea, so a group added to an existing chart goes before them
+        /// and shares the axes already there.
+        /// </summary>
+        private static void AddChartGroup(PlotArea plotArea, OpenXmlCompositeElement group, CategoryAxis categoryAxis, ValueAxis valueAxis) {
+            OpenXmlElement? firstAxis = plotArea.ChildElements.FirstOrDefault(IsAxis);
+            if (firstAxis == null) {
+                plotArea.Append(group, categoryAxis, valueAxis);
+                return;
+            }
+
+            CategoryAxis? sharedCategory = plotArea.GetFirstChild<CategoryAxis>();
+            ValueAxis? sharedValue = plotArea.GetFirstChild<ValueAxis>();
+            plotArea.InsertBefore(group, firstAxis);
+            if (sharedCategory?.AxisId?.Val != null && sharedValue?.AxisId?.Val != null) {
+                AxisId[] ids = group.Elements<AxisId>().ToArray();
+                ids[0].Val = sharedCategory.AxisId.Val.Value;
+                ids[1].Val = sharedValue.AxisId.Val.Value;
+                return;
+            }
+
+            OpenXmlElement lastAxis = plotArea.ChildElements.Last(IsAxis);
+            lastAxis.InsertAfterSelf(valueAxis);
+            lastAxis.InsertAfterSelf(categoryAxis);
+        }
+
+        private static bool IsAxis(OpenXmlElement element) =>
+            element is CategoryAxis or ValueAxis or DateAxis or SeriesAxis;
+
         private Chart GenerateChartBar(Chart chart) {
             UInt32Value catId = GenerateAxisId();
             UInt32Value valId = GenerateAxisId();
@@ -171,9 +200,7 @@ namespace OfficeIMO.Word {
             BarChart barChart1 = CreateBarChart(catId, valId);
             CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Left);
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Bottom);
-            chart.PlotArea!.Append(barChart1);
-            chart.PlotArea!.Append(categoryAxis1);
-            chart.PlotArea!.Append(valueAxis1);
+            AddChartGroup(chart.PlotArea!, barChart1, categoryAxis1, valueAxis1);
 
             return chart;
         }
@@ -369,9 +396,7 @@ namespace OfficeIMO.Word {
             CategoryAxis categoryAxis1 = AddCategoryAxisInternal(catId, valId, AxisPositionValues.Bottom);
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
             //chart.PlotArea.Append(layout1);
-            chart.PlotArea!.Append(lineChart1);
-            chart.PlotArea!.Append(categoryAxis1);
-            chart.PlotArea!.Append(valueAxis1);
+            AddChartGroup(chart.PlotArea!, lineChart1, categoryAxis1, valueAxis1);
             return chart;
         }
         private LineChartSeries AddLineChartSeries<T>(UInt32Value index, string series, OfficeIMO.OfficeColor color, List<string> categories, List<T> data) {
@@ -441,9 +466,7 @@ namespace OfficeIMO.Word {
             ValueAxis valueAxis1 = AddValueAxisInternal(valId, catId, AxisPositionValues.Left);
 
             //chart.PlotArea.Append(layout1);
-            chart.PlotArea!.Append(areaChart);
-            chart.PlotArea!.Append(categoryAxis1);
-            chart.PlotArea!.Append(valueAxis1);
+            AddChartGroup(chart.PlotArea!, areaChart, categoryAxis1, valueAxis1);
 
 
             return chart;

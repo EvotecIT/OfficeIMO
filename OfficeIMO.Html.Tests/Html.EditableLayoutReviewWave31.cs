@@ -35,7 +35,7 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string image = "data:image/png;base64," + Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(2, 2));
         string html = "<div style='position:absolute;width:180px;height:70px'>"
             + "<img src='" + image + "' style='width:20px;height:20px'></div>";
-        var options = new WordHtmlImportOptions { EnableAccessibilityDiagnostics = true };
+        var options = new HtmlWordExportOptions { EnableAccessibilityDiagnostics = true };
 
         HtmlToWordResult result = HtmlConversionDocument.Parse(html).ConvertToWordWithEvidence(options);
         using WordDocument document = result.Value;
@@ -51,8 +51,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string html = "<div style='position:absolute;width:180px;height:70px'>Region"
             + "<img alt='Vector marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
-        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult result = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = result.Value;
 
         ExcelImage nativeImage = Assert.Single(Assert.Single(workbook.Sheets).Images);
@@ -67,11 +67,11 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         string html = "<div style='position:absolute;width:180px;height:70px'>Region"
             + "<img alt='Vector marker' src='" + image + "' style='width:24px;height:18px'></div>";
 
-        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ToPowerPointDocumentResult(
-            new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+        HtmlToPowerPointResult result = HtmlConversionDocument.Parse(html).ConvertToPowerPointWithEvidence(
+            new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = result.Value;
 
-        PowerPointPicture nativeImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        PowerPointImage nativeImage = Assert.Single(Assert.Single(presentation.Slides).Images);
         Assert.Equal("image/svg+xml", nativeImage.ContentType);
         Assert.Equal(18D, nativeImage.Width.ToPoints(), precision: 3);
         Assert.Equal(13.5D, nativeImage.Height.ToPoints(), precision: 3);
@@ -85,8 +85,8 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
             + "<img alt='Cropped vector' src='" + image
             + "' style='width:20px;height:20px;object-fit:cover'></div>";
 
-        HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html).ToExcelDocumentResult(
-            new HtmlToExcelOptions { Mode = HtmlImportMode.Generic });
+        HtmlToExcelResult excelResult = HtmlConversionDocument.Parse(html).ConvertToExcelWithEvidence(
+            new HtmlExcelExportOptions { Mode = HtmlImportMode.Generic });
         using ExcelDocument workbook = excelResult.Value;
         ExcelImage excelImage = Assert.Single(Assert.Single(workbook.Sheets).Images);
         Assert.Equal(20, excelImage.Width.ToPixels());
@@ -95,9 +95,9 @@ public sealed class HtmlEditableLayoutReviewWave31Tests {
         Assert.Equal(0.25D, excelImage.CropRightRatio, precision: 3);
 
         HtmlToPowerPointResult powerPointResult = HtmlConversionDocument.Parse(html)
-            .ToPowerPointDocumentResult(new HtmlToPowerPointOptions { Mode = HtmlImportMode.Generic });
+            .ConvertToPowerPointWithEvidence(new HtmlPowerPointExportOptions { Mode = HtmlImportMode.Generic });
         using PowerPointDocument presentation = powerPointResult.Value;
-        PowerPointPicture powerPointImage = Assert.Single(Assert.Single(presentation.Slides).Pictures);
+        PowerPointImage powerPointImage = Assert.Single(Assert.Single(presentation.Slides).Images);
         Assert.Equal(15D, powerPointImage.Width.ToPoints(), precision: 3);
         Assert.Equal(15D, powerPointImage.Height.ToPoints(), precision: 3);
         Assert.Equal(0.25D, powerPointImage.CropLeftRatio, precision: 3);

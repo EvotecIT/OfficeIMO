@@ -10,7 +10,7 @@ public sealed partial class IWorkBoundaryTests {
                 hasFormula: true, duplicateFormula: true)
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 });
+            new IWorkReadOptions { MaxMaterializedCells = 1 });
 
         IWorkNumbersProjection projection = source.ReadNumbers();
 
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
                 textValue: "Value", duplicateString: true)
         });
         IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaximumMaterializedCells = 1 });
+            new IWorkReadOptions { MaxMaterializedCells = 1 });
 
         IWorkNumbersProjection projection = source.ReadNumbers();
 

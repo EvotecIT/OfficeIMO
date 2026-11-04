@@ -85,7 +85,7 @@ public sealed class ReaderNativeBatchInputBudgetTests {
             return document.ToBytes(new WordSaveOptions { Format = extension == ".doc" ? WordFileFormat.Doc : WordFileFormat.Docx });
         }
         if (extension == ".xlsx" || extension == ".xls") {
-            using var document = ExcelDocument.Create(); document.AddSheet("Evidence").CellValue(1, 1, "Bounded native input");
+            using var document = ExcelDocument.Create(); document.AddSheet("Evidence").Cell(1, 1).SetValue("Bounded native input");
             return document.ToBytes(new ExcelSaveOptions { Format = extension == ".xls" ? ExcelFileFormat.Xls : ExcelFileFormat.Xlsx });
         }
         using var presentation = PowerPointDocument.Create();

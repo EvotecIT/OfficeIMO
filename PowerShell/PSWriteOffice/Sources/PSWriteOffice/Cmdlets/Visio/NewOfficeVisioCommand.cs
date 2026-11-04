@@ -61,13 +61,11 @@ public sealed class NewOfficeVisioCommand : OfficeNewLifecycleCmdlet<VisioDocume
     protected override void ProcessRecord() => RunDocument(Path, isNew: true, force: Force.IsPresent,
         path => {
             VisioDocument document = path == null ? VisioDocument.Create() : VisioDocument.Create(path);
-            document.Title = Title;
-            document.Author = Author;
+            document.Properties.Title = Title;
+            document.Properties.Author = Author;
             document.UseMastersByDefault = UseMastersByDefault.IsPresent;
             if (RequestRecalcOnOpen) document.RequestRecalcOnOpen();
-            VisioPage page = document.AddPage(PageName, Width.ToInches(), Height.ToInches());
-            page.DefaultUnit = DisplayUnit;
-            page.ScaleMeasurementUnit = DisplayUnit;
+            document.AddPage(PageName, Width, Height, scaleUnit: DisplayUnit);
             return document;
         },
         (document, path, allowLoss) => { document.Save(path); return null; });

@@ -30,7 +30,7 @@ public sealed class XpsMicrosoftProducerTests {
             name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
             .ToDictionary(name => name, document.GetPartBytes);
         document.Documents[0].InsertPage(0, 100, 80).AddPath("M0,0H20V20Z");
-        var reopened = XpsDocument.Load(document.Save());
+        var reopened = XpsDocument.Load(document.ToBytes());
         Assert.Equal(2, reopened.Pages.Count);
         Assert.True(XNode.DeepEquals(markup, reopened.Pages[1].GetMarkup()));
         Assert.Equal(page.ExtractText(), reopened.Pages[1].ExtractText());

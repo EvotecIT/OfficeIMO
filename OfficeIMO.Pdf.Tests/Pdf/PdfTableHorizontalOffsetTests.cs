@@ -6,12 +6,12 @@ namespace OfficeIMO.Tests.Pdf;
 
 public sealed class PdfTableHorizontalOffsetTests {
     [Theory]
-    [InlineData("flow", PdfAlign.Left, -18)]
-    [InlineData("flow", PdfAlign.Center, 12)]
-    [InlineData("flow", PdfAlign.Right, -18)]
-    [InlineData("columns", PdfAlign.Right, 12)]
-    [InlineData("row", PdfAlign.Center, -18)]
-    public void TranslationPreservesWidthsAndPagination(string frame, PdfAlign alignment, double offset) {
+    [InlineData("flow", OfficeAlignment.Left, -18)]
+    [InlineData("flow", OfficeAlignment.Center, 12)]
+    [InlineData("flow", OfficeAlignment.Right, -18)]
+    [InlineData("columns", OfficeAlignment.Right, 12)]
+    [InlineData("row", OfficeAlignment.Center, -18)]
+    public void TranslationPreservesWidthsAndPagination(string frame, OfficeAlignment alignment, double offset) {
         using var baseline = PdfPigDocument.Open(Render(frame, alignment, 0));
         using var translated = PdfPigDocument.Open(Render(frame, alignment, offset));
         Assert.True(baseline.NumberOfPages >= 2);
@@ -36,10 +36,12 @@ public sealed class PdfTableHorizontalOffsetTests {
             HorizontalOffset = global::OfficeIMO.OfficeLength.Points(30), Position = new PdfTablePosition()
         };
         using var read = PdfPigDocument.Open(PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(400), PageHeight = global::OfficeIMO.OfficeLength.Points(300), MarginLeft = global::OfficeIMO.OfficeLength.Points(40), MarginRight = global::OfficeIMO.OfficeLength.Points(40),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(40), MarginBottom = global::OfficeIMO.OfficeLength.Points(40)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(400), global::OfficeIMO.OfficeLength.Points(300)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(40), Right = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Bottom = global::OfficeIMO.OfficeLength.Points(40) }
+            }
         }).Table(new[] { new[] { "floating" } }, style: style)
-            .Paragraph(p => p.Text("alongside")).ToBytes());
+            .Paragraph(p => p.AddText("alongside")).ToBytes());
         var words = read.GetPage(1).GetWords().ToArray();
         var table = Assert.Single(words, word => word.Text == "floating");
         var alongside = Assert.Single(words, word => word.Text == "alongside");
@@ -47,7 +49,7 @@ public sealed class PdfTableHorizontalOffsetTests {
         Assert.True(alongside.Letters[0].StartBaseLine.X >= 190);
     }
 
-    private static byte[] Render(string frame, PdfAlign alignment, double offset) {
+    private static byte[] Render(string frame, OfficeAlignment alignment, double offset) {
         var style = new PdfTableStyle {
             LeftIndent = global::OfficeIMO.OfficeLength.Points(6), HorizontalOffset = global::OfficeIMO.OfficeLength.Points(offset), MaxWidth = global::OfficeIMO.OfficeLength.Points(120), PreserveWidth = true,
             ColumnWidthWeights = new List<double> { 1, 1 }, HeaderRowCount = 0,
@@ -56,14 +58,16 @@ public sealed class PdfTableHorizontalOffsetTests {
             BorderWidth = global::OfficeIMO.OfficeLength.Points(0), SpacingBefore = global::OfficeIMO.OfficeLength.Points(0), SpacingAfter = global::OfficeIMO.OfficeLength.Points(0)
         };
         var document = PdfDocument.Create(new PdfCreateOptions {
-            PageWidth = global::OfficeIMO.OfficeLength.Points(360), PageHeight = global::OfficeIMO.OfficeLength.Points(240), MarginLeft = global::OfficeIMO.OfficeLength.Points(30), MarginRight = global::OfficeIMO.OfficeLength.Points(30),
-            MarginTop = global::OfficeIMO.OfficeLength.Points(30), MarginBottom = global::OfficeIMO.OfficeLength.Points(30), DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
+            PageSetup = {
+                Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(360), global::OfficeIMO.OfficeLength.Points(240)),
+                Margins = { Left = global::OfficeIMO.OfficeLength.Points(30), Right = global::OfficeIMO.OfficeLength.Points(30), Top = global::OfficeIMO.OfficeLength.Points(30), Bottom = global::OfficeIMO.OfficeLength.Points(30) }
+            }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(9)
         });
         string[][] rows = Enumerable.Range(1, 7).Select(index => new[] { "Left" + index, "Right" + index }).ToArray();
-        if (frame == "columns") document.Columns(content => content.Table(rows, alignment, style),
+        if (frame == "columns") document.Columns(content => content.AddTable(rows, alignment, style),
             new PdfMultiColumnOptions { Gap = global::OfficeIMO.OfficeLength.Points(20), BalanceLastPage = false });
         else if (frame == "row") document.Compose(builder => builder.Page(page => page.Content(content =>
-            content.Row(row => row.PercentColumn(100, column => column.Table(rows, alignment, style))))));
+            content.Row(row => row.PercentColumn(100, column => column.AddTable(rows, alignment, style))))));
         else document.Table(rows, alignment, style);
         return document.ToBytes();
     }

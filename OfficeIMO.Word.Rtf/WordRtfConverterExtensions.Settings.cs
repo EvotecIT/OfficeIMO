@@ -17,7 +17,7 @@ public static partial class WordRtfConverterExtensions {
         }
 
         if (source.Settings.MirrorMargins ||
-            source.Sections.Any(section => section.Margins.Type == WordMargin.Mirrored)) {
+            source.Sections.Any(section => section.PageSetup.Margins.Type == WordMargin.Mirrored)) {
             destination.Settings.MirrorMargins = true;
         }
     }

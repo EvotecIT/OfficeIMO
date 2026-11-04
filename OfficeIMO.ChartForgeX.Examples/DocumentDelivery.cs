@@ -28,8 +28,8 @@ internal static class DocumentDelivery {
 
     private static void WriteWord(string path, IReadOnlyList<VisualSpecimen> specimens) {
         using var document = WordDocument.Create(path);
-        document.Sections[0].PageSettings.PageSize = WordPageSize.A4;
-        document.Margins.Type = WordMargin.Normal;
+        document.Sections[0].PageSetup.Size.PageSize = WordPageSize.A4;
+        document.PageSetup.Margins.Type = WordMargin.Normal;
         for (int index = 0; index < specimens.Count; index++) {
             if (index > 0) document.AddPageBreak();
             var specimen = specimens[index];
@@ -48,17 +48,17 @@ internal static class DocumentDelivery {
             var sheet = document.AddSheet(specimen.Name);
             for (int column = 1; column <= 9; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(12D));
             for (int row = 1; row <= 26; row++) sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(18D)));
-            sheet.MergeRange("B1:I2");
-            sheet.CellValue(1, 2, Heading(specimen));
-            sheet.CellFontName(1, 2, Style.FontFamily); sheet.CellFontSize(1, 2, global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
+            sheet.Range("B1:I2").Merge();
+            sheet.Cell(1, 2).SetValue(Heading(specimen));
+            sheet.Cell(1, 2).SetFontName(Style.FontFamily); sheet.Cell(1, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.HeadingSizePoints));
             // The picture remains within the authored Letter print width after the half-inch margins.
-            sheet.SetPageSetup(fitToWidth: 1, fitToHeight: 0, paperSize: ExcelPaperSize.Letter);
-            sheet.SetMarginsPreset(ExcelMarginPreset.Narrow);
+            sheet.PageSetup.FitToWidth = 1; sheet.PageSetup.FitToHeight = 0; sheet.PageSetup.PaperSize = ExcelPaperSize.Letter;
+            sheet.PageSetup.SetMargins(ExcelMarginPreset.Narrow);
             sheet.AddVisualArtifact("B4:I18", specimen.Artifact);
-            sheet.MergeRange("B21:I23");
-            sheet.CellValue(21, 2, specimen.Caption);
-            sheet.CellFontName(21, 2, Style.FontFamily); sheet.CellFontSize(21, 2, global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
-            sheet.CellWrapText(21, 2);
+            sheet.Range("B21:I23").Merge();
+            sheet.Cell(21, 2).SetValue(specimen.Caption);
+            sheet.Cell(21, 2).SetFontName(Style.FontFamily); sheet.Cell(21, 2).SetFontSize(global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints));
+            sheet.Cell(21, 2).SetWrapText();
         }
         document.Save();
     }
@@ -81,7 +81,7 @@ internal static class DocumentDelivery {
     }
 
     private static void WritePdf(string path, IReadOnlyList<VisualSpecimen> specimens) {
-        var options = new PdfCreateOptions { PageSize = PdfPageSizes.A4, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints) };
+        var options = new PdfCreateOptions { PageSetup = { Size = PdfPageSizes.A4 }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(Style.CaptionSizePoints) };
         options.EnableTaggedPdfCatalogMarkers();
         PdfDocument.Create(document => document.Content(content => {
             for (int index = 0; index < specimens.Count; index++) {
@@ -89,7 +89,7 @@ internal static class DocumentDelivery {
                 var specimen = specimens[index];
                 content.H1(Heading(specimen));
                 content.AddVisualArtifact(specimen.Artifact, spacingBefore: 12D, spacingAfter: 18D);
-                content.Text(specimen.Caption);
+                content.AddParagraph(specimen.Caption);
             }
         }), options).Save(path);
     }
@@ -109,7 +109,7 @@ internal static class DocumentDelivery {
     private static void Text(PowerPointSlide slide, string text, double left, double top, double width, double height,
         double size, string color) {
         var box = slide.AddTextBox(text,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),            global::OfficeIMO.OfficeLength.Points(width),global::OfficeIMO.OfficeLength.Points(height));
-        box.FontName = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = color.TrimStart('#');
+        box.FontFamily = Style.FontFamily; box.FontSize = global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)); box.Color = OfficeIMO.OfficeColor.Parse(color);
     }
 
     private static string Heading(VisualSpecimen specimen) => specimen.Artifact.Title + " · " + specimen.ModeName;

@@ -2,11 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using OfficeIMO.Drawing;
@@ -46,8 +44,6 @@ namespace OfficeIMO.PowerPoint {
 
     /// <summary>Options for local and external presentation compatibility validation.</summary>
     public sealed class PowerPointCompatibilityOptions {
-        /// <summary>Explicitly enables PowerPoint Desktop reference rendering.</summary>
-        public bool EnablePowerPointDesktop { get; set; }
         /// <summary>Explicitly enables a headless LibreOffice PDF import/conversion check.</summary>
         public bool EnableLibreOffice { get; set; }
         /// <summary>Directory where compatibility artifacts are written.</summary>
@@ -135,33 +131,12 @@ namespace OfficeIMO.PowerPoint {
                         : validation.Count + " Open XML validation error(s) were found."));
             }
 
-            string desktopOutput = Path.Combine(output, "powerpoint-desktop");
-            PowerPointReferenceRenderResult desktop = TryRenderDesktopWhenSupported(
-                fullPath, desktopOutput, options.EnablePowerPointDesktop);
-            lanes.Add(new PowerPointCompatibilityLaneResult("PowerPointDesktop", MapStatus(desktop.Status),
-                desktop.Message, desktop.ImagePaths));
             lanes.Add(InspectLibreOffice(fullPath, Path.Combine(output, "libreoffice"), options));
             lanes.Add(new PowerPointCompatibilityLaneResult("Keynote", PowerPointCompatibilityStatus.NotRun,
                 "Record a macOS Keynote import/export result with RecordExternal when that environment is available."));
             lanes.Add(new PowerPointCompatibilityLaneResult("GoogleSlides", PowerPointCompatibilityStatus.NotRun,
                 "Record a Google Slides import result with RecordExternal when an authenticated external lane is available."));
             return new PowerPointCompatibilityReport(lanes);
-        }
-
-        [UnconditionalSuppressMessage("Trimming", "IL2026",
-            Justification = "The late-bound PowerPoint Desktop lane is called only when dynamic code is supported. NativeAOT reports the lane as unavailable and uses the in-process renderers.")]
-        [UnconditionalSuppressMessage("AOT", "IL3050",
-            Justification = "The late-bound PowerPoint Desktop lane is called only when dynamic code is supported. NativeAOT reports the lane as unavailable and uses the in-process renderers.")]
-        private static PowerPointReferenceRenderResult TryRenderDesktopWhenSupported(string presentationPath,
-            string outputDirectory, bool enabled) {
-#if NET5_0_OR_GREATER
-            if (!RuntimeFeature.IsDynamicCodeSupported) {
-                return new PowerPointReferenceRenderResult(PowerPointReferenceRenderStatus.Unavailable,
-                    "PowerPoint Desktop reference rendering is unavailable in NativeAOT applications; use the in-process renderers.");
-            }
-#endif
-
-            return PowerPointDesktopReferenceRenderer.TryRender(presentationPath, outputDirectory, enabled);
         }
 
         private static PowerPointCompatibilityLaneResult InspectLibreOffice(string presentationPath,
@@ -242,15 +217,6 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             return candidates.FirstOrDefault(File.Exists);
-        }
-
-        private static PowerPointCompatibilityStatus MapStatus(PowerPointReferenceRenderStatus status) {
-            switch (status) {
-                case PowerPointReferenceRenderStatus.Succeeded: return PowerPointCompatibilityStatus.Passed;
-                case PowerPointReferenceRenderStatus.Failed: return PowerPointCompatibilityStatus.Failed;
-                case PowerPointReferenceRenderStatus.Unavailable: return PowerPointCompatibilityStatus.Unavailable;
-                default: return PowerPointCompatibilityStatus.NotRun;
-            }
         }
     }
 }

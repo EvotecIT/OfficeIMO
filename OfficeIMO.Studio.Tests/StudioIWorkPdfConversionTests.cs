@@ -86,7 +86,7 @@ public sealed partial class StudioIWorkConversionTests {
                 // Rejection during editable projection occurs before a conversion result exists.
                 Assert.Contains("padding", job.Summary!, StringComparison.OrdinalIgnoreCase);
             } else {
-                Assert.Contains(job.ConversionEvidence!.FidelityDiagnostics, diagnostic =>
+                Assert.Contains(job.ConversionEvidence!.Diagnostics, diagnostic =>
                     diagnostic.Code == code && diagnostic.LossKind == OfficeConversionLossKind.Omission);
             }
             Assert.False(job.SupportsIWorkOptions);

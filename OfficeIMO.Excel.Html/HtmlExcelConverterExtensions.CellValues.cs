@@ -20,7 +20,7 @@ public static partial class HtmlExcelConverterExtensions {
         IElement cell,
         string fallbackText,
         HtmlToExcelResult result,
-        HtmlToExcelOptions options,
+        HtmlExcelExportOptions options,
         HtmlImportBudget budget,
         HashSet<long>? importedFormulaCells,
         bool useSemanticValues,
@@ -56,19 +56,19 @@ public static partial class HtmlExcelConverterExtensions {
         if (kind.Equals("number", StringComparison.OrdinalIgnoreCase)) {
             if (double.TryParse(rawValue, NumberStyles.Float, CultureInfo.InvariantCulture, out double number)
                 && !double.IsNaN(number) && !double.IsInfinity(number)) {
-                sheet.CellValue(row, column, number);
+                sheet.Cell(row, column).SetValue(number);
                 preserveValue = true;
                 return true;
             }
             AddInvalidCellValueDiagnostic(row, column, "number", result);
         } else if (kind.Equals("boolean", StringComparison.OrdinalIgnoreCase)) {
             if (rawValue!.Equals("1", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("true", StringComparison.OrdinalIgnoreCase)) {
-                sheet.CellValue(row, column, true);
+                sheet.Cell(row, column).SetValue(true);
                 preserveValue = true;
                 return true;
             }
             if (rawValue.Equals("0", StringComparison.OrdinalIgnoreCase) || rawValue.Equals("false", StringComparison.OrdinalIgnoreCase)) {
-                sheet.CellValue(row, column, false);
+                sheet.Cell(row, column).SetValue(false);
                 preserveValue = true;
                 return true;
             }
@@ -82,7 +82,7 @@ public static partial class HtmlExcelConverterExtensions {
             // retaining the authored wall clock when metadata has no zone.
             if (TryParseCellDateTime(rawValue!, out DateTime dateTime)
                 && dateTime.Year >= 100) {
-                sheet.CellValue(row, column, dateTime);
+                sheet.Cell(row, column).SetValue(dateTime);
                 preserveValue = true;
                 return true;
             }
@@ -102,14 +102,17 @@ public static partial class HtmlExcelConverterExtensions {
                 return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);
             }
 
-            sheet.CellFormula(row, column, rawValue!);
+            sheet.Cell(row, column).SetFormula(rawValue!);
             result.Formulas++;
             preserveValue = true;
             return true;
         } else if (kind.Equals("error", StringComparison.OrdinalIgnoreCase)) {
-            sheet.CellError(row, column, rawValue!);
-            preserveValue = true;
-            return true;
+            if (ExcelErrorCode.IsLiteral(rawValue)) {
+                sheet.Cell(row, column).SetError(rawValue!);
+                preserveValue = true;
+                return true;
+            }
+            AddInvalidCellValueDiagnostic(row, column, "error", result);
         }
 
         return TrySetCellTextValue(sheet, row, column, fallbackText, result, budget);

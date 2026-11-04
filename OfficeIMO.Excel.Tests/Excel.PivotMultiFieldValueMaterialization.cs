@@ -518,9 +518,9 @@ namespace OfficeIMO.Tests
         }
 
         private static void PopulateWidePivotSource(ExcelSheet source, string kind) {
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Product");
-            source.CellValue(1, 3, "Sales");
+            source.Cell(1, 1).SetValue("Region");
+            source.Cell(1, 2).SetValue("Product");
+            source.Cell(1, 3).SetValue("Sales");
             string[] regions = { "East", "East", "East", "West", "West", "West", "South", "South", "South" };
             string[] products = { "A", "B", "C", "A", "B", "C", "A", "B", "C" };
             double[] amounts = kind.StartsWith("outer-negative-", StringComparison.Ordinal)
@@ -529,14 +529,14 @@ namespace OfficeIMO.Tests
                     ? new[] { -10d, 10d, 0d, -5d, 5d, 0d, 20d, 20d, 0d }
                     : new[] { 10d, 50d, -20d, 40d, 20d, 0d, 5d, 60d, 30d };
             for (int index = 0; index < amounts.Length; index++) {
-                source.CellValue(index + 2, 1, regions[index]);
-                source.CellValue(index + 2, 2, products[index]);
+                source.Cell(index + 2, 1).SetValue(regions[index]);
+                source.Cell(index + 2, 2).SetValue(products[index]);
                 if (kind.StartsWith("inner-errorparent-", StringComparison.Ordinal) && index < 3) {
                     string[] errors = { "#N/A", "#DIV/0!", "#VALUE!" };
-                    source.CellError(index + 2, 3, errors[index]);
+                    source.Cell(index + 2, 3).SetError(errors[index]);
                 } else if (kind == "inner-wide-error-top2" && index == 2)
-                    source.CellError(index + 2, 3, "#N/A");
-                else source.CellValue(index + 2, 3, amounts[index]);
+                    source.Cell(index + 2, 3).SetError("#N/A");
+                else source.Cell(index + 2, 3).SetValue(amounts[index]);
             }
         }
 
@@ -603,18 +603,18 @@ namespace OfficeIMO.Tests
         }
 
         private static void PopulateMultiFieldPivotSource(ExcelSheet source) {
-            source.CellValue(1, 1, "Region");
-            source.CellValue(1, 2, "Product");
-            source.CellValue(1, 3, "Sales");
+            source.Cell(1, 1).SetValue("Region");
+            source.Cell(1, 2).SetValue("Product");
+            source.Cell(1, 3).SetValue("Sales");
             var rows = new[] {
                 ("East", "A", 10d), ("East", "B", 50d),
                 ("West", "A", 40d), ("West", "B", 20d),
                 ("South", "A", 5d), ("South", "B", 60d)
             };
             for (int index = 0; index < rows.Length; index++) {
-                source.CellValue(index + 2, 1, rows[index].Item1);
-                source.CellValue(index + 2, 2, rows[index].Item2);
-                source.CellValue(index + 2, 3, rows[index].Item3);
+                source.Cell(index + 2, 1).SetValue(rows[index].Item1);
+                source.Cell(index + 2, 2).SetValue(rows[index].Item2);
+                source.Cell(index + 2, 3).SetValue(rows[index].Item3);
             }
         }
 

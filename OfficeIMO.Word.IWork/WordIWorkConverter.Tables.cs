@@ -73,7 +73,7 @@ public static partial class WordIWorkConverter {
 
 
                 if (fill != null) {
-                    if (fill.Color is { } color) target.ShadingFillColorHex = color.RgbHex;
+                    if (fill.Color is { } color) target.ShadingFillValue = color.RgbHex;
                     else target.ShadingPattern = WordShadingPattern.Nil;
                 }
                 if (style != null) {
@@ -111,7 +111,7 @@ public static partial class WordIWorkConverter {
                     ApplyParagraphStyle(paragraph, defaultStyle, paragraph.Text);
                     ApplyParagraphTextStyle(paragraph, defaultStyle.TextStyle);
                 }
-                if (numericColor != null) paragraph.ColorHex = numericColor;
+                if (numericColor != null) paragraph.RunColorValue = numericColor;
             }
             if (sourceCell.Comment is { } comment) {
                 cellComments.Add(new WordCellComment(target, comment.Author, string.Empty,

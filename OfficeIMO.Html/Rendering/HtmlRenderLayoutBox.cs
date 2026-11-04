@@ -23,4 +23,14 @@ internal sealed class HtmlRenderLayoutBox : HtmlRenderVisual {
     internal override HtmlRenderVisual TranslatePaintCore(double offsetX, double offsetY, int paintOrder) =>
         new HtmlRenderLayoutBox(X + offsetX, Y + offsetY, Width, Height, paintOrder, Source,
             LayoutY, IsAbsolutePrintOverflow);
+
+    internal override HtmlRenderVisual TranslateThrough(HtmlRenderOffset[] offsets, int paintOrder) {
+        double x = X, y = Y, layoutY = LayoutY;
+        foreach (HtmlRenderOffset offset in offsets) {
+            x += offset.X;
+            y += offset.Y;
+            if (!offset.PaintOnly) layoutY += offset.Y;
+        }
+        return CopyStackingContextTo(new HtmlRenderLayoutBox(x, y, Width, Height, paintOrder, Source, layoutY, IsAbsolutePrintOverflow));
+    }
 }

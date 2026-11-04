@@ -23,7 +23,7 @@ public partial class WordRtfConverterTests {
                 "http://schemas.openxmlformats.org/wordprocessingml/2006/main", token));
         }
 
-        RtfDocument converted = RtfDocument.Parse(word.ToRtf());
+        RtfDocument converted = RtfDocument.Parse(word.ToRtf().ToRtf());
 
         Assert.NotEmpty(converted.ListDefinitions);
         Assert.All(converted.ListDefinitions.SelectMany(definition => definition.Levels),

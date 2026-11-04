@@ -25,9 +25,9 @@ public partial class Word {
     [InlineData(200D, true, true, true)]
     public void SaveAsPdf_ExactFirstLinesRetainRunningStoriesWhenTheyOverflow(double height, bool header, bool footer, bool prefix) {
         using WordDocument source = WordDocument.Create();
-        source.Sections[0].Margins.HeaderDistance = source.Sections[0].Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
-        if (header) SetStory(source.HeaderDefaultOrCreate);
-        if (footer) SetStory(source.FooterDefaultOrCreate);
+        source.Sections[0].PageSetup.Margins.HeaderDistance = source.Sections[0].PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points(36D);
+        if (header) SetStory(source.PageSetup.Header);
+        if (footer) SetStory(source.PageSetup.Footer);
         if (prefix) {
             WordParagraph preceding = source.AddParagraph("P");
             preceding.FontSize = global::OfficeIMO.OfficeLength.Points(12);

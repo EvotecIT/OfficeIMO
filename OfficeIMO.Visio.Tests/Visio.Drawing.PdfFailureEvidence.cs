@@ -15,12 +15,12 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
     public async Task StrictDiagramFailureRetainsLocatedSourceEvidenceAndLeavesDestinationUntouched(
         bool asynchronous, bool streamDestination) {
         VisioDocument document = VisioDocument.Create();
-        document.AddPage("Page").AddRectangle(1, 1, 1, 1, "Label").AddHyperlink("https://example.com");
+        document.AddPage("Page").AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, VisioMeasurementUnit.Inches)), "Label").AddHyperlink("https://example.com");
         byte[] source = document.ToLegacyXmlResult().Value;
-        var options = new VisioToPdfOptions {
+        var options = new VisioPdfExportOptions {
             Mode = VisioPdfProjectionMode.DiagramPages,
             SourceName = "source.vdx",
-            DrawingOptions = new VisioDrawingOptions { RequireNoLoss = true }
+            DrawingOptions = new VisioDrawingOptions { FailOnLoss = true }
         };
         byte[] sentinel = { 1, 2, 3 };
         string path = Path.Combine(Path.GetTempPath(), "visio-pdf-failure-" + Guid.NewGuid().ToString("N") + ".pdf");
@@ -29,22 +29,18 @@ public sealed class VisioDrawingPdfFailureEvidenceTests {
         long position = stream.Position;
         try {
             File.WriteAllBytes(path, sentinel);
-            PdfSaveResult result = streamDestination
+            OfficeConversionException exception = streamDestination
                 ? asynchronous
-                    ? await document.SaveAsPdfResultAsync(stream, options)
-                    : document.SaveAsPdfResult(stream, options)
+                    ? await Assert.ThrowsAsync<OfficeConversionException>(() => document.SaveAsPdfAsync(stream, options))
+                    : Assert.Throws<OfficeConversionException>(() => document.SaveAsPdf(stream, options))
                 : asynchronous
-                    ? await document.SaveAsPdfResultAsync(path, options)
-                    : document.SaveAsPdfResult(path, options);
+                    ? await Assert.ThrowsAsync<OfficeConversionException>(() => document.SaveAsPdfAsync(path, options))
+                    : Assert.Throws<OfficeConversionException>(() => document.SaveAsPdf(path, options));
 
-            Assert.False(result.Succeeded);
-            Assert.True(result.HasLoss);
-            Assert.Equal(0, result.BytesWritten);
-            var exception = Assert.IsType<OfficeConversionException>(result.Exception);
-            var report = Assert.IsType<VisioDrawingConversionReport>(result.ConversionReports[0]);
-            Assert.Same(exception.Report, report);
+            var report = Assert.IsType<VisioDrawingConversionReport>(exception.Report);
             Assert.Equal("source.vdx", report.SourceName);
-            Assert.Contains(result.FidelityDiagnostics, diagnostic =>
+            Assert.True(report.HasLoss);
+            Assert.Contains(report.Diagnostics, diagnostic =>
                 diagnostic.Code == "VISIO_DRAWING_METADATA" &&
                 diagnostic.LossKind == OfficeConversionLossKind.Omission &&
                 diagnostic.Location!.StartsWith("page:1:Page:shape:"));

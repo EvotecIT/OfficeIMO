@@ -75,10 +75,10 @@ public sealed class ProjectSaveBoundaryTests {
         }
         var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
         decimal maximum = decimal.MaxValue / 100m, minimum = decimal.MinValue / 100m;
-        Set(maximum); Assert.DoesNotContain(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE");
-        Set(maximum + .01m); Assert.Contains(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE" && d.Location == location);
-        Set(minimum); Assert.DoesNotContain(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE");
-        Set(minimum - .01m); Assert.Contains(document.AssessSave(options).Diagnostics, d => d.Code == "PROJECT_COST_RANGE" && d.Location == location);
+        Set(maximum); Assert.DoesNotContain(document.AssessSave(options).NativeDiagnostics, d => d.Code == "PROJECT_COST_RANGE");
+        Set(maximum + .01m); Assert.Contains(document.AssessSave(options).NativeDiagnostics, d => d.Code == "PROJECT_COST_RANGE" && d.Location == location);
+        Set(minimum); Assert.DoesNotContain(document.AssessSave(options).NativeDiagnostics, d => d.Code == "PROJECT_COST_RANGE");
+        Set(minimum - .01m); Assert.Contains(document.AssessSave(options).NativeDiagnostics, d => d.Code == "PROJECT_COST_RANGE" && d.Location == location);
         using var output = new MemoryStream();
         Assert.Throws<InvalidDataException>(() => document.Save(output)); Assert.Equal(0, output.Length);
     }
@@ -103,7 +103,7 @@ public sealed class ProjectSaveBoundaryTests {
             default: task.FreeSlackMinutes = decimal.MaxValue; code = "PROJECT_XML_TENTHS_RANGE"; break;
         }
         var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
-        Assert.Contains(document.AssessSave(options).Diagnostics, diagnostic => diagnostic.Code == code);
+        Assert.Contains(document.AssessSave(options).NativeDiagnostics, diagnostic => diagnostic.Code == code);
         using var output = new MemoryStream();
         Assert.Throws<InvalidDataException>(() => document.Save(output, options)); Assert.Equal(0, output.Length);
     }
@@ -118,7 +118,7 @@ public sealed class ProjectSaveBoundaryTests {
         decimal value = decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
         if (freeSlack) task.FreeSlackMinutes = value; else task.TotalSlackMinutes = value;
         var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
-        var diagnostic = Assert.Single(document.AssessSave(options).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(options).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_TENTHS_PRECISION");
         Assert.EndsWith(freeSlack ? "/FreeSlack" : "/TotalSlack", diagnostic.Location, StringComparison.Ordinal);
         using var output = new MemoryStream();
@@ -135,7 +135,7 @@ public sealed class ProjectSaveBoundaryTests {
         decimal value = decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture);
         if (freeSlack) task.FreeSlackMinutes = value; else task.TotalSlackMinutes = value;
         var options = new ProjectSaveOptions { Format = ProjectFileFormat.Xml };
-        Assert.DoesNotContain(document.AssessSave(options).Diagnostics,
+        Assert.DoesNotContain(document.AssessSave(options).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_TENTHS_PRECISION" || item.Code == "PROJECT_XML_TENTHS_RANGE");
         using var output = new MemoryStream(); document.Save(output, options);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));
@@ -171,7 +171,7 @@ public sealed class ProjectSaveBoundaryTests {
             case "resource baseline work": resourceBaseline.Work = work; break;
             case "assignment baseline work": assignmentBaseline.Work = work; break;
         }
-        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+        var diagnostic = Assert.Single(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).NativeDiagnostics,
             item => item.Code == code && item.Location == location);
         Assert.Equal(ProjectDiagnosticSeverity.Error, diagnostic.Severity);
         using var output = new MemoryStream();
@@ -184,7 +184,7 @@ public sealed class ProjectSaveBoundaryTests {
     public void XmlWorkRejectsPositiveSubTickAndMidpointValues(string text) {
         using var document = ProjectDocument.Create();
         document.Tasks.Add("Task").Work = new ProjectWork(decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_WORK_PRECISION");
     }
 
@@ -194,7 +194,7 @@ public sealed class ProjectSaveBoundaryTests {
     public void XmlDurationRejectsNegativeSubTickAndMidpointValues(string text) {
         using var document = ProjectDocument.Create();
         document.Tasks.Add("Task").Duration = ProjectDuration.WorkingMinutes(decimal.Parse(text, System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+        Assert.Contains(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_DURATION_PRECISION");
     }
 
@@ -202,7 +202,7 @@ public sealed class ProjectSaveBoundaryTests {
     public void XmlWorkAcceptsAnExactWholeTickValue() {
         using var document = ProjectDocument.Create(); var work = new ProjectWork(0.000000005m);
         document.Tasks.Add("Task").Work = work;
-        Assert.DoesNotContain(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).Diagnostics,
+        Assert.DoesNotContain(document.AssessSave(new ProjectSaveOptions { Format = ProjectFileFormat.Xml }).NativeDiagnostics,
             item => item.Code == "PROJECT_XML_WORK_PRECISION");
         using var output = new MemoryStream(); document.Save(output);
         using var reopened = ProjectDocument.Load(new MemoryStream(output.ToArray()));

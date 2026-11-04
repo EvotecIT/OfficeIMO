@@ -506,7 +506,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool includeSmartArt = false) => shape is PowerPointTextBox
             || shape is PowerPointTable
             || includeMedia && shape is PowerPointMedia
-            || includePictures && shape is PowerPointPicture
+            || includePictures && shape is PowerPointImage
             || includeCharts && shape is PowerPointChart
             || includeSmartArt && shape is PowerPointSmartArt
             || includeOleObjects && shape is PowerPointOleObject

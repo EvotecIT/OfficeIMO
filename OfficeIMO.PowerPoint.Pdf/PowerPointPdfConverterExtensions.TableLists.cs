@@ -19,6 +19,6 @@ public static partial class PowerPointPdfConverterExtensions {
             size = ((inherited.FontSize?.ToPoints()) ?? fallbackFontSize) * percent / 100d;
         return new PdfCore.PdfTextRun(marker, bold: inherited.Bold, italic: inherited.Italic,
             color: inherited.Color, fontSize: ((double?)(size ?? (inherited.FontSize?.ToPoints())) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null),
-            font: MapFont(family), fontFamily: family);
+            standardFont: MapFont(family), fontFamily: family);
     }
 }

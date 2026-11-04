@@ -37,7 +37,7 @@ public sealed partial class RtfDocument : IRtfCloneable {
         clone._fileReferences = context.CloneList(_fileReferences);
         clone._xmlNamespaces = context.CloneList(_xmlNamespaces);
         clone._sourceNormalizationDiagnostics = new List<RtfConversionDiagnostic>(_sourceNormalizationDiagnostics);
-        clone.Info = context.Clone(Info)!;
+        clone.Properties = context.Clone(Properties)!;
         clone.PageSetup = context.Clone(PageSetup)!;
         clone.Settings = context.Clone(Settings)!;
         clone.NoteSettings = context.Clone(NoteSettings)!;

@@ -77,5 +77,5 @@
     "OfficeIMO.Core/Conversion/OfficeDiagnosticCollector.cs: internal bounded collection remains useful"
   ],
   "consumerReports": "Replace WordMarkdownConversionReport, PdfWordConversionReport, PdfExcelTableImportReport, PdfPowerPointConversionReport, PdfConversionReport and other typed conversion reports at their owning packages. Preserve location, severity and exact loss kind; richer compatibility dimensions and fallback artifacts need an explicit mapping, not silent discard.",
-  "lossControls": "OfficeConversionReport.HasLoss and ThrowIfLoss are public. Legacy RequireNoLoss and FidelityDiagnostics are explicit interface adapters only. FailOnLoss belongs on converter options in M2; Core performs no conversion itself."
+  "lossControls": "OfficeConversionReport.HasLoss and ThrowIfLoss are public. FailOnLoss belongs on converter options and AllowLoss on native saves; Core performs no conversion itself."
 }

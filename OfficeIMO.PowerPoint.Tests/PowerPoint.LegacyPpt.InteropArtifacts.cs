@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 // LibreOffice adds legacy ruler fields that the importer preserves
                 // without projecting. Keep that approximation visible while requiring
                 // every authored semantic below and rejecting any other conversion loss.
-                Assert.All(loaded.FidelityDiagnostics.Where(diagnostic =>
+                Assert.All(loaded.Diagnostics.Where(diagnostic =>
                     diagnostic.LossKind != OfficeConversionLossKind.None), diagnostic => {
                     Assert.Equal("ppt-text-paragraph-partial", diagnostic.Code);
                     Assert.Equal(OfficeConversionLossKind.Approximation, diagnostic.LossKind);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
                 .Fill("D9EAF7")
                 .Stroke("2563EB", global::OfficeIMO.OfficeLength.Points(1.5D));
             using (var stream = new MemoryStream(image, writable: false)) {
-                PowerPointPicture picture = first.AddImage(stream, OfficeImageFormat.Png,
+                PowerPointImage picture = first.AddImage(stream, OfficeImageFormat.Png,
                     new PowerPointLayoutBox(OfficeLength.Points(280), OfficeLength.Points(210), OfficeLength.Points(240), OfficeLength.Points(90)));
                 picture.Bounds = new PowerPointLayoutBox(OfficeLength.Points(280), OfficeLength.Points(210), OfficeLength.Points(240), OfficeLength.Points(90));
             }
@@ -139,8 +139,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(marker,
                 presentation.Slides[0].GetSpeakerNotesText());
             Assert.True(presentation.Slides.Sum(slide =>
-                slide.Pictures.Count()) >= 1);
-            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+                slide.Images.Count()) >= 1);
+            PowerPointImage picture = Assert.Single(presentation.Slides[0].Images);
             Assert.InRange(picture.Left.ToPoints(), 279.9, 280.1);
             Assert.InRange(picture.Top.ToPoints(), 209.9, 210.1);
             Assert.InRange(picture.Width.ToPoints(), 239.9, 240.1);

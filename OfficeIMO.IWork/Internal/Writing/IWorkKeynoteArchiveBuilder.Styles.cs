@@ -23,7 +23,7 @@ internal sealed partial class IWorkKeynoteArchiveBuilder {
         var theme = P().Reference(4, StylesheetId).String(3, "OfficeIMO")
             .Message(100, drawingPresets).Message(110, textPresets);
         AddTableThemePresets(theme);
-        IWorkNativeThemeWriter.AddColorPresets(theme, _limits.MaximumPackageBytes, _cancellationToken);
+        IWorkNativeThemeWriter.AddColorPresets(theme, _limits.MaxPackageBytes, _cancellationToken);
         Add(ThemeId, 10, P().Message(1, theme).String(3, IWorkCreationIdentity.Create(_modelHash, "theme").Text)
             .Reference(2, BlankNodeId).Reference(5, BlankNodeId).Reference(6, BlankNodeId).Bool(7, false));
     }

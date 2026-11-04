@@ -24,7 +24,7 @@ public partial class WordParagraph {
             Type = "#_x0000_t75"
         };
         run.Append(new Picture(shape));
-        var image = new WordImage(_document, _paragraph, run, shape) { Description = description };
+        var image = new WordImage(_document, _paragraph, run, shape) { AltText = description };
         return image;
     }
 }

@@ -97,7 +97,7 @@ public sealed class PdfReverseConversionQualityTests {
         // Themed tables right-align numbers, so a figure ends close to the next left-aligned column.
         byte[] pdf = PdfDocument.Create()
             .H1("Quarterly results")
-            .Paragraph(paragraph => paragraph.Text("Revenue improved in the current quarter."))
+            .Paragraph(paragraph => paragraph.AddText("Revenue improved in the current quarter."))
             .Table(new[] {
                 new[] { "Region", "Revenue", "Active" },
                 new[] { "North", "1250", "True" },

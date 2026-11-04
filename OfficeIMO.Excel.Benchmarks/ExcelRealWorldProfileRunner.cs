@@ -134,21 +134,21 @@ internal static class ExcelRealWorldProfileRunner {
     }
 
     private static void ApplyNavigation(ExcelSheet sheet, int rowCount) {
-        sheet.Freeze(topRows: 1, leftCols: 1);
-        sheet.AddAutoFilter(BuildSalesRange(rowCount));
+        sheet.View.Freeze(topRows: 1, leftColumns: 1);
+        sheet.Range(BuildSalesRange(rowCount)).AutoFilter();
     }
 
     private static void ApplyConditionalFormatting(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.AddConditionalRule($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.GreaterThan, "3000");
-        sheet.AddConditionalRule($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelConditionalFormattingOperator.LessThan, "5");
-        sheet.AddConditionalColorScale($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.LightPink, OfficeColor.LightGreen);
-        sheet.AddConditionalDataBar($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", OfficeColor.SteelBlue);
+        sheet.Range($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "3000");
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "5");
+        sheet.Range($"E2:E{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().ColorScale(OfficeColor.LightPink, OfficeColor.LightGreen);
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().DataBar(OfficeColor.SteelBlue);
     }
 
     private static void ApplyDataValidation(ExcelSheet sheet, int rowCount) {
         int lastRow = rowCount + 1;
-        sheet.ValidationWholeNumber($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}", ExcelDataValidationOperator.Between, 1, 24);
+        sheet.Range($"F2:F{lastRow.ToString(CultureInfo.InvariantCulture)}").Validation().WholeNumber(ExcelDataValidationOperator.Between, 1, 24);
     }
 
     private static void AddPivotTable(ExcelSheet sheet, int rowCount) {

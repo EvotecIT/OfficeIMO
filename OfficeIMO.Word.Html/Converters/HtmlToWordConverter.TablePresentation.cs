@@ -15,12 +15,12 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            cell.ShadingFillColorHex = ResolveOpaqueTextBackground(
+            cell.ShadingFillValue = ResolveOpaqueTextBackground(
                 parsed.BackgroundColor!,
                 alpha,
-                string.IsNullOrEmpty(cell.ShadingFillColorHex)
+                string.IsNullOrEmpty(cell.ShadingFillValue)
                     ? ancestorBackdrop
-                    : cell.ShadingFillColorHex);
+                    : cell.ShadingFillValue);
         }
 
         private CssStyleMapper.CssProperties ParseTableBackground(string value) {

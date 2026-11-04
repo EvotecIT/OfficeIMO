@@ -145,9 +145,9 @@ public partial class Excel {
         using var document = ExcelDocument.Create(path);
         document.DateSystem = system;
         var sheet = document.AddSheet("Data");
-        sheet.CellValue(1, 1, "Value");
-        sheet.CellValue(2, 1, 1.5d);
-        sheet.CellValue(3, 1, 60.5d);
+        sheet.Cell(1, 1).SetValue("Value");
+        sheet.Cell(2, 1).SetValue(1.5d);
+        sheet.Cell(3, 1).SetValue(60.5d);
         sheet.ColumnStyleByHeader("Value").NumberFormat(format);
         document.Save();
         return path;

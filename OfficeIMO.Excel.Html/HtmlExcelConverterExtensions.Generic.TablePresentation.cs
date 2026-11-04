@@ -8,7 +8,7 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlSemanticTable table,
         HtmlToExcelResult result,
         HtmlImportBudget budget) {
-        ExcelA1.TryParseRange(sheet.UsedRangeA1, out _, out _, out int lastRow, out int lastColumn);
+        ExcelA1.TryParseRange(sheet.UsedRange.Address, out _, out _, out int lastRow, out int lastColumn);
         foreach (ExcelMergedRangeInfo merge in sheet.GetMergedRanges(budget.Limits.MaxTableCells)) {
             lastRow = Math.Max(lastRow, merge.EndRow);
             lastColumn = Math.Max(lastColumn, merge.EndColumn);
@@ -23,9 +23,9 @@ public static partial class HtmlExcelConverterExtensions {
         int captionRow = lastRow + 2;
         if (!TrySetCellTextValue(sheet, captionRow, 1, table.Caption, result, budget)) return;
         result.Cells++;
-        if (lastColumn > 1) sheet.MergeRange(BuildCellReference(captionRow, 1) + ":" + BuildCellReference(captionRow, lastColumn));
-        sheet.CellAt(captionRow, 1).SetBold();
-        sheet.CellWrapText(captionRow, 1);
+        if (lastColumn > 1) sheet.Range(BuildCellReference(captionRow, 1) + ":" + BuildCellReference(captionRow, lastColumn)).Merge();
+        sheet.Cell(captionRow, 1).SetBold();
+        sheet.Cell(captionRow, 1).SetWrapText();
         sheet.AutoFitRow(captionRow);
 
         HtmlSemanticRun[] textRuns = table.CaptionRuns
@@ -93,7 +93,9 @@ public static partial class HtmlExcelConverterExtensions {
             sheet.SetColumnWidths(fittedWidths);
         }
 
-        sheet.CellWrapTextFor(importedCells.Select(cell => (cell.Row, cell.Column)));
+        sheet.Batch(batch => {
+            foreach (ExcelCellValueInfo cell in importedCells) batch.Cell(cell.Row, cell.Column).SetWrapText();
+        });
         sheet.AutoFitRows();
     }
 

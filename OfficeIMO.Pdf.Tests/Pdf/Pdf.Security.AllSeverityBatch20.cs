@@ -32,8 +32,7 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
     public void ExplicitConfiguredMonospaceSlotRemainsReserved() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Courier,
-            HeaderFont = PdfStandardFont.Courier,
-            FooterFont = PdfStandardFont.Courier
+            PageSetup = { Header = { StandardFont = PdfStandardFont.Courier }, Footer = { StandardFont = PdfStandardFont.Courier } }
         };
 
         options.UseTextFallbacks(
@@ -61,8 +60,7 @@ public sealed class PdfAllSeverityBatch20SecurityTests {
     public void ExplicitConfiguredDocumentSlotRemainsReserved() {
         var options = new PdfCreateOptions {
             DefaultFont = PdfStandardFont.Helvetica,
-            HeaderFont = PdfStandardFont.Helvetica,
-            FooterFont = PdfStandardFont.Helvetica
+            PageSetup = { Header = { StandardFont = PdfStandardFont.Helvetica }, Footer = { StandardFont = PdfStandardFont.Helvetica } }
         };
 
         options.UseTextFallbacks(

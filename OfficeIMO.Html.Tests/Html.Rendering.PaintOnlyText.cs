@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
                 new HtmlRenderPage(1, 400D, 400D, projector.Project(new[] { visual }, 0D, 0D, 400D, 400D, 0D, 0D)),
                 new HtmlRenderPage(2, 400D, 400D, projector.Project(new[] { visual }, 0D, 400D, 400D, 400D, 0D, 0D))
             }, new HtmlDiagnosticReport());
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic()
         };
 

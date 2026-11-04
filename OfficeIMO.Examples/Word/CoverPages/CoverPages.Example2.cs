@@ -13,8 +13,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
 
-                document.BuiltinDocumentProperties.Title = "Cover Page Templates";
-                document.BuiltinDocumentProperties.Subject = "How to use Cover Pages with TOC";
+                document.Properties.Title = "Cover Page Templates";
+                document.Properties.Subject = "How to use Cover Pages with TOC";
 
                 document.Settings.UpdateFieldsOnOpen = true;
 

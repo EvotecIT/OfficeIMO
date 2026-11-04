@@ -7,7 +7,11 @@ public sealed partial class ExcelWorkbookDataReader {
     private DbDataReader? _activeReader;
     // Metadata remains available without opening a worksheet or decoding shared strings.
     private DbDataReader CurrentReader {
-        get => GetCurrentReader(_cancellationToken);
+        get {
+            ThrowIfClosed();
+            _cancellationToken.ThrowIfCancellationRequested();
+            return _activeReader ?? GetCurrentReader(_cancellationToken);
+        }
         set => _activeReader = value;
     }
 

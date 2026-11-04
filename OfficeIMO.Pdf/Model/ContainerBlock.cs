@@ -64,7 +64,6 @@ internal sealed class ContainerBlock : IPdfBlock {
         innerStyle.SpacingBefore = innerStyle.SpacingAfter = global::OfficeIMO.OfficeLength.Zero;
         innerStyle.KeepTogether = innerStyle.KeepWithNext = false;
         FrameTable = new TableBlock(table.Cells.Select(row => row.ToArray()), table.Align, innerStyle);
-        foreach (var link in table.Links) FrameTable.AddLink(link.Key, link.Value);
         Blocks = new[] { FrameTable };
     }
 }

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Markdown_NestedEmphasis_BoldItalic() {
             string md = "This ***bolditalic*** text.";
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
             var run = doc.Paragraphs[0].GetRuns().First(r => r.Bold && r.Italic);
             Assert.Equal("bolditalic", run.Text);
         }
@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Markdown_MixedFormatting_StrikeBoldItalic() {
             string md = "Text ~~**bold strike**~~ and ***bold italic***.";
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
             // Validate via round-trip because the engine preserves inner markers inside strike
             string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true }).ToMarkdown();
             Assert.True(
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Markdown_NestedFormatting_StrikeUnderline_RoundTrip() {
             string md = "Text ~~<u>strike underline</u>~~ and <u>~~underline strike~~</u>.";
-            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new WordMarkdownImportOptions());
+            var doc = OfficeIMO.Markdown.MarkdownDocument.Parse(md).ToWord(new MarkdownWordExportOptions());
             // Run-level nesting varies; validate round-trip Markdown output instead
             string roundTrip = doc.ToMarkdown(new WordMarkdownExportOptions { EnableUnderline = true }).ToMarkdown();
             Assert.Contains("~~<u>strike underline</u>~~", roundTrip);

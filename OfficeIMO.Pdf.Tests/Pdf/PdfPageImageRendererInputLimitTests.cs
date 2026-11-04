@@ -52,7 +52,7 @@ public class PdfPageImageRendererInputLimitTests {
     [Fact]
     public void PageRenderStreamEntrypointsContinueFromCallerPosition() {
         byte[] source = PdfDocument.Create()
-            .Paragraph(paragraph => paragraph.Text("render source"))
+            .Paragraph(paragraph => paragraph.AddText("render source"))
             .ToBytes();
 
         using (var input = CreatePrefixedStream(source)) {

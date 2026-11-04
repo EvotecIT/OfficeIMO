@@ -19,10 +19,10 @@ public sealed class VisioGeometrySectionContractTests {
         string[] kinds = { "Rectangle", "Ellipse", "Diamond", "Triangle", "Pentagon", "Parallelogram", "Hexagon", "Trapezoid", "Off-page reference" };
         VisioDocument document = VisioDocument.Create();
         document.UseMastersByDefault = masters;
-        VisioPage page = document.AddPage("Generated").Size(4, 3);
+        VisioPage page = document.AddPage("Generated").Size(OfficeLength.Inches(4), OfficeLength.Inches(3));
         foreach (string kind in kinds) {
-            if (masters) document.RegisterMaster(kind, new VisioShape("blueprint", 1, 1, 2, 1, string.Empty));
-            page.Shapes.Add(new VisioShape(kind, 2, 1.5, 2, 1, string.Empty) { NameU = kind });
+            if (masters) document.RegisterMaster(kind, new VisioShape("blueprint", OfficeLength.Inches(1), OfficeLength.Inches(1), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty));
+            page.Shapes.Add(new VisioShape(kind, OfficeLength.Inches(2), OfficeLength.Inches(1.5), OfficeLength.Inches(2), OfficeLength.Inches(1), string.Empty) { NameU = kind });
         }
 
         XElement[] sections = GetGeometry(document.ToBytes(), masters ? "visio/masters/" : "visio/pages/");
@@ -41,7 +41,7 @@ public sealed class VisioGeometrySectionContractTests {
     public void GeneratedConnectorGeometryUsesSectionFlagsAndStableIndexedRouteRows() {
         VisioDocument document = VisioDocument.Create();
         document.UseMastersByDefault = false;
-        VisioPage page = document.AddPage("Routes").Size(4, 3);
+        VisioPage page = document.AddPage("Routes").Size(OfficeLength.Inches(4), OfficeLength.Inches(3));
         foreach (ConnectorKind kind in new[] { ConnectorKind.Straight, ConnectorKind.RightAngle, ConnectorKind.Dynamic }) {
             VisioConnector connector = page.AddConnector(kind.ToString(), new OfficePoint(.5, .5), new OfficePoint(3.5, 2.5), kind);
             if (kind == ConnectorKind.RightAngle) connector.Waypoints.Add(new VisioConnectorWaypoint(.5, 2.5));

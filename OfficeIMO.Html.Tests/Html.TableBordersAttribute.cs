@@ -12,17 +12,17 @@ namespace OfficeIMO.Tests {
             using WordDocument doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWord();
             var table = doc.Tables[0];
 
-            var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
+            var (style, size, color) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(WordBorderStyle.Single, style);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(1.5), size);
-            Assert.Equal("000000", colorHex);
+            Assert.Equal(OfficeColor.Parse("000000"), color);
 
             Assert.Contains("A1", string.Join(string.Empty, table.Rows[0].Cells[0].Paragraphs.ConvertAll(p => p.Text)));
             Assert.Contains("B1", string.Join(string.Empty, table.Rows[0].Cells[1].Paragraphs.ConvertAll(p => p.Text)));
 
             var cell = table.Rows[0].Cells[1];
             Assert.Equal(WordBorderStyle.Single, cell.Borders.TopStyle);
-            Assert.Equal("FF0000", cell.Borders.TopColorHex);
+            Assert.Equal(OfficeColor.Parse("FF0000"), cell.Borders.TopColor);
             Assert.Equal(global::OfficeIMO.OfficeLength.Points(0.75), cell.Borders.TopSize);
         }
     }

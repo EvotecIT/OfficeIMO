@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
 using System.Security;
 using System.Threading;
 using System.Threading.Tasks;
@@ -146,7 +145,7 @@ public abstract class OfficeDocumentImageCmdlet : AsyncPSCmdlet {
                 throw new PSArgumentException("The native HTML exporter does not support this image encoding.");
         }
         if (hasPassword && Password != null) {
-            string password = new NetworkCredential(string.Empty, Password).Password;
+            string password = Password.ToPlainText()!;
             options.WordLoad.Password = password; options.ExcelLoad.Password = password;
             options.PowerPointLoad.Password = password; options.PdfLoad = options.PdfLoad.Clone(maximumInputBytes: null, passwordOverride: password);
         }

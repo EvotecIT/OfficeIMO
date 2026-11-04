@@ -35,7 +35,7 @@ public sealed class RtfPdfFontWarningTests {
         Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
         Assert.False(warning.Details.ContainsKey("plannedSubstitution"));
         Assert.True(result.HasLoss);
-        Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
+        Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
         Assert.Equal(originalSource, document.ToBytes());
         AssertCallerOptionsUnchanged(originalOptions, caller);
     }
@@ -57,7 +57,8 @@ public sealed class RtfPdfFontWarningTests {
 
         Assert.DoesNotContain(result.Warnings, warning => warning.Code == "FontFamilySubstituted");
         Assert.False(result.HasLoss);
-        Assert.Same(result.Value, result.RequireNoLoss());
+        result.ThrowIfLoss();
+        Assert.Same(result.Value, result.Value);
         Assert.Equal(originalSource, document.ToBytes());
         AssertCallerOptionsUnchanged(originalOptions, caller);
     }
@@ -83,7 +84,8 @@ public sealed class RtfPdfFontWarningTests {
         Assert.Equal(PdfCore.PdfConversionWarningSeverity.Information, warning.Severity);
         Assert.Equal(OfficeConversionLossKind.None, warning.LossKind);
         Assert.False(result.HasLoss);
-        Assert.Same(result.Value, result.RequireNoLoss());
+        result.ThrowIfLoss();
+        Assert.Same(result.Value, result.Value);
         Assert.Equal(originalSource, document.ToBytes());
         AssertCallerOptionsUnchanged(originalOptions, caller);
     }
@@ -103,7 +105,7 @@ public sealed class RtfPdfFontWarningTests {
     private static PdfCore.PdfEmbeddedFontFamily CreateFamily(string family, ushort advance) =>
         new PdfCore.PdfEmbeddedFontFamily(family, CreateFont(advance));
 
-    private static RtfToPdfOptions ConvertOptions(PdfCore.PdfCreateOptions caller) => new RtfToPdfOptions {
+    private static RtfPdfExportOptions ConvertOptions(PdfCore.PdfCreateOptions caller) => new RtfPdfExportOptions {
         PdfOptions = caller,
         ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
         TextFallbacks = PdfCore.PdfTextFallbackFeatures.None

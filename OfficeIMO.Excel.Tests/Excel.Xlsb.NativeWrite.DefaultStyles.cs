@@ -16,9 +16,9 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             if (multipleSheets) {
-                sheet.CellValue(1, 1, "Text");
-                sheet.CellValue(2, 1, "value");
-                document.AddSheet("Other").CellValue(1, 1, "other");
+                sheet.Cell(1, 1).SetValue("Text");
+                sheet.Cell(2, 1).SetValue("value");
+                document.AddSheet("Other").Cell(1, 1).SetValue("other");
             } else {
                 sheet.WriteData(new[] { "value" }, includeHeaders: true, row: 1, ("Text", static value => value));
             }

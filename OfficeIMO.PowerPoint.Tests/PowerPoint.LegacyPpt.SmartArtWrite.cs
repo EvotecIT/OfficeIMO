@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument projected = PowerPointDocument.Load(
                 input);
             Assert.Empty(projected.Slides[0].SmartArts);
-            Assert.Single(projected.Slides[0].Pictures);
+            Assert.Single(projected.Slides[0].Images);
             Assert.Empty(projected.ValidateDocument());
             Assert.True(projected.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(bytes, projected.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt }));

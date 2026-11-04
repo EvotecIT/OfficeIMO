@@ -20,7 +20,7 @@ public sealed class XpsSearchablePdfTests {
         page.ReplaceMarkup(xml);
         var spans = page.ToSvg().TextSpans;
         Assert.Equal(new[] { "fi ", "A", "😀" }, spans.Select(s => s.Text));
-        var bytes = doc.ToPdf();
+        var bytes = doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         var pdf = PdfDocument.Load(new System.IO.MemoryStream(bytes));
         Assert.Equal("fi A😀", pdf.ExtractText().Trim());
         var expected = OfficeDrawingRasterRenderer.Render(page.ToDrawing());
@@ -45,7 +45,7 @@ public sealed class XpsSearchablePdfTests {
         var matrix = new OfficeTransform(1, .2, .3, 1, 5, 6).Then(new OfficeTransform(0, 1, -1, 0, 140, 10));
         Assert.Equal(matrix.TransformPoint(original.TopLeft), transformed.TopLeft);
         Assert.Equal(matrix.TransformPoint(original.BottomRight), transformed.BottomRight);
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Equal("A", pdf.ExtractText().Trim());
     }
 
@@ -66,7 +66,7 @@ public sealed class XpsSearchablePdfTests {
         run.SetAttributeValue("Indices", "36,100;36,100,0,25"); page.ReplaceMarkup(xml);
         spans = page.ToSvg().TextSpans;
         Assert.Equal(spans[0].TopLeft.Y - 6, spans[1].TopLeft.Y, 8);
-        Assert.Equal("AA", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Replace("\n", "").Trim());
+        Assert.Equal("AA", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText().Replace("\n", "").Trim());
     }
 
     [Theory]
@@ -90,7 +90,7 @@ public sealed class XpsSearchablePdfTests {
         run.SetAttributeValue("RenderTransform", "1,0.2,0.3,1,5,6"); page.ReplaceMarkup(xml);
         spans = page.ToSvg().TextSpans;
         for (int i = 1; i < spans.Count; i++) Assert.Equal(spans[i - 1].BottomRight, spans[i].BottomLeft);
-        Assert.Equal("AAA", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Trim());
+        Assert.Equal("AAA", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText().Trim());
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class XpsSearchablePdfTests {
         Assert.True(spans[0].BottomRight.X < spans[0].BottomLeft.X);
         Assert.True(spans[1].BottomRight.X < spans[1].BottomLeft.X);
         Assert.True(spans[1].TopLeft.X < spans[0].TopLeft.X);
-        Assert.NotEmpty(page.Document.ToPdf());
+        Assert.NotEmpty(page.Document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public sealed class XpsSearchablePdfTests {
                 new XElement(ns + "VisualBrush.Visual", run)))));
         page.ReplaceMarkup(xml);
         Assert.Empty(page.ToSvg().TextSpans);
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())); Assert.Equal("", pdf.ExtractText().Trim());
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))); Assert.Equal("", pdf.ExtractText().Trim());
     }
 
     [Fact]
@@ -137,10 +137,10 @@ public sealed class XpsSearchablePdfTests {
     public void SourceTextSurvivesClippingButGlyphOnlyRunsDoNotInventUnicode() {
         var doc = Create(XpsFormat.Xps); var page = doc.Pages[0]; var xml = page.GetMarkup(); var run = xml.Elements().Single();
         run.SetAttributeValue("Clip", "M0,0H1V1H0Z"); run.SetAttributeValue("Opacity", "0"); page.ReplaceMarkup(xml);
-        Assert.Equal("Hello", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Trim());
+        Assert.Equal("Hello", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText().Trim());
         run.Attribute("UnicodeString")!.Remove(); run.SetAttributeValue("Indices", "36,100"); page.ReplaceMarkup(xml);
         Assert.Empty(page.ToSvg().TextSpans);
-        Assert.Equal("", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf())).ExtractText().Trim());
+        Assert.Equal("", PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }))).ExtractText().Trim());
     }
 
     [Theory]
@@ -150,13 +150,13 @@ public sealed class XpsSearchablePdfTests {
         var page = Create(XpsFormat.Xps).Pages[0]; var xml = page.GetMarkup();
         xml.Elements().Single().SetAttributeValue("UnicodeString", text); page.ReplaceMarkup(xml);
         Assert.Equal(text, string.Concat(page.ToSvg().TextSpans.Select(s => s.Text)));
-        Assert.NotEmpty(page.Document.ToPdf());
+        Assert.NotEmpty(page.Document.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }));
     }
 
     [Fact]
     public void BlankPagesRetainTheirSequenceAndSizes() {
         var doc = XpsDocument.Create(); doc.AddPage(100, 200); doc.AddPage(300, 400);
-        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf()));
+        var pdf = PdfDocument.Load(new System.IO.MemoryStream(doc.ToPdf().ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true })));
         Assert.Equal(2, pdf.Pages.Count);
         Assert.Equal((75D, 150D), pdf.Pages[0].GetPageSize());
         Assert.Equal((225D, 300D), pdf.Pages[1].GetPageSize());

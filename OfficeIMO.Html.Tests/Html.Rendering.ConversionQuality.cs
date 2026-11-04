@@ -72,11 +72,11 @@ public sealed partial class HtmlRenderingTests {
                 BaseUri = new Uri(directory + Path.DirectorySeparatorChar)
             });
 
-            var trusted = new HtmlToPdfOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost() };
+            var trusted = new HtmlPdfExportOptions { ResourcePolicy = PdfCore.PdfResourcePolicy.CreateTrustedHost() };
             byte[] pdf = document.ToPdf(trusted).ToBytes();
             Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
 
-            byte[] untrusted = document.ToPdf(new HtmlToPdfOptions()).ToBytes();
+            byte[] untrusted = document.ToPdf(new HtmlPdfExportOptions()).ToBytes();
             Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(untrusted));
         } finally {
             Directory.Delete(directory, recursive: true);

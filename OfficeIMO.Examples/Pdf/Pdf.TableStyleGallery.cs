@@ -13,13 +13,12 @@ namespace OfficeIMO.Examples.Pdf {
             };
 
             PdfDocument doc = PdfDocument.Create(pdf => pdf.Content(content => content
-                .H1("Table Style Gallery", PdfAlign.Left)
-                .Paragraph(p => p.Text("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
-                    HeaderFormat = "OfficeIMO.Pdf Word-like table styles",
-                    HeaderAlign = PdfAlign.Left,
-                    ShowHeader = true,
-                    FooterAlign = PdfAlign.Right,
-                    ShowPageNumbers = true
+                .H1("Table Style Gallery", OfficeAlignment.Left)
+                .AddParagraph(p => p.AddText("Generic Word-style table names rendered by OfficeIMO.Pdf without invoice or report-specific behavior."))), new PdfCreateOptions {
+                    PageSetup = {
+                        Header = { Format = "OfficeIMO.Pdf Word-like table styles", Alignment = OfficeAlignment.Left, Show = true },
+                        Footer = { Alignment = OfficeAlignment.Right, Show = true }
+                    }
                 })
                 .Meta(title: "OfficeIMO.Pdf Table Style Gallery", author: "OfficeIMO");
 
@@ -33,13 +32,13 @@ namespace OfficeIMO.Examples.Pdf {
                 style.SpacingAfter = OfficeLength.Points(6);
                 style.ColumnWidthWeights = new List<double> { 76, 70, 300 };
                 style.AutoFitColumns = false;
-                style.Alignments = new List<PdfColumnAlign> {
-                    PdfColumnAlign.Left,
-                    PdfColumnAlign.Center,
-                    PdfColumnAlign.Left
+                style.Alignments = new List<OfficeAlignment> {
+                    OfficeAlignment.Left,
+                    OfficeAlignment.Center,
+                    OfficeAlignment.Left
                 };
 
-                doc.Compose(pdf => pdf.Content(content => content.Table(rows, PdfAlign.Left, style)));
+                doc.Compose(pdf => pdf.Content(content => content.AddTable(rows, OfficeAlignment.Left, style)));
             }
 
             doc.Save(path);

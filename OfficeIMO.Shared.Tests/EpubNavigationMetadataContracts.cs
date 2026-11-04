@@ -134,19 +134,19 @@ public sealed class EpubNavigationMetadataContractTests {
 
         EpubDocument metadataLimited = EpubDocument.Load(
             new MemoryStream(package, writable: false),
-            new EpubReadOptions { MaxMetadataItems = 2 });
+            new EpubLoadOptions { MaxMetadataItems = 2 });
         Assert.Equal(2, metadataLimited.Metadata.Count);
         Assert.Contains(metadataLimited.Diagnostics, item => item.Code == "epub.metadata.count-limit");
 
         EpubDocument countLimited = EpubDocument.Load(
             new MemoryStream(package, writable: false),
-            new EpubReadOptions { MaxNavigationItems = 3 });
+            new EpubLoadOptions { MaxNavigationItems = 3 });
         Assert.Equal(3, CountNavigationItems(countLimited));
         Assert.Contains(countLimited.Diagnostics, item => item.Code == "epub.navigation.item-count-limit");
 
         EpubDocument depthLimited = EpubDocument.Load(
             new MemoryStream(package, writable: false),
-            new EpubReadOptions { MaxNavigationDepth = 1 });
+            new EpubLoadOptions { MaxNavigationDepth = 1 });
         Assert.Empty(depthLimited.TableOfContents[0].Children);
         Assert.Contains(depthLimited.Diagnostics, item => item.Code == "epub.navigation.depth-limit");
     }

@@ -95,7 +95,7 @@ internal sealed class IWorkTableRichTextCatalog {
         message = null;
         try {
             // Count first so configured field limits remain fatal even when the record is malformed.
-            IWorkProtobuf.CountFields(record.Payload, 1, options.MaximumProtobufFieldCount);
+            IWorkProtobuf.CountFields(record.Payload, 1, options.MaxProtobufFieldCount);
             message = index.Message(record);
             cache.Add(record.Identifier, message);
             return true;

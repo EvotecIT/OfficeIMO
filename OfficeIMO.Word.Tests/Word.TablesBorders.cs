@@ -20,8 +20,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.LeftSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -37,8 +37,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.RightStyle = WordBorderStyle.Double;
-                wordTable.Rows[1].Cells[1].Borders.RightColorHex = OfficeIMO.OfficeColor.Blue.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.RightColor = OfficeIMO.OfficeColor.Blue;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == OfficeIMO.OfficeColor.Blue);
                 wordTable.Rows[1].Cells[1].Borders.RightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
                 wordTable.Rows[1].Cells[1].Borders.RightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -52,8 +52,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.CirclesRectangles;
-                wordTable.Rows[1].Cells[1].Borders.TopColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.75);
                 wordTable.Rows[1].Cells[1].Borders.TopSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -66,8 +66,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.BottomStyle = WordBorderStyle.Safari;
-                wordTable.Rows[1].Cells[1].Borders.BottomColorHex = OfficeIMO.OfficeColor.Azure.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColorHex == OfficeIMO.OfficeColor.Azure.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.BottomColor = OfficeIMO.OfficeColor.Azure;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == OfficeIMO.OfficeColor.Azure);
                 wordTable.Rows[1].Cells[1].Borders.BottomColor = Color.Cyan;
                 wordTable.Rows[1].Cells[1].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
                 wordTable.Rows[1].Cells[1].Borders.BottomSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(5), wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
-                wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.OfficeColor.Orange.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColorHex == OfficeIMO.OfficeColor.Orange.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.StartColor = OfficeIMO.OfficeColor.Orange;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == OfficeIMO.OfficeColor.Orange);
                 wordTable.Rows[1].Cells[1].Borders.StartColor = Color.Yellow;
                 wordTable.Rows[1].Cells[1].Borders.StartSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.StartSpace = global::OfficeIMO.OfficeLength.Points(10);
@@ -90,8 +90,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(10), wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.EndColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.EndColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.EndSize = global::OfficeIMO.OfficeLength.Points(3);
                 //wordTable.Rows[1].Cells[1].Borders.EndSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -103,8 +103,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -116,8 +116,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = Color.Aqua;
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(2);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace = global::OfficeIMO.OfficeLength.Points(1);
@@ -137,8 +137,8 @@ namespace OfficeIMO.Tests {
                 var wordTable = document.Tables[0];
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.LeftSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -154,8 +154,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.RightStyle = WordBorderStyle.Double;
-                wordTable.Rows[1].Cells[1].Borders.RightColorHex = OfficeIMO.OfficeColor.Blue.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.RightColor = OfficeIMO.OfficeColor.Blue;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == OfficeIMO.OfficeColor.Blue);
                 wordTable.Rows[1].Cells[1].Borders.RightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
                 wordTable.Rows[1].Cells[1].Borders.RightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -169,8 +169,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.CirclesRectangles;
-                wordTable.Rows[1].Cells[1].Borders.TopColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.75);
                 wordTable.Rows[1].Cells[1].Borders.TopSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -183,8 +183,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.BottomStyle = WordBorderStyle.Safari;
-                wordTable.Rows[1].Cells[1].Borders.BottomColorHex = OfficeIMO.OfficeColor.Azure.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColorHex == OfficeIMO.OfficeColor.Azure.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.BottomColor = OfficeIMO.OfficeColor.Azure;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == OfficeIMO.OfficeColor.Azure);
                 wordTable.Rows[1].Cells[1].Borders.BottomColor = Color.Cyan;
                 wordTable.Rows[1].Cells[1].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
                 wordTable.Rows[1].Cells[1].Borders.BottomSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -195,8 +195,8 @@ namespace OfficeIMO.Tests {
                   Assert.Equal(global::OfficeIMO.OfficeLength.Points(5), wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
-                wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.OfficeColor.Orange.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColorHex == OfficeIMO.OfficeColor.Orange.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.StartColor = OfficeIMO.OfficeColor.Orange;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == OfficeIMO.OfficeColor.Orange);
                 wordTable.Rows[1].Cells[1].Borders.StartColor = Color.Yellow;
                 wordTable.Rows[1].Cells[1].Borders.StartSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.StartSpace = global::OfficeIMO.OfficeLength.Points(10);
@@ -207,8 +207,8 @@ namespace OfficeIMO.Tests {
                   Assert.Equal(global::OfficeIMO.OfficeLength.Points(10), wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.EndColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.EndColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.EndSize = global::OfficeIMO.OfficeLength.Points(3);
                 //wordTable.Rows[1].Cells[1].Borders.EndSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -220,8 +220,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -233,8 +233,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = Color.Aqua;
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(2);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace = global::OfficeIMO.OfficeLength.Points(1);
@@ -252,8 +252,8 @@ namespace OfficeIMO.Tests {
                 var wordTable = document.Tables[0];
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.LeftSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -269,8 +269,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.RightStyle = WordBorderStyle.Double;
-                wordTable.Rows[1].Cells[1].Borders.RightColorHex = OfficeIMO.OfficeColor.Blue.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.RightColor = OfficeIMO.OfficeColor.Blue;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == OfficeIMO.OfficeColor.Blue);
                 wordTable.Rows[1].Cells[1].Borders.RightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
                 wordTable.Rows[1].Cells[1].Borders.RightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -284,8 +284,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.CirclesRectangles;
-                wordTable.Rows[1].Cells[1].Borders.TopColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.75);
                 wordTable.Rows[1].Cells[1].Borders.TopSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -298,8 +298,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.BottomStyle = WordBorderStyle.Safari;
-                wordTable.Rows[1].Cells[1].Borders.BottomColorHex = OfficeIMO.OfficeColor.Azure.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColorHex == OfficeIMO.OfficeColor.Azure.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.BottomColor = OfficeIMO.OfficeColor.Azure;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == OfficeIMO.OfficeColor.Azure);
                 wordTable.Rows[1].Cells[1].Borders.BottomColor = Color.Cyan;
                 wordTable.Rows[1].Cells[1].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
                 wordTable.Rows[1].Cells[1].Borders.BottomSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -310,8 +310,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(5), wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
-                wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.OfficeColor.Orange.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColorHex == OfficeIMO.OfficeColor.Orange.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.StartColor = OfficeIMO.OfficeColor.Orange;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == OfficeIMO.OfficeColor.Orange);
                 wordTable.Rows[1].Cells[1].Borders.StartColor = Color.Yellow;
                 wordTable.Rows[1].Cells[1].Borders.StartSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.StartSpace = global::OfficeIMO.OfficeLength.Points(10);
@@ -322,8 +322,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(10), wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.EndColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.EndColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.EndSize = global::OfficeIMO.OfficeLength.Points(3);
                 //wordTable.Rows[1].Cells[1].Borders.EndSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -335,8 +335,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -348,8 +348,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = Color.Aqua;
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(2);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace = global::OfficeIMO.OfficeLength.Points(1);
@@ -360,8 +360,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(1), wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle = WordBorderStyle.DecoBlocks;
-                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex = OfficeIMO.OfficeColor.YellowGreen.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex == OfficeIMO.OfficeColor.YellowGreen.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor = OfficeIMO.OfficeColor.YellowGreen;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor == OfficeIMO.OfficeColor.YellowGreen);
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor = Color.DarkSlateBlue;
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize = global::OfficeIMO.OfficeLength.Points(1.875);
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace = global::OfficeIMO.OfficeLength.Points(3);
@@ -372,8 +372,8 @@ namespace OfficeIMO.Tests {
                   Assert.Equal(global::OfficeIMO.OfficeLength.Points(3), wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle = WordBorderStyle.DecoBlocks;
-                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex = OfficeIMO.OfficeColor.YellowGreen.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex == OfficeIMO.OfficeColor.YellowGreen.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor = OfficeIMO.OfficeColor.YellowGreen;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor == OfficeIMO.OfficeColor.YellowGreen);
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor = Color.DarkSlateBlue;
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize = global::OfficeIMO.OfficeLength.Points(1.875);
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace = global::OfficeIMO.OfficeLength.Points(3);
@@ -395,8 +395,8 @@ namespace OfficeIMO.Tests {
                 var wordTable = document.Tables[0];
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.LeftSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -412,8 +412,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.RightStyle = WordBorderStyle.Double;
-                wordTable.Rows[1].Cells[1].Borders.RightColorHex = OfficeIMO.OfficeColor.Blue.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.RightColor = OfficeIMO.OfficeColor.Blue;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == OfficeIMO.OfficeColor.Blue);
                 wordTable.Rows[1].Cells[1].Borders.RightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
                 wordTable.Rows[1].Cells[1].Borders.RightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -427,8 +427,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.CirclesRectangles;
-                wordTable.Rows[1].Cells[1].Borders.TopColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.75);
                 wordTable.Rows[1].Cells[1].Borders.TopSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -441,8 +441,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.BottomStyle = WordBorderStyle.Safari;
-                wordTable.Rows[1].Cells[1].Borders.BottomColorHex = OfficeIMO.OfficeColor.Azure.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColorHex == OfficeIMO.OfficeColor.Azure.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.BottomColor = OfficeIMO.OfficeColor.Azure;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == OfficeIMO.OfficeColor.Azure);
                 wordTable.Rows[1].Cells[1].Borders.BottomColor = Color.Cyan;
                 wordTable.Rows[1].Cells[1].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
                 wordTable.Rows[1].Cells[1].Borders.BottomSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -453,8 +453,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(5), wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
-                wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.OfficeColor.Orange.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColorHex == OfficeIMO.OfficeColor.Orange.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.StartColor = OfficeIMO.OfficeColor.Orange;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == OfficeIMO.OfficeColor.Orange);
                 wordTable.Rows[1].Cells[1].Borders.StartColor = Color.Yellow;
                 wordTable.Rows[1].Cells[1].Borders.StartSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.StartSpace = global::OfficeIMO.OfficeLength.Points(10);
@@ -465,8 +465,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(10), wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.EndColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.EndColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.EndSize = global::OfficeIMO.OfficeLength.Points(3);
                 //wordTable.Rows[1].Cells[1].Borders.EndSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -478,8 +478,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -491,8 +491,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = Color.Aqua;
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(2);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace = global::OfficeIMO.OfficeLength.Points(1);
@@ -509,8 +509,8 @@ namespace OfficeIMO.Tests {
                 var wordTable = document.Tables[0];
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.LeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.LeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.LeftColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.LeftSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.LeftSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -526,8 +526,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.RightStyle = WordBorderStyle.Double;
-                wordTable.Rows[1].Cells[1].Borders.RightColorHex = OfficeIMO.OfficeColor.Blue.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColorHex == OfficeIMO.OfficeColor.Blue.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.RightColor = OfficeIMO.OfficeColor.Blue;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.RightColor == OfficeIMO.OfficeColor.Blue);
                 wordTable.Rows[1].Cells[1].Borders.RightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.RightSize = global::OfficeIMO.OfficeLength.Points(0.5);
                 wordTable.Rows[1].Cells[1].Borders.RightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -541,8 +541,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopStyle = WordBorderStyle.CirclesRectangles;
-                wordTable.Rows[1].Cells[1].Borders.TopColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopSize = global::OfficeIMO.OfficeLength.Points(0.75);
                 wordTable.Rows[1].Cells[1].Borders.TopSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -555,8 +555,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.BottomStyle = WordBorderStyle.Safari;
-                wordTable.Rows[1].Cells[1].Borders.BottomColorHex = OfficeIMO.OfficeColor.Azure.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColorHex == OfficeIMO.OfficeColor.Azure.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.BottomColor = OfficeIMO.OfficeColor.Azure;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.BottomColor == OfficeIMO.OfficeColor.Azure);
                 wordTable.Rows[1].Cells[1].Borders.BottomColor = Color.Cyan;
                 wordTable.Rows[1].Cells[1].Borders.BottomSize = global::OfficeIMO.OfficeLength.Points(1);
                 wordTable.Rows[1].Cells[1].Borders.BottomSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -567,8 +567,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(5), wordTable.Rows[1].Cells[1].Borders.BottomSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.StartStyle = WordBorderStyle.DashSmallGap;
-                wordTable.Rows[1].Cells[1].Borders.StartColorHex = OfficeIMO.OfficeColor.Orange.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColorHex == OfficeIMO.OfficeColor.Orange.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.StartColor = OfficeIMO.OfficeColor.Orange;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.StartColor == OfficeIMO.OfficeColor.Orange);
                 wordTable.Rows[1].Cells[1].Borders.StartColor = Color.Yellow;
                 wordTable.Rows[1].Cells[1].Borders.StartSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.StartSpace = global::OfficeIMO.OfficeLength.Points(10);
@@ -579,8 +579,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(10), wordTable.Rows[1].Cells[1].Borders.StartSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.EndStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.EndColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.EndColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.EndColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.EndColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.EndSize = global::OfficeIMO.OfficeLength.Points(3);
                 //wordTable.Rows[1].Cells[1].Borders.EndSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -592,8 +592,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightColor = Color.Gold;
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSize = global::OfficeIMO.OfficeLength.Points(3);
                 wordTable.Rows[1].Cells[1].Borders.TopLeftToBottomRightSpace = global::OfficeIMO.OfficeLength.Points(5);
@@ -605,8 +605,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftStyle = WordBorderStyle.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex = OfficeIMO.OfficeColor.OrangeRed.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColorHex == OfficeIMO.OfficeColor.OrangeRed.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = OfficeIMO.OfficeColor.OrangeRed;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor == OfficeIMO.OfficeColor.OrangeRed);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftColor = Color.Aqua;
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSize = global::OfficeIMO.OfficeLength.Points(2);
                 wordTable.Rows[1].Cells[1].Borders.TopRightToBottomLeftSpace = global::OfficeIMO.OfficeLength.Points(1);
@@ -618,8 +618,8 @@ namespace OfficeIMO.Tests {
 
 
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalStyle = WordBorderStyle.DecoBlocks;
-                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex = OfficeIMO.OfficeColor.YellowGreen.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColorHex == OfficeIMO.OfficeColor.YellowGreen.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor = OfficeIMO.OfficeColor.YellowGreen;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor == OfficeIMO.OfficeColor.YellowGreen);
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalColor = Color.DarkSlateBlue;
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalSize = global::OfficeIMO.OfficeLength.Points(1.875);
                 wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace = global::OfficeIMO.OfficeLength.Points(3);
@@ -630,8 +630,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(global::OfficeIMO.OfficeLength.Points(3), wordTable.Rows[1].Cells[1].Borders.InsideVerticalSpace);
 
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalStyle = WordBorderStyle.DecoBlocks;
-                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex = OfficeIMO.OfficeColor.YellowGreen.ToRgbHex();
-                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColorHex == OfficeIMO.OfficeColor.YellowGreen.ToRgbHex());
+                wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor = OfficeIMO.OfficeColor.YellowGreen;
+                Assert.True(wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor == OfficeIMO.OfficeColor.YellowGreen);
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalColor = Color.DarkSlateBlue;
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSize = global::OfficeIMO.OfficeLength.Points(1.875);
                 wordTable.Rows[1].Cells[1].Borders.InsideHorizontalSpace = global::OfficeIMO.OfficeLength.Points(3);

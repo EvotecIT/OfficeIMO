@@ -72,7 +72,7 @@ public static partial class HtmlResourcePipeline {
         if (!baseUri.IsAbsoluteUri) throw new ArgumentException("The stylesheet base URI must be absolute.", nameof(baseUri));
 
         HtmlResourcePipelineOptions resolved = options ?? new HtmlResourcePipelineOptions();
-        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.CreateUntrustedProfile();
+        HtmlConversionLimits limits = resolved.Limits ?? HtmlConversionLimits.UntrustedDefaults;
         limits.Validate();
         new HtmlCssByteBudget(limits).ReserveOrThrow(css);
         HtmlExternalStylesheetAnalysis analysis = AnalyzeExternalStylesheet(css, baseUri, resolved);

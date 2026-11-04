@@ -41,17 +41,17 @@ internal static class PdfRuntimeCorpus {
             for (int page = 1; page <= pages; page++) {
                 int number = page;
                 compose.Page(layout => layout.Size(global::OfficeIMO.OfficeLength.Points(PageWidth), global::OfficeIMO.OfficeLength.Points(PageHeight)).Content(content => {
-                    content.Paragraph(text => text.Text(Title(number)))
-                        .Paragraph(text => text.Text(Neighbor(number)))
-                        .Paragraph(text => text.Text(Target(number)));
-                    if (!textOnly) content.Table(new[] {
+                    content.AddParagraph(text => text.AddText(Title(number)))
+                        .AddParagraph(text => text.AddText(Neighbor(number)))
+                        .AddParagraph(text => text.AddText(Target(number)));
+                    if (!textOnly) content.AddTable(new[] {
                         new[] { "Metric", "Value", "Status" },
                         new[] { "Documents", (number * 37).ToString(CultureInfo.InvariantCulture), "Healthy" },
                         new[] { "Amount", (number * 101.25D).ToString("0.00", CultureInfo.InvariantCulture), "Reviewed" }
                     });
-                    content.Paragraph(text => text.Text("Validated page " + Number(number)));
+                    content.AddParagraph(text => text.AddText("Validated page " + Number(number)));
                     if (!textOnly) content.Rectangle(global::OfficeIMO.OfficeLength.Points(180), global::OfficeIMO.OfficeLength.Points(24), fillColor: global::OfficeIMO.OfficeColor.FromRgb(220, 240, 252))
-                        .Image(Image, global::OfficeIMO.OfficeLength.Points(32), global::OfficeIMO.OfficeLength.Points(32), alternativeText: "Deterministic runtime measurement image");
+                        .AddImage(Image, global::OfficeIMO.OfficeLength.Points(32), global::OfficeIMO.OfficeLength.Points(32), altText: "Deterministic runtime measurement image");
                 }));
             }
         }, options).Meta(title: "OfficeIMO PDF runtime corpus");

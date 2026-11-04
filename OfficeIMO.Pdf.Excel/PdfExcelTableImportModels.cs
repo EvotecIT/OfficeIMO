@@ -135,17 +135,17 @@ public sealed class PdfExcelTableImportEntry {
     }
 
     /// <summary>Reports the detected tables imported from a logical PDF into an Excel workbook.</summary>
-    public sealed class PdfExcelTableImportReport : IOfficeConversionReport {
+    public sealed class PdfExcelTableImportReport : OfficeConversionReport {
         internal PdfExcelTableImportReport(
             IReadOnlyList<PdfExcelTableImportEntry> entries,
             OfficeIMO.Pdf.PdfTableExtractionScopeReport sourceScope,
-            IReadOnlyList<OfficeConversionFidelityDiagnostic>? conversionDiagnostics = null) {
+            IReadOnlyList<OfficeDiagnostic>? conversionDiagnostics = null) {
             Entries = Array.AsReadOnly((entries ?? throw new ArgumentNullException(nameof(entries))).ToArray());
             SourceScope = sourceScope ?? throw new ArgumentNullException(nameof(sourceScope));
-            _conversionDiagnostics = conversionDiagnostics?.ToArray() ?? Array.Empty<OfficeConversionFidelityDiagnostic>();
+            _conversionDiagnostics = conversionDiagnostics?.ToArray() ?? Array.Empty<OfficeDiagnostic>();
         }
 
-        private readonly OfficeConversionFidelityDiagnostic[] _conversionDiagnostics;
+        private readonly OfficeDiagnostic[] _conversionDiagnostics;
 
         /// <summary>Gets a snapshot of imported table metadata.</summary>
         public IReadOnlyList<PdfExcelTableImportEntry> Entries { get; }
@@ -154,22 +154,27 @@ public sealed class PdfExcelTableImportEntry {
         public OfficeIMO.Pdf.PdfTableExtractionScopeReport SourceScope { get; }
 
         /// <summary>Gets category-preserving table-projection diagnostics.</summary>
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> FidelityDiagnostics {
+        protected override IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> GetDiagnostics() => FidelityDiagnostics;
+        private IReadOnlyList<global::OfficeIMO.OfficeDiagnostic> FidelityDiagnostics {
             get {
-                var diagnostics = new List<OfficeConversionFidelityDiagnostic>(_conversionDiagnostics);
+                var diagnostics = new List<OfficeDiagnostic>(_conversionDiagnostics);
                 if (HasOmittedPageContent) {
-                    diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                         "pdf-excel-page-content-omitted",
+                        global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                         "PDF page or document content outside detected tables was omitted.",
-                        OfficeConversionLossKind.Omission,
-                        "OfficeIMO.Pdf.Excel"));
+                        null,
+                        "OfficeIMO.Pdf.Excel",
+                        OfficeConversionLossKind.Omission));
                 }
                 if (Entries.Any(static entry => entry.Truncated)) {
-                    diagnostics.Add(new OfficeConversionFidelityDiagnostic(
+                    diagnostics.Add(new global::OfficeIMO.OfficeDiagnostic(
                         "pdf-excel-tables-truncated",
+                        global::OfficeIMO.OfficeDiagnosticSeverity.Warning,
                         "One or more detected PDF tables were truncated by configured projection limits.",
-                        OfficeConversionLossKind.Omission,
-                        "OfficeIMO.Pdf.Excel"));
+                        null,
+                        "OfficeIMO.Pdf.Excel",
+                        OfficeConversionLossKind.Omission));
                 }
                 return diagnostics.AsReadOnly();
             }
@@ -179,19 +184,19 @@ public sealed class PdfExcelTableImportEntry {
         public bool HasOmittedPageContent => SourceScope.HasOmittedPageContent;
 
         /// <summary>Gets whether page or document content was omitted or any detected source table was truncated.</summary>
-        public bool HasLoss => HasOmittedPageContent || Entries.Any(static entry => entry.Truncated);
+        public override bool HasLoss => HasOmittedPageContent || Entries.Any(static entry => entry.Truncated);
 
         /// <summary>Throws when page or document content was omitted or at least one detected source table was truncated.</summary>
-        public void RequireNoLoss() {
-            if (HasLoss) throw new InvalidOperationException(
-                HasOmittedPageContent
+        protected override OfficeConversionException CreateLossException() => new OfficeConversionException(HasOmittedPageContent
                     ? "PDF table import to Excel omitted source page or document content outside the imported tables."
-                    : "PDF table import to Excel truncated one or more detected source tables.");
-        }
+                    : "PDF table import to Excel truncated one or more detected source tables.", this);
     }
 
     /// <summary>Contains an editable Excel document and the corresponding PDF table import report.</summary>
-    internal sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument, PdfExcelTableImportReport> {
+    internal sealed class PdfExcelTableImportResult : OfficeConversionResult<ExcelDocument> {
+        /// <summary>Gets the typed conversion report.</summary>
+        public new PdfExcelTableImportReport Report => (PdfExcelTableImportReport)base.Report;
+
         internal PdfExcelTableImportResult(ExcelDocument value, PdfExcelTableImportReport report) : base(value, report) { }
 
         /// <summary>Gets whether the source contained page or document content outside the imported tables.</summary>

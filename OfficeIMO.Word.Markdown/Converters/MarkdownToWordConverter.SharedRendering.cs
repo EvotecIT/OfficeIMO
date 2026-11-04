@@ -9,7 +9,7 @@ namespace OfficeIMO.Word.Markdown {
     internal partial class MarkdownToWordConverter {
         private int _activeBlockRenderDepth;
 
-        private void EnterBlockRender(WordMarkdownImportOptions options) {
+        private void EnterBlockRender(MarkdownWordExportOptions options) {
             if (options.MaxNestingDepth < 1) {
                 throw new ArgumentOutOfRangeException(
                     nameof(options.MaxNestingDepth),
@@ -31,7 +31,7 @@ namespace OfficeIMO.Word.Markdown {
         private void RenderSharedBlockOmd(
             Omd.IMarkdownBlock block,
             IWordBlockRenderHost host,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordDocument document,
             WordList? currentList = null,
             int listLevel = 0,
@@ -45,7 +45,7 @@ namespace OfficeIMO.Word.Markdown {
         private void ProcessBlockOmd(
             Omd.IMarkdownBlock block,
             WordDocument document,
-            WordMarkdownImportOptions options,
+            MarkdownWordExportOptions options,
             WordList? currentList = null,
             int listLevel = 0,
             int quoteDepth = 0,

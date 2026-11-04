@@ -28,7 +28,7 @@ public sealed class OfficeConversionFrameworkCollectionsTests {
     public void SerializedShadowContentAndAssignedSlotsSurvivePdfRendering() {
         var html = HtmlConversionDocument.Parse("<div><span slot='content'>Assigned content</span>"
             + "<template shadowmode='open'><p>Shadow heading</p><slot name='content'></slot></template></div>");
-        using var pdf = html.ToPdf(new HtmlToPdfOptions { ProjectSerializedShadowRoots = true });
+        using var pdf = html.ToPdf(new HtmlPdfExportOptions { ProjectSerializedShadowRoots = true });
         string text = pdf.ExtractText();
         Assert.Contains("Shadow heading", text, StringComparison.Ordinal);
         Assert.Contains("Assigned content", text, StringComparison.Ordinal);

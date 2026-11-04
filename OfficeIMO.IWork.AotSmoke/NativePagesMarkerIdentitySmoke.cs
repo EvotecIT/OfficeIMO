@@ -52,7 +52,7 @@ internal static class NativePagesMarkerIdentitySmoke {
                     .SequenceEqual(before[index].Runs.Select(p => (p.Style.FontName, p.Style.FontSizePoints))),
                     "Native identity save lost run families or sizes.");
             }
-            using var result = source.ToWordDocumentResult(new() { Mode = IWorkConversionMode.EditableOnly });
+            using var result = source.ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
             result.RequireCompleteEditableReconstruction(); using var output = new MemoryStream(); result.Value.Save(output);
             using var saved = WordDocument.Load(new MemoryStream(output.ToArray()));
             var items = after.Where(p => p.ListNumber.HasValue).ToArray();

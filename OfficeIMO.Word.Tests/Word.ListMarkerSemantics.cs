@@ -69,7 +69,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfIncludesMarkersForListParagraphsInTableCellTextBoxAndHeader() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
+        _ = document.PageSetup.Header;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.BulletSolidRound));
         WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
@@ -78,7 +78,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         AttachToList(cell, list.NumberId);
         WordTextBox textBox = document.AddTextBox("Box marker");
         AttachToList(textBox.Paragraphs[0], list.NumberId);
-        WordParagraph header = document.Header!.Default!.AddParagraph("Header marker");
+        WordParagraph header = document.PageSetup.Header.AddParagraph("Header marker");
         AttachToList(header, list.NumberId);
 
         Dictionary<WordParagraph, (int Level, string Marker)> markers = WordDocumentTraversal.BuildListMarkers(document);
@@ -94,9 +94,8 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfIncludesMarkersInsideHeaderTextBoxes() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
-        WordList list = document.AddCustomBulletList('◆', "Arial", "000000");
-        WordParagraph host = document.Header!.Default!.AddParagraph("Before ");
+        WordList list = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
+        WordParagraph host = document.PageSetup.Header.AddParagraph("Before ");
         WordTextBox box = host.AddTextBox("Header box marker", WordImageTextWrapping.Square);
         host.AddText(" After");
         AttachToList(box.Paragraphs[0], list.NumberId);
@@ -162,17 +161,16 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void HeaderTextBoxNumberingFollowsHeaderAnchorOrder() {
         using WordDocument document = WordDocument.Create();
-        document.AddHeadersAndFooters();
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
         WordParagraph body = document.AddParagraph("Body list item");
         AttachToList(body, list.NumberId);
-        WordParagraph before = document.Header!.Default!.AddParagraph("Before");
+        WordParagraph before = document.PageSetup.Header.AddParagraph("Before");
         AttachToList(before, list.NumberId);
-        WordTextBox box = document.Header.Default.AddParagraph("Host").AddTextBox("Inside", WordImageTextWrapping.Square);
+        WordTextBox box = document.PageSetup.Header.AddParagraph("Host").AddTextBox("Inside", WordImageTextWrapping.Square);
         WordParagraph inside = box.Paragraphs[0];
         AttachToList(inside, list.NumberId);
-        WordParagraph after = document.Header.Default.AddParagraph("After");
+        WordParagraph after = document.PageSetup.Header.AddParagraph("After");
         AttachToList(after, list.NumberId);
 
         var markers = WordDocumentTraversal.BuildListMarkers(document);
@@ -185,7 +183,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfTextBoxMarkersUseLevelFormatting() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"));
         list.Numbering.Levels[0].OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!
             .Append(new Bold(), new FontSize { Val = "36" });
         WordTextBox box = document.AddTextBox("Styled box");
@@ -253,7 +251,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void ImageExportIncludesFormattedTextBoxListMarkers() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('◆', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("FF0000"));
         WordTextBox box = document.AddTextBox("Image box item");
         AttachToList(box.Paragraphs[0], list.NumberId);
 
@@ -268,7 +266,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void ImageExportIncludesNestedTextBoxListMarkersOnce() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('◆', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("FF0000"));
         WordTextBox outer = document.AddTextBox("Outer box");
         WordTextBox nested = outer.Paragraphs[0].AddTextBox("Nested item", WordImageTextWrapping.Square);
         AttachToList(nested.Paragraphs[0], list.NumberId);
@@ -285,7 +283,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void PdfTableMarkersUseLevelFormatting() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('*', "Arial", "FF0000");
+        WordList list = document.AddCustomBulletList('*', "Arial", OfficeColor.Parse("FF0000"));
         WordListLevel level = list.Numbering.Levels[0];
         level.OpenXmlElement.GetFirstChild<NumberingSymbolRunProperties>()!.Append(new Bold(), new FontSize { Val = "36" });
         level.IndentationLeft= global::OfficeIMO.OfficeLength.Points(108D);
@@ -350,7 +348,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void FullLevelOverrideDoesNotInheritOmittedAbstractProperties() {
         using WordDocument document = WordDocument.Create();
-        WordList list = document.AddCustomBulletList('\uf0b7', "Symbol", "FF0000");
+        WordList list = document.AddCustomBulletList('\uf0b7', "Symbol", OfficeColor.Parse("FF0000"));
         WordParagraph item = list.AddItem("Override replacement");
         Level abstractLevel = list.Numbering.Levels[0].OpenXmlElement;
         abstractLevel.GetFirstChild<PreviousParagraphProperties>()!.GetFirstChild<Indentation>()!.Left = "1800";
@@ -372,7 +370,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void NumberingInheritedThroughStylesCanBeCancelledByDirectZeroId() {
         using WordDocument document = WordDocument.Create();
-        WordList bullets = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordList bullets = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
         bullets.AddItem("Seed");
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         styles.Append(new Style(new StyleParagraphProperties(new NumberingProperties(
@@ -425,7 +423,7 @@ public sealed partial class WordListMarkerSemanticsTests {
     [Fact]
     public void HtmlPreservesDefaultStyleNumberingOnPlainParagraphs() {
         using WordDocument document = WordDocument.Create();
-        WordList bullets = document.AddCustomBulletList('◆', "Arial", "000000");
+        WordList bullets = document.AddCustomBulletList('◆', "Arial", OfficeColor.Parse("000000"));
         Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
         Style defaultStyle = styles.Elements<Style>()
             .Single(style => style.Type?.Value == StyleValues.Paragraph && style.Default?.Value == true);
@@ -636,9 +634,9 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessItemsKeepTheirIndentInSplitTableRows() {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
-        section.SetMargins(WordMargin.Narrow);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(150D);
+        section.PageSetup.Margins.Type = WordMargin.Narrow;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
         list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
@@ -669,9 +667,9 @@ public sealed partial class WordListMarkerSemanticsTests {
     public void MarkerlessSplitTableTextStaysBeforeNonTextContent(bool useImage) {
         using WordDocument document = WordDocument.Create();
         WordSection section = document.Sections[0];
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points(250D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points(150D);
-        section.SetMargins(WordMargin.Narrow);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points(250D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points(150D);
+        section.PageSetup.Margins.Type = WordMargin.Narrow;
         WordList list = document.AddCustomList();
         list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.None));
         list.Numbering.Levels[0].IndentationLeft= global::OfficeIMO.OfficeLength.Points(90D);
@@ -683,7 +681,7 @@ public sealed partial class WordListMarkerSemanticsTests {
         before.Text = "BeforeNested " + string.Join(" ", Enumerable.Repeat("wrapped", 8));
         AttachToList(before, list.NumberId);
         if (useImage) {
-            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20), options: new OfficeIMO.Word.WordImageOptions { Description = "Ordered image" });
+            cell.AddParagraph().AddImage(Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png"), OfficeIMO.OfficeLength.Pixels(20), OfficeIMO.OfficeLength.Pixels(20), options: new OfficeIMO.Word.WordImageOptions { AltText = "Ordered image" });
         } else {
             WordTable nested = cell.AddTable(1, 1, WordTableStyle.TableGrid);
             nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested block";

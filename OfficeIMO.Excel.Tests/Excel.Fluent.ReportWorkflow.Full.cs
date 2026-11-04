@@ -53,7 +53,8 @@ namespace OfficeIMO.Tests
                         };
                     });
                     (reportBuilder1).References(new[] { "https://example.com" });
-                    (reportBuilder1).Sheet.SetHeaderFooter(headerCenter: "Demo Report", footerRight: "Page &P of &N");
+                    (reportBuilder1).Sheet.PageSetup.Header.Center.Text = "Demo Report";
+                    (reportBuilder1).Sheet.PageSetup.Footer.Right.Text = "Page &P of &N";
                     (reportBuilder1).Finish(autoFitColumns: true);
                 }
 

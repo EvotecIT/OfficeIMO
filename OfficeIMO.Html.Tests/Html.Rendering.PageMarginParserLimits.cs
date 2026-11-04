@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlPageMarginParserLimits_ConfiguredTokenLimitUsesTheSharedDiagnostic() {
         using var document = new HtmlParser().ParseDocument(PageMarginTypographySource("font:16px/10cqw Pinned"));
-        var limits = HtmlConversionLimits.CreateTrustedProfile();
+        var limits = new HtmlConversionLimits();
         limits.MaxCssTokens = 4;
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>

@@ -3,7 +3,7 @@ using OfficeIMO.Excel;
 namespace OfficeIMO.Markup.Excel;
 
 internal sealed partial class OfficeMarkupExcelExporter {
-    public ExcelDocument Convert(OfficeMarkupDocument document, MarkupToExcelOptions options) {
+    public ExcelDocument Convert(OfficeMarkupDocument document, MarkupExcelExportOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -92,7 +92,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
     private static void AddFormula(WorkbookExportContext context, OfficeMarkupFormulaBlock formula) {
         var (sheet, cell) = ResolveTargetReference(context, formula.Sheet, formula.Cell);
         var (row, column) = ParseCell(cell, "formula cell");
-        sheet.CellFormula(row, column, formula.Expression);
+        sheet.Cell(row, column).SetFormula(formula.Expression);
         context.Touch(sheet.Name, row + 1);
     }
 
@@ -145,13 +145,13 @@ internal sealed partial class OfficeMarkupExcelExporter {
         var (sheet, target) = ResolveTargetReference(context, GetAttribute(formatting.Attributes, "sheet"), formatting.Target);
         foreach (var (row, column) in EnumerateCells(target)) {
             if (!string.IsNullOrWhiteSpace(formatting.NumberFormat)) {
-                sheet.FormatCell(row, column, formatting.NumberFormat!);
+                sheet.Cell(row, column).SetNumberFormat(formatting.NumberFormat!);
             }
 
             var fill = GetAttribute(formatting.Attributes,
                 "fill", "background", "highlight", "highlight-color", "highlightColor");
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sheet.CellBackground(row, column, fill!);
+                sheet.Cell(row, column).SetFillColor(fill!);
             }
 
             ApplyTextFormatting(sheet, row, column, formatting.Attributes);
@@ -159,24 +159,24 @@ internal sealed partial class OfficeMarkupExcelExporter {
             var alignment = GetAttribute(formatting.Attributes,
                 "align", "alignment", "horizontal-align", "horizontalAlign", "horizontalalignment", "text-align", "textAlign");
             if (TryParseHorizontalAlignment(alignment, out var horizontalAlignment)) {
-                sheet.CellAlign(row, column, horizontalAlignment);
+                sheet.Cell(row, column).SetHorizontalAlignment(horizontalAlignment);
             }
 
             var verticalAlignment = GetAttribute(formatting.Attributes,
                 "vertical-align", "verticalAlign", "verticalalignment", "valign");
             if (TryParseVerticalAlignment(verticalAlignment, out var parsedVerticalAlignment)) {
-                sheet.CellVerticalAlign(row, column, parsedVerticalAlignment);
+                sheet.Cell(row, column).SetVerticalAlignment(parsedVerticalAlignment);
             }
 
             var wrap = GetAttribute(formatting.Attributes, "wrap", "wrap-text", "wrapText");
             if (!string.IsNullOrWhiteSpace(wrap) && IsTruthy(wrap)) {
-                sheet.WrapCells(row,row,column);
+                sheet.Range(row, column, row, column).SetWrapText();
             }
 
             var border = GetAttribute(formatting.Attributes, "border", "border-style", "borderStyle");
             if (TryParseBorderStyle(border, out var borderStyle)) {
                 var borderColor = GetAttribute(formatting.Attributes, "border-color", "borderColor", "line-color", "lineColor");
-                sheet.CellBorder(row, column, borderStyle, borderColor);
+                sheet.Cell(row, column).SetBorder(borderStyle, borderColor);
             }
         }
     }
@@ -188,12 +188,12 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
         var sheet = context.EnsureCurrentSheet();
         var row = context.NextTextRow(sheet.Name);
-        sheet.CellValue(row, 1, text);
+        sheet.Cell(row, 1).SetValue(text);
         if (bold) {
-            sheet.CellBold(row, 1, true);
+            sheet.Cell(row, 1).SetBold(true);
             if (context.Options.StyleMarkdownHeadings) {
-                sheet.CellBackground(row, 1, "1F4E78");
-                sheet.CellFontColor(row, 1, "FFFFFF");
+                sheet.Cell(row, 1).SetFillColor("1F4E78");
+                sheet.Cell(row, 1).SetFontColor("FFFFFF");
             }
         }
 
@@ -207,8 +207,8 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
         if (table.Headers.Count > 0) {
             for (var index = 0; index < table.Headers.Count; index++) {
-                sheet.CellValue(currentRow, index + 1, table.Headers[index]);
-                sheet.CellBold(currentRow, index + 1, true);
+                sheet.Cell(currentRow, index + 1).SetValue(table.Headers[index]);
+                sheet.Cell(currentRow, index + 1).SetBold(true);
             }
 
             currentRow++;
@@ -228,11 +228,11 @@ internal sealed partial class OfficeMarkupExcelExporter {
     private static void FinalizeWorkbook(WorkbookExportContext context) {
         foreach (var sheet in context.Sheets) {
             if (context.Options.FreezeTableHeaderRows && context.TryGetFreezeRow(sheet.Name, out var freezeRow)) {
-                sheet.Freeze(topRows: freezeRow, leftCols: 0);
+                sheet.View.Freeze(topRows: freezeRow);
             }
 
             if (context.Options.HideGridlines) {
-                sheet.SetGridlinesVisible(false);
+                sheet.View.ShowGridlines = false;
             }
 
             if (context.Options.AutoFitColumns) {
@@ -383,11 +383,11 @@ internal sealed partial class OfficeMarkupExcelExporter {
 
     private static void SetCell(ExcelSheet sheet, int row, int column, string value) {
         if (value != null && value.StartsWith("=", StringComparison.Ordinal)) {
-            sheet.CellFormula(row, column, value);
+            sheet.Cell(row, column).SetFormula(value);
             return;
         }
 
-        sheet.CellValue(row, column, ConvertValue(value ?? string.Empty));
+        sheet.Cell(row, column).SetValue(ConvertValue(value ?? string.Empty));
     }
 
     private static object ConvertValue(string value) {
@@ -473,7 +473,7 @@ internal sealed partial class OfficeMarkupExcelExporter {
         return (cell.Row, cell.Col);
     }
 
-    private static (int Row, int Column, int Width, int Height) ResolveChartPlacement(MarkupToExcelOptions options, OfficeMarkupChartBlock chart, string? placementCell) {
+    private static (int Row, int Column, int Width, int Height) ResolveChartPlacement(MarkupExcelExportOptions options, OfficeMarkupChartBlock chart, string? placementCell) {
         var row = GetInt(chart.Attributes, "row")
             ?? GetInt(chart.Attributes, "y")
             ?? options.DefaultChartRow;
@@ -772,12 +772,12 @@ internal sealed partial class OfficeMarkupExcelExporter {
         private readonly Dictionary<string, int> _freezeRows = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         private ExcelSheet? _currentSheet;
 
-        public WorkbookExportContext(ExcelDocument workbook, MarkupToExcelOptions options) {
+        public WorkbookExportContext(ExcelDocument workbook, MarkupExcelExportOptions options) {
             _workbook = workbook;
             Options = options;
         }
 
-        public MarkupToExcelOptions Options { get; }
+        public MarkupExcelExportOptions Options { get; }
 
         public IEnumerable<ExcelSheet> Sheets => _sheets.Values.Distinct();
 

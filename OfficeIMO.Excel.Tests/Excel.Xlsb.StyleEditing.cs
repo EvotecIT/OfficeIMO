@@ -29,11 +29,11 @@ public sealed class ExcelXlsbStyleEditingTests {
         styles.NumberingFormats.Append(new NumberingFormat { NumberFormatId = numberFormat, FormatCode = "0.00000" });
         uint format = checked((uint)styles.CellFormats!.ChildElements.Count);
         styles.CellFormats.Append(new CellFormat { FontId = font, FillId = fill, BorderId = border, NumberFormatId = numberFormat, FormatId = 0, ApplyFont = true, ApplyFill = true, ApplyBorder = true, ApplyNumberFormat = true });
-        document.Sheets[0].CellValue(200, 3, 1.23456);
+        document.Sheets[0].Cell(200, 3).SetValue(1.23456);
         document.Sheets[0].SetCellStyleIndex(200, 3, format, save: false);
         byte[] saved = document.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var reloaded = ExcelDocument.Load(new MemoryStream(saved));
-        var snapshot = reloaded.Sheets[0].GetCellStyle(200, 3);
+        var snapshot = reloaded.Sheets[0].Cell(200, 3).GetStyle();
         Assert.True(snapshot.Bold);
         Assert.Equal("0.00000", snapshot.NumberFormatCode);
         Assert.Equal("solid", snapshot.FillPatternType);
@@ -56,19 +56,19 @@ public sealed class ExcelXlsbStyleEditingTests {
     [InlineData(true)]
     public void Native_locale_number_format_records_survive_appended_styles(bool encrypted) {
         using var seed = ExcelDocument.Create();
-        var sheet = seed.AddSheet("Data"); sheet.CellValue(1, 1, 12.5D); sheet.CellItalic(1, 1);
+        var sheet = seed.AddSheet("Data"); sheet.Cell(1, 1).SetValue(12.5D); sheet.Cell(1, 1).SetItalic();
         var styles = seed.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
         styles.NumberingFormats ??= new NumberingFormats();
         styles.NumberingFormats.Append(new NumberingFormat { NumberFormatId = 5, FormatCode = "\"PLN\" #,##0.00" });
         styles.NumberingFormats.Count = (uint)styles.NumberingFormats.ChildElements.Count;
         byte[] original = seed.ToBytes(new ExcelSaveOptions { Format = ExcelFileFormat.Xlsb });
         using var document = ExcelDocument.Load(new MemoryStream(original));
-        document.Sheets[0].CellBold(1, 1);
+        document.Sheets[0].Cell(1, 1).SetBold();
         using var output = new MemoryStream();
         if (encrypted) document.SaveEncrypted(output, "test-password", ExcelFileFormat.Xlsb);
         else document.Save(output, ExcelFileFormat.Xlsb);
         using var copy = encrypted ? ExcelDocument.LoadEncrypted(output, "test-password") : ExcelDocument.Load(output);
-        Assert.True(copy.Sheets[0].CellAt(1, 1).GetStyle().Bold);
+        Assert.True(copy.Sheets[0].Cell(1, 1).GetStyle().Bold);
         var retained = Assert.Single(copy.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.NumberingFormats!.Elements<NumberingFormat>());
         Assert.Equal(5U, retained.NumberFormatId!.Value);
         Assert.Equal("\"PLN\" #,##0.00", retained.FormatCode!.Value);

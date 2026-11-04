@@ -102,8 +102,8 @@ public sealed class VisioNativeCellAssignmentTests {
         var document = Load(); var source = document.Pages[0].Shapes[0];
         source.SetShapeSheetSection(source.GetShapeSheetSections().Single(s => s.Name == "Paragraph"));
         var master = document.RegisterMaster("Null master", source, "0");
-        var untouched = document.Pages[0].AddShape("untouched", master, 1, 1, 2, 1); untouched.NameU = "Untouched";
-        var edited = document.Pages[0].AddShape("edited", master, 1, 1, 2, 1); edited.NameU = "Edited";
+        var untouched = document.Pages[0].AddShape("untouched", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, document.Pages[0].DefaultUnit))); untouched.NameU = "Untouched";
+        var edited = document.Pages[0].AddShape("edited", master, OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(2, document.Pages[0].DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, document.Pages[0].DefaultUnit))); edited.NameU = "Edited";
         edited.FindUserCell("Nullable")!.Prompt = "";
         AssertRoundTrips(document, xml => {
             foreach (string name in new[] { "Source", "Untouched" }) {

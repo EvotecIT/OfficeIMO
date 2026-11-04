@@ -19,7 +19,7 @@ public sealed class MarkdownCancellationTests {
         try {
             if (existingImage) File.WriteAllBytes(image, sentinel);
             using var cancelled = new CancellationTokenSource();
-            var options = new MarkdownHtmlImportOptions {
+            var options = new HtmlMarkdownExportOptions {
                 Base64Images = MarkdownHtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = root,
                 Base64ImageFileNameGenerator = (_, _) => { cancelled.Cancel(); return "image.png"; }
@@ -84,7 +84,7 @@ public sealed class MarkdownCancellationTests {
         var document = HtmlConversionDocument.Parse("<p><span>One</span></p>");
         using var cancelled = new CancellationTokenSource();
         int laterCalls = 0;
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.InlineElementConverters.Add(new MarkdownHtmlInlineConverter("cancel", "Cancel", _ => { cancelled.Cancel(); return null; }));
         options.InlineElementConverters.Add(new MarkdownHtmlInlineConverter("later", "Later", _ => { laterCalls++; return null; }));
         Assert.ThrowsAny<OperationCanceledException>(() => document.ToMarkdown(options, cancelled.Token));
@@ -96,7 +96,7 @@ public sealed class MarkdownCancellationTests {
         var document = HtmlConversionDocument.Parse("<p>One</p><p>Two</p>");
         using var cancelled = new CancellationTokenSource();
         int calls = 0;
-        var options = new MarkdownHtmlImportOptions();
+        var options = new HtmlMarkdownExportOptions();
         options.ElementFilters.Add(_ => { calls++; cancelled.Cancel(); return false; });
         Assert.ThrowsAny<OperationCanceledException>(() => document.ToMarkdown(options, cancelled.Token));
         Assert.Equal(1, calls);

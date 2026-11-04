@@ -98,8 +98,8 @@ public partial class Word {
             Assert.Equal(OfficeConversionLossKind.Approximation, warning.LossKind);
             Assert.True(result.HasLoss);
             // Tolerant conversion and explicitly strict acceptance remain separate operations.
-            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
-            Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.ThrowIfLoss());
+            Assert.ThrowsAny<OfficeConversionException>(() => result.Report.ThrowIfLoss());
         } else Assert.DoesNotContain(result.Warnings, warning => warning.Code == "native-footnote-placement-approximated");
         Assert.Equal(validationBefore, AssertDanglingBodyFootnoteIsInvalid(document));
         Assert.Equal(xmlBefore, UnresolvedFootnoteSourceXml(document));

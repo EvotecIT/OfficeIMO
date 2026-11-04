@@ -210,7 +210,7 @@ public static partial class WordIWorkConverter {
                 WordSection section = document.Sections[0];
                 (double contentWidth, double contentHeight) = ContentBox(section);
                 (double width, double height) = PreviewSize(preview, contentWidth, contentHeight);
-                document.AddParagraph().AddImage(image, PreviewFileName(preview), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Description = "Visual fallback from the source Pages package" });
+                document.AddParagraph().AddImage(image, PreviewFileName(preview), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { AltText = "Visual fallback from the source Pages package" });
             }
 
             IWorkProjectionKind kind = editable
@@ -243,11 +243,11 @@ public static partial class WordIWorkConverter {
     }
 
     private static (double Width, double Height) ContentBox(WordSection section) {
-        uint pageWidth = checked((uint?)(section.PageSettings.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
-        uint pageHeight = checked((uint?)(section.PageSettings.Height?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Height.ToTwips()));
-        long horizontalMargins = (long)checked((uint)(section.Margins.Left.GetValueOrDefault().ToTwips())) + checked((uint)(section.Margins.Right.GetValueOrDefault().ToTwips()));
-        long verticalMargins = (long)checked((int?)(section.Margins.Top?.ToTwips())).GetValueOrDefault()
-            + checked((int?)(section.Margins.Bottom?.ToTwips())).GetValueOrDefault();
+        uint pageWidth = checked((uint?)(section.PageSetup.Size.Width?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Width.ToTwips()));
+        uint pageHeight = checked((uint?)(section.PageSetup.Size.Height?.ToTwips())) ?? checked((uint)(WordPageSizes.Letter.Height.ToTwips()));
+        long horizontalMargins = (long)checked((uint)(section.PageSetup.Margins.Left.GetValueOrDefault().ToTwips())) + checked((uint)(section.PageSetup.Margins.Right.GetValueOrDefault().ToTwips()));
+        long verticalMargins = (long)checked((int?)(section.PageSetup.Margins.Top?.ToTwips())).GetValueOrDefault()
+            + checked((int?)(section.PageSetup.Margins.Bottom?.ToTwips())).GetValueOrDefault();
         return (Math.Max(1L, (long)pageWidth - Math.Max(0L, horizontalMargins)) / 20d,
             Math.Max(1L, (long)pageHeight - Math.Max(0L, verticalMargins)) / 20d);
     }
@@ -265,7 +265,7 @@ public static partial class WordIWorkConverter {
         if (source.Geometry == null) {
             (width, height) = FitInside(width, height, contentWidth, contentHeight);
         }
-        WordImage target = (pageHost ?? document.AddParagraph()).AddImage(image, source.FileName, OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, Description = source.AccessibilityDescription ?? "Image imported from Pages" });
+        WordImage target = (pageHost ?? document.AddParagraph()).AddImage(image, source.FileName, OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(width)), OfficeIMO.OfficeLength.Pixels(Helpers.ConvertPointsToPixels(height)), options: new OfficeIMO.Word.WordImageOptions { Wrapping = WordImageTextWrapping.Square, AltText = source.AccessibilityDescription ?? "Image imported from Pages" });
         if (source.Geometry is { } geometry) {
             target.horizontalPosition.RelativeFrom =
                 DrawingWordprocessing.HorizontalRelativePositionValues.Page;
@@ -285,8 +285,8 @@ public static partial class WordIWorkConverter {
         IWorkPagesSection source, IWorkNativeListCatalog nativeLists,
         bool hasAnyEvenPageTemplate, CancellationToken cancellationToken) {
         if (source.HasDefaultPageTemplate) {
-            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Default);
-            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Default);
+            WordHeader header = target.PageSetup.Header;
+            WordFooter footer = target.PageSetup.Footer;
             foreach (IWorkTextContent content in source.DefaultPageHeaderContents) {
                 AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
             }
@@ -295,8 +295,8 @@ public static partial class WordIWorkConverter {
             }
         }
         if (source.DifferentFirstPage || source.HideFirstPageHeadersAndFooters) {
-            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.First);
-            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.First);
+            WordHeader header = target.PageSetup.FirstPageHeader;
+            WordFooter footer = target.PageSetup.FirstPageFooter;
             foreach (IWorkTextContent content in source.HideFirstPageHeadersAndFooters
                          ? Array.Empty<IWorkTextContent>() : source.FirstPageHeaderContents) {
                 AddRichText(content, header.AddParagraph, nativeLists, cancellationToken: cancellationToken);
@@ -307,8 +307,8 @@ public static partial class WordIWorkConverter {
             }
         }
         if (hasAnyEvenPageTemplate) {
-            WordHeader header = target.GetOrCreateHeader(WordHeaderFooterType.Even);
-            WordFooter footer = target.GetOrCreateFooter(WordHeaderFooterType.Even);
+            WordHeader header = target.PageSetup.EvenPageHeader;
+            WordFooter footer = target.PageSetup.EvenPageFooter;
             IReadOnlyList<IWorkTextContent> headerContents = source.DifferentOddAndEvenPages
                 ? source.EvenPageHeaderContents
                 : source.DefaultPageHeaderContents;
@@ -509,22 +509,22 @@ public static partial class WordIWorkConverter {
         if (style.FontSizePoints.HasValue) run.FontSize = global::OfficeIMO.OfficeLength.Points(style.FontSizePoints.Value);
         if (style.CharacterSpacingPoints is double spacing) run.Spacing = OfficeLength.Emus((long)ToCharacterSpacingTwips(spacing) * 635);
         if (!string.IsNullOrWhiteSpace(style.FontName)) run.FontFamily = style.FontName;
-        if (style.Color != null) run.ColorHex = style.Color.RgbHex;
-        if (style.BackgroundColor != null) run.RunShadingFillColorHex = style.BackgroundColor.RgbHex;
+        if (style.Color != null) run.RunColorValue = style.Color.RgbHex;
+        if (style.BackgroundColor != null) run.RunShadingFillValue = style.BackgroundColor.RgbHex;
     }
 
     private static void ApplyPageLayout(WordSection section, IWorkPageLayout layout) {
-        section.PageSettings.Orientation = layout.IsLandscape
+        section.PageSetup.Size.Orientation = layout.IsLandscape
             ? OfficePageOrientation.Landscape
             : OfficePageOrientation.Portrait;
-        section.PageSettings.Width = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.WidthPoints)) / 20D);
-        section.PageSettings.Height = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.HeightPoints)) / 20D);
-        section.Margins.Left = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.LeftMarginPoints)) / 20D);
-        section.Margins.Right = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.RightMarginPoints)) / 20D);
-        section.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)ToTwips(layout.TopMarginPoints))) / 20D);
-        section.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)ToTwips(layout.BottomMarginPoints))) / 20D);
-        section.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.HeaderMarginPoints)) / 20D);
-        section.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.FooterMarginPoints)) / 20D);
+        section.PageSetup.Size.Width = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.WidthPoints)) / 20D);
+        section.PageSetup.Size.Height = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.HeightPoints)) / 20D);
+        section.PageSetup.Margins.Left = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.LeftMarginPoints)) / 20D);
+        section.PageSetup.Margins.Right = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.RightMarginPoints)) / 20D);
+        section.PageSetup.Margins.Top = global::OfficeIMO.OfficeLength.Points((checked((int)ToTwips(layout.TopMarginPoints))) / 20D);
+        section.PageSetup.Margins.Bottom = global::OfficeIMO.OfficeLength.Points((checked((int)ToTwips(layout.BottomMarginPoints))) / 20D);
+        section.PageSetup.Margins.HeaderDistance = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.HeaderMarginPoints)) / 20D);
+        section.PageSetup.Margins.FooterDistance = global::OfficeIMO.OfficeLength.Points((ToTwips(layout.FooterMarginPoints)) / 20D);
     }
 
     private static uint ToTwips(double points) {

@@ -648,14 +648,14 @@ public sealed class ReaderOpmlDocBookModularTests {
 
     [Fact]
     public void RegistrationsPublishNativeLimitsBeforeSnapshottingStreams() {
-        var opmlOptions = new ReaderOpmlOptions { ReadOptions = new OpmlReadOptions { MaxInputBytes = 8 } };
+        var opmlOptions = new ReaderOpmlOptions { ReadOptions = new OpmlLoadOptions { MaxInputBytes = 8 } };
         OfficeDocumentReader opmlReader = new OfficeDocumentReaderBuilder().AddOpmlHandler(opmlOptions).Build();
         Assert.Equal(8, opmlReader.GetHandlerDefaultMaxInputBytes("input.opml"));
         using var opmlStream = new global::OfficeIMO.Tests.NonSeekableReadStream(new byte[9]);
         IOException opmlException = Assert.Throws<IOException>(() => opmlReader.ReadDocument(opmlStream, "input.opml"));
         Assert.Contains("MaxInputBytes", opmlException.Message, StringComparison.Ordinal);
 
-        var docBookOptions = new ReaderDocBookOptions { ReadOptions = new DocBookReadOptions { MaxInputBytes = 12 } };
+        var docBookOptions = new ReaderDocBookOptions { ReadOptions = new DocBookLoadOptions { MaxInputBytes = 12 } };
         OfficeDocumentReader docBookReader = new OfficeDocumentReaderBuilder().AddDocBookHandler(docBookOptions).Build();
         Assert.Equal(12, docBookReader.GetHandlerDefaultMaxInputBytes("input.docbook"));
         using var docBookStream = new global::OfficeIMO.Tests.NonSeekableReadStream(new byte[13]);

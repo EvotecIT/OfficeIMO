@@ -59,7 +59,11 @@ public sealed class SetOfficeExcelPageSetupCommand : PSCmdlet
         }
 
         var sheet = ResolveSheet();
-        sheet.SetPageSetup(FitToWidth, FitToHeight, Scale, PageOrder);
+        ExcelSheetPageSetup page = sheet.PageSetup;
+        if (FitToWidth.HasValue) page.FitToWidth = FitToWidth;
+        if (FitToHeight.HasValue) page.FitToHeight = FitToHeight;
+        if (Scale.HasValue) page.Scale = Scale;
+        if (PageOrder.HasValue) page.PageOrder = PageOrder;
 
         if (PassThru.IsPresent)
         {

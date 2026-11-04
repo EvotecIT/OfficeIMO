@@ -246,7 +246,7 @@ namespace OfficeIMO.Examples.Html {
                 </html>
                 """;
 
-            var options = new HtmlToPdfOptions {
+            var options = new HtmlPdfExportOptions {
                 PageSize = OfficePageSizes.A4.Landscape(),
                 Margins = HtmlRenderMargins.All(18D),
                 BackgroundColor = OfficeColor.White,
@@ -264,7 +264,7 @@ namespace OfficeIMO.Examples.Html {
 
             HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
             HtmlRenderDocument rendered = HtmlRenderEngine.Render(document, options);
-            HtmlDiagnostic[] fidelityDiagnostics = rendered.Diagnostics
+            HtmlDiagnostic[] fidelityDiagnostics = rendered.NativeDiagnostics
                 .Where(diagnostic => diagnostic.Severity != HtmlDiagnosticSeverity.Info)
                 .ToArray();
             foreach (HtmlDiagnostic diagnostic in fidelityDiagnostics) {

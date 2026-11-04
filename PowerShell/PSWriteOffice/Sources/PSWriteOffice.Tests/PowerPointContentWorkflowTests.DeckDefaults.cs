@@ -33,7 +33,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.False(shell.HadErrors, Errors(shell));
         using var saved = PowerPointDocument.Load(path);
         Assert.Empty(saved.ValidateDocument());
-        Assert.Equal("Review team", saved.BuiltinDocumentProperties.Creator);
+        Assert.Equal("Review team", saved.Properties.Creator);
         Assert.Equal(OfficeLength.Inches(10), saved.SlideSize.Width);
         Assert.Equal(OfficeLength.Inches(7.5), saved.SlideSize.Height);
         Assert.Equal("008040", saved.GetTheme().Palette.Accent1.ToRgbHex());

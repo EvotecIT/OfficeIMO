@@ -122,7 +122,7 @@ internal static partial class PowerPointSlideImageRenderer {
         }
 
         return new OfficeFontInfo(
-            PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(firstRun?.FontName ?? cell.FontName,
+            PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(firstRun?.FontFamily ?? cell.FontFamily,
                 firstRun?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
             mapping.MapFontSize(firstRun?.FontSize?.ToPoints() ?? cell.FontSize?.ToPoints() ?? 10),
             style);
@@ -178,7 +178,7 @@ internal static partial class PowerPointSlideImageRenderer {
             run?.Italic == true,
             run?.Underline == true,
             PowerPointEffectiveRunStyleResolver.ResolveThemeFontReference(
-                (markerRun ? paragraph?.BulletFontName : null) ?? run?.FontName ?? cell.FontName,
+                (markerRun ? paragraph?.BulletFontName : null) ?? run?.FontFamily ?? cell.FontFamily,
                 run?.OwnerPart ?? paragraph?.OwnerPart ?? cell.OwnerPart) ?? "Calibri",
             run?.Strikethrough == true,
             backgroundColor,

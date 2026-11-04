@@ -75,7 +75,7 @@ internal static partial class VisioReaderAdapter {
 
     internal static VisioLoadOptions? CreateLoadOptions(ReaderOptions readerOptions) =>
         readerOptions.MaxInputBytes.HasValue
-            ? new VisioLoadOptions { MaxInputBytes = readerOptions.MaxInputBytes }
+            ? new VisioLoadOptions { Limits = { MaxInputBytes = readerOptions.MaxInputBytes } }
             : null;
 
     private static IEnumerable<ReaderChunk> Read(VisioDocument document, SourceMetadata source, ReaderOptions readerOptions, CancellationToken cancellationToken) {
@@ -457,7 +457,7 @@ internal static partial class VisioReaderAdapter {
     }
 
     internal sealed class SourceMetadata {
-        public IReadOnlyList<OfficeConversionFidelityDiagnostic> ImportDiagnostics { get; set; } = Array.Empty<OfficeConversionFidelityDiagnostic>();
+        public IReadOnlyList<OfficeDiagnostic> ImportDiagnostics { get; set; } = Array.Empty<OfficeDiagnostic>();
         public string? Path { get; set; }
         public string? SourceId { get; set; }
         public string? SourceHash { get; set; }

@@ -2,9 +2,11 @@ using OfficeIMO.Core.Internal;
 using System;
 using System.IO;
 using System.Management.Automation;
+using System.Security;
 using System.Text;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Pdf;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
@@ -33,7 +35,8 @@ public sealed class ConvertToOfficePdfHtmlCommand : PSCmdlet
 
     /// <summary>Password used to read a Standard password-encrypted PDF.</summary>
     [Parameter]
-    public string? Password { get; set; }
+    [OfficePasswordTransformation]
+    public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
     [Parameter]
@@ -86,14 +89,14 @@ public sealed class ConvertToOfficePdfHtmlCommand : PSCmdlet
 
     /// <summary>Optional OfficeIMO PDF to HTML save options.</summary>
     [Parameter]
-    public PdfToHtmlOptions? Options { get; set; }
+    public PdfHtmlExportOptions? Options { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
         try
         {
-            PdfToHtmlOptions options = BuildOptions();
+            PdfHtmlExportOptions options = BuildOptions();
             string inputPath = PdfCommandUtilities.ResolvePath(this, Path);
             using PdfDocument document = LoadDocument(inputPath);
             string html = document.ToHtml(options);
@@ -120,9 +123,9 @@ public sealed class ConvertToOfficePdfHtmlCommand : PSCmdlet
         }
     }
 
-    private PdfToHtmlOptions BuildOptions()
+    private PdfHtmlExportOptions BuildOptions()
     {
-        PdfToHtmlOptions options = Options ?? new PdfToHtmlOptions();
+        PdfHtmlExportOptions options = Options ?? new PdfHtmlExportOptions();
         if (Options == null)
         {
             options.Profile = Profile;

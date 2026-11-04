@@ -2,6 +2,59 @@
 
 `OfficeIMO.Excel.Benchmarks` is the benchmark harness for `OfficeIMO.Excel`. It measures representative workbook read, write, edit, package-size, and real-world feature workloads. It is not a runtime package.
 
+## Generated tabular comparison
+
+I use `ExcelReaderGeneratedBenchmarks` for 50,000 rows with a unique name,
+integer ID, date and double. OfficeIMO, ExcelReader.NET, Sylvan and ExcelDataReader
+read the same file for each of XLSX, XLSB and XLS. Every read materializes the
+name and consumes the three typed values; the object-parsing methods separately
+compare `RowsAs<T>` with `ExcelParser<T>`. Setup checks every value and header;
+measured reads verify the row count and a checksum over every value.
+
+`ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
+packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
+`ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. Generation is included
+for each writer, while preflight validation is outside timing: I reopen each
+output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
+requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
+an unavailable timing, without ranking invalid output against a valid package.
+
+The .NET 10 lanes use the published MIT ExcelReader.NET 7.3.4 package. The .NET 8
+comparisons retain their last compatible pin and are a separate version cohort.
+These generated lanes run on .NET 10:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelReaderGenerated*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove
+```
+
+For before/after reader comparisons I set `OFFICEIMO_EXCEL_GENERATED_INPUT` to a
+read-only corpus directory containing `generated-four-columns-50000.xlsx`,
+`.xlsb` and `.xls`, and retain each file's SHA-256 and producer revision with the
+results. This keeps changes to the writer from changing the reader's input.
+Without that variable, setup generates and cleanup deletes its own fixtures.
+Read and object-parse methods form separate BenchmarkDotNet categories.
+
+Each participant's consumption loop has its own value-type generic instantiation
+and no-inline boundary, so its call sites collect a separate JIT profile. The
+same loop bodies perform the validation and checksums for every reader. Keep
+baseline and candidate harness bytes identical when comparing engine revisions.
+
+Raw UTF-8 span access is different work from returning owned strings. I compare
+materialized values here; the resulting allocation includes those strings.
+
+`ExcelRawReadStageBenchmarks` locates XLSX preparation and row-delivery costs.
+It reuses the generated comparison's full value preflight and pinned-input
+setting. Each operation batches 32 readers; the delivery method prepares them
+outside timing and checks the ordinary row checksum while consuming them:
+
+```sh
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter "*ExcelRawReadStageBenchmarks*" --inProcess --warmupCount 8 --iterationCount 32 --invocationCount 1 --unrollFactor 1 --outliers DontRemove
+```
+
+This diagnostic keeps 32 prepared readers alive at once. Its phases do not add
+exactly to the complete read, and its memory profile is not a parity comparison.
+I use the complete generated lanes for performance acceptance.
+
 ## Text export
 
 `ExcelTextWriteBenchmarks` writes complete XLSX packages containing 1,000
@@ -25,6 +78,26 @@ separately. The [2026-09-07 measurement](../Docs/benchmarks/officeimo.excel-csv-
 records the XML escaping improvement, package sizes, and remaining long-text cost.
 The [2026-09-08 measurement](../Docs/benchmarks/officeimo.excel-csv-buffering-2026-09-08.md)
 records writer buffering and reader allocation results, including ordinary defaults.
+
+## Public scenario shapes
+
+`--compare-xlbench-shapes` compares OfficeIMO with the plain Open XML SDK on the workload shapes of the
+[XLBench](https://github.com/jafin/XLBench) scenarios: write, read all, 20 sheets, report, edit, insert,
+calc, template and properties, plus read-while-writing, wide-read, edited-read and edited-sheets-read, which time reads of a workbook with unsaved cells, of a sheet too wide for one buffered chunk, and of an edited package. Source workbooks are built with ClosedXML outside measurement.
+Number and stock values are deterministic stand-ins with the same dimensions. Before timing, one saved workbook from each
+implementation is reopened with the SDK and ClosedXML, passes `OpenXmlValidator` and has its scenario content checked.
+`edit` and `insert` follow XLBench by not saving on the OfficeIMO side; `edit-save` and `insert-save` include the save.
+`calc` has no SDK column because the SDK has no calculation engine; its saved workbook is checked against every order's net and category and the grand total computed in C#.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --compare-xlbench-shapes 9 2
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --compare-xlbench-shapes 15 3 report,edit
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --profile-xlbench-shape report 10
+```
+
+The arguments are measured iterations, warmup iterations and an optional scenario list. Times and
+allocations are medians. `--profile-xlbench-shape` runs one scenario for OfficeIMO alone and prints sampled allocations by type.
+`sales_template.xlsx` is the Excel-authored template from XLBench, copyright (c) 2026 Jason Finch, used under the MIT License.
 
 ## Run benchmarks
 

@@ -11,6 +11,35 @@ public sealed class HtmlRenderRequestTests {
     private const string TallHtml = "<style>html,body{margin:0}.block{height:700px;background:#336699}</style><div class='block'>Tall</div>";
 
     [Fact]
+    public async Task ConcurrentRendersShareInstalledFontsWithoutChangingOutput() {
+        const string html = "<style>body{font-family:Arial,sans-serif}h1{font-weight:700}em{font-style:italic}</style>"
+            + "<h1>Quarterly review</h1><p>Plain text with <em>emphasis</em>, numbers 12345 and a minus \u2212 sign.</p>";
+        static byte[] Render(string source) {
+            using OfficeIMO.Pdf.PdfDocument pdf = HtmlConversionDocument.Parse(source).ToPdf();
+            return pdf.ToBytes();
+        }
+
+        byte[] expected = Render(html);
+        byte[][] rendered = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() => Render(html))));
+
+        Assert.All(rendered, output => Assert.Equal(expected, output));
+    }
+
+    [Fact]
+    public void ChangingAConvertedDocumentReachesItsSavedOutput() {
+        using OfficeIMO.Pdf.PdfDocument unchanged = HtmlConversionDocument.Parse("<p>Body</p>").ToPdf();
+        int originalPages = OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(unchanged.ToBytes())).Pages.Count;
+
+        using OfficeIMO.Pdf.PdfDocument changed = HtmlConversionDocument.Parse("<p>Body</p>").ToPdf();
+        changed.Meta(title: "Changed after conversion");
+        changed.Compose(compose => compose.Page(page => page.Content(content => content.AddParagraph(text => text.AddText("Added")))));
+
+        OfficeIMO.Pdf.PdfDocument saved = OfficeIMO.Pdf.PdfDocument.Load(new MemoryStream(changed.ToBytes()));
+        Assert.Equal("Changed after conversion", saved.Inspect().Metadata.Title);
+        Assert.Equal(originalPages + 1, saved.Pages.Count);
+    }
+
+    [Fact]
     public void BuiltInProfilesExposeStableUniqueAxisContracts() {
         Assert.Equal(6, HtmlRenderProfileContracts.All.Count);
         Assert.Equal(6, HtmlRenderProfileContracts.All.Select(item => item.Id).Distinct(StringComparer.Ordinal).Count());
@@ -41,7 +70,7 @@ public sealed class HtmlRenderRequestTests {
     public void RequestSnapshotsOptionsAndKeepsEncoderIndependentFromLayout() {
         var source = new HtmlRenderOptions { ViewportWidth = 480D, ViewportHeight = 320D };
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, source,
+            HtmlRenderIntentProfile.ScreenViewport, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(source),
             HtmlRenderDocumentState.EditedSnapshot);
         source.ViewportWidth = 999D;
 
@@ -156,7 +185,7 @@ public sealed class HtmlRenderRequestTests {
     [Fact]
     public void PrintPagedClipsHorizontalBodyOverflowToThePageCanvas() {
         const string html = "<style>html,body{margin:0}</style><div style='width:500px;height:20px;background:#336699'>Wide PDF</div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(3D), global::OfficeIMO.OfficeLength.Inches(2D)),
             Margins = HtmlRenderMargins.All(0D),
             HonorCssPageRules = false
@@ -329,7 +358,7 @@ public sealed class HtmlRenderRequestTests {
             MaxSurfaceHeight = 500
         };
         HtmlRenderRequest stitched = HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, surfaceOptions)
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(surfaceOptions))
             .WithPageSet(HtmlRenderPageSet.Stitched());
         Assert.Throws<InvalidOperationException>(() => HtmlRenderEngine.Execute(source, stitched));
     }
@@ -344,14 +373,14 @@ public sealed class HtmlRenderRequestTests {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(TallHtml);
 
         HtmlRenderRequest selectedRequest = HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, options)
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Svg, HtmlPdfExportOptions.ForImageExport(options))
             .WithPageSet(HtmlRenderPageSet.Page(1));
         HtmlRenderResult selected = HtmlRenderEngine.Execute(source, selectedRequest);
         Assert.Single(selected.Document.Pages);
         Assert.Equal(2, selected.Surfaces[0].SourcePageNumber);
 
         HtmlRenderRequest stitchedRequest = HtmlRenderRequest.Create(
-                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, options)
+                HtmlRenderIntentProfile.PrintPaged, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options))
             .WithPageSet(HtmlRenderPageSet.Stitched());
         HtmlRenderResult stitched = HtmlRenderEngine.Execute(source, stitchedRequest);
         Assert.Single(stitched.Document.Pages);
@@ -375,7 +404,7 @@ public sealed class HtmlRenderRequestTests {
         OfficeImageExportResult legacy = source.ExportImage(OfficeImageExportFormat.Png, options);
 
         HtmlRenderRequest request = HtmlRenderRequest.Create(
-            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, options);
+            HtmlRenderIntentProfile.ScreenFullPage, HtmlRenderEncoder.Png, HtmlPdfExportOptions.ForImageExport(options));
         OfficeImageExportResult explicitResult = Assert.Single(source.RenderImages(request));
 
         Assert.Equal(legacy.Width, explicitResult.Width);
@@ -386,7 +415,7 @@ public sealed class HtmlRenderRequestTests {
     [Fact]
     public void ExplicitPdfRequestCanSelectScreenMediaOrFrozenScreenSlicing() {
         const string html = "<style>html,body{margin:0}.content{height:700px}@media print{.content{height:100px}}</style><div class='content'>PDF</div>";
-        var options = new HtmlToPdfOptions {
+        var options = new HtmlPdfExportOptions {
             PageSize = new OfficePageSize(global::OfficeIMO.OfficeLength.Inches(4D), global::OfficeIMO.OfficeLength.Inches(3D)),
             ViewportWidth = 384D,
             Margins = HtmlRenderMargins.All(0D),
@@ -423,7 +452,7 @@ public sealed class HtmlRenderRequestTests {
         _ = (source.ToPdf()).ToBytes();
         var timeout = TimeSpan.FromSeconds(5D);
         var provider = new SlowFirstEncryptionProvider(timeout + TimeSpan.FromMilliseconds(300D));
-        var options = new HtmlToPdfOptions { RenderTimeout = timeout };
+        var options = new HtmlPdfExportOptions { RenderTimeout = timeout };
         options.PdfOptions.SetEncryption(new OfficeIMO.Pdf.PdfStandardEncryptionOptions("open") {
             OwnerPassword = "owner",
             Algorithm = OfficeIMO.Pdf.PdfStandardEncryptionAlgorithm.Aes128,

@@ -81,7 +81,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(controlBox.Height, actualBox.Height, 6);
         Assert.Equal(controlFollowing.X, following.X, 6);
         Assert.Equal(controlFollowing.Y, following.Y, 6);
-        rendered.RequireNoLoss();
+        rendered.ThrowIfLoss();
     }
 
     private static HtmlRenderText[] RenderParagraph(string style, HtmlRenderOptions options, string text = "日本語文書作成") {

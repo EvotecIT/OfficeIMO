@@ -16,7 +16,7 @@ internal sealed partial class StudioNativeDocument {
     internal async Task<StudioNativeStructure> GetStructureAsync(CancellationToken cancellationToken) {
         await EnterAsync(cancellationToken).ConfigureAwait(false);
         try {
-            PdfMetadata? metadata = _workspace.Metadata;
+            PdfDocumentProperties? metadata = _workspace.Metadata;
             var properties = new StudioNativeProperties(metadata?.Title, metadata?.Author, metadata?.Subject, metadata?.Keywords,
                 Timestamp(metadata?.CreationDate), Timestamp(metadata?.ModificationDate));
             int nextId = 0;
@@ -74,7 +74,7 @@ internal sealed partial class StudioNativeDocument {
     private Task EditProperties(StudioNativeProperties properties, CancellationToken cancellationToken) {
         if (!_workspace.CanEditMetadata) throw new NotSupportedException("This document's properties can't be changed.");
         // Fields the request leaves out keep their value; an empty string clears one.
-        PdfMetadata? current = _workspace.Metadata;
+        PdfDocumentProperties? current = _workspace.Metadata;
         return _workspace.UpdateMetadataAsync(properties.Title ?? current?.Title ?? string.Empty, properties.Author ?? current?.Author ?? string.Empty,
             properties.Subject ?? current?.Subject ?? string.Empty, properties.Keywords ?? current?.Keywords ?? string.Empty, cancellationToken);
     }

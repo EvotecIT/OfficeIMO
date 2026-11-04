@@ -81,7 +81,7 @@ public partial class Word {
     [Fact]
     public void SaveAsPdf_HiddenEarlierRunningBoxDoesNotConstrainVisiblePaintOrder() {
         using WordDocument document = CreateRunningStoryPaintOrderControl(10U, 1U);
-        DW.Anchor hidden = document.Sections[1].Header!.First!.TextBoxes.First().Anchor!;
+        DW.Anchor hidden = document.Sections[1].PageSetup.FirstPageHeader.TextBoxes.First().Anchor!;
         W.Run host = hidden.Ancestors<W.Run>().Single();
         host.RunProperties ??= new W.RunProperties();
         host.RunProperties.Vanish = new W.Vanish();
@@ -99,7 +99,7 @@ public partial class Word {
     private static WordDocument CreateRunningStoryPaintOrderControl(uint firstDepth, uint secondDepth,
         bool sameParagraph = false, bool footer = false) {
         WordDocument document = CreateAnchoredRunningTextBoxControl(includeTextBox: true);
-        W.Header header = document.Sections[1].Header!.First!._header!;
+        W.Header header = document.Sections[1].PageSetup.FirstPageHeader._header!;
         W.Paragraph first = header.Elements<W.Paragraph>().Single();
         first.Descendants<W.TextBoxContent>().Single().Descendants<W.Text>().Single().Text = "FIRSTBOX";
         W.Paragraph second = CloneRunningAnchorParagraph(first, "NEXT", "SECONDBOX", "END");
@@ -111,7 +111,7 @@ public partial class Word {
             first.Descendants<DW.Anchor>().Single().Ancestors<W.Run>().Single().Append(drawing);
         } else header.Append(second);
         if (footer) {
-            WordHeaderFooter footerStory = document.Sections[1].Footer!.First!;
+            WordHeaderFooter footerStory = document.Sections[1].PageSetup.FirstPageFooter;
             W.Footer target = footerStory._footer!;
             foreach (var child in target.ChildElements.ToArray()) child.Remove();
             foreach (W.Paragraph source in header.Elements<W.Paragraph>().ToArray()) {

@@ -375,7 +375,7 @@ internal sealed partial class ExcelObjectTableProjection {
                 }
             }
 
-            Sheet!.CellValues(cells);
+            Sheet!.SetValues(cells);
         }
 
         private static string ColumnLetter(int column) {

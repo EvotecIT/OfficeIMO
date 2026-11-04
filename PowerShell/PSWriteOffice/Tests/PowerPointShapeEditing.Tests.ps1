@@ -53,13 +53,13 @@ Describe 'PowerPointShapeEditing workflows' {
         $slide.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointSlide'
         $shape.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointAutoShape'
         $table.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTable'
-        $image.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointPicture'
+        $image.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointImage'
         $bullets.GetType().FullName | Should -Be 'OfficeIMO.PowerPoint.PowerPointTextBox'
         $slide.Shapes.Count | Should -BeGreaterThan 0
         @($slide.Tables).Count | Should -BeGreaterThan 0
         $table.Rows | Should -BeGreaterThan 0
         $shape | Should -Not -BeNullOrEmpty
-        $slide.Pictures.Count | Should -BeGreaterThan 0
+        $slide.Images.Count | Should -BeGreaterThan 0
         $image | Should -Not -BeNullOrEmpty
         $bullets.Paragraphs.Count | Should -Be 3
         $bullets.Paragraphs[0].Text | Should -Be 'Wins'
@@ -124,7 +124,7 @@ Describe 'PowerPointShapeEditing workflows' {
             ($reloadedShapeInfo | Where-Object Kind -eq 'Table').Count | Should -Be 1
             ($reloadedShapeInfo | Where-Object Kind -eq 'Picture' | Select-Object -First 1).SlideIndex | Should -Be 2
             @($reloadedSlide.Tables).Count | Should -BeGreaterThan 0
-            $reloadedSlide.Pictures.Count | Should -BeGreaterThan 0
+            $reloadedSlide.Images.Count | Should -BeGreaterThan 0
         } finally {
             if ($reloaded) {
                 $reloaded.Dispose()

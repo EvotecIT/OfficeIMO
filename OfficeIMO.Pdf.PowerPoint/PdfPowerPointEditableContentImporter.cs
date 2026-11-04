@@ -8,7 +8,7 @@ namespace OfficeIMO.Pdf.PowerPoint;
 public static partial class PdfPowerPointConverterExtensions {
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocument document,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) {
         PdfCore.PdfDocumentReadResult logical = ReadBoundedLogicalDocument(document, options, cancellationToken);
         return ImportEditableContent(logical, options, document, cancellationToken);
@@ -16,13 +16,13 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocumentReadResult logical,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         CancellationToken cancellationToken) =>
         ImportEditableContent(logical, options, sourceDocument: null, cancellationToken);
 
     private static PdfPowerPointConversionResult ImportEditableContent(
         PdfCore.PdfDocumentReadResult logical,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         PdfCore.PdfDocument? sourceDocument,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
@@ -378,7 +378,7 @@ public static partial class PdfPowerPointConverterExtensions {
                     bounds = bounds.SwapDimensionsAroundCenter();
                 }
                 using var stream = new MemoryStream(image.SourceImage.Bytes, writable: false);
-                PptCore.PowerPointPicture picture = slide.AddImage(
+                PptCore.PowerPointImage picture = slide.AddImage(
                     stream,
                     format,
                     OfficeIMO.OfficeLength.Points(bounds.Left),
@@ -622,7 +622,7 @@ public static partial class PdfPowerPointConverterExtensions {
         for (int runIndex = 1; runIndex < sourceRuns.Count; runIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfLogicalTextRun sourceRun = sourceRuns[runIndex];
-            PptCore.PowerPointTextRun targetRun = paragraph.AddRun(sourceRun.Text);
+            PptCore.PowerPointTextRun targetRun = paragraph.AddText(sourceRun.Text);
             ApplyEditableTextRunStyle(targetRun, sourceRun, block.FontSize, scale);
         }
     }
@@ -635,10 +635,10 @@ public static partial class PdfPowerPointConverterExtensions {
         target.FontSize = global::OfficeIMO.OfficeLength.Points(ScaleEditableFontSize(
             source.FontSize > 0D ? source.FontSize : fallbackFontSize,
             scale));
-        target.FontName = ResolvePowerPointFontFamily(source.BaseFont);
+        target.FontFamily = ResolvePowerPointFontFamily(source.BaseFont);
         target.Bold = source.IsBold;
         target.Italic = source.IsItalic;
-        if (source.Color.HasValue) target.Color = ToHex(source.Color.Value);
+        if (source.Color.HasValue) target.Color = OfficeColor.FromRgb(source.Color.Value.R, source.Color.Value.G, source.Color.Value.B);
     }
 
     private static EditableTableImportCount ImportEditableTables(
@@ -650,7 +650,7 @@ public static partial class PdfPowerPointConverterExtensions {
         int primarySlideIndex,
         EditablePagePlacement placement,
         IReadOnlyDictionary<PdfCore.PdfLogicalTable, EditableBounds> tableBounds,
-        PowerPointPdfImportOptions options,
+        PdfPowerPointExportOptions options,
         ICollection<PdfPowerPointTableImportEntry> entries,
         int remainingObjects,
         CancellationToken cancellationToken) {
@@ -716,7 +716,7 @@ public static partial class PdfPowerPointConverterExtensions {
 
     private static EditableBounds GetContinuationTableBounds(
         PptCore.PowerPointDocument presentation,
-        PowerPointPdfImportOptions options) {
+        PdfPowerPointExportOptions options) {
         double slideWidth = Math.Max(1D, presentation.SlideSize.Width.ToPoints());
         double slideHeight = Math.Max(1D, presentation.SlideSize.Height.ToPoints());
         double left = Math.Min(Math.Max(0D, options.TableLeft / 12700D), slideWidth - 1D);

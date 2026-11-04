@@ -24,18 +24,18 @@ public sealed partial class ReadOfficeDocumentCommand {
             case OfficeReadView.Json: WriteObject(document.ToJson(Indented)); break;
             case OfficeReadView.Chunks: WriteObject(document.Chunks, true); break;
             case OfficeReadView.Hierarchy: WriteObject(_reader.ChunkDocument(document, HierarchyOptions, CancelToken)); break;
-            case OfficeReadView.Structure: WriteObject(_reader.ExtractStructured(document, StructureOptions, CancelToken)); break;
+            case OfficeReadView.Structure: WriteObject(document.ExtractStructured(StructureOptions, CancelToken)); break;
             case OfficeReadView.Tables:
                 var tables = document.EnumerateTables().ToArray();
-                if (Bundle) WriteObject(_reader.ExportTables(tables, Indented, CancelToken), true);
+                if (Bundle) WriteObject(tables.ExportTables(Indented, CancelToken), true);
                 else WriteObject(tables, true);
                 break;
             case OfficeReadView.Visuals:
                 var visuals = document.EnumerateVisuals().ToArray();
-                if (Bundle) WriteObject(_reader.ExportVisuals(visuals, Indented, CancelToken), true);
+                if (Bundle) WriteObject(visuals.ExportVisuals(Indented, CancelToken), true);
                 else WriteObject(visuals, true);
                 break;
-            case OfficeReadView.Assets: WriteObject(_reader.ExtractAssets(document, cancellationToken: CancelToken), true); break;
+            case OfficeReadView.Assets: WriteObject(document.ExtractAssets(cancellationToken: CancelToken), true); break;
             case OfficeReadView.Ingest:
                 var summary = new OfficeReadIngestSummary(NoChunks);
                 summary.AddDocument(document);

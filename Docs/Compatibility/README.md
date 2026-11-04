@@ -37,7 +37,7 @@ Classification and import do not imply that every extension is a writable destin
 
 The older family-specific `LossPolicy = Allow` setting maps to `BestEffort` when no compatibility mode was selected. New callers should prefer `CompatibilityMode` because it distinguishes editability from visual fidelity and preservation.
 
-Use `AnalyzeConversion` before writing when an application needs approval or workflow routing. `Convert` returns the same immutable assessment together with the committed path. `RequireNoLoss()` rejects reports containing loss or blocked features.
+Use `AnalyzeConversion` before writing when an application needs approval or workflow routing. `Convert` returns the same immutable assessment together with the committed path. `ThrowIfLoss()` rejects reports containing loss or blocked features.
 
 ```csharp
 PowerPointDocumentConversionReport assessment =

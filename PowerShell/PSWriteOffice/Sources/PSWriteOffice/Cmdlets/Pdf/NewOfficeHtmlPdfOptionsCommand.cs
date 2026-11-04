@@ -10,10 +10,10 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// <code>$options = New-OfficeHtmlPdfOptions -FontFamily Arial -IncludeLocalResources
 /// Export-OfficeDocumentPdf -InputPath .\Report.html -Path .\Report.pdf -MarkdownHtmlExportOptions $options</code></example>
 [Cmdlet(VerbsCommon.New, "OfficeHtmlPdfOptions", DefaultParameterSetName = "Default")]
-[OutputType(typeof(HtmlToPdfOptions))]
+[OutputType(typeof(HtmlPdfExportOptions))]
 public sealed class NewOfficeHtmlPdfOptionsCommand : PSCmdlet {
     /// <summary>Existing options to clone before applying explicitly supplied values.</summary>
-    [Parameter(ValueFromPipeline = true)] public HtmlToPdfOptions? Options { get; set; }
+    [Parameter(ValueFromPipeline = true)] public HtmlPdfExportOptions? Options { get; set; }
     /// <summary>Underlying PDF writer settings, cloned before use.</summary>
     [Parameter] public PdfCreateOptions? PdfOptions { get; set; }
     /// <summary>Default HTML font family.</summary>
@@ -26,7 +26,7 @@ public sealed class NewOfficeHtmlPdfOptionsCommand : PSCmdlet {
     [Parameter] public bool? InteractiveFormControls { get; set; }
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = Options?.ClonePdf() ?? new HtmlToPdfOptions();
+        var options = Options?.ClonePdf() ?? new HtmlPdfExportOptions();
         if (PdfOptions != null) options.PdfOptions = PdfOptions.Clone();
         if (FontFamily != null) options.DefaultFontFamily = FontFamily;
         if (Margin.HasValue) options.Margins = HtmlRenderMargins.All(Margin.Value);

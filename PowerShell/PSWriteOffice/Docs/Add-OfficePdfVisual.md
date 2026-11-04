@@ -11,22 +11,22 @@ Adds a ChartForgeX artifact, portable SVG, or converted Office visual to PDF flo
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfVisual [-InputObject] <Object> [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-InputObject] <Object> [-AlternativeText <string>] [-Align <OfficeAlignment>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-AlternativeText <string>] [-Align <OfficeAlignment>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
 ### PipelineDocument
 ```powershell
-Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-InputObject] <Object> -Document <PdfDocument> [-AlternativeText <string>] [-Align <OfficeAlignment>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Title <string>] [<CommonParameters>]
 ```
 
 ### Visual
 ```powershell
-Add-OfficePdfVisual [-AlternativeText <string>] [-Align <PdfAlign>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
+Add-OfficePdfVisual [-AlternativeText <string>] [-Align <OfficeAlignment>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [-SvgPolicy <OfficeVisualSvgPolicy>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PointsPerPixel <double>] [-MaximumSvgElements <Int32>] [-MaximumSvgViewportDimension <Double>] [-MaximumSvgViewportPixelCount <Int64>] [-Id <string>] [-Title <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -58,10 +58,10 @@ Add-OfficePdfVisual -Align 'Value'
 Horizontal alignment in PDF flow.
 
 ```yaml
-Type: PdfAlign
+Type: OfficeAlignment
 Parameter Sets: Context, Document, PipelineDocument, Visual
 Aliases: None
-Possible values: Left, Center, Right, Justify
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named

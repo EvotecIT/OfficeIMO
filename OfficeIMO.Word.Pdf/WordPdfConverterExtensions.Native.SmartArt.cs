@@ -66,7 +66,7 @@ public static partial class WordPdfConverterExtensions {
 
     /// <summary>Enters semantic diagram scenes into the same measured flow as other body and running-content objects.</summary>
     private static bool RenderNativeSmartArt(INativePdfFlow pdf, IReadOnlyList<OfficeDrawing> drawings,
-        PdfCore.PdfAlign align, NativeObjectParagraphSpacing? paragraphSpacing = null) {
+        global::OfficeIMO.OfficeAlignment align, NativeObjectParagraphSpacing? paragraphSpacing = null) {
         foreach (OfficeDrawing drawing in drawings) {
             RenderNativeFlowObject(pdf, paragraphSpacing, flow => flow.Drawing(drawing, align,
                 spacingBefore: 0D, spacingAfter: 0D,
