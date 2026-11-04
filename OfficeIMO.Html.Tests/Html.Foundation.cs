@@ -289,7 +289,7 @@ public sealed class HtmlFoundationTests {
         var styles = HtmlComputedStyleEngine.Compute(document);
         Assert.Contains(document.Document.QuerySelector("#title")!, styles.Keys);
         Assert.Contains("Edited foundation", document.ToMarkdown().ToMarkdown());
-        byte[] png = document.ToPng();
+        byte[] png = document.ToImage();
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Take(8).ToArray());
         byte[] pdf = (document.ToPdf(new HtmlPdfExportOptions())).ToBytes();
         var read = OfficeIMO.Pdf.PdfReadDocument.Open(pdf);

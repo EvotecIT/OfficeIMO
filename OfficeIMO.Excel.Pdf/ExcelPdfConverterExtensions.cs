@@ -13,14 +13,16 @@ namespace OfficeIMO.Excel.Pdf {
         private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfExportOptions options) {
             ArgumentNullException.ThrowIfNull(document);
 
+            IReadOnlyList<string> sheetNames = GetSheetNames(document, options);
             ExcelDocument? pivotCopy = CreatePivotRenderedCopy(document, options);
-            if (pivotCopy == null) return ConvertToPdfDocument(document, options, document.FilePath);
+            if (pivotCopy == null) return ConvertToPdfDocument(document, options, document.FilePath, sheetNames);
             using (pivotCopy) {
-                return ConvertToPdfDocument(pivotCopy, options, document.FilePath);
+                return ConvertToPdfDocument(pivotCopy, options, document.FilePath, sheetNames);
             }
         }
 
-        private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfExportOptions options, string? workbookPath) {
+        private static PdfCore.PdfDocument ConvertToPdfDocument(ExcelDocument document, ExcelPdfExportOptions options, string? workbookPath,
+            IReadOnlyList<string> sheetNames) {
             CancellationToken cancellationToken = options.CancellationToken;
             cancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfCreateOptions pdfOptions = CreatePdfOptions(options, out bool preserveConfiguredFontSlots);
@@ -30,7 +32,6 @@ namespace OfficeIMO.Excel.Pdf {
             using ExcelDocumentReader reader = document.CreateReader(new ExcelReaderOptions {
                 TreatDatesUsingNumberFormat = !options.UseWorksheetCellStyles
             });
-            IReadOnlyList<string> sheetNames = GetSheetNames(reader, options);
             bool hasExplicitSheetSelection = HasExplicitSheetSelection(options);
             IReadOnlyList<WorksheetPdfExportPlan> exportPlans = BuildWorksheetExportPlans(document, reader, sheetNames, options, hasExplicitSheetSelection, defaultFontFamily);
             cancellationToken.ThrowIfCancellationRequested();

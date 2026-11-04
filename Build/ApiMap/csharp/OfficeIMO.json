@@ -584,7 +584,7 @@
     },
     {
       "subject": "Native document validation",
-      "note": "OfficeDocument.Validate(path, checks, options, cancellationToken) and Validate(document, checks, options, cancellationToken) own structural, schema, package security, accessibility and PDF compliance/preservation checks. OfficeDocumentValidationOptions, OfficeExcelValidationOptions and OfficePdfValidationOptions retain existing engine policies and typed native evidence. Borrowed models remain open and include unsaved edits; optional format checks are explicitly not applicable. Test-OfficeDocument is a thin consumer of this owner.",
+      "note": "OfficeDocument.Validate(source, checks, options, cancellationToken) accepts a file path or native model and owns structural, schema, package security, accessibility and PDF compliance/preservation checks. OfficeDocumentValidationOptions, OfficeExcelValidationOptions and OfficePdfValidationOptions retain existing engine policies and typed native evidence. Borrowed models remain open and include unsaved edits; optional format checks are explicitly not applicable. Test-OfficeDocument is a thin consumer of this owner.",
       "status": "applied"
     }
   ],

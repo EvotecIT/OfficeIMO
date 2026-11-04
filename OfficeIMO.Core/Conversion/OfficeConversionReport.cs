@@ -52,7 +52,7 @@ public class OfficeConversionReport {
     /// <summary>Gets the target path, format or description.</summary>
     public string Target { get; }
     /// <summary>Gets the written path, or null for a stream or in-memory result.</summary>
-    public string? OutputPath { get; }
+    public string? OutputPath { get; private set; }
     /// <summary>Gets pages or logical items written, as defined by the converter.</summary>
     public long ItemsWritten { get; }
     /// <summary>Gets elapsed conversion time.</summary>
@@ -62,6 +62,13 @@ public class OfficeConversionReport {
         ?? throw new InvalidOperationException($"{GetType().FullName} returned null diagnostics.");
     /// <summary>Gets whether the report describes an approximation, omission, failure or unassessed content.</summary>
     public virtual bool HasLoss => Diagnostics.Any(static d => d.LossKind != OfficeConversionLossKind.None);
+
+    /// <summary>Attaches file metadata to a separate report, preserving its runtime type and native evidence.</summary>
+    internal OfficeConversionReport WithOutputPath(string path) {
+        var copy = (OfficeConversionReport)MemberwiseClone();
+        copy.OutputPath = path;
+        return copy;
+    }
 
     /// <summary>Throws an <see cref="OfficeConversionException"/> carrying this report if any fidelity loss is reported.</summary>
     public void ThrowIfLoss() {

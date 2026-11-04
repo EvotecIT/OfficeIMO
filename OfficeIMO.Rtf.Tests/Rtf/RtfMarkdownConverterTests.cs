@@ -45,7 +45,7 @@ public class RtfMarkdownConverterTests {
         paragraph.AddText(" and ");
         paragraph.AddText("italic").SetItalic();
         paragraph.AddText(" with ");
-        paragraph.AddText("strike").SetStrike();
+        paragraph.AddText("strike").SetStrikethrough();
         paragraph.AddText(" plus ");
         paragraph.AddText("link").SetHyperlink(new Uri("https://evotec.xyz"));
 
@@ -473,7 +473,7 @@ public class RtfMarkdownConverterTests {
         Assert.Contains(@"\~\~not strike\~\~", markdown, StringComparison.Ordinal);
         Assert.Contains(@"\=\=not mark\=\=", markdown, StringComparison.Ordinal);
         Assert.Equal("~~not strike~~ ==not mark==", roundTrip.Paragraphs[0].ToPlainText());
-        Assert.DoesNotContain(roundTrip.Paragraphs[0].Runs, run => run.Strike || run.DoubleStrike || run.HighlightColorIndex.HasValue);
+        Assert.DoesNotContain(roundTrip.Paragraphs[0].Runs, run => run.Strikethrough || run.DoubleStrikethrough || run.HighlightColorIndex.HasValue);
     }
 
     [Fact]

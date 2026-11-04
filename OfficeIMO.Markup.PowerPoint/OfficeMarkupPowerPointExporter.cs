@@ -50,6 +50,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             throw new InvalidOperationException("PowerPoint export requires the Presentation OfficeIMO markup profile.");
         }
 
+        var exportDiagnostics = new List<OfficeMarkupDiagnostic>(diagnostics);
         var styleResolver = OfficeMarkupStyleResolver.Create(document);
         var metrics = new SlideCanvasMetrics(options.SlideWidthInches, options.SlideHeightInches);
         PowerPointDocument presentation = PowerPointDocument.Create();
@@ -58,7 +59,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             var deck = presentation.UseDesigner(CreateDeckDesign(document), applyTheme: true);
             string? activeSection = null;
             foreach (var slideBlock in GetSlides(document)) {
-                ExportSlide(presentation, deck, slideBlock, options, metrics, styleResolver);
+                ExportSlide(presentation, deck, slideBlock, options, metrics, styleResolver, exportDiagnostics);
                 var section = NormalizeSectionName(slideBlock.Section);
                 if (section != null && !string.Equals(activeSection, section, StringComparison.Ordinal)) {
                     presentation.AddSection(section, presentation.Slides.Count - 1);
@@ -77,7 +78,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 preflightReport.ThrowIfFindings(preflightOptions.FailureSeverity);
             }
 
-            return new OfficeMarkupPowerPointConversionResult(presentation, diagnostics, preflightReport);
+            return new OfficeMarkupPowerPointConversionResult(presentation, exportDiagnostics, preflightReport);
         } catch {
             presentation.Dispose();
             throw;

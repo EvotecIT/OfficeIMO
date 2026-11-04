@@ -53,24 +53,27 @@ Running content is bounded: page and column controls cannot create new pages, no
 ## Import PDF with diagnostics
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Pdf;
 using OfficeIMO.Rtf.Pdf;
 
 PdfDocument pdf = PdfDocument.Load("source.pdf");
-PdfRtfConversionResult result = pdf.ToRtfDocumentResult(new PdfRtfExportOptions {
+var converted = pdf.ToRtf(new PdfRtfExportOptions {
     ReadOptions = new PdfLoadOptions {
         PageSelection = PdfPageSelection.Parse("1-10"),
         Pipeline = new PdfUnderstandingPipelineOptions { MaxPages = 10 }
     }
-});
+}, out OfficeConversionReport report);
 
-result.Value.Save("source.rtf");
-foreach (var warning in result.Report.Warnings) {
+converted.Save("source.rtf");
+foreach (var warning in ((PdfRtfConversionReport)report).Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 ```
 
 `ReadOptions` is the same canonical semantic configuration used by `PdfDocument.Read(...)`, including page selection, Fast/Structured profile choice, layout settings, and resource budgets. It is ignored when converting an existing `PdfDocumentReadResult`.
+
+`ToRtfAsync` returns `OfficeConversionResult<RtfDocument>`. `SaveAsRtf` and `SaveAsRtfAsync` return `OfficeConversionReport` directly. Set `PdfRtfExportOptions.FailOnLoss` to reject lossy reconstruction before writing; the exception carries the completed report.
 
 The semantic importer preserves detected run color, font size, bold, and italic through shared logical PDF runs. Tables, images, links, and form widgets currently produce structured loss diagnostics instead of disappearing silently.
 

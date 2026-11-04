@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.Markdown {
             }
             WordDocument value;
             if (effectiveOptions.TemplatePath != null) {
-                value = WordDocument.Create(new WordCreateOptions { Template = effectiveOptions.TemplatePath });
+                value = WordDocument.Create(new WordCreateOptions { Template = effectiveOptions.TemplatePath, Theme = effectiveOptions.ThemeSnapshot?.SourceTheme });
                 try {
                     new MarkdownToWordConverter().ConvertIntoTemplate(markdown, value, effectiveOptions, cancellationToken);
                 } catch {
@@ -206,6 +206,8 @@ namespace OfficeIMO.Word.Markdown {
                 DefaultPageSize = source.DefaultPageSize,
                 DefaultOrientation = source.DefaultOrientation,
                 AllowLocalImages = source.AllowLocalImages,
+                AllowRemoteImages = source.AllowRemoteImages,
+                RemoteImageLoadOptions = MarkdownWordExportOptions.CopyRemoteImageOptions(source.RemoteImageLoadOptions),
                 RemoteImageResolver = source.RemoteImageResolver,
                 AllowDataUriImages = source.AllowDataUriImages,
                 MaxDataUriImageBytes = source.MaxDataUriImageBytes,

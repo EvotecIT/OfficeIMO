@@ -14,8 +14,8 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             return;
         }
 
-        if (!string.IsNullOrWhiteSpace(style.FontName)) {
-            textBox.FontFamily = style.FontName;
+        if (!string.IsNullOrWhiteSpace(style.FontFamily)) {
+            textBox.FontFamily = style.FontFamily;
         }
 
         if (style.FontSize != null) {
@@ -30,10 +30,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             textBox.Italic = style.Italic.Value;
         }
 
-        var textColor = ToPowerPointColor(style.TextColor);
-        if (!string.IsNullOrWhiteSpace(textColor)) {
-            textBox.Color = OfficeIMO.OfficeColor.Parse(textColor!);
-        }
+        if (OfficeColor.TryParse(style.TextColor, out var textColor)) textBox.Color = textColor;
 
         foreach (PowerPointParagraph paragraph in textBox.Paragraphs) {
             foreach (PowerPointTextRun run in paragraph.Runs) {
@@ -42,17 +39,13 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 if (style.Baseline != null) ApplyBaseline(run, style.Baseline.Value);
                 if (style.TextCase is { } textCase && textCase != OfficeTextCase.None) run.TransformTextCase(textCase, CultureInfo.InvariantCulture);
                 if (style.SmallCaps != null) run.Capitalization = style.SmallCaps.Value ? PowerPointCapitalization.SmallCaps : PowerPointCapitalization.None;
-                if (ToPowerPointColor(style.HighlightColor) is string highlight) run.BackgroundColor = OfficeIMO.OfficeColor.Parse(highlight);
+                if (OfficeColor.TryParse(style.HighlightColor, out var highlight)) run.BackgroundColor = highlight;
             }
         }
 
-        var fillColor = ToPowerPointColor(style.FillColor);
-        if (!string.IsNullOrWhiteSpace(fillColor)) {
-            textBox.FillColor = fillColor;
-        }
+        if (OfficeColor.TryParse(style.FillColor, out var fillColor)) textBox.FillColor = fillColor;
 
-        var borderColor = ToPowerPointColor(style.BorderColor);
-        if (!string.IsNullOrWhiteSpace(borderColor)) {
+        if (OfficeColor.TryParse(style.BorderColor, out var borderColor)) {
             textBox.OutlineColor = borderColor;
             textBox.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         }
@@ -103,11 +96,11 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var panel = slide.AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Inches(box.Left), OfficeIMO.OfficeLength.Inches(box.Top), OfficeIMO.OfficeLength.Inches(box.Width), OfficeIMO.OfficeLength.Inches(box.Height), name);
         if (!string.IsNullOrWhiteSpace(fillColor)) {
-            panel.FillColor = fillColor;
+            panel.FillColor = OfficeColor.Parse(fillColor!);
         }
 
         if (!string.IsNullOrWhiteSpace(borderColor)) {
-            panel.OutlineColor = borderColor;
+            panel.OutlineColor = OfficeColor.Parse(borderColor!);
             panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
         }
     }

@@ -347,7 +347,7 @@ internal static partial class RtfHtmlWriter {
         OpenTag(builder, "em", run.Italic, ref opened);
         bool plainUnderline = run.Underline && !HasRichUnderline(run);
         OpenTag(builder, "u", plainUnderline, ref opened);
-        bool plainStrike = (run.Strike || run.DoubleStrike) && !HasRichStrike(run);
+        bool plainStrike = (run.Strikethrough || run.DoubleStrikethrough) && !HasRichStrike(run);
         OpenTag(builder, "s", plainStrike, ref opened);
         OpenTag(builder, "sup", run.VerticalPosition == RtfVerticalPosition.Superscript, ref opened);
         OpenTag(builder, "sub", run.VerticalPosition == RtfVerticalPosition.Subscript, ref opened);

@@ -43,7 +43,7 @@ public static partial class OfficeConverter {
             if (settings.FailOnLoss) registeredReport.ThrowIfLoss();
             await ApplyRegisteredSaveOptionsAsync(output, settings, registeredReport, token).ConfigureAwait(false);
             await OfficeIMO.Core.Internal.OfficeConversionFailures.RunAsync(registeredReport,
-                () => ValidateRegisteredOutputAsync(output, settings, token)).ConfigureAwait(false);
+                () => ValidateRegisteredArtifactAsync(registration, output, settings, token)).ConfigureAwait(false);
             return registeredReport;
         }
         var timer = Stopwatch.StartNew();
@@ -125,13 +125,17 @@ public static partial class OfficeConverter {
             case "markdown-pdf":
             case "markdown-docx":
             case "markdown-html": {
-                using MarkdownDocument document = MarkdownDocument.Load(input, new MarkdownLoadOptions { MaxInputBytes = settings.MaximumInputBytes });
+                MarkdownLoadOptions load = id == "markdown-html" ? settings.MarkdownHtml?.ReaderOptions?.Clone() ?? new()
+                    : id == "markdown-docx" ? (settings.MarkdownWord ?? new()).CreateReaderOptions() : new();
+                load.MaxInputBytes = Math.Min(load.MaxInputBytes ?? settings.MaximumInputBytes, settings.MaximumInputBytes);
+                using MarkdownDocument document = await MarkdownDocument.LoadAsync(input, load, token).ConfigureAwait(false);
                 if (id == "markdown-pdf") {
                     MarkdownPdfExportOptions options = settings.Markdown ?? new(); options.FailOnLoss |= settings.FailOnLoss;
                     options.BaseDirectory ??= settings.ResourceDirectory;
                     result = await document.SaveAsPdfAsync(output, options, token).ConfigureAwait(false);
                 } else if (id == "markdown-docx") {
                     MarkdownWordExportOptions options = ConfigureMarkdownHtml(settings.MarkdownWord, token); options.FailOnLoss |= settings.FailOnLoss;
+                    options.SourceDirectory ??= settings.ResourceDirectory;
                     result = await SaveConvertedAsync(await document.ToWordAsync(options, token).ConfigureAwait(false),
                         model => model.SaveAsync(output, settings.WordSave, token), options.Template).ConfigureAwait(false);
                 } else {

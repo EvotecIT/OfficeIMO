@@ -10,10 +10,10 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class WordRtfCharacterFormattingTests {
     [Fact]
-    public void Word_Rtf_Bridge_RoundTrips_Superscript_And_Subscript_Through_Core_Model() {
+    public void Word_Rtf_Bridge_RoundTrips_ScriptPositions_And_HalfPoint_FontSize() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
-        paragraph.AddText("2");
+        paragraph.AddText("2").FontSize = OfficeIMO.OfficeLength.Points(17.5);
         paragraph.AddText("nd").SetSuperscript();
         paragraph.AddText(" H");
         paragraph.AddText("2").SetSubscript();
@@ -25,12 +25,14 @@ public class WordRtfCharacterFormattingTests {
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("2nd H2O", rtfParagraph.ToPlainText());
+        Assert.Contains(rtfParagraph.Runs, run => run.Text == "2" && run.FontSize == 17.5);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "nd" && run.VerticalPosition == RtfVerticalPosition.Superscript);
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Subscript);
         Assert.Contains(@"\super nd\nosupersub", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\sub 2\nosupersub", rtf, StringComparison.Ordinal);
 
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "nd" && run.VerticalTextAlignment == WordVerticalTextPosition.Superscript);
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "2" && run.FontSize?.ToPoints() == 17.5);
         Assert.Contains(roundTrip.Paragraphs, run => run.Text == "2" && run.VerticalTextAlignment == WordVerticalTextPosition.Subscript);
     }
 

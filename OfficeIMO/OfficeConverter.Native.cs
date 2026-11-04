@@ -92,7 +92,7 @@ public static partial class OfficeConverter {
         LossPolicy = settings.FailOnLoss ? OfficeConversionLossPolicy.Block : OfficeConversionLossPolicy.Allow
     };
 
-    private static WordLoadOptions WordInputOptions(OfficeConversionOptions settings) {
+    internal static WordLoadOptions WordInputOptions(OfficeConversionOptions settings) {
         WordLoadOptions options = settings.WordLoad?.Snapshot() ?? new();
         options.PersistenceMode = DocumentPersistenceMode.Explicit;
         options.Password ??= settings.SourcePassword;
@@ -103,7 +103,7 @@ public static partial class OfficeConverter {
         return options;
     }
 
-    private static ExcelLoadOptions ExcelInputOptions(OfficeConversionOptions settings) {
+    internal static ExcelLoadOptions ExcelInputOptions(OfficeConversionOptions settings) {
         ExcelLoadOptions options = settings.ExcelLoad?.Snapshot() ?? new();
         options.PersistenceMode = DocumentPersistenceMode.Explicit;
         options.Password ??= settings.SourcePassword;
@@ -114,7 +114,7 @@ public static partial class OfficeConverter {
         return options;
     }
 
-    private static PowerPointLoadOptions PowerPointInputOptions(OfficeConversionOptions settings) {
+    internal static PowerPointLoadOptions PowerPointInputOptions(OfficeConversionOptions settings) {
         PowerPointLoadOptions options = settings.PowerPointLoad?.Snapshot() ?? new();
         options.PersistenceMode = DocumentPersistenceMode.Explicit;
         options.Password ??= settings.SourcePassword;

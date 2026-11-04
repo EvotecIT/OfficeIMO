@@ -4,7 +4,7 @@ namespace OfficeIMO.Rtf.Pdf;
 
 /// <summary>Immutable diagnostics from one semantic PDF-to-RTF conversion.</summary>
 public sealed class PdfRtfConversionReport : OfficeConversionReport {
-    internal PdfRtfConversionReport(PdfCore.PdfConversionReport report) {
+    internal PdfRtfConversionReport(PdfCore.PdfConversionReport report) : base("Pdf", "Rtf") {
         ArgumentNullException.ThrowIfNull(report);
         Warnings = Array.AsReadOnly(report.Warnings.ToArray());
     }

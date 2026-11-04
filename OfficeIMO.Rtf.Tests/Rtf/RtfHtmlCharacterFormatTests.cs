@@ -73,7 +73,7 @@ public class RtfHtmlCharacterFormatTests {
         RtfRun plain = paragraph.Runs.Single(run => run.Text == " Plain");
         Assert.Equal(RtfUnderlineStyle.None, plain.UnderlineStyle);
         Assert.Null(plain.UnderlineColorIndex);
-        Assert.False(plain.DoubleStrike);
+        Assert.False(plain.DoubleStrikethrough);
 
         string rtf = document.ToRtf();
         Assert.Contains(@"\ulwave", rtf, StringComparison.Ordinal);
@@ -109,33 +109,33 @@ public class RtfHtmlCharacterFormatTests {
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         RtfRun doubled = paragraph.Runs.Single(run => run.Text == "Double");
-        Assert.True(doubled.DoubleStrike);
-        Assert.False(doubled.Strike);
+        Assert.True(doubled.DoubleStrikethrough);
+        Assert.False(doubled.Strikethrough);
 
         RtfRun plain = paragraph.Runs.Single(run => run.Text == " Plain");
-        Assert.False(plain.Strike);
-        Assert.False(plain.DoubleStrike);
+        Assert.False(plain.Strikethrough);
+        Assert.False(plain.DoubleStrikethrough);
 
         string rtf = document.ToRtf();
         Assert.Contains(@"\striked Double\striked0", rtf, StringComparison.Ordinal);
 
         RtfRun roundTripDoubled = RtfDocument.ParseResult(rtf).Document.Paragraphs[0].Runs.Single(run => run.Text == "Double");
-        Assert.True(roundTripDoubled.DoubleStrike);
-        Assert.False(roundTripDoubled.Strike);
+        Assert.True(roundTripDoubled.DoubleStrikethrough);
+        Assert.False(roundTripDoubled.Strikethrough);
     }
 
     [Fact]
     public void RtfDocument_ToHtml_Renders_Double_Strike() {
         RtfDocument document = RtfDocument.Create();
-        document.AddParagraph().AddText("Double").SetDoubleStrike();
+        document.AddParagraph().AddText("Double").SetDoubleStrikethrough();
 
         string html = document.ToHtml(RtfHtmlTestOptions.CreateRoundTripFragment());
 
         Assert.Equal("<p><span style=\"text-decoration-line:line-through;text-decoration-style:double;--officeimo-rtf-strike-style:double;\">Double</span></p>", html);
 
         RtfRun roundTripDoubled = HtmlConversionDocument.Parse(html).ToRtf().Paragraphs[0].Runs.Single(run => run.Text == "Double");
-        Assert.True(roundTripDoubled.DoubleStrike);
-        Assert.False(roundTripDoubled.Strike);
+        Assert.True(roundTripDoubled.DoubleStrikethrough);
+        Assert.False(roundTripDoubled.Strikethrough);
     }
 
     [Fact]

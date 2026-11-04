@@ -427,6 +427,8 @@ internal static class HtmlRenderer {
         if (!any) return string.Empty;
         var sb = new StringBuilder();
         var scope = NormalizeScope(options.CssScopeSelector);
+        if (theme?.SourceTheme is { } nativeTheme)
+            sb.Append(global::OfficeIMO.Internal.OfficeThemeCssTokens.Build(nativeTheme, scope));
         // Expose variables on scope for both themes
         sb.Append('\n');
         AppendThemeVariableBlock(sb, scope, t.HeadingLight, t.AccentLight, t.TocBgLight, t.TocBorderLight, t.ActiveLinkLight);

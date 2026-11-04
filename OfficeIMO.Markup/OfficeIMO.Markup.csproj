@@ -52,6 +52,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Markup.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.Workflows" />
         <InternalsVisibleTo Include="OfficeIMO.Tool" />
         <InternalsVisibleTo Include="OfficeIMO.Markup.Excel" />
         <InternalsVisibleTo Include="OfficeIMO.Markup.PowerPoint" />

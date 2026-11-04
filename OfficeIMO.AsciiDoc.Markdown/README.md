@@ -3,24 +3,28 @@
 `OfficeIMO.AsciiDoc.Markdown` is the thin, loss-aware conversion bridge between the native `OfficeIMO.AsciiDoc` model and `MarkdownDocument`.
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
 using OfficeIMO.AsciiDoc;
 using OfficeIMO.AsciiDoc.Markdown;
 
 AsciiDocDocument source = AsciiDocDocument.Parse(asciiDoc);
-AsciiDocToMarkdownResult result = source.ToMarkdownDocumentResult();
+MarkdownDocument converted = source.ToMarkdown(null, out OfficeConversionReport report);
 
-string markdown = result.Value.ToMarkdown();
-bool hasLoss = result.Report.HasLoss;
+string markdown = converted.ToMarkdown();
+bool hasLoss = report.HasLoss;
 ```
 
 Reverse conversion generates canonical AsciiDoc, selects longer delimited-block fences when content contains the normal fence, and reparses it through the lossless native engine:
 
 ```csharp
-MarkdownToAsciiDocResult generated = markdownDocument.ToAsciiDocDocumentResult();
-string asciiDoc = generated.Source;
+AsciiDocDocument generated = markdownDocument.ToAsciiDoc(null, out OfficeConversionReport report);
+string asciiDoc = ((MarkdownToAsciiDocReport)report).GeneratedSource;
 ```
 
 The bridge maps typed inline content, metadata, lists and compound children, definitions, admonitions, structured tables and spans, images, code metadata, anchors, and STEM where the target model can carry them. Constructs without a safe equivalent are preserved visibly or omitted according to options, with source-located diagnostics.
+
+`SaveAsMarkdown` and `SaveAsAsciiDoc` write to a path or caller-owned stream and return the conversion report. `ToMarkdownAsync` and `ToAsciiDocAsync` return the model and report together as `OfficeConversionResult<T>`. Set `FailOnLoss` on the conversion options to reject diagnosed loss before saving.
 
 The adapter never participates in native AsciiDoc parsing or round-trip writing.
 
@@ -35,9 +39,10 @@ For a single block, supply the catalog of its containing document so definitions
 ```csharp
 AsciiDocReferenceCatalog references = AsciiDocReferenceCatalog.Create(source);
 AsciiDocBlockContext context = source.GetBlockContexts().First();
-AsciiDocToMarkdownResult chunk = context.Block.ToMarkdownDocumentResult(
+MarkdownDocument chunk = context.Block.ToMarkdown(
     context.Attributes,
-    new AsciiDocMarkdownExportOptions { References = references });
+    new AsciiDocMarkdownExportOptions { References = references },
+    out OfficeConversionReport report);
 ```
 
 Create a new catalog after editing titles, anchors, attributes, footnotes, or document order. Conversion emits only the footnote definitions used by the selected block. Callout lists retain their numbers visibly when Markdown cannot express the numbering directly; inspect `Report.Diagnostics` for those presentation approximations and other lossy mappings.

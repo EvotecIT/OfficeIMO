@@ -6,7 +6,7 @@ namespace OfficeIMO.Markup.PowerPoint;
 public sealed class OfficeMarkupPowerPointConversionReport : OfficeConversionReport {
     internal OfficeMarkupPowerPointConversionReport(
         IEnumerable<OfficeMarkupDiagnostic> diagnostics,
-        PowerPointDeckPreflightReport preflightReport) {
+        PowerPointDeckPreflightReport preflightReport) : base("Markup", "PowerPoint") {
         Markup = new OfficeMarkupConversionReport(diagnostics);
         Preflight = preflightReport ?? throw new ArgumentNullException(nameof(preflightReport));
         FidelityDiagnostics = Array.AsReadOnly(Markup.Diagnostics

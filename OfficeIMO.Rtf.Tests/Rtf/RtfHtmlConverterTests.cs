@@ -95,7 +95,7 @@ public partial class RtfHtmlConverterTests {
         Assert.True(critical.Bold);
         Assert.True(critical.Italic);
         Assert.True(critical.Underline);
-        Assert.True(critical.Strike);
+        Assert.True(critical.Strikethrough);
         Assert.Equal(RtfVerticalPosition.Superscript, critical.VerticalPosition);
 
         RtfRun low = Assert.Single(paragraph.Runs, run => run.Text == "low");
@@ -398,7 +398,7 @@ public partial class RtfHtmlConverterTests {
         Assert.False(plain.Bold);
         Assert.False(plain.Italic);
         Assert.False(plain.Underline);
-        Assert.False(plain.Strike);
+        Assert.False(plain.Strikethrough);
         Assert.Equal(RtfVerticalPosition.Baseline, plain.VerticalPosition);
     }
 

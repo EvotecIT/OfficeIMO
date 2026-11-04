@@ -15,13 +15,15 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     public void TypedPlainParagraphsRemainLiteral(string literal) {
         MarkdownDocument source = MarkdownDocument.Create();
         source.Add(new ParagraphBlock(new InlineSequence().Text(literal)));
-        MarkdownToAsciiDocResult result = source.ToAsciiDocDocumentResult();
-        Assert.Single(result.Value.Blocks.OfType<AsciiDocParagraph>());
-        AsciiDocToMarkdownResult reopened = result.Value.ToMarkdownDocumentResult();
-        ParagraphBlock paragraph = Assert.Single(reopened.Value.Blocks.OfType<ParagraphBlock>());
+        var result = source.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport1);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport1;
+        Assert.Single(result.Blocks.OfType<AsciiDocParagraph>());
+        var reopened = result.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport2);
+        var reopenedReport = (AsciiDocToMarkdownReport)conversionReport2;
+        ParagraphBlock paragraph = Assert.Single(reopened.Blocks.OfType<ParagraphBlock>());
         Assert.Equal(literal, string.Concat(paragraph.Inlines.Nodes.OfType<MarkdownTextRun>().Select(text => text.Text)));
-        Assert.False(result.HasLoss);
-        Assert.False(reopened.HasLoss);
+        Assert.False(resultReport.HasLoss);
+        Assert.False(reopenedReport.HasLoss);
     }
 
     [Theory]
@@ -30,9 +32,10 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
     [InlineData("a`b`c")]
     public void IntrawordFormattingSurvivesNativeProjection(string markdown) {
         MarkdownDocument source = MarkdownDocument.Parse(markdown);
-        MarkdownToAsciiDocResult result = source.ToAsciiDocDocumentResult();
-        Assert.Equal(source.ToMarkdown(), result.Value.ToMarkdownDocumentResult().Value.ToMarkdown());
-        Assert.False(result.HasLoss);
+        var result = source.ToAsciiDoc(null, out OfficeIMO.OfficeConversionReport conversionReport3);
+        var resultReport = (MarkdownToAsciiDocReport)conversionReport3;
+        Assert.Equal(source.ToMarkdown(), result.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport4).ToMarkdown());
+        Assert.False(resultReport.HasLoss);
     }
 
     [Fact]
@@ -40,7 +43,7 @@ public sealed class MarkdownAsciiDocEscapingContractTests {
         var content = new InlineSequence().Code("*literal* {attribute} \\ `code`");
         MarkdownDocument source = MarkdownDocument.Create();
         source.Add(new ParagraphBlock(content));
-        MarkdownDocument reopened = source.ToAsciiDocDocumentResult().Value.ToMarkdownDocumentResult().Value;
+        MarkdownDocument reopened = source.ToAsciiDoc().ToMarkdown();
         CodeSpanInline code = Assert.Single(Assert.Single(reopened.Blocks.OfType<ParagraphBlock>()).Inlines.Nodes.OfType<CodeSpanInline>());
         Assert.Equal("*literal* {attribute} \\ `code`", code.Text);
     }

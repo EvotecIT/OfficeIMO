@@ -128,19 +128,19 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                         unsupportedPictures++;
                     }
                 } else if (shape is PowerPointTable table) {
-                    int rowCount = Math.Max(1, table.Rows);
+                    int rowCount = Math.Max(1, table.RowCount);
                     if (rowCount > effective.MaxTableRows) {
                         throw new InvalidDataException($"PowerPoint table rows ({rowCount}) exceed the configured conversion limit ({effective.MaxTableRows}).");
                     }
-                    int columnCount = Math.Max(1, table.Columns);
+                    int columnCount = Math.Max(1, table.ColumnCount);
                     if (columnCount > effective.MaxTableColumns) {
                         throw new InvalidDataException($"PowerPoint table columns ({columnCount}) exceed the configured conversion limit ({effective.MaxTableColumns}).");
                     }
                     OdpTable converted = targetSlide.AddTable(ToOdfRect(table), rowCount, columnCount, table.Name);
                     CopyShapeAppearance(table, converted, effective);
                     var merges = new List<(int Row, int Column, int RowSpan, int ColumnSpan)>();
-                    for (int row = 0; row < table.Rows; row++) {
-                        for (int column = 0; column < table.Columns; column++) {
+                    for (int row = 0; row < table.RowCount; row++) {
+                        for (int column = 0; column < table.ColumnCount; column++) {
                             PowerPointTableCell cell = table.GetCell(row, column);
                             if (cell.IsMergedCell) continue;
                             CopyPowerPointTableCellToOdp(cell, converted.Cell(row, column),
@@ -343,7 +343,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
                 backgroundColor = source.MasterPages.FirstOrDefault(master =>
                     string.Equals(master.Name, sourceSlide.MasterPageName, StringComparison.Ordinal))?.BackgroundColor;
             }
-            if (backgroundColor.HasValue) targetSlide.BackgroundColor = backgroundColor.Value.ToString().TrimStart('#');
+            if (backgroundColor.HasValue) targetSlide.BackgroundColor = OfficeColor.Parse(backgroundColor.Value.ToString());
             if (MapTransition(sourceSlide, targetSlide)) transitions++;
             else if (!string.IsNullOrWhiteSpace(sourceSlide.TransitionStyle) || !string.IsNullOrWhiteSpace(sourceSlide.TransitionType)) unsupportedTransitions++;
             if (HasUnmappedOdpTransitionTiming(source, sourceSlide)) unsupportedTransitions++;
@@ -713,19 +713,19 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         run.BackgroundColor.HasValue;
 
     private static bool HasBasicFormatting(OdpRun run) =>
-        run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
+        run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.Strikethrough.HasValue ||
         run.UnderlineStyle.HasValue || run.UnderlineType.HasValue || run.LineThroughStyle.HasValue ||
         run.LineThroughType.HasValue || run.TextPosition.HasValue || run.TextTransform.HasValue || run.SmallCaps.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
 
     private static bool HasBasicFormatting(OdpParagraph paragraph) =>
-        paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue || paragraph.StrikeThrough.HasValue ||
+        paragraph.Bold.HasValue || paragraph.Italic.HasValue || paragraph.Underline.HasValue || paragraph.Strikethrough.HasValue ||
         paragraph.UnderlineStyle.HasValue || paragraph.UnderlineType.HasValue || paragraph.LineThroughStyle.HasValue ||
         paragraph.LineThroughType.HasValue || paragraph.TextPosition.HasValue || paragraph.TextTransform.HasValue || paragraph.SmallCaps.HasValue ||
         paragraph.FontSize.HasValue || !string.IsNullOrWhiteSpace(paragraph.FontFamily) || paragraph.Color.HasValue || paragraph.BackgroundColor.HasValue;
 
     private static bool HasBasicFormatting(OdpHyperlink run) =>
-        run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.StrikeThrough.HasValue ||
+        run.Bold.HasValue || run.Italic.HasValue || run.Underline.HasValue || run.Strikethrough.HasValue ||
         run.UnderlineStyle.HasValue || run.UnderlineType.HasValue || run.LineThroughStyle.HasValue ||
         run.LineThroughType.HasValue || run.TextPosition.HasValue || run.TextTransform.HasValue || run.SmallCaps.HasValue ||
         run.FontSize.HasValue || !string.IsNullOrWhiteSpace(run.FontFamily) || run.Color.HasValue || run.BackgroundColor.HasValue;
@@ -778,7 +778,7 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     };
 
     private static bool HasBasicFormatting(PowerPointShape shape) =>
-        !string.IsNullOrWhiteSpace(shape.FillColor) || !string.IsNullOrWhiteSpace(shape.OutlineColor) || shape.OutlineWidth.HasValue;
+        shape.ResolveFillColorForExport().HasValue || shape.ResolveOutlineColorForExport().HasValue || shape.OutlineWidth.HasValue;
 
     private static bool HasBasicFormatting(OdpShape shape) =>
         shape.FillColor.HasValue || shape.StrokeColor.HasValue || shape.StrokeWidth.HasValue;
@@ -786,16 +786,16 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
     private static void CopyShapeAppearance(PowerPointShape source, OdpShape target, PowerPointOpenDocumentConversionOptions options) {
         target.Hidden = source.Hidden;
         if (!options.IncludeBasicFormatting) return;
-        if (!string.IsNullOrWhiteSpace(source.FillColor)) target.FillColor = ParseColor(source.FillColor);
-        if (!string.IsNullOrWhiteSpace(source.OutlineColor)) target.StrokeColor = ParseColor(source.OutlineColor);
+        if (source.ResolveFillColorForExport() is { } fill) target.FillColor = ParseColor(fill.ToRgbHex());
+        if (source.ResolveOutlineColorForExport() is { } outline) target.StrokeColor = ParseColor(outline.ToRgbHex());
         if (source.OutlineWidth.HasValue) target.StrokeWidth = OdfLength.Points(source.OutlineWidth.Value.ToPoints());
     }
 
     private static int CopyShapeAppearance(OdpShape source, PowerPointShape target, PowerPointOpenDocumentConversionOptions options) {
         target.Hidden = source.Hidden;
         if (!options.IncludeBasicFormatting) return 0;
-        if (source.FillColor.HasValue) target.FillColor = source.FillColor.Value.ToString().TrimStart('#');
-        if (source.StrokeColor.HasValue) target.OutlineColor = source.StrokeColor.Value.ToString().TrimStart('#');
+        if (source.FillColor.HasValue) target.FillColor = OfficeColor.Parse(source.FillColor.Value.ToString());
+        if (source.StrokeColor.HasValue) target.OutlineColor = OfficeColor.Parse(source.StrokeColor.Value.ToString());
         if (source.StrokeWidth.HasValue) {
             if (source.StrokeWidth.Value.TryToPoints(out double points)) target.OutlineWidth = global::OfficeIMO.OfficeLength.Points(points);
             else return 1;

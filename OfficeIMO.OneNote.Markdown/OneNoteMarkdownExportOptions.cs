@@ -13,21 +13,21 @@ public sealed class OneNoteMarkdownExportOptions {
 
     /// <summary>
     /// Maximum nested section-group depth projected from a notebook.
-    /// Values must be from 1 through <see cref="OneNoteWriterOptions.MaximumTraversalDepth"/>.
+    /// Values must be from 1 through <see cref="OneNoteSaveOptions.MaximumTraversalDepth"/>.
     /// </summary>
     public int MaxSectionGroupDepth { get; set; } = OneNoteNotebookReaderOptions.DefaultMaxSectionGroupDepth;
 
     /// <summary>
     /// Maximum nesting depth across included conflict and version-history page relationships.
-    /// Values must be from 1 through <see cref="OneNoteWriterOptions.MaximumTraversalDepth"/>.
+    /// Values must be from 1 through <see cref="OneNoteSaveOptions.MaximumTraversalDepth"/>.
     /// </summary>
-    public int MaxPageRelationshipDepth { get; set; } = OneNoteReaderOptions.DefaultMaxPageRelationshipDepth;
+    public int MaxPageRelationshipDepth { get; set; } = OneNoteLoadOptions.DefaultMaxPageRelationshipDepth;
 
     /// <summary>
     /// Maximum recursive nesting depth for outlines, paragraphs, and table-cell content.
-    /// Values must be from 1 through <see cref="OneNoteWriterOptions.MaximumTraversalDepth"/>.
+    /// Values must be from 1 through <see cref="OneNoteSaveOptions.MaximumTraversalDepth"/>.
     /// </summary>
-    public int MaxContentDepth { get; set; } = OneNoteWriterOptions.DefaultMaxContentDepth;
+    public int MaxContentDepth { get; set; } = OneNoteSaveOptions.DefaultMaxContentDepth;
 
     /// <summary>
     /// Resolves a Markdown destination for an image, attachment, recording, or ink payload.
@@ -59,10 +59,10 @@ public sealed class OneNoteMarkdownExportOptions {
     }
 
     private static void ValidateDepth(int value, string parameterName) {
-        if (value < 1 || value > OneNoteWriterOptions.MaximumTraversalDepth) {
+        if (value < 1 || value > OneNoteSaveOptions.MaximumTraversalDepth) {
             throw new ArgumentOutOfRangeException(
                 parameterName,
-                "Projection traversal depths must be between 1 and " + OneNoteWriterOptions.MaximumTraversalDepth + ".");
+                "Projection traversal depths must be between 1 and " + OneNoteSaveOptions.MaximumTraversalDepth + ".");
         }
     }
 }

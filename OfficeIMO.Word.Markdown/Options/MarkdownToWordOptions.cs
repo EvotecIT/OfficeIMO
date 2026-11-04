@@ -13,6 +13,7 @@ namespace OfficeIMO.Word.Markdown {
             copy.AllowedImageDirectories = new System.Collections.Generic.HashSet<string>(AllowedImageDirectories, AllowedImageDirectories.Comparer);
             copy.AllowedImageSchemes = new System.Collections.Generic.HashSet<string>(AllowedImageSchemes, AllowedImageSchemes.Comparer);
             copy.ImageLayout = ImageLayout.CloneForConversion();
+            copy.RemoteImageLoadOptions = CopyRemoteImageOptions(RemoteImageLoadOptions);
             return copy;
         }
 
@@ -110,8 +111,7 @@ namespace OfficeIMO.Word.Markdown {
         /// <summary>Restrict local images to these directories (optional). Paths are normalized for comparison.</summary>
         public System.Collections.Generic.HashSet<string> AllowedImageDirectories { get; private set; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
         /// <summary>
-        /// Optional resolver for remote image bytes. The converter never performs network requests itself;
-        /// callers own download, cache, authentication, and trust policy.
+        /// Optional caller-owned resolver for remote image bytes. When supplied it takes precedence over AllowRemoteImages.
         /// </summary>
         public Func<Uri, byte[]?>? RemoteImageResolver { get; set; }
         /// <summary>

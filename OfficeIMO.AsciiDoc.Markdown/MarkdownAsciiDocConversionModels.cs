@@ -2,6 +2,12 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Options for canonical Markdown-to-AsciiDoc conversion.</summary>
 public sealed class MarkdownAsciiDocExportOptions {
+    /// <summary>Creates an independent copy of these conversion settings.</summary>
+    public MarkdownAsciiDocExportOptions Clone() => (MarkdownAsciiDocExportOptions)MemberwiseClone();
+
+    /// <summary>Rejects conversion when the completed report describes fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Output line ending. Defaults to LF.</summary>
     public string LineEnding { get; set; } = "\n";
 
@@ -49,7 +55,7 @@ public sealed class MarkdownAsciiDocConversionDiagnostic {
 }
 
 /// <summary>Canonical AsciiDoc source and its lossless parsed document.</summary>
-public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDocument> {
+internal sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDocument> {
     /// <summary>Gets the typed conversion report.</summary>
     public new MarkdownToAsciiDocReport Report => (MarkdownToAsciiDocReport)base.Report;
 
@@ -57,7 +63,7 @@ public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDo
         string source,
         AsciiDocDocument value,
         IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics)
-        : base(value, new MarkdownToAsciiDocReport(diagnostics)) {
+        : base(value, new MarkdownToAsciiDocReport(source, diagnostics)) {
         Source = source ?? throw new ArgumentNullException(nameof(source));
     }
 
@@ -68,7 +74,11 @@ public sealed class MarkdownToAsciiDocResult : OfficeConversionResult<AsciiDocDo
 
 /// <summary>Markdown-to-AsciiDoc conversion diagnostics captured for one operation.</summary>
 public sealed class MarkdownToAsciiDocReport : OfficeConversionReport {
-    internal MarkdownToAsciiDocReport(IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
+    /// <summary>Exact canonical source produced by this conversion, before subsequent model edits or serialization.</summary>
+    public string GeneratedSource { get; }
+
+    internal MarkdownToAsciiDocReport(string generatedSource, IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) : base("Markdown", "AsciiDoc") {
+        GeneratedSource = generatedSource ?? throw new ArgumentNullException(nameof(generatedSource));
         NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
         FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics.Select(static diagnostic =>
             new global::OfficeIMO.OfficeDiagnostic(

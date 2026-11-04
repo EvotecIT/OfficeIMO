@@ -2,6 +2,9 @@ namespace OfficeIMO.Markup.Word;
 
 /// <summary>Controls conversion of an Office Markup document to a Word document.</summary>
 public sealed class MarkupWordExportOptions {
+    /// <summary>Rejects conversion when mapping or native validation reports fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Base directory used to resolve relative resource paths.</summary>
     public string? BaseDirectory { get; set; }
     /// <summary>Whether image paths outside <see cref="BaseDirectory"/> may be read.</summary>

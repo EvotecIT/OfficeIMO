@@ -4,6 +4,9 @@ namespace OfficeIMO.Markup.PowerPoint;
 
 /// <summary>Controls conversion of an Office Markup document to a PowerPoint presentation.</summary>
 public sealed class MarkupPowerPointExportOptions {
+    /// <summary>Rejects conversion when mapping or native validation reports fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Base directory used to resolve relative resource paths.</summary>
     public string? BaseDirectory { get; set; }
     /// <summary>Slide width in inches.</summary>

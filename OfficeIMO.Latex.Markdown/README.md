@@ -7,27 +7,30 @@ This package maps the bounded `OfficeIMO.Latex` profile to and from `OfficeIMO.M
 Literal control words follow TeX delimiter rules: `A\textasciitilde B` becomes `A~B`, while `A\textasciitilde{} B` keeps the space after the group. Text, metadata, captions, URLs and image paths share this decoding rule.
 
 ```csharp
+using OfficeIMO;
+using OfficeIMO.Markdown;
 using OfficeIMO.Latex;
 using OfficeIMO.Latex.Markdown;
 
 LatexDocument latex = LatexDocument.Parse(source);
-LatexToMarkdownResult converted = latex.ToMarkdownDocumentResult();
-string markdown = converted.Value.ToMarkdown();
+MarkdownDocument converted = latex.ToMarkdown(null, out OfficeConversionReport report);
+string markdown = converted.ToMarkdown();
 ```
 
 The cancellation-token overload cooperatively stops source rebinding, block and inline projection, and source fallback processing:
 
 ```csharp
-LatexToMarkdownResult converted = latex.ToMarkdownDocumentResult(null, cancellationToken);
+MarkdownDocument converted = latex.ToMarkdown(null, out OfficeConversionReport report, cancellationToken);
 ```
 
 Reverse conversion creates canonical bounded-profile LaTeX and reparses the generated source through the lossless engine:
 
 ```csharp
-MarkdownToLatexResult generated = markdownDocument.ToLatexDocumentResult();
-string source = generated.Source;
-LatexDocument parsed = generated.Value;
+LatexDocument parsed = markdownDocument.ToLatex(null, out OfficeConversionReport report);
+string source = ((MarkdownToLatexReport)report).GeneratedSource;
 ```
+
+`SaveAsMarkdown` and `SaveAsLatex` accept paths or caller-owned streams and return the completed report. Async model conversion returns `OfficeConversionResult<T>`. Set `FailOnLoss` on the conversion options to reject diagnosed loss before writing. The generated-source report retains the exact text produced by the conversion.
 
 The bridge maps front matter, headings, inline formatting and links, lists and definitions, footnotes, images/figures, table captions/labels and common spans, theorem callouts with required declarations, verbatim/code, and math transport. Canonical output escapes TeX arguments and deterministically encodes labels. Unrepresented figure/table container source remains visible with diagnostics. Conversions rebind edited native source before projection. Plain source, the `PreserveOnly` profile, and unsupported table containers receive visible fallbacks and fidelity diagnostics. Literal code and link destinations decode the bridge's escapes. URLs and image paths retain literal tildes; a tilde in ordinary prose maps to spacing. Generated optional titles and terms protect embedded brackets. Required arguments bind brace groups or single character/control-sequence tokens; missing arguments remain visible with diagnostics. Graphics options and counter-based references report their unevaluated layout semantics.
 

@@ -707,7 +707,7 @@ internal static class RtfToMarkdownConverter {
         var features = new List<string>();
         if (run.Hidden && context.IncludeHiddenText) features.Add("hidden-visibility");
         if ((run.UnderlineStyle != RtfUnderlineStyle.None && run.UnderlineStyle != RtfUnderlineStyle.Single) || run.UnderlineColorIndex.HasValue) features.Add("underline-style-or-color");
-        if (run.DoubleStrike) features.Add("double-strike");
+        if (run.DoubleStrikethrough) features.Add("double-strike");
         if (run.HighlightColorIndex.HasValue) features.Add("highlight-color");
         if (run.Outline || run.Shadow || run.Emboss || run.Imprint || run.CapsStyle != RtfCapsStyle.None) features.Add("text-effects");
         if (run.FontSize.HasValue || run.FontId.HasValue || run.ForegroundColorIndex.HasValue) features.Add("font-or-color");
@@ -779,7 +779,7 @@ internal static class RtfToMarkdownConverter {
             inline = new ItalicSequenceInline(InlineSequenceOf(inline));
         }
 
-        if (run.Strike || run.DoubleStrike) {
+        if (run.Strikethrough || run.DoubleStrikethrough) {
             inline = new StrikethroughSequenceInline(InlineSequenceOf(inline));
         }
 

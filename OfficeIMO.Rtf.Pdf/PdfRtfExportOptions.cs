@@ -9,6 +9,9 @@ namespace OfficeIMO.Rtf.Pdf;
 /// it is not a visual reconstruction of arbitrary fixed-layout PDF content.
 /// </remarks>
 public sealed class PdfRtfExportOptions {
+    /// <summary>Rejects semantic reconstruction when the completed report describes content loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     internal System.Threading.CancellationToken CancellationToken { get; set; }
     /// <summary>
     /// Canonical semantic-read settings used when importing an opened <see cref="OfficeIMO.Pdf.PdfDocument"/>.
@@ -39,6 +42,7 @@ public sealed class PdfRtfExportOptions {
 
     /// <summary>Creates a reusable copy of this option set.</summary>
     public PdfRtfExportOptions Clone() => new PdfRtfExportOptions {
+        FailOnLoss = FailOnLoss,
         ReadOptions = ReadOptions,
         IncludeMetadata = IncludeMetadata,
         PreservePageBreaks = PreservePageBreaks,

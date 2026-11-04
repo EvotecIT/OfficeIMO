@@ -3,7 +3,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Markdown document plus explicit conversion diagnostics.</summary>
-public sealed class AsciiDocToMarkdownResult : OfficeConversionResult<MarkdownDocument> {
+internal sealed class AsciiDocToMarkdownResult : OfficeConversionResult<MarkdownDocument> {
     /// <summary>Gets the typed conversion report.</summary>
     public new AsciiDocToMarkdownReport Report => (AsciiDocToMarkdownReport)base.Report;
 
@@ -13,7 +13,7 @@ public sealed class AsciiDocToMarkdownResult : OfficeConversionResult<MarkdownDo
 
 /// <summary>AsciiDoc-to-Markdown conversion diagnostics captured for one operation.</summary>
 public sealed class AsciiDocToMarkdownReport : OfficeConversionReport {
-    internal AsciiDocToMarkdownReport(IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics) {
+    internal AsciiDocToMarkdownReport(IReadOnlyList<AsciiDocMarkdownConversionDiagnostic> diagnostics) : base("AsciiDoc", "Markdown") {
         NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
         FidelityDiagnostics = Array.AsReadOnly(NativeDiagnostics.Select(static diagnostic =>
             new global::OfficeIMO.OfficeDiagnostic(

@@ -15,7 +15,7 @@ public sealed class OfficeMarkupWordChartTests {
         string markup = "::chart type=" + type + " title=Status\nCategory,Value\nPass,8\nUnknown,2\nFail,1\n";
         var parsed = OfficeMarkupParser.Parse(markup);
         Assert.False(parsed.HasErrors);
-        using WordDocument document = parsed.Document.ToWordDocument();
+        using WordDocument document = parsed.Document.ToWord();
         Assert.True(Assert.Single(document.Charts).TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(expected, snapshot.ChartKind);
         Assert.Equal(new[] { "Pass", "Unknown", "Fail" }, snapshot.Data.Categories);

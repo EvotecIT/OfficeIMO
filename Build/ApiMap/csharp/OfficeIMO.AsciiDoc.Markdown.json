@@ -18,6 +18,51 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "AsciiDocDocument.ToMarkdownDocument / ToMarkdownDocumentResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "AsciiDocDocument.ToMarkdown(AsciiDocMarkdownExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "The synchronous method returns MarkdownDocument. ToMarkdownAsync returns OfficeConversionResult<MarkdownDocument>. Cast the report to AsciiDocToMarkdownReport for native spans/diagnostics. SaveAsMarkdown(path|stream) returns the same typed evidence. FailOnLoss rejects before persistence.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "MarkdownDocument.ToAsciiDocDocument / ToAsciiDocDocumentResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "MarkdownDocument.ToAsciiDoc(MarkdownAsciiDocExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "The synchronous method returns AsciiDocDocument. ToAsciiDocAsync returns OfficeConversionResult<AsciiDocDocument>. Cast the report to MarkdownToAsciiDocReport for native spans/diagnostics and GeneratedSource for the exact canonical text. SaveAsAsciiDoc(path|stream) writes that text and returns the same typed evidence.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "AsciiDocBlock.ToMarkdownDocumentResult(attributes, options)",
+      "kind": "method",
+      "action": "merge",
+      "new": "AsciiDocBlock.ToMarkdown(attributes, options[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "Retain the attributes and reference catalog for the individual block. The out report remains AsciiDocToMarkdownReport, including used-footnote diagnostics; this is separate from whole-document conversion.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.AsciiDoc.Markdown.AsciiDocToMarkdownResult",
+      "kind": "type",
+      "action": "internalize",
+      "new": "OfficeIMO.OfficeConversionResult<T>",
+      "replacement": "ToTarget(options, out OfficeConversionReport, cancellationToken) returns the native target. ToTargetAsync returns OfficeConversionResult<T>. Cast the out/result report to its typed conversion report; generated AsciiDoc/LaTeX source is retained by GeneratedSource on the typed report. The specialized result only serves internal projection.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.AsciiDoc.Markdown.MarkdownToAsciiDocResult",
+      "kind": "type",
+      "action": "internalize",
+      "new": "OfficeIMO.OfficeConversionResult<T>",
+      "replacement": "ToTarget(options, out OfficeConversionReport, cancellationToken) returns the native target. ToTargetAsync returns OfficeConversionResult<T>. Cast the out/result report to its typed conversion report; generated AsciiDoc/LaTeX source is retained by GeneratedSource on the typed report. The specialized result only serves internal projection.",
+      "category": "conversion",
+      "applied": true
     }
   ]
 }

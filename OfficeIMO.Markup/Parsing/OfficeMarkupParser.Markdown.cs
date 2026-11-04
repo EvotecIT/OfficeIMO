@@ -50,7 +50,7 @@ public static partial class OfficeMarkupParser {
             context => new SemanticFencedBlock(semanticKind, context.InfoString, context.Content, context.Caption)));
     }
 
-    private static void MapMarkdownBlocks(
+    internal static void MapMarkdownBlocks(
         IEnumerable<IMarkdownBlock> markdownBlocks,
         IList<OfficeMarkupBlock> target,
         OfficeMarkupProfile profile,

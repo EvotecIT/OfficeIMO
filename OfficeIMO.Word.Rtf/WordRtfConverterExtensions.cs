@@ -632,8 +632,8 @@ public static partial class WordRtfConverterExtensions {
         destination.Bold = source.Bold;
         destination.Italic = source.Italic;
         destination.UnderlineStyle = source.UnderlineStyle;
-        destination.Strike = source.Strike;
-        destination.DoubleStrike = source.DoubleStrike;
+        destination.Strikethrough = source.Strikethrough;
+        destination.DoubleStrikethrough = source.DoubleStrikethrough;
         destination.DirectHidden = source.DirectHidden;
         destination.Outline = source.Outline;
         destination.Shadow = source.Shadow;

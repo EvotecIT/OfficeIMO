@@ -144,6 +144,27 @@ public sealed class ConversionPairRoutesTests {
         Assert.True(output.CanWrite);
     }
 
+    [Theory]
+    [InlineData("docx-rtf", ".docx", ".rtf")]
+    [InlineData("docx-odt", ".docx", ".odt")]
+    [InlineData("xlsx-ods", ".xlsx", ".ods")]
+    [InlineData("pptx-odp", ".pptx", ".odp")]
+    public async Task OfficePairRoutesRejectXmlBeyondTheConfiguredLimitBeforeWriting(string route, string sourceExtension,
+        string targetExtension) {
+        byte[] original = CreateOfficeDocument(sourceExtension);
+        using var source = new MemoryStream(original);
+        using var output = new MemoryStream();
+        OfficePackageSecurityException error = await Assert.ThrowsAsync<OfficePackageSecurityException>(() =>
+            OfficeConverter.ConvertAsync(source, OfficeConverter.FormatForExtension(sourceExtension), output,
+                OfficeConverter.FormatForExtension(targetExtension), new OfficeConversionOptions {
+                    RouteId = route, SourceName = "source" + sourceExtension, TargetName = "output" + targetExtension,
+                    MaximumXmlCharactersInPart = 1
+                }));
+        Assert.Equal(OfficePackageSecurityRule.MalformedPackage, error.Rule);
+        Assert.Equal(0, output.Length);
+        Assert.Equal(original, source.ToArray());
+    }
+
     [Fact]
     public void RouteSnapshotsPreserveLossThresholdsWithoutSharingMutableLoadLimits() {
         var original = new OfficeWorkflowRouteSettings {

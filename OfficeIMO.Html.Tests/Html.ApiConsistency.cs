@@ -34,7 +34,7 @@ public sealed class HtmlApiConsistencyTests {
         var options = new HtmlPdfExportOptions();
 
         Assert.NotEmpty((document.ToPdf(options)).ToBytes());
-        Assert.NotEmpty(document.ToPng(options));
+        Assert.NotEmpty(document.ToImage(options));
         Assert.StartsWith("<svg", document.ToSvg(options), StringComparison.Ordinal);
         OfficeImageExportResult pngResult = document.ExportImage(OfficeImageExportFormat.Png, options);
         OfficeImageExportResult svgResult = document.ExportImage(OfficeImageExportFormat.Svg, options);
@@ -57,8 +57,8 @@ public sealed class HtmlApiConsistencyTests {
         HtmlConversionDocument pngResultDocument = await HtmlConversionDocument.LoadAsync(pngResultSource);
         HtmlConversionDocument svgResultDocument = await HtmlConversionDocument.LoadAsync(svgResultSource);
         Assert.NotEmpty((await pdfDocument.ToPdfAsync(options)).Value.ToBytes());
-        Assert.NotEmpty(await pngDocument.ToPngAsync(options));
-        Assert.StartsWith("<svg", await svgDocument.ToSvgAsync(options), StringComparison.Ordinal);
+        Assert.NotEmpty((await pngDocument.ToImageAsync(options)).Value);
+        Assert.StartsWith("<svg", (await svgDocument.ToSvgAsync(options)).Value, StringComparison.Ordinal);
         Assert.Equal(OfficeImageExportFormat.Png, (await pngResultDocument.ExportImageAsync(OfficeImageExportFormat.Png, options)).Format);
         Assert.Equal(OfficeImageExportFormat.Svg, (await svgResultDocument.ExportImageAsync(OfficeImageExportFormat.Svg, options)).Format);
     }

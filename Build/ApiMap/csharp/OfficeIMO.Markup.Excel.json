@@ -9,6 +9,24 @@
       "reason": "Converter options are named {Source}{Target}ExportOptions and both directions live in the pair package.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OfficeMarkupDocument.ToExcelDocument / ToExcelDocumentResult",
+      "kind": "method",
+      "action": "merge",
+      "new": "OfficeMarkupDocument.ToExcel(MarkupExcelExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "ToExcel returns a detached caller-owned ExcelDocument and throws on validation errors with the completed report; rejected disposable output is disposed. ToExcelAsync returns OfficeConversionResult<ExcelDocument>. Mapping diagnostics remain on the derived report. FailOnLoss is separate from malformed-input rejection.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "OfficeMarkupDocument.SaveAsExcel / SaveAsExcelAsync : format-specific report",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeMarkupDocument.SaveAsExcel(path|stream, options, CancellationToken) : OfficeConversionReport",
+      "replacement": "Use the report base contract and cast to OfficeMarkupConversionReport for native evidence. Sync and async persistence apply the same validation and loss policy before writing. Native save options/defaults and caller stream ownership are retained.",
+      "category": "conversion",
+      "applied": true
     }
   ]
 }

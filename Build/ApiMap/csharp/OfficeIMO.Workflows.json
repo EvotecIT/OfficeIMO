@@ -782,6 +782,33 @@
       "file": "OfficeIMO.Workflows/Publishing/BookOnixUsageLimit.cs",
       "category": "contract",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Workflows.OfficeWorkflow.RegisterConversions()",
+      "kind": "method",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.OfficeWorkflow.RegisterConversions()",
+      "replacement": "RegisterConversions registers concrete text/RTF/ODF/OneNote pair routes from the canonical catalog. Supply native typed options through OfficeConversionOptions.RegisteredSettings = new OfficeWorkflowRouteSettings { ... }. ForRoute(routeId) captures the applicable settings. Source diagnostics, output artifact validation, cancellation and source/stream ownership remain engine-owned. ODF ReportOnly, ThrowOnSkippedOrUnsupported and ThrowOnAnyLoss remain distinct; global FailOnLoss selects ThrowOnAnyLoss. Runtime callbacks remain caller-owned and these routes do not advertise checkpoint support. Local .onetoc2 input captures referenced sibling files and verifies their fingerprints and hierarchy selection before publication; .onepkg uses the native cabinet reader. Registered pair route settings: markdown-pptx => MarkdownPowerPoint; asciidoc-markdown => AsciiDocLoad, AsciiDocMarkdown; markdown-asciidoc => MarkdownLoad, MarkdownAsciiDoc; latex-markdown => LatexLoad, LatexMarkdown; markdown-latex => MarkdownLoad, MarkdownLatex; rtf-html => RtfLoad, RtfHtml; html-rtf => HtmlRtf, HtmlRtfImport, WordRtf, RtfSave; rtf-markdown => RtfLoad, RtfMarkdown; markdown-rtf => MarkdownLoad, MarkdownRtf, RtfSave; rtf-docx => RtfLoad, RtfWord; docx-rtf => WordRtf, RtfSave; pdf-rtf => PdfRtf, RtfSave; docx-odt => WordOpenDocument, OpenDocumentSave; odt-docx => OpenDocumentLoad, WordOpenDocument; xlsx-ods => ExcelOpenDocument, OpenDocumentSave; ods-xlsx => OpenDocumentLoad, ExcelOpenDocument; pptx-odp => PowerPointOpenDocument, OpenDocumentSave; odp-pptx => OpenDocumentLoad, PowerPointOpenDocument; onenote-html => OneNoteLoad, OneNoteNotebookLoad, OneNoteMarkdown, OneNoteHtml, OneNoteHtmlRendering, OneNoteVisualHtml; html-onenote => HtmlOneNote, OneNoteSave; onenote-markdown => OneNoteLoad, OneNoteNotebookLoad, OneNoteMarkdown; onenote-pdf => OneNoteLoad, OneNoteNotebookLoad, OneNoteMarkdown, OneNotePdf, OneNoteVisualPdf; asciidoc-pdf => AsciiDocLoad, AsciiDocPdf; latex-pdf => LatexLoad, LatexPdf; odt-pdf => OpenDocumentLoad, OdtPdf; ods-pdf => OpenDocumentLoad, OdsPdf; odp-pdf => OpenDocumentLoad, OdpPdf.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "Html-to-RTF facade imports HTML/CSS into Word before converting to RTF",
+      "kind": "property",
+      "action": "move",
+      "new": "OfficeWorkflowRouteSettings.HtmlRtfImport : OfficeIMO.Word.Html.HtmlWordExportOptions",
+      "replacement": "ForRoute(html-rtf) admits HtmlRtfImport, WordRtf and RtfSave. FontFamily, BasePath, StylesheetPaths and StylesheetContents reach the existing Word HTML importer; its generated document then uses native Word-to-RTF. Both reports are combined. Direct HtmlRtf is an alternative path; supplying both import paths is rejected. Native options contain no loaded document.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "New adopted Markdown outline-to-deck options formerly lacked a native owner",
+      "kind": "type",
+      "action": "change",
+      "new": "OfficeIMO.Workflows.MarkdownToPowerPointOptions / MarkdownSlideBreak; MarkdownDocument.ToPowerPoint(options[,out report],ct) and async/result/report-returning save forms",
+      "replacement": "Markdown-specific boundaries, heading titles, front matter, speaker notes, parser profiles and image policies project to the existing OfficeIMO Markup native presentation renderer. Mermaid options are actually forwarded to that renderer. Workflows owns the optional pair and typed MarkdownPowerPoint slot; no Markup production file or renderer implementation is copied. The canonical markdown-pptx route is registered by Workflows; central support assessment and catalog metadata remain Core-owned.",
+      "category": "conversion",
+      "applied": true
     }
   ],
   "packageMoves": [

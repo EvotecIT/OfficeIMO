@@ -53,8 +53,9 @@ using var workbook = ExcelDocument.Load("sales.xlsx");
 workbook["Sales"].SaveAsCsv("sales.csv");
 ```
 
-Worksheets and ranges can also be returned as CSV text or materialized as a
-`CsvDocument`. The adapter transports rows through `IDataReader`/`DbDataReader`;
+`ToCsv(new ExcelCsvExportOptions { Range = "A1:C20" }, out report)` returns a materialized `CsvDocument`. Call its `ToString(CsvSaveOptions)` or `ToBytes(CsvSaveOptions)` to serialize it. `CsvDocument.ToExcel` returns a detached workbook; `CsvExcelExportOptions` carries its import, create and native save settings.
+
+`SaveAsCsv` keeps rows streaming and returns `OfficeConversionReport`. Its options retain CSV compression, encoding, date/culture/null formatting, append and no-clobber behavior. `ToCsvAsync` and `ToExcelAsync` return `OfficeConversionResult<T>`. Conversion reports identify omitted headers, typed schema projection and unassessed workbook fidelity; `FailOnLoss` rejects those findings before persistence. The adapter transports rows through `IDataReader`/`DbDataReader`;
 it does not contain another CSV parser or Excel engine.
 
 ## Targets and dependencies

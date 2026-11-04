@@ -7,6 +7,7 @@ public static partial class OfficeWorkflow {
     private static readonly Lazy<bool> ConverterRegistration = new(() => {
         foreach (OfficeWorkflowRoute route in OfficeWorkflowCatalog.ExecutableRoutes.Where(route => !OfficeConverter.IsBuiltinRoute(route.Id)))
             OfficeConverter.Register(new BuiltinWorkflowRoute(route.Id));
+        foreach (string id in PairRouteIds) OfficeConverter.Register(new PairRoute(id));
         return true;
     });
 

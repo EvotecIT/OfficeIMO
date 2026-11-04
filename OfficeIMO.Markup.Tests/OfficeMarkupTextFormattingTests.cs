@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using OfficeIMO.Markup;
@@ -65,44 +66,41 @@ public class OfficeMarkupTextFormattingTests {
     public void NativeMarkupAdapters_ClassifyOmittedBlocksAsOmissions() {
         var excelSource = new OfficeMarkupDocument(OfficeMarkupProfile.Workbook);
         excelSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
-        OfficeMarkupConversionResult<ExcelDocument> excel = excelSource.ToExcelDocumentResult();
+        var excel = excelSource.ToExcel(null, out OfficeIMO.OfficeConversionReport conversionReport1);
+        var excelReport = (OfficeMarkupConversionReport)conversionReport1;
 
         var powerPointSource = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         powerPointSource.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
-        OfficeMarkupPowerPointConversionResult powerPoint = powerPointSource.ToPowerPointDocumentResult(
-            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
+        var powerPoint = powerPointSource.ToPowerPoint(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false }, out OfficeIMO.OfficeConversionReport conversionReport2);
+        var powerPointReport = (OfficeMarkupPowerPointConversionReport)conversionReport2;
 
         var wordSource = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
         wordSource.Blocks.Add(new OfficeMarkupExtensionBlock("custom", new Dictionary<string, string>(), "omitted"));
-        OfficeMarkupConversionResult<WordDocument> word = wordSource.ToWordDocumentResult(
-            new MarkupWordExportOptions { IncludeUnsupportedBlocksAsText = false });
+        var word = wordSource.ToWord(new MarkupWordExportOptions { IncludeUnsupportedBlocksAsText = false }, out OfficeIMO.OfficeConversionReport conversionReport3);
+        var wordReport = (OfficeMarkupConversionReport)conversionReport3;
 
-        using (excel.Value)
-        using (powerPoint.Value)
-        using (word.Value) {
-            Assert.Contains(excel.Report.Diagnostics,
+        using (excel)
+        using (powerPoint)
+        using (word) {
+            Assert.Contains(excelReport.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(powerPoint.Report.Diagnostics,
+            Assert.Contains(powerPointReport.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
-            Assert.Contains(word.Report.Diagnostics,
+            Assert.Contains(wordReport.Diagnostics,
                 diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
         }
     }
 
     [Fact]
-    public void PowerPointConversionResult_PreservesTypedMarkupFailure() {
+    public void PowerPointConversion_PreservesTypedMarkupFailure() {
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         source.Blocks.Add(new OfficeMarkupSheetBlock("Invalid for presentations"));
 
-        OfficeMarkupPowerPointConversionResult result = source.ToPowerPointDocumentResult(
-            new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
-        using (result.Value) {
-            OfficeMarkupConversionException exception = Assert.Throws<OfficeMarkupConversionException>(
-                () => result.RequireValue());
-
-            Assert.Contains(exception.Diagnostics, diagnostic =>
-                diagnostic.Severity == OfficeMarkupDiagnosticSeverity.Error);
-        }
+        OfficeConversionException exception = Assert.Throws<OfficeConversionException>(() =>
+            source.ToPowerPoint(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false }));
+        OfficeMarkupPowerPointConversionReport report = Assert.IsType<OfficeMarkupPowerPointConversionReport>(exception.Report);
+        Assert.Contains(report.NativeDiagnostics, diagnostic =>
+            diagnostic.Severity == OfficeMarkupDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -124,7 +122,7 @@ public class OfficeMarkupTextFormattingTests {
         OfficeMarkupResolvedStyle style = Assert.IsType<OfficeMarkupResolvedStyle>(
             OfficeMarkupStyleResolver.Create(document).Resolve(block));
 
-        Assert.Equal("Aptos", style.FontName);
+        Assert.Equal("Aptos", style.FontFamily);
         Assert.Equal(18, style.FontSize);
         Assert.True(style.Bold);
         Assert.True(style.Italic);
@@ -159,7 +157,7 @@ public class OfficeMarkupTextFormattingTests {
         section.Blocks.Add(CreateList());
         source.Blocks.Add(section);
 
-        using WordDocument word = source.ToWordDocumentResult().RequireValue();
+        using WordDocument word = source.ToWord(null, out OfficeIMO.OfficeConversionReport conversionReport5);
         WordParagraphInfo[] paragraphs = word.Inspect().Sections
             .SelectMany(item => item.Elements).OfType<WordParagraphInfo>()
             .Where(item => item.Text.Contains("item", StringComparison.Ordinal))
@@ -178,31 +176,65 @@ public class OfficeMarkupTextFormattingTests {
         });
     }
 
-    [Fact]
-    public void WordExporter_AppliesBlockTypographyAndCase() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WordExporter_AppliesBlockTypographyAndCase(bool asynchronous) {
         var paragraph = new OfficeMarkupParagraphBlock("Mixed case");
         AddCommonStyle(paragraph.Attributes, "double", "superscript", "uppercase");
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
         source.Blocks.Add(paragraph);
 
-        using WordDocument word = source.ToWordDocumentResult().RequireValue();
-        WordParagraphInfo paragraphSnapshot = Assert.IsType<WordParagraphInfo>(
-            Assert.Single(Assert.Single(word.Inspect().Sections).Elements));
-        WordRunInfo run = Assert.Single(paragraphSnapshot.Runs);
+        source.Blocks.Add(new OfficeMarkupExtensionBlock("custom", new Dictionary<string, string>(), "omitted"));
+        var options = new MarkupWordExportOptions { IncludeUnsupportedBlocksAsText = false };
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-markup-word-report-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "output.docx");
+            string destination = Path.Combine(directory, ".", "output.docx");
+            OfficeConversionReport fileReport = asynchronous
+                ? await source.SaveAsWordAsync(destination, options)
+                : source.SaveAsWord(destination, options);
+            Assert.Equal(Path.GetFullPath(path), fileReport.OutputPath);
+            OfficeMarkupConversionReport native = Assert.IsType<OfficeMarkupConversionReport>(fileReport);
+            Assert.Contains(native.NativeDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(native.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            using WordDocument word = WordDocument.Load(path);
+            WordParagraphInfo paragraphSnapshot = Assert.IsType<WordParagraphInfo>(
+                Assert.Single(Assert.Single(word.Inspect().Sections).Elements));
+            WordRunInfo run = Assert.Single(paragraphSnapshot.Runs);
 
-        Assert.Equal("MIXED CASE", run.Text);
-        Assert.True(run.Bold);
-        Assert.True(run.Italic);
-        Assert.Equal(WordUnderlineStyle.Double, run.UnderlineStyle);
-        Assert.True(run.DoubleStrike);
-        Assert.Equal("Superscript", run.VerticalTextAlignment);
-        Assert.Equal("SmallCaps", run.CapsStyle);
-        Assert.Equal(OfficeColor.Parse("336699"), run.Color);
-        Assert.Equal(OfficeColor.Parse("FFF2CC"), run.BackgroundColor);
+            Assert.Equal("MIXED CASE", run.Text);
+            Assert.True(run.Bold);
+            Assert.True(run.Italic);
+            Assert.Equal(WordUnderlineStyle.Double, run.UnderlineStyle);
+            Assert.True(run.DoubleStrikethrough);
+            Assert.Equal("Superscript", run.VerticalTextAlignment);
+            Assert.Equal("SmallCaps", run.CapsStyle);
+            Assert.Equal(OfficeColor.Parse("336699"), run.Color);
+            Assert.Equal(OfficeColor.Parse("FFF2CC"), run.BackgroundColor);
+
+            using var output = new MemoryStream();
+            OfficeConversionReport streamReport = asynchronous
+                ? await source.SaveAsWordAsync(output, options)
+                : source.SaveAsWord(output, options);
+            Assert.Null(streamReport.OutputPath);
+            Assert.True(output.CanWrite);
+            OfficeMarkupConversionReport streamNative = Assert.IsType<OfficeMarkupConversionReport>(streamReport);
+            Assert.Equal(native.NativeDiagnostics.Select(diagnostic => (diagnostic.Message, diagnostic.LossKind)),
+                streamNative.NativeDiagnostics.Select(diagnostic => (diagnostic.Message, diagnostic.LossKind)));
+            output.Position = 0;
+            using WordDocument streamed = WordDocument.Load(output);
+            Assert.Equal("MIXED CASE", Assert.Single(Assert.Single(streamed.Inspect().Sections).Elements.OfType<WordParagraphInfo>()).Text);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
-    [Fact]
-    public void ExcelExporter_AppliesNativeAccountingUnderlineScriptsAndCase() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ExcelExporter_AppliesNativeAccountingUnderlineScriptsAndCase(bool asynchronous) {
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Workbook);
         source.Blocks.Add(new OfficeMarkupSheetBlock("Data"));
         var range = new OfficeMarkupRangeBlock("A1") { Sheet = "Data" };
@@ -222,20 +254,50 @@ public class OfficeMarkupTextFormattingTests {
         formatting.Attributes["highlight"] = "FFF2CC";
         source.Blocks.Add(formatting);
 
-        using ExcelDocument workbook = source.ToExcelDocumentResult().RequireValue();
-        ExcelSheet sheet = Assert.Single(workbook.Sheets);
-        ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
+        source.Blocks.Add(new OfficeMarkupCodeBlock("text", "omitted"));
+        var options = new MarkupExcelExportOptions();
+        string directory = Path.Combine(Path.GetTempPath(), "officeimo-markup-excel-report-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string path = Path.Combine(directory, "output.xlsx");
+            string destination = Path.Combine(directory, ".", "output.xlsx");
+            OfficeConversionReport fileReport = asynchronous
+                ? await source.SaveAsExcelAsync(destination, options)
+                : source.SaveAsExcel(destination, options);
+            Assert.Equal(Path.GetFullPath(path), fileReport.OutputPath);
+            OfficeMarkupConversionReport native = Assert.IsType<OfficeMarkupConversionReport>(fileReport);
+            Assert.Contains(native.NativeDiagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            Assert.Contains(native.Diagnostics, diagnostic => diagnostic.LossKind == OfficeConversionLossKind.Omission);
+            using ExcelDocument workbook = ExcelDocument.Load(path);
+            ExcelSheet sheet = Assert.Single(workbook.Sheets);
+            ExcelCellStyleInfo style = sheet.Cell(1, 1).GetStyle();
 
-        Assert.Equal("mIXED CASE", sheet.Cell(1, 1).GetValue().Value?.ToString());
-        Assert.Equal("Aptos", style.FontName);
-        Assert.Equal(17D, style.FontSize?.ToPoints());
-        Assert.True(style.Bold);
-        Assert.True(style.Italic);
-        Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, style.UnderlineStyle);
-        Assert.True(style.Strikethrough);
-        Assert.Equal(ExcelVerticalTextAlignment.Subscript, style.VerticalTextAlignment);
-        Assert.Equal("336699", style.FontColorHex);
-        Assert.Equal("FFF2CC", style.FillColorHex);
+            Assert.Equal("mIXED CASE", sheet.Cell(1, 1).GetValue().Value?.ToString());
+            Assert.Equal("Aptos", style.FontName);
+            Assert.Equal(17D, style.FontSize?.ToPoints());
+            Assert.True(style.Bold);
+            Assert.True(style.Italic);
+            Assert.Equal(ExcelUnderlineStyle.DoubleAccounting, style.UnderlineStyle);
+            Assert.True(style.Strikethrough);
+            Assert.Equal(ExcelVerticalTextAlignment.Subscript, style.VerticalTextAlignment);
+            Assert.Equal("336699", style.FontColorHex);
+            Assert.Equal("FFF2CC", style.FillColorHex);
+
+            using var output = new MemoryStream();
+            OfficeConversionReport streamReport = asynchronous
+                ? await source.SaveAsExcelAsync(output, options)
+                : source.SaveAsExcel(output, options);
+            Assert.Null(streamReport.OutputPath);
+            Assert.True(output.CanWrite);
+            OfficeMarkupConversionReport streamNative = Assert.IsType<OfficeMarkupConversionReport>(streamReport);
+            Assert.Equal(native.NativeDiagnostics.Select(diagnostic => (diagnostic.Message, diagnostic.LossKind)),
+                streamNative.NativeDiagnostics.Select(diagnostic => (diagnostic.Message, diagnostic.LossKind)));
+            output.Position = 0;
+            using ExcelDocument streamed = ExcelDocument.Load(output);
+            Assert.Equal("mIXED CASE", streamed["Data"].Cell(1, 1).GetValue().Value?.ToString());
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
@@ -247,7 +309,7 @@ public class OfficeMarkupTextFormattingTests {
         var source = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         source.Blocks.Add(slide);
 
-        using PowerPointDocument presentation = source.ToPowerPointDocumentResult().RequireValue();
+        using PowerPointDocument presentation = source.ToPowerPoint(null, out OfficeIMO.OfficeConversionReport conversionReport8);
         PowerPointTextBox output = Assert.Single(Assert.Single(presentation.Slides).Shapes.OfType<PowerPointTextBox>(),
             box => box.Text.Contains("mixed case", StringComparison.Ordinal));
         PowerPointTextRun run = Assert.Single(Assert.Single(output.Paragraphs).Runs);

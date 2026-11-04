@@ -20,7 +20,7 @@ public static partial class IWorkWorkflow {
         });
         Add("numbers-pdf", (input, output, limits, settings, token) => {
             ExcelPdfExportOptions options = settings?.NumbersPdfOptions ?? new IWorkWorkflowSettings().NumbersPdfOptions;
-            if (options.SheetNames is { Count: > 0 } || options.MaxRowsPerSheet.HasValue
+            if (options.Sheets != null || options.MaxRowsPerSheet.HasValue
                 || options.UseWorksheetPrintAreas || options.RespectWorkbookSheetVisibility
                 || options.RespectWorksheetHiddenRowsAndColumns)
                 throw new NotSupportedException("Complete Numbers PDF conversion requires every sheet, row, and column without print-area clipping.");

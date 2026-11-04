@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Shared visual profile used to keep Markdown exports visually consistent across HTML, PDF, and Word.
 /// </summary>
-public sealed class MarkdownVisualTheme {
+public sealed partial class MarkdownVisualTheme {
     private static readonly IReadOnlyList<MarkdownVisualThemePreset> BuiltInPresets = Array.AsReadOnly(new[] {
         new MarkdownVisualThemePreset(
             OfficeVisualThemeKind.Plain,
@@ -284,6 +284,7 @@ public sealed class MarkdownVisualTheme {
         Kind = Kind,
         Name = Name,
         HtmlStyle = HtmlStyle,
+        SourceTheme = SourceTheme,
         _palette = _palette.Clone(),
         _table = _table.Clone()
     };

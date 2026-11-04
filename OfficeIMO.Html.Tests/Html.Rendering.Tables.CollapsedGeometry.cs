@@ -287,7 +287,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div class='probe'>Span</div></td><td colspan='2'><div class='probe'>Wide</div></td></tr>"
             + "<tr><td><div class='probe'>Lower</div></td><td><div class='probe'>Cell</div></td></tr></tbody></table>";
         Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(CollapsedGeometrySource(body))
-            .ToPng(CollapsedGeometryOptions()), out OfficeRasterImage? raster));
+            .ToImage(CollapsedGeometryOptions()), out OfficeRasterImage? raster));
 
         Assert.Equal(OfficeColor.White, raster!.GetPixel(40, 34));
         Assert.Equal(OfficeColor.Lime, raster.GetPixel(190, 15));
@@ -332,7 +332,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderOptions options = CollapsedGeometryOptions();
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(source, options);
         Assert.Equal(46D, TableGeometryShape(rendered, "table#grid").Height, 3);
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(source).ToPng(options), out OfficeRasterImage? raster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(source).ToImage(options), out OfficeRasterImage? raster));
         foreach (int y in new[] { 1, 7, 38, 44 }) Assert.Equal(OfficeColor.Black, raster!.GetPixel(200, y));
         Assert.Equal(OfficeColor.White, raster!.GetPixel(200, 4));
         Assert.Equal(OfficeColor.Orange, raster.GetPixel(200, 46));

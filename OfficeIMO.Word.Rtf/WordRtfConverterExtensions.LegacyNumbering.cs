@@ -143,7 +143,7 @@ public static partial class WordRtfConverterExtensions {
             if (legacy.Italic.HasValue) properties.AddChild(new Italic { Val = legacy.Italic.Value }, true);
             if (legacy.AllCaps.HasValue) properties.AddChild(new Caps { Val = legacy.AllCaps.Value }, true);
             if (legacy.SmallCaps.HasValue) properties.AddChild(new SmallCaps { Val = legacy.SmallCaps.Value }, true);
-            if (legacy.Strike.HasValue) properties.AddChild(new Strike { Val = legacy.Strike.Value }, true);
+            if (legacy.Strikethrough.HasValue) properties.AddChild(new Strike { Val = legacy.Strikethrough.Value }, true);
             if (legacy.UnderlineStyle.HasValue) properties.AddChild(new Underline { Val = ToWordUnderlineStyle(legacy.UnderlineStyle.Value) }, true);
             if (legacy.FontSizeHalfPoints.HasValue) properties.AddChild(new FontSize { Val = legacy.FontSizeHalfPoints.Value.ToString(CultureInfo.InvariantCulture) }, true);
             if (legacy.ForegroundColorIndex.HasValue) properties.AddChild(new Color { Val = color ?? "auto" }, true);

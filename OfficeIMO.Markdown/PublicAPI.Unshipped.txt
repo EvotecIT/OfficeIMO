@@ -28,3 +28,8 @@ OfficeIMO.Markdown.MarkdownDocument.Image(string! path, string? altText = null, 
 OfficeIMO.Markdown.InlineSequence.Strikethrough(string! text) -> OfficeIMO.Markdown.InlineSequence!
 OfficeIMO.Markdown.MarkdownDocument.P(System.Action<OfficeIMO.Markdown.InlineSequence!>! build) -> OfficeIMO.Markdown.MarkdownDocument!
 OfficeIMO.Markdown.MarkdownQuoteBuilder.P(System.Action<OfficeIMO.Markdown.InlineSequence!>! build) -> OfficeIMO.Markdown.MarkdownQuoteBuilder!
+OfficeIMO.Markdown.MarkdownHtmlExportOptions.ReaderOptions.get -> OfficeIMO.Markdown.MarkdownLoadOptions?
+OfficeIMO.Markdown.MarkdownHtmlExportOptions.ReaderOptions.set -> void
+OfficeIMO.Markdown.MarkdownVisualTheme.SourceTheme.get -> OfficeIMO.OfficeTheme?
+OfficeIMO.Markdown.MarkdownVisualTheme.SourceTheme.set -> void
+static OfficeIMO.Markdown.MarkdownVisualTheme.FromOfficeTheme(OfficeIMO.OfficeTheme! theme) -> OfficeIMO.Markdown.MarkdownVisualTheme!

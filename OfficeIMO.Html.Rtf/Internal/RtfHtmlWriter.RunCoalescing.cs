@@ -7,8 +7,8 @@ internal static partial class RtfHtmlWriter {
                left.Bold == right.Bold &&
                left.Italic == right.Italic &&
                left.UnderlineStyle == right.UnderlineStyle &&
-               left.Strike == right.Strike &&
-               left.DoubleStrike == right.DoubleStrike &&
+               left.Strikethrough == right.Strikethrough &&
+               left.DoubleStrikethrough == right.DoubleStrikethrough &&
                left.Hidden == right.Hidden &&
                left.Outline == right.Outline &&
                left.Shadow == right.Shadow &&

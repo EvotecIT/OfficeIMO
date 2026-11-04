@@ -88,6 +88,9 @@ internal static class OfficeConversionSupportAssessments {
         "markdown-docx" => Established(
             "Representative Markdown fixtures reopen as editable DOCX and verify headings, paragraphs, lists, tables, links, and images with diagnostics.",
             "Raw HTML, extension-specific syntax, and constructs without a Word equivalent may be simplified."),
+        "markdown-pptx" => Targeted(
+            "Editable slide fixtures verify heading and thematic-break boundaries, front matter, speaker notes, slide dimensions, image policy, and conversion diagnostics in reopened PowerPoint output.",
+            "Markdown is projected through the supported OfficeIMO Markup presentation profile. Unsupported blocks and styling are simplified or diagnosed; automatic layout, pagination, and native PowerPoint visual equivalence are not promised."),
         "docx-html" or "docx-markdown" => Established(
             "Representative Word fixtures verify readable structure, tables, lists, links, images, and deterministic semantic output.",
             "Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output."),

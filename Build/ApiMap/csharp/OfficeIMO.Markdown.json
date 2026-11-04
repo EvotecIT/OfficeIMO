@@ -1086,7 +1086,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtml(string path | Stream stream, MarkdownHtmlExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "Returns void today; no Stream overload.",
@@ -1098,7 +1098,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtmlAsync(string path | Stream stream, MarkdownHtmlExportOptions options = null) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "Returns void today; no Stream overload.",
@@ -2082,6 +2082,24 @@
       "replacement": "Use Strikethrough(text).",
       "reason": "One spelling for the same text decoration across the public models.",
       "category": "naming"
+    },
+    {
+      "old": "Host-only OfficeTheme to MarkdownVisualTheme preset selection",
+      "kind": "type",
+      "action": "change",
+      "new": "MarkdownVisualTheme.FromOfficeTheme(OfficeTheme)",
+      "replacement": "Projects native palette/table styling and retains complete immutable SourceTheme through Clone; native Markdown HTML emits the shared OfficeTheme CSS tokens and Markdown-to-Word creation consumes its native typography/theme. Custom theme values are retained instead of reducing to a named preset.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "Markdown HTML facade parses ReaderOptions before rendering",
+      "kind": "property",
+      "action": "change",
+      "new": "MarkdownHtmlExportOptions.ReaderOptions",
+      "replacement": "The canonical markdown-html source route captures native MarkdownLoadOptions, including dialect, normalization, URL and size limits, and applies them before parsing. Rendering an already parsed MarkdownDocument keeps its existing tree.",
+      "category": "conversion",
+      "applied": true
     }
   ],
   "packageMoves": [

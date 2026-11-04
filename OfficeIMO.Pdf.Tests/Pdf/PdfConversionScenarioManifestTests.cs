@@ -324,7 +324,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Open(pdf);
         PdfCore.PdfDocumentReadResult logical = PdfCore.PdfDocumentReadResult.Load(pdf, layoutOptions);
-        RtfDocument imported = logical.ToRtfDocument(new PdfRtfExportOptions());
+        RtfDocument imported = logical.ToRtf(new PdfRtfExportOptions());
         string importedRtf = imported.ToRtf(new RtfSaveOptions { IncludeGenerator = false });
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 

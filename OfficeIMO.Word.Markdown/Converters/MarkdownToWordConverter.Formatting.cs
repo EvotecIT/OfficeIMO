@@ -105,6 +105,7 @@ namespace OfficeIMO.Word.Markdown {
             if (theme == null) {
                 return;
             }
+            if (theme.SourceTheme != null) return; // Native heading styles retain the complete creation theme.
 
             Omd.MarkdownVisualPalette palette = theme.PaletteSnapshot;
             foreach (var run in paragraph.GetRuns()) {
@@ -144,6 +145,7 @@ namespace OfficeIMO.Word.Markdown {
             if (theme == null) {
                 return;
             }
+            if (theme.SourceTheme != null) return; // Keep the native light-page/dark-theme treatment and inherited fonts.
 
             string textHex = theme.PaletteSnapshot.Text.ToRgbHex();
             foreach (var run in paragraph.GetRuns()) {
@@ -174,6 +176,12 @@ namespace OfficeIMO.Word.Markdown {
         private static void ApplyTableTheme(WordTable table, MarkdownWordExportOptions options, bool hasHeaderRow) {
             Omd.MarkdownVisualTheme? theme = ResolveTheme(options);
             if (theme == null) {
+                return;
+            }
+
+            if (theme.SourceTheme != null) {
+                // Native creation owns the complete table style, including border mode, header rule and number alignment.
+                table.SetStyleId(WordThemeDefaults.TableStyleId);
                 return;
             }
 

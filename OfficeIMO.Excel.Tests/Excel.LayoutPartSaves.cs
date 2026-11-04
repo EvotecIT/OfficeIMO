@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
                 for (int column = 1; column <= 3; column++) {
                     sheet.Cell(row, column).SetValue(row % 7 == 0 && column == 3 ? "Two" + Environment.NewLine + "lines" : "Value " + row);
                 }
-                sheet.Cell(row, 1).SetFillColor(fills[row % fills.Length]).SetBold(true);
+                sheet.Cell(row, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse(fills[row % fills.Length])).SetBold(true);
                 sheet.Cell(row, 2).SetItalic(true).SetUnderline(true).SetColor(global::OfficeIMO.OfficeColor.Parse("#1F4E79"));
                 sheet.Cell(row, 3).SetBold(row % 2 == 0);
             }
