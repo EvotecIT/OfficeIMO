@@ -690,8 +690,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ApplyPowerPointTextSemantics(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontFamily;
-        if (source.Color.HasValue) target.Color = ParseColor(source.Color.Value.ToRgbHex());
-        if (source.BackgroundColor.HasValue) target.BackgroundColor = ParseColor(source.BackgroundColor.Value.ToRgbHex());
+        if (source.Color is { IsThemeRole: false } color) target.Color = ParseColor(color.ToRgbHex());
+        if (source.BackgroundColor is { IsThemeRole: false } background) target.BackgroundColor = ParseColor(background.ToRgbHex());
     }
 
     private static void ApplyPowerPointRun(PowerPointTextRun source, OdpHyperlink target,
@@ -702,8 +702,8 @@ public static partial class PowerPointOpenDocumentConversionExtensions {
         ApplyPowerPointTextSemantics(source, target);
         if (source.FontSize.HasValue) target.FontSize = OdfLength.Points(source.FontSize.Value.ToPoints());
         target.FontFamily = source.FontFamily;
-        if (source.Color.HasValue) target.Color = ParseColor(source.Color.Value.ToRgbHex());
-        if (source.BackgroundColor.HasValue) target.BackgroundColor = ParseColor(source.BackgroundColor.Value.ToRgbHex());
+        if (source.Color is { IsThemeRole: false } color) target.Color = ParseColor(color.ToRgbHex());
+        if (source.BackgroundColor is { IsThemeRole: false } background) target.BackgroundColor = ParseColor(background.ToRgbHex());
     }
 
     private static bool HasBasicFormatting(PowerPointTextRun run) =>
