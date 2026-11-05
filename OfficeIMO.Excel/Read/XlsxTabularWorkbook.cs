@@ -103,7 +103,9 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            XlsxTabularSheet? prefetchedSheet = options.EnableWorksheetPrefetch
+            // Prefer overlapping inflation with indexing when that bounded pipeline is eligible.
+            // Starting a complete-part prefetch would otherwise serialize the indexing phase.
+            XlsxTabularSheet? prefetchedSheet = options.EnableWorksheetPrefetch && _prefetchedParts?.AllowsPipelining != true
                 ? ResolvePrefetchedSheet(_sheets, options)
                 : null;
             _prefetchedSheetPartName = prefetchedSheet?.PartName;
@@ -159,7 +161,7 @@ namespace OfficeIMO.Excel {
             // WebAssembly may schedule the worker on this same event loop and
             // cannot synchronously join it. Keep its fully validated serial path.
             return RuntimeInformation.ProcessArchitecture != Architecture.Wasm
-                && !options.EnableWorksheetPrefetch && options.A1Range == null
+                && options.A1Range == null
                 && options.Execution.Mode != ExcelExecutionMode.Sequential
                 && (options.Execution.MaxDegreeOfParallelism ?? 2) > 1
                 && options.Execution.OnDecision == null && options.Execution.OnTiming == null
@@ -264,6 +266,7 @@ namespace OfficeIMO.Excel {
                 _options,
                 DateSystem,
                 !_options.EnableWorksheetPrefetch
+                    || _prefetchedParts?.AllowsPipelining == true
                     || string.Equals(sheet.PartName, _prefetchedSheetPartName, StringComparison.OrdinalIgnoreCase)
                         ? _prefetchedParts ?? _parts
                         : _parts,
