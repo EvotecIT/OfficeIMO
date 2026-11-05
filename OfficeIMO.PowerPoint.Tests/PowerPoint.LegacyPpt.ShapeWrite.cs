@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             Assert.Equal(30D, projected.Slides[0].Shapes
-                .Single(shape => shape.FillColor == OfficeColor.Parse("C0504D")).Rotation);
+                .Single(shape => shape.FillColor == OfficeColor.Parse("C0504DBF")).Rotation);
             Assert.Contains(projected.Slides[0].Shapes
                 .OfType<PowerPointAutoShape>(), shape =>
                     shape.ShapeType == OfficePresetShapeType.Chevron);

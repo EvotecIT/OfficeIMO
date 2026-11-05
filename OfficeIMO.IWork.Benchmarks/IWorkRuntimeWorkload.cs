@@ -55,7 +55,7 @@ public sealed partial class IWorkRuntimeWorkload {
             return;
         }
         using var input = new MemoryStream(_input, writable: false);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(input, _kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(input, _kind);
         if (operation == "LoadProject") {
             _projection = _kind switch {
                 IWorkDocumentKind.Pages => source.ReadPages(),
@@ -114,7 +114,7 @@ public sealed partial class IWorkRuntimeWorkload {
         if (_native) { ValidateNative(); return; }
         if (_operation == "NativeSave" && _output is { Length: > 0 }) {
             using var nativeOutput = new MemoryStream(_output, writable: false);
-            IWorkKeynoteProjection keynote = IWorkSourceDocument.Open(nativeOutput, IWorkDocumentKind.Keynote).ReadKeynote();
+            IWorkKeynoteProjection keynote = IWorkSourceDocument.Load(nativeOutput, IWorkDocumentKind.Keynote).ReadKeynote();
             if (!keynote.HasEditableContent) throw new InvalidDataException("Saved native Keynote content is incomplete.");
             ValidateText(keynote.Slides.Select(slide => slide.TextBoxes.Single().Content.PlainText), paragraphTerminator: "\n");
         } else if (_operation == "LoadProject") {

@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Accent", shapes.First().Name);
 
                 PowerPointAutoShape rect = shapes.Single(s => s.Name == "Styled Rect");
-                Assert.Equal(OfficeColor.Parse("E7F7FF"), rect.FillColor);
+                Assert.Equal(OfficeColor.Parse("E7F7FFBF"), rect.FillColor);
                 Assert.Equal(OfficeColor.Parse("007ACC"), rect.OutlineColor);
                 Assert.Equal(2, rect.OutlineWidth?.ToPoints() ?? 0, 2);
                 Assert.Equal(25, rect.FillTransparency);

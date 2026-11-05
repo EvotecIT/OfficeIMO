@@ -9,6 +9,7 @@ using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -347,10 +348,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ContentControlForm_TableScopedSpecializedControlsRemainBindableAsGenericTags() {
+        public void Test_ContentControlForm_TableScopedCheckBoxesRetainBooleanValues() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithTableScopedSpecializedContentControl.docx");
 
             using (WordDocument document = WordDocument.Create(filePath)) {
+                var checkBox = new W14.SdtContentCheckBox();
                 var table = new Table(
                     new TableRow(
                         new TableCell(
@@ -359,24 +361,34 @@ namespace OfficeIMO.Tests {
                                     new SdtProperties(
                                         new SdtAlias { Val = "Table Accepted" },
                                         new Tag { Val = "TableAccepted" },
-                                        new DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox()),
+                                        checkBox),
                                     new SdtContentRun(
                                         new Run(new Text("Unchecked") { Space = SpaceProcessingModeValues.Preserve })))))));
                 document._document.Body!.Append(table);
 
-                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {
+                var invalidValues = new Dictionary<string, object?> {
                     ["TableAccepted"] = "Approved"
+                };
+                WordContentControlFormIssue issue = Assert.Single(document.ValidateContentControlValues(invalidValues).Issues);
+                Assert.Equal(WordContentControlFormIssueKind.InvalidBoolean, issue.Kind);
+                Assert.Equal("TableAccepted", issue.Key);
+                Assert.Equal(0, document.FillContentControlValues(invalidValues));
+                Assert.Equal("Unchecked", Assert.Single(table.Descendants<Text>()).Text);
+
+                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {
+                    ["TableAccepted"] = true
                 });
-                Assert.True(validation.IsValid);
+                Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Issues.Select(item => item.Message)));
 
                 int updated = document.FillContentControlValues(new Dictionary<string, object?> {
-                    ["TableAccepted"] = "Approved"
+                    ["TableAccepted"] = true
                 });
 
                 Assert.Equal(1, updated);
                 Dictionary<string, object?> values = document.ExtractContentControlValues();
-                Assert.Equal("Approved", Assert.IsType<string>(values["TableAccepted"]));
-                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "Approved");
+                Assert.True(Assert.IsType<bool>(values["TableAccepted"]));
+                Assert.Equal(W14.OnOffValues.One, checkBox.GetFirstChild<W14.Checked>()!.Val!.Value);
+                Assert.Equal("☑", Assert.Single(table.Descendants<Text>()).Text);
             }
         }
 

@@ -646,7 +646,7 @@ public sealed class BrowserConversionServiceTests {
     public void ExcelConversion_UsesThePortableTaggedPdfProfile() {
         using ExcelDocument workbook = ExcelDocument.Create();
         var sheet = workbook.AddSheet("Delivery");
-        sheet.Cell(1, 1).SetValue("Workstream").SetFontName("Calibri Light");
+        sheet.Cell(1, 1).SetValue("Workstream").SetFontFamily("Calibri Light");
         sheet.Cell(1, 2).SetValue("Status");
         sheet.Cell(2, 1).SetValue("Platform");
         sheet.Cell(2, 2).SetValue("Ready");

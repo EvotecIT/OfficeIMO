@@ -1062,7 +1062,7 @@ namespace OfficeIMO.Tests {
                     });
                 PowerPointAutoShape importedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>());
                 Assert.Equal(OfficePresetShapeType.Rectangle, importedShape.ShapeType);
-                Assert.Equal(OfficeColor.Parse("CC6633"), importedShape.FillColor);
+                Assert.Equal(OfficeColor.Parse("CC6633BF"), importedShape.FillColor);
                 Assert.Equal(25, importedShape.FillTransparency);
                 Assert.Equal(OfficeColor.Parse("336699"), importedShape.OutlineColor);
                 Assert.Equal(2.5d, importedShape.OutlineWidth?.ToPoints());

@@ -16,7 +16,7 @@ public sealed partial class IWorkRuntimeWorkload {
         _createdNativeDocument = IWorkKeynoteDocument.Create();
         for (int index = 1; index <= slides; index++)
             _createdNativeDocument.AddSlide().AddText(IWorkScaleInput.Text(index), 20, 20, 920, 100);
-        _input = _createdNativeDocument.SaveBytes();
+        _input = _createdNativeDocument.ToBytes();
         InputSha256 = Convert.ToHexString(SHA256.HashData(_input));
     }
 }

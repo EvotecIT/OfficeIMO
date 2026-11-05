@@ -19,9 +19,9 @@ try {
     created.AddSlide();
     string createdPath = Path.Combine(outputRoot, "created.key");
     created.Save(createdPath);
-    if (!created.SaveBytes().SequenceEqual(File.ReadAllBytes(createdPath)))
+    if (!created.ToBytes().SequenceEqual(File.ReadAllBytes(createdPath)))
         throw new InvalidOperationException("Packed native creation is not deterministic.");
-    var createdSource = IWorkSourceDocument.Open(createdPath).ReadKeynote();
+    var createdSource = IWorkSourceDocument.Load(createdPath).ReadKeynote();
     if (!createdSource.HasEditableContent || createdSource.Slides.Count != 2
         || createdSource.Slides[0].TextBoxes[0].Content.Paragraphs[0].Runs[0].Style.Color?.RgbHex != "003366")
         throw new InvalidOperationException("Packed native Keynote creation lost its text or styles.");
@@ -47,7 +47,7 @@ try {
             throw new InvalidOperationException("Packed Reader ingestion failed for " + extension + ".");
         }
         if (extension == "key") {
-            IWorkKeynoteProjection source = IWorkSourceDocument.Open(path).ReadKeynote();
+            IWorkKeynoteProjection source = IWorkSourceDocument.Load(path).ReadKeynote();
             IWorkTextBox body = source.Slides[0].TextBoxes.Single(box =>
                 box.Content.PlainText.Contains("first bullet", StringComparison.Ordinal));
             IWorkTextBoxLayout? frame = body.Layout;

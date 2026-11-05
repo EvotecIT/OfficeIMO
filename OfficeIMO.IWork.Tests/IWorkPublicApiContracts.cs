@@ -36,7 +36,7 @@ public sealed class IWorkPublicApiContracts {
     }
 
     [Fact]
-    public void OpenSupportsDetectedStreamsAndByteArrays() {
+    public void LoadSupportsDetectedStreamsAndByteArrays() {
         MethodInfo[] methods = typeof(IWorkSourceDocument).GetMethods(
             BindingFlags.Public | BindingFlags.Static);
 
@@ -85,7 +85,7 @@ public sealed class IWorkPublicApiContracts {
     }
 
     private static bool HasLeadingParameters(MethodInfo method, params Type[] expected) {
-        if (method.Name != "Open") return false;
+        if (method.Name != nameof(IWorkSourceDocument.Load)) return false;
         ParameterInfo[] parameters = method.GetParameters();
         return parameters.Length >= expected.Length
             && expected.Select((type, index) => parameters[index].ParameterType == type).All(static match => match);
