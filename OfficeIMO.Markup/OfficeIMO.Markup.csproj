@@ -19,7 +19,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-        <IsPublishable>False</IsPublishable>
+        <IsPublishable>True</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
