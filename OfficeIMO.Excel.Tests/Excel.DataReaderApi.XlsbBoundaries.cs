@@ -332,7 +332,7 @@ public partial class Excel {
     }
 
     [Fact]
-    public void OpenDataReader_XlsbRejectsMissingWorksheetDimension() {
+    public void OpenDataReader_XlsbDiscoversValuesWithoutOptionalWorksheetDimension() {
         string path = Path.Combine(
             Path.GetTempPath(),
             $"OfficeIMO.Excel.MissingDimension.{Guid.NewGuid():N}.xlsb");
@@ -343,10 +343,15 @@ public partial class Excel {
                 "xl/worksheets/sheet1.bin",
                 recordType: 148);
 
-            InvalidDataException exception = Assert.Throws<InvalidDataException>(
-                () => { using var reader = ExcelDocument.OpenReader(path); _ = reader.FieldCount; });
-
-            Assert.Contains("required BrtWsDim", exception.Message, StringComparison.Ordinal);
+            using var reader = ExcelDocument.OpenReader(path);
+            Assert.Equal("Name", reader.GetName(0));
+            Assert.Equal("Amount", reader.GetName(1));
+            Assert.True(reader.Read());
+            Assert.Equal("Alpha", reader.GetString(0));
+            Assert.Equal(42, reader.GetInt32(1));
+            Assert.True(reader.Read());
+            Assert.Equal(50, reader.GetInt32(1));
+            Assert.False(reader.Read());
         } finally {
             File.Delete(path);
         }

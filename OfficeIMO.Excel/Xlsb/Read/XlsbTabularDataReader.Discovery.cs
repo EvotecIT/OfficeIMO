@@ -148,10 +148,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                             throw new InvalidDataException(
                                 "The XLSB worksheet contains duplicate or nested BrtBeginSheetData records.");
                         }
-                        if (!sawDimension) {
-                            throw new InvalidDataException(
-                                "The XLSB worksheet is missing the required BrtWsDim record before BrtBeginSheetData.");
-                        }
 
                         sawBeginSheetData = true;
                         inSheetData = true;
@@ -323,10 +319,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     || lastRecordType != BrtEndSheet) {
                     throw new InvalidDataException(
                         "The XLSB worksheet is missing its outer BrtBeginSheet/BrtEndSheet boundaries.");
-                }
-                if (!sawDimension) {
-                    throw new InvalidDataException(
-                        "The XLSB worksheet is missing the required BrtWsDim record.");
                 }
                 if (!sawBeginSheetData) {
                     throw new InvalidDataException(
