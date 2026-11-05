@@ -208,7 +208,9 @@ class SelectionTests(unittest.TestCase):
                 self.assertEqual([True] * 3, [result["suites"][key] for key in macos])
         result = selection.select(repository, [".github/workflows/studio-apple.yml", "OfficeIMO.Drawing.ImageIO/Decode.cs"])
         self.assertEqual([True, False, True], [result["suites"][key] for key in macos])
-        self.assertTrue(selection.select(repository, ["OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"])["suites"]["apple-dependency-graph"])
+        for path in ["OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj", "OfficeIMO.Studio/OfficeIMO.Studio.csproj"]:
+            with self.subTest(path=path):
+                self.assertTrue(selection.select(repository, [path])["suites"]["apple-dependency-graph"])
 
     def test_conditional_references_are_not_lost_on_another_os(self):
         path = self.root / "OfficeIMO.Word/OfficeIMO.Word.csproj"
