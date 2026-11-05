@@ -68,9 +68,13 @@ jobs:
             echo "post_deploy_pipeline_config=" >> "$GITHUB_OUTPUT"
           fi
 
+  converter-tests:
+    if: ${{ github.event_name != 'pull_request' && github.event_name != 'release' }}
+    uses: ./.github/workflows/website-converter-tests.yml
+
   website-deploy:
     if: ${{ github.event_name != 'pull_request' && github.event_name != 'release' }}
-    needs: resolve-post-deploy
+    needs: [resolve-post-deploy, converter-tests]
     permissions:
       actions: write
       contents: read

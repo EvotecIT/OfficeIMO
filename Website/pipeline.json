@@ -3439,7 +3439,8 @@
       ],
       "workingDirectory": ".",
       "skipModes": [
-        "dev"
+        "dev",
+        "ci"
       ]
     },
     {
