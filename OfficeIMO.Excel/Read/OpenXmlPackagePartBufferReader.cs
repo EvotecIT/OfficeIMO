@@ -325,15 +325,25 @@ namespace OfficeIMO.Excel {
             CancellationToken cancellationToken,
             int offset = 0,
             Action<int>? publish = null) {
+#if NET8_0_OR_GREATER
+            // CopyTo can consume an empty compressed tail without writing output, so
+            // cancellable reads retain the input-progress checks in the bounded loop.
+            if (!cancellationToken.CanBeCanceled && length - offset >= 1_048_576 && input is DeflateStream) {
+                using var target = new ExactPartCopyTarget(output, offset, length, normalizedPartName, cancellationToken, publish);
+                input.CopyTo(target, 128 * 1024);
+                offset = target.Written;
+            } else
+#endif
             while (offset < length) {
                 cancellationToken.ThrowIfCancellationRequested();
                 int read = input.Read(output, offset, length - offset);
-                if (read == 0) {
-                    throw ExcelPackagePartLengthFailure.Create(
-                        $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
-                }
+                if (read == 0) break;
                 offset += read;
                 publish?.Invoke(offset);
+            }
+            if (offset != length) {
+                throw ExcelPackagePartLengthFailure.Create(
+                    $"Package part '{FormatPartNameForDisplay(normalizedPartName)}' ended after {offset} of {length} declared bytes.");
             }
             cancellationToken.ThrowIfCancellationRequested();
             if (input.ReadByte() >= 0) {
