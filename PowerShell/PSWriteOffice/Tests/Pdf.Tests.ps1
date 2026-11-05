@@ -1501,13 +1501,17 @@ Describe 'PDF native physical and pipeline contracts' {
             $line | Should -Not -BeNullOrEmpty
             [math]::Abs($line.Shape.StrokeWidth - 72 / 25.4) | Should -BeLessThan 0.002
             $line.Shape.StrokeColor | Should -Be ([OfficeIMO.OfficeColor]::Red)
+            # Positioned PDF text can be split into glyph runs, with nonpainting spaces omitted.
             $styled = @($drawing.Elements | Where-Object {
-                $_ -is [OfficeIMO.Drawing.OfficeDrawingText] -and $_.Text -match 'Physical styled marker'
-            }) | Select-Object -First 1
+                $_ -is [OfficeIMO.Drawing.OfficeDrawingText] -and $_.Y -lt $line.Y
+            } | Sort-Object X)
             $styled | Should -Not -BeNullOrEmpty
-            [math]::Abs($styled.Font.Size - 14) | Should -BeLessThan 0.01
-            $styled.Font.Style.ToString() | Should -Match 'Bold'
-            $styled.Font.Style.ToString() | Should -Match 'Italic'
+            (($styled.Text -join '') -replace '\s', '') | Should -BeExactly 'Physicalstyledmarker'
+            foreach ($fragment in $styled) {
+                [math]::Abs($fragment.Font.Size - 14) | Should -BeLessThan 0.01
+                $fragment.Font.Style.ToString() | Should -Match 'Bold'
+                $fragment.Font.Style.ToString() | Should -Match 'Italic'
+            }
             $text = $document.Read().Text
             $text | Should -Match 'Physical styled marker'
             $text | Should -Match 'After physical spacer'

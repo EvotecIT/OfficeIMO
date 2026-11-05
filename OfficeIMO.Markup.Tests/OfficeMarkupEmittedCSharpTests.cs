@@ -100,9 +100,7 @@ public sealed class OfficeMarkupEmittedCSharpTests(ITestOutputHelper output) {
 
             ::chart type=line title="Local chart" source=A1:C3 cell=Data!F20 width=480 height=320
             """,
-        OfficeMarkupProfile.Presentation => """
-            # Generated content
-
+        OfficeMarkupProfile.Presentation => "# Generated content\n\n" + """
             @slide {
               transition: fade duration=0.6 speed=fast advance-on-click=false advance-after=5
             }

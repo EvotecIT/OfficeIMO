@@ -15,6 +15,8 @@ public sealed class DocumentPdfCmdletTests {
         string root = Path.Combine(AppContext.BaseDirectory, "pswriteoffice-pdf-stop-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         using var shaper = new PausedShaper();
+        string input = Path.Combine(root, "input.txt");
+        string output = Path.Combine(root, "stopped.pdf");
         try {
             string font = new[] {
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf"),
@@ -25,25 +27,45 @@ public sealed class DocumentPdfCmdletTests {
             }.First(File.Exists);
             var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, TextShapingProvider = shaper }
                 .EmbedStandardFont(PdfStandardFont.Courier, font);
-            string input = Path.Combine(root, "input.txt");
             File.WriteAllText(input, "Stop during actual PDF generation");
-            string output = Path.Combine(root, "stopped.pdf");
             var state = InitialSessionState.CreateDefault();
             state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
             shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output)
                 .AddParameter("Options", new PdfTextImportOptions { PdfOptions = options });
-            IAsyncResult invocation = shell.BeginInvoke();
-            Assert.True(await Task.Run(() => shaper.Entered.Wait(TimeSpan.FromSeconds(15))), "The real font shaper was not reached during save.");
-            IAsyncResult stopping = shell.BeginStop(null, null);
-            Assert.True(SpinWait.SpinUntil(() => shell.InvocationStateInfo.State == PSInvocationState.Stopping, TimeSpan.FromSeconds(5)));
+            try {
+                IAsyncResult invocation = shell.BeginInvoke();
+                Assert.True(await Task.Run(() => shaper.Entered.Wait(TimeSpan.FromSeconds(15))), "The real font shaper was not reached during save.");
+                IAsyncResult stopping = shell.BeginStop(null, null);
+                Assert.True(SpinWait.SpinUntil(() => shell.InvocationStateInfo.State == PSInvocationState.Stopping, TimeSpan.FromSeconds(5)));
+                shaper.Release.Set();
+                await Task.Run(() => shell.EndStop(stopping));
+                Assert.Throws<PipelineStoppedException>(() => shell.EndInvoke(invocation));
+            } finally {
+                shaper.Release.Set();
+            }
+        } finally {
             shaper.Release.Set();
-            await Task.Run(() => shell.EndStop(stopping));
-            Assert.Throws<PipelineStoppedException>(() => shell.EndInvoke(invocation));
-            Assert.False(File.Exists(output));
-            Assert.Empty(Directory.GetFiles(root, "*.tmp"));
-        } finally { shaper.Release.Set(); Directory.Delete(root, true); }
+            // Pipeline stop can complete before the canceled engine worker releases its source.
+            if (File.Exists(input)) {
+                bool sourceReleased = await Task.Run(() => SpinWait.SpinUntil(() => {
+                    try {
+                        using var lease = new FileStream(input, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                        return true;
+                    } catch (IOException error) when ((error.HResult & 0xffff) == 32) {
+                        return false;
+                    }
+                }, TimeSpan.FromSeconds(15)));
+                Assert.True(sourceReleased, $"The canceled conversion did not release '{input}'.");
+            }
+            try {
+                Assert.False(File.Exists(output));
+                Assert.Empty(Directory.GetFiles(root, "*.tmp"));
+            } finally {
+                Directory.Delete(root, true);
+            }
+        }
     }
 
     private static OfficeBatchSummary InvokeSummary(PowerShell shell, Runspace runspace) {

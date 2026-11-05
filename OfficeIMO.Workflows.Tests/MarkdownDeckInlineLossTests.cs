@@ -70,7 +70,17 @@ public sealed class MarkdownDeckInlineLossTests {
     public async Task UniformFormattingUsesNativeBlockStyleWithoutRejectingStrictOutput() {
         using MarkdownDocument source = MarkdownDocument.Parse("# Title\n\n**_Uniform marker_**");
         using var output = new MemoryStream();
-        OfficeConversionReport report = await source.SaveAsPowerPointAsync(output, new MarkdownToPowerPointOptions { FailOnLoss = true });
+        OfficeConversionReport report;
+        try {
+            var font = new OfficeThemeFont("sans-serif", Array.Empty<string>());
+            report = await source.SaveAsPowerPointAsync(output, new MarkdownToPowerPointOptions {
+                FailOnLoss = true,
+                Theme = OfficeTheme.Modern.WithFonts(new OfficeThemeFonts(font, font))
+            });
+        } catch (OfficeConversionException error) {
+            throw new InvalidOperationException("Uniform formatting reported loss: " + string.Join("; ", error.Report.Diagnostics
+                .Select(finding => $"{finding.Code} ({finding.LossKind}): {finding.Message}")), error);
+        }
         Assert.False(report.HasLoss);
         output.Position = 0;
         using PowerPointDocument deck = PowerPointDocument.Load(output);

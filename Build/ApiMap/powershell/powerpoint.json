@@ -2942,7 +2942,7 @@
             },
             {
               "name": "Index",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none",
               "notes": "Placeholder idx from the layout."
@@ -2987,7 +2987,7 @@
             },
             {
               "name": "Index",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -4604,7 +4604,7 @@
             },
             {
               "name": "Index",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -4641,7 +4641,7 @@
             },
             {
               "name": "Index",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             }
@@ -5003,7 +5003,7 @@
             },
             {
               "name": "Index",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },

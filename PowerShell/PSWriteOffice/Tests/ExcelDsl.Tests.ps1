@@ -1230,7 +1230,7 @@ Describe 'Excel DSL surface' {
             Should -Throw '*Missing*'
 
         $headlessPath = Join-Path $TestDrive 'ExportOfficeExcelNoHeaderColumnFormat.xlsx'
-        $rows | Export-OfficeExcel -Path $headlessPath -NoHeader -ColumnFormat @{ Revenue = 'Currency' } -ErrorAction Stop
+        $rows | Export-OfficeExcel -Path $headlessPath -NoHeader -ColumnFormat @{ Revenue = 'Currency' } -Culture en-US -ErrorAction Stop
         $headlessSheet = Get-ZipXmlDocumentLocal -Path $headlessPath -Entry 'xl/worksheets/sheet1.xml'
         $headlessSheet.SelectNodes("//*[local-name()='row']").Count | Should -Be 1
         $headlessSheet.SelectSingleNode("//*[local-name()='c'][@r='B1']").GetAttribute('s') | Should -Not -BeNullOrEmpty

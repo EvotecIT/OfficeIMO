@@ -2650,13 +2650,13 @@
             },
             {
               "name": "Zoom",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "ZoomNormal",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5884,7 +5884,7 @@
             },
             {
               "name": "Point",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -5969,7 +5969,7 @@
             },
             {
               "name": "Point",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9245,7 +9245,7 @@
             },
             {
               "name": "Rank",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9263,7 +9263,7 @@
             },
             {
               "name": "StandardDeviation",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9373,7 +9373,7 @@
             },
             {
               "name": "Rank",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9391,7 +9391,7 @@
             },
             {
               "name": "StandardDeviation",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9489,7 +9489,7 @@
             },
             {
               "name": "Rank",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9507,7 +9507,7 @@
             },
             {
               "name": "StandardDeviation",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -11742,19 +11742,19 @@
             },
             {
               "name": "FitToWidth",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "FitToHeight",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Scale",
-              "type": "uint",
+              "type": "System.UInt32",
               "mandatory": false,
               "pipeline": "none"
             },

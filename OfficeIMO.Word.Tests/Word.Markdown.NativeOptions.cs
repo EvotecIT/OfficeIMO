@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO;
 using OfficeIMO.Drawing;
+using OfficeIMO.Internal;
 using OfficeIMO.Markdown;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
@@ -24,7 +25,7 @@ public sealed class MarkdownNativeOptionsTests {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
         int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-        byte[] png = await File.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "NativeOptionAssets", "OfficeIMO.png"), deadline.Token);
+        byte[] png = await OfficeRuntimeCompatibility.ReadAllBytesAsync(Path.Combine(AppContext.BaseDirectory, "NativeOptionAssets", "OfficeIMO.png"), deadline.Token);
         Task server = ServeImageAsync(listener, png, deadline.Token);
         try {
             string uri = $"http://127.0.0.1:{port}/image.png";
@@ -33,7 +34,7 @@ public sealed class MarkdownNativeOptionsTests {
                 RemoteImageLoadOptions = new OfficeRemoteImageLoadOptions { AllowPrivateNetworkAddresses = true } };
             OfficeConversionResult<WordDocument> converted = await source.ToWordAsync(options, deadline.Token);
             using WordDocument word = converted.Value;
-            await server.WaitAsync(deadline.Token);
+            await server;
             Assert.True(word.Images.Count == 2, string.Join("\n", converted.Report.Diagnostics.Select(finding => finding.Message)));
             Assert.Null(options.RemoteImageResolver);
             Assert.True(source.Blocks.Count > 0);
@@ -75,18 +76,25 @@ public sealed class MarkdownNativeOptionsTests {
     }
 
     private static async Task ServeImageAsync(TcpListener listener, byte[] image, CancellationToken token) {
-        using TcpClient client = await listener.AcceptTcpClientAsync(token);
-        using NetworkStream stream = client.GetStream();
-        var bytes = new List<byte>();
-        var buffer = new byte[1024];
-        while (!Encoding.ASCII.GetString(bytes.ToArray()).Contains("\r\n\r\n", StringComparison.Ordinal)) {
-            int read = await stream.ReadAsync(buffer, token);
-            if (read == 0) throw new EndOfStreamException();
-            bytes.AddRange(buffer.Take(read));
-            if (bytes.Count > 16384) throw new InvalidDataException("Unexpected loopback request size.");
+        try {
+            using CancellationTokenRegistration stopListening = token.Register(listener.Stop);
+            using TcpClient client = await listener.AcceptTcpClientAsync();
+            using CancellationTokenRegistration closeClient = token.Register(client.Close);
+            using NetworkStream stream = client.GetStream();
+            var bytes = new List<byte>();
+            var buffer = new byte[1024];
+            while (!Encoding.ASCII.GetString(bytes.ToArray()).Contains("\r\n\r\n", StringComparison.Ordinal)) {
+                int read = await stream.ReadAsync(buffer, 0, buffer.Length, token);
+                if (read == 0) throw new EndOfStreamException();
+                bytes.AddRange(buffer.Take(read));
+                if (bytes.Count > 16384) throw new InvalidDataException("Unexpected loopback request size.");
+            }
+            byte[] header = Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {image.Length}\r\nConnection: close\r\n\r\n");
+            await stream.WriteAsync(header, 0, header.Length, token);
+            await stream.WriteAsync(image, 0, image.Length, token);
+        } catch (Exception error) when (token.IsCancellationRequested
+            && (error is SocketException || error is IOException || error is ObjectDisposedException)) {
+            throw new OperationCanceledException("The loopback image server was canceled.", error, token);
         }
-        byte[] header = Encoding.ASCII.GetBytes($"HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {image.Length}\r\nConnection: close\r\n\r\n");
-        await stream.WriteAsync(header, token);
-        await stream.WriteAsync(image, token);
     }
 }
