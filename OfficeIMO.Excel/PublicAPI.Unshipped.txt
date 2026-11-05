@@ -195,6 +195,8 @@ OfficeIMO.Excel.ExcelSheetView.ZoomScaleNormal.set -> void
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.get -> int
 OfficeIMO.Excel.ExcelSpreadsheetXmlOptions.MaxNames.set -> void
 OfficeIMO.Excel.ExcelWorkbookMergeOptions.Clone() -> OfficeIMO.Excel.ExcelWorkbookMergeOptions!
+OfficeIMO.Excel.ExcelWorkbookMergeOptions.TargetSheetNames.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>?
+OfficeIMO.Excel.ExcelWorkbookMergeOptions.TargetSheetNames.set -> void
 OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult.ThrowIfLoss() -> void
 OfficeIMO.Excel.Reports.ExcelDashboardChartOptions
 OfficeIMO.Excel.Reports.ExcelDashboardChartOptions.ChartType.get -> OfficeIMO.OfficeChartType?
