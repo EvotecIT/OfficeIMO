@@ -2150,7 +2150,7 @@ jobs:
     name: 'NativeAOT Linux / ${{ matrix.label }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
@@ -2280,9 +2280,9 @@ jobs:
     name: 'NativeAOT Windows / ${{ matrix.group }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: windows-latest
-    # The previous serialized matrix reached profile 17 at the 90-minute limit.
-    # These groups retain every profile with a separate budget and fresh runner.
-    timeout-minutes: 90
+    # Grouped native compilation can exceed 90 minutes on hosted runners.
+    # Keep every profile with a bounded two-hour budget and a fresh runner.
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:
