@@ -645,7 +645,7 @@ namespace OfficeIMO.Excel {
             stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesPart.Stylesheet);
 
-            Color nativeColor = ExcelColor.ToSpreadsheetColor(fillColor, _excelDocument.EffectiveCreationTheme);
+            Color nativeColor = ExcelColor.ToSpreadsheetColor(fillColor, _excelDocument.ColorTheme);
             var candidate = new DifferentialFormat(
                 new Fill(
                     new PatternFill {

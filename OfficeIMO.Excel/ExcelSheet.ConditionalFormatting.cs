@@ -46,14 +46,14 @@ namespace OfficeIMO.Excel {
         }
 
         internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
-            return CreateConditionalColorScaleCore(range, ExcelColor.ToSpreadsheetColor(startColor, _excelDocument.EffectiveCreationTheme), ExcelColor.ToSpreadsheetColor(endColor, _excelDocument.EffectiveCreationTheme));
+            return CreateConditionalColorScaleCore(range, ExcelColor.ToSpreadsheetColor(startColor, _excelDocument.ColorTheme), ExcelColor.ToSpreadsheetColor(endColor, _excelDocument.ColorTheme));
         }
 
         internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, OfficeColor startColor, OfficeColor midColor, OfficeColor endColor) =>
             CreateConditionalColorScaleCore(range,
-                ExcelColor.ToSpreadsheetColor(startColor, _excelDocument.EffectiveCreationTheme),
-                ExcelColor.ToSpreadsheetColor(midColor, _excelDocument.EffectiveCreationTheme),
-                ExcelColor.ToSpreadsheetColor(endColor, _excelDocument.EffectiveCreationTheme));
+                ExcelColor.ToSpreadsheetColor(startColor, _excelDocument.ColorTheme),
+                ExcelColor.ToSpreadsheetColor(midColor, _excelDocument.ColorTheme),
+                ExcelColor.ToSpreadsheetColor(endColor, _excelDocument.ColorTheme));
 
         /// <summary>Adds the native color-scale rule through the existing worksheet mutation path.</summary>
         private ExcelConditionalFormattingInfo CreateConditionalColorScaleCore(string range,
@@ -95,7 +95,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal ExcelConditionalFormattingInfo CreateConditionalDataBar(string range, OfficeColor color) {
-            return CreateConditionalDataBarCore(range, ExcelColor.ToSpreadsheetColor(color, _excelDocument.EffectiveCreationTheme));
+            return CreateConditionalDataBarCore(range, ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme));
         }
 
         /// <summary>Adds the native data-bar rule through the existing worksheet mutation path.</summary>

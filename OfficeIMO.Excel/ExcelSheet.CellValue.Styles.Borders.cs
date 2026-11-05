@@ -16,7 +16,7 @@ public partial class ExcelSheet {
         if ((borders & ~ExcelCellBorders.All) != 0) throw new ArgumentOutOfRangeException(nameof(borders));
         if (borders == ExcelCellBorders.None) return;
         BorderStyleValues value = style.ToOpenXml();
-        Color? nativeColor = color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.EffectiveCreationTheme) : null;
+        Color? nativeColor = color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.ColorTheme) : null;
         WriteCellStyle(row, column, cell => {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();

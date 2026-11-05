@@ -5251,6 +5251,14 @@ Modern accents. Chart typography, gridlines, line widths and bar spacing follow
 the shared theme. Regenerate worksheet and chart preview baselines; the default
 font can also change column widths in pixels. Loaded documents keep their styles.
 
+On a loaded workbook, `Success`, `Warning` and `Danger` need a known shared
+palette; raw Excel theme XML has no slots for these roles. Pass
+`color.Resolve(theme)` as a literal, or call `book.ApplyTheme(theme)` before
+using status roles. In PowerShell, select the palette with
+`Set-OfficeExcelTheme -Theme Modern`, or pass literal colours to retain the
+workbook's existing theme. Native roles such as `Accent1` remain linked to that
+theme.
+
 Line series created from `OfficeChartData` without a marker-visibility argument
 follow the theme: Modern shows markers only for fewer than three points, while
 Classic uses circles. Explicit visibility and point styling take precedence;
@@ -9495,7 +9503,7 @@ PDF adapters use `PdfResourcePolicy` instead of package-specific trust switches.
 
 Profiles configure output behavior but do not grant local-file, remote-resource, or host-font access.
 
-Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNotePdfExportOptions` object and returns semantic-projection diagnostics through `ToPdfDocumentResult()`.
+Word `IncludePageNumbers` and Excel `IncludeSheetHeadings` now default to `false`; set the corresponding option to `true` when synthetic visible page numbers or worksheet headings are required. PowerPoint no longer exposes `UseSharedVisualSnapshot`: full-slide PDF uses the native PDF renderer, while PNG, SVG, HTML review, and thumbnails use the shared visual snapshot. OneNote PDF conversion accepts one `OneNotePdfExportOptions` object and returns semantic-projection diagnostics through `ToPdf(options, out report)`.
 
 ### Native DOC paragraph spacing and alignment inheritance
 

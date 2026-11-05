@@ -27,6 +27,8 @@ namespace OfficeIMO.Excel {
         }
 
         private ExcelChartData ToExcelChartData(OfficeChartData data, OfficeChartType defaultKind) {
+            string? ResolveColor(OfficeColor? color) => color.HasValue
+                ? _excelDocument.ResolveColor(color.Value)?.ToArgbHex() : null;
             var series = new List<ExcelChartSeries>(data.Series.Count);
             foreach (OfficeSeries item in data.Series) {
                 OfficeChartType? chartType = item.RenderKind ?? defaultKind;
@@ -38,13 +40,13 @@ namespace OfficeIMO.Excel {
                     : OfficeChartAxisGroup.Primary;
                 ExcelChartSeries mapped = item.XValues == null
                     ? new ExcelChartSeries(item.Name, item.Values, chartType, axisGroup,
-                        item.Color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex())
+                        ResolveColor(item.Color))
                     : new ExcelChartSeries(item.Name, item.Values, item.XValues, chartType, axisGroup,
-                        item.Color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex());
+                        ResolveColor(item.Color));
                 mapped = mapped.WithImageExportStyle(
-                    item.Color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex(), item.StrokeWidth?.ToPoints(), item.StrokeDashStyle,
-                    item.PointColors?.Select(color => color?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex()).ToList(), item.ResolveMarkerVisibility(item.RenderKind ?? defaultKind, OfficeTheme.Default),
-                    item.ConnectLine, item.MarkerSize, item.ResolveMarkerShape(item.RenderKind ?? defaultKind, OfficeTheme.Default), item.MarkerOutlineColor?.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex(),
+                    ResolveColor(item.Color), item.StrokeWidth?.ToPoints(), item.StrokeDashStyle,
+                    item.PointColors?.Select(ResolveColor).ToList(), item.ResolveMarkerVisibility(item.RenderKind ?? defaultKind, OfficeTheme.Default),
+                    item.ConnectLine, item.MarkerSize, item.ResolveMarkerShape(item.RenderKind ?? defaultKind, OfficeTheme.Default), ResolveColor(item.MarkerOutlineColor),
                     item.MarkerOutlineWidth?.ToPoints()).WithSeriesStyle(item.SeriesStyle)
                     .WithPointStyles(item.PointStyles).WithPointExplosions(item.PointExplosions);
                 series.Add(mapped);

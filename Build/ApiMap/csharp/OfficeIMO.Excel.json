@@ -14601,7 +14601,7 @@
       "new": "ExcelDocument.ApplyTheme(OfficeTheme theme) -> ExcelDocument",
       "action": "add",
       "file": "OfficeIMO.Excel/ExcelDocument.Theme.Creation.cs",
-      "reason": "Apply shared palette/font scheme and subsequent native status defaults; native role links remain native.",
+      "reason": "Apply the shared palette and font scheme. Native theme roles remain linked. Loaded workbooks and raw theme XML have no Success, Warning or Danger slots: resolve these colors with color.Resolve(theme), or call document.ApplyTheme(theme) before authoring with status roles.",
       "phase": "3.6-native-pipeline-authoring",
       "applied": "implemented"
     },

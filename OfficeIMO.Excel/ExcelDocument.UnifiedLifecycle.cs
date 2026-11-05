@@ -61,8 +61,7 @@ public partial class ExcelDocument {
         }
         document.ApplyCreateDocumentType(path, options.DocumentType);
         if (options.Theme != null) {
-            document.SetWorkbookThemeXml(CreateWorkbookThemeXml(options.Theme));
-            document._creationTheme = options.Theme;
+            document.ApplyTheme(options.Theme);
         }
         document.FilePath = path;
         document._sourceStream = destination;

@@ -23,8 +23,8 @@ namespace OfficeIMO.Excel {
             WriteLock(() => {
                 OpenXmlElement backing = RequireAttachedConditionalFormattingRule(rule);
                 WorkbookPart workbook = _excelDocument.WorkbookPartRoot;
-                Color? font = color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.EffectiveCreationTheme) : null;
-                Color? fill = fillColor.HasValue ? ExcelColor.ToSpreadsheetColor(fillColor.Value, _excelDocument.EffectiveCreationTheme) : null;
+                Color? font = color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.ColorTheme) : null;
+                Color? fill = fillColor.HasValue ? ExcelColor.ToSpreadsheetColor(fillColor.Value, _excelDocument.ColorTheme) : null;
                 if (backing is ConditionalFormattingRule standard) {
                     WorkbookStylesPart stylesPart = workbook.WorkbookStylesPart ?? workbook.AddNewPart<WorkbookStylesPart>();
                     Stylesheet stylesheet = stylesPart.Stylesheet ??= new Stylesheet();

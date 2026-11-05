@@ -8,7 +8,7 @@ namespace OfficeIMO.Excel {
             uint? index = OfficeOpenXmlThemeColorResolver.GetSpreadsheetThemeColorIndex(color.ThemeSlot);
             return index.HasValue
                 ? ExcelColor.FromSpreadsheetColor(null, ResolveThemeColorArgb(index.Value))
-                : color.Resolve(EffectiveCreationTheme);
+                : ExcelColor.FromSpreadsheetColor(null, ExcelColor.ToSpreadsheetColor(color, ColorTheme).Rgb?.Value);
         }
 
         /// <summary>

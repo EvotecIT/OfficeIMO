@@ -1,6 +1,4 @@
 using DocumentFormat.OpenXml.Spreadsheet;
-using OfficeIMO.Drawing;
-using OfficeIMO.OpenXml.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -8,10 +6,8 @@ namespace OfficeIMO.Excel {
         /// <param name="color">A literal RGBA color, native theme role or status color.</param>
         /// <remarks>Native theme roles follow later workbook theme edits; status roles are written as literals.</remarks>
         public void SetTabColor(OfficeColor color) {
-            uint? themeIndex = OfficeOpenXmlThemeColorResolver.GetSpreadsheetThemeColorIndex(color.ThemeSlot);
-            TabColor native = themeIndex.HasValue
-                ? new TabColor { Theme = themeIndex.Value }
-                : new TabColor { Rgb = color.Resolve(_excelDocument.EffectiveCreationTheme).ToArgbHex() };
+            Color resolved = ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme);
+            TabColor native = new TabColor { Theme = resolved.Theme, Rgb = resolved.Rgb };
             _excelDocument.MaterializeDeferredDataSetImport();
             WriteLock(() => {
                 SheetProperties sheetProperties = WorksheetRoot.GetFirstChild<SheetProperties>() ?? new SheetProperties();

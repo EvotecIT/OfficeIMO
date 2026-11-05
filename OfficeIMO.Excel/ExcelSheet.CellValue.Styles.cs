@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to fill.</param>
         /// <param name="color">Background color. Native theme roles remain linked to the workbook theme.</param>
         internal void CellBackground(int row, int column, OfficeIMO.OfficeColor color) {
-            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color, _excelDocument.EffectiveCreationTheme);
+            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme);
             WriteCellStyle(row, column, cell => {
                 ApplyBackground(cell, spreadsheetColor);
             });
@@ -604,7 +604,7 @@ namespace OfficeIMO.Excel {
                 EnsureDefaultStylePrimitives(stylesheet);
 
                 var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
-                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style.ToOpenXml(), color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.EffectiveCreationTheme) : null, diagonalUp, diagonalDown));
+                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style.ToOpenXml(), color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.ColorTheme) : null, diagonalUp, diagonalDown));
                 ApplyCellFormatOverride(stylesheet, cell, format => {
                     format.BorderId = borderId;
                     format.ApplyBorder = true;
@@ -621,7 +621,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to recolor.</param>
         /// <param name="color">The text color; native theme roles remain linked to the workbook theme.</param>
         internal void CellFontColor(int row, int column, OfficeColor color) {
-            Color nativeColor = ExcelColor.ToSpreadsheetColor(color, _excelDocument.EffectiveCreationTheme);
+            Color nativeColor = ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme);
             WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();

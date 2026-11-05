@@ -32,7 +32,7 @@ namespace OfficeIMO.Excel {
             }
 
             SetWorkbookThemeXml(xml);
-            _creationTheme = null;
+            _creationTheme = OfficeTheme.Default;
             return this;
         }
 
@@ -52,6 +52,7 @@ namespace OfficeIMO.Excel {
             using var stream = new MemoryStream(bytes);
             MarkPackageDirty();
             themePart.FeedData(stream);
+            _creationTheme = null;
 
             EnsureWorkbookThemeAndStyles();
             return this;
@@ -66,7 +67,9 @@ namespace OfficeIMO.Excel {
             }
 
             string xml = GetWorkbookThemeXml() ?? Encoding.UTF8.GetString(DefaultThemeBytes.Value);
+            OfficeTheme? palette = _creationTheme;
             SetWorkbookThemeXml(RenameThemeXml(xml, name));
+            _creationTheme = palette;
             return this;
         }
 

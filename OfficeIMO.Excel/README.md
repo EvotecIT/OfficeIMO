@@ -131,7 +131,7 @@ sheet.Range("A1:B3").SetValues(new object?[,] {
 sheet.Cell("A4").SetValue("Total").SetBold();
 sheet.Cell("B4").SetFormula("SUM(B2:B3)");
 
-sheet.Range("A1:B1").SetBold().SetFillColor("D9EAF7");
+sheet.Range("A1:B1").SetBold().SetFillColor(OfficeColor.Parse("D9EAF7"));
 sheet.Range("B2:B4").SetNumberFormat("#,##0.00");
 sheet.Range("B2:B3").ConditionalFormat().DataBar(OfficeColor.Accent1);
 sheet.View.Freeze(topRows: 1);
@@ -148,6 +148,13 @@ one lock and saves the stylesheet once. `sheet.UsedRange` returns the range in u
 
 Cells created in a formatted row or column start with that row's or column's style, so values written into a
 template keep its number formats and fonts. A date written into a cell that already has a date format keeps it.
+
+Native roles such as `OfficeColor.Accent1` stay linked to the workbook theme.
+`Success`, `Warning` and `Danger` use the shared palette selected at creation
+or through `book.ApplyTheme(theme)`. Loading a file or replacing raw theme XML
+does not infer these status roles, because Excel's native theme has no slots for
+them. In that case, pass `color.Resolve(theme)` as a literal color, or call
+`book.ApplyTheme(theme)` before authoring with status roles.
 
 ## Read rows back as objects
 

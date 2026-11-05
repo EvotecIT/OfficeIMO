@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel {
                 var part = WorkbookPartRoot.WorkbookStylesPart
                     ?? WorkbookPartRoot.AddNewPart<DocumentFormat.OpenXml.Packaging.WorkbookStylesPart>();
                 Stylesheet stylesheet = part.Stylesheet ??= CreateDefaultStylesheet();
-                result = ExcelSheet.DefineDeclaredNamedStyle(stylesheet, normalizedName, snapshot, hidden, EffectiveCreationTheme);
+                result = ExcelSheet.DefineDeclaredNamedStyle(stylesheet, normalizedName, snapshot, hidden, ColorTheme);
                 ExcelSheet.SaveStylesheet(part);
                 MarkPackageDirty();
             });

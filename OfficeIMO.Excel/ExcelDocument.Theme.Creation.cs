@@ -8,6 +8,9 @@ public partial class ExcelDocument {
     /// <summary>Gets the creation palette for status colors that have no native theme slot.</summary>
     internal OfficeTheme EffectiveCreationTheme => _creationTheme ?? OfficeTheme.Default;
 
+    /// <summary>Gets the known palette for native color authoring, or null when DrawingML supplies no status roles.</summary>
+    internal OfficeTheme? ColorTheme => _creationTheme;
+
     /// <summary>Applies the shared palette and font scheme to the workbook and uses it for subsequent authoring defaults.</summary>
     /// <remarks>Native theme-linked formatting follows the new palette. Literal cell formatting retains its authored values.</remarks>
     public ExcelDocument ApplyTheme(OfficeTheme theme) {

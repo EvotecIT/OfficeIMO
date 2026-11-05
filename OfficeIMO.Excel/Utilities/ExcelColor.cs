@@ -3,12 +3,12 @@ using SpreadsheetColor = DocumentFormat.OpenXml.Spreadsheet.Color;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelColor {
-        /// <summary>Creates a native SpreadsheetML color, retaining supported theme slots and resolving status roles.</summary>
+        /// <summary>Creates a native SpreadsheetML color, retaining theme slots and requiring a known palette for status roles.</summary>
         internal static SpreadsheetColor ToSpreadsheetColor(Color color, OfficeTheme? theme = null) {
             uint? index = OfficeOpenXmlThemeColorResolver.GetSpreadsheetThemeColorIndex(color.ThemeSlot);
             return index.HasValue
                 ? new SpreadsheetColor { Theme = index.Value }
-                : new SpreadsheetColor { Rgb = color.Resolve(theme ?? OfficeTheme.Default).ToArgbHex() };
+                : new SpreadsheetColor { Rgb = (theme != null ? color.Resolve(theme) : color).ToArgbHex() };
         }
 
         /// <summary>Projects rich-run colors, preserving unmodified native roles and interpreting native literals as ARGB.</summary>

@@ -74,8 +74,8 @@ namespace OfficeIMO.Excel {
 
         private Fill CreateGradientFill(OfficeColor fromColor, OfficeColor toColor, double degree) {
             return new Fill(new GradientFill(
-                new GradientStop(ExcelColor.ToSpreadsheetColor(fromColor, _excelDocument.EffectiveCreationTheme)) { Position = 0D },
-                new GradientStop(ExcelColor.ToSpreadsheetColor(toColor, _excelDocument.EffectiveCreationTheme)) { Position = 1D }) {
+                new GradientStop(ExcelColor.ToSpreadsheetColor(fromColor, _excelDocument.ColorTheme)) { Position = 0D },
+                new GradientStop(ExcelColor.ToSpreadsheetColor(toColor, _excelDocument.ColorTheme)) { Position = 1D }) {
                 Type = GradientValues.Linear,
                 Degree = degree
             });

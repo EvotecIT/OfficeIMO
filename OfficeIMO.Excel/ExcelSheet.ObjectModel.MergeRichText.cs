@@ -99,8 +99,6 @@ namespace OfficeIMO.Excel {
             }
             WriteLock(() => {
                 EnsureDynamicArrayCellWritable(row, column);
-                var cell = GetCell(row, column);
-                ClearCellValueMetadata(cell);
                 var inline = new InlineString();
                 bool hasLineBreak = false;
                 foreach (var run in runs) {
@@ -115,7 +113,7 @@ namespace OfficeIMO.Excel {
                         properties.Append(new Underline { Val = run.Underline ? UnderlineValues.Single : UnderlineValues.None });
                     }
                     if (run.StrikethroughSpecified) properties.Append(new Strike { Val = run.Strikethrough });
-                    if (run.Color.HasValue) properties.Append(ExcelColor.ToSpreadsheetColor(run.Color.Value, _excelDocument.EffectiveCreationTheme));
+                    if (run.Color.HasValue) properties.Append(ExcelColor.ToSpreadsheetColor(run.Color.Value, _excelDocument.ColorTheme));
                     if (!string.IsNullOrWhiteSpace(run.FontFamily)) properties.Append(new RunFont { Val = run.FontFamily });
                     if (run.FontSize.HasValue) properties.Append(new FontSize { Val = run.FontSize.Value.ToPoints() });
                     ExcelRichTextRun.AppendFontMetadata(properties, run);
@@ -128,6 +126,8 @@ namespace OfficeIMO.Excel {
                     inline.Append(openXmlRun);
                 }
 
+                var cell = GetCell(row, column);
+                ClearCellValueMetadata(cell);
                 cell.CellFormula = null;
                 cell.CellValue = null;
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.InlineString;

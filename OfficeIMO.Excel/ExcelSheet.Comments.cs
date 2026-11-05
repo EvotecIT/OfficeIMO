@@ -440,7 +440,7 @@ namespace OfficeIMO.Excel {
                     properties.Append(new Underline { Val = richRun.Underline ? UnderlineValues.Single : UnderlineValues.None });
                 }
                 if (richRun.StrikethroughSpecified) properties.Append(new Strike { Val = richRun.Strikethrough });
-                if (richRun.Color.HasValue) properties.Append(ExcelColor.ToSpreadsheetColor(richRun.Color.Value, _excelDocument.EffectiveCreationTheme));
+                if (richRun.Color.HasValue) properties.Append(ExcelColor.ToSpreadsheetColor(richRun.Color.Value, _excelDocument.ColorTheme));
                 if (!string.IsNullOrWhiteSpace(richRun.FontFamily)) properties.Append(new RunFont { Val = richRun.FontFamily });
                 if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value.ToPoints() });
                 ExcelRichTextRun.AppendFontMetadata(properties, richRun);
