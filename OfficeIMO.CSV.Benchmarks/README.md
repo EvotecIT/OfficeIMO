@@ -5,14 +5,16 @@ This project compares raw .NET CSV paths without PowerShell object overhead. Use
 ## Generated ExcelReader comparison
 
 `CsvExcelReaderGeneratedBenchmarks` selects the existing mixed ten-column
-workload at 50,000 rows. I compare materialized field reads across OfficeIMO,
+workload at 50,000 rows. Each generated reader starts from the same UTF-8 bytes;
+text-reader APIs include decoding inside the operation. The separate text-input
+benchmarks retain their predecoded input. I compare materialized field reads across OfficeIMO,
 ExcelReader.NET, Sylvan, Sep, CsvHelper and Dataplat; object parsing across
 OfficeIMO, ExcelReader.NET and CsvHelper; and complete UTF-8 projected-row writes
 across OfficeIMO and ExcelReader.NET. Setup validates every decoded field,
 header and row count and reopens each writer's output. Validation is outside
 timing. This keeps string reads separate from raw span scans.
 
-The .NET 10 comparison uses the published MIT ExcelReader.NET 7.4.0 package;
+The .NET 10 comparison uses the published MIT ExcelReader.NET 7.4.1 package;
 .NET 8 retains the compatible package pin as a separate cohort.
 The [opt-in current reader runner](../OfficeIMO.CSV.Benchmarks.Modern/README.md)
 adds the CsvHelper 34.0.0 API without changing this project's 33.1.0 comparison contract.

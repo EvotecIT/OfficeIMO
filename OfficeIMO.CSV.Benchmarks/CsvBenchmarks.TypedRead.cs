@@ -109,6 +109,26 @@ public partial class CsvBenchmarks
         return checksum;
     }
 
+    /// <summary>Maps the generated UTF-8 source through the incremental typed reader.</summary>
+    internal int OfficeIMO_ReadTypedRowsStream() {
+        using var input = new MemoryStream(_csvUtf8, writable: false);
+        using DbDataReader reader = CsvDocument.OpenReader(input);
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in reader.RowsAs<CsvBenchmarkRow>())
+            checksum = AddTypedRowChecksum(checksum, row);
+        return checksum;
+    }
+
+    /// <summary>Includes UTF-8 decoding before mapping records with the text-reader API.</summary>
+    internal int CsvHelper_ReadTypedRecordsUtf8() {
+        using var input = OpenUtf8TextReader();
+        using var csv = new CsvHelperReader(input, CultureInfo.InvariantCulture);
+        var checksum = 17;
+        foreach (CsvBenchmarkRow row in csv.GetRecords<CsvBenchmarkRow>())
+            checksum = AddTypedRowChecksum(checksum, row);
+        return checksum;
+    }
+
     private int MeasureTypedRows(IEnumerable<CsvBenchmarkRow> rows)
     {
         var checksum = 17;
