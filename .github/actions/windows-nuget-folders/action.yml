@@ -1,0 +1,24 @@
+name: Keep NuGet folders on the hosted Windows work disk
+description: Point NuGet packages and the HTTP cache at RUNNER_TEMP on GitHub-hosted Windows runners.
+runs:
+  using: composite
+  steps:
+    # Hosted Windows runners keep the default NuGet folders on the slower C:
+    # system disk; the workspace and RUNNER_TEMP are on D:. Later steps and the
+    # NuGet cache action follow these variables. A step that sets its own isolated
+    # NUGET_PACKAGES in its env still takes precedence.
+    - if: runner.os == 'Windows' && runner.environment == 'github-hosted'
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = 'Stop'
+        # Some images (for example Windows ARM64) keep RUNNER_TEMP on C: too.
+        if ((Split-Path -Qualifier $env:RUNNER_TEMP) -eq (Split-Path -Qualifier $env:USERPROFILE)) {
+          Write-Host "RUNNER_TEMP shares the profile disk; keeping the default NuGet folders."
+          return
+        }
+        $root = Join-Path $env:RUNNER_TEMP 'nuget'
+        $packages = Join-Path $root 'packages'
+        $httpCache = Join-Path $root 'http-cache'
+        New-Item -ItemType Directory -Force -Path $packages, $httpCache | Out-Null
+        "NUGET_PACKAGES=$packages" >> $env:GITHUB_ENV
+        "NUGET_HTTP_CACHE_PATH=$httpCache" >> $env:GITHUB_ENV
