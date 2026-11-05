@@ -61,27 +61,39 @@ namespace OfficeIMO.Core.Internal.IO {
 
         /// <summary>Attempts publication ownership without waiting when another writer already owns the destination.</summary>
         internal static bool TryAcquire(string destinationPath, out OfficeFileCommitClaim? claim) {
-            try {
-                claim = Acquire(destinationPath);
-                return true;
-            } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
-                claim = null;
-                if (File.Exists(destinationPath) || IsSharingContention(exception)) return false;
-                if (exception is IOException &&
-                    ((RuntimeInformation.IsOSPlatform(OSPlatform.Windows) &&
-                      (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) ||
-                     (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows) && exception.HResult == 17))) {
-                    // CreateNew reports the same collision for an owned claim and an
-                    // abandoned one (Unix EEXIST is 17). Verify actual sharing;
-                    // permission and other persistent failures must remain errors.
-                    try {
-                        using (var probe = new FileStream(CreatePath(destinationPath), FileMode.Open, FileAccess.Read, FileShare.Delete)) { }
-                    } catch (Exception probe) when (IsSharingContention(probe) ||
-                        ((probe is FileNotFoundException || probe is DirectoryNotFoundException) && File.Exists(destinationPath))) {
-                        return false;
+            for (int attempt = 0; ; attempt++) {
+                try {
+                    claim = Acquire(destinationPath);
+                    return true;
+                } catch (Exception exception) when (exception is IOException || exception is UnauthorizedAccessException) {
+                    claim = null;
+                    if (File.Exists(destinationPath) || IsSharingContention(exception)) return false;
+                    bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                    if (exception is IOException &&
+                        ((windows &&
+                          (exception.HResult == unchecked((int)0x80070050) || exception.HResult == unchecked((int)0x800700B7))) ||
+                         (!windows && exception.HResult == 17))) {
+                        // CreateNew reports the same collision for an owned claim and an
+                        // abandoned one (Unix EEXIST is 17). Verify actual sharing;
+                        // permission and other persistent failures must remain errors.
+                        string claimPath = CreatePath(destinationPath);
+                        try {
+                            using (var probe = new FileStream(claimPath, FileMode.Open, FileAccess.Read, FileShare.Delete)) { }
+                        } catch (Exception probe) when (IsSharingContention(probe) ||
+                            ((probe is FileNotFoundException || probe is DirectoryNotFoundException) && File.Exists(destinationPath))) {
+                            return false;
+                        } catch (Exception probe) when (attempt < 9 &&
+                            (probe is FileNotFoundException || probe is DirectoryNotFoundException ||
+                             (windows && probe is UnauthorizedAccessException denied && IsPossiblePendingDeletion(denied, claimPath)))) {
+                            // The owner can release its claim after CreateNew collides but before
+                            // this probe opens it. Retry acquisition for pending or completed deletion;
+                            // Acquire's retries do not cover this later open, and access errors stay bounded.
+                            Thread.Sleep(1);
+                            continue;
+                        }
                     }
+                    throw;
                 }
-                throw;
             }
         }
 
