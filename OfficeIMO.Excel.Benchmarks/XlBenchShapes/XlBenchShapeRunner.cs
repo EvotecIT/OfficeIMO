@@ -7,6 +7,21 @@ namespace OfficeIMO.Excel.Benchmarks;
 
 /// <summary>Opt-in OfficeIMO and plain Open XML SDK comparison of the public XLBench scenario shapes.</summary>
 internal static class XlBenchShapeRunner {
+    /// <summary>Creates fixed neutral-producer read inputs before comparing reader builds.</summary>
+    internal static void PrepareInputs(string directory) {
+        if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("OFFICEIMO_XLBENCH_INPUT")))
+            throw new InvalidOperationException("Unset OFFICEIMO_XLBENCH_INPUT before preparing inputs.");
+        Directory.CreateDirectory(directory);
+        WriteNew("read-all.xlsx", ReadWorkbook);
+        WriteNew("sheets-20.xlsx", SheetsWorkbook);
+        WriteNew("wide-read.xlsx", WideWorkbook);
+
+        void WriteNew(string name, byte[] bytes) {
+            using var output = new FileStream(Path.Combine(directory, name), FileMode.CreateNew, FileAccess.Write);
+            output.Write(bytes, 0, bytes.Length);
+        }
+    }
+
     private sealed record Scenario(string Name, Func<int> OfficeImo, Func<int>? OpenXml, Action<string, byte[]>? Validate, Func<byte[]>? OfficeImoOutput, Func<byte[]>? OpenXmlOutput);
 
     private static readonly Scenario[] Scenarios = [
@@ -70,12 +85,12 @@ internal static class XlBenchShapeRunner {
         }
     }
 
-    /// <summary>Arguments: scenario [iterations]. Repeats OfficeIMO alone and prints sampled allocation by type.</summary>
+    /// <summary>Arguments: scenario [iterations] [--cpu-only]. Repeats OfficeIMO with optional allocation sampling.</summary>
     internal static void Profile(string[] arguments) {
         Scenario scenario = Select(arguments.Length > 1 ? arguments[1] : throw new ArgumentException("A scenario is required.")).Single();
         int iterations = arguments.Length > 2 ? int.Parse(arguments[2], CultureInfo.InvariantCulture) : 10;
         scenario.OfficeImo();
-        using var listener = new AllocationListener();
+        using var listener = arguments.Contains("--cpu-only", StringComparer.OrdinalIgnoreCase) ? null : new AllocationListener();
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < iterations; i++) {
             scenario.OfficeImo();
@@ -83,8 +98,10 @@ internal static class XlBenchShapeRunner {
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Thread.Sleep(500);
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{scenario.Name}: {allocated / 1_048_576d / iterations:F2} MB per iteration"));
-        foreach (var (type, share) in listener.TopTypes(30)) {
-            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{share,6:P1} {type}"));
+        if (listener != null) {
+            foreach (var (type, share) in listener.TopTypes(30)) {
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"{share,6:P1} {type}"));
+            }
         }
     }
 

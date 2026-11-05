@@ -51,12 +51,17 @@ internal static partial class XlBenchShapeData {
     internal static readonly TemplateLine[] Lines = BuildLines();
     internal static readonly string ChartPriceRange = $"C3:{ColumnName(2 + StockSymbols)}{1 + StockWeeks}";
 
-    private static readonly Lazy<byte[]> LazyRead = new(BuildRead);
+    private static readonly Lazy<byte[]> LazyRead = new(() => LoadReadInput("read-all.xlsx", BuildRead));
     private static readonly Lazy<byte[]> LazyEdit = new(BuildEdit);
     private static readonly Lazy<byte[]> LazyProperties = new(BuildProperties);
-    private static readonly Lazy<byte[]> LazySheets = new(BuildSheets);
+    private static readonly Lazy<byte[]> LazySheets = new(() => LoadReadInput("sheets-20.xlsx", BuildSheets));
     private static readonly Lazy<byte[]> LazyTemplate = new(LoadTemplate);
-    private static readonly Lazy<byte[]> LazyWide = new(BuildWide);
+    private static readonly Lazy<byte[]> LazyWide = new(() => LoadReadInput("wide-read.xlsx", BuildWide));
+
+    private static byte[] LoadReadInput(string name, Func<byte[]> build) {
+        string? root = Environment.GetEnvironmentVariable("OFFICEIMO_XLBENCH_INPUT");
+        return string.IsNullOrEmpty(root) ? build() : File.ReadAllBytes(Path.Combine(root, name));
+    }
 
     internal static byte[] ReadWorkbook => LazyRead.Value;
     internal static byte[] EditWorkbook => LazyEdit.Value;

@@ -8,7 +8,7 @@
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
     <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' == 'net8.0'">3.1.0</ExcelReaderBenchmarkVersion>
-    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">7.3.4</ExcelReaderBenchmarkVersion>
+    <ExcelReaderBenchmarkVersion Condition="'$(TargetFramework)' != 'net8.0'">7.4.0</ExcelReaderBenchmarkVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +23,7 @@
     <PackageReference Include="MiniExcel" Version="1.46.0" />
     <PackageReference Include="SpreadCheetah" Version="1.28.0" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.8" />
+    <PackageReference Include="XLibur.Bundle" Version="0.800.0" />
   </ItemGroup>
 
   <ItemGroup>

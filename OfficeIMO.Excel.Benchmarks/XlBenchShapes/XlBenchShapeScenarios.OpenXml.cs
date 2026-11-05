@@ -167,7 +167,7 @@ internal static partial class XlBenchShapeScenarios {
                 cells += raw.Length > 0 ? 1 : 0;
             }
         }
-        return cells;
+        return cells == (long)WideRows * WideColumns ? cells : throw new InvalidDataException($"Read {cells} cells.");
     }
 
     internal static long OpenXmlEditedRead() {

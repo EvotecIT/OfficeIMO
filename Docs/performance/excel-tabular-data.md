@@ -1119,11 +1119,158 @@ the two character guards makes all nine fail; restoring the unchanged
 implementation passes the final suite. Windows/x64
 performance and Windows net472 runtime need their own execution evidence.
 
+## General XLSX reads and current comparisons: 4 November 2026
+
+I target another 20% reduction without processor-specific changes. The baseline
+is `09b7ca9eef`; the reader changes are `16fba79a59` and `be55517b5e`.
+The [normalized evidence](excel-xlsx-general-reads-2026-11-04.json) retains every
+sample, assembly and input hash, option, package version and validation result.
+The host remains the M4 described above. These are general reader changes
+measured on this Mac; Windows throughput remains unmeasured.
+
+### What the current upstream tables establish
+
+I check these sources at their recorded revisions rather than treating different
+workloads or hardware as one ranking:
+
+- [Mark Pflug's benchmarks](https://github.com/MarkPflug/Benchmarks/tree/cda31f757224af20d5faf3d1e4003b4675cd5cb5)
+  separate fourteen-column typed reads, object binding and one-column sums.
+  Their project pins ExcelReader.NET 1.2.5 and Sylvan.Data.Excel 0.5.6, and their
+  published Excel table has no OfficeIMO row. I use the authentic, hash-pinned
+  65K fixture with our fully validated fourteen-column observation.
+- [XLBench's results](https://jafin.github.io/XLBench/results.html) use OfficeIMO
+  3.5.3 and XLibur 0.800.0. Its OfficeIMO read-all adapter loads an editable
+  document and enumerates cells. It does not measure `OpenReader`. IronXL's
+  marked rows are carried licence-limited snapshots. I add XLibur to the same
+  sales scan here; this does not reproduce XLBench's complete mixed-value,
+  formula, styling, editing or save workloads, or establish a new published rank.
+- [ExcelReader.NET 7.4.0](https://github.com/GabrielMarquezMatte/ExcelReader/releases/tag/v7.4.0)
+  adds writer styling and a net472 companion using a native C ABI. Its core
+  remains net10.0; the companion is a different deployment contract from
+  OfficeIMO's managed targets. Its benchmark document now distinguishes borrowed
+  UTF-8 spans from materialized strings, while its OfficeIMO comparison still
+  uses 3.5.1. I use published 7.4.0 packages and owned strings, and add its memory
+  and string-interning options. Parallel sheet APIs and writer styling are not
+  measured in this read cohort.
+
+### Removed duplicate work
+
+Loaded-document snapshot qualification inflated a worksheet and walked all its
+XML, then indexed reading inflated it again. Prefixed XML could require another
+complete namespace-validation walk. I retain the qualified bytes in the existing
+bounded single-part slot and carry the completed namespace proof with those
+exact bytes. The shared validator keeps the original namespace rules; row,
+coordinate, value, style, shared-string, budget and cancellation checks remain.
+Declined qualification and unsupported shapes retain their original routes.
+
+The CPU-only profile contains no allocation listener. Selected read stacks show
+32.48 to 24.81 seconds of sampled thread time; the repeated XML walk disappears
+and sampled inflater time falls from 4.48 to 2.07 seconds. These are diagnostic,
+inclusive thread stacks with waits, not an additive elapsed-time breakdown.
+
+The strongest paired result is a supplemental 10,000-by-150 presence scan,
+including its header cells. It validates all 1,500,000 nonempty positions; it
+measures `IsDBNull`, not decoded-value throughput. This is our supplemental
+workload, not a published XLBench scenario. A1/B1/B2/A2 launch medians are
+984.12/724.04/581.33/750.83 ms. Averaging the two launch medians per side gives
+867.48 to 652.69 ms, **24.8% less time**; each pair improves more than 20%.
+The SDK control is 1,065.39 to 1,050.80 ms. I retain the substantial variation.
+Allocation is 88.875 to 88.550 MiB for OfficeIMO and about 1,071 MiB for the SDK.
+
+The fully decoded loaded sales scan improves 243.88 to 204.11 ms, **16.3%**,
+in the same ABBA cohort, with allocation 7.129 to 7.048 MiB. Separate native
+`OpenReader` controls are 65.19 to 66.19 ms with unchanged 0.103 MiB allocation;
+there is no demonstrated raw-read gain. The target is met for the wide loaded
+scan, not for every XLSX read.
+
+### Complete sales comparison
+
+These are the final complete before/after launches using one frozen harness,
+all fourteen typed values and the same checksum. Each has eight warmups, twelve
+measurements and one invocation, without outlier removal. The earlier ABBA and
+separate raw controls remain in the evidence rather than being replaced by this
+single pair. Memory factories receive already prepared bytes outside timing;
+OfficeIMO uses its public Stream factory, which still owns a copy internally.
+The two prefetch options select each library's documented behavior; OfficeIMO's
+option overlaps worksheet decompression with metadata parsing, while its default
+eligible path overlaps indexing with inflation.
+
+| Sales lane | Before ms | After ms | Allocation before → after MiB |
+| --- | ---: | ---: | ---: |
+| OfficeIMO OpenReader | 62.906 | 62.696 | 0.103 → 0.103 |
+| OfficeIMO prefetch | 89.535 | 91.645 | 0.108 → 0.108 |
+| ExcelReader.NET | 55.815 | 57.100 | 0.023 → 0.023 |
+| ExcelReader.NET prefetch | 38.584 | 39.723 | 0.034 → 0.039 |
+| Sylvan | 181.756 | 184.340 | 0.640 → 0.638 |
+| ExcelDataReader | 384.289 | 390.141 | 186.648 → 186.651 |
+| ClosedXML | 973.644 | 947.249 | 708.583 → 708.583 |
+| EPPlus | 686.323 | 681.642 | 844.123 → 844.123 |
+| MiniExcel | 464.460 | 458.630 | 852.862 → 852.862 |
+| OfficeIMO loaded document | 244.809 | 207.824 | 7.129 → 7.047 |
+| OfficeIMO memory Stream | 60.488 | 61.963 | 6.549 → 6.549 |
+| ExcelReader.NET memory | 56.067 | 56.142 | 0.022 → 0.021 |
+| ExcelReader.NET intern strings | 56.301 | 56.334 | 0.035 → 0.035 |
+| XLibur loaded document | 399.497 | 376.299 | 97.974 → 97.974 |
+
+### Generated XLSX and CSV controls
+
+The fixed 50,000-row, four-column XLSX fixtures return unique owned names and
+consume integers, dates and doubles; typed lanes construct one record per row.
+Eight warmups and twelve measurements use sixteen invocations. Both plain and
+escaped text are retained, with every preflight value checked.
+
+| XLSX lane | Plain ms before → after | Escaped ms before → after |
+| --- | ---: | ---: |
+| OfficeIMO Read | 9.280 → 5.525 | 19.363 → 8.441 |
+| ExcelReaderNet Read | 9.195 → 6.354 | 15.175 → 12.825 |
+| Sylvan Read | 28.708 → 28.583 | 44.618 → 32.517 |
+| ExcelDataReader Read | 76.177 → 61.782 | 119.496 → 69.727 |
+| OfficeIMO Parse | 8.540 → 7.574 | 10.964 → 10.668 |
+| ExcelReaderNet Parse | 8.359 → 8.507 | 15.220 → 15.228 |
+
+Several unchanged engines are also much slower in the before launch. I retain
+these samples and attribute no raw-reader speedup to this pair. The separate
+raw controls above provide the useful before/after check for that path.
+
+The evidence also retains all XLS/XLSB reader and typed controls. Their product
+paths are unchanged. The latest CSV baseline uses ExcelReader.NET 7.4.0 too;
+there is no CSV runtime change in this PR. Raw CSV lanes materialize every field.
+
+| CSV library | Generated 50k × 10 ms | Sales 65k × 14 ms |
+| --- | ---: | ---: |
+| OfficeIMO | 6.724 | 17.505 |
+| ExcelReader.NET | 7.637 | 32.619 |
+| Sylvan | 9.090 | 23.361 |
+| Sep | 4.713 | 13.471 |
+| CsvHelper | 18.200 | 41.422 |
+| Dataplat | 11.090 | 25.809 |
+| LumenWorks | — | 26.497 |
+
+Sep remains the raw CSV performance target. Native real-workbook XLSX reading
+still has inflation, namespace validation and indexing costs; newer parallel
+options need separate matched-work comparisons. The present evidence does not
+establish current rankings against unmeasured Excel-PRIME, HypeLab, RecordParser,
+FourLambda, NPOI, Telerik or licensed snapshot engines. A published XLBench rank
+needs the current package in its actual suite on the same machine.
+
+The namespace regression uses an independent large ZIP/XML fixture at the public
+loaded-reader boundary. Valid prefixed values pass; a foreign namespace on the
+value element is rejected. Baseline and candidate both pass; deliberately forcing
+the proof flag makes the rejection test fail, then restoring the source passes.
+The focused run passes 128 cases. Final net10.0 suites pass 7,787 Excel tests
+with five expected skips and all 965 CSV tests. Excel builds for all four targets;
+net472 tests compile with fourteen existing warnings. Both comparison projects
+build for net8.0 with the explicitly separate ExcelReader.NET 3.1.0 cohort.
+Native osx-arm64 AOT executes the large prefixed loaded snapshot and existing
+escaped implicit scalar and typed reads. Windows net472 execution is unmeasured.
+No public API, grid loader, selector timing or production dependency changes.
+
 ## Remaining costs and limits
 
-Parity across formats is incomplete. The latest paired XLSX cohort puts raw
-reading and typed parsing ahead of ExcelReader.NET in this owned-string workload.
-Earlier binary-format cohorts retain gaps. For simple ASCII, the remaining read cost is structural
+Parity across formats is incomplete. Generated owned-string XLSX reads remain
+competitive, while the real sales workbook retains a native raw-read gap. The
+loaded-document gains above do not close that gap. Earlier binary-format cohorts
+retain gaps. For simple ASCII, the remaining read cost is structural
 rather than one hidden hot spot. OfficeIMO proves the whole part before delivering the first row and
 gives the data reader a fixed field count. It therefore makes a validation and indexing pass and then a delivery
 pass; ExcelReader.NET reads each row once. Eligible large XLSX reads now overlap

@@ -12,7 +12,7 @@ across OfficeIMO and ExcelReader.NET. Setup validates every decoded field,
 header and row count and reopens each writer's output. Validation is outside
 timing. This keeps string reads separate from raw span scans.
 
-The .NET 10 comparison uses the published MIT ExcelReader.NET 7.3.4 package;
+The .NET 10 comparison uses the published MIT ExcelReader.NET 7.4.0 package;
 .NET 8 retains the compatible package pin as a separate cohort.
 
 ```sh
