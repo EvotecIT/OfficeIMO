@@ -78,10 +78,6 @@ implementation and unrelated CI edits retain their own correctness lanes. Full
 site/API generation remains on master publication, scheduled publication,
 manual dispatch and `full-ci` requests.
 
-CI-mode website builds run the browser converter tests in
-`website-converter-tests.yml`, in parallel with the site pipeline on PRs and as
-a gate before deployment. Local full pipeline runs keep the in-pipeline step.
-
 PSWriteOffice content sync reuses the checked-in snapshot only when its producer
 commit has identical module, engine, shared build and snapshot-processing inputs. It also checks the
 API component hashes and command inventory, documentation/catalog/navigation

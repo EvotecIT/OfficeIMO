@@ -29,11 +29,6 @@ jobs:
         uses: ./.github/actions/contract-selection
         with:
           suite: website
-  converter-tests:
-    needs: changes
-    if: needs.changes.outputs.selected == 'true'
-    uses: ./.github/workflows/website-converter-tests.yml
-
   website-build:
     needs: changes
     if: github.event_name == 'pull_request' && needs.changes.outputs.selected == 'true'
@@ -84,7 +79,7 @@ jobs:
     name: CI validation
     if: always()
     runs-on: ubuntu-latest
-    needs: [changes, converter-tests, website-build, website-build-manual]
+    needs: [changes, website-build, website-build-manual]
     steps:
       - name: Require selection and every selected website job
         env:
