@@ -16,11 +16,12 @@ public partial class ExcelReaderGeneratedBenchmarks {
 
     internal static byte[] WriteOfficeIMOBuffered(ExcelFileFormat format, int rowCount) {
         using var output = new MemoryStream();
-        using var document = ExcelDocument.Create();
-        var sheet = document.AddSheet("Data");
-        sheet.WriteData(Generate(rowCount), ("Name", static row => row.Name), ("Id", static row => row.Id),
-            ("CreatedOn", static row => row.CreatedOn), ("Amount", static row => row.Amount));
-        document.Save(output, new ExcelSaveOptions { Format = format });
+        using (var document = ExcelDocument.Create()) {
+            var sheet = document.AddSheet("Data");
+            sheet.WriteData(Generate(rowCount), ("Name", static row => row.Name), ("Id", static row => row.Id),
+                ("CreatedOn", static row => row.CreatedOn), ("Amount", static row => row.Amount));
+            document.Save(output, new ExcelSaveOptions { Format = format });
+        }
         return output.ToArray();
     }
 
