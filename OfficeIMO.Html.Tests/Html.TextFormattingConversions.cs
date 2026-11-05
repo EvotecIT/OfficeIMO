@@ -323,7 +323,7 @@ public class HtmlTextFormattingConversionTests {
         ExcelSheet sheet = Assert.Single(imported.Sheets);
 
         Assert.Equal("336699", sheet.Cell(1, 1).GetStyle().FontColorHex);
-        Assert.Equal("FFCC3300", Assert.Single(sheet.Cell(1, 1).GetRichText()).Color?.ToArgbHex());
+        Assert.Equal("40CC3300", Assert.Single(sheet.Cell(1, 1).GetRichText()).Color?.ToArgbHex());
 
         using ExcelDocument generic = HtmlConversionDocument
             .Parse("<table><tr><td style=\"color:#11223380\">Generic</td></tr></table>")

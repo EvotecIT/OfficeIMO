@@ -168,10 +168,10 @@ public static class HtmlTargetCapabilityContracts {
             Features(HtmlSemanticFeature.Headings, HtmlSemanticFeature.RichText, HtmlSemanticFeature.Lists)),
         Create(
             HtmlConversionTarget.Image,
-            "OfficeIMO.Html",
+            "OfficeIMO.Html.Pdf",
             "PNG / JPEG / TIFF / SVG / WebP",
-            "HtmlConversionDocument.ToPng / ToSvg / ToJpeg / ToTiff / ToWebp",
-            "OfficeImageExportResult",
+            "HtmlConversionDocument.ToImage / ToSvg",
+            "Byte[] + OfficeConversionReport",
             null,
             null,
             "Use the shared synchronous or asynchronous render pipeline for options-based bytes, path, stream, and paged image outputs.",

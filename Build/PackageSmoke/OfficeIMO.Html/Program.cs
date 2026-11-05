@@ -1,4 +1,5 @@
 using OfficeIMO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Html.Dom;
 using OfficeIMO.Html.Providers;
 using OfficeIMO.Markdown.Html;
@@ -103,7 +104,7 @@ if (typeof(HtmlDocument).Assembly.GetReferencedAssemblies().Any(name => name.Nam
     throw new InvalidOperationException("The owned HTML leaf references a parser or drawing implementation.");
 if (!changed.OuterHtml.Contains("Packed edit") || !conversion.ToSvg().Contains("<svg"))
     throw new InvalidOperationException("Packed HTML serialization or SVG export failed.");
-byte[] foundationPng = conversion.ToPng();
+byte[] foundationPng = conversion.ToImage(new HtmlRenderOptions { Format = OfficeImageExportFormat.Png });
 if (foundationPng.Length < 8 || foundationPng[0] != 137 || foundationPng[1] != 80)
     throw new InvalidOperationException("Packed owned document image rendering failed.");
 using var foundationPdf = conversion.ToPdf();
