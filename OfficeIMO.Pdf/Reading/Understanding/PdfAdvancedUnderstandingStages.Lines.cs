@@ -61,7 +61,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
                     double alongEnd = GetProjectedAlongEnd(ordered[i], radians);
                     double splitGap = Math.Max(context.LayoutOptions.MinGutterWidth.ToPoints(), ordered[i].FontSize * (Math.Abs(group.Angle) > 2D ? 6D : 5D));
                     double gap = alongStart - previousAlongEnd;
-                    bool repeatedGutter = gap >= GetRepeatedGutterWidth(context, ordered[i]) && HasRepeatedGutter(gutterAnchors, group, alongStart);
+                    bool repeatedGutter = IsRepeatedGutterCandidate(context, ordered, i, radians, gap) &&
+                        HasRepeatedGutter(gutterAnchors, group, alongStart);
                     bool hangingMarker = runs.Count == 1 && i == 1 && ContentStructureExtractor.IsHangingListMarker(ordered[0].Text, gap);
                     if (runs[runs.Count - 1].Count > 0 && (gap > splitGap || repeatedGutter) && !hangingMarker) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
@@ -148,7 +149,9 @@ internal static partial class PdfAdvancedUnderstandingStages {
                 for (int index = 0; index < ordered.Length; index++) {
                     context.ConsumeWork();
                     double start = GetProjectedAlongStart(ordered[index], radians);
-                    if (index > 0 && start - previousEnd >= GetRepeatedGutterWidth(context, ordered[index]) && TryGutterKey(group, start, out var key)) {
+                    double gap = start - previousEnd;
+                    if (index > 0 && IsRepeatedGutterCandidate(context, ordered, index, radians, gap) &&
+                        TryGutterKey(group, start, out var key)) {
                         if (anchors.TryGetValue(key, out var existing)) {
                             if (!ReferenceEquals(existing.First, group)) anchors[key] = (existing.First, true);
                         } else anchors.Add(key, (group, false));
@@ -159,12 +162,39 @@ internal static partial class PdfAdvancedUnderstandingStages {
             return anchors;
         }
 
+        private static bool IsRepeatedGutterCandidate(PdfUnderstandingPageContext context,
+            PdfUnderstandingWord[] words, int split, double radians, double gap) {
+            double ordinaryGutter = Math.Min(context.LayoutOptions.MinGutterWidth.ToPoints(),
+                Math.Max(9D, words[split].FontSize * 1.5D));
+            return gap >= GetRepeatedGutterWidth(context, words[split]) &&
+                (gap >= ordinaryGutter || HasProseOnBothSides(context, words, split, radians));
+        }
+
+        // A narrow repeated gap needs prose on either side. Aligned short table
+        // cells also repeat their gaps, but splitting those changes row text.
+        private static bool HasProseOnBothSides(PdfUnderstandingPageContext context,
+            PdfUnderstandingWord[] words, int split, double radians) {
+            return Count(-1, split - 1) >= 3 && Count(1, split) >= 3;
+
+            int Count(int step, int start) {
+                int count = 1;
+                for (int index = start + step; index >= 0 && index < words.Length && count < 3; index += step) {
+                    context.ConsumeWork();
+                    int left = Math.Min(index, index - step), right = left + 1;
+                    double gap = GetProjectedAlongStart(words[right], radians) - GetProjectedAlongEnd(words[left], radians);
+                    if (gap >= GetRepeatedGutterWidth(context, words[right])) break;
+                    count++;
+                }
+                return count;
+            }
+        }
+
         /// <summary>
         /// A gap that recurs at the same position on several baselines is a column gutter even when it is narrower than
-        /// the page-level gutter option: newspaper-style columns are often set only about two ems apart.
+        /// the page-level gutter option. Narrower gaps additionally require prose on both sides.
         /// </summary>
         private static double GetRepeatedGutterWidth(PdfUnderstandingPageContext context, PdfUnderstandingWord word) =>
-            Math.Min(context.LayoutOptions.MinGutterWidth.ToPoints(), Math.Max(9D, Math.Max(1D, word.FontSize) * 1.5D));
+            Math.Min(context.LayoutOptions.MinGutterWidth.ToPoints(), Math.Max(6D, Math.Max(1D, word.FontSize) * 0.8D));
 
         private static bool HasRepeatedGutter(Dictionary<(int Angle, long Along), (BaselineGroup First, bool Repeated)> anchors,
             BaselineGroup group, double start) {

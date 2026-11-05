@@ -1030,7 +1030,11 @@ public sealed partial class PdfReadPage {
         var invokedShadingIntents = new HashSet<(string Name, OfficeIccRenderingIntent Intent)>();
         var type3PaintChannelCache = new Type3PaintChannelCache();
         var activeType3PaintChannelStreams = new HashSet<PdfStream>();
-        _ = PdfPageXObjectInvocationParser.Parse(
+        bool hasType3Fonts = fonts.Values.Any(static font => font.Type3 != null);
+        bool needsInvocationDiscovery = invokedResources.HasObjectPaint || hasType3Fonts ||
+            requireSupportedType3Content || initialFillPattern.HasValue || initialStrokePattern.HasValue ||
+            resources?.Items.ContainsKey("Pattern") == true || resources?.Items.ContainsKey("Shading") == true;
+        if (needsInvocationDiscovery) _ = PdfPageXObjectInvocationParser.Parse(
                 content,
                 baseTransform,
                 pageHeight,
@@ -1179,6 +1183,11 @@ public sealed partial class PdfReadPage {
             inlineImageArrayComponentCount: array => GetDeclaredColorSpaceComponentCount(array),
             initialStrokeDashPattern: initialStrokeDashPattern,
             operationCheck: pageContentBudget.CancellationToken.ThrowIfCancellationRequested);
+
+        // Primitive extraction already applied the graphics state and clipping.
+        // Without invocations, Type 3 paint or observers this pass has no output.
+        if (!invokedResources.HasObjectPaint && !hasType3Fonts && !requireSupportedType3Content &&
+            unrenderedPatternVisitor == null && graphicsStateVisitor == null) return;
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,

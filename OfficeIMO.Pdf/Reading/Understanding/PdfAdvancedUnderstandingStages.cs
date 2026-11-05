@@ -854,6 +854,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
             double verticalGap = Math.Abs(left.BaselineY - right.BaselineY);
             double allowedVertical = Math.Max(left.FontSize, right.FontSize) * 2.2D;
             double horizontalGap = left.XEnd < right.XStart ? right.XStart - left.XEnd : right.XEnd < left.XStart ? left.XStart - right.XEnd : 0D;
+            if (left.Words.Count >= 3 && right.Words.Count >= 3 &&
+                horizontalGap >= Math.Max(6D, Math.Max(left.FontSize, right.FontSize) * 0.8D)) return false;
             double allowedHorizontal = Math.Max(18D, Math.Max(left.FontSize, right.FontSize) * 2D);
             bool overlapsHorizontally = left.XStart <= right.XEnd + allowedHorizontal && right.XStart <= left.XEnd + allowedHorizontal;
             return verticalGap <= allowedVertical && overlapsHorizontally && horizontalGap <= allowedHorizontal;
