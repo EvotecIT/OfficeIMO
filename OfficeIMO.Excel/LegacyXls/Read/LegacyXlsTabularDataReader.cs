@@ -837,15 +837,26 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
         }
 
         private string ReadFormulaStringValue(RecordSlice record, ref int nextRecordOffset) {
-            var payloads = new List<byte[]> { CopyPayload(_bytes, record) };
             int lookahead = nextRecordOffset;
-            while (TryReadRecord(_bytes, ref lookahead, out RecordSlice continuation)
+            if (!TryReadRecord(_bytes, ref lookahead, out RecordSlice continuation)
+                || continuation.Type != (ushort)BiffRecordType.Continue) {
+                // A cached result that fits one STRING record decodes in place.
+                int offset = 0;
+                return BiffStringReader.ReadUnicodeString(GetPayload(record), ref offset);
+            }
+
+            var payloads = new List<byte[]> { CopyPayload(_bytes, record), CopyPayload(_bytes, continuation) };
+            nextRecordOffset = lookahead;
+            while (TryReadRecord(_bytes, ref lookahead, out continuation)
                    && continuation.Type == (ushort)BiffRecordType.Continue) {
                 payloads.Add(CopyPayload(_bytes, continuation));
                 nextRecordOffset = lookahead;
             }
             return BiffStringReader.ReadUnicodeString(payloads);
         }
+
+        private ArraySegment<byte> GetPayload(RecordSlice record) =>
+            _bytes.GetSegment(record.PayloadOffset, record.Length);
 
         private bool FormulaExpectsString(RecordSlice record) {
             if (record.Length < 20) throw TruncatedCell(record);
@@ -869,7 +880,7 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
 
         private string ReadLabel(RecordSlice record) {
             if (record.Length < 8) throw TruncatedCell(record);
-            byte[] payload = CopyPayload(_bytes, record);
+            ArraySegment<byte> payload = GetPayload(record);
             int offset = 6;
             int original = offset;
             try {

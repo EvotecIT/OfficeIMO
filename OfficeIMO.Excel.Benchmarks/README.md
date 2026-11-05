@@ -301,6 +301,31 @@ This OfficeIMO-only lane supports before/after comparisons within each API and
 number mode. The result shapes have different allocation contracts, so they do
 not form a ranking against one another.
 
+## String decoding
+
+`ExcelLegacyXlsStringReadBenchmarks` reads 5,000 four-column BIFF8 rows through
+the public XLS data reader. `Cells` selects compressed (Latin-1) or UTF-16 inline
+LABEL cells, cached formula STRING results, or LABELSST references to 512
+6,000-character shared strings that continue across CONTINUE records. OfficeIMO's
+writer does not produce these records, so `LegacyXlsBenchmarkWorkbook` builds the
+BIFF8 stream and a minimal compound file around it. `Access` reads each value with
+`GetString` or copies it with `GetChars` in 16-character chunks. Setup proves that
+the XLS fast path opens the workbook and checks every string through both access
+forms; each operation checks the row count and a checksum over every value.
+
+`ExcelUtf8InlineTextReadBenchmarks` reads 20,000 unique three-line inline strings
+from a UTF-8 worksheet. `LineEndings` writes literal CRLF or LF. Both deliver the
+same LF-normalized strings, so LF is the control for line-ending normalization.
+`ImplicitRows` omits row references but keeps cell references, so the reader infers
+each row's index from its first cell. Setup checks every string and index.
+
+```powershell
+dotnet run -c Release -f net10.0 --project ./OfficeIMO.Excel.Benchmarks -- --filter '*ExcelLegacyXlsStringReadBenchmarks*' '*ExcelUtf8InlineTextReadBenchmarks*' --inProcess --warmupCount 3 --iterationCount 10 --outliers DontRemove --artifacts ./Ignore/Benchmarks/string-decoding
+```
+
+These are OfficeIMO-only before/after lanes; compare builds within one parameter
+set.
+
 ## Snapshot and profile artifacts
 
 ```powershell

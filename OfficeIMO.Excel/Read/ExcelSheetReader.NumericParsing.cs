@@ -8,12 +8,20 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+#if NETSTANDARD2_0 || NETFRAMEWORK
+            // These targets parse only strings. Pass the existing one: on .NET Core runtimes
+            // that load the netstandard2.0 build, a span's ToString always copies it.
+            return double.TryParse(rawText, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+#else
             return TryParseInvariantDouble(rawText.AsSpan(), out value);
+#endif
         }
 
         // Use the runtime parser's correctly rounded conversion. Accumulating
         // fractional digits with repeated double additions can cross a format
-        // midpoint or change a cached value by one or more ULPs.
+        // midpoint or change a cached value by one or more ULPs. On .NET Framework,
+        // System.Memory's Utf8Parser rounds some trailing-zero text differently from
+        // double.Parse, so these targets keep the runtime parser and its one string.
         private static bool TryParseInvariantDouble(ReadOnlySpan<char> text, out double value) {
 #if NETSTANDARD2_0 || NETFRAMEWORK
             return double.TryParse(text.ToString(), NumberStyles.Float, CultureInfo.InvariantCulture, out value);

@@ -112,6 +112,20 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return BitConverter.Int64BitsToDouble(unchecked((long)bits));
         }
 
+        /// <summary>
+        /// Gets a record slice for decoding. A buffered source returns a view of its pooled
+        /// buffer, which is valid until the source is disposed; a paged source returns a copy.
+        /// </summary>
+        internal ArraySegment<byte> GetSegment(int offset, int count) {
+            ThrowIfDisposed();
+            if (offset < 0 || count < 0 || offset > Length - count) {
+                throw new InvalidDataException("Unexpected end of BIFF record.");
+            }
+            byte[]? buffer = _buffer;
+            if (buffer != null) return new ArraySegment<byte>(buffer, offset, count);
+            return new ArraySegment<byte>(Copy(offset, count));
+        }
+
         internal byte[] Copy(int offset, int count) {
             ThrowIfDisposed();
             if (offset < 0 || count < 0 || offset > Length - count) {

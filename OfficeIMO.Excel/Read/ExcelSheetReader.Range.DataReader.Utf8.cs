@@ -1045,17 +1045,45 @@ namespace OfficeIMO.Excel {
                     return Encoding.ASCII.GetString(_buffer!, start, length);
                 if (TryDecodePredefinedXmlEntities(start, length, out string decoded)) return decoded;
 #endif
-                string text = Encoding.UTF8.GetString(_buffer!, start, length);
                 // XML normalizes literal line endings before expanding character references.
-                // A referenced carriage return must survive unchanged.
-                if (text.IndexOf('\r') >= 0) {
-                    text = text.Replace("\r\n", "\n").Replace('\r', '\n');
-                }
+                // A referenced carriage return must survive unchanged. CR never occurs inside
+                // a multi-byte UTF-8 sequence, so the byte search finds every literal one.
+                string text = _buffer!.AsSpan(start, length).IndexOf((byte)'\r') < 0
+                    ? Encoding.UTF8.GetString(_buffer!, start, length)
+                    : DecodeXmlTextWithLineEndings(start, length);
                 if (text.IndexOf('&') >= 0) {
                     text = WebUtility.HtmlDecode(text);
                 }
 
                 return text;
+            }
+
+            private string DecodeXmlTextWithLineEndings(int start, int length) {
+                char[] characters = ArrayPool<char>.Shared.Rent(Encoding.UTF8.GetMaxCharCount(length));
+                try {
+                    int decoded = Encoding.UTF8.GetChars(_buffer!, start, length, characters, 0);
+                    int written = NormalizeXmlLineEndings(characters.AsSpan(0, decoded));
+                    return new string(characters, 0, written);
+                } finally {
+                    ArrayPool<char>.Shared.Return(characters);
+                }
+            }
+
+            /// <summary>
+            /// Rewrites CRLF and lone CR as LF in place and returns the normalized length.
+            /// </summary>
+            private static int NormalizeXmlLineEndings(Span<char> text) {
+                int written = text.IndexOf('\r');
+                if (written < 0) return text.Length;
+                for (int read = written; read < text.Length; read++) {
+                    char value = text[read];
+                    if (value == '\r') {
+                        value = '\n';
+                        if (read + 1 < text.Length && text[read + 1] == '\n') read++;
+                    }
+                    text[written++] = value;
+                }
+                return written;
             }
 
             private void EnsureRowCapacity(int required) {
