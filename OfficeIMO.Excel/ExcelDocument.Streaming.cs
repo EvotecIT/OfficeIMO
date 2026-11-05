@@ -60,10 +60,11 @@ public partial class ExcelDocument {
         if (snapshot.SaveOptions?.MaxInMemoryPackageBytes <= 0 || snapshot.SaveOptions?.MaxTemporaryPackageBytes <= 0)
             throw new ArgumentOutOfRangeException(nameof(options), "Save resource limits must be positive or null.");
         if (format != ExcelFileFormat.Xlsx && (snapshot.CreateTable || snapshot.AutoFit || snapshot.BoldHeaders ||
+            snapshot.FreezeHeader || snapshot.FreezeFirstColumn ||
             snapshot.Title != null || firstRow != 1 || firstColumn != 1 || snapshot.ColumnFormat != null ||
             snapshot.DocumentProperties?.Count > 0 || snapshot.SaveOptions != null || snapshot.Styles?.Count > 0 ||
             snapshot.DefaultRowStyle != null || snapshot.ColumnStyles?.Count > 0))
-            throw new NotSupportedException("Binary row writers support plain worksheets at A1 without tables, sizing, titles, declared or column styles, document properties or final save policies.");
+            throw new NotSupportedException("Binary row writers support plain worksheets at A1 without tables, sizing, titles, freeze panes, declared or column styles, document properties or final save policies.");
         if (format == ExcelFileFormat.Xls && snapshot.RequireStreaming)
             throw new NotSupportedException("XLS requires native record and shared-string buffering. Use XLSX or XLSB for bounded row streaming.");
         snapshot.RequireStreaming = format != ExcelFileFormat.Xls;

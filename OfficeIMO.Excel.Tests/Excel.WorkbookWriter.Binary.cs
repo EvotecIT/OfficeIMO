@@ -75,13 +75,23 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(ExcelFileFormat.Xlsb)]
-    [InlineData(ExcelFileFormat.Xls)]
-    public void WorkbookWriter_BinaryOptionsRejectUnsupportedRequestsBeforeWriting(ExcelFileFormat format) {
+    [InlineData(ExcelFileFormat.Xlsb, nameof(ExcelWriterOptions.CreateTable))]
+    [InlineData(ExcelFileFormat.Xls, nameof(ExcelWriterOptions.CreateTable))]
+    [InlineData(ExcelFileFormat.Xlsb, nameof(ExcelWriterOptions.FreezeHeader))]
+    [InlineData(ExcelFileFormat.Xls, nameof(ExcelWriterOptions.FreezeHeader))]
+    [InlineData(ExcelFileFormat.Xlsb, nameof(ExcelWriterOptions.FreezeFirstColumn))]
+    [InlineData(ExcelFileFormat.Xls, nameof(ExcelWriterOptions.FreezeFirstColumn))]
+    public void WorkbookWriter_BinaryOptionsRejectUnsupportedRequestsBeforeWriting(ExcelFileFormat format, string option) {
         using var output = new MemoryStream();
+        var options = option switch {
+            nameof(ExcelWriterOptions.CreateTable) => new ExcelWriterOptions { CreateTable = true },
+            nameof(ExcelWriterOptions.FreezeHeader) => new ExcelWriterOptions { FreezeHeader = true },
+            nameof(ExcelWriterOptions.FreezeFirstColumn) => new ExcelWriterOptions { FreezeFirstColumn = true },
+            _ => throw new ArgumentOutOfRangeException(nameof(option))
+        };
         Assert.Throws<NotSupportedException>(() => ExcelDocument.CreateWriter(format, output,
-            new ExcelWriterOptions { CreateTable = true }, leaveOpen: true));
-        if (format == ExcelFileFormat.Xls) {
+            options, leaveOpen: true));
+        if (format == ExcelFileFormat.Xls && option == nameof(ExcelWriterOptions.CreateTable)) {
             Assert.Throws<NotSupportedException>(() => ExcelDocument.CreateWriter(format, output,
                 new ExcelWriterOptions { RequireStreaming = true }, leaveOpen: true));
         }

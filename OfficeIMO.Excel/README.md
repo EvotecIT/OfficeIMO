@@ -225,7 +225,7 @@ using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xls
 }
 ```
 
-Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records and its required shared-string table; `RequireStreaming=true` rejects that format. Binary row writers create plain worksheets and reject tables, AutoFit and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
+Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records and its required shared-string table; `RequireStreaming=true` rejects that format. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
 
 
 ## Report sheets
