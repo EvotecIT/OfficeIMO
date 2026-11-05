@@ -51,6 +51,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - uses: ./.github/actions/windows-nuget-folders
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:

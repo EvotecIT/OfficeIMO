@@ -4,6 +4,7 @@
   "cachePath": "./_temp/pipeline-cache.json",
   "profile": true,
   "profilePath": "./_temp/pipeline-profile.json",
+  "maxParallelism": 4,
   "steps": [
     {
       "task": "engine-lock",

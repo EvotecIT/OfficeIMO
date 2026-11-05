@@ -3,6 +3,7 @@ description: Resolve the configured package directory without changing isolated 
 runs:
   using: composite
   steps:
+    - uses: ./.github/actions/windows-nuget-folders
     - id: packages
       shell: pwsh
       run: |
