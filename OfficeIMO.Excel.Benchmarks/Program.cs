@@ -17,6 +17,11 @@ if (args.Length == 2 && args[0] == "--prepare-generated-inputs") {
     ExcelGeneratedReadProfileRunner.PrepareInputs(args[1]);
     return;
 }
+if (args.Length == 1 && args[0] == "--validate-prime-readers") {
+    ExcelPrimeSalesObservation.ValidateReaders();
+    return;
+}
+
 if (args.Length > 0 && args[0] == "--profile-generated-xlsx") {
     ExcelGeneratedReadProfileRunner.Run(args);
     return;

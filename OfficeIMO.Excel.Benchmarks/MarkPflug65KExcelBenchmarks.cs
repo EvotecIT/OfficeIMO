@@ -399,7 +399,7 @@ public partial class MarkPflug65KXlsxBenchmarks {
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
-public class MarkPflug65KXlsbBenchmarks {
+public partial class MarkPflug65KXlsbBenchmarks {
     private ExcelReadObservation _expected;
 
     [GlobalSetup]

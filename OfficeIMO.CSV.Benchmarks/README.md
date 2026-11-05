@@ -14,10 +14,22 @@ timing. This keeps string reads separate from raw span scans.
 
 The .NET 10 comparison uses the published MIT ExcelReader.NET 7.4.0 package;
 .NET 8 retains the compatible package pin as a separate cohort.
+The [opt-in current reader runner](../OfficeIMO.CSV.Benchmarks.Modern/README.md)
+adds the CsvHelper 34.0.0 API without changing this project's 33.1.0 comparison contract.
 
 ```sh
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks -- --filter "*CsvExcelReaderGeneratedBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 4 --unrollFactor 1 --outliers DontRemove
 ```
+
+## Typed CSV comparisons
+
+`CsvTypedSequentialBenchmarks` compares complete typed objects from OfficeIMO,
+Sep and the MIT RecordParser 2.3.0 package at 25,000 and 100,000 rows.
+`CsvParallelScalingBenchmarks` compares the same 100,000-row result with eight
+and sixteen workers. Each reader decodes quoted fields, preserves source order,
+and passes a property-by-property preflight, including UTC date kinds. The
+compiled RecordParser map is prepared outside timing; every read checks its
+expected header layout. The CsvHelper methods in this project use the 33.1.0 API.
 
 ## Asynchronous input
 

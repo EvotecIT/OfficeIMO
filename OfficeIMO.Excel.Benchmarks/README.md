@@ -63,6 +63,15 @@ measure loaded OfficeIMO documents, memory inputs, prefetch and string interning
 their names identify the options used. Every method validates the row count and
 the checksum over all typed values.
 
+The XLSX and XLSB comparisons also include Excel-PRIME 5.2610.18 (MIT). Its
+default managed forward reader and `ExcelCellStyle` conversion option are
+separate lanes. Both read all fourteen columns and normalize numeric cells
+through the same IEEE-to-decimal conversion as the other readers. Every row
+and workbook is disposed within the operation. These lanes do not use a native
+inflater plugin or retain an extracted sheet between operations.
+`--validate-prime-readers` runs the four complete PRIME observations once without
+collecting timings; it uses the same fixed expectations as the measured methods.
+
 `ExcelWideLoadedReadBenchmarks` is a supplemental 10,000-by-150 presence scan,
 separate from XLBench's published scenarios. Both APIs include headers and must
 find all 1,500,000 cells. `--prepare-xlbench-inputs <directory>` creates the
