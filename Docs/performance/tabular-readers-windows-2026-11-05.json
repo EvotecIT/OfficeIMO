@@ -40,7 +40,8 @@
       ]
     },
     "matchedBinding": "Frozen baseline benchmark and dependency assemblies; only OfficeIMO.Excel DLL/PDB swapped.",
-    "validation": "Complete owned-string CSV and fourteen-column typed workbook observations checked before timing; measured workbook methods also validate their observations."
+    "validation": "Complete owned-string CSV and fourteen-column typed workbook observations checked before timing; measured workbook methods also validate their observations.",
+    "currentReaderMethodOrder": "One fixed declared BenchmarkDotNet method order per cache domain; no randomized or counterbalanced library order. Small differences are not ranking or equivalence evidence."
   },
   "fixtures": {
     "xlsx": {
@@ -2503,7 +2504,8 @@
     "Allocation readings vary materially in some matched/control processes. Preserve per-process values; do not infer an allocation improvement from unlike noisy legs.",
     "XLSB replacements retain start/end load observations; intermediate host CPU samples are unavailable.",
     "FourLambda AVX2 scanner selected on this host. PRIME uses the managed forward-only reader and default/style conversion.",
-    "Owned timing/sampling processes exited. Detached checkouts and task build/runtime/fixture outputs removed;2,741,630,351logical bytes removed, compact original evidence retained."
+    "Owned timing/sampling processes exited. Detached checkouts and task build/runtime/fixture outputs removed;2,741,630,351logical bytes removed, compact original evidence retained.",
+    "In particular, CSV20.978ms versus20.544ms is descriptive only: fixed method order and host drift prevent a leader/equivalence claim from this close pair."
   ],
   "sourceHeadMeaning": "Measured product and ordinary current harness source. XLSB Normal recheck uses the exact recorded source patch below on this revision; it is not an unmodified checkout.",
   "harnessSources": {
@@ -2517,7 +2519,7 @@
     "xlsbNormalRecheck": {
       "baseSource": "887a8591a6cfaae7bf97b1ecafdc5f8704fcbe61",
       "file": "OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs",
-      "patch": "diff --git a/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs b/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\nindex b13ae8121e..f2fa62112d 100644\n--- a/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\n+++ b/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\n@@ -404,6 +404,8 @@ public partial class MarkPflug65KXlsbBenchmarks {\n \n     [GlobalSetup]\n     public void Setup() {\n+        string? priority = Environment.GetEnvironmentVariable(\"OFFICEIMO_BENCHMARK_PROCESS_PRIORITY\");\n+        if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);\n         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);\n         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);\n         _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();",
+      "patch": "diff --git a/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs b/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\nindex b13ae8121e..f2fa62112d 100644\n--- a/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\n+++ b/OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs\n@@ -404,6 +404,8 @@ public partial class MarkPflug65KXlsbBenchmarks {\n \n     [GlobalSetup]\n     public void Setup() {\n+        string? priority = Environment.GetEnvironmentVariable(\"OFFICEIMO_BENCHMARK_PROCESS_PRIORITY\");\n+        if (!string.IsNullOrEmpty(priority)) BenchmarkProcessorAffinity.ApplyPriority(priority);\n         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);\n         MarkPflug65KFixture.EnsureAuthentic(MarkPflug65KFixture.XlsbFileName);\n         _expected = MarkPflug65KXlsxBenchmarks.ExpectedObservation();\n",
       "maintainedEquivalentFileCommit": "f3268067b6bd234958177a951a921b18194e02a7",
       "originalGitBlob": "b13ae8121e1617f0c7e456e03b23a074eee500d1",
       "patchedGitBlob": "f2fa62112d35209140c076f4eb05c080da517bea",
@@ -2552,5 +2554,210 @@
     "buildValidationCommandTemplates": "# Run from detached source 376ab595af920f1666b725400406cc544642fc47\ndotnet build OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/baseline\n\n# Run from detached source 887a8591a6cfaae7bf97b1ecafdc5f8704fcbe61\ndotnet build OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/current\ndotnet build OfficeIMO.CSV.Benchmarks.Modern/OfficeIMO.CSV.Benchmarks.Modern.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/current\n\n# Run once on the first affinity domain before any accepted timing\ndotnet <CANDIDATE_CSV_BIN>/OfficeIMO.CSV.Benchmarks.Modern.dll --validate\ndotnet <CANDIDATE_EXCEL_BIN>/OfficeIMO.Excel.Benchmarks.dll --validate-prime-readers\n\n# Rebuild from the same candidate using the temporary XLSB setup patch below\ndotnet build OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj -c Release -f net10.0 -m:2 -nodeReuse:false -p:UseSharedCompilation=false --artifacts-path <SCRATCH>/build/current",
     "buildValidationProvenance": "Expanded retained script templates and corresponding logs; these do not have the JSON process-launch records used for timing.",
     "timingLaunchRecordsLocation": "processes[].launchRecord"
+  },
+  "sharedFileClaimWindowsProof": {
+    "sourceHead": "9c3d0981cb341933777844a99c34c78b4beaf6d4",
+    "tree": "56333cc186f185e7eadc00ffed76976ad30acf7e",
+    "file": "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs",
+    "gitBlob": "f514b48d08b42e39106340265abb042bea80a9dd",
+    "repositorySha256": "f9f23115d66e7e5973d1b882195ee65eddf755fce6a7377dfa27f7007066bf15",
+    "checkoutCrlfSha256": "a0868ada4fe3ed104e4f8625b40fd6e0e4b5c5062937b80821d82e26f408fba9",
+    "rows": [
+      {
+        "project": "OfficeIMO.Drawing.Tests",
+        "framework": "net8.0",
+        "trxPassed": 7,
+        "total": 7,
+        "unixOnlyEarlyReturns": 0,
+        "exitCode": 0
+      },
+      {
+        "project": "OfficeIMO.Drawing.Tests",
+        "framework": "net10.0",
+        "trxPassed": 7,
+        "total": 7,
+        "unixOnlyEarlyReturns": 0,
+        "exitCode": 0
+      },
+      {
+        "project": "OfficeIMO.Shared.Tests",
+        "framework": "net8.0",
+        "trxPassed": 29,
+        "total": 29,
+        "unixOnlyEarlyReturns": 12,
+        "exitCode": 0
+      },
+      {
+        "project": "OfficeIMO.Shared.Tests",
+        "framework": "net10.0",
+        "trxPassed": 29,
+        "total": 29,
+        "unixOnlyEarlyReturns": 12,
+        "exitCode": 0
+      },
+      {
+        "project": "OfficeIMO.Reader.Tests",
+        "framework": "net8.0",
+        "trxPassed": 14,
+        "total": 14,
+        "unixOnlyEarlyReturns": 0,
+        "exitCode": 0
+      },
+      {
+        "project": "OfficeIMO.Reader.Tests",
+        "framework": "net10.0",
+        "trxPassed": 14,
+        "total": 14,
+        "unixOnlyEarlyReturns": 0,
+        "exitCode": 0
+      }
+    ],
+    "totalTrxPassed": 100,
+    "unixOnlyEarlyReturns": 24,
+    "nativeAssertionCases": 76,
+    "binaryAndEvidenceHashes": [
+      [
+        "assembly",
+        "OfficeIMO.Drawing.Tests.dll",
+        "78e778938265fdc32b7cdd586625e9177c335eeb923eafbcc271e21135f319c3"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Core.dll",
+        "a7a46c2490f49e19941e9cc11804b75e1361cf08caf7feaed5041519f3b22656"
+      ],
+      [
+        "evidence",
+        "test.log",
+        "2dc3e29a4e391ffad443dd41d1d27f6d7aa657e5dbb71813b564dec471be0204"
+      ],
+      [
+        "evidence",
+        "TRX",
+        "5091b86277eacc570db76e1e2ecfff851a17ddee4d7e04a8130474d9884f58dd"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Drawing.Tests.dll",
+        "0c43fa979956bc43b3337d1cb7e4a37cb4684399daf871d1258365ebb33d5aae"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Core.dll",
+        "3cf9bc5ee17f7cbbb38d82ab40a5d79019d3889a68f39d3325214fb3e3adccea"
+      ],
+      [
+        "evidence",
+        "test.log",
+        "5909a620c1c1c080e635bf7cb83e7c5749d11432e2d64eb6b46bea8917717b68"
+      ],
+      [
+        "evidence",
+        "TRX",
+        "d413e178addd7eee028c6f3a2a784496cb1a6b46c2303ff4f0c3b6a61b8f47d8"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Shared.Tests.dll",
+        "9bf11067ea9189183ff58ab1911fb25d89df7836d6a5a184a1c93342ac56d237"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Core.dll",
+        "a7a46c2490f49e19941e9cc11804b75e1361cf08caf7feaed5041519f3b22656"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Reader.Core.dll",
+        "986506b16de4f2ad72c0eec02115f0dbf777998f852efe9307efc6b4f33e0b60"
+      ],
+      [
+        "evidence",
+        "test.log",
+        "d7ca811191980852cdbaf592d0222e8a8daafd3584f3d34247f5c6c7b3722b4e"
+      ],
+      [
+        "evidence",
+        "TRX",
+        "5286848db0df077dc40f14479f9c36da81854c86707c3fa9cfcb3826bfefbdf7"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Shared.Tests.dll",
+        "2d4e7c60b9d7fb516c71279ace5f6345a7a78e3ec97ef7cbe7c64d3bc841f955"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Core.dll",
+        "3cf9bc5ee17f7cbbb38d82ab40a5d79019d3889a68f39d3325214fb3e3adccea"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Reader.Core.dll",
+        "04969a78ff85a6781462ffb9a0f395a62f3fa2647997a23813b9b0cf6c142ad0"
+      ],
+      [
+        "evidence",
+        "test.log",
+        "22af6ab9c9d042e322a95d89d3436ac14a50b8cd1ed3cdd0259c227590d3e601"
+      ],
+      [
+        "evidence",
+        "TRX",
+        "35c6f82a6a2449abbe4f2ef41432073e37d698995bea5953a551c5ff144cfb30"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Reader.Tests.dll",
+        "e67d4c208646817e57ee2e15edddd7a54d40eb97deec8ae510cdf7e0b5758c8f"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Core.dll",
+        "a7a46c2490f49e19941e9cc11804b75e1361cf08caf7feaed5041519f3b22656"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Reader.Core.dll",
+        "986506b16de4f2ad72c0eec02115f0dbf777998f852efe9307efc6b4f33e0b60"
+      ],
+      [
+        "evidence",
+        "test.log",
+        "52e9339e4a08dd2b30875df9c0d471fc1b24ed6c9132e1a669d3aa0398c22ba5"
+      ],
+      [
+        "evidence",
+        "TRX",
+        "310ff574bd625bdcd2a06007985a3b2bf9c7ca0a9ba5ae19ee6f5b04b8ed164a"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Reader.Tests.dll",
+        "602405150605fc9abe38523bf267720fa7b1ab5a19f14f7313242d16170e72fa"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Core.dll",
+        "3cf9bc5ee17f7cbbb38d82ab40a5d79019d3889a68f39d3325214fb3e3adccea"
+      ],
+      [
+        "assembly",
+        "OfficeIMO.Reader.Core.dll",
+        "04969a78ff85a6781462ffb9a0f395a62f3fa2647997a23813b9b0cf6c142ad0"
+      ],
+      [
+        "evidence",
+        "test.log",
+        "758c4dd6be49fdb3079ef10e2ca15a961ac0c17b693efa93c5d66cc0ea6219b9"
+      ],
+      [
+        "evidence",
+        "TRX",
+        "81a4edd5aa8bde1729c4de4994f646c1318d169b0a48501745c16e406f5698b2"
+      ]
+    ],
+    "cleanupRemovedLogicalBytes": 5179434023,
+    "sourceLimit": "This qualifies the shared file-claim fix on the recorded containing head, not unselected compression experiments."
   }
 }

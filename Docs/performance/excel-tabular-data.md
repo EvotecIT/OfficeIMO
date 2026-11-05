@@ -1392,7 +1392,10 @@ allocation improvements.
 
 The additional current-reader runs use the same complete observations and options
 as the Mac cohort, with twelve warmups and twelve measurements. CSV uses sixteen
-invocations; the workbook lanes use eight.
+invocations; the workbook lanes use eight. Each current-reader launch uses fixed
+BenchmarkDotNet method order, without randomized or counterbalanced library order.
+Host drift can affect those comparisons. Close pairs such as CSV's 20.978 and
+20.544 ms do not establish a leader or statistical equivalence.
 
 | Format and reader | `0xFFFF` median ms | `0xFFFF0000` median ms |
 | --- | ---: | ---: |
@@ -1443,8 +1446,12 @@ concurrent image-save check: collision probing retries if another writer removes
 its claim between creation and inspection. Exclusive creation and persistent
 permission failures retain their existing behavior. Both shared-source consumers
 compile for all four targets. Local focused runs pass seven Drawing, twenty-nine
-Core storage and fourteen Reader cases; Windows-guarded cases still require the
-containing-head Windows CI result.
+Core storage and fourteen Reader cases. Native Windows net8.0 and net10.0 runs
+at `9c3d0981cb` pass the same seven/twenty-nine/fourteen cases per framework.
+Of 100 TRX passes, 24 Shared cases return before Unix-only assertions, leaving
+76 native assertion cases. The Windows Reader permission and pending-deletion
+cases execute through both compiled claim implementations. Source, assembly and
+evidence hashes are retained separately from throughput results.
 
 The new XLSX sample still shows inflation as the largest calling-thread stack.
 The indexing worker spends substantial time waiting for produced bytes; those
