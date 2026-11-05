@@ -83,9 +83,13 @@ public partial class Excel {
     }
 
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public async Task WorkbookWriter_FailureOrCancellationDiscardsTheStagedFile(bool cancel) {
+    [InlineData(ExcelFileFormat.Xlsx, false)]
+    [InlineData(ExcelFileFormat.Xlsx, true)]
+    [InlineData(ExcelFileFormat.Xlsb, false)]
+    [InlineData(ExcelFileFormat.Xlsb, true)]
+    [InlineData(ExcelFileFormat.Xls, false)]
+    [InlineData(ExcelFileFormat.Xls, true)]
+    public async Task WorkbookWriter_FailureOrCancellationDiscardsTheStagedFile(ExcelFileFormat format, bool cancel) {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO-Writer-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         string path = Path.Combine(directory, "events.xlsx");
@@ -93,7 +97,7 @@ public partial class Excel {
         using var cancellation = new CancellationTokenSource();
         bool disposed = false;
         try {
-            using (var writer = ExcelDocument.CreateWriter(path)) {
+            using (var writer = ExcelDocument.CreateWriter(format, path)) {
                 if (cancel) await Assert.ThrowsAnyAsync<OperationCanceledException>(() => writer.WriteTable("Events", Rows(), cancellation.Token));
                 else await Assert.ThrowsAsync<InvalidDataException>(() => writer.WriteTable("Events", Rows(), cancellation.Token));
             }

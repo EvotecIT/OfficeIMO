@@ -15,7 +15,9 @@ I measure both profiles independently, including the owned strings each returns.
 
 `ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
-`ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. Generation is included
+`ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. I retain both the typed
+`CreateWriter(format, ...)` callback and the existing `WriteData` plus `Save` route
+as separate OfficeIMO lanes. Generation is included
 for each writer, while preflight validation is outside timing: I reopen each
 output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as

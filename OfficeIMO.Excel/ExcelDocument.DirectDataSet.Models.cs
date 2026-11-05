@@ -489,11 +489,9 @@ namespace OfficeIMO.Excel {
 
                 string value = _multipleUnderscoresRegex.Replace(builder.ToString().Trim(), "_");
                 value = value.Trim('_');
-                if (string.IsNullOrWhiteSpace(value)) {
-                    return "Sheet1";
-                }
-
-                return value.Length > 31 ? ExcelSheetNameText.Truncate(value, 31) : value;
+                // Truncation can expose whitespace or an apostrophe that was inside the name.
+                value = (value.Length > 31 ? ExcelSheetNameText.Truncate(value, 31) : value).Trim('\'', ' ');
+                return string.IsNullOrWhiteSpace(value) ? "Sheet1" : value;
             }
 
             internal static string SanitizeTableName(string name) {

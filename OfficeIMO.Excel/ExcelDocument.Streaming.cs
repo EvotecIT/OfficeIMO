@@ -1,3 +1,4 @@
+#pragma warning disable RS0026 // A required format in the first position keeps every existing call unambiguous.
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
@@ -7,29 +8,46 @@ namespace OfficeIMO.Excel;
 
 public partial class ExcelDocument {
     /// <summary>Creates a bounded-memory XLSX writer. Dispose publishes the completed file atomically.</summary>
-    public static ExcelWorkbookWriter CreateWriter(string path, ExcelWriterOptions? options = null, OfficeTheme? theme = null) {
-        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Supply an XLSX destination path.", nameof(path));
+    public static ExcelWorkbookWriter CreateWriter(string path, ExcelWriterOptions? options = null, OfficeTheme? theme = null) =>
+        CreateWriter(ExcelFileFormat.Xlsx, path, options, theme);
+
+    /// <summary>Creates a row writer for the selected Excel format. Dispose publishes the file atomically.</summary>
+    /// <remarks>XLSX and XLSB stream rows. XLS stages native BIFF records and its required shared-string table.</remarks>
+    public static ExcelWorkbookWriter CreateWriter(ExcelFileFormat format, string path, ExcelWriterOptions? options = null, OfficeTheme? theme = null) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Supply an Excel destination path.", nameof(path));
         string fullPath = Path.GetFullPath(path);
-        var snapshot = CreateStreamingOptions(options);
+        var snapshot = CreateStreamingOptions(options, format);
         var output = OfficeFileCommit.CreateTemporaryFile(fullPath, FileOptions.SequentialScan, out string temporaryPath);
-        try { return new ExcelWorkbookWriter(new StreamingWorkbook(output, snapshot, theme ?? OfficeTheme.Modern, false, fullPath, temporaryPath)); }
+        try { return new ExcelWorkbookWriter(new StreamingWorkbook(output, snapshot, theme ?? OfficeTheme.Modern, false, fullPath, temporaryPath, format)); }
         catch { output.Dispose(); File.Delete(temporaryPath); throw; }
     }
 
     /// <summary>Creates a bounded-memory XLSX writer over a writable stream, including non-seekable streams.</summary>
-    public static ExcelWorkbookWriter CreateWriter(Stream stream, ExcelWriterOptions? options = null, OfficeTheme? theme = null, bool leaveOpen = false) {
+    public static ExcelWorkbookWriter CreateWriter(Stream stream, ExcelWriterOptions? options = null, OfficeTheme? theme = null, bool leaveOpen = false) =>
+        CreateWriter(ExcelFileFormat.Xlsx, stream, options, theme, leaveOpen);
+
+    /// <summary>Creates a row writer for the selected format over a writable, optionally non-seekable stream.</summary>
+    /// <remarks>Binary formats default to plain worksheets and reject tables, automatic sizing and declared styles.</remarks>
+    public static ExcelWorkbookWriter CreateWriter(ExcelFileFormat format, Stream stream, ExcelWriterOptions? options = null, OfficeTheme? theme = null, bool leaveOpen = false) {
         ArgumentNullException.ThrowIfNull(stream);
         if (!stream.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(stream));
-        return new ExcelWorkbookWriter(new StreamingWorkbook(stream, CreateStreamingOptions(options), theme ?? OfficeTheme.Modern, leaveOpen));
+        return new ExcelWorkbookWriter(new StreamingWorkbook(stream, CreateStreamingOptions(options, format), theme ?? OfficeTheme.Modern, leaveOpen, format: format));
     }
 
-    private static ExcelWriterOptions CreateStreamingOptions(ExcelWriterOptions? options) {
-        var snapshot = CreateRowWriteOptions(options ?? new ExcelWriterOptions { CreateTable = true, UseSharedStrings = false });
-        if (snapshot.UseSharedStrings)
+    private static ExcelWriterOptions CreateStreamingOptions(ExcelWriterOptions? options, ExcelFileFormat format) {
+        if (format is not ExcelFileFormat.Xlsx and not ExcelFileFormat.Xlsb and not ExcelFileFormat.Xls)
+            throw new ArgumentOutOfRangeException(nameof(format));
+        var snapshot = CreateRowWriteOptions(options ?? new ExcelWriterOptions { CreateTable = format == ExcelFileFormat.Xlsx, UseSharedStrings = false });
+        if (snapshot.UseSharedStrings && format != ExcelFileFormat.Xls)
             throw new ArgumentException("The streaming writer requires UseSharedStrings=false.", nameof(options));
         if (snapshot.CreateTable && !snapshot.IncludeHeaders)
             throw new ArgumentException("Streaming tables require column headers.", nameof(options));
-        snapshot.RequireStreaming = true;
+        if (format != ExcelFileFormat.Xlsx && (snapshot.CreateTable || snapshot.AutoFit ||
+            snapshot.Styles?.Count > 0 || snapshot.DefaultRowStyle != null || snapshot.ColumnStyles?.Count > 0))
+            throw new NotSupportedException("Binary row writers support plain worksheets; tables, automatic sizing and declared styles are not supported.");
+        if (format == ExcelFileFormat.Xls && snapshot.RequireStreaming)
+            throw new NotSupportedException("XLS requires native record and shared-string buffering. Use XLSX or XLSB for bounded row streaming.");
+        snapshot.RequireStreaming = format != ExcelFileFormat.Xls;
         snapshot.Styles = snapshot.Styles?.ToDictionary(item => item.Key, item => item.Value.Snapshot(), StringComparer.Ordinal);
         snapshot.ColumnStyles = snapshot.ColumnStyles?.ToDictionary(item => item.Key, item => item.Value);
         return snapshot;
@@ -39,7 +57,9 @@ public partial class ExcelDocument {
     internal sealed class StreamingWorkbook : IDisposable {
         private readonly Stream _output;
         private readonly ExcelPositionReportingWriteStream? _position;
-        private readonly ZipArchive _archive;
+        private readonly ZipArchive? _archive;
+        private readonly ExcelFileFormat _format;
+        private BinaryStreamingWorkbook? _binary;
         private readonly ExcelWriterOptions _options;
         private readonly OfficeTheme _theme;
         private readonly bool _leaveOpen;
@@ -53,12 +73,12 @@ public partial class ExcelDocument {
         private int _busy;
 
         internal StreamingWorkbook(Stream output, ExcelWriterOptions options, OfficeTheme theme, bool leaveOpen,
-            string? path = null, string? temporaryPath = null) {
+            string? path = null, string? temporaryPath = null, ExcelFileFormat format = ExcelFileFormat.Xlsx) {
             _output = output; _options = options; _theme = theme; _leaveOpen = leaveOpen;
-            _path = path; _temporaryPath = temporaryPath;
+            _path = path; _temporaryPath = temporaryPath; _format = format;
             if (output.CanSeek) PrepareDestinationStreamForWrite(output);
             _position = output.CanSeek ? null : new ExcelPositionReportingWriteStream(output);
-            _archive = new ZipArchive(_position ?? output, ZipArchiveMode.Create, leaveOpen: true);
+            if (format != ExcelFileFormat.Xls) _archive = new ZipArchive(_position ?? output, ZipArchiveMode.Create, leaveOpen: true);
         }
 
         internal async Task<ExcelDataSetImportResult> WriteTable<T>(string name, IAsyncEnumerable<T> rows, IReadOnlyList<string> headers,
@@ -71,8 +91,10 @@ public partial class ExcelDocument {
                 ArgumentNullException.ThrowIfNull(rows);
                 ArgumentNullException.ThrowIfNull(headers);
                 ArgumentNullException.ThrowIfNull(writeRow);
-                if (headers.Count == 0 || headers.Count > ExcelA1.MaxColumns)
-                    throw new ArgumentException("Supply between one and 16384 column headers.", nameof(headers));
+                if (headers.Count == 0 || headers.Count > (_format == ExcelFileFormat.Xls ? 256 : ExcelA1.MaxColumns))
+                    throw new ArgumentException(_format == ExcelFileFormat.Xls
+                        ? "Supply between one and 256 column headers."
+                        : "Supply between one and 16384 column headers.", nameof(headers));
                 ValidateTabularHeaders(headers);
                 if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Supply a worksheet name.", nameof(name));
                 cancellationToken.ThrowIfCancellationRequested();
@@ -90,7 +112,14 @@ public partial class ExcelDocument {
                     _options.TableStyle, _options.IncludeHeaders, _options.IncludeAutoFilter, _options.CreateTable,
                     false, false, null, _options.UseCellValueNumberFormats, includeCellReferences: _options.IncludeCellReferences);
                 var model = DirectDataSetWorkbookModel.CreateStreaming(new[] { sheet }, _options.DateSystem, styles);
-                int rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive, model, rows, writeRow, _options.AutoFit, _theme, cancellationToken).ConfigureAwait(false);
+                int rowCount;
+                if (_format == ExcelFileFormat.Xlsx) {
+                    rowCount = await DirectDataSetWorkbookWriter.WriteStreamingWorksheet(_archive!, model, rows, writeRow, _options.AutoFit, _theme, cancellationToken).ConfigureAwait(false);
+                } else {
+                    _binary ??= new BinaryStreamingWorkbook(_format, _archive, _options,
+                        DirectDataSetWorkbookWriter.CreateNativeStreamingStyles(model, _theme), DirectDataSetWorkbookWriter.CreateNativeStreamingTheme(_theme), _theme);
+                    rowCount = await _binary.WriteTable(sheetName, names, rows, writeRow, cancellationToken).ConfigureAwait(false);
+                }
                 _sheets.Add(sheet);
                 return new ExcelDataSetImportResult(sheetName, tableName,
                     ExcelSheet.BuildObjectExportRange(1, names.Length, rowCount, _options.IncludeHeaders), rowCount, names.Length);
@@ -113,9 +142,10 @@ public partial class ExcelDocument {
                     if (!_failed) {
                         var styles = ExcelTabularStylePlan.Create(_options, _sheets[0].Table.ColumnCount, CancellationToken.None);
                         var model = DirectDataSetWorkbookModel.CreateStreaming(_sheets, _options.DateSystem, styles);
-                        DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive, model, _theme);
+                        if (_format == ExcelFileFormat.Xlsx) DirectDataSetWorkbookWriter.CompleteStreamingWorkbook(_archive!, model, _theme);
+                        else _binary!.Complete(_output, _sheets.Select(sheet => sheet.SheetName).ToArray());
                     }
-                } finally { _archive.Dispose(); }
+                } finally { _archive?.Dispose(); _binary?.Dispose(); }
                 if (!_leaveOpen) _output.Dispose();
                 if (!_failed && _path != null)
                     OfficeFileCommit.CommitTemporaryFileAtomically(_temporaryPath!, _path);
@@ -127,3 +157,5 @@ public partial class ExcelDocument {
         }
     }
 }
+
+#pragma warning restore RS0026

@@ -10,19 +10,22 @@ try
     XmlTableSmoke.Run();
     RecordReadSmoke.Run();
     PipelinedReadSmoke.Run();
-    using (var asyncRows = new MemoryStream())
+    foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xlsx, ExcelFileFormat.Xlsb, ExcelFileFormat.Xls })
     {
-        using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(asyncRows, leaveOpen: true))
+        using (var asyncRows = new MemoryStream())
         {
-            await writer.WriteTable("Revenue", CreateRowsAsync(), ["Region", "Revenue"],
-                static (rowWriter, row) => rowWriter.Write(row.Region).Write(row.Revenue));
-        }
-        asyncRows.Position = 0;
-        using ExcelWorkbookDataReader asyncReader = ExcelDocument.OpenReader(asyncRows);
-        if (!asyncReader.Read() || asyncReader.GetString(0) != "North"
-            || !asyncReader.Read() || asyncReader.GetString(0) != "South" || asyncReader.Read())
-        {
-            throw new InvalidOperationException("The asynchronous table writer lost rows or their order.");
+            using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(format, asyncRows, leaveOpen: true))
+            {
+                await writer.WriteTable("Revenue", CreateRowsAsync(), ["Region", "Revenue"],
+                    static (rowWriter, row) => rowWriter.Write(row.Region).Write(row.Revenue));
+            }
+            asyncRows.Position = 0;
+            using ExcelWorkbookDataReader asyncReader = ExcelDocument.OpenReader(asyncRows);
+            if (!asyncReader.Read() || asyncReader.GetString(0) != "North"
+                || !asyncReader.Read() || asyncReader.GetString(0) != "South" || asyncReader.Read())
+            {
+                throw new InvalidOperationException("The asynchronous table writer lost rows or their order.");
+            }
         }
     }
 

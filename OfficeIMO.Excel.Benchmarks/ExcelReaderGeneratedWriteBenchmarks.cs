@@ -18,6 +18,12 @@ public class ExcelReaderGeneratedWriteBenchmarks {
     [GlobalSetup(Target = nameof(ExcelReaderNet))]
     public void SetupExcelReader() => Validate(ExcelReaderNet());
 
+    [GlobalSetup(Target = nameof(OfficeIMO_WriteData))]
+    public void SetupOfficeIMOBuffered() => Validate(OfficeIMO_WriteData());
+
+    [Benchmark]
+    public byte[] OfficeIMO_WriteData() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMOBuffered(Format, RowCount);
+
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMO(Format, RowCount);
 

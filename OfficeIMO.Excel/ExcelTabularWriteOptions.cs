@@ -1,12 +1,13 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Configures package-native tabular XLSX exports.
+    /// Configures package-native tabular Excel exports.
     /// </summary>
     public sealed class ExcelWriterOptions {
         /// <summary>
         /// Rejects settings that require materializing the source rows before writing.
         /// For data readers, disable shared strings and automatic sizing; tables require headers.
-        /// The workbook writer always enforces bounded streaming, including tables with headers.
+        /// XLSX and XLSB workbook writers enforce bounded row streaming. XLS requires native
+        /// record and shared-string buffering and rejects this option.
         /// </summary>
         public bool RequireStreaming { get; set; }
 
@@ -38,8 +39,9 @@ namespace OfficeIMO.Excel {
         public bool IncludeCellReferences { get; set; } = true;
 
         /// <summary>
-        /// Requests shared-string storage. The bounded writer rejects this setting; use an editable
-        /// workbook for shared-string planning. Defaults to false (inline text).
+        /// Requests shared-string storage. XLSX and XLSB row writers reject this setting; use an editable
+        /// workbook for shared-string planning. Defaults to false (inline text). XLS always uses its
+        /// format-required shared-string table.
         /// </summary>
         public bool UseSharedStrings { get; set; }
 

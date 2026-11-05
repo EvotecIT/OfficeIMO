@@ -363,3 +363,5 @@ static OfficeIMO.Excel.Reports.ExcelReportExtensions.ApplyDashboardPreset(this O
 *REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult.RequireNoLoss() -> OfficeIMO.Excel.ExcelDocument!
+static OfficeIMO.Excel.ExcelDocument.CreateWriter(OfficeIMO.Excel.ExcelFileFormat format, System.IO.Stream! stream, OfficeIMO.Excel.ExcelWriterOptions? options = null, OfficeIMO.OfficeTheme? theme = null, bool leaveOpen = false) -> OfficeIMO.Excel.ExcelWorkbookWriter!
+static OfficeIMO.Excel.ExcelDocument.CreateWriter(OfficeIMO.Excel.ExcelFileFormat format, string! path, OfficeIMO.Excel.ExcelWriterOptions? options = null, OfficeIMO.OfficeTheme? theme = null) -> OfficeIMO.Excel.ExcelWorkbookWriter!

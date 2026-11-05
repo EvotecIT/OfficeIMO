@@ -84,32 +84,7 @@ namespace OfficeIMO.Excel {
                     sharedStrings,
                     declaredStyles);
 
-                int rowCount = 0;
-                IAsyncEnumerator<T> enumerator = rows.GetAsyncEnumerator(ct);
-                try {
-                    while (true) {
-                        ct.ThrowIfCancellationRequested();
-                        if (!await enumerator.MoveNextAsync().ConfigureAwait(false)) {
-                            break;
-                        }
-                        ct.ThrowIfCancellationRequested();
-                        if (rowCount >= maximumRows) {
-                            throw new InvalidOperationException(
-                                "Asynchronous row export exceeds the maximum worksheet row count.");
-                        }
-
-                        rowWriter.BeginRow();
-                        writeRow(rowWriter, enumerator.Current);
-                        rowWriter.EndRow();
-                        rowCount++;
-                    }
-                }
-                finally {
-                    await enumerator.DisposeAsync().ConfigureAwait(false);
-                }
-
-                ct.ThrowIfCancellationRequested();
-                return rowCount;
+                return await WriteStreamingRowCallbacks(rows, rowWriter, writeRow, maximumRows, ct).ConfigureAwait(false);
             }
 
             private static void WriteAsyncWorksheetEnd(TextWriter writer, DirectDataSetSheetModel sheet) {

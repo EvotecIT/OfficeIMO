@@ -32,7 +32,8 @@ namespace OfficeIMO.Excel {
             /// <summary>Writes a genuine blank cell, with the selected style or inherited row/column default.</summary>
             public ExcelTabularRowWriter WriteBlank() {
                 BeginCell();
-                _writer.Write("/>");
+                if (_native != null) _native.WriteBlank();
+                else _writer.Write("/>");
                 return this;
             }
 
@@ -48,6 +49,7 @@ namespace OfficeIMO.Excel {
 
             private void OpenRow() {
                 if (_rowOpened) return;
+                if (_native != null) { _native.BeginRow(_rowIndex); _rowOpened = true; return; }
                 if (_includeCellReferences) {
                     if (_rowStyle == null) {
                         WriteReferenceStart("<row r=\"", "\">");
