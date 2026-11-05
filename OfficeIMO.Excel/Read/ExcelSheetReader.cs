@@ -108,7 +108,7 @@ namespace OfficeIMO.Excel {
         private DateTime FromExcelSerialDate(double serial, bool calendarStyle) => calendarStyle ? ExcelDateSystemConverter.FromSerial(serial, _dateSystem) : DateTime.FromOADate(serial);
         private DateTime FromExcelSerialDate(double serial, uint? styleIndex) => FromExcelSerialDate(serial, styleIndex.HasValue && Styles.IsDateSystemShiftStyle(styleIndex.Value));
 
-        private StylesCache Styles => _stylesCache ??= _styles.Value;
+        private StylesCache Styles => _stylesCache ??= _styles.GetValue(_opt.CancellationToken);
 
         private static object BoxBoolean(bool value) => value ? BoxedTrue : BoxedFalse;
 
