@@ -6,42 +6,58 @@ namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
     [Theory]
-    [InlineData(false, false, false)]
-    [InlineData(false, false, true)]
-    [InlineData(false, true, false)]
-    [InlineData(false, true, true)]
-    [InlineData(true, false, false)]
-    [InlineData(true, false, true)]
-    [InlineData(true, true, false)]
-    [InlineData(true, true, true)]
-    public void OpenDataReader_IndexedNumericGettersPreserveDateSystemsAndGetterOrder(bool date1904, bool elapsed, bool numericFirst) {
+    [InlineData(false, false, false, false)]
+    [InlineData(false, false, false, true)]
+    [InlineData(false, false, true, false)]
+    [InlineData(false, false, true, true)]
+    [InlineData(false, true, false, false)]
+    [InlineData(false, true, false, true)]
+    [InlineData(false, true, true, false)]
+    [InlineData(false, true, true, true)]
+    [InlineData(true, false, false, false)]
+    [InlineData(true, false, false, true)]
+    [InlineData(true, false, true, false)]
+    [InlineData(true, false, true, true)]
+    [InlineData(true, true, false, false)]
+    [InlineData(true, true, false, true)]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, true, true, true)]
+    public void OpenDataReader_IndexedNumericGettersPreserveDateSystemsAndGetterOrder(bool date1904, bool elapsed, bool numericFirst, bool numericAsDecimal) {
         (string NumberXml, double Number, string DateXml, double Serial)[] rows = {
             ("1.25", 1.25, "45351.25", 45351.25),
             ("-0", BitConverter.Int64BitsToDouble(ParsedNegativeZeroBits), "61.25", 61.25),
             ("1.234567890123456", 1.234567890123456, "&#52;5352.5", 45352.5),
             ("2.5E0", 2.5, "45353.75", 45353.75),
+            ("1234567890.12345", 1234567890.12345, "45354.5", 45354.5),
+            ("12.3400", 12.34, "45355", 45355),
+            ("-12.3400", -12.34, "45356.125", 45356.125),
+            ("000.00", 0d, "45357", 45357),
         };
         string cells = string.Concat(rows.Select(row =>
             $"<row><c><v>{row.NumberXml}</v></c><c s=\"1\"><v>{row.DateXml}</v></c><c/></row>"))
             + "<row><c/><c s=\"1\"><v>1E100</v></c><c><v>7</v></c></row>";
         string path = CreateIndexedNumericAccessWorkbook(cells, date1904, elapsed);
         try {
-            using var reader = ExcelDocument.OpenReader(path);
+            using var reader = ExcelDocument.OpenReader(path, new ExcelReaderOptions { NumericAsDecimal = numericAsDecimal });
             foreach (var row in rows) {
                 Assert.True(reader.Read());
+                double expectedNumber = numericAsDecimal ? (double)(decimal)row.Number : row.Number;
                 if (numericFirst) {
-                    Assert.Equal(BitConverter.DoubleToInt64Bits(row.Number), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
+                    Assert.Equal(decimal.GetBits((decimal)row.Number), decimal.GetBits(reader.GetDecimal(0)));
+                    Assert.Equal(BitConverter.DoubleToInt64Bits(expectedNumber), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
                     Assert.Equal(row.Serial, reader.GetDouble(1));
                 } else {
-                    Assert.Equal(row.Number, Assert.IsType<double>(reader.GetValue(0)));
+                    if (numericAsDecimal) Assert.Equal((decimal)row.Number, Assert.IsType<decimal>(reader.GetValue(0)));
+                    else Assert.Equal(row.Number, Assert.IsType<double>(reader.GetValue(0)));
                 }
                 DateTime expectedDate = elapsed ? DateTime.FromOADate(row.Serial)
                     : ExcelDateSystemConverter.FromSerial(row.Serial, date1904 ? ExcelDateSystem.NineteenFour : ExcelDateSystem.NineteenHundred);
                 Assert.Equal(expectedDate, reader.GetDateTime(1));
                 Assert.Equal(expectedDate, Assert.IsType<DateTime>(reader.GetValue(1)));
                 Assert.Equal(row.Serial, reader.GetDouble(1));
-                Assert.Equal(BitConverter.DoubleToInt64Bits(row.Number), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
-                Assert.Equal(BitConverter.DoubleToInt64Bits(row.Number), BitConverter.DoubleToInt64Bits(Assert.IsType<double>(reader.GetValue(0))));
+                Assert.Equal(BitConverter.DoubleToInt64Bits(expectedNumber), BitConverter.DoubleToInt64Bits(reader.GetDouble(0)));
+                if (numericAsDecimal) Assert.Equal((decimal)row.Number, Assert.IsType<decimal>(reader.GetValue(0)));
+                else Assert.Equal(BitConverter.DoubleToInt64Bits(row.Number), BitConverter.DoubleToInt64Bits(Assert.IsType<double>(reader.GetValue(0))));
                 Assert.True(reader.IsDBNull(2));
                 var values = new object[3];
                 Assert.Equal(3, reader.GetValues(values));
@@ -55,6 +71,8 @@ public partial class Excel {
             Assert.ThrowsAny<ArgumentException>(() => reader.GetDateTime(1));
             Assert.Equal(1E100, reader.GetDouble(1));
             Assert.Equal(7, reader.GetInt32(2));
+            if (numericAsDecimal) Assert.Equal(7m, Assert.IsType<decimal>(reader.GetValue(2)));
+            else Assert.Equal(7d, Assert.IsType<double>(reader.GetValue(2)));
             Assert.False(reader.Read());
         } finally {
             File.Delete(path);
@@ -133,8 +151,9 @@ public partial class Excel {
         ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles));
         string header = "<row><c t=\"inlineStr\"><is><t>Number</t></is></c>"
             + "<c t=\"inlineStr\"><is><t>Date</t></is></c><c t=\"inlineStr\"><is><t>Keep</t></is></c></row>";
+        int rowCount = System.Xml.Linq.XElement.Parse("<root>" + rows + "</root>").Elements("row").Count() + 1;
         string xml = "<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
-            + "<dimension ref=\"A1:C6\"/><sheetData>" + header + rows + "</sheetData></worksheet>";
+            + $"<dimension ref=\"A1:C{rowCount}\"/><sheetData>" + header + rows + "</sheetData></worksheet>";
         ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes(xml));
         return path;
     }
