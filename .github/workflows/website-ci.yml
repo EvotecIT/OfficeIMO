@@ -43,6 +43,8 @@ jobs:
       runner_labels_json: ${{ (github.event.repository.private && vars.OFFICEIMO_FORCE_GITHUB_HOSTED != 'true') && '["self-hosted","linux"]' || '["ubuntu-latest"]' }}
       dotnet_version: "10.0.x"
       dotnet_workloads: wasm-tools
+      # Three extra Linux jobs share the API docs block with this one.
+      apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
       powerforge_ref: b48450ea1c26584aa5d531b3e65eae1b153c2bcb
       report_artifact_name: powerforge-website-reports
@@ -65,6 +67,8 @@ jobs:
       timeout_minutes: 120
       dotnet_version: "10.0.x"
       dotnet_workloads: wasm-tools
+      # Three extra Linux jobs share the API docs block with this one.
+      apidocs_shards: 4
       powerforge_repository: EvotecIT/PSPublishModule
       powerforge_ref: b48450ea1c26584aa5d531b3e65eae1b153c2bcb
       report_artifact_name: powerforge-website-reports
