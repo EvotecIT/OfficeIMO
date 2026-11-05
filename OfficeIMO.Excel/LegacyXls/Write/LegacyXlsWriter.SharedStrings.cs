@@ -101,51 +101,55 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     return;
                 }
 
-                var writer = new LegacyXlsStringSegmentWriter(maximumBytes);
+                // Three header bytes per string provide a conservative capacity bound.
+                int segmentCapacity = (int)Math.Min(BiffMaxRecordDataLength, Math.Max(256L, 8L + 3L * _entries.Count));
+                var writer = new LegacyXlsStringSegmentWriter(maximumBytes, segmentCapacity);
                 writer.WriteUInt32(_totalCount);
                 writer.WriteUInt32(checked((uint)_entries.Count));
-                var stringPositions = new List<LegacyXlsStringPosition>(_entries.Count);
+                int stringsPerBucket = Math.Max((_entries.Count / 128) + 1, 8);
+                var stringPositions = new List<LegacyXlsStringPosition>(((_entries.Count - 1) / stringsPerBucket) + 1);
+                int nextBucketIndex = 0;
                 for (int entryIndex = 0; entryIndex < _entries.Count; entryIndex++) {
                     if ((entryIndex & 255) == 0) cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsSharedStringEntry entry = _entries[entryIndex];
-                    stringPositions.Add(writer.WriteUnicodeString(entry.Text, entry.FormattingRuns));
+                    LegacyXlsStringPosition position = writer.WriteUnicodeString(entry.Text, entry.FormattingRuns);
+                    if (entryIndex == nextBucketIndex) {
+                        stringPositions.Add(position);
+                        nextBucketIndex += stringsPerBucket;
+                    }
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
-                IReadOnlyList<byte[]> payloads = writer.GetPayloads(cancellationToken);
                 long sharedStringTableOffset = stream.Position;
-                WriteRecord(stream, 0x00fc, payloads[0]);
-                for (int i = 1; i < payloads.Count; i++) {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    WriteRecord(stream, 0x003c, payloads[i]);
-                }
+                IReadOnlyList<int> payloadLengths = writer.WriteSharedStringRecords(stream, cancellationToken);
 
                 WriteExtSstRecord(
                     stream,
                     sharedStringTableOffset,
-                    payloads,
+                    payloadLengths,
                     stringPositions,
+                    stringsPerBucket,
                     cancellationToken);
             }
 
             private void WriteExtSstRecord(
                 Stream stream,
                 long sharedStringTableOffset,
-                IReadOnlyList<byte[]> sharedStringPayloads,
+                IReadOnlyList<int> sharedStringPayloadLengths,
                 IReadOnlyList<LegacyXlsStringPosition> stringPositions,
+                int stringsPerBucket,
                 CancellationToken cancellationToken) {
-                int stringsPerBucket = Math.Max((_entries.Count / 128) + 1, 8);
-                long[] recordOffsets = new long[sharedStringPayloads.Count];
+                long[] recordOffsets = new long[sharedStringPayloadLengths.Count];
                 long recordOffset = sharedStringTableOffset;
-                for (int i = 0; i < sharedStringPayloads.Count; i++) {
+                for (int i = 0; i < sharedStringPayloadLengths.Count; i++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     recordOffsets[i] = recordOffset;
-                    recordOffset = checked(recordOffset + 4L + sharedStringPayloads[i].Length);
+                    recordOffset = checked(recordOffset + 4L + sharedStringPayloadLengths[i]);
                 }
 
                 using var payload = new MemoryStream();
                 WriteUInt16(payload, checked((ushort)stringsPerBucket));
-                for (int stringIndex = 0; stringIndex < stringPositions.Count; stringIndex += stringsPerBucket) {
+                for (int stringIndex = 0; stringIndex < stringPositions.Count; stringIndex++) {
                     cancellationToken.ThrowIfCancellationRequested();
                     LegacyXlsStringPosition position = stringPositions[stringIndex];
                     ushort recordRelativeOffset = checked((ushort)(position.Offset + 4));
@@ -206,14 +210,16 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             private readonly List<byte[]> _segments = new();
             private readonly List<int> _segmentLengths = new();
             private readonly long _maximumBytes;
+            private readonly int _initialSegmentCapacity;
             private long _completedBytes;
             private byte[] _current = null!;
             private int _currentLength;
             private int _currentLimit;
             private byte[] _scratch = new byte[64];
 
-            internal LegacyXlsStringSegmentWriter(long maximumBytes = int.MaxValue) {
+            internal LegacyXlsStringSegmentWriter(long maximumBytes = int.MaxValue, int initialSegmentCapacity = 256) {
                 _maximumBytes = maximumBytes;
+                _initialSegmentCapacity = initialSegmentCapacity;
                 AddBoundedSegment();
             }
 
@@ -222,7 +228,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 if (remaining <= 0) throw OfficeIMO.Core.Internal.OfficeOutputLimit.Create("Native XLS shared strings exceed the in-memory save limit.");
                 if (_segments.Count > 0) _segmentLengths[_segments.Count - 1] = _currentLength;
                 _currentLimit = (int)Math.Min(BiffMaxRecordDataLength, remaining);
-                _current = new byte[Math.Min(256, _currentLimit)];
+                _current = new byte[Math.Min(_initialSegmentCapacity, _currentLimit)];
                 _currentLength = 0;
                 _segments.Add(_current);
                 _segmentLengths.Add(0);
@@ -280,6 +286,18 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 }
 
                 return position;
+            }
+
+            /// <summary>Writes the owned segments without copying their used prefixes.</summary>
+            internal IReadOnlyList<int> WriteSharedStringRecords(Stream stream, CancellationToken cancellationToken) {
+                _segmentLengths[_segments.Count - 1] = _currentLength;
+                for (int index = 0; index < _segments.Count; index++) {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    WriteRecord(stream, index == 0 ? (ushort)0x00fc : (ushort)0x003c,
+                        _segments[index], _segmentLengths[index]);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                return _segmentLengths;
             }
 
             internal IReadOnlyList<byte[]> GetPayloads(CancellationToken cancellationToken = default) {
