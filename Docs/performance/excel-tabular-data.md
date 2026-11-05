@@ -1265,6 +1265,202 @@ Native osx-arm64 AOT executes the large prefixed loaded snapshot and existing
 escaped implicit scalar and typed reads. Windows net472 execution is unmeasured.
 No public API, grid loader, selector timing or production dependency changes.
 
+## Indexed numeric reads and current comparison coverage: 5 November 2026
+
+I measure the next candidate against `376ab595af`, whose source tree equals the
+merged baseline `e163ccb366`. The candidate is `887a8591a6`; the
+[normalized evidence](tabular-reader-followup-2026-11-05.json) retains source,
+assembly and fixture hashes, every warmup and workload sample, allocations and
+validation results. These results are from the same M4 host, at Normal priority.
+The Windows cohort below is separate; neither establishes a whole-market ranking.
+
+Eligible prefetched worksheets now overlap inflation with the existing bounded
+indexing worker. Scalar numeric getters avoid general object dispatch while
+preserving the configured numeric type, lazy date conversion and getter-order
+cache behavior. With `NumericAsDecimal`, plain non-date literals of at most
+fifteen digits use a scale-normalized decimal path; other spellings, formulas,
+converters and dates retain the ordinary parser. Validation still finishes before
+the first row is delivered. The public API, selector timing, production
+references and target frameworks are unchanged.
+
+### Matched sales reads
+
+The primary comparison freezes the benchmark and dependency assemblies and swaps
+only OfficeIMO.Excel. Four launches run before/after/after/before, each with
+twelve warmups, twelve measurements and sixteen invocations, with every outlier
+retained. The table averages the two launch medians on each side; it is not a
+statistical equivalence test. Every operation validates all fourteen typed values,
+row count and ordered checksum.
+
+| Lane | Before ms | After ms | Reduction | Allocation after KiB |
+| --- | ---: | ---: | ---: | ---: |
+| OfficeIMO | 66.584 | 55.742 | 16.3% | 104.69 |
+| OfficeIMO prefetch | 84.820 | 55.344 | 34.8% | 105.02 |
+| ExcelReader.NET 7.4.0 | 54.197 | 53.203 | 1.8% | 16.93 |
+| ExcelReader.NET 7.4.0 prefetch | 37.867 | 37.180 | 1.8% | 33.18 |
+
+Unchanged controls move by about 1.8%. Both paired OfficeIMO default reductions
+are 16.3%; the prefetch pairs improve by 35.0% and 34.5%. The 20% target is met
+for prefetch, not for default reads. The prefetched comparison still leads.
+A separate matched pair isolates the short-literal shortcut: OfficeIMO moves
+58.021 to 55.138 ms, with its unchanged control moving 53.961 to 53.478 ms.
+That smaller result is not the full candidate's improvement.
+
+The fixed generated XLSX control remains essentially unchanged. Plain/escaped
+OfficeIMO cell reads are 5.507/8.566 ms and typed parses 7.184/9.992 ms; the
+corresponding ExcelReader.NET results are 6.195/12.576 and 7.593/14.059 ms.
+Sylvan reads are 27.935/31.889 ms and ExcelDataReader reads 59.565/67.823 ms.
+All use the same baseline-produced files, eight warmups, twelve measurements and
+sixteen invocations. I do not attribute the unchanged workload to this change.
+
+### Current package coverage
+
+The opt-in modern CSV executable compares complete owned strings from the same
+hash-pinned 65K-by-14 sales file. It remains outside the normal solution. The
+main CSV executable retains its existing CsvHelper 33.1.0 lane; CsvHelper 34's
+new API is isolated here. FourLambda.Csv 1.1.0 carries MPL-2.0 and uses its
+software fallback on this host; CsvHelper 34.0.0 uses its Apache-2.0 license
+option. Sep 0.17.1 is MIT. Each operation opens the input and validates every
+field, count and ordered checksum; borrowed spans are not owned strings.
+
+| Owned-string CSV reader | Median ms | Allocated MiB |
+| --- | ---: | ---: |
+| OfficeIMO | 14.757 | 34.211 |
+| Sep 0.17.1 | 13.180 | 34.217 |
+| CsvHelper 34.0.0 | 11.816 | 34.209 |
+| FourLambda.Csv 1.1.0 | 18.866 | 35.714 |
+
+The main CSV suite also includes RecordParser 2.3.0 (MIT), with explicit ordinal
+mapping, invariant conversion, round-trip dates and ordered parallel output.
+These are ten-field typed records; they are a separate workload from the table
+above. All output records and their order are validated.
+
+| Typed CSV workload | OfficeIMO ms | Sep 0.17.1 ms | RecordParser 2.3.0 ms |
+| --- | ---: | ---: | ---: |
+| 25K records, serial | 11.678 | 12.719 | 19.054 |
+| 100K records, serial | 51.370 | 55.928 | 80.198 |
+| 100K records, ordered DOP 8 | 39.502 | 34.331 | 40.592 |
+| 100K records, ordered DOP 16 | 36.674 | 33.228 | 43.599 |
+
+Excel-PRIME 5.2610.18 (MIT) adds managed forward-only XLSX/XLSB coverage, with
+both default cell conversion and style conversion. Every row is disposed and all
+fourteen typed columns are observed. There is no native inflater plugin or
+reused extracted worksheet. These launches use twelve warmups, twelve
+measurements and eight invocations; all controls run in the same cohort.
+
+| Workbook reader | XLSX ms / MiB | XLSB ms / MiB |
+| --- | ---: | ---: |
+| OfficeIMO | 56.141 / 0.103 | 40.236 / 0.108 |
+| ExcelReader.NET 7.4.0 | 54.189 / 0.017 | 34.916 / 0.017 |
+| ExcelReader.NET 7.4.0 prefetch | 38.165 / 0.033 | — |
+| Excel-PRIME 5.2610.18 | 240.136 / 24.449 | 69.230 / 76.367 |
+| Excel-PRIME with style conversion | 236.913 / 2.655 | 70.852 / 76.436 |
+
+Complete-write controls remain unchanged: XLS is 15.485 ms for OfficeIMO versus
+5.450 ms for ExcelReader.NET; XLSB is 15.612 versus 5.490 ms. XLSX is 9.644,
+7.884 and 11.121 ms for OfficeIMO, ExcelReader.NET and SpreadCheetah respectively.
+CSV is 6.788 versus 6.726 ms. The evidence preserves allocation and output
+validation for every writer; these measurements include complete files.
+
+### Windows x64 qualification
+
+The [Windows evidence](tabular-readers-windows-2026-11-05.json) contains forty
+qualified lanes, all 480 samples at each stage, fixture hashes and forty-nine
+binary bindings. The source is `887a8591a6`, with the same baseline as above.
+The host is Windows 11 Pro build 26300, Ryzen 9 9950X3D2, SDK 10.0.403 and runtime
+10.0.14, using its existing High performance plan. The two masks select separate
+96 MiB L3 domains. Timing processes use verified Normal priority and affinity.
+
+Matched XLSX uses one before/after pair per domain, reversing the order on the
+second domain. Each launch has twelve warmups, twelve measurements and sixteen
+invocations, without outlier removal. Only the OfficeIMO.Excel assembly and PDB
+change within the frozen baseline harness.
+
+| Lane | `0xFFFF` before → after ms | Reduction | `0xFFFF0000` before → after ms | Reduction |
+| --- | ---: | ---: | ---: | ---: |
+| OfficeIMO | 72.017 → 53.916 | 25.1% | 68.315 → 54.323 | 20.5% |
+| OfficeIMO prefetch | 91.047 → 56.908 | 37.5% | 80.124 → 58.662 | 26.8% |
+| ExcelReader.NET 7.4.0 | 50.964 → 53.227 | -4.4% | 46.299 → 47.765 | -3.2% |
+| ExcelReader.NET 7.4.0 prefetch | 40.178 → 38.986 | 3.0% | 36.871 → 40.046 | -8.6% |
+
+The default and prefetched candidate improve by more than 20% on both domains.
+Unchanged controls range from 3.0% faster to 8.6% slower under ordinary host
+activity; these are single launches per side, not statistical equivalence or
+universal speedup claims. Some allocation readings vary materially even for
+controls. I retain those per-process values without treating the differences as
+allocation improvements.
+
+The additional current-reader runs use the same complete observations and options
+as the Mac cohort, with twelve warmups and twelve measurements. CSV uses sixteen
+invocations; the workbook lanes use eight. Each current-reader launch uses fixed
+BenchmarkDotNet method order, without randomized or counterbalanced library order.
+Host drift can affect those comparisons. Close pairs such as CSV's 20.978 and
+20.544 ms do not establish a leader or statistical equivalence.
+
+| Format and reader | `0xFFFF` median ms | `0xFFFF0000` median ms |
+| --- | ---: | ---: |
+| CSV — OfficeIMO | 20.978 | 20.035 |
+| CSV — Sep 0.17.1 | 23.477 | 22.309 |
+| CSV — CsvHelper 34.0.0 | 13.852 | 14.957 |
+| CSV — FourLambda.Csv 1.1.0 | 20.544 | 24.258 |
+| XLSX — OfficeIMO | 53.591 | 54.806 |
+| XLSX — ExcelReader.NET 7.4.0 | 50.374 | 52.604 |
+| XLSX — Excel-PRIME 5.2610.18 | 295.016 | 309.232 |
+| XLSX — Excel-PRIME with style conversion | 332.762 | 306.981 |
+| XLSB — OfficeIMO | 42.188 | 46.443 |
+| XLSB — ExcelReader.NET 7.4.0 | 29.392 | 37.429 |
+| XLSB — Excel-PRIME 5.2610.18 | 91.789 | 96.800 |
+| XLSB — Excel-PRIME with style conversion | 94.233 | 105.053 |
+
+FourLambda uses its AVX2 scanner on this host. The initial XLSB legs inherited
+High priority and are excluded; all eight XLSB rows above are Normal-priority
+replacements. Their harness reapplies the optional priority setting in XLSB setup,
+with every participant using the same harness. The maintained benchmark now does
+the same. Intermediate load samples are unavailable for these replacements;
+start/end observations remain in the evidence. The artifact now retains all ten
+recorded PowerShell argument arrays, environment overrides and the exact recheck
+source patch. Its file hashes are explicitly reconstructed from the original Git
+blob and retained additions; observed DLL/PDB hashes remain separate. Build and
+validation commands are expanded retained script templates. The prefetched XLSX
+and current CSV gaps remain on both platforms.
+
+### Proof and remaining costs
+
+The existing numeric reader-boundary theory now covers both numeric-object
+modes, decimal bit patterns and mixed scalar getter order. The focused run
+passes 59 cases; a separate seeded parity probe checks 1,000,010 accepted literal
+values against the original double-to-decimal conversion without a difference.
+Excel compiles for netstandard2.0, net472, net8.0 and net10.0; Excel.Tests also
+compiles explicitly for net472. Actual Excel and CSV NativeAOT programs execute
+successfully. Final net10.0 suites pass 7,795 Excel cases with five expected
+skips and all 965 CSV cases. Comparison executables build and validate on net8.0
+and net10.0; net8's legacy ExcelReader package is not the 7.4.0 throughput cohort.
+
+The initial net8.0 PRIME preflight returned zero without dispatching validation.
+The dispatcher now sits outside the .NET 10 conditional, and both target runs
+must print the explicit success marker. The normalized evidence marks the old
+net8.0 result as superseded.
+
+The candidate also includes the shared file-claim correction needed by the
+concurrent image-save check: collision probing retries if another writer removes
+its claim between creation and inspection. Exclusive creation and persistent
+permission failures retain their existing behavior. Both shared-source consumers
+compile for all four targets. Local focused runs pass seven Drawing, twenty-nine
+Core storage and fourteen Reader cases. Native Windows net8.0 and net10.0 runs
+at `9c3d0981cb` pass the same seven/twenty-nine/fourteen cases per framework.
+Of 100 TRX passes, 24 Shared cases return before Unix-only assertions, leaving
+76 native assertion cases. The Windows Reader permission and pending-deletion
+cases execute through both compiled claim implementations. Source, assembly and
+evidence hashes are retained separately from throughput results.
+
+The new XLSX sample still shows inflation as the largest calling-thread stack.
+The indexing worker spends substantial time waiting for produced bytes; those
+inclusive sampled thread spans include waits and are not an additive CPU or
+elapsed-time breakdown. The CSV no-inlining diagnostic identifies owned-string
+decoding and the getter path, followed by row scanning; disabling inlining is a
+diagnostic setting, not a measured product configuration. CSV runtime and binary
+writers have no changes in this candidate. Their remaining gaps are preserved.
+
 ## Remaining costs and limits
 
 Parity across formats is incomplete. Generated owned-string XLSX reads remain

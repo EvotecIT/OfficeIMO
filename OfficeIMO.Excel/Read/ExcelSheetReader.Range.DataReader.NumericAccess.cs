@@ -52,6 +52,37 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            /// <summary>Retains IEEE-to-decimal semantics, the configured object type and lazy date values.</summary>
+            private bool TryGetUnloadedDecimal(int ordinal, out decimal value) {
+                EnsureOpenRow();
+                if ((uint)ordinal >= (uint)_fieldCount) {
+                    throw new IndexOutOfRangeException(ordinal.ToString(CultureInfo.InvariantCulture));
+                }
+                value = default;
+                if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
+                ref bool loaded = ref _currentValueLoaded[ordinal];
+                if (loaded || _owner._opt.CellValueConverter != null) return false;
+                if (_owner._opt.NumericAsDecimal
+                    && _utf8Source.TryGetShortDecimal(ordinal + _utf8SourceOrdinalOffset, out value)) {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
+                    GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                    loaded = true;
+                    return true;
+                }
+                if (!_utf8Source.TryGetNumber(ordinal + _utf8SourceOrdinalOffset, out double number, out bool dateStyle)
+                    || !TryConvertExcelNumberToDecimal(number, out value)) return false;
+
+                if (_owner._opt.NumericAsDecimal && !dateStyle) {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
+                    GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                } else {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Double;
+                    GetValidatedOrdinalSlot(_currentDoubleValues, ordinal) = number;
+                }
+                loaded = !dateStyle;
+                return true;
+            }
+
             /// <summary>
             /// Reads an unloaded indexed date-style number without the general cell
             /// dispatch. The cached DateTime follows the existing getter-order rules;
@@ -67,7 +98,7 @@ namespace OfficeIMO.Excel {
                 value = default;
                 if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
                 ref bool loaded = ref _currentValueLoaded[ordinal];
-                if (loaded || _owner._opt.NumericAsDecimal
+                if (loaded
                     || _owner._opt.CellValueConverter != null
                     || !_utf8Source.TryGetDateTime(ordinal + _utf8SourceOrdinalOffset, out value)) {
                     return false;
@@ -82,7 +113,7 @@ namespace OfficeIMO.Excel {
             /// <summary>
             /// Reads an exact Int32 from an unloaded indexed number without entering
             /// the floating-point conversion pipeline. The shared cache still records
-            /// a Double, preserving the value exposed by subsequent scalar getters.
+            /// the configured numeric object type for subsequent scalar getters.
             /// </summary>
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             private bool TryGetUnloadedInt32(int ordinal, out int value) {
@@ -94,20 +125,67 @@ namespace OfficeIMO.Excel {
                 value = default;
                 if (_utf8Source == null || _currentRowIsBlank || _currentRow == null) return false;
                 ref bool loaded = ref _currentValueLoaded[ordinal];
-                if (loaded || _owner._opt.NumericAsDecimal
+                if (loaded
                     || _owner._opt.CellValueConverter != null
                     || !_utf8Source.TryGetExactInt32(ordinal + _utf8SourceOrdinalOffset, out value)) {
                     return false;
                 }
 
-                GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Double;
-                GetValidatedOrdinalSlot(_currentDoubleValues, ordinal) = value;
+                if (_owner._opt.NumericAsDecimal) {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Decimal;
+                    GetValidatedOrdinalSlot(_currentDecimalValues, ordinal) = value;
+                } else {
+                    GetValidatedOrdinalSlot(_currentPrimitiveKinds, ordinal) = XmlDataReaderPrimitiveKind.Double;
+                    GetValidatedOrdinalSlot(_currentDoubleValues, ordinal) = value;
+                }
                 loaded = true;
                 return true;
             }
         }
 
         private sealed partial class ExcelUtf8RangeRowSource {
+            /// <summary>
+            /// Plain literals with at most fifteen digits fit the IEEE-to-decimal
+            /// conversion's precision. Normalize their scale and zero just as that
+            /// conversion does; other numeric spellings keep the ordinary parser.
+            /// </summary>
+            internal bool TryGetShortDecimal(int ordinal, out decimal value) {
+                EnsureNotDisposed();
+                value = default;
+                int cellIndex = _currentRowOffset + ordinal;
+                if (_cellKinds![cellIndex] != (byte)Utf8CellKind.Number
+                    || _formulaLengths != null && _formulaLengths[cellIndex] >= 0
+                    || _valueLengths![cellIndex] < 0) return false;
+
+                ReadOnlySpan<byte> token = TrimAsciiWhitespace(
+                    _buffer!.AsSpan(_valueStarts![cellIndex], _valueLengths[cellIndex]));
+                if (token.IsEmpty) return false;
+                bool negative = token[0] == (byte)'-';
+                if (token.Length > (negative ? 17 : 16)) return false;
+                int index = negative ? 1 : 0;
+                int digits = 0, scale = 0;
+                bool point = false;
+                ulong mantissa = 0;
+                for (; index < token.Length; index++) {
+                    uint digit = (uint)(token[index] - (byte)'0');
+                    if (digit <= 9) {
+                        if (++digits > 15) return false;
+                        mantissa = mantissa * 10 + digit;
+                        if (point) scale++;
+                    } else if (token[index] == (byte)'.' && !point && digits > 0 && index < token.Length - 1) {
+                        point = true;
+                    } else return false;
+                }
+                if (digits == 0) return false;
+                if (mantissa == 0) return true;
+                while (scale > 0 && mantissa % 10 == 0) {
+                    mantissa /= 10;
+                    scale--;
+                }
+                value = new decimal(unchecked((int)mantissa), (int)(mantissa >> 32), 0, negative, (byte)scale);
+                return true;
+            }
+
             /// <summary>
             /// Parses a complete indexed numeric token through the common number
             /// parser. Formulas, missing values and XML-escaped text retain general

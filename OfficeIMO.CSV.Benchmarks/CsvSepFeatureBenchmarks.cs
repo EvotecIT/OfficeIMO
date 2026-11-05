@@ -227,9 +227,9 @@ public class CsvTrimUnescapeSpanBenchmarks {
 }
 
 /// <summary>
-/// Compares equivalent explicit typed materialization. Both lanes resolve the same headers,
-/// decode quotes, create the same objects, preserve row order, and pass a property-by-property
-/// preflight before measurement.
+/// Compares equivalent explicit typed materialization. Every reader decodes quotes, creates
+/// the same objects, preserves row order, and passes a property-by-property preflight
+/// before measurement.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
@@ -247,6 +247,9 @@ public class CsvTypedSequentialBenchmarks {
 
     [Benchmark]
     public CsvBenchmarkRow[] SepSequential() => _fixture.SepSequential();
+
+    [Benchmark]
+    public CsvBenchmarkRow[] RecordParserSequential() => _fixture.RecordParserSequential();
 }
 
 /// <summary>
@@ -272,10 +275,10 @@ public class CsvAutomaticMappingBenchmarks {
 }
 
 /// <summary>
-/// Compares equivalent ordered parallel typed materialization. Both lanes parse the same
+/// Compares equivalent ordered parallel typed materialization. Every reader parses the same
 /// source, create the same objects, preserve row order, and use the same worker limit.
-/// Both lanes use their public transient-record APIs so generic IDataRecord dispatch is not
-/// misreported as parser cost.
+/// Mapping uses each reader's public typed or span access rather than generic IDataRecord
+/// dispatch.
 /// </summary>
 [MemoryDiagnoser]
 [RankColumn]
@@ -289,6 +292,7 @@ public class CsvParallelScalingBenchmarks {
     public void Setup() {
         _fixture = CsvTypedMaterializationFixture.Create(100_000);
         _fixture.ValidateParallel(OfficeIMOParallel(), SepParallel());
+        _fixture.ValidateRecordParser(RecordParserParallel());
     }
 
     [Benchmark(Baseline = true)]
@@ -296,6 +300,9 @@ public class CsvParallelScalingBenchmarks {
 
     [Benchmark]
     public CsvBenchmarkRow[] SepParallel() => _fixture.SepParallel(DegreeOfParallelism);
+
+    [Benchmark]
+    public CsvBenchmarkRow[] RecordParserParallel() => _fixture.RecordParserParallel(DegreeOfParallelism);
 }
 
 /// <summary>
@@ -377,7 +384,7 @@ public class CsvParallelCrossoverTuningBenchmarks {
         _fixture.OfficeIMORecordParallel(DegreeOfParallelism, BatchSize);
 }
 
-internal sealed class CsvTypedMaterializationFixture {
+internal sealed partial class CsvTypedMaterializationFixture {
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
     private CsvBenchmarkRow[] _expectedRows = [];
     private string _csvText = string.Empty;
@@ -404,6 +411,7 @@ internal sealed class CsvTypedMaterializationFixture {
         Validate(nameof(OfficeIMORowsAs), OfficeIMORowsAs());
         Validate(nameof(OfficeIMOManual), OfficeIMOManual());
         Validate(nameof(SepSequential), SepSequential());
+        Validate(nameof(RecordParserSequential), RecordParserSequential());
         Validate(nameof(SepParallel), SepParallel(Environment.ProcessorCount));
     }
 
@@ -609,33 +617,4 @@ internal sealed class CsvTypedMaterializationFixture {
         int Owner,
         int TicketCount,
         int Notes);
-}
-
-internal struct CsvObservationAccumulator {
-    private const ulong ChecksumOffset = 14695981039346656037UL;
-    private const ulong ChecksumPrime = 1099511628211UL;
-    private int _cells;
-    private long _characters;
-    private ulong _checksum;
-
-    internal void Add(string? value) => Add(value.AsSpan());
-
-    internal void Add(ReadOnlySpan<char> value) {
-        if (_cells == 0) {
-            _checksum = ChecksumOffset;
-        }
-
-        _cells++;
-        _characters += value.Length;
-        foreach (char character in value) {
-            _checksum ^= character;
-            _checksum *= ChecksumPrime;
-        }
-
-        _checksum ^= (ulong)value.Length;
-        _checksum *= ChecksumPrime;
-    }
-
-    internal CsvReadObservation ToObservation(int rows) =>
-        new(rows, _cells, _characters, _cells == 0 ? ChecksumOffset : _checksum);
 }

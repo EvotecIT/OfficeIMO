@@ -8,11 +8,21 @@ using BenchmarkDotNet.Running;
 using System.Globalization;
 using System.Text.Json;
 
+if (args.Length == 1 && args[0] == "--validate-prime-readers") {
+    ExcelPrimeSalesObservation.ValidateReaders();
+    return;
+}
+
 #if NET10_0_OR_GREATER
+if (args.Length > 0 && args[0] == "--profile-native-generated-write") {
+    ExcelNativeGeneratedWriteProfileRunner.Run(args);
+    return;
+}
 if (args.Length == 2 && args[0] == "--prepare-generated-inputs") {
     ExcelGeneratedReadProfileRunner.PrepareInputs(args[1]);
     return;
 }
+
 if (args.Length > 0 && args[0] == "--profile-generated-xlsx") {
     ExcelGeneratedReadProfileRunner.Run(args);
     return;
@@ -638,6 +648,7 @@ static void WriteUsage() {
     Console.WriteLine("  compare [output] [--rows N] [--scenario name] [--library name] [--skip-legacy-epplus] [--warmup N] [--iterations N] [--affinity mask] [--priority High]");
     Console.WriteLine("  package-profile [output] [--rows N] [--scenario name] [--warmup N] [--iterations N]");
     Console.WriteLine("  --profile-datareader-write-officeimo [iterations] [affinity-mask]");
+    Console.WriteLine("  --profile-native-generated-write [xlsb|xls] [iterations] (.NET 10)");
     Console.WriteLine("  --profile-datareader-write-largexlsx [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-datareader-write-spreadcheetah [iterations] [affinity-mask]");
     Console.WriteLine("  --profile-excelreader-write-xlsx-officeimo [iterations] [row-count] [affinity-mask] [priority]");

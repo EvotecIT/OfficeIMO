@@ -15,12 +15,16 @@ internal static class PipelinedReadSmoke {
         }
         byte[] bytes = output.ToArray();
         using (var input = new MemoryStream(bytes))
-        using (var reader = ExcelDocument.OpenReader(input)) {
+        using (var reader = ExcelDocument.OpenReader(input,
+            new ExcelReaderOptions { NumericAsDecimal = true, EnableWorksheetPrefetch = true })) {
             int count = 0;
             while (reader.Read()) {
                 Row expected = Create(count++);
                 if (reader.GetString(0) != expected.Name || reader.GetInt32(1) != expected.Id
-                    || reader.GetDateTime(2) != expected.CreatedOn || reader.GetDouble(3) != expected.Amount)
+                    || reader.GetDateTime(2) != expected.CreatedOn || reader.GetDecimal(3) != (decimal)expected.Amount
+                    || reader.GetValue(1) is not decimal id || id != expected.Id
+                    || reader.GetValue(3) is not decimal amount || amount != (decimal)expected.Amount
+                    || reader.GetDouble(3) != expected.Amount)
                     throw new InvalidOperationException("The large compressed reader lost an indexed value.");
             }
             if (count != Count) throw new InvalidOperationException("The large compressed reader lost rows.");
@@ -33,7 +37,7 @@ internal static class PipelinedReadSmoke {
             }
             if (count != Count) throw new InvalidOperationException("The large compressed typed reader lost rows.");
         }
-        Console.WriteLine("PASS | Large compressed implicit worksheets retain escaped text and every scalar and typed row under NativeAOT");
+        Console.WriteLine("PASS | Large compressed implicit worksheets retain escaped text, prefetched decimal scalars and every typed row under NativeAOT");
         RunLoadedPrefixedSnapshot();
     }
 

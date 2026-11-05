@@ -21,6 +21,11 @@ output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
 an unavailable timing, without ranking invalid output against a valid package.
 
+For CPU sampling I use `--profile-native-generated-write xlsb 600` (or `xls`).
+This .NET 10 entry point runs the same complete 50,000-row writer workload,
+validates before and after sampling, and avoids benchmark report generation in
+the traced process. I use BenchmarkDotNet for timings and allocations.
+
 The .NET 10 lanes use the published MIT ExcelReader.NET 7.4.0 package. The .NET 8
 comparisons retain their last compatible pin and are a separate version cohort.
 These generated lanes run on .NET 10:
@@ -57,6 +62,15 @@ each library, including the XLibur 0.800.0 loaded-workbook lane. Separate method
 measure loaded OfficeIMO documents, memory inputs, prefetch and string interning;
 their names identify the options used. Every method validates the row count and
 the checksum over all typed values.
+
+The XLSX and XLSB comparisons also include Excel-PRIME 5.2610.18 (MIT). Its
+default managed forward reader and `ExcelCellStyle` conversion option are
+separate lanes. Both read all fourteen columns and normalize numeric cells
+through the same IEEE-to-decimal conversion as the other readers. Every row
+and workbook is disposed within the operation. These lanes do not use a native
+inflater plugin or retain an extracted sheet between operations.
+`--validate-prime-readers` runs the four complete PRIME observations once without
+collecting timings; it uses the same fixed expectations as the measured methods.
 
 `ExcelWideLoadedReadBenchmarks` is a supplemental 10,000-by-150 presence scan,
 separate from XLBench's published scenarios. Both APIs include headers and must
