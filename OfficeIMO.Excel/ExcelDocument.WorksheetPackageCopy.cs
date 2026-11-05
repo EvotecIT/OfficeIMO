@@ -96,9 +96,10 @@ namespace OfficeIMO.Excel {
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
                 RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
+                WorksheetStyleCopyMap styleMap = WorksheetStyleCopyMap.Empty;
                 if (!adoptedSourceIndexes) {
-                    WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
-                    RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
+                    styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
+                    RemapCopiedWorksheetDifferentialFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
                     ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);
                 }
 
@@ -108,7 +109,10 @@ namespace OfficeIMO.Excel {
                 IReadOnlyDictionary<int, int> externalReferenceMap = copyExternalWorkbookReferences
                     ? CopyExternalWorkbookReferencesFromSource(sourceDocument)
                     : new Dictionary<int, int>();
-                IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(sourcePart, copiedPart);
+                IReadOnlyDictionary<string, string> tableNameMap = CopyWorksheetTables(
+                    sourcePart,
+                    copiedPart,
+                    differentialFormatMap: styleMap.DifferentialFormats);
                 bool copiedFormulas = copiedPart.Worksheet.Descendants<CellFormula>()
                     .Any(formula => !string.IsNullOrWhiteSpace(formula.Text));
 
@@ -464,32 +468,64 @@ namespace OfficeIMO.Excel {
             return new WorksheetStyleCopyMap(cellFormatMap, differentialFormatMap);
         }
 
-        private static void RemapCopiedWorksheetConditionalFormats(Worksheet worksheet, IReadOnlyDictionary<uint, uint> differentialFormatMap) {
+        // The attributes that hold dxf indexes in worksheets and table parts: conditional formats, color filters and
+        // sort conditions use dxfId, and tables and table columns name the area they format.
+        private static readonly HashSet<string> DifferentialFormatIdAttributes = new HashSet<string>(StringComparer.Ordinal) {
+            "dxfId",
+            "headerRowDxfId",
+            "dataDxfId",
+            "totalsRowDxfId",
+            "headerRowBorderDxfId",
+            "tableBorderDxfId",
+            "totalsRowBorderDxfId"
+        };
+
+        /// <summary>
+        /// Points a copied worksheet's conditional formats, filters and sorts at the target's dxfs. Cells never carry dxf
+        /// ids, so the cell data is not visited.
+        /// </summary>
+        private static void RemapCopiedWorksheetDifferentialFormats(Worksheet worksheet, IReadOnlyDictionary<uint, uint> differentialFormatMap) {
             if (differentialFormatMap.Count == 0) {
                 return;
             }
 
-            foreach (ConditionalFormattingRule rule in worksheet.Descendants<ConditionalFormattingRule>()) {
-                uint? oldDxfId = rule.FormatId?.Value;
-                if (oldDxfId.HasValue && differentialFormatMap.TryGetValue(oldDxfId.Value, out uint newDxfId)) {
-                    rule.FormatId = newDxfId;
+            foreach (OpenXmlElement child in worksheet.ChildElements) {
+                if (child is not SheetData) {
+                    RemapCopiedDifferentialFormatIds(child, differentialFormatMap);
                 }
             }
+        }
 
-            foreach (OpenXmlElement element in worksheet.Descendants<OpenXmlElement>()) {
-                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
-                    if (!string.Equals(attribute.LocalName, "dxfId", StringComparison.Ordinal)
-                        || !uint.TryParse(attribute.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint oldDxfId)
-                        || !differentialFormatMap.TryGetValue(oldDxfId, out uint newDxfId)) {
-                        continue;
-                    }
+        /// <summary>Maps every dxf id on <paramref name="root"/> and its descendants exactly once.</summary>
+        private static void RemapCopiedDifferentialFormatIds(OpenXmlElement root, IReadOnlyDictionary<uint, uint> differentialFormatMap) {
+            if (differentialFormatMap.Count == 0) {
+                return;
+            }
 
-                    element.SetAttribute(new OpenXmlAttribute(
-                        attribute.Prefix,
-                        attribute.LocalName,
-                        attribute.NamespaceUri,
-                        newDxfId.ToString(CultureInfo.InvariantCulture)));
+            RemapDifferentialFormatIdAttributes(root, differentialFormatMap);
+            foreach (OpenXmlElement element in root.Descendants()) {
+                RemapDifferentialFormatIdAttributes(element, differentialFormatMap);
+            }
+        }
+
+        private static void RemapDifferentialFormatIdAttributes(OpenXmlElement element, IReadOnlyDictionary<uint, uint> differentialFormatMap) {
+            if (!element.HasAttributes) {
+                return;
+            }
+
+            foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                if (!string.IsNullOrEmpty(attribute.NamespaceUri)
+                    || !DifferentialFormatIdAttributes.Contains(attribute.LocalName)
+                    || !uint.TryParse(attribute.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint oldDxfId)
+                    || !differentialFormatMap.TryGetValue(oldDxfId, out uint newDxfId)) {
+                    continue;
                 }
+
+                element.SetAttribute(new OpenXmlAttribute(
+                    attribute.Prefix,
+                    attribute.LocalName,
+                    attribute.NamespaceUri,
+                    newDxfId.ToString(CultureInfo.InvariantCulture)));
             }
         }
 

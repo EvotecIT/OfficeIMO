@@ -209,9 +209,3 @@ public class MarkPflug65KCsvBenchmarks {
         }
     }
 }
-
-public readonly record struct CsvReadObservation(
-    int Rows,
-    int Cells,
-    long Characters,
-    ulong Checksum);
