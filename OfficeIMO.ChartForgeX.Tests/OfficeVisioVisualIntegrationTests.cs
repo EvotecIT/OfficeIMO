@@ -397,7 +397,6 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         note.TargetIds.Add("service");
         envelope.Annotations.Add(note);
         var fragment = SequenceBlock("fragment", "cached", SequenceArtifactBlockKind.Opt, 0, 0);
-        fragment.TargetIds.Add("service");
         envelope.Annotations.Add(fragment);
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
@@ -484,7 +483,6 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
             EndIndex = 0,
             Sequence = new VisualArtifactInterchangeSequenceAnnotation { BlockKind = SequenceArtifactBlockKind.Opt }
         };
-        fragment.TargetIds.Add("api-lifeline");
         envelope.Annotations.Add(fragment);
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
@@ -530,7 +528,6 @@ public sealed partial class OfficeVisioVisualIntegrationTests {
         envelope.Edges.Add(Message("call", "fragment-label", "service", "Call", 0));
         VisualArtifactInterchangeAnnotation fragment = SequenceBlock("fragment", "Optional", SequenceArtifactBlockKind.Opt, 0, 0);
         fragment.Kind = "custom-block-kind";
-        fragment.TargetIds.Add("service");
         envelope.Annotations.Add(fragment);
 
         OfficeVisioVisualConversionResult result = envelope.ToOfficeVisio();
