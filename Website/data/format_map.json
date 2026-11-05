@@ -363,13 +363,13 @@
       "package": "OfficeIMO.AsciiDoc.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "AsciiDocDocument.ParseResult(source).Document.ToMarkdownDocumentResult(options)",
+      "api": "AsciiDocDocument.ParseResult(source).Document.ToMarkdown(options, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeAsciiDocMarkdown",
-      "example": "ConvertTo-OfficeAsciiDocMarkdown -Path ./in.adoc -OutputPath ./out.md"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.adoc -OutputPath ./out.md"
     },
     {
       "id": "asciidoc-pdf",
@@ -812,7 +812,7 @@
         "powershell"
       ],
       "cmdlet": "Get-OfficeConfluencePage",
-      "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8"
+      "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -As Html -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8"
     },
     {
       "id": "confluence-markdown",
@@ -827,7 +827,7 @@
         "powershell"
       ],
       "cmdlet": "Get-OfficeConfluencePage",
-      "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8"
+      "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -As Markdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8"
     },
     {
       "id": "csv-xlsx",
@@ -836,13 +836,13 @@
       "package": "OfficeIMO.Excel.Csv",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "CsvDocument.Load(stream).ToExcelDocument(options)",
+      "api": "CsvDocument.Load(stream).ToExcel(options, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "Import-OfficeExcelDelimitedText",
-      "example": "Import-OfficeExcelDelimitedText -Path ./out.xlsx -SourcePath ./in.csv -SheetName Data"
+      "cmdlet": "Export-OfficeExcel",
+      "example": "Import-OfficeCsv -Path ./in.csv -As DataTable | Export-OfficeExcel -Path ./out.xlsx -Sheet Data"
     },
     {
       "id": "dbf-csv",
@@ -935,8 +935,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeWordHtml",
-      "example": "ConvertTo-OfficeWordHtml -Path ./in.docx -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.html"
     },
     {
       "id": "docx-jpeg",
@@ -965,8 +965,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeWordMarkdown",
-      "example": "ConvertTo-OfficeWordMarkdown -Path ./in.docx -OutputPath ./out.md"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.md"
     },
     {
       "id": "docx-odt",
@@ -980,8 +980,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeOpenDocument",
-      "example": "ConvertTo-OfficeOpenDocument -Path ./in.docx -OutputPath ./out.odt"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.odt"
     },
     {
       "id": "docx-pdf",
@@ -998,8 +998,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeDocumentPdf",
-      "example": "Export-OfficeDocumentPdf -InputPath ./in.docx -Path ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.pdf"
     },
     {
       "id": "docx-png",
@@ -1028,8 +1028,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeRtf",
-      "example": "ConvertTo-OfficeRtf -WordPath ./in.docx -OutputPath ./out.rtf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.rtf"
     },
     {
       "id": "docx-svg",
@@ -1089,7 +1089,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg"
+      "example": "Open-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg"
     },
     {
       "id": "email-eml-oft",
@@ -1104,7 +1104,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate"
+      "example": "Open-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate"
     },
     {
       "id": "email-eml-tnef",
@@ -1119,7 +1119,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.dat -Format Tnef"
+      "example": "Open-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.tnef -Format Tnef"
     },
     {
       "id": "email-jpeg",
@@ -1146,7 +1146,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.eml -Format Eml"
+      "example": "Open-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.eml -Format Eml"
     },
     {
       "id": "email-msg-oft",
@@ -1161,7 +1161,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate"
+      "example": "Open-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate"
     },
     {
       "id": "email-msg-tnef",
@@ -1176,7 +1176,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.dat -Format Tnef"
+      "example": "Open-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.tnef -Format Tnef"
     },
     {
       "id": "email-oft-eml",
@@ -1191,7 +1191,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.eml -Format Eml"
+      "example": "Open-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.eml -Format Eml"
     },
     {
       "id": "email-oft-msg",
@@ -1206,7 +1206,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg"
+      "example": "Open-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg"
     },
     {
       "id": "email-oft-tnef",
@@ -1221,7 +1221,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.dat -Format Tnef"
+      "example": "Open-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.tnef -Format Tnef"
     },
     {
       "id": "email-pdf",
@@ -1284,7 +1284,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.eml -Format Eml"
+      "example": "Open-OfficeEmail -Path ./in.tnef | Save-OfficeEmail -Path ./out.eml -Format Eml"
     },
     {
       "id": "email-tnef-msg",
@@ -1299,7 +1299,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg"
+      "example": "Open-OfficeEmail -Path ./in.tnef | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg"
     },
     {
       "id": "email-tnef-oft",
@@ -1314,7 +1314,7 @@
         "powershell"
       ],
       "cmdlet": "Save-OfficeEmail",
-      "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate"
+      "example": "Open-OfficeEmail -Path ./in.tnef | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate"
     },
     {
       "id": "email-webp",
@@ -1487,8 +1487,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeWordHtml",
-      "example": "ConvertFrom-OfficeWordHtml -Path ./in.html -OutputPath ./out.docx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.docx"
     },
     {
       "id": "html-epub",
@@ -1528,7 +1528,7 @@
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
-      "example": "Convert-OfficeDocument -Path ./in.html -To Markdown -OutputPath ./out.md"
+      "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.md"
     },
     {
       "id": "html-onenote",
@@ -1557,8 +1557,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficePdfHtml",
-      "example": "ConvertFrom-OfficePdfHtml -Path ./in.html -OutputPath ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.pdf"
     },
     {
       "id": "html-png",
@@ -1596,8 +1596,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeRtf",
-      "example": "ConvertTo-OfficeRtf -HtmlPath ./in.html -OutputPath ./out.rtf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.rtf"
     },
     {
       "id": "html-svg",
@@ -1668,15 +1668,15 @@
       "package": "OfficeIMO.PowerPoint.IWork",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote, readOptions).SaveAsPowerPoint(output, options)",
+      "api": "IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote, readOptions).SaveAsPowerPoint(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeIWork",
-      "example": "ConvertFrom-OfficeIWork -Path ./in.key -OutputPath ./out.pptx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.key -OutputPath ./out.pptx"
     },
     {
       "id": "latex-markdown",
@@ -1685,13 +1685,13 @@
       "package": "OfficeIMO.Latex.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "LatexDocument.ParseResult(source).Document.ToMarkdownDocumentResult(options)",
+      "api": "LatexDocument.ParseResult(source).Document.ToMarkdown(options, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeLatexMarkdown",
-      "example": "ConvertTo-OfficeLatexMarkdown -Path ./in.tex -OutputPath ./out.md"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.tex -OutputPath ./out.md"
     },
     {
       "id": "latex-pdf",
@@ -1724,13 +1724,13 @@
       "package": "OfficeIMO.AsciiDoc.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "MarkdownDocument.Parse(markdown).ToAsciiDocDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).ToAsciiDoc(options, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeAsciiDocMarkdown",
-      "example": "ConvertFrom-OfficeAsciiDocMarkdown -Path ./in.md -OutputPath ./out.adoc"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.adoc"
     },
     {
       "id": "markdown-confluence",
@@ -1760,8 +1760,8 @@
         "browser",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeWordMarkdown",
-      "example": "ConvertFrom-OfficeWordMarkdown -Path ./in.md -OutputPath ./out.docx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.docx"
     },
     {
       "id": "markdown-epub",
@@ -1788,8 +1788,8 @@
         "browser",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeMarkdownHtml",
-      "example": "ConvertTo-OfficeMarkdownHtml -Path ./in.md -DocumentMode -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.html"
     },
     {
       "id": "markdown-latex",
@@ -1798,13 +1798,13 @@
       "package": "OfficeIMO.Latex.Markdown",
       "support": "Targeted",
       "fidelity": "Semantic",
-      "api": "MarkdownDocument.Parse(markdown).ToLatexDocumentResult(options)",
+      "api": "MarkdownDocument.Parse(markdown).ToLatex(options, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeLatexMarkdown",
-      "example": "ConvertFrom-OfficeLatexMarkdown -Path ./in.md -OutputPath ./out.tex"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.tex"
     },
     {
       "id": "markdown-pdf",
@@ -1820,8 +1820,20 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeDocumentPdf",
-      "example": "Export-OfficeDocumentPdf -InputPath ./in.md -Path ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.pdf"
+    },
+    {
+      "id": "markdown-pptx",
+      "source": "Markdown",
+      "target": "PowerPoint",
+      "package": "OfficeIMO.Workflows",
+      "support": "Targeted",
+      "fidelity": "Editable",
+      "api": "MarkdownPowerPointConverterExtensions.SaveAsPowerPoint(markdown, output, options)",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "markdown-rtf",
@@ -1835,8 +1847,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeRtf",
-      "example": "ConvertTo-OfficeRtf -MarkdownPath ./in.md -OutputPath ./out.rtf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.rtf"
     },
     {
       "id": "mhtml-pdf",
@@ -2135,15 +2147,15 @@
       "package": "OfficeIMO.Excel.IWork",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers, readOptions).SaveAsExcel(output, options)",
+      "api": "IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers, readOptions).SaveAsExcel(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeIWork",
-      "example": "ConvertFrom-OfficeIWork -Path ./in.numbers -OutputPath ./out.xlsx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.numbers -OutputPath ./out.xlsx"
     },
     {
       "id": "odg-pdf",
@@ -2207,8 +2219,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeOpenDocument",
-      "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odp -OutputPath ./out.pptx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.odp -OutputPath ./out.pptx"
     },
     {
       "id": "odp-svg",
@@ -2330,8 +2342,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeOpenDocument",
-      "example": "ConvertFrom-OfficeOpenDocument -Path ./in.ods -OutputPath ./out.xlsx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.ods -OutputPath ./out.xlsx"
     },
     {
       "id": "odt-docx",
@@ -2345,8 +2357,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeOpenDocument",
-      "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odt -OutputPath ./out.docx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.odt -OutputPath ./out.docx"
     },
     {
       "id": "odt-jpeg",
@@ -2427,7 +2439,7 @@
       "package": "OfficeIMO.Markup.Word",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToWordDocumentResult(exportOptions)",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToWord(exportOptions, out report)",
       "surfaces": [
         "dotnet"
       ]
@@ -2439,7 +2451,7 @@
       "package": "OfficeIMO.Markup.PowerPoint",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPointDocumentResult(exportOptions)",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToPowerPoint(exportOptions, out report)",
       "surfaces": [
         "dotnet"
       ]
@@ -2451,7 +2463,7 @@
       "package": "OfficeIMO.Markup.Excel",
       "support": "Established",
       "fidelity": "Editable",
-      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToExcelDocumentResult(exportOptions)",
+      "api": "OfficeMarkupParser.Parse(markup, options).Document.ToExcel(exportOptions, out report)",
       "surfaces": [
         "dotnet"
       ]
@@ -2468,8 +2480,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeOneNote",
-      "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.one -OutputPath ./out.html"
     },
     {
       "id": "onenote-jpeg",
@@ -2478,7 +2490,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2495,8 +2507,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeOneNote",
-      "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.md"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.one -OutputPath ./out.md"
     },
     {
       "id": "onenote-pdf",
@@ -2510,8 +2522,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeOneNote",
-      "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.one -OutputPath ./out.pdf"
     },
     {
       "id": "onenote-png",
@@ -2520,7 +2532,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2532,7 +2544,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2544,7 +2556,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2556,7 +2568,7 @@
       "package": "OfficeIMO.OneNote",
       "support": "Targeted",
       "fidelity": "FixedLayout",
-      "api": "OneNoteSectionReader.Read(stream).ExportImages(format, options)",
+      "api": "OneNoteSection.Load(stream).ExportImages(format, options)",
       "surfaces": [
         "dotnet"
       ]
@@ -2568,15 +2580,15 @@
       "package": "OfficeIMO.Word.IWork",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages, readOptions).SaveAsWord(output, options)",
+      "api": "IWorkSourceDocument.Load(path, IWorkDocumentKind.Pages, readOptions).SaveAsWord(output, options)",
       "surfaces": [
         "dotnet",
         "cli",
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeIWork",
-      "example": "ConvertFrom-OfficeIWork -Path ./in.pages -OutputPath ./out.docx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pages -OutputPath ./out.docx"
     },
     {
       "id": "pages-pdf",
@@ -2607,8 +2619,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficePdfWord",
-      "example": "ConvertTo-OfficePdfWord -Path ./in.pdf -OutputPath ./out.docx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.docx"
     },
     {
       "id": "pdf-html",
@@ -2625,8 +2637,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficePdfHtml",
-      "example": "ConvertTo-OfficePdfHtml -Path ./in.pdf -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.html"
     },
     {
       "id": "pdf-jpeg",
@@ -2642,6 +2654,18 @@
       ],
       "cmdlet": "Export-OfficeDocumentImage",
       "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Jpeg"
+    },
+    {
+      "id": "pdf-markdown",
+      "source": "PDF",
+      "target": "Markdown",
+      "package": "OfficeIMO.Pdf",
+      "support": "Targeted",
+      "fidelity": "Semantic",
+      "api": "PdfDocument.Load(stream).ExtractMarkdown(options)",
+      "surfaces": [
+        "dotnet"
+      ]
     },
     {
       "id": "pdf-odp",
@@ -2710,8 +2734,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficePdfPowerPoint",
-      "example": "ConvertTo-OfficePdfPowerPoint -Path ./in.pdf -OutputPath ./out.pptx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.pptx"
     },
     {
       "id": "pdf-rtf",
@@ -2720,13 +2744,13 @@
       "package": "OfficeIMO.Rtf.Pdf",
       "support": "Targeted",
       "fidelity": "Editable",
-      "api": "PdfDocument.Load(stream).ToRtfDocumentResult(options)",
+      "api": "PdfDocument.Load(stream).ToRtf(options, out report)",
       "surfaces": [
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeRtf",
-      "example": "ConvertTo-OfficeRtf -PdfPath ./in.pdf -OutputPath ./out.rtf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.rtf"
     },
     {
       "id": "pdf-svg",
@@ -2788,8 +2812,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficePdfExcel",
-      "example": "ConvertTo-OfficePdfExcel -Path ./in.pdf -OutputPath ./out.xlsx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.xlsx"
     },
     {
       "id": "ppt-pdf",
@@ -2828,7 +2852,7 @@
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
-      "example": "Convert-OfficeDocument -Path ./in.pptx -To Html -OutputPath ./out.html"
+      "example": "Convert-OfficeDocument -Path ./in.pptx -OutputPath ./out.html"
     },
     {
       "id": "pptx-jpeg",
@@ -2857,8 +2881,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeOpenDocument",
-      "example": "ConvertTo-OfficeOpenDocument -Path ./in.pptx -OutputPath ./out.odp"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pptx -OutputPath ./out.odp"
     },
     {
       "id": "pptx-pdf",
@@ -2875,8 +2899,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeDocumentPdf",
-      "example": "Export-OfficeDocumentPdf -InputPath ./in.pptx -Path ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.pptx -OutputPath ./out.pdf"
     },
     {
       "id": "pptx-png",
@@ -2954,7 +2978,7 @@
         "powershell"
       ],
       "cmdlet": "Convert-OfficeDocument",
-      "example": "Convert-OfficeDocument -Path ./in.pub -To Pdf -OutputPath ./out.pdf"
+      "example": "Convert-OfficeDocument -Path ./in.pub -OutputPath ./out.pdf"
     },
     {
       "id": "reader-visio-pdf",
@@ -2980,8 +3004,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeRtf",
-      "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Word -OutputPath ./out.docx"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.docx"
     },
     {
       "id": "rtf-html",
@@ -2995,8 +3019,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeRtf",
-      "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Html -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.html"
     },
     {
       "id": "rtf-markdown",
@@ -3010,8 +3034,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeRtf",
-      "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Markdown -OutputPath ./out.md"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.md"
     },
     {
       "id": "rtf-pdf",
@@ -3027,8 +3051,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "ConvertFrom-OfficeRtf",
-      "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Pdf -OutputPath ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.pdf"
     },
     {
       "id": "txt-pdf",
@@ -3256,8 +3280,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeExcelHtml",
-      "example": "ConvertTo-OfficeExcelHtml -Path ./in.xlsx -OutputPath ./out.html"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.xlsx -OutputPath ./out.html"
     },
     {
       "id": "xlsx-jpeg",
@@ -3286,8 +3310,8 @@
         "dotnet",
         "powershell"
       ],
-      "cmdlet": "ConvertTo-OfficeOpenDocument",
-      "example": "ConvertTo-OfficeOpenDocument -Path ./in.xlsx -OutputPath ./out.ods"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.xlsx -OutputPath ./out.ods"
     },
     {
       "id": "xlsx-pdf",
@@ -3304,8 +3328,8 @@
         "studio",
         "powershell"
       ],
-      "cmdlet": "Export-OfficeDocumentPdf",
-      "example": "Export-OfficeDocumentPdf -InputPath ./in.xlsx -Path ./out.pdf"
+      "cmdlet": "Convert-OfficeDocument",
+      "example": "Convert-OfficeDocument -Path ./in.xlsx -OutputPath ./out.pdf"
     },
     {
       "id": "xlsx-png",

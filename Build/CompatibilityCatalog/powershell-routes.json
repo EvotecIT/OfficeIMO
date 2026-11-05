@@ -1,518 +1,518 @@
 [
   {
     "route": "asciidoc-markdown",
-    "cmdlet": "ConvertTo-OfficeAsciiDocMarkdown",
-    "example": "ConvertTo-OfficeAsciiDocMarkdown -Path ./in.adoc -OutputPath ./out.md",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/ConvertToOfficeAsciiDocMarkdownCommand.cs L26 (-OutputPath); L49 (document.ToMarkdownDocumentResult(Options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.adoc -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:8 registers asciidoc-markdown; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Text.cs:27 performs the native AsciiDoc to Markdown conversion."
   },
   {
     "route": "confluence-html",
     "cmdlet": "Get-OfficeConfluencePage",
-    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsHtml -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs L64 (-AsHtml); L141 (ConfluenceContentConverter.ToHtml(page)). Reads the page from Confluence Cloud (live session required) and projects it with the route API."
+    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -As Html -FailOnLoss).Value | Set-Content -LiteralPath ./out.html -Encoding utf8",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs:61 selects -As Html; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs:131 projects the page using the route API. PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs:76 retrieves the source page with a live Confluence session."
   },
   {
     "route": "confluence-markdown",
     "cmdlet": "Get-OfficeConfluencePage",
-    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -AsMarkdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs L60 (-AsMarkdown); L135 (ConfluenceContentConverter.ToMarkdown(page)). Reads the page from Confluence Cloud (live session required) and projects it with the route API."
+    "example": "(Get-OfficeConfluencePage -Session $session -PageId 12345 -As Markdown -FailOnLoss).Value | Set-Content -LiteralPath ./out.md -Encoding utf8",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs:61 selects -As Markdown; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs:125 projects the page using the route API. PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/GetOfficeConfluencePageCommand.cs:76 retrieves the source page with a live Confluence session."
   },
   {
     "route": "csv-xlsx",
-    "cmdlet": "Import-OfficeExcelDelimitedText",
-    "example": "Import-OfficeExcelDelimitedText -Path ./out.xlsx -SourcePath ./in.csv -SheetName Data",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ImportOfficeExcelDelimitedTextCommand.cs L44 (-SourcePath (CSV)); L95 (workbook.Document.ImportCsvFile(source). -Path is the workbook to write; it is created when missing and the CSV becomes one worksheet (OfficeIMO.Excel.Csv ImportCsvFile)."
+    "cmdlet": "Export-OfficeExcel",
+    "example": "Import-OfficeCsv -Path ./in.csv -As DataTable | Export-OfficeExcel -Path ./out.xlsx -Sheet Data",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Csv/ImportOfficeCsvCommand.cs:589 projects CSV headers and rows as a DataTable; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelCommand.Streaming.cs:92 accepts it; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelCommand.Streaming.cs:70 creates the native XLSX writer. This explicit import/export pipeline performs CSV to XLSX; csv-xlsx is not registered with OfficeConverter. TSV input requires a tab Delimiter."
   },
   {
     "route": "docx-google-docs",
     "cmdlet": "Export-OfficeWordGoogleDocument",
     "example": "Export-OfficeWordGoogleDocument -Path ./in.docx -Session $session",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordGoogleDocumentCommand.cs L32 (-Session); L74 (document.ExportToGoogleDocsAsync(Session, Options). Live export needs a Google Workspace session; -PlanOnly or -AsBatch return the translation without contacting Google."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Foundation/Commands/GoogleExportCmdlet.cs:13 accepts the source path; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordGoogleDocumentCommand.cs:73 performs the native live export with a Google Workspace session. PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Word/ExportOfficeWordGoogleDocumentCommand.cs:39 selects Mode Plan or Batch for offline translation instead of live export."
   },
   {
     "route": "docx-html",
-    "cmdlet": "ConvertTo-OfficeWordHtml",
-    "example": "ConvertTo-OfficeWordHtml -Path ./in.docx -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordHtmlCommand.cs L43 (-OutputPath); L130 (document.SaveAsHtml(resolvedOutput, options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:61 selects docx-html; OfficeIMO/OfficeConverter.Builtins.cs:71 performs the native conversion and writes the target."
   },
   {
     "route": "docx-jpeg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches DOCX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:26 and its native ExportImages with the selected JPEG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "docx-markdown",
-    "cmdlet": "ConvertTo-OfficeWordMarkdown",
-    "example": "ConvertTo-OfficeWordMarkdown -Path ./in.docx -OutputPath ./out.md",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertToOfficeWordMarkdownCommand.cs L43 (-OutputPath); L112 (document.SaveAsMarkdown(resolvedOutput, options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:62 selects docx-markdown; OfficeIMO/OfficeConverter.Builtins.cs:74 performs the native conversion and writes the target."
   },
   {
     "route": "docx-odt",
-    "cmdlet": "ConvertTo-OfficeOpenDocument",
-    "example": "ConvertTo-OfficeOpenDocument -Path ./in.docx -OutputPath ./out.odt",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertToOfficeOpenDocumentCommand.cs L46 (-OutputPath .odt); L87 (word.ToOpenDocumentResult(WordOptions))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.odt",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers docx-odt; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OpenDocument.cs:36 performs the native DOCX to ODT conversion."
   },
   {
     "route": "docx-pdf",
-    "cmdlet": "Export-OfficeDocumentPdf",
-    "example": "Export-OfficeDocumentPdf -InputPath ./in.docx -Path ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .docx); L177 (word.SaveAsPdf(outputPath, WordOptions)"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:60 selects docx-pdf; OfficeIMO/OfficeConverter.Builtins.cs:68 performs the native conversion and writes the target."
   },
   {
     "route": "docx-png",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches DOCX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:26 and its native ExportImages with the selected PNG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "docx-rtf",
-    "cmdlet": "ConvertTo-OfficeRtf",
-    "example": "ConvertTo-OfficeRtf -WordPath ./in.docx -OutputPath ./out.rtf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L60 (-WordPath); L246 (document.SaveAsRtf(outputPath)"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.docx -OutputPath ./out.rtf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers docx-rtf; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:44 performs the native DOCX to RTF conversion."
   },
   {
     "route": "docx-svg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches DOCX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:26 and its native ExportImages with the selected SVG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "docx-tiff",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches DOCX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:26 and its native ExportImages with the selected TIFF format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "docx-webp",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.docx -OutputDirectory ./Images -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches DOCX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:26 and its native ExportImages with the selected WebP format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "email-eml-msg",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookMsg); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads EML through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.OutlookMsg to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-eml-oft",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads EML through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.OutlookTemplate to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-eml-tnef",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.dat -Format Tnef",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Tnef); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.eml | Save-OfficeEmail -Path ./out.tnef -Format Tnef",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads EML through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.Tnef to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-msg-eml",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.eml -Format Eml",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Eml); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.eml -Format Eml",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads MSG through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.Eml to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-msg-oft",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads MSG through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.OutlookTemplate to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-msg-tnef",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.dat -Format Tnef",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Tnef); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.msg | Save-OfficeEmail -Path ./out.tnef -Format Tnef",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads MSG through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.Tnef to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-oft-eml",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.eml -Format Eml",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Eml); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.eml -Format Eml",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads OFT through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.Eml to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-oft-msg",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookMsg); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads OFT through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.OutlookMsg to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-oft-tnef",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.dat -Format Tnef",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Tnef); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.oft | Save-OfficeEmail -Path ./out.tnef -Format Tnef",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads OFT through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.Tnef to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-tnef-eml",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.eml -Format Eml",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format Eml); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.tnef | Save-OfficeEmail -Path ./out.eml -Format Eml",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads TNEF through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.Eml to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-tnef-msg",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookMsg); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.tnef | Save-OfficeEmail -Path ./out.msg -Format OutlookMsg",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads TNEF through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.OutlookMsg to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "email-tnef-oft",
     "cmdlet": "Save-OfficeEmail",
-    "example": "Get-OfficeEmail -Path ./in.dat | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs L28 (-Format OutlookTemplate); L52 (Document.Save(output, Format.Value, Options)). Get-OfficeEmail (Sources/PSWriteOffice/Cmdlets/Email/GetOfficeEmailCommand.cs) reads the source; Save-OfficeEmail writes the target container. The cmdlet summary lists EML, EMLX, MSG and TNEF, but -Format is the full EmailFileFormat enum passed to EmailDocument.Save, the same call the route names."
+    "example": "Open-OfficeEmail -Path ./in.tnef | Save-OfficeEmail -Path ./out.oft -Format OutlookTemplate",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/OpenOfficeEmailCommand.cs:75 reads TNEF through EmailDocumentReader; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Email/SaveOfficeEmailCommand.cs:52 passes EmailFileFormat.OutlookTemplate to EmailDocument.Save; OfficeIMO.Email/Writing/EmailDocumentWriter.cs:175 selects the native MIME, MSG/OFT or TNEF writer. Conversion and loss policies remain with the email owner."
   },
   {
     "route": "html-confluence",
     "cmdlet": "Publish-OfficeConfluencePage",
     "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.html -Raw) -ContentFormat Html -PlanOnly",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs L70 (-ContentFormat Html); L161 (ConfluenceContentConverter.FromHtml(content, BodyFormat)). -PlanOnly returns the Confluence request plan (converted body included) without a network call; add -Session and drop -PlanOnly to publish."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs:170 converts Html with the route API; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs:121 returns the converted body in an offline request plan. Add Session and omit PlanOnly to publish."
   },
   {
     "route": "html-docx",
-    "cmdlet": "ConvertFrom-OfficeWordHtml",
-    "example": "ConvertFrom-OfficeWordHtml -Path ./in.html -OutputPath ./out.docx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordHtmlCommand.cs L44 (-OutputPath); L157 (HtmlConversionDocument.Parse(html).ToWordDocument(options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:147 selects html-docx; OfficeIMO/OfficeConverter.Builtins.cs:157 performs the native conversion and writes the target."
   },
   {
     "route": "html-markdown",
     "cmdlet": "Convert-OfficeDocument",
-    "example": "Convert-OfficeDocument -Path ./in.html -To Markdown -OutputPath ./out.md",
-    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs forwards admitted files to OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs html-markdown applies settings.HtmlMarkdown and calls SaveAsMarkdownAsync."
+    "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:148 selects html-markdown; OfficeIMO/OfficeConverter.Builtins.cs:161 performs the native conversion and writes the target."
   },
   {
     "route": "html-pdf",
-    "cmdlet": "ConvertFrom-OfficePdfHtml",
-    "example": "ConvertFrom-OfficePdfHtml -Path ./in.html -OutputPath ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertFromOfficePdfHtmlCommand.cs L36 (-Path (HTML file)); L137 (document.SaveAsPdf(outputPath, options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:149 selects html-pdf; OfficeIMO/OfficeConverter.Builtins.cs:166 performs the native conversion and writes the target."
   },
   {
     "route": "html-rtf",
-    "cmdlet": "ConvertTo-OfficeRtf",
-    "example": "ConvertTo-OfficeRtf -HtmlPath ./in.html -OutputPath ./out.rtf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L72 (-HtmlPath); L186 (HtmlConversionDocument.Parse(html).ToWordDocument(). Implemented as HTML to Word to RTF, not through the OfficeIMO.Html.Rtf API named by the route."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.html -OutputPath ./out.rtf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers html-rtf; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:74 performs the native HTML to RTF conversion."
   },
   {
     "route": "keynote-pptx",
-    "cmdlet": "ConvertFrom-OfficeIWork",
-    "example": "ConvertFrom-OfficeIWork -Path ./in.key -OutputPath ./out.pptx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .pptx); L95 (source.ToPowerPointDocumentResult(ConversionOptions)). The target is chosen from the detected iWork application (Keynote to .pptx)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.key -OutputPath ./out.pptx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after IWorkWorkflow.RegisterConversions; OfficeIMO.Workflows.IWork/IWorkWorkflow.cs:31 registers keynote-pptx; OfficeIMO.Workflows.IWork/IWorkWorkflow.cs:32 reconstructs the editable document and saves it through the native Office owner, retaining iWork acceptance limits."
   },
   {
     "route": "latex-markdown",
-    "cmdlet": "ConvertTo-OfficeLatexMarkdown",
-    "example": "ConvertTo-OfficeLatexMarkdown -Path ./in.tex -OutputPath ./out.md",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Latex/ConvertToOfficeLatexMarkdownCommand.cs L26 (-OutputPath); L49 (document.ToMarkdownDocumentResult(Options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.tex -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:8 registers latex-markdown; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Text.cs:41 performs the native LaTeX to Markdown conversion."
   },
   {
     "route": "markdown-asciidoc",
-    "cmdlet": "ConvertFrom-OfficeAsciiDocMarkdown",
-    "example": "ConvertFrom-OfficeAsciiDocMarkdown -Path ./in.md -OutputPath ./out.adoc",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/AsciiDoc/ConvertFromOfficeAsciiDocMarkdownCommand.cs L26 (-OutputPath); L42 (document.ToAsciiDocDocumentResult(Options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.adoc",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:8 registers markdown-asciidoc; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Text.cs:47 performs the native Markdown to AsciiDoc conversion."
   },
   {
     "route": "markdown-confluence",
     "cmdlet": "Publish-OfficeConfluencePage",
     "example": "Publish-OfficeConfluencePage -SpaceId 42 -Title Status -Content (Get-Content -LiteralPath ./in.md -Raw) -ContentFormat Markdown -PlanOnly",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs L70 (-ContentFormat Markdown); L155 (ConfluenceContentConverter.FromMarkdown(content, BodyFormat)). -PlanOnly returns the Confluence request plan (converted body included) without a network call; add -Session and drop -PlanOnly to publish."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs:164 converts Markdown with the route API; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Confluence/PublishOfficeConfluencePageCommand.cs:121 returns the converted body in an offline request plan. Add Session and omit PlanOnly to publish."
   },
   {
     "route": "markdown-docx",
-    "cmdlet": "ConvertFrom-OfficeWordMarkdown",
-    "example": "ConvertFrom-OfficeWordMarkdown -Path ./in.md -OutputPath ./out.docx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Word/ConvertFromOfficeWordMarkdownCommand.cs L60 (-OutputPath); L335 (markdownDocument.ToWordDocument(options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:126 selects markdown-docx; OfficeIMO/OfficeConverter.Builtins.cs:139 performs the native conversion and writes the target."
   },
   {
     "route": "markdown-html",
-    "cmdlet": "ConvertTo-OfficeMarkdownHtml",
-    "example": "ConvertTo-OfficeMarkdownHtml -Path ./in.md -DocumentMode -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Markdown/ConvertToOfficeMarkdownHtmlCommand.cs L49 (-OutputPath); L226 (document.SaveAsHtml(resolvedOutput, options)). Implemented with OfficeIMO.Markdown HtmlOptions (MarkdownDoc.SaveAsHtml / ToHtmlDocument), not the OfficeIMO.MarkdownRenderer API named by the route; the Markdown to HTML pair is the same."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:127 selects markdown-html; OfficeIMO/OfficeConverter.Builtins.cs:143 performs the native conversion and writes the target."
   },
   {
     "route": "markdown-latex",
-    "cmdlet": "ConvertFrom-OfficeLatexMarkdown",
-    "example": "ConvertFrom-OfficeLatexMarkdown -Path ./in.md -OutputPath ./out.tex",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Latex/ConvertFromOfficeLatexMarkdownCommand.cs L26 (-OutputPath); L42 (document.ToLatexDocumentResult(Options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.tex",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:8 registers markdown-latex; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Text.cs:51 performs the native Markdown to LaTeX conversion."
   },
   {
     "route": "markdown-pdf",
-    "cmdlet": "Export-OfficeDocumentPdf",
-    "example": "Export-OfficeDocumentPdf -InputPath ./in.md -Path ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .md); L183 (markdown.SaveAsPdf(outputPath, PrepareMarkdownOptions)"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:125 selects markdown-pdf; OfficeIMO/OfficeConverter.Builtins.cs:135 performs the native conversion and writes the target."
   },
   {
     "route": "markdown-rtf",
-    "cmdlet": "ConvertTo-OfficeRtf",
-    "example": "ConvertTo-OfficeRtf -MarkdownPath ./in.md -OutputPath ./out.rtf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L84 (-MarkdownPath); L295 (ToRtfDocument(options).ToRtf())"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.md -OutputPath ./out.rtf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers markdown-rtf; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:80 performs the native Markdown to RTF conversion."
   },
   {
     "route": "numbers-xlsx",
-    "cmdlet": "ConvertFrom-OfficeIWork",
-    "example": "ConvertFrom-OfficeIWork -Path ./in.numbers -OutputPath ./out.xlsx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .xlsx); L88 (source.ToExcelDocumentResult(ConversionOptions)). The target is chosen from the detected iWork application (Numbers to .xlsx)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.numbers -OutputPath ./out.xlsx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after IWorkWorkflow.RegisterConversions; OfficeIMO.Workflows.IWork/IWorkWorkflow.cs:27 registers numbers-xlsx; OfficeIMO.Workflows.IWork/IWorkWorkflow.cs:28 reconstructs the editable document and saves it through the native Office owner, retaining iWork acceptance limits."
   },
   {
     "route": "odp-pptx",
-    "cmdlet": "ConvertFrom-OfficeOpenDocument",
-    "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odp -OutputPath ./out.pptx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .pptx); L69 (presentation.ToPowerPointDocumentResult(PowerPointOptions))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.odp -OutputPath ./out.pptx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers odp-pptx; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OpenDocument.cs:65 performs the native ODP to PPTX conversion."
   },
   {
     "route": "ods-xlsx",
-    "cmdlet": "ConvertFrom-OfficeOpenDocument",
-    "example": "ConvertFrom-OfficeOpenDocument -Path ./in.ods -OutputPath ./out.xlsx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .xlsx); L63 (spreadsheet.ToExcelDocumentResult(ExcelOptions))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.ods -OutputPath ./out.xlsx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers ods-xlsx; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OpenDocument.cs:60 performs the native ODS to XLSX conversion."
   },
   {
     "route": "odt-docx",
-    "cmdlet": "ConvertFrom-OfficeOpenDocument",
-    "example": "ConvertFrom-OfficeOpenDocument -Path ./in.odt -OutputPath ./out.docx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertFromOfficeOpenDocumentCommand.cs L27 (-OutputPath .docx); L57 (text.ToWordDocumentResult(WordOptions))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.odt -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers odt-docx; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OpenDocument.cs:55 performs the native ODT to DOCX conversion."
   },
   {
     "route": "onenote-html",
-    "cmdlet": "ConvertFrom-OfficeOneNote",
-    "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .html); L134 (section.ToHtmlDocumentResult(ProjectionOptions, HtmlOptions)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.one -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:11 registers onenote-html; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OneNote.cs:82 performs the native OneNote to HTML conversion."
   },
   {
     "route": "onenote-markdown",
-    "cmdlet": "ConvertFrom-OfficeOneNote",
-    "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.md",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .md); L121 (section.ToMarkdownDocumentResult(ProjectionOptions)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.one -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:11 registers onenote-markdown; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OneNote.cs:65 performs the native OneNote to Markdown conversion."
   },
   {
     "route": "onenote-pdf",
-    "cmdlet": "ConvertFrom-OfficeOneNote",
-    "example": "ConvertFrom-OfficeOneNote -Path ./in.one -OutputPath ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OneNote/ConvertFromOfficeOneNoteCommand.cs L36 (-OutputPath .pdf); L148 (section.SaveAsPdf(temporaryPath, options)). Output format is selected by the OutputPath extension (.md, .html or .pdf)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.one -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:11 registers onenote-pdf; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OneNote.cs:99 performs the native OneNote to PDF conversion."
   },
   {
     "route": "pages-docx",
-    "cmdlet": "ConvertFrom-OfficeIWork",
-    "example": "ConvertFrom-OfficeIWork -Path ./in.pages -OutputPath ./out.docx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/IWork/ConvertFromOfficeIWorkCommand.cs L32 (-OutputPath .docx); L81 (source.ToWordDocumentResult(ConversionOptions)). The target is chosen from the detected iWork application (Pages to .docx)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pages -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after IWorkWorkflow.RegisterConversions; OfficeIMO.Workflows.IWork/IWorkWorkflow.cs:23 registers pages-docx; OfficeIMO.Workflows.IWork/IWorkWorkflow.cs:24 reconstructs the editable document and saves it through the native Office owner, retaining iWork acceptance limits."
   },
   {
     "route": "pdf-docx",
-    "cmdlet": "ConvertTo-OfficePdfWord",
-    "example": "ConvertTo-OfficePdfWord -Path ./in.pdf -OutputPath ./out.docx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfWordCommand.cs L32 (-OutputPath); L79 (document.SaveAsWord(outputPath, Options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:101 selects pdf-docx; OfficeIMO/OfficeConverter.Builtins.cs:108 performs the native conversion and writes the target."
   },
   {
     "route": "pdf-html",
-    "cmdlet": "ConvertTo-OfficePdfHtml",
-    "example": "ConvertTo-OfficePdfHtml -Path ./in.pdf -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfHtmlCommand.cs L44 (-OutputPath); L97 (LoadLogicalDocument(inputPath).ToHtml(options)). ToHtml comes from OfficeIMO.Html.Pdf (PdfHtmlConverter)."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:104 selects pdf-html; OfficeIMO/OfficeConverter.Builtins.cs:121 performs the native conversion and writes the target."
   },
   {
     "route": "pdf-jpeg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PDF input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:34 and its native ExportImages with the selected JPEG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pdf-png",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PDF input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:34 and its native ExportImages with the selected PNG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pdf-pptx",
-    "cmdlet": "ConvertTo-OfficePdfPowerPoint",
-    "example": "ConvertTo-OfficePdfPowerPoint -Path ./in.pdf -OutputPath ./out.pptx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfPowerPointCommand.cs L32 (-OutputPath); L79 (document.SaveAsPowerPoint(outputPath, Options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.pptx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:103 selects pdf-pptx; OfficeIMO/OfficeConverter.Builtins.cs:116 performs the native conversion and writes the target."
   },
   {
     "route": "pdf-rtf",
-    "cmdlet": "ConvertTo-OfficeRtf",
-    "example": "ConvertTo-OfficeRtf -PdfPath ./in.pdf -OutputPath ./out.rtf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertToOfficeRtfCommand.cs L76 (-PdfPath); L256 (Read().ToRtfDocument())"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.rtf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers pdf-rtf; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:53 performs the native PDF to RTF conversion."
   },
   {
     "route": "pdf-svg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PDF input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:34 and its native ExportImages with the selected SVG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pdf-tiff",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PDF input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:34 and its native ExportImages with the selected TIFF format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pdf-webp",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pdf -OutputDirectory ./Pages -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PDF input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:34 and its native ExportImages with the selected WebP format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pdf-xlsx",
-    "cmdlet": "ConvertTo-OfficePdfExcel",
-    "example": "ConvertTo-OfficePdfExcel -Path ./in.pdf -OutputPath ./out.xlsx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ConvertToOfficePdfExcelCommand.cs L32 (-OutputPath); L79 (document.SaveTablesAsExcel(outputPath, Options)). Extracts detected tables, matching the route API ImportTablesToExcelDocumentResult."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pdf -OutputPath ./out.xlsx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:102 selects pdf-xlsx; OfficeIMO/OfficeConverter.Builtins.cs:112 performs the native conversion and writes the target."
   },
   {
     "route": "pptx-html",
     "cmdlet": "Convert-OfficeDocument",
-    "example": "Convert-OfficeDocument -Path ./in.pptx -To Html -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs dispatches admitted files through OfficeConverter; OfficeIMO/OfficeConverter.PowerPointHtml.cs owns the PowerPoint-to-HTML conversion."
+    "example": "Convert-OfficeDocument -Path ./in.pptx -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:90 selects pptx-html; OfficeIMO/OfficeConverter.Builtins.cs:94 performs the native conversion and writes the target."
   },
   {
     "route": "pptx-jpeg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PPTX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:30 and its native ExportImages with the selected JPEG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pptx-odp",
-    "cmdlet": "ConvertTo-OfficeOpenDocument",
-    "example": "ConvertTo-OfficeOpenDocument -Path ./in.pptx -OutputPath ./out.odp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertToOfficeOpenDocumentCommand.cs L46 (-OutputPath .odp); L111 (presentation.ToOpenDocumentResult(PowerPointOptions))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pptx -OutputPath ./out.odp",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers pptx-odp; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OpenDocument.cs:50 performs the native PPTX to ODP conversion."
   },
   {
     "route": "pptx-pdf",
-    "cmdlet": "Export-OfficeDocumentPdf",
-    "example": "Export-OfficeDocumentPdf -InputPath ./in.pptx -Path ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .pptx); L181 (powerPoint.SaveAsPdf(outputPath, PowerPointOptions)"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.pptx -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:89 selects pptx-pdf; OfficeIMO/OfficeConverter.Builtins.cs:97 performs the native conversion and writes the target."
   },
   {
     "route": "pptx-png",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PPTX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:30 and its native ExportImages with the selected PNG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pptx-svg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PPTX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:30 and its native ExportImages with the selected SVG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pptx-tiff",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PPTX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:30 and its native ExportImages with the selected TIFF format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "pptx-webp",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.pptx -OutputDirectory ./Slides -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches PPTX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:30 and its native ExportImages with the selected WebP format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "publisher-pdf",
     "cmdlet": "Convert-OfficeDocument",
-    "example": "Convert-OfficeDocument -Path ./in.pub -To Pdf -OutputPath ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs dispatches file conversion through OfficeConverter. OfficeIMO.Workflows/OfficeWorkflowRunner.Conversions.cs executes the publisher-pdf route."
+    "example": "Convert-OfficeDocument -Path ./in.pub -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflowRunner.Conversions.cs:101 executes publisher-pdf; OfficeIMO.Workflows/OfficeWorkflowRunner.Publisher.cs:23 creates native PDF output with conversion evidence."
   },
   {
     "route": "rtf-docx",
-    "cmdlet": "ConvertFrom-OfficeRtf",
-    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Word -OutputPath ./out.docx",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Word); L282 (return LoadRtfDocument().ToWordDocument();)"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.docx",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers rtf-docx; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:34 performs the native RTF to DOCX conversion."
   },
   {
     "route": "rtf-html",
-    "cmdlet": "ConvertFrom-OfficeRtf",
-    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Html -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Html); L203 (document.SaveAsHtml(outputPath, options)). Implemented as RTF to Word to HTML through OfficeIMO.Word.Html, not through the OfficeIMO.Html.Rtf API named by the route."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers rtf-html; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:25 performs the native RTF to HTML conversion."
   },
   {
     "route": "rtf-markdown",
-    "cmdlet": "ConvertFrom-OfficeRtf",
-    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Markdown -OutputPath ./out.md",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Markdown); L252 (LoadRtfDocument().ToMarkdown(options))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.md",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:9 registers rtf-markdown; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.Rtf.cs:30 performs the native RTF to Markdown conversion."
   },
   {
     "route": "rtf-pdf",
-    "cmdlet": "ConvertFrom-OfficeRtf",
-    "example": "ConvertFrom-OfficeRtf -Path ./in.rtf -As Pdf -OutputPath ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Rtf/ConvertFromOfficeRtfCommand.cs L61 (-As Pdf); L230 (LoadRtfDocument().SaveAsPdf(outputPath, options)). Export-OfficeDocumentPdf -InputPath ./in.rtf -Path ./out.pdf also performs this route."
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.rtf -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflowRunner.Conversions.cs:156 executes rtf-pdf; OfficeIMO.Workflows/OfficeWorkflowRunner.Conversions.cs:164 creates native PDF output with conversion evidence."
   },
   {
     "route": "visio-jpeg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches Visio input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:57 and its native ExportImages with the selected JPEG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "visio-png",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches Visio input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:57 and its native ExportImages with the selected PNG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "visio-svg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches Visio input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:57 and its native ExportImages with the selected SVG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "visio-tiff",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches Visio input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:57 and its native ExportImages with the selected TIFF format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "visio-webp",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.vsdx -OutputDirectory ./Images -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches Visio input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:57 and its native ExportImages with the selected WebP format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "xlsx-google-sheets",
     "cmdlet": "Export-OfficeExcelGoogleSpreadsheet",
     "example": "Export-OfficeExcelGoogleSpreadsheet -Path ./in.xlsx -Session $session",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs L32 (-Session); L74 (document.ExportToGoogleSheetsAsync(Session, Options). Live export needs a Google Workspace session; -PlanOnly or -AsBatch return the translation without contacting Google."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Foundation/Commands/GoogleExportCmdlet.cs:13 accepts the source path; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs:98 performs the native live export with a Google Workspace session. PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Excel/ExportOfficeExcelGoogleSpreadsheetCommand.cs:64 selects Mode Plan or Batch for offline translation instead of live export."
   },
   {
     "route": "xlsx-html",
-    "cmdlet": "ConvertTo-OfficeExcelHtml",
-    "example": "ConvertTo-OfficeExcelHtml -Path ./in.xlsx -OutputPath ./out.html",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Excel/ConvertToOfficeExcelHtmlCommand.cs L51 (-OutputPath); L89 (document.ToHtml(CreateOptions()))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.xlsx -OutputPath ./out.html",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers xlsx-html; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.ExcelHtml.cs:16 performs the native XLSX to HTML conversion."
   },
   {
     "route": "xlsx-jpeg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Jpeg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches XLSX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:44 and its native ExportImages with the selected JPEG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "xlsx-ods",
-    "cmdlet": "ConvertTo-OfficeOpenDocument",
-    "example": "ConvertTo-OfficeOpenDocument -Path ./in.xlsx -OutputPath ./out.ods",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/OpenDocument/ConvertToOfficeOpenDocumentCommand.cs L46 (-OutputPath .ods); L99 (excel.ToOpenDocumentResult(ExcelOptions))"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.xlsx -OutputPath ./out.ods",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter after workflow registration; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.cs:10 registers xlsx-ods; OfficeIMO.Workflows/OfficeWorkflow.Registration.Pairs.OpenDocument.cs:43 performs the native XLSX to ODS conversion."
   },
   {
     "route": "xlsx-pdf",
-    "cmdlet": "Export-OfficeDocumentPdf",
-    "example": "Export-OfficeDocumentPdf -InputPath ./in.xlsx -Path ./out.pdf",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Pdf/ExportOfficeDocumentPdfCommand.cs L55 (-InputPath .xlsx); L179 (excel.SaveAsPdf(outputPath, ExcelOptions)"
+    "cmdlet": "Convert-OfficeDocument",
+    "example": "Convert-OfficeDocument -Path ./in.xlsx -OutputPath ./out.pdf",
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ConvertOfficeDocumentCommand.cs:285 calls OfficeConverter.ConvertAsync; OfficeIMO/OfficeConverter.Builtins.cs:80 selects xlsx-pdf; OfficeIMO/OfficeConverter.Builtins.cs:85 performs the native conversion and writes the target."
   },
   {
     "route": "xlsx-png",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Png",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches XLSX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:44 and its native ExportImages with the selected PNG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "xlsx-svg",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Svg",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches XLSX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:44 and its native ExportImages with the selected SVG format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "xlsx-tiff",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Tiff",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches XLSX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:44 and its native ExportImages with the selected TIFF format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   },
   {
     "route": "xlsx-webp",
     "cmdlet": "Export-OfficeDocumentImage",
     "example": "Export-OfficeDocumentImage -Path ./in.xlsx -OutputDirectory ./Images -Format Webp",
-    "evidence": "Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs: OutputDirectory writes native image results; Services/OfficeDocumentImageRenderer.cs dispatches to the source document ExportImages with the selected Format. All pages, slides or visible sheets are selected by default."
+    "evidence": "PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/ExportOfficeDocumentImageCommand.cs:18 exposes Format and OutputDirectory; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:186 dispatches XLSX input to PowerShell/PSWriteOffice/Sources/PSWriteOffice/Services/OfficeDocumentImageRenderer.cs:44 and its native ExportImages with the selected WebP format; PowerShell/PSWriteOffice/Sources/PSWriteOffice/Cmdlets/Conversion/OfficeDocumentImageCmdlet.cs:199 saves each result. Default selection is all pages/slides or visible worksheets."
   }
 ]
