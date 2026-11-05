@@ -11,9 +11,9 @@ public sealed class OfficeBatchLinkPathTests {
             // The default temp location sits below /var on macOS, a link owned by the system.
             OfficeBatchExecutor.EnsureNoLinks(source);
             using (OfficeBatchExecutor.OpenWithinRoot(source, real, 32)) { }
-            if (!OperatingSystem.IsWindows())
-                foreach (var link in new DirectoryInfo("/").EnumerateDirectories().Where(entry => entry.LinkTarget != null))
-                    OfficeBatchExecutor.EnsureNoLinks(Path.Combine(link.FullName, "officeimo-missing-child"));
+            // macOS links /tmp and /var to /private; both are ordinary batch locations.
+            foreach (string link in new[] { "/tmp", "/var" }.Where(path => !OperatingSystem.IsWindows() && new DirectoryInfo(path).LinkTarget != null))
+                OfficeBatchExecutor.EnsureNoLinks(Path.Combine(link, "officeimo-missing-child"));
 
             string linked = Path.Combine(root, "linked");
             try {
