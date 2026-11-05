@@ -164,7 +164,7 @@ internal static partial class OfficeBatchExecutor {
                 InputPath = input, OutputPath = stagingPath,
                 InputStream = routeId is "html-pdf" or "markdown-pdf" ? null : new OfficeConversionExecutionInput(Path.GetFileName(input), readToken => {
                     readToken.ThrowIfCancellationRequested();
-                    return Task.FromResult<Stream>(OfficePathIdentity.OpenRegularFileForRead(input, sourceRoot, 81920));
+                    return Task.FromResult<Stream>(OpenWithinRoot(input, sourceRoot, 81920));
                 }, inputHash),
                 ConversionRouteId = routeId,
                 ConversionOptions = settings.ConversionOptions.ForRoute(routeId), OutputProfile = settings.OutputProfile, ConflictPolicy = OfficePublicationPolicy.Fail,

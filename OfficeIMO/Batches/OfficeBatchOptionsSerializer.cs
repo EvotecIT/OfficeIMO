@@ -70,7 +70,7 @@ internal static class OfficeBatchOptionsSerializer {
     internal static OfficeBatchOptions ReadSnapshot(string path, out string sha256) {
         string fullPath = Path.GetFullPath(path);
         OfficeBatchExecutor.EnsureNoLinks(fullPath);
-        using var file = OfficePathIdentity.OpenRegularFileForRead(fullPath, Path.GetDirectoryName(fullPath)!, 81920);
+        using var file = OfficeBatchExecutor.OpenWithinRoot(fullPath, Path.GetDirectoryName(fullPath)!, 81920);
         using var bytes = new BoundedReportStream(MaximumJobBytes);
         file.CopyTo(bytes);
         byte[] content = bytes.ToArray();

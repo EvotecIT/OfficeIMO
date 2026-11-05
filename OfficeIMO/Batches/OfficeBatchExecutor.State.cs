@@ -14,7 +14,7 @@ internal static partial class OfficeBatchExecutor {
     private static string Hash(string text) => OfficeRuntimeCompatibility.ToHexString(OfficeRuntimeCompatibility.HashSha256(Encoding.UTF8.GetBytes(text)));
 
     private static async Task<string> HashFileAsync(string path, string root, long limit, CancellationToken token) {
-        using FileStream source = OfficePathIdentity.OpenRegularFileForRead(path, root, 81920);
+        using FileStream source = OpenWithinRoot(path, root, 81920);
         if (source.Length > limit) throw new InvalidDataException("Batch file exceeds its configured byte limit.");
         using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
         var buffer = new byte[81920];
@@ -56,8 +56,41 @@ internal static partial class OfficeBatchExecutor {
 
     internal static void EnsureNoLinks(string path) {
         for (string? entry = Path.GetFullPath(path); entry != null; entry = Path.GetDirectoryName(entry))
-            if ((File.Exists(entry) || Directory.Exists(entry)) && (File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0)
+            if (IsLink(entry) && !TryResolveSystemRootLink(entry, out _))
                 throw new InvalidDataException("Batch paths must not traverse symbolic links or junctions.");
+    }
+
+    private static bool IsLink(string entry) =>
+        (File.Exists(entry) || Directory.Exists(entry)) && (File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0;
+
+    // On Unix only the superuser can create or retarget entries directly under "/", so links such as
+    // macOS /tmp and /var (the default temp location) cannot be swapped during a batch. Their targets
+    // must not traverse further links. Windows drive roots accept folders from ordinary users, so every
+    // Windows link stays rejected.
+    private static bool TryResolveSystemRootLink(string entry, out string target) {
+        target = entry;
+        if (Path.DirectorySeparatorChar != '/' || Path.GetDirectoryName(entry) != "/" ||
+            !OfficePathIdentity.TryReadLinkTarget(entry, out string? link)) return false;
+        string resolved = Path.GetFullPath(Path.Combine("/", link!));
+        for (string? part = resolved; part != null; part = Path.GetDirectoryName(part))
+            if (IsLink(part)) return false;
+        target = resolved;
+        return true;
+    }
+
+    // The opened handle reports its physical location. Only the trusted system root link is resolved, so a
+    // root swapped for a link after validation still fails the containment check.
+    internal static FileStream OpenWithinRoot(string path, string root, int bufferSize) =>
+        OfficePathIdentity.OpenRegularFileForRead(path, GetPhysicalRoot(root), bufferSize);
+
+    private static string GetPhysicalRoot(string root) {
+        string full = Path.GetFullPath(root);
+        if (Path.DirectorySeparatorChar != '/') return full;
+        int end = full.IndexOf('/', 1);
+        string top = end < 0 ? full : full.Substring(0, end);
+        return top.Length > 1 && TryResolveSystemRootLink(top, out string target)
+            ? target + (end < 0 ? string.Empty : full.Substring(end))
+            : full;
     }
 
     private static OfficeBatchOptions Snapshot(OfficeBatchOptions request, IReadOnlyList<OfficeConversionExecutionRoute> routes) {

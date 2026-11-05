@@ -98,7 +98,7 @@ internal static partial class OfficeBatchExecutor {
             if (resources.Count >= OfficeHtmlResourceResolver.MaximumReferencedResourceCount)
                 throw new InvalidDataException("The source resource directory exceeds the checkpoint resource limit.");
             EnsureNoLinks(path);
-            using (var file = OfficePathIdentity.OpenRegularFileForRead(path, root, 81920)) bytes = checked(bytes + file.Length);
+            using (var file = OpenWithinRoot(path, root, 81920)) bytes = checked(bytes + file.Length);
             if (bytes > maximumBytes) throw new InvalidDataException("The source resources exceed the checkpoint byte budget.");
             resources.Add((OfficePathIdentity.GetPathIdentityKey(path), await HashFileAsync(path, root, maximumBytes, token).ConfigureAwait(false)));
         }
