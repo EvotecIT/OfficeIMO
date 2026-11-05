@@ -94,7 +94,12 @@ public sealed partial class StudioMobileWorkspaceTests {
                     Assert.Equal(3, document.SelectedPage.PageNumber);
 
                     window.RequestedThemeVariant = ThemeVariant.Dark;
-                    // A slower frame can leave the opener's hover tooltip visible here.
+                    Layout(window, width, height);
+                    Point hoverPoint = await StudioHeadlessInput.WaitForTargetAsync(window, opener,
+                        () => Layout(window, width, height));
+                    window.MouseMove(hoverPoint, RawInputModifiers.None);
+                    Assert.True(opener.IsPointerOver);
+                    // Establish a real hover before checking that pointer exit closes its tooltip.
                     ToolTip.SetIsOpen(opener, true);
                     Layout(window, width, height);
                     Assert.True(ToolTip.GetIsOpen(opener));
