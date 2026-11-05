@@ -21,10 +21,14 @@ try
             }
             asyncRows.Position = 0;
             using ExcelWorkbookDataReader asyncReader = ExcelDocument.OpenReader(asyncRows);
+            var regionCharacters = new char[3];
             if (!asyncReader.Read() || asyncReader.GetString(0) != "North"
+                || asyncReader.GetChars(0, 1, null, 0, 0) != 5
+                || asyncReader.GetChars(0, 1, regionCharacters, 0, 3) != 3
+                || new string(regionCharacters) != "ort"
                 || !asyncReader.Read() || asyncReader.GetString(0) != "South" || asyncReader.Read())
             {
-                throw new InvalidOperationException("The asynchronous table writer lost rows or their order.");
+                throw new InvalidOperationException("The asynchronous table writer lost rows, text ranges or their order.");
             }
         }
     }

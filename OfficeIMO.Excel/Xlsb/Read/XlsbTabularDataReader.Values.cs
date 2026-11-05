@@ -184,8 +184,14 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             char[]? buffer,
             int bufferOffset,
             int length) {
-            char[] characters = GetString(ordinal).ToCharArray();
-            return CopySegment(characters, dataOffset, buffer, bufferOffset, length);
+            string value = GetString(ordinal);
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, value.Length);
+            if (buffer == null) return value.Length;
+            int sourceOffset = checked((int)dataOffset);
+            int count = Math.Min(value.Length - sourceOffset, length);
+            value.CopyTo(sourceOffset, buffer, bufferOffset, count);
+            return count;
         }
 
         public override IEnumerator GetEnumerator() => new DbEnumerator(this, closeReader: false);
