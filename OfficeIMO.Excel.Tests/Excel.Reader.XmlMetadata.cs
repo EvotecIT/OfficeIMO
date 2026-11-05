@@ -4,6 +4,52 @@ using Xunit;
 namespace OfficeIMO.Excel.Tests;
 
 public partial class Excel {
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void StylesValidationObservesCancellationAfterCellFormats() {
+        string styles = "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+            + "<cellXfs count=\"1\"><xf numFmtId=\"0\"/></cellXfs><cellStyles>"
+            + string.Concat(Enumerable.Repeat("<cellStyle name=\"Default\" xfId=\"0\"/>", 1000))
+            + "</cellStyles></styleSheet>";
+        using var cancellation = new System.Threading.CancellationTokenSource();
+        using var input = new TailCancellationInput(Encoding.UTF8.GetBytes(styles), 4096, cancellation) { Armed = true };
+        var provider = new StylesCacheProvider(() => input);
+
+        var exception = Assert.Throws<OperationCanceledException>(() => provider.GetValue(cancellation.Token));
+        Assert.Equal(cancellation.Token, exception.CancellationToken);
+        Assert.Equal(0, input.ReadsAfterCancellation);
+    }
+#endif
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void OpenDataReader_RejectsMalformedStylesAfterCellFormats(bool streamedPart) {
+        string path = CreateCompactFastPathWorkbook();
+        try {
+            ReplaceZipEntry(path, "xl/worksheets/sheet1.xml", Encoding.UTF8.GetBytes("""
+                <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>
+                  <row r="1"><c r="A1" t="inlineStr"><is><t>Value</t></is></c></row>
+                  <row r="2"><c r="A2" s="0"><v>42</v></c></row>
+                  <row r="3"><c r="A3" s="0"><v>43</v></c></row>
+                </sheetData></worksheet>
+                """));
+            string padding = streamedPart ? new string('x', 10_000) : "Default";
+            string styles = "<styleSheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\">"
+                + "<cellXfs count=\"1\"><xf numFmtId=\"0\"/></cellXfs>"
+                + "<cellStyles count=\"1\"><cellStyle name=\"" + padding
+                + "\" xfId=\"0\" builtinId=\"0\"/></cellStyles></styleSheet>";
+            ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles));
+            AssertCompactNumericRows(path);
+
+            ReplaceZipEntry(path, "xl/styles.xml", Encoding.UTF8.GetBytes(styles + "<"));
+            Assert.Throws<System.Xml.XmlException>(() => {
+                using var reader = ExcelDocument.OpenReader(path);
+                _ = reader.FieldCount;
+            });
+        } finally { File.Delete(path); }
+    }
+
     [Theory]
     [InlineData("plain", false)]
     [InlineData("plain", true)]

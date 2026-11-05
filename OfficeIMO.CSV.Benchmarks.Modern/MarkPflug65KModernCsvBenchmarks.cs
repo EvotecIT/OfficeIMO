@@ -20,13 +20,27 @@ public class MarkPflug65KModernCsvBenchmarks {
         _expected = new CsvReadObservation(MarkPflug65KFixture.ExpectedRows,
             MarkPflug65KFixture.ExpectedRows * MarkPflug65KFixture.ExpectedColumns,
             MarkPflug65KFixture.ExpectedCsvCharacters, MarkPflug65KFixture.ExpectedCsvChecksum);
-        OfficeIMO(); Sep(); CsvHelper(); FourLambda();
+        OfficeIMO(); OfficeIMO_InternStrings(); Sep(); CsvHelper(); FourLambda();
     }
 
     [Benchmark]
     public CsvReadObservation OfficeIMO() {
         using DbDataReader reader = CsvDocument.OpenReader(MarkPflug65KFixture.CsvPath,
             options: new CsvReaderOptions { DetectDelimiter = false });
+        var values = new CsvObservationAccumulator();
+        int rows = 0;
+        while (reader.Read()) {
+            for (int column = 0; column < reader.FieldCount; column++) values.Add(reader.GetString(column));
+            rows++;
+        }
+        return Validate(values.ToObservation(rows));
+    }
+
+    /// <summary>Measures the existing per-read string reuse option with the same owned values.</summary>
+    [Benchmark]
+    public CsvReadObservation OfficeIMO_InternStrings() {
+        using DbDataReader reader = CsvDocument.OpenReader(MarkPflug65KFixture.CsvPath,
+            options: new CsvReaderOptions { DetectDelimiter = false, InternStrings = true });
         var values = new CsvObservationAccumulator();
         int rows = 0;
         while (reader.Read()) {

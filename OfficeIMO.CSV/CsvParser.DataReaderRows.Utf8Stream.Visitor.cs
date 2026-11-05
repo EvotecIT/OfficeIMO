@@ -118,6 +118,33 @@ internal static partial class CsvParser
             return materialized;
         }
 
+        /// <summary>Completes requested per-read string sharing before exposing the row.</summary>
+        internal void InternFields(Dictionary<string, string>? cache)
+        {
+            if (cache is null) return;
+            int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
+#if NET9_0_OR_GREATER
+            Span<char> characters = stackalloc char[128];
+#endif
+            for (int ordinal = 0; ordinal < count; ordinal++)
+            {
+#if NET9_0_OR_GREATER
+                int length = _lengths[ordinal];
+                if (length > 0 && length <= characters.Length)
+                {
+                    ReadOnlySpan<byte> bytes = _buffer.AsSpan(_starts[ordinal], length);
+                    if (_allFieldsAscii || Ascii.IsValid(bytes))
+                    {
+                        int written = Encoding.Latin1.GetChars(bytes, characters);
+                        _materialized[ordinal] = ReuseFieldSpan(characters.Slice(0, written), cache);
+                        continue;
+                    }
+                }
+#endif
+                _materialized[ordinal] = ReuseFieldString(GetString(ordinal), cache);
+            }
+        }
+
         internal bool IsMissing(int ordinal)
         {
             ValidateOrdinal(ordinal);

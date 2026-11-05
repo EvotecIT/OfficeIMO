@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System.Globalization;
 using System.IO;
+using System.Threading;
 using System.Xml;
 
 namespace OfficeIMO.Excel {
@@ -24,25 +25,25 @@ namespace OfficeIMO.Excel {
             _value = value ?? throw new ArgumentNullException(nameof(value));
         }
 
-        public StylesCache Value {
-            get {
-                var value = _value;
-                if (value != null) {
-                    return value;
+        internal StylesCache GetValue(CancellationToken cancellationToken) {
+            cancellationToken.ThrowIfCancellationRequested();
+            var value = _value;
+            if (value != null) {
+                return value;
+            }
+
+            lock (_gate) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (_value != null) {
+                    return _value;
                 }
 
-                lock (_gate) {
-                    if (_value != null) {
-                        return _value;
-                    }
-
-                    if (_openPartStream != null) {
-                        using Stream stream = _openPartStream();
-                        return _value = StylesCache.Build(stream);
-                    }
-
-                    return _value = StylesCache.Build(_doc!);
+                if (_openPartStream != null) {
+                    using Stream stream = _openPartStream();
+                    return _value = StylesCache.Build(stream, cancellationToken);
                 }
+
+                return _value = StylesCache.Build(_doc!, cancellationToken);
             }
         }
     }
@@ -59,12 +60,13 @@ namespace OfficeIMO.Excel {
 
         public int CellFormatCount => _dateStyleIndexes.Length;
 
-        public static StylesCache Build(SpreadsheetDocument doc) {
+        public static StylesCache Build(SpreadsheetDocument doc, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var cache = new StylesCache();
             var sp = doc.WorkbookPart!.WorkbookStylesPart;
             if (sp == null) return cache;
 
-            if (doc.FileOpenAccess == FileAccess.Read && TryBuildXmlFast(sp, cache)) {
+            if (doc.FileOpenAccess == FileAccess.Read && TryBuildXmlFast(sp, cache, cancellationToken)) {
                 return cache;
             }
 
@@ -121,9 +123,10 @@ namespace OfficeIMO.Excel {
             return cache;
         }
 
-        internal static StylesCache Build(Stream stream) {
+        internal static StylesCache Build(Stream stream, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             var cache = new StylesCache();
-            if (!TryBuildXmlFast(stream, cache)) {
+            if (!TryBuildXmlFast(stream, cache, cancellationToken)) {
                 throw new XlsxTabularFastPathNotSupportedException(
                     "The styles part requires the Open XML SDK fallback path.");
             }
@@ -137,17 +140,18 @@ namespace OfficeIMO.Excel {
 
         public bool IsDateSystemShiftStyle(uint styleIndex) => styleIndex < (uint)_dateSystemShiftStyleIndexes.Length && _dateSystemShiftStyleIndexes[styleIndex];
 
-        private static bool TryBuildXmlFast(WorkbookStylesPart sp, StylesCache cache) {
+        private static bool TryBuildXmlFast(WorkbookStylesPart sp, StylesCache cache, CancellationToken cancellationToken) {
             using var stream = sp.GetStream(FileMode.Open, FileAccess.Read);
-            return TryBuildXmlFast(stream, cache);
+            return TryBuildXmlFast(stream, cache, cancellationToken);
         }
 
-        private static bool TryBuildXmlFast(Stream stream, StylesCache cache) {
+        private static bool TryBuildXmlFast(Stream stream, StylesCache cache, CancellationToken cancellationToken) {
             try {
                 using var reader = XmlReader.Create(stream, OpenXmlReadNameTable.WithSchemaNames(StylesXmlReaderSettings));
                 Dictionary<uint, string>? nf = null;
 
                 while (reader.Read()) {
+                    cancellationToken.ThrowIfCancellationRequested();
                     if (reader.NodeType != XmlNodeType.Element) {
                         continue;
                     }
@@ -163,7 +167,11 @@ namespace OfficeIMO.Excel {
                     }
 
                     if (reader.LocalName == "cellXfs") {
-                        ReadCellFormatsXml(reader, cache, nf);
+                        ReadCellFormatsXml(reader, cache, nf, cancellationToken);
+                        // Validate the remaining XML and declared package length
+                        // before publishing the completed style map.
+                        while (reader.Read()) cancellationToken.ThrowIfCancellationRequested();
+                        cancellationToken.ThrowIfCancellationRequested();
                         return true;
                     }
                 }
@@ -171,10 +179,6 @@ namespace OfficeIMO.Excel {
                 cache._dateStyleIndexes = EmptyDateStyleIndexes;
                 cache.HasDateStyles = false;
                 return true;
-            } catch (XmlException) {
-                cache._dateStyleIndexes = EmptyDateStyleIndexes;
-                cache.HasDateStyles = false;
-                return false;
             } catch (IOException) {
                 cache._dateStyleIndexes = EmptyDateStyleIndexes;
                 cache.HasDateStyles = false;
@@ -190,7 +194,8 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static void ReadCellFormatsXml(XmlReader reader, StylesCache cache, Dictionary<uint, string>? numberingFormats) {
+        private static void ReadCellFormatsXml(XmlReader reader, StylesCache cache,
+            Dictionary<uint, string>? numberingFormats, CancellationToken cancellationToken) {
             if (reader.IsEmptyElement) {
                 cache._dateStyleIndexes = EmptyDateStyleIndexes;
                 cache.HasDateStyles = false;
@@ -200,6 +205,7 @@ namespace OfficeIMO.Excel {
             int depth = reader.Depth;
             int index = 0;
             while (reader.Read()) {
+                cancellationToken.ThrowIfCancellationRequested();
                 if (reader.NodeType == XmlNodeType.EndElement && reader.Depth == depth && reader.LocalName == "cellXfs") {
                     break;
                 }

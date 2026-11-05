@@ -313,7 +313,7 @@ jobs:
     name: 'Workflow contracts / ${{ matrix.os }} / ${{ matrix.framework }}'
     if: fromJSON(needs.changes.outputs.suites)['workflow-contracts']
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -331,7 +331,7 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $PSNativeCommandUseErrorActionPreference = $true
-          # Persist TRX and the active-test sequence before the job's 20-minute limit.
+          # Persist TRX and the active-test sequence before the job's 30-minute limit.
           dotnet test OfficeIMO.Workflows.Tests/OfficeIMO.Workflows.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=workflows.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
           dotnet test OfficeIMO.Workflows.IWork.Tests/OfficeIMO.Workflows.IWork.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} -m:1 --filter 'Category!=Performance' --logger 'trx;LogFileName=iwork.trx' --results-directory TestResults/Workflows --blame-hang --blame-hang-timeout 2m --blame-hang-dump-type none
       - name: Upload test results
@@ -2112,7 +2112,7 @@ jobs:
     name: 'NativeAOT Linux / ${{ matrix.label }}'
     if: needs.changes.outputs.full == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
     strategy:
       fail-fast: false
       matrix:

@@ -37,13 +37,19 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         }
 
         internal static byte[] CreateDirectTabular(string sheetName, bool uses1904DateSystem) {
-            if (string.IsNullOrEmpty(sheetName)) throw new ArgumentException("Worksheet name is required.", nameof(sheetName));
+            return CreateDirectTabular(new[] { sheetName }, uses1904DateSystem);
+        }
 
-            using var output = new MemoryStream(256);
+        internal static byte[] CreateDirectTabular(IReadOnlyList<string> names, bool uses1904DateSystem) {
+            if (names.Count == 0) throw new ArgumentException("A workbook needs a worksheet.", nameof(names));
+            using var output = new MemoryStream(Math.Max(256, names.Count * 64));
             XlsbRecordWriter.Write(output, BrtBeginBook);
             XlsbRecordWriter.Write(output, BrtWbProp, CreateWorkbookPropertiesPayload(uses1904DateSystem));
             XlsbRecordWriter.Write(output, BrtBeginBundleShs);
-            XlsbRecordWriter.Write(output, BrtBundleSh, CreateBundleSheetPayload(sheetName, index: 0));
+            for (int index = 0; index < names.Count; index++) {
+                if (string.IsNullOrEmpty(names[index])) throw new ArgumentException("Worksheet names are required.", nameof(names));
+                XlsbRecordWriter.Write(output, BrtBundleSh, CreateBundleSheetPayload(names[index], index));
+            }
             XlsbRecordWriter.Write(output, BrtEndBundleShs);
             XlsbRecordWriter.Write(output, BrtEndBook);
             return output.ToArray();

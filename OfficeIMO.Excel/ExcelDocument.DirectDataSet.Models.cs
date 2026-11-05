@@ -495,7 +495,9 @@ namespace OfficeIMO.Excel {
                     return "Sheet1";
                 }
 
-                return value.Length > 31 ? ExcelSheetNameText.Truncate(value, 31) : value;
+                // Truncation can expose a boundary apostrophe or whitespace.
+                value = (value.Length > 31 ? ExcelSheetNameText.Truncate(value, 31) : value).Trim('\'', ' ');
+                return string.IsNullOrWhiteSpace(value) ? "Sheet1" : value;
             }
 
             internal static string SanitizeTableName(string name) {

@@ -10,9 +10,11 @@ FourLambda's MPL-2.0 dependency is confined to this opt-in executable.
 Every reader opens the same hash-pinned 65K sales CSV and returns owned strings
 for every field. Each operation checks the fixed row/cell counts, decoded
 character count and ordered checksum. Setup also validates every participant.
-These lanes use default string ownership; they do not measure borrowed spans
-or string pooling. File data is warmed by setup, so this is not cold-disk I/O.
-`--validate` runs all four complete observations once, without collecting timings.
+Four lanes use default string ownership. The fifth, `OfficeIMO_InternStrings`,
+sets `InternStrings=true` and measures per-read string reuse while returning the
+same complete observation. It is a separate option comparison; it is not the
+default reader. None of these lanes measures borrowed spans. File data is warmed by setup, so this is not cold-disk I/O.
+`--validate` runs all five complete observations once, without collecting timings.
 
 ```sh
 dotnet run -c Release -f net10.0 --project ./OfficeIMO.CSV.Benchmarks.Modern -- --filter "*MarkPflug65KModernCsvBenchmarks*" --inProcess --warmupCount 8 --iterationCount 12 --invocationCount 8 --unrollFactor 1 --outliers DontRemove

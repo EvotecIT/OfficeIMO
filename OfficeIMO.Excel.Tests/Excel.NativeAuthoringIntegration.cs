@@ -199,13 +199,16 @@ public sealed class ExcelNativeAuthoringIntegrationTests {
         }
     }
 
-    [Fact]
-    public void NoClobberAlsoProtectsADestinationCreatedDuringExport() {
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsx)]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    [InlineData(ExcelFileFormat.Xls)]
+    public void NoClobberAlsoProtectsADestinationCreatedDuringExport(ExcelFileFormat format) {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO-NoClobber-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         string path = Path.Combine(directory, "new.xlsx");
         try {
-            var workbook = ExcelDocument.CreateWriter(path, new ExcelWriterOptions { NoClobber = true });
+            var workbook = ExcelDocument.CreateWriter(format, path, new ExcelWriterOptions { NoClobber = true });
             using (var rows = workbook.BeginTable("Data")) {
                 rows.WriteRow(new[] { "Id" }, new object?[] { 7 });
                 rows.Complete();

@@ -13,6 +13,14 @@ if (args.Length == 1 && args[0] == "--validate-prime-readers") {
     return;
 }
 
+if (args.Length == 1 && args[0] == "--validate-hypelab-reader") {
+    var benchmark = new MarkPflug65KXlsxBenchmarks();
+    benchmark.Setup();
+    _ = benchmark.HypeLab();
+    Console.WriteLine("PASS | The HypeLab reader produces the complete expected typed sales observation.");
+    return;
+}
+
 #if NET10_0_OR_GREATER
 if (args.Length > 0 && args[0] == "--profile-native-generated-write") {
     ExcelNativeGeneratedWriteProfileRunner.Run(args);

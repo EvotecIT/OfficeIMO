@@ -373,10 +373,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
                     sawDimension = true;
                     ReadWorksheetDimension(record, out firstColumn, out lastColumn);
                 } else if (record.Type == BrtBeginSheetData) {
-                    if (!sawDimension) {
-                        throw new InvalidDataException(
-                            "The XLSB worksheet is missing the required BrtWsDim record before BrtBeginSheetData.");
-                    }
                     inSheetData = true;
                 } else if (inSheetData && record.Type == BrtRowHdr) {
                     int rowIndex = ReadValidatedRowIndex(record);
@@ -394,10 +390,6 @@ namespace OfficeIMO.Excel.Xlsb.Read {
             if (inSheetData) {
                 throw new InvalidDataException(
                     "The XLSB worksheet ended before the required BrtEndSheetData record.");
-            }
-            if (!sawDimension) {
-                throw new InvalidDataException(
-                    "The XLSB worksheet is missing the required BrtWsDim record.");
             }
         }
 

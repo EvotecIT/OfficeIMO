@@ -521,3 +521,5 @@ OfficeIMO.Excel.ExcelWriterOptions.Title.get -> string?
 OfficeIMO.Excel.ExcelWriterOptions.Title.set -> void
 *REMOVED*OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook() -> void
 OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook(bool structure = true, bool windows = true) -> void
+static OfficeIMO.Excel.ExcelDocument.CreateWriter(OfficeIMO.Excel.ExcelFileFormat format, System.IO.Stream! stream, OfficeIMO.Excel.ExcelWriterOptions? options = null, OfficeIMO.OfficeTheme? theme = null, bool leaveOpen = false) -> OfficeIMO.Excel.ExcelWorkbookWriter!
+static OfficeIMO.Excel.ExcelDocument.CreateWriter(OfficeIMO.Excel.ExcelFileFormat format, string! path, OfficeIMO.Excel.ExcelWriterOptions? options = null, OfficeIMO.OfficeTheme? theme = null) -> OfficeIMO.Excel.ExcelWorkbookWriter!

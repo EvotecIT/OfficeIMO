@@ -15,7 +15,9 @@ I measure both profiles independently, including the owned strings each returns.
 
 `ExcelReaderGeneratedXlsxWriteBenchmarks` compares complete in-memory XLSX
 packages from OfficeIMO, ExcelReader.NET and SpreadCheetah.
-`ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. Generation is included
+`ExcelReaderGeneratedWriteBenchmarks` covers XLSB and XLS. I retain both the typed
+`CreateWriter(format, ...)` callback and the existing `WriteData` plus `Save` route
+as separate OfficeIMO lanes. Generation is included
 for each writer, while preflight validation is outside timing: I reopen each
 output with ExcelDataReader and the strict OfficeIMO reader. The XLS lane also
 requires the BIFF8 Index/DBCell structure. A failed preflight stays visible as
@@ -71,6 +73,13 @@ and workbook is disposed within the operation. These lanes do not use a native
 inflater plugin or retain an extracted sheet between operations.
 `--validate-prime-readers` runs the four complete PRIME observations once without
 collecting timings; it uses the same fixed expectations as the measured methods.
+
+The XLSX sales comparison includes HypeLab.IO.Excel 1.0.7 and HypeLab.IO.Core
+1.0.6 (MIT). Each operation calls `ExtractSheetData` on the file with its default
+validation options, then consumes all fourteen typed columns from the returned
+string rows. Numeric strings pass through the same IEEE-to-decimal conversion;
+extracted rows are not reused between operations. `--validate-hypelab-reader`
+checks the complete observation once on either .NET target without timings.
 
 `ExcelWideLoadedReadBenchmarks` is a supplemental 10,000-by-150 presence scan,
 separate from XLBench's published scenarios. Both APIs include headers and must

@@ -5,6 +5,7 @@ using OfficeIMO.Data;
 
 internal static class CsvPackedTextSmoke {
     internal static void Run() {
+        VerifyInternedStream();
         foreach (bool quoted in new[] { false, true }) {
             // Exceed the 64 KiB quote probe and cross the 128-row batch boundary
             // so native execution covers packed quote-free reads and quoted fallback.
@@ -32,5 +33,17 @@ internal static class CsvPackedTextSmoke {
             if (!ids.SequenceEqual(Enumerable.Range(0, count)))
                 throw new InvalidOperationException("Native CSV partition changed row order.");
         }
+    }
+
+    private static void VerifyInternedStream() {
+        using var input = new MemoryStream(Encoding.UTF8.GetBytes("Value\nrepeat\n\"repeat\"\nrepeat\n"));
+        using var reader = CsvDocument.OpenReader(input, new CsvReaderOptions { InternStrings = true, DetectDelimiter = false });
+        if (!reader.Read()) throw new InvalidOperationException("Native interning lost the first row.");
+        string first = reader.GetString(0);
+        for (int row = 0; row < 2; row++) {
+            if (!reader.Read() || !ReferenceEquals(first, reader.GetString(0)))
+                throw new InvalidOperationException("Native interning lost string identity across quoted fallback.");
+        }
+        if (first != "repeat" || reader.Read()) throw new InvalidOperationException("Native interning changed the records.");
     }
 }

@@ -10,19 +10,26 @@ try
     XmlTableSmoke.Run();
     RecordReadSmoke.Run();
     PipelinedReadSmoke.Run();
-    using (var asyncRows = new MemoryStream())
+    foreach (ExcelFileFormat format in new[] { ExcelFileFormat.Xlsx, ExcelFileFormat.Xlsb, ExcelFileFormat.Xls })
     {
-        using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(asyncRows, leaveOpen: true))
+        using (var asyncRows = new MemoryStream())
         {
-            await writer.WriteTable("Revenue", CreateRowsAsync(), ["Region", "Revenue"],
-                static (rowWriter, row) => rowWriter.Write(row.Region).Write(row.Revenue));
-        }
-        asyncRows.Position = 0;
-        using ExcelWorkbookDataReader asyncReader = ExcelDocument.OpenReader(asyncRows);
-        if (!asyncReader.Read() || asyncReader.GetString(0) != "North"
-            || !asyncReader.Read() || asyncReader.GetString(0) != "South" || asyncReader.Read())
-        {
-            throw new InvalidOperationException("The asynchronous table writer lost rows or their order.");
+            using (ExcelWorkbookWriter writer = ExcelDocument.CreateWriter(format, asyncRows, leaveOpen: true))
+            {
+                await writer.WriteTable("Revenue", CreateRowsAsync(), ["Region", "Revenue"],
+                    static (rowWriter, row) => rowWriter.Write(row.Region).Write(row.Revenue));
+            }
+            asyncRows.Position = 0;
+            using ExcelWorkbookDataReader asyncReader = ExcelDocument.OpenReader(asyncRows);
+            var regionCharacters = new char[3];
+            if (!asyncReader.Read() || asyncReader.GetString(0) != "North"
+                || asyncReader.GetChars(0, 1, null, 0, 0) != 5
+                || asyncReader.GetChars(0, 1, regionCharacters, 0, 3) != 3
+                || new string(regionCharacters) != "ort"
+                || !asyncReader.Read() || asyncReader.GetString(0) != "South" || asyncReader.Read())
+            {
+                throw new InvalidOperationException("The asynchronous table writer lost rows, text ranges or their order.");
+            }
         }
     }
 

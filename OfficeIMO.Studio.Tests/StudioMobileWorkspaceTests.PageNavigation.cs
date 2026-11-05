@@ -94,6 +94,15 @@ public sealed partial class StudioMobileWorkspaceTests {
                     Assert.Equal(3, document.SelectedPage.PageNumber);
 
                     window.RequestedThemeVariant = ThemeVariant.Dark;
+                    Layout(window, width, height);
+                    Point hoverPoint = await StudioHeadlessInput.WaitForTargetAsync(window, opener,
+                        () => Layout(window, width, height));
+                    window.MouseMove(hoverPoint, RawInputModifiers.None);
+                    Assert.True(opener.IsPointerOver);
+                    // Establish a real hover before checking that pointer exit closes its tooltip.
+                    ToolTip.SetIsOpen(opener, true);
+                    Layout(window, width, height);
+                    Assert.True(ToolTip.GetIsOpen(opener));
                     await OpenPageChooserAsync(view, window, width, height);
                     Layout(window, width, height);
                     Capture(window, $"page-chooser-dark-{width}");
@@ -151,6 +160,8 @@ public sealed partial class StudioMobileWorkspaceTests {
 
     private static async Task OpenPageChooserAsync(MobileWorkspaceView view, Window window, int width, int height) {
         var button = view.FindControl<Button>("GoToPageButton")!;
+        // Leave the opener so its hover tooltip cannot cover the next hit-test.
+        window.MouseMove(new Point(-1, -1), RawInputModifiers.None);
         Point point = await StudioHeadlessInput.WaitForTargetAsync(window, button, () => Layout(window, width, height));
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);

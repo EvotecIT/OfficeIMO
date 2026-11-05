@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel)
 
-Create, edit, read and save Excel workbooks (`.xlsx`, and the supported subset of Excel 97–2003 `.xls`) in .NET, without Microsoft Excel or COM. Tables, charts and cell styles follow the workbook's theme; very large exports stream rows with bounded memory.
+Create, edit, read and save Excel workbooks (`.xlsx`, and the supported subsets of `.xlsb` and Excel 97–2003 `.xls`) in .NET, without Microsoft Excel or COM. Tables, charts and cell styles follow the workbook's theme; very large exports stream rows with bounded memory.
 
 ## Returned authoring objects
 
@@ -198,7 +198,7 @@ XML Spreadsheet import also limits defined names (10,000 by default). Set `Excel
 
 ## Large exports
 
-The object model keeps the whole workbook editable until `Save()`. For hundreds of thousands of rows, the streaming writer writes each row as it arrives and keeps memory flat:
+The object model keeps the whole workbook editable until `Save()`. For hundreds of thousands of rows, the XLSX and XLSB streaming writers write each row as it arrives with bounded row memory:
 
 ```csharp
 using OfficeIMO;
@@ -215,6 +215,20 @@ record LogEvent(DateTime Time, string Level, string Message);
 ```
 
 `WriteTable` also takes an `IAsyncEnumerable<T>`, a `DataTable` or an `IDataReader`. The file is published when the writer is disposed.
+
+The same writer supports binary formats with an explicit format argument. A typed callback writes scalar values directly to native records:
+
+```csharp
+using (var writer = ExcelDocument.CreateWriter(ExcelFileFormat.Xlsb, "Events.xlsb")) {
+    writer.WriteTable("Events", events, new[] { "Time", "Level", "Message" },
+        static (row, item) => row.Write(item.Time).Write(item.Level).Write(item.Message));
+}
+```
+
+Use `ExcelFileFormat.Xls` for BIFF8 output, within its limit of 65,536 rows (including headers) and 256 columns. XLS stages native records and its required shared-string table; `RequireStreaming=true` rejects that format. Binary row writers create plain worksheets and reject tables, AutoFit, freeze panes and declared styles. Existing `CreateWriter(path)` and `CreateWriter(stream)` calls select XLSX. `WriteData` retains its selector and buffering behavior.
+
+XLS and XLSB numeric cells use IEEE-754 double precision, including when a callback supplies a `decimal`, `long` or `ulong`. Large integers and high-precision decimals may lose digits. Write identifiers or exact decimal text as strings when every digit matters.
+
 
 ## Report sheets
 

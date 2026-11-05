@@ -24,6 +24,7 @@ internal static partial class CsvParser
 
         private readonly CsvParsingSettings _options;
         private readonly Encoding _encoding;
+        private readonly Dictionary<string, string>? _stringCache;
         private readonly byte _delimiter;
         private readonly byte _commentCharacter;
         private readonly Vector256<byte> _delimiterVector;
@@ -57,6 +58,7 @@ internal static partial class CsvParser
         {
             _stream = stream;
             _options = options;
+            _stringCache = CreateStringCache(options);
             _encoding = encoding;
             _delimiter = checked((byte)GetDelimiterChar(options));
             _commentCharacter = checked((byte)options.CommentCharacter);
@@ -496,6 +498,7 @@ internal static partial class CsvParser
                 fieldIndex + 1,
                 _options.ColumnCountMismatchPolicy,
                 isAscii);
+            _visitor.InternFields(_stringCache);
             _emittedRecordCount++;
             ReportProgress(_options, _emittedRecordCount, recordLineNumber);
             _currentPhysicalLineNumber = recordLineNumber;
@@ -532,7 +535,8 @@ internal static partial class CsvParser
                     reader,
                     _options,
                     _emittedRecordCount,
-                    recordLineNumber - 1);
+                    recordLineNumber - 1,
+                    _stringCache);
                 _streamTransferred = true;
             }
             catch

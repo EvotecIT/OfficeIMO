@@ -1,5 +1,6 @@
 #if NET10_0_OR_GREATER
 using BenchmarkDotNet.Attributes;
+using OfficeIMO.Benchmarks;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
@@ -13,16 +14,38 @@ public class ExcelReaderGeneratedWriteBenchmarks {
     public int RowCount { get; set; }
 
     [GlobalSetup(Target = nameof(OfficeIMO))]
-    public void SetupOfficeIMO() => Validate(OfficeIMO());
+    public void SetupOfficeIMO() {
+        ApplyPriorityOverride();
+        Validate(OfficeIMO());
+    }
 
     [GlobalSetup(Target = nameof(ExcelReaderNet))]
-    public void SetupExcelReader() => Validate(ExcelReaderNet());
+    public void SetupExcelReader() {
+        ApplyPriorityOverride();
+        Validate(ExcelReaderNet());
+    }
+
+    [GlobalSetup(Target = nameof(OfficeIMO_WriteData))]
+    public void SetupOfficeIMOBuffered() {
+        ApplyPriorityOverride();
+        Validate(OfficeIMO_WriteData());
+    }
+
+    [Benchmark]
+    public byte[] OfficeIMO_WriteData() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMOBuffered(Format, RowCount);
 
     [Benchmark(Baseline = true)]
     public byte[] OfficeIMO() => ExcelReaderGeneratedBenchmarks.WriteOfficeIMO(Format, RowCount);
 
     [Benchmark]
     public byte[] ExcelReaderNet() => ExcelReaderGeneratedBenchmarks.WriteExcelReader(Format, RowCount);
+
+    // In-process execution may raise priority after the command-line override.
+    private static void ApplyPriorityOverride() {
+        string? priority = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_PROCESS_PRIORITY");
+        if (!string.IsNullOrEmpty(priority))
+            Console.WriteLine($"Benchmark process priority: {BenchmarkProcessorAffinity.ApplyPriority(priority)}.");
+    }
 
     internal void Validate(byte[] output) {
         if (Format == ExcelFileFormat.Xls) {

@@ -16,6 +16,7 @@
     <PackageReference Include="ClosedXML" Version="0.105.1" />
     <PackageReference Include="ExcelDataReader" Version="3.9.0" />
     <PackageReference Include="Excel-PRIME" Version="5.2610.18" />
+    <PackageReference Include="HypeLab.IO.Excel" Version="1.0.7" />
     <!-- Runtime APIs are benchmarked directly. The source generator targets a newer Roslyn than the repository SDK ships. -->
     <PackageReference Include="ExcelReader.NET" Version="$(ExcelReaderBenchmarkVersion)" ExcludeAssets="analyzers" />
     <PackageReference Include="ExcelReader.Arrow" Version="$(ExcelReaderBenchmarkVersion)" />
