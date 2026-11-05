@@ -10,7 +10,7 @@ dotnet add package OfficeIMO.PowerPoint.IWork
 using OfficeIMO.IWork;
 using OfficeIMO.PowerPoint.IWork;
 
-IWorkSourceDocument source = IWorkSourceDocument.Open("source.key");
+IWorkSourceDocument source = IWorkSourceDocument.Load("source.key");
 using KeynoteToPowerPointResult result = source.ToPowerPointResult(
     new IWorkConversionOptions { Mode = IWorkConversionMode.Auto });
 
@@ -19,7 +19,7 @@ Console.WriteLine(result.HasLoss);
 result.Value.Save("converted.pptx");
 ```
 
-`IWorkSourceDocument.Open` reads and bounds the source independently of destination policy. `ToPowerPoint(options, out report)` and `SaveAsPowerPoint` return the presentation with the common `OfficeConversionReport`; `FailOnLoss` rejects reported loss. `ToPowerPointResult` is the evidence operation: it also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
+`IWorkSourceDocument.Load` reads and bounds the source independently of destination policy. `ToPowerPoint(options, out report)` returns the presentation with the common `OfficeConversionReport`. `SaveAsPowerPoint` writes the presentation and returns that report. `FailOnLoss` rejects reported loss. `ToPowerPointResult` is the evidence operation: it also exposes the typed Keynote projection, diagnostics, preserved source records, and exact editable-versus-visual-fallback result.
 
 Qualified opaque slide background colors and explicit no-fill overrides survive PPTX save/reopen, including selected style inheritance. Unsupported backgrounds require visual fallback or explicit partial conversion and retain source diagnostics. See the [background contract and native evidence](../Docs/officeimo.iwork-support-matrix.md#keynote-slide-backgrounds) for the supported color subset and remaining master/export limits.
 
@@ -49,7 +49,7 @@ var options = new IWorkConversionOptions {
 };
 ```
 
-This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. Value-only APIs reject partial and preview output even when these options permit it. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.ThrowIfLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
+This retains bounded recoverable editable content and reports incomplete details. If editable output cannot be produced, it rejects a first-page or composite preview. `AllowPartialEditableReconstruction` defaults to `false`; `RequireCompleteVisualCoverage` defaults to `true`. To accept an incomplete preview, use the result API with `RequireCompleteVisualCoverage = false` and inspect its coverage and fidelity report. `ToPowerPoint` can return permitted partial or preview output; retain the common report when using that path. `result.RequireCompleteEditableReconstruction()` returns the destination after checking assessed content completeness and disposes rejected output; it does not establish identical appearance or field-level fidelity. `Report.ThrowIfLoss()` also rejects unassessed record fidelity. These policies do not bypass source limits or destination safety checks.
 
 Qualified non-tiered decimal levels 0 and 1 retain starts, restarts and parent resets. Resuming after ordinary text, returning to a parent level or changing the qualified marker font/size restates the recovered counter for the receiving application. Counters outside 1–32767 are rejected before destination mutation. The bounded decimal marker profile stores a whole-point marker size independently of uniform body-run size through `BulletSize`, preserving 11-point marker declarations with 12-point text without percentage rounding. Other marker profiles keep their existing measurement and fidelity checks; native Keynote rendering retains its own qualification boundary.
 
@@ -57,11 +57,11 @@ The [counter component references](../OfficeIMO.TestAssets/Documents/IWorkCorpus
 
 Keep-lines is inactive in qualified unlinked, horizontal, single-column fixed frames. Keep-with-next, page breaks, unknown frame layouts, linked flows, presenter notes and table-cell pagination retain the strict checks. Under the partial policy, recovered slides remain editable when those paragraph flags cannot be represented; the report retains the pagination diagnostic and partial-reconstruction finding.
 
-Opening and converting both accept cancellation:
+Loading and converting both accept cancellation:
 
 ```csharp
 using var cancellation = new CancellationTokenSource();
-IWorkSourceDocument cancellableSource = IWorkSourceDocument.Open(
+IWorkSourceDocument cancellableSource = IWorkSourceDocument.Load(
     "source.key", IWorkDocumentKind.Keynote, null, cancellation.Token);
 using KeynoteToPowerPointResult cancellable = cancellableSource.ToPowerPointResult(options, cancellation.Token);
 ```

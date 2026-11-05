@@ -4389,7 +4389,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 
 | Topic | 3.5 | Change | 3.6 | Details |
 | --- | --- | --- | --- | --- |
-| Conversion | `ExcelIWorkConverter.ConvertNumbersToExcel(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertNumbersToExcelResult` | Removed | `IWorkSourceDocument.Open(path \| stream, IWorkDocumentKind.Numbers, readOptions[, ct]).ToExcel(...) / ToExcelResult(...)` | Open the source with IWorkSourceDocument.Open and call ToExcel, SaveAsExcel or ToExcelResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour. |
+| Conversion | `ExcelIWorkConverter.ConvertNumbersToExcel(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertNumbersToExcelResult` | Removed | `IWorkSourceDocument.Load(path \| stream, IWorkDocumentKind.Numbers, loadOptions[, ct]).ToExcel(...) / ToExcelResult(...)` | Load the source with IWorkSourceDocument.Load and call ToExcel, SaveAsExcel or ToExcelResult; use ToExcelResult(...).RequireCompleteEditableReconstruction() to require complete editable output. |
 | Conversion | `IWorkSourceDocument.ToExcelDocument(IWorkConversionOptions)` | Merged | `IWorkSourceDocument.ToExcel(NumbersExcelExportOptions options[, out OfficeConversionReport report], CancellationToken); ToExcelAsync; SaveAsExcel(path \| stream); SaveAsExcelAsync` | ToExcel returns partial reconstructions with their report; use ToExcelResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour. |
 | Conversion | `IWorkSourceDocument.ToExcelDocumentResult(IWorkConversionOptions) : NumbersToExcelResult` | Renamed | `IWorkSourceDocument.ToExcelResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : NumbersToExcelResult` | The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation. |
 | Options | `IWorkConversionOptions parameter` | Changed | `OfficeIMO.Excel.IWork.NumbersExcelExportOptions { ConversionOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
@@ -4895,7 +4895,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | --- | --- | --- | --- | --- |
 | Conversion | `IWorkSourceDocument.ToPowerPointDocument(IWorkConversionOptions)` | Merged | `IWorkSourceDocument.ToPowerPoint(KeynotePowerPointExportOptions options[, out OfficeConversionReport report], CancellationToken); ToPowerPointAsync; SaveAsPowerPoint(path \| stream); SaveAsPowerPointAsync` | ToPowerPoint returns partial reconstructions with their report; use ToPowerPointResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour. |
 | Conversion | `IWorkSourceDocument.ToPowerPointDocumentResult(IWorkConversionOptions) : KeynoteToPowerPointResult` | Renamed | `IWorkSourceDocument.ToPowerPointResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : KeynoteToPowerPointResult` | The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation. |
-| Conversion | `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertKeynoteToPowerPointResult` | Removed | `IWorkSourceDocument.Open(path \| stream, IWorkDocumentKind.Keynote, readOptions[, ct]).ToPowerPoint(...) / ToPowerPointResult(...)` | Open the source with IWorkSourceDocument.Open and call ToPowerPoint, SaveAsPowerPoint or ToPowerPointResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour. |
+| Conversion | `PowerPointIWorkConverter.ConvertKeynoteToPowerPoint(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertKeynoteToPowerPointResult` | Removed | `IWorkSourceDocument.Load(path \| stream, IWorkDocumentKind.Keynote, loadOptions[, ct]).ToPowerPoint(...) / ToPowerPointResult(...)` | Load the source with IWorkSourceDocument.Load and call ToPowerPoint, SaveAsPowerPoint or ToPowerPointResult; use ToPowerPointResult(...).RequireCompleteEditableReconstruction() to require complete editable output. |
 | Options | `IWorkConversionOptions parameter` | Changed | `OfficeIMO.PowerPoint.IWork.KeynotePowerPointExportOptions { ConversionOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
 
 </details>
@@ -5120,7 +5120,7 @@ Changes per package, grouped by topic. Signatures are written as they appear in 
 | --- | --- | --- | --- | --- |
 | Conversion | `IWorkSourceDocument.ToWordDocument(IWorkConversionOptions)` | Merged | `IWorkSourceDocument.ToWord(PagesWordExportOptions options[, out OfficeConversionReport report], CancellationToken); ToWordAsync; SaveAsWord(path \| stream); SaveAsWordAsync` | ToWord returns partial reconstructions with their report; use ToWordResult(...).RequireCompleteEditableReconstruction() for the previous strict behaviour. |
 | Conversion | `IWorkSourceDocument.ToWordDocumentResult(IWorkConversionOptions) : PagesToWordResult` | Renamed | `IWorkSourceDocument.ToWordResult(IWorkConversionOptions options = null, CancellationToken cancellationToken = default) : PagesToWordResult` | The result keeps the source package and the typed source projection, which the common report does not carry, so it stays as a distinct evidence operation. |
-| Conversion | `WordIWorkConverter.ConvertPagesToWord(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertPagesToWordResult` | Removed | `IWorkSourceDocument.Open(path \| stream, IWorkDocumentKind.Pages, readOptions[, ct]).ToWord(...) / ToWordResult(...)` | Open the source with IWorkSourceDocument.Open and call ToWord, SaveAsWord or ToWordResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour. |
+| Conversion | `WordIWorkConverter.ConvertPagesToWord(path \| stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertPagesToWordResult` | Removed | `IWorkSourceDocument.Load(path \| stream, IWorkDocumentKind.Pages, loadOptions[, ct]).ToWord(...) / ToWordResult(...)` | Load the source with IWorkSourceDocument.Load and call ToWord, SaveAsWord or ToWordResult; use ToWordResult(...).RequireCompleteEditableReconstruction() to require complete editable output. |
 | Options | `IWorkConversionOptions parameter` | Changed | `OfficeIMO.Word.IWork.PagesWordExportOptions { ConversionOptions, FailOnLoss }` | Converter options are named {Source}{Target}ExportOptions. |
 
 </details>
@@ -5922,7 +5922,7 @@ To retain the editable values, formulas and supported styles while accepting thi
 using OfficeIMO.Excel.IWork;
 using OfficeIMO.IWork;
 
-IWorkSourceDocument source = IWorkSourceDocument.Open("source.numbers");
+IWorkSourceDocument source = IWorkSourceDocument.Load("source.numbers");
 using NumbersToExcelResult result = source.ToExcelResult(
     new IWorkConversionOptions {
         Mode = IWorkConversionMode.EditableOnly,
@@ -5933,7 +5933,7 @@ foreach (var diagnostic in result.Report.Diagnostics)
 result.Value.Save("converted.xlsx");
 ```
 
-`ToExcelDocument` and the complete-reconstruction guards still reject partial output, including when the options permit it. Keep the default policy when completeness is required and handle rejection or an available permitted preview. The complete Numbers-to-PDF workflow also rejects padding loss; enabling partial editable reconstruction does not permit an incomplete PDF.
+`ToExcel` can return partial output when the conversion options permit it. Use `ToExcelResult(...).RequireCompleteEditableReconstruction()` to reject incomplete editable output and visual fallbacks. Keep the default policy when completeness is required and handle rejection or an available permitted preview. The complete Numbers-to-PDF workflow also rejects padding loss; enabling partial editable reconstruction does not permit an incomplete PDF.
 
 ## Shared native iWork character runs
 
@@ -7286,9 +7286,9 @@ and keeps static fence materialization and document placement in their owners.
 
 ### iWork conversion acceptance and source reuse
 
-`RequireCompleteVisualCoverage` defaults to `true`. Incomplete raster previews and embedded PDFs with unknown source coverage are rejected. Applications intentionally accepting a preview must use `ToWordDocumentResult`, `ToExcelDocumentResult` or `ToPowerPointPresentationResult` (or the static result equivalent), set `RequireCompleteVisualCoverage = false`, and inspect the retained report before saving.
+`RequireCompleteVisualCoverage` defaults to `true`. Incomplete raster previews and embedded PDFs with unknown source coverage are rejected. To accept a preview, set `RequireCompleteVisualCoverage = false` and inspect the retained report before saving. `ToWordResult`, `ToExcelResult` and `ToPowerPointResult` retain the typed source projection alongside that report.
 
-Value-only conversion APIs require complete editable reconstruction even when `AllowPartialEditableReconstruction` or preview acceptance is enabled. Use a result API to handle reported partial output. `result.RequireCompleteEditableReconstruction()` checks assessed completeness, returns the destination on success and disposes rejected output. Record-level fidelity and identical appearance remain separate checks.
+`ToWord`, `ToExcel` and `ToPowerPoint` can return partial or preview output when explicitly permitted by the conversion options. Retain their common report or use the typed result API to inspect that output. `result.RequireCompleteEditableReconstruction()` checks assessed completeness, returns the destination on success and disposes rejected output. Record-level fidelity and identical appearance remain separate checks.
 
 Use `source.WithCancellation(newToken)` for another independently cancellable operation on an already loaded source. It replaces the old token while sharing source bytes and parsed messages. Empty shared line-spacing/tab-stop declarations now resolve to single spacing and no custom tabs; sources previously incomplete solely for these defaults can convert strictly. Numbers Natural alignment maps to General rather than forcing numeric cells left. Apple epoch timestamps use tick arithmetic consistently across runtimes, retaining submillisecond root-comment times on legacy consumers.
 
@@ -8051,13 +8051,13 @@ Before restoring 3.3, remove any `PackageReference` or `ProjectReference` to `Of
 
 | Source | Add package | Replace with source-first conversion |
 | --- | --- | --- |
-| Pages | `OfficeIMO.Word.IWork` | `IWorkSourceDocument.Open(...).ToWordDocument[Result](...)` |
-| Numbers | `OfficeIMO.Excel.IWork` | `IWorkSourceDocument.Open(...).ToExcelDocument[Result](...)` |
-| Keynote | `OfficeIMO.PowerPoint.IWork` | `IWorkSourceDocument.Open(...).ToPowerPointPresentation[Result](...)` |
+| Pages | `OfficeIMO.Word.IWork` | `IWorkSourceDocument.Load(...).ToWord[Result](...)` |
+| Numbers | `OfficeIMO.Excel.IWork` | `IWorkSourceDocument.Load(...).ToExcel[Result](...)` |
+| Keynote | `OfficeIMO.PowerPoint.IWork` | `IWorkSourceDocument.Load(...).ToPowerPoint[Result](...)` |
 
-Reading and conversion now have separate options. Keep package and projection limits in `IWorkReadOptions`; move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, and `ThrowIfLoss()`. Static path and stream conveniences remain available as `ConvertPagesToWord*`, `ConvertNumbersToExcel*`, and `ConvertKeynoteToPowerPoint*`.
+Reading and conversion now have separate options. Keep package and projection limits in `IWorkLoadOptions` (formerly `IWorkReadOptions`); move `IWorkReadOptions.ImportMode` to `IWorkConversionOptions.Mode`, whose enum is `IWorkConversionMode`. The destination result types are `PagesToWordResult`, `NumbersToExcelResult`, and `KeynoteToPowerPointResult`, and the shared report is `IWorkConversionReport`. They use the common conversion vocabulary: `Value`, `Report`, `HasLoss`, and `ThrowIfLoss()`. Replace the former static path and stream conveniences, `ConvertPagesToWord*`, `ConvertNumbersToExcel*` and `ConvertKeynoteToPowerPoint*`, with `IWorkSourceDocument.Load` followed by the source conversion method.
 
-Source-record accounting now uses `IWorkConversionReport.PreservedRecords`, `PreservedRecordCount`, and `IWorkReadOptions.PreserveSourceRecords` in place of the former `UnsupportedRecords`, `UnsupportedRecordCount`, and `PreserveUnsupportedRecords` names. The list includes consumed and auxiliary records; it does not count omitted content. Replace checks for `IWORK_UNPROJECTED_RECORDS` with `IWORK_RECORD_FIDELITY_UNASSESSED`, whose category is `OfficeConversionLossKind.Unassessed`. Strict no-loss policies still reject unassessed fidelity. Add this category to exhaustive diagnostic displays or policy switches.
+Source-record accounting now uses `IWorkConversionReport.PreservedRecords`, `PreservedRecordCount`, and `IWorkLoadOptions.PreserveSourceRecords` in place of the former `UnsupportedRecords`, `UnsupportedRecordCount`, and `PreserveUnsupportedRecords` names. The list includes consumed and auxiliary records; it does not count omitted content. Replace checks for `IWORK_UNPROJECTED_RECORDS` with `IWORK_RECORD_FIDELITY_UNASSESSED`, whose category is `OfficeConversionLossKind.Unassessed`. Strict no-loss policies still reject unassessed fidelity. Add this category to exhaustive diagnostic displays or policy switches.
 
 Partial editable reconstruction and worksheet-name normalization require explicit options. Applications that cannot accept a first-page or composite visual fallback should set `RequireCompleteVisualCoverage = true`; this setting rejects fallback unless full-document coverage is known.
 
