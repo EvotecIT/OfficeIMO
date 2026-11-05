@@ -36,6 +36,7 @@ public partial class ExcelReaderGeneratedBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
+        OfficeIMO.Benchmarks.BenchmarkProcessPriority.ApplyConfiguredPriority();
         Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
         string root = Environment.GetEnvironmentVariable("OFFICEIMO_BENCHMARK_DATA") ?? Path.GetTempPath();
         Directory.CreateDirectory(root);

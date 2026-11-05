@@ -2007,14 +2007,17 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             return true;
         }
 
-        private static void WriteRecord(Stream stream, ushort type, byte[] payload) {
-            if (payload.Length > BiffMaxRecordDataLength) {
+        private static void WriteRecord(Stream stream, ushort type, byte[] payload) =>
+            WriteRecord(stream, type, payload, payload.Length);
+
+        private static void WriteRecord(Stream stream, ushort type, byte[] payload, int length) {
+            if (length > BiffMaxRecordDataLength) {
                 throw new NotSupportedException($"Native XLS saving does not yet support BIFF record 0x{type:X4} payload lengths outside BIFF8 limits. Save as .xlsx or remove this feature before saving as .xls.");
             }
 
             WriteUInt16(stream, type);
-            WriteUInt16(stream, (ushort)payload.Length);
-            stream.Write(payload, 0, payload.Length);
+            WriteUInt16(stream, (ushort)length);
+            stream.Write(payload, 0, length);
         }
 
         private static void WriteBlankCellRecord(Stream stream, byte[] buffer, ushort row, ushort column, ushort styleIndex) {

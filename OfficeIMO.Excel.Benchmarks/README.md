@@ -28,7 +28,7 @@ This .NET 10 entry point runs the same complete 50,000-row writer workload,
 validates before and after sampling, and avoids benchmark report generation in
 the traced process. I use BenchmarkDotNet for timings and allocations.
 
-The .NET 10 lanes use the published MIT ExcelReader.NET 7.4.0 package. The .NET 8
+The .NET 10 lanes use the published MIT ExcelReader.NET 7.4.1 package. The .NET 8
 comparisons retain their last compatible pin and are a separate version cohort.
 These generated lanes run on .NET 10:
 
