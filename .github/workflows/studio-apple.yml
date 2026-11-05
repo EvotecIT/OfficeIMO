@@ -2,6 +2,8 @@ name: Studio Apple
 
 on:
   pull_request:
+    # Adding or removing the full-ci label reevaluates the input selection.
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   push:
     branches: [master]
   workflow_dispatch:
