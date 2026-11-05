@@ -6,6 +6,9 @@ on:
     types: [opened, synchronize, reopened, labeled, unlabeled]
     paths:
       - '.github/workflows/dependency-submission.yml'
+      - '.github/actions/contract-selection/**'
+      - 'Build/Ci/select.py'
+      - 'Build/Ci/pr-suites.json'
       - '**/*.csproj'
       - '**/*.props'
       - '**/*.targets'
