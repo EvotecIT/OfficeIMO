@@ -4,7 +4,7 @@ description: "Fluent API for building Markdown documents — headings, paragraph
 order: 41
 ---
 
-The `MarkdownDocument` class provides a fluent API for composing Markdown documents entirely in code. Every method returns the same `MarkdownDocument` instance for chaining. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
+The `MarkdownDocument` class provides a fluent API for composing Markdown documents entirely in code. Chaining shortcuts return the same document; the `Add` methods return the created block. The resulting document renders to GitHub-flavored Markdown via `ToString()`.
 
 ## Headings
 
@@ -36,7 +36,7 @@ doc.P("This is a simple paragraph of text.");
 
 ### Formatted Paragraphs
 
-Use the `MarkdownParagraphBuilder` for inline formatting:
+Use `InlineSequence` for inline formatting:
 
 ```csharp
 doc.P(p => p

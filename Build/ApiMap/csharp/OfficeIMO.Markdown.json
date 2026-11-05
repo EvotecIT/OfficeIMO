@@ -1041,7 +1041,7 @@
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
-      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Kind, IncludeCssInFragment). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
       "phase": "A",
       "applied": "applied"
     },
@@ -1053,7 +1053,7 @@
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
-      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Kind, IncludeCssInFragment). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
       "phase": "A",
       "applied": "applied"
     },
@@ -1065,7 +1065,7 @@
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
-      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Kind, IncludeCssInFragment). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
       "phase": "A",
       "applied": "applied"
     },
