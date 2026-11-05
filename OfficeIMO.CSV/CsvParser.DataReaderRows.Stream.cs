@@ -17,6 +17,7 @@ internal static partial class CsvParser
         private readonly TextReader _reader;
         private readonly CsvLineReader _lineReader;
         private readonly CsvParsingSettings _options;
+        private readonly Dictionary<string, string>? _stringCache;
         private readonly char _delimiter;
         private readonly bool _trim;
         private readonly bool _strictQuotes;
@@ -36,10 +37,12 @@ internal static partial class CsvParser
             TextReader reader,
             CsvParsingSettings options,
             int initialEmittedRecordCount = 0,
-            int physicalLineOffset = 0)
+            int physicalLineOffset = 0,
+            Dictionary<string, string>? stringCache = null)
         {
             _reader = reader ?? throw new ArgumentNullException(nameof(reader));
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _stringCache = stringCache ?? CreateStringCache(options);
             _delimiter = GetDelimiterChar(options);
             _trim = options.TrimWhitespace;
             _strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
@@ -140,6 +143,7 @@ internal static partial class CsvParser
                             continue;
                         }
 
+                        _visitor.InternFields(_stringCache);
                         _emittedRecordCount++;
                         ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
                         _visitor.Complete(fieldCount, _options.ColumnCountMismatchPolicy);
@@ -189,6 +193,7 @@ internal static partial class CsvParser
                     }
 
                     VisitParsedFields(fields, _emittedRecordCount, null, ref _visitor);
+                    _visitor.InternFields(_stringCache);
                     _emittedRecordCount++;
                     ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
                     _visitor.Complete(fields.Length, _options.ColumnCountMismatchPolicy);
@@ -236,6 +241,7 @@ internal static partial class CsvParser
                 }
 
                 VisitParsedFields(_quotedFields, _emittedRecordCount, null, ref _visitor);
+                _visitor.InternFields(_stringCache);
                 _emittedRecordCount++;
                 ReportProgress(_options, _emittedRecordCount, _lineNumber - 1);
                 _visitor.Complete(_quotedFields.Count, _options.ColumnCountMismatchPolicy);
@@ -497,6 +503,21 @@ internal static partial class CsvParser
             }
 
             return materialized;
+        }
+
+        /// <summary>Retains the same cache when UTF-8 reading transfers to the character parser.</summary>
+        internal void InternFields(Dictionary<string, string>? cache)
+        {
+            if (cache is null) return;
+            int count = SourceColumnCount > 0 ? Math.Min(FieldCount, SourceColumnCount) : FieldCount;
+            for (int ordinal = 0; ordinal < count; ordinal++)
+            {
+                string? materialized = _materialized[ordinal];
+                _materialized[ordinal] = materialized is not null
+                    ? ReuseFieldString(materialized, cache)
+                    : _lengths[ordinal] <= 0 ? string.Empty
+                    : ReuseFieldSpan(_buffer.AsSpan(_starts[ordinal], _lengths[ordinal]), cache);
+            }
         }
 
         private static string[] CreateSingleCharacterStrings()

@@ -448,14 +448,18 @@ public sealed partial class CsvDocument
         && string.IsNullOrEmpty(options.DelimiterText)
         && options.MaxFieldLength is null
         && options.MaxQuotedFieldLength is null
-        && !options.NormalizeQuotes
-        && !options.InternStrings;
+        // Canonical interning reports progress after yielding the current record.
+        && (!options.InternStrings || options.ProgressCallback is null || options.ProgressReportInterval <= 0)
+        && !options.NormalizeQuotes;
 
     private static bool CanUseUtf8StreamDataReader(CsvReaderOptions options)
     {
         char delimiter = CsvParser.GetDelimiterChar(options);
         return !options.TrimWhitespace &&
             (options.Encoding is null || options.Encoding.CodePage == Encoding.UTF8.CodePage) &&
+            // Custom replacements can remove a record or introduce CSV syntax during decoding.
+            (options.Encoding is null || options.Encoding.DecoderFallback is DecoderExceptionFallback ||
+                options.Encoding.DecoderFallback is DecoderReplacementFallback { DefaultString: "\uFFFD" }) &&
             delimiter is > (char)0 and <= (char)127 &&
             delimiter is not '"' and not '\r' and not '\n' &&
             options.CommentCharacter is > (char)0 and <= (char)127;

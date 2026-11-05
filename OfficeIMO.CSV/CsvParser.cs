@@ -976,9 +976,6 @@ internal static partial class CsvParser
             (allowEmpty || fields.Count != 1 || fields[0].Length != 0);
     }
 
-    private static Dictionary<string, string>? CreateStringCache(CsvParsingSettings options) =>
-        options.InternStrings ? new Dictionary<string, string>(StringComparer.Ordinal) : null;
-
     private static void ThrowIfCancellationRequested(CsvParsingSettings options)
     {
         if (options.CancellationToken.CanBeCanceled)
@@ -1079,17 +1076,7 @@ internal static partial class CsvParser
             value = NormalizeSmartQuotes(value);
         }
 
-        if (stringCache is not null)
-        {
-            if (stringCache.TryGetValue(value, out var cached))
-            {
-                return cached;
-            }
-
-            stringCache[value] = value;
-        }
-
-        return value;
+        return ReuseFieldString(value, stringCache);
     }
 
     private static string NormalizeSmartQuotes(string value)
