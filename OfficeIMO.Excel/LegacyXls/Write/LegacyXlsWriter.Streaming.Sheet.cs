@@ -32,17 +32,15 @@ internal static partial class LegacyXlsWriter {
         internal override void WriteText(string value) {
             CoerceValueHelper.ValidateSharedStringLength(value, nameof(value));
             uint index = _strings.Add(value);
-            int start = PrepareCell();
-            int position = start;
+            int position = PrepareCell();
             WriteCellHeader(ref position, 0x00fd, 10);
             WriteUInt32(_block.Buffer, position, index);
             position += 4;
-            CommitCell(start, position);
+            _block.CommitDirectWrite(position);
         }
         internal override void WriteNumber(double value) {
             ValidateNumber(value);
-            int start = PrepareCell();
-            int position = start;
+            int position = PrepareCell();
             if (BiffRkNumberReader.TryEncodeRkNumber(value, out uint rk)) {
                 WriteCellHeader(ref position, 0x027e, 10);
                 WriteUInt32(_block.Buffer, position, rk);
@@ -54,21 +52,19 @@ internal static partial class LegacyXlsWriter {
                 WriteUInt32(_block.Buffer, position + 4, unchecked((uint)(bits >> 32)));
                 position += 8;
             }
-            CommitCell(start, position);
+            _block.CommitDirectWrite(position);
         }
         internal override void WriteBoolean(bool value) {
-            int start = PrepareCell();
-            int position = start;
+            int position = PrepareCell();
             WriteCellHeader(ref position, 0x0205, 8);
             _block.Buffer[position++] = value ? (byte)1 : (byte)0;
             _block.Buffer[position++] = 0;
-            CommitCell(start, position);
+            _block.CommitDirectWrite(position);
         }
         internal override void WriteBlank() {
-            int start = PrepareCell();
-            int position = start;
+            int position = PrepareCell();
             WriteCellHeader(ref position, 0x0201, 6);
-            CommitCell(start, position);
+            _block.CommitDirectWrite(position);
         }
         private int PrepareCell() {
             int start = checked((int)_block.Position);
@@ -79,7 +75,6 @@ internal static partial class LegacyXlsWriter {
         private void WriteCellHeader(ref int position, ushort type, ushort length) =>
             WriteDirectFixedCellHeader(_block.Buffer, ref position, type, length,
                 checked((ushort)_row), checked((ushort)Column), _styles[checked((int)Style)]);
-        private void CommitCell(int start, int end) => _block.Write(_block.Buffer, start, end - start);
 
         private void FlushBlock() {
             if (_blockRows == 0) return;
@@ -99,7 +94,7 @@ internal static partial class LegacyXlsWriter {
             int dbCell = position;
             _dbCells.Add(checked((uint)dbCell));
             WriteDirectDbCellRecord(output, ref position, start, _firstCells.AsSpan(0, _blockRows), dbCell);
-            _cells.Write(output, start, position - start);
+            _cells.CommitDirectWrite(position);
             _block.SetLength(0);
             _block.Position = 0;
             _blockRows = 0;
