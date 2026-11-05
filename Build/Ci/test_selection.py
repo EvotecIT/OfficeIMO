@@ -194,6 +194,22 @@ class SelectionTests(unittest.TestCase):
         result = selection.select(repository, ["Build/Verification/HeicSmoke/Program.cs"])
         self.assertTrue(result["suites"]["platform-image-codecs"])
 
+    def test_ci_only_changes_skip_macos_lanes_but_keep_hosted_fail_open(self):
+        repository = Path(__file__).resolve().parents[2]
+        macos = ["studio-apple", "apple-dependency-graph", "platform-image-codecs"]
+        for path in [".github/workflows/dotnet-tests.yml", "Build/Ci/Invoke-PrBuild.ps1"]:
+            with self.subTest(path=path):
+                result = selection.select(repository, [path])
+                self.assertEqual([False] * 3, [result["suites"][key] for key in macos])
+                self.assertTrue(result["windows_enabled"])
+        for path in ["Build/Ci/select.py", "global.json"]:
+            with self.subTest(path=path):
+                result = selection.select(repository, [path])
+                self.assertEqual([True] * 3, [result["suites"][key] for key in macos])
+        result = selection.select(repository, [".github/workflows/studio-apple.yml", "OfficeIMO.Drawing.ImageIO/Decode.cs"])
+        self.assertEqual([True, False, True], [result["suites"][key] for key in macos])
+        self.assertTrue(selection.select(repository, ["OfficeIMO.Studio.iOS/OfficeIMO.Studio.iOS.csproj"])["suites"]["apple-dependency-graph"])
+
     def test_conditional_references_are_not_lost_on_another_os(self):
         path = self.root / "OfficeIMO.Word/OfficeIMO.Word.csproj"
         path.write_text('<Project><ItemGroup Condition="false"><ProjectReference Include="../OfficeIMO.CSV/OfficeIMO.CSV.csproj" /></ItemGroup></Project>')

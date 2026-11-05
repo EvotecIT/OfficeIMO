@@ -36,18 +36,37 @@
     "OfficeIMO.TestAssets/**"
   ],
   "shared_inputs": [
-    ".github/**",
-    "Build/Ci/**",
+    ".github/actions/contract-selection/**",
+    "Build/Ci/select.py",
+    "Build/Ci/pr-suites.json",
     "global.json",
     "Directory.Build.*",
     "Directory.Packages.*",
     "NuGet.Config",
     "nuget.config"
   ],
+  "ci_only_inputs": [
+    ".github/**",
+    "Build/Ci/**"
+  ],
+  "macos_suites": [
+    "platform-image-codecs"
+  ],
   "path_suites": {
     "studio-apple": [
+      ".github/workflows/studio-apple.yml",
       "Apple/**",
       "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf"
+    ],
+    "apple-dependency-graph": [
+      ".github/workflows/dependency-submission.yml",
+      "**/packages.lock.json",
+      "Build/Studio/Studio.Licenses.props",
+      "OfficeIMO.Drawing.ImageIO/*.csproj",
+      "OfficeIMO.Drawing.ImageIO.Tests/*.csproj",
+      "OfficeIMO.Studio.Native/*.csproj",
+      "OfficeIMO.Studio.iOS/*.csproj",
+      "OfficeIMO.Studio.iOS/global.json"
     ]
   },
   "suites": {
