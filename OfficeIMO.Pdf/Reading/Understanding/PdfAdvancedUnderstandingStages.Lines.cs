@@ -63,8 +63,8 @@ internal static partial class PdfAdvancedUnderstandingStages {
                     double gap = alongStart - previousAlongEnd;
                     bool repeatedGutter = gap >= GetOrdinaryGutterWidth(context, ordered[i]) &&
                         HasRepeatedGutter(gutterAnchors.Standard, group, alongStart) ||
-                        gap >= GetRepeatedGutterWidth(context, ordered[i]) && HasProseOnBothSides(context, ordered, i, radians) &&
-                        HasRepeatedGutter(gutterAnchors.Prose, group, alongStart);
+                        gap >= GetRepeatedGutterWidth(context, ordered[i]) && HasRepeatedGutter(gutterAnchors.Prose, group, alongStart) &&
+                        HasProseOnBothSides(context, ordered, i, radians);
                     bool hangingMarker = runs.Count == 1 && i == 1 && ContentStructureExtractor.IsHangingListMarker(ordered[0].Text, gap);
                     if (runs[runs.Count - 1].Count > 0 && (gap > splitGap || repeatedGutter) && !hangingMarker) runs.Add(new List<PdfUnderstandingWord>());
                     runs[runs.Count - 1].Add(ordered[i]);
@@ -203,18 +203,28 @@ internal static partial class PdfAdvancedUnderstandingStages {
         // cells also repeat their gaps, but splitting those changes row text.
         private static bool HasProseOnBothSides(PdfUnderstandingPageContext context,
             PdfUnderstandingWord[] words, int split, double radians) {
+            if (split <= 0 || split >= words.Length) return false;
+            double angle = radians * 180D / Math.PI;
             return Count(-1, split - 1) >= 3 && Count(1, split) >= 3;
 
             int Count(int step, int start) {
-                int count = 1;
+                // Positioned word artifacts can be individual glyphs. Use the
+                // line composer's boundaries, counting alphabetic words only.
+                int count = 0;
+                bool hasLetters = PdfUnicodeScalarAnalysis.ContainsLetter(words[start].Text);
                 for (int index = start + step; index >= 0 && index < words.Length && count < 3; index += step) {
                     context.ConsumeWork();
                     int left = Math.Min(index, index - step), right = left + 1;
                     double gap = GetProjectedAlongStart(words[right], radians) - GetProjectedAlongEnd(words[left], radians);
                     if (gap >= GetRepeatedGutterWidth(context, words[right])) break;
-                    count++;
+                    if (NeedsSyntheticSpace(words[left], words[right], angle, PdfReadingDirection.LeftToRight)) {
+                        if (hasLetters) count++;
+                        if (count >= 3) return count;
+                        hasLetters = false;
+                    }
+                    hasLetters |= PdfUnicodeScalarAnalysis.ContainsLetter(words[index].Text);
                 }
-                return count;
+                return count + (hasLetters ? 1 : 0);
             }
         }
 

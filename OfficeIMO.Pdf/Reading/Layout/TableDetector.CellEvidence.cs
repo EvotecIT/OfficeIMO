@@ -68,7 +68,6 @@ internal static partial class TableDetector {
     private static bool HasNarrativeColumnEvidence(PdfStructuredTable table) {
         if (table.Columns.Count < 2 || table.SourceRuns.Count < 2) return false;
         bool columnMajor = HasColumnMajorSourceOrder(table);
-        if (!columnMajor && table.SourceRuns.All(static run => run.ContentOrderKey is not null)) return false;
         int sentenceCells = table.Rows.Sum(row => row.Count(value =>
             ContentStructureExtractor.EndsWithSentenceTerminal(value.Trim())));
         bool wrappedProse = table.Rows.Count >= 3 && sentenceCells >= table.Columns.Count - 1 &&

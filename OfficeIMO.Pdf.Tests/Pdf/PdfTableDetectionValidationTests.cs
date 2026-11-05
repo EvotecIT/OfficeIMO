@@ -33,7 +33,7 @@ public sealed class PdfTableDetectionValidationTests {
     public void LogicalTables_RetainRegularFontProseHeavyTablesWithStableColumns(bool sentenceValues) {
         string[][] rows = sentenceValues
             ? new[] {
-                new[] { "Assigned regional coordinator", "Current regional workflow" },
+                new[] { "Regional order owner", "Regional file status" },
                 new[] { "Orders are ready today.", "Documents stay available here." },
                 new[] { "Orders are ready today.", "Documents stay available here." }
             }
