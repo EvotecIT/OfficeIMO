@@ -63,6 +63,76 @@ namespace OfficeIMO.Excel {
             return TryParseCellRef(cellRef, 0, length, out row, out col);
         }
 
+        /// <summary>
+        /// Parses a cell reference held as single-byte characters, such as an ASCII worksheet
+        /// attribute, with the same result as the character overload over the widened text.
+        /// Ordinary references are parsed in place; other forms are widened first.
+        /// </summary>
+        internal static bool TryParseCellReferenceFast(ReadOnlySpan<byte> cellRef, out int row, out int col) {
+            row = 0;
+            col = 0;
+            if (cellRef.IsEmpty) return false;
+
+            int length = cellRef.Length;
+            char last = (char)cellRef[length - 1];
+            if (char.IsWhiteSpace((char)cellRef[0]) || last < '0' || last > '9') {
+                return TryParseWidenedCellReference(cellRef, out row, out col);
+            }
+
+            int index = 0;
+            for (; index < length; index++) {
+                char ch = ToUpperAscii((char)cellRef[index]);
+                if (ch < 'A' || ch > 'Z') {
+                    break;
+                }
+
+                int value = ch - 'A' + 1;
+                if (col > (int.MaxValue - value) / 26) {
+                    col = 0;
+                    return false;
+                }
+
+                col = (col * 26) + value;
+            }
+
+            if (index == 0 || index == length) {
+                col = 0;
+                return false;
+            }
+
+            for (; index < length; index++) {
+                int digit = cellRef[index] - (byte)'0';
+                if ((uint)digit > 9U || row > (int.MaxValue - digit) / 10) {
+                    row = 0;
+                    col = 0;
+                    return false;
+                }
+
+                row = (row * 10) + digit;
+            }
+
+            if (row <= 0 || row > MaxRows || col <= 0 || col > MaxColumns) {
+                row = 0;
+                col = 0;
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryParseWidenedCellReference(ReadOnlySpan<byte> cellRef, out int row, out int col) {
+            const int StackLength = 64;
+            Span<char> characters = cellRef.Length <= StackLength
+                ? stackalloc char[StackLength]
+                : new char[cellRef.Length];
+            characters = characters.Slice(0, cellRef.Length);
+            for (int index = 0; index < cellRef.Length; index++) {
+                characters[index] = (char)cellRef[index];
+            }
+
+            return TryParseCellReferenceFast(characters, out row, out col);
+        }
+
         internal static int ParseColumnIndexFromCellReferenceWithKnownRowFast(ReadOnlySpan<char> cellRef) {
             if (cellRef.IsEmpty) return 0;
 

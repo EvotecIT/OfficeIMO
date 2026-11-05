@@ -142,8 +142,16 @@ namespace OfficeIMO.Excel.LegacyXls.Read {
             return CopySegment(bytes, dataOffset, buffer, bufferOffset, length);
         }
 
-        public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) =>
-            CopySegment(GetString(ordinal).ToCharArray(), dataOffset, buffer, bufferOffset, length);
+        public override long GetChars(int ordinal, long dataOffset, char[]? buffer, int bufferOffset, int length) {
+            string value = GetString(ordinal);
+            ArgumentOutOfRangeException.ThrowIfNegative(dataOffset);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(dataOffset, value.Length);
+            if (buffer == null) return value.Length;
+            int sourceOffset = checked((int)dataOffset);
+            int count = Math.Min(value.Length - sourceOffset, length);
+            value.CopyTo(sourceOffset, buffer, bufferOffset, count);
+            return count;
+        }
 
         public override IEnumerator GetEnumerator() => new DbEnumerator(this, closeReader: false);
 

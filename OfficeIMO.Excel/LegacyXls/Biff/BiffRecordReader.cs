@@ -43,6 +43,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return (ushort)(bytes[offset] | (bytes[offset + 1] << 8));
         }
 
+        internal static ushort ReadUInt16(ReadOnlySpan<byte> bytes, int offset) {
+            if (offset < 0 || offset > bytes.Length - 2) throw new InvalidDataException("Unexpected end of BIFF record.");
+            return (ushort)(bytes[offset] | (bytes[offset + 1] << 8));
+        }
+
+        internal static uint ReadUInt32(ReadOnlySpan<byte> bytes, int offset) {
+            if (offset < 0 || offset > bytes.Length - 4) throw new InvalidDataException("Unexpected end of BIFF record.");
+            return (uint)(bytes[offset]
+                | (bytes[offset + 1] << 8)
+                | (bytes[offset + 2] << 16)
+                | (bytes[offset + 3] << 24));
+        }
+
         internal static short ReadInt16(byte[] bytes, int offset) {
             return unchecked((short)ReadUInt16(bytes, offset));
         }
