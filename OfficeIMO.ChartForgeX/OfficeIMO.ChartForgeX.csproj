@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>Optional typed bridge from ChartForgeX visual artifacts to OfficeIMO Word, Excel, PowerPoint, PDF, drawing, and editable Visio surfaces.</Description>
     <PackageId>OfficeIMO.ChartForgeX</PackageId>
-    <VersionPrefix>3.5.3</VersionPrefix>
+    <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -45,6 +45,6 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(ChartForgeXProjectPath)' == '' Or !Exists('$(ChartForgeXProjectPath)')">
-    <PackageReference Include="ChartForgeX" Version="3.1.0" />
+    <PackageReference Include="ChartForgeX" Version="3.4.0" />
   </ItemGroup>
 </Project>

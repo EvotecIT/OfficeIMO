@@ -2,7 +2,7 @@
   <PropertyGroup>
     <Description>Reconstruct Word documents from PDF using the first-party OfficeIMO engines.</Description>
     <PackageId>OfficeIMO.Pdf.Word</PackageId>
-    <VersionPrefix>3.5.3</VersionPrefix>
+    <VersionPrefix>3.6.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
