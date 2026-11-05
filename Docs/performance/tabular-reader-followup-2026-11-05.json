@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "date": "2026-11-05",
-  "scope": "XLSX indexed numeric access and eligible prefetch pipeline; no CSV runtime or binary writer change, no public API/validation/selector timing change.",
+  "scope": "Shared file-publication collision fix; XLSX indexed numeric access and eligible prefetch pipeline; no CSV reader performance or binary writer change, no public API/validation/selector timing change.",
   "baseline": "376ab595af920f1666b725400406cc544642fc47",
   "mergedBaseline": "e163ccb366436362f589a95a2816eda16d8692f5",
-  "sourceHeadAtNormalization": "887a8591a6cfaae7bf97b1ecafdc5f8704fcbe61",
+  "sourceHeadAtNormalization": "f59e9814ca93a511760e5cd3cf6459e71e3e7e0c",
   "sourceSha256": {
     "Benchmarks/CsvReadObservation.cs": "743b42ead1290c16cb52011bea5b086a62d7221301c0d9b852270f663433d994",
     "OfficeIMO.CSV.Benchmarks.Modern/MarkPflug65KModernCsvBenchmarks.cs": "d054d8c6598ba0592aae11fc562a6d18590f8a870fdf55e711bf77df0f90155f",
@@ -17,13 +17,14 @@
     "OfficeIMO.Excel.AotSmoke/PipelinedReadSmoke.cs": "80d271cda6dee074aa971270ff19c8ab009ad31676f32451806b706d052f546e",
     "OfficeIMO.Excel.Benchmarks/ExcelNativeGeneratedWriteProfileRunner.cs": "ed168ad4b78082159a62ed492a00a73a93576300d0fd71f272b47cdd04b518f9",
     "OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.Prime.cs": "0e38ad84c0ea043af898b79be91be481d0a2215769fb8ddbe9765c33a887bf80",
-    "OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs": "32f8f54ea5cd1c8e9b98101456a1afbff2f8b78fce00a871070ffd7825d90064",
+    "OfficeIMO.Excel.Benchmarks/MarkPflug65KExcelBenchmarks.cs": "f2f1a52da8f18e43d0590a8e50c47856d22959673bc18e33a4f43330719b8766",
     "OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj": "525a647bcd1f0f030d9df946dd2ea2f46fff43052afa9116dea4d7936f124057",
-    "OfficeIMO.Excel.Benchmarks/Program.cs": "c351fac1d417bc601e6a5f43866e8cb2a41ff431783d9aa4d12689ebc704a9b6",
+    "OfficeIMO.Excel.Benchmarks/Program.cs": "c3b98e40c17a137b8f7b8d66e4b3d5486c41b6a838476890ed0db1f215bbad47",
     "OfficeIMO.Excel.Tests/Excel.Reader.IndexedNumericAccess.cs": "2e5dd137ce1145059dcf950905f4149be8c406a7e15b59d03c0e920ea34bd250",
     "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.NumericAccess.cs": "b63fe91e06ae81864fa323492f028530a3ab24223a29f934dafcba37dfa3a7c0",
     "OfficeIMO.Excel/Read/ExcelSheetReader.Range.DataReader.ValueAccess.cs": "9118ac15f97be5d3327d196d26d1b2357d6f0b5be62c9a98fb0175581e65ec03",
-    "OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs": "c3934ac9010a4cb925fea626e44e814ec2bee47e12ae020e2161367a0840afdb"
+    "OfficeIMO.Excel/Read/XlsxTabularWorkbook.cs": "c3934ac9010a4cb925fea626e44e814ec2bee47e12ae020e2161367a0840afdb",
+    "OfficeIMO.SharedSource/IO/OfficeFileCommitClaim.cs": "f9f23115d66e7e5973d1b882195ee65eddf755fce6a7377dfa27f7007066bf15"
   },
   "assemblyBinding": {
     "baseline": {
@@ -42431,7 +42432,10 @@
         ],
         "scope": "Correctness qualification only; no timing or allocation measurements.",
         "pid": 39351,
-        "exitCode": 0
+        "exitCode": 0,
+        "semanticValidationPassed": false,
+        "disposition": "Superseded: option was inside NET10 guard; BenchmarkDotNet returned zero without running PRIME validation.",
+        "supersededBy": "feedback-prime-validate-net8.0"
       },
       {
         "tag": "preflight-modern-build-net10.0",
@@ -42509,7 +42513,641 @@
         "pid": 39364,
         "exitCode": 0
       }
-    ]
+    ],
+    "feedbackProof": [
+      {
+        "tag": "feedback-documentation-catalog",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "pwsh",
+          "-NoLogo",
+          "-NoProfile",
+          "-File",
+          "Website/scripts/Build-DocumentationCatalog.ps1"
+        ],
+        "started": "2026-11-05T01:51:09.447455+00:00",
+        "pid": 53457,
+        "exitCode": 0
+      },
+      {
+        "tag": "feedback-excel-build-net8.0",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "dotnet",
+          "build",
+          "OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net8.0",
+          "-m:2",
+          "-p:UseSharedCompilation=false",
+          "-o",
+          "$EVIDENCE/feedback-excel-harness/net8.0"
+        ],
+        "started": "2026-11-05T01:51:11.266828+00:00",
+        "pid": 53481,
+        "exitCode": 0
+      },
+      {
+        "tag": "feedback-prime-validate-net8.0",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "dotnet",
+          "$EVIDENCE/feedback-excel-harness/net8.0/OfficeIMO.Excel.Benchmarks.dll",
+          "--validate-prime-readers"
+        ],
+        "started": "2026-11-05T01:51:35.201199+00:00",
+        "pid": 53533,
+        "exitCode": 0,
+        "expectedSuccessMarker": "PASS | Both PRIME readers and conversion options produce the complete expected typed observation.",
+        "markerPresent": true,
+        "semanticValidationPassed": true
+      },
+      {
+        "tag": "feedback-excel-build-net10.0",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "dotnet",
+          "build",
+          "OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net10.0",
+          "-m:2",
+          "-p:UseSharedCompilation=false",
+          "-o",
+          "$EVIDENCE/feedback-excel-harness/net10.0"
+        ],
+        "started": "2026-11-05T01:51:36.729657+00:00",
+        "pid": 53541,
+        "exitCode": 0
+      },
+      {
+        "tag": "feedback-prime-validate-net10.0",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "dotnet",
+          "$EVIDENCE/feedback-excel-harness/net10.0/OfficeIMO.Excel.Benchmarks.dll",
+          "--validate-prime-readers"
+        ],
+        "started": "2026-11-05T01:53:13.868134+00:00",
+        "pid": 53741,
+        "exitCode": 0,
+        "expectedSuccessMarker": "PASS | Both PRIME readers and conversion options produce the complete expected typed observation.",
+        "markerPresent": true,
+        "semanticValidationPassed": true
+      },
+      {
+        "tag": "feedback-final-excel",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "dotnet",
+          "test",
+          "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net10.0",
+          "-m:2",
+          "-p:UseSharedCompilation=false",
+          "--filter",
+          "Category!=Performance",
+          "--logger",
+          "trx;LogFileName=feedback-final-excel.trx",
+          "--results-directory",
+          "$EVIDENCE/feedback-final-tests"
+        ],
+        "started": "2026-11-05T01:54:58.375724+00:00",
+        "pid": 54235,
+        "exitCode": 0
+      },
+      {
+        "tag": "feedback-final-csv",
+        "command": [
+          "lockf",
+          "-k",
+          "$HEAVY_RUN_LOCK",
+          "dotnet",
+          "test",
+          "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj",
+          "-c",
+          "Release",
+          "-f",
+          "net10.0",
+          "-m:2",
+          "-p:UseSharedCompilation=false",
+          "--filter",
+          "Category!=Performance",
+          "--logger",
+          "trx;LogFileName=feedback-final-csv.trx",
+          "--results-directory",
+          "$EVIDENCE/feedback-final-tests"
+        ],
+        "started": "2026-11-05T01:58:17.410612+00:00",
+        "pid": 55500,
+        "exitCode": 0
+      }
+    ],
+    "sharedFileClaimFixProof": {
+      "containingCommit": "f59e9814ca93a511760e5cd3cf6459e71e3e7e0c",
+      "sourceSha256": "f9f23115d66e7e5973d1b882195ee65eddf755fce6a7377dfa27f7007066bf15",
+      "jobs": [
+        {
+          "tag": "core-containing-build-OfficeIMO.Excel-netstandard2.0",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "netstandard2.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=netstandard2.0"
+          ],
+          "started": "2026-11-05T02:17:39.722589+00:00",
+          "pid": 60908,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Excel-net8.0",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net8.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=net8.0"
+          ],
+          "started": "2026-11-05T02:20:55.809420+00:00",
+          "pid": 61700,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Excel-net10.0",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=net10.0"
+          ],
+          "started": "2026-11-05T02:22:58.787891+00:00",
+          "pid": 62275,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Excel-net472",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Excel/OfficeIMO.Excel.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net472",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=net472"
+          ],
+          "started": "2026-11-05T02:24:55.626115+00:00",
+          "pid": 62547,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Reader.Core-netstandard2.0",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "netstandard2.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=netstandard2.0"
+          ],
+          "started": "2026-11-05T02:25:30.006773+00:00",
+          "pid": 62714,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Reader.Core-net8.0",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net8.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=net8.0"
+          ],
+          "started": "2026-11-05T02:25:48.224401+00:00",
+          "pid": 62846,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Reader.Core-net10.0",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=net10.0"
+          ],
+          "started": "2026-11-05T02:25:50.441510+00:00",
+          "pid": 62882,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-build-OfficeIMO.Reader.Core-net472",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "build",
+            "OfficeIMO.Reader.Core/OfficeIMO.Reader.Core.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net472",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:TargetFrameworks=net472"
+          ],
+          "started": "2026-11-05T02:25:53.699250+00:00",
+          "pid": 62916,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-focused-OfficeIMO.Drawing.Tests",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "test",
+            "OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "--filter",
+            "FullyQualifiedName~CreateUniquePreservesEveryPayloadAcrossConcurrentWriters|FullyQualifiedName~LiveCommitClaimIsNotReclaimedByAnotherWriter|FullyQualifiedName~ExistingClaimPathFollowsPlatformPolicyDuringImageExport",
+            "--logger",
+            "trx;LogFileName=OfficeIMO.Drawing.Tests.trx",
+            "--results-directory",
+            "$EVIDENCE/core-containing-focused-tests"
+          ],
+          "started": "2026-11-05T02:25:55.259109+00:00",
+          "pid": 62949,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-focused-OfficeIMO.Shared.Tests",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "test",
+            "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "--filter",
+            "FullyQualifiedName~OfficeFileCommitConcurrencyTests|FullyQualifiedName~OfficeFileCommitTests|FullyQualifiedName~OfficeFileCommitPermissionsTests",
+            "--logger",
+            "trx;LogFileName=OfficeIMO.Shared.Tests.trx",
+            "--results-directory",
+            "$EVIDENCE/core-containing-focused-tests"
+          ],
+          "started": "2026-11-05T02:27:51.218300+00:00",
+          "pid": 63102,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-focused-OfficeIMO.Reader.Tests",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "test",
+            "OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "--filter",
+            "FullyQualifiedName~ReaderWindowsFileCommitClaimTests|FullyQualifiedName~ReaderFilePublicationConcurrencyTests",
+            "--logger",
+            "trx;LogFileName=OfficeIMO.Reader.Tests.trx",
+            "--results-directory",
+            "$EVIDENCE/core-containing-focused-tests"
+          ],
+          "started": "2026-11-05T02:29:34.518329+00:00",
+          "pid": 64337,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-excel-aot-publish",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "publish",
+            "OfficeIMO.Excel.AotSmoke/OfficeIMO.Excel.AotSmoke.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-r",
+            "osx-arm64",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:IlcMaxDegreeOfParallelism=2",
+            "-p:TargetFrameworks=net10.0",
+            "-o",
+            "$EVIDENCE/aot-core-containing/excel"
+          ],
+          "started": "2026-11-05T02:30:29.657393+00:00",
+          "pid": 64877,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-excel-aot-execute",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "$EVIDENCE/aot-core-containing/excel/OfficeIMO.Excel.AotSmoke"
+          ],
+          "started": "2026-11-05T02:31:51.192901+00:00",
+          "pid": 65865,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-csv-aot-publish",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "publish",
+            "OfficeIMO.CSV.AotSmoke/OfficeIMO.CSV.AotSmoke.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-r",
+            "osx-arm64",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "-p:IlcMaxDegreeOfParallelism=2",
+            "-p:TargetFrameworks=net10.0",
+            "-o",
+            "$EVIDENCE/aot-core-containing/csv"
+          ],
+          "started": "2026-11-05T02:32:00.865746+00:00",
+          "pid": 65926,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-csv-aot-execute",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "$EVIDENCE/aot-core-containing/csv/OfficeIMO.CSV.AotSmoke"
+          ],
+          "started": "2026-11-05T02:32:07.371481+00:00",
+          "pid": 65975,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-final-excel",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "test",
+            "OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "--filter",
+            "Category!=Performance",
+            "--logger",
+            "trx;LogFileName=core-containing-final-excel.trx",
+            "--results-directory",
+            "$EVIDENCE/core-containing-final-tests"
+          ],
+          "started": "2026-11-05T02:32:07.658341+00:00",
+          "pid": 65979,
+          "exitCode": 0
+        },
+        {
+          "tag": "core-containing-final-csv",
+          "command": [
+            "lockf",
+            "-k",
+            "$HEAVY_RUN_LOCK",
+            "dotnet",
+            "test",
+            "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj",
+            "-c",
+            "Release",
+            "-f",
+            "net10.0",
+            "-m:2",
+            "-p:UseSharedCompilation=false",
+            "--filter",
+            "Category!=Performance",
+            "--logger",
+            "trx;LogFileName=core-containing-final-csv.trx",
+            "--results-directory",
+            "$EVIDENCE/core-containing-final-tests"
+          ],
+          "started": "2026-11-05T02:35:32.829328+00:00",
+          "pid": 66632,
+          "exitCode": 0
+        }
+      ],
+      "platformLimit": "macOS cross-build and local execution; Windows-specific guarded cases are not native Windows proof."
+    },
+    "core-containing-focused-tests/OfficeIMO.Drawing.Tests.trx": {
+      "counters": {
+        "total": "7",
+        "executed": "7",
+        "passed": "7",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "a4dbcc1ca47ac0879d6f2d7354d6a5cb24ea78ebf974a52d3da9a47d33133d64"
+    },
+    "core-containing-focused-tests/OfficeIMO.Reader.Tests.trx": {
+      "counters": {
+        "total": "14",
+        "executed": "14",
+        "passed": "14",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "0d926b55f1a6d2a8e94cfa3599e5bf615b0d6fe22a369d3220494b4789d62236"
+    },
+    "core-containing-focused-tests/OfficeIMO.Shared.Tests.trx": {
+      "counters": {
+        "total": "29",
+        "executed": "29",
+        "passed": "29",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "6447ee4750bcfa5f447321c6cc383a39e2c220226dc168573ecf882d3e04cd00"
+    },
+    "core-containing-final-tests/core-containing-final-csv.trx": {
+      "counters": {
+        "total": "965",
+        "executed": "965",
+        "passed": "965",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "bdc5d0d4b4fedf0e43c76e7e512eaa8e2f37b6a53f5b490a7a16f5f8b90d463e"
+    },
+    "core-containing-final-tests/core-containing-final-excel.trx": {
+      "counters": {
+        "total": "7800",
+        "executed": "7795",
+        "passed": "7795",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "sha256": "c751f6237ddb4d51af1732fb9cc7a229d76cf2e944285ce93d86d186b86c4457"
+    }
   },
   "limits": [
     "Single M4 cohort; no Windows throughput or whole-market leadership claim. Windows throughput qualification is separate from this local evidence.",
