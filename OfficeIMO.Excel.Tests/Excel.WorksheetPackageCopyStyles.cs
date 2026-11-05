@@ -130,11 +130,11 @@ namespace OfficeIMO.Tests {
                 foreach (string name in new[] { "First", "Second" }) {
                     ExcelSheet sheet = sourceDocument.AddSheet(name);
                     sheet.Cell(1, 1).SetValue("Region").SetBold(true);
-                    sheet.Cell(1, 2).SetValue("Weight").SetBold(true).SetFillColor("#FCE4D6");
+                    sheet.Cell(1, 2).SetValue("Weight").SetBold(true).SetFillColor(OfficeColor.Parse("#FCE4D6"));
                     sheet.Cell(2, 1).SetValue("North").SetItalic(true);
                     sheet.Cell(2, 2).SetValue(1234.5).SetNumberFormat("#,##0.00 \"kg\"");
                     sheet.Cell(3, 1).SetValue("South");
-                    sheet.Cell(3, 2).SetValue(0.5).SetNumberFormat("0.0%").SetFillColor("#DDEBF7");
+                    sheet.Cell(3, 2).SetValue(0.5).SetNumberFormat("0.0%").SetFillColor(OfficeColor.Parse("#DDEBF7"));
                     sheet.AddTable("A1:B3", hasHeader: true, name: name + "Table");
                 }
 
