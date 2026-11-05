@@ -8,6 +8,11 @@ using BenchmarkDotNet.Running;
 using System.Globalization;
 using System.Text.Json;
 
+if (args.Length == 1 && args[0] == "--validate-prime-readers") {
+    ExcelPrimeSalesObservation.ValidateReaders();
+    return;
+}
+
 #if NET10_0_OR_GREATER
 if (args.Length > 0 && args[0] == "--profile-native-generated-write") {
     ExcelNativeGeneratedWriteProfileRunner.Run(args);
@@ -15,10 +20,6 @@ if (args.Length > 0 && args[0] == "--profile-native-generated-write") {
 }
 if (args.Length == 2 && args[0] == "--prepare-generated-inputs") {
     ExcelGeneratedReadProfileRunner.PrepareInputs(args[1]);
-    return;
-}
-if (args.Length == 1 && args[0] == "--validate-prime-readers") {
-    ExcelPrimeSalesObservation.ValidateReaders();
     return;
 }
 
