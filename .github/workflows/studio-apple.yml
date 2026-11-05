@@ -2,6 +2,8 @@ name: Studio Apple
 
 on:
   pull_request:
+    # Adding or removing the full-ci label reevaluates the input selection.
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
   push:
     branches: [master]
   workflow_dispatch:
@@ -14,7 +16,24 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Select affected Studio Apple inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      selected: ${{ steps.select.outputs.selected }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: select
+        uses: ./.github/actions/contract-selection
+        with:
+          suite: studio-apple
+
   native:
+    needs: changes
+    if: needs.changes.outputs.selected == 'true'
     name: Native Apple qualification
     runs-on: xcode-27
     timeout-minutes: 30
@@ -40,3 +59,22 @@ jobs:
             -destination 'generic/platform=iOS Simulator' -derivedDataPath "$RUNNER_TEMP/studio-simulator" CODE_SIGNING_ALLOWED=NO build
       - name: Preserve checked-in source
         run: git diff --exit-code
+
+  ci-validation:
+    name: CI validation
+    if: always()
+    runs-on: ubuntu-latest
+    needs: [changes, native]
+    steps:
+      - name: Require selection and the selected native job
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json, os, sys
+          results = json.loads(os.environ['RESULTS'])
+          print(json.dumps(results, indent=2))
+          failed = [k for k, v in results.items() if v['result'] not in ('success', 'skipped')]
+          failed += ['changes'] if results['changes']['result'] != 'success' else []
+          sys.exit(bool(failed))
+          PY

@@ -104,6 +104,12 @@ def select(root, changed, full=False):
     suites["website"] = full or any(fnmatch.fnmatchcase(path, pattern)
                                     for path in changed for pattern in config["website_inputs"])
     suites["powershell"] |= any(p.startswith("PowerShell/") for p in changed)
+    # Non-.NET lanes declare their own inputs. Shared CI and build inputs still
+    # select every one of them; full runs always do.
+    matches = lambda patterns: any(fnmatch.fnmatchcase(path, pattern) for path in changed for pattern in patterns)
+    shared = full or matches(config.get("shared_inputs", []))
+    for key, patterns in config.get("path_suites", {}).items():
+        suites[key] = shared or matches(patterns)
     partitions = [p for p, roots in config["partitions"].items() if selected(roots)]
     frameworks = ["net8.0", "net10.0"] if full else ["net10.0"]
     ubuntu = [{"framework": f, "partition": p} for f in frameworks for p in partitions]

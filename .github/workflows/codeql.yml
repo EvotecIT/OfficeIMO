@@ -36,15 +36,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Pull requests extract C# without compiling. Master pushes, the weekly
+          # schedule and manual runs keep the full manual production build.
           - language: csharp
-            build-mode: manual
+            build-mode: ${{ github.event_name == 'pull_request' && 'none' || 'manual' }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
+      # Build-free extraction still resolves NuGet references through the pinned SDK.
       - name: Setup .NET SDK
-        if: matrix.build-mode == 'manual'
         uses: actions/setup-dotnet@v6
         with:
           dotnet-version: 8.0.x

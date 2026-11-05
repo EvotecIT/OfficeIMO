@@ -14,7 +14,12 @@ TFM. The smaller platform matrices retain Windows, Linux and macOS on the newest
 TFM. The macOS smoke retains its full-run TFM and uses the newest TFM on PRs; its PR build includes only the projects it executes. Full runs retain the original macOS solution build. Website, JavaScript,
 PowerShell and renderer comparisons use the same selection; their own assets
 also select their owning suite. Grouped Ubuntu partitions restore, build and test
-only affected projects inside the selected partition.
+only affected projects inside the selected partition. Each partition restores
+its affected test projects through one generated solution and builds them
+through one generated traversal project, so shared libraries are evaluated and
+compiled once per job. The traversal passes `Configuration` and
+`TargetFramework` to each test project exactly as a per-project `dotnet build`
+does; tests then run per project with `--no-build`.
 
 The ordinary library build uses maintained solution membership; opt-in
 verification and comparison executables outside that solution keep their own
@@ -59,6 +64,13 @@ absence audit for the retired aggregate test project is removed. New routing
 contracts cover dependency propagation, conditional references, shared inputs,
 unmapped projects, docs/website/JavaScript changes and the full-matrix override.
 
+Lanes outside the .NET project graph declare their inputs in `path_suites`.
+They run when one of those paths changes, when a `shared_inputs` path (CI
+workflows and actions, `Build/Ci`, SDK, MSBuild and NuGet configuration)
+changes, and on every full run. Studio Apple uses this: its Swift sources,
+project and the one linked PDF fixture select the native qualification, while
+its `CI validation` job always reports.
+
 Website PR selection uses `website_inputs` rather than the managed dependency
 closure. Website assets, browser sources, PowerShell content, documentation,
 site generators and build/dependency configuration select it. Ordinary library
@@ -74,7 +86,12 @@ producer's tree. Missing provenance, changed inputs or damaged outputs use the
 normal unsigned fresh export. Reused source links retain their actual producer
 revision; they are not relabeled as a new build.
 
-CodeQL retains its full manual production build and query suite.
+CodeQL analyses pull requests with C# `build-mode: none`, so a PR scan no
+longer compiles the solution, Studio and the AI example first. Master pushes,
+the weekly schedule and manual runs retain the full manual production build and
+the same query suite. Docs- and asset-only PRs skip CodeQL through the shared
+coverage gate. The comparison procedure below applies to changes in that
+manual build.
 `Invoke-CodeQLBuild.ps1` selects net10 for multi-targeted projects through
 `OfficeIMOCodeQLBuild`; single-targeted projects keep their own framework
 identity. This avoids duplicate instances writing to the same outputs. The

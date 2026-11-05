@@ -35,6 +35,21 @@
     "Assets/**",
     "OfficeIMO.TestAssets/**"
   ],
+  "shared_inputs": [
+    ".github/**",
+    "Build/Ci/**",
+    "global.json",
+    "Directory.Build.*",
+    "Directory.Packages.*",
+    "NuGet.Config",
+    "nuget.config"
+  ],
+  "path_suites": {
+    "studio-apple": [
+      "Apple/**",
+      "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Interoperability/openpreserve-high-resolution-image.pdf"
+    ]
+  },
   "suites": {
     "platform-image-codecs": [
       "OfficeIMO.Drawing.ImageIO.Tests",

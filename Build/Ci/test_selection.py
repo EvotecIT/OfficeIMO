@@ -27,6 +27,8 @@ class SelectionTests(unittest.TestCase):
             "suites": {"word": ["OfficeIMO.Word.Tests"], "csv": ["OfficeIMO.CSV.Tests"],
                        "browser-exports": [], "website": [], "powershell": []},
             "partitions": {"word-rtf-html": ["OfficeIMO.Word.Tests"], "other-projects": ["OfficeIMO.CSV.Tests"]},
+            "shared_inputs": [".github/**", "global.json"],
+            "path_suites": {"studio-apple": ["Apple/**"]},
             "windows": [{"name": "Word", "project": "OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj"},
                         {"name": "CSV", "project": "OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj"}],
         }
@@ -131,6 +133,14 @@ class SelectionTests(unittest.TestCase):
                 result = self.choose(path)
                 self.assertTrue(result["managed"])
                 self.assertFalse(result["suites"]["website"])
+
+    def test_path_suite_runs_for_its_inputs_shared_inputs_and_full_runs_only(self):
+        cases = {("Apple/App.swift",): True, (".github/workflows/dotnet-tests.yml",): True,
+                 ("global.json",): True, ("OfficeIMO.Word/Save.cs",): False, ("README.md",): False}
+        for paths, expected in cases.items():
+            with self.subTest(paths=paths):
+                self.assertEqual(expected, self.choose(*paths)["suites"]["studio-apple"])
+        self.assertTrue(self.choose("OfficeIMO.Word/Save.cs", full=True)["suites"]["studio-apple"])
 
     def test_full_ci_retains_website_even_without_a_website_path_change(self):
         self.assertTrue(self.choose("OfficeIMO.Word/Save.cs", full=True)["suites"]["website"])
