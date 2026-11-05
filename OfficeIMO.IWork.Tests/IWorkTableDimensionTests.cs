@@ -15,7 +15,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstBucketPayload: Message(VarintField(1, 1), headers),
             secondBucketPayload: Message(VarintField(1, 1)), rowCount: rowCount);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback, string.Join("; ", result.Report.Diagnostics.Select(item => item.Code + ": " + item.Message)));
         using var saved = new MemoryStream(result.Value.ToBytes());
         using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Independent_dimension_fixture_preserves_nonuniform_rows_and_columns() {
         string path = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus",
             "numbers-parser", "individual-dimensions.numbers");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(path);
         IWorkTable table = Assert.Single(Assert.Single(source.ReadNumbers().Sheets).Tables);
         Assert.Equal(new double?[] { 20.0, 10, 30 }, Enumerable.Range(1, 3).Select(table.GetRowHeight));
         Assert.Equal(new double?[] { 40.0, 20 }, Enumerable.Range(1, 2).Select(table.GetColumnWidth));
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Individual_table_sizes_survive_projection_and_destination_reopen(IWorkDocumentKind kind) {
         using MemoryStream package = DimensionPackage(kind);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         IWorkTable table = kind switch {
             IWorkDocumentKind.Numbers => source.ReadNumbers().Sheets[0].Tables[0],
             IWorkDocumentKind.Pages => source.ReadPages().Tables[0],
@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Keynote_individual_sizes_scale_with_the_drawable_extent_and_report_approximation() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Keynote, scale: 2f);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult();
         PowerPointTable table = Assert.Single(Assert.Single(result.Value.Slides).Tables);
         Assert.False(result.IsVisualFallback);
         Assert.Equal(121d, table.Width.ToPoints(), 5);
@@ -144,7 +144,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstRowHeader: header, duplicate: defect == "duplicate", missingBucket: defect == "missing-bucket");
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_HEADER_DIMENSIONS_UNSUPPORTED");
         Assert.NotEmpty(result.Report.PreservedRecords);
@@ -167,8 +167,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Dimension_entry_budget_counts_all_buckets_and_headers_before_destination_creation() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers, repeatTable: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxTableDimensionEntries = 12 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxTableDimensionEntries = 12 });
         Assert.Contains("source-wide", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -176,7 +176,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Excel_rejects_an_individual_height_outside_its_range_instead_of_clamping() {
         using MemoryStream package = DimensionPackage(IWorkDocumentKind.Numbers,
             firstRowHeader: DimensionHeader(0, 410f));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }

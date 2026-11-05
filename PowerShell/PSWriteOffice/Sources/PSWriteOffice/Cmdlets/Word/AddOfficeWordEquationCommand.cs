@@ -17,9 +17,9 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// }</code>
 ///   <para>Inserts prebuilt OMML into the current document; conversion to OMML is intentionally outside the cmdlet.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeWordEquation")]
-[Alias("WordEquation")]
+[Cmdlet(VerbsCommon.Add, "OfficeWordEquation", DefaultParameterSetName = "Context")]
 [OutputType(typeof(WordParagraph))]
+[Alias("WordEquation") ]
 public sealed class AddOfficeWordEquationCommand : PSCmdlet
 {
     /// <summary>Office Math Markup Language content.</summary>
@@ -27,11 +27,11 @@ public sealed class AddOfficeWordEquationCommand : PSCmdlet
     public string Omml { get; set; } = string.Empty;
 
     /// <summary>Paragraph to receive the equation.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Context")]
     public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Document to receive a new equation paragraph.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public WordDocument? Document { get; set; }
 
     /// <summary>Emit the equation paragraph.</summary>

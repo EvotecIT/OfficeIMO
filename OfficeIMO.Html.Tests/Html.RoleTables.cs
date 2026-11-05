@@ -17,8 +17,8 @@ public partial class HtmlOfficeAdapters {
 
         HtmlToOneNoteSectionResult oneNoteResult = source.ConvertToOneNoteSectionWithEvidence();
         OneNoteSection section = oneNoteResult.RequireValue();
-        OneNoteSection reopenedSection = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection reopenedSection = OneNoteSection.Load(
+            new MemoryStream(section.ToBytes()));
         OneNoteTable oneNoteTable = Assert.Single(reopenedSection.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
         Assert.Equal(2, oneNoteTable.Rows.Count);
@@ -40,8 +40,8 @@ public partial class HtmlOfficeAdapters {
             + "<tr><td>Length</td><td>meter</td></tr><tr><td>Time</td></tr></table>";
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
-        OneNoteSection reopened = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteSection reopened = OneNoteSection.Load(
+            new MemoryStream(result.RequireValue().ToBytes()));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
 
@@ -61,8 +61,8 @@ public partial class HtmlOfficeAdapters {
             + "<tr><td>Limited</td><td>Over 30 minutes</td></tr></table>";
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
-        OneNoteSection reopened = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteSection reopened = OneNoteSection.Load(
+            new MemoryStream(result.RequireValue().ToBytes()));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
 
@@ -94,8 +94,8 @@ public partial class HtmlOfficeAdapters {
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence(
             new HtmlOneNoteExportOptions { Limits = limits });
-        OneNoteSection reopened = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteSection reopened = OneNoteSection.Load(
+            new MemoryStream(result.RequireValue().ToBytes()));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
 
@@ -116,8 +116,8 @@ public partial class HtmlOfficeAdapters {
         Assert.Equal(new[] { 0, 2 }, semantic.Rows.Select(row => row.SourceRowIndex));
 
         HtmlToOneNoteSectionResult result = HtmlConversionDocument.Parse(html).ConvertToOneNoteSectionWithEvidence();
-        OneNoteSection reopened = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(result.RequireValue())));
+        OneNoteSection reopened = OneNoteSection.Load(
+            new MemoryStream(result.RequireValue().ToBytes()));
         OneNoteTable table = Assert.Single(reopened.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());
 

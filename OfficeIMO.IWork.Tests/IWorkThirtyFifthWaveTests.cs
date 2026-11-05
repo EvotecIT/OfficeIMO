@@ -11,8 +11,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Keynote_slide_bound_is_enforced_before_nested_references_are_parsed() {
         using MemoryStream package = CreateKeynotePackageWithMalformedSecondSlideReference();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaxProjectedSlides = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote,
+            new IWorkLoadOptions { MaxProjectedSlides = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 
@@ -24,8 +24,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Merges", 1, 1, 1d, malformedSecondMergePair: true)
         });
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxTableMergedRanges = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxTableMergedRanges = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
 
@@ -37,8 +37,8 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(),
             includeMalformedSecondSheetReference: true);
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaxProjectedSheets = 1 }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+                new IWorkLoadOptions { MaxProjectedSheets = 1 }));
 
         Assert.Contains("sheet count", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 17), DoubleField(4, 1d))),
             BytesField(1, new byte[] { 0x80 }));
         IWorkWireMessage formula = IWorkProtobuf.Parse(
-            Message(BytesField(1, nodeArray)), new IWorkReadOptions());
+            Message(BytesField(1, nodeArray)), new IWorkLoadOptions());
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
             IWorkFormulaReader.Render(formula, 0, 0, maximumNodes: 1, maximumCharacters: 32));
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("◆")]
     public void Pages_owner_preserves_custom_bullet_glyphs(string glyph) {
         using MemoryStream package = CreatePagesPackageWithListLabel(glyph);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1,
             rotation: float.MaxValue);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         using var saved = new MemoryStream();
         result.Value.Save(saved);
         saved.Position = 0;

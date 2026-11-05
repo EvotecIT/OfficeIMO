@@ -6,23 +6,23 @@ schema: 2.0.0
 ---
 # New-OfficeWordPdfOptions
 ## SYNOPSIS
-Creates discoverable Word-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable Word-to-PDF conversion options for Convert-OfficeDocument.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeWordPdfOptions [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-PageSize <PdfPageSize>] [-Orientation <OfficePageOrientation>] [-DefaultPageSize <WordPageSize>] [-DefaultOrientation <OfficePageOrientation>] [-MarginLeft <Double>] [-MarginTop <Double>] [-MarginRight <Double>] [-MarginBottom <Double>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-IncludePageNumbers] [-PageNumberFormat <string>] [-DefaultTableBorders] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeWordPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-PageSize <PdfPageSize>] [-Orientation <OfficePageOrientation>] [-FallbackPageSize <PdfPageSize>] [-FallbackOrientation <OfficePageOrientation>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [-Title <string>] [-Author <string>] [-Subject <string>] [-Keywords <string>] [-IncludePageNumbers] [-PageNumberFormat <string>] [-DefaultTableBorders] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable Word-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable Word-to-PDF conversion options for Convert-OfficeDocument.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
 PS> $options = New-OfficeWordPdfOptions -Title 'Service report' -Author 'Evotec' -IncludePageNumbers -AllowSystemFontEmbedding
-Export-OfficeDocumentPdf -InputPath .\Report.docx -Path .\Report.pdf -WordOptions $options
+Convert-OfficeDocument -Path .\Report.docx -To Pdf -OutputPath .\Report.pdf -Options $options
 ```
 
 
@@ -76,38 +76,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -DefaultOrientation
-Fallback page orientation for sections without page settings.
-
-```yaml
-Type: OfficePageOrientation
-Parameter Sets: Default
-Aliases: None
-Possible values: Portrait, Landscape
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DefaultPageSize
-Fallback Word page size for sections without page settings.
-
-```yaml
-Type: WordPageSize
-Parameter Sets: Default
-Aliases: None
-Possible values: Unknown, Letter, Legal, Statement, Executive, A3, A4, A5, A6, B5, Tabloid, B4Jis, Envelope9, Envelope10, CSheet, EnvelopeDl, EnvelopeC5, EnvelopeC4, EnvelopeB5, EnvelopeMonarch
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -DefaultTableBorders
 Draw default borders for tables that do not specify borders.
 
@@ -124,7 +92,39 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontFamily
+### -FallbackOrientation
+Fallback page orientation for sections without page settings.
+
+```yaml
+Type: OfficePageOrientation
+Parameter Sets: Default
+Aliases: None
+Possible values: Portrait, Landscape
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FallbackPageSize
+Fallback physical PDF page size for sections without page settings.
+
+```yaml
+Type: PdfPageSize
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Font
 Default font family used when the document does not specify one.
 
 ```yaml
@@ -176,7 +176,7 @@ Accept wildcard characters: False
 Bottom page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -192,7 +192,7 @@ Accept wildcard characters: False
 Left page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -208,7 +208,7 @@ Accept wildcard characters: False
 Right page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -224,7 +224,7 @@ Accept wildcard characters: False
 Top page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:

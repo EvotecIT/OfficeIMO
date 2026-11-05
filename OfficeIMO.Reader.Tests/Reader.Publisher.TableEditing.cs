@@ -23,7 +23,7 @@ public sealed class ReaderPublisherTableEditingTests {
         document.ReplaceTableCellParagraphs(original.Id, 0, 0, new[] {
             Paragraph("Expanded inventory", bold: true), Paragraph("Second paragraph")
         });
-        document.SetTableBounds(original.Id, 18, 66, 198, 90);
+        document.SetTableBounds(original.Id, OfficeLength.Points(18), OfficeLength.Points(66), OfficeLength.Points(198), OfficeLength.Points(90));
         PublisherTable current = Assert.Single(document.Pages[0].Tables);
         Assert.Equal("Item", original.Cells[0].Text);
         Assert.Equal("Expanded inventory\nSecond paragraph", current.Cells[0].Text);
@@ -64,7 +64,7 @@ public sealed class ReaderPublisherTableEditingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTextStory originalStory = Assert.Single(document.TextStories);
         var sourceReport = document.SourceReadReport;
-        PublisherTable created = document.AddTable(document.Pages[1].Id, 72, 72, new[] { 120D, 90D }, new[] { 30D, 30D });
+        PublisherTable created = document.AddTable(document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(90D) }, new OfficeLength[] { OfficeLength.Points(30D), OfficeLength.Points(30D) });
         document.ReplaceTableCellParagraphs(created.Id, 0, 0, new[] { Paragraph("Authored item") });
         document.ReplaceTableCellParagraphs(created.Id, 0, 1, new[] { Paragraph("Quantity") });
         document.ReplaceTableCellParagraphs(created.Id, 1, 0, new[] { Paragraph("Widget") });

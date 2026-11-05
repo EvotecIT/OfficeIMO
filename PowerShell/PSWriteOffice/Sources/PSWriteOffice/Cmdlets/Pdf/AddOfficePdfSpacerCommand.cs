@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -17,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Adds whitespace without adding visible content.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfSpacer", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfSpacer", "PdfSpace")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfSpacer") ]
 public sealed class AddOfficePdfSpacerCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -30,18 +31,19 @@ public sealed class AddOfficePdfSpacerCommand : PSCmdlet
 
     /// <summary>Vertical space height in PDF points.</summary>
     [Parameter(Mandatory = true, Position = 0)]
-    [ValidateRange(0D, double.MaxValue)]
-    public double Height { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength Height { get; set; }
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (Height.ToEmus() < 0) throw new PSArgumentOutOfRangeException(nameof(Height), Height, "Spacer height cannot be negative.");
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument,
-            content => content.Spacer(global::OfficeIMO.OfficeLength.Points(Height)));
+            content => content.Spacer(Height));
         if (PassThru.IsPresent && document != null)
         {
             WriteObject(document);

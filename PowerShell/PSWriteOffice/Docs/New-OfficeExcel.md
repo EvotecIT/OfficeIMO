@@ -42,6 +42,57 @@ Close-OfficeExcel -Document $workbook
 ```
 
 
+### EXAMPLE 3
+```powershell
+New-OfficeExcel -Path .\Services.xlsx {
+    ExcelSheet 'Services' {
+        ExcelTable (Get-Service | Select-Object Name, DisplayName, Status, StartType)
+    }
+}
+```
+
+Creates Services.xlsx with a themed, filterable table of the local services and saves it when the block ends.
+
+### EXAMPLE 4
+```powershell
+$orders = Import-OfficeCsv -Path .\Data\Q3-Orders.csv
+$byRegion = $orders | Group-Object Region | ForEach-Object {
+    [pscustomobject]@{
+        Region  = $_.Name
+        Orders  = $_.Count
+        Revenue = ($_.Group | Measure-Object Amount -Sum).Sum
+    }
+}
+
+$properties = @{ Title = 'Q3 sales'; Company = 'Northwind Traders' }
+New-OfficeExcel -Path .\Reports\Q3-Sales.xlsx -Theme Boardroom -DocumentProperty $properties -Force -Show {
+    ExcelSheet 'Summary' {
+        ExcelTable $byRegion -Name RegionSummary
+        ExcelChart -Table RegionSummary -Address F2 -Type Column -Title 'Revenue by region'
+    }
+    ExcelSheet 'Orders' {
+        ExcelTable $orders -Name Orders
+    }
+}
+```
+
+Builds a Q3 sales workbook in the Boardroom theme with a summary chart and the order detail, sets the document title and opens it in Excel.
+
+### EXAMPLE 5
+```powershell
+$book = New-OfficeExcel -Theme Modern
+foreach ($server in 'SQL01', 'SQL02', 'WEB01') {
+    $disks = Invoke-Command -ComputerName $server { Get-Volume | Where-Object DriveLetter }
+    Add-OfficeExcelSheet -Document $book -Name $server {
+        ExcelTable ($disks | Select-Object DriveLetter, FileSystemLabel, Size, SizeRemaining)
+    }
+}
+Save-OfficeExcel -Document $book -Path .\Reports\Disk-Capacity.xlsx
+Close-OfficeExcel -Document $book
+```
+
+Without a content block the live workbook is returned, so a script can add a sheet per server in a loop and choose the file name when it saves.
+
 ## PARAMETERS
 
 ### -AllowLoss

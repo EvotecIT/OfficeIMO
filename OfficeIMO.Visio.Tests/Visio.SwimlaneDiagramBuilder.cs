@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Linq;
 using OfficeIMO.Visio;
 using OfficeIMO.Visio.Diagrams;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 
@@ -15,28 +14,29 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Order Fulfillment", swim => swim
-                    .Theme(VisioStyleTheme.Modern())
-                    .Lane("customer", "Customer")
-                    .Lane("sales", "Sales")
-                    .Lane("ops", "Operations")
-                    .Phase("request", "Request")
-                    .Phase("review", "Review")
-                    .Phase("approval", "Approval")
-                    .Phase("fulfill", "Fulfill")
-                    .Start("start", "Submit order", "customer", "request")
-                    .Step("qualify", "Qualify order", "sales", "review")
-                    .Decision("approved", "Approved?", "sales", "approval")
-                    .Step("revise", "Revise request", "customer", "approval")
-                    .Step("pick", "Pick items", "ops", "approval")
-                    .Data("invoice", "Create invoice", "sales", "fulfill")
-                    .End("ship", "Ship order", "ops", "fulfill")
-                    .Flow("start", "qualify", "handoff")
-                    .Flow("qualify", "approved")
-                    .Exception("approved", "revise", "no")
-                    .Handoff("approved", "pick", "yes")
-                    .Flow("pick", "invoice")
-                    .Flow("invoice", "ship"));
+                .SwimlaneDiagram("Order Fulfillment", swim => {
+                    swim.Theme(VisioStyleTheme.Modern());
+                    swim.Lane("customer", "Customer");
+                    swim.Lane("sales", "Sales");
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("request", "Request");
+                    swim.Phase("review", "Review");
+                    swim.Phase("approval", "Approval");
+                    swim.Phase("fulfill", "Fulfill");
+                    swim.Start("start", "Submit order", "customer", "request");
+                    swim.Step("qualify", "Qualify order", "sales", "review");
+                    swim.Decision("approved", "Approved?", "sales", "approval");
+                    swim.Step("revise", "Revise request", "customer", "approval");
+                    swim.Step("pick", "Pick items", "ops", "approval");
+                    swim.Data("invoice", "Create invoice", "sales", "fulfill");
+                    swim.End("ship", "Ship order", "ops", "fulfill");
+                    swim.Flow("start", "qualify", "handoff");
+                    swim.Flow("qualify", "approved");
+                    swim.Exception("approved", "revise", "no");
+                    swim.Handoff("approved", "pick", "yes");
+                    swim.Flow("pick", "invoice");
+                    swim.Flow("invoice", "ship");
+                });
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal("Order Fulfillment", page.Name);
@@ -72,16 +72,17 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Fulfillment", swim => swim
-                    .Lane("sales", "Sales")
-                    .Lane("ops", "Operations")
-                    .Phase("review", "Review")
-                    .Phase("fulfill", "Fulfill")
-                    .Start("start", "Start", "sales", "review")
-                    .Step("pick", "Pick", "ops", "fulfill")
-                    .End("ship", "Ship", "ops", "fulfill")
-                    .Flow("start", "pick")
-                    .Flow("pick", "ship"));
+                .SwimlaneDiagram("Fulfillment", swim => {
+                    swim.Lane("sales", "Sales");
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("review", "Review");
+                    swim.Phase("fulfill", "Fulfill");
+                    swim.Start("start", "Start", "sales", "review");
+                    swim.Step("pick", "Pick", "ops", "fulfill");
+                    swim.End("ship", "Ship", "ops", "fulfill");
+                    swim.Flow("start", "pick");
+                    swim.Flow("pick", "ship");
+                });
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal(2, page.GetSwimlaneLanes().Count);
@@ -112,26 +113,26 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string editedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Fulfillment", swim => swim
-                    .Lane("sales", "Sales")
-                    .Lane("ops", "Operations")
-                    .Phase("review", "Review")
-                    .Phase("fulfill", "Fulfill")
-                    .Step("qualify", "Qualify", "sales", "review")
-                    .Step("pick", "Pick", "ops", "fulfill")
-                    .End("ship", "Ship", "ops", "fulfill")
-                    .Flow("qualify", "pick")
-                    .Flow("pick", "ship"))
-                .Save();
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.SwimlaneDiagram("Fulfillment", swim => {
+                swim.Lane("sales", "Sales");
+                swim.Lane("ops", "Operations");
+                swim.Phase("review", "Review");
+                swim.Phase("fulfill", "Fulfill");
+                swim.Step("qualify", "Qualify", "sales", "review");
+                swim.Step("pick", "Pick", "ops", "fulfill");
+                swim.End("ship", "Ship", "ops", "fulfill");
+                swim.Flow("qualify", "pick");
+                swim.Flow("pick", "ship");
+            });
+            nativeDocument1.Save();
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            loaded.AsFluent()
-                .GetPage("Fulfillment", page => page
-                    .MoveSwimlaneActivity("pick", "sales", "review", options => {
+            loaded
+                .GetPage("Fulfillment", page => { page.MoveSwimlaneActivity("pick", "sales", "review", options => {
                         options.AvoidShapes = false;
                         options.ActivityGap = 0.18D;
-                    }));
+                    }); });
 
             VisioPage page = loaded.Pages[0];
             VisioShape pick = page.Shapes.Single(shape => shape.Id == "pick");
@@ -170,12 +171,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SwimlaneDiagramBuilderStacksActivitiesInTheSameCell() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
-                .SwimlaneDiagram("Packed Cell", swim => swim
-                    .Lane("ops", "Operations")
-                    .Phase("work", "Work")
-                    .Start("start", "Start", "ops", "work")
-                    .Step("work", "Do work", "ops", "work")
-                    .End("done", "Done", "ops", "work"));
+                .SwimlaneDiagram("Packed Cell", swim => {
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("work", "Work");
+                    swim.Start("start", "Start", "ops", "work");
+                    swim.Step("work", "Do work", "ops", "work");
+                    swim.End("done", "Done", "ops", "work");
+                });
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal(6, page.Shapes.Count);
@@ -189,15 +191,16 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Order Fulfillment", swim => swim
-                    .Title()
-                    .Lane("customer", "Customer")
-                    .Lane("sales", "Sales")
-                    .Phase("request", "Request")
-                    .Phase("review", "Review")
-                    .Start("start", "Submit order", "customer", "request")
-                    .Step("qualify", "Qualify order", "sales", "review")
-                    .Flow("start", "qualify", "handoff"));
+                .SwimlaneDiagram("Order Fulfillment", swim => {
+                    swim.Title();
+                    swim.Lane("customer", "Customer");
+                    swim.Lane("sales", "Sales");
+                    swim.Phase("request", "Request");
+                    swim.Phase("review", "Review");
+                    swim.Start("start", "Submit order", "customer", "request");
+                    swim.Step("qualify", "Qualify order", "sales", "review");
+                    swim.Flow("start", "qualify", "handoff");
+                });
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape title = Assert.Single(page.Shapes, shape => shape.Id == "title");
@@ -216,23 +219,23 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Annotated Fulfillment", swim => swim
-                    .Title()
-                    .Lane("customer", "Customer")
-                    .Lane("sales", "Sales")
-                    .Lane("ops", "Operations")
-                    .Phase("request", "Request")
-                    .Phase("approval", "Approval")
-                    .Start("start", "Submit order", "customer", "request")
-                    .Decision("approved", "Approved?", "sales", "approval")
-                    .Step("pick", "Pick items", "ops", "approval")
-                    .Flow("start", "approved")
-                    .Handoff("approved", "pick", "yes")
-                    .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", 7.8, 5.9, options => {
+                .SwimlaneDiagram("Annotated Fulfillment", swim => {
+                    swim.Title();
+                    swim.Lane("customer", "Customer");
+                    swim.Lane("sales", "Sales");
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("request", "Request");
+                    swim.Phase("approval", "Approval");
+                    swim.Start("start", "Submit order", "customer", "request");
+                    swim.Decision("approved", "Approved?", "sales", "approval");
+                    swim.Step("pick", "Pick items", "ops", "approval");
+                    swim.Flow("start", "approved");
+                    swim.Handoff("approved", "pick", "yes");
+                    swim.Callout("approved", "approval-note", "Escalate exceptions before fulfillment", 7.8, 5.9, options => {
                         options.Width = 2.8;
                         options.Height = 0.72;
                         options.RouteOffset = 0.12;
-                    }));
+                    }); });
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape callout = Assert.Single(page.Callouts());
@@ -259,22 +262,21 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath)
-                .SwimlaneDiagram("Auto Annotated Fulfillment", swim => swim
-                    .Title()
-                    .Lane("sales", "Sales")
-                    .Lane("ops", "Operations")
-                    .Phase("intake", "Intake")
-                    .Phase("fulfill", "Fulfill")
-                    .Start("qualify", "Qualify request", "sales", "intake")
-                    .Decision("approved", "Approved?", "sales", "fulfill")
-                    .End("ship", "Ship order", "ops", "fulfill")
-                    .Flow("qualify", "approved")
-                    .Handoff("approved", "ship")
-                    .Callout("approved", "approval-note", "Escalate exceptions before fulfillment", VisioSide.Right, 0.45, options => {
+                .SwimlaneDiagram("Auto Annotated Fulfillment", swim => {
+                    swim.Title();
+                    swim.Lane("sales", "Sales");
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("intake", "Intake");
+                    swim.Phase("fulfill", "Fulfill");
+                    swim.Start("qualify", "Qualify request", "sales", "intake");
+                    swim.Decision("approved", "Approved?", "sales", "fulfill");
+                    swim.End("ship", "Ship order", "ops", "fulfill");
+                    swim.Flow("qualify", "approved");
+                    swim.Handoff("approved", "ship");
+                    swim.Callout("approved", "approval-note", "Escalate exceptions before fulfillment", VisioSide.Right, 0.45, options => {
                         options.Width = 2.65;
                         options.Height = 0.72;
-                    })
-                    .Callout("qualify", "Confirm account owner", VisioSide.Left, 0.25));
+                    }); swim.Callout("qualify", "Confirm account owner", VisioSide.Left, 0.25); });
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape approved = Assert.Single(page.Shapes, shape => shape.Id == "approved");
@@ -300,16 +302,16 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SwimlaneDiagramBuilderKeepsBandsAndCalloutsInMetricPageUnits() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
-                .SwimlaneDiagram("Metric Swimlane", swim => swim
-                    .PageSize(20, 12, VisioMeasurementUnit.Centimeters)
-                    .GridSize(4, 2, 2, 1)
-                    .Lane("sales", "Sales")
-                    .Phase("review", "Review")
-                    .Step("qualify", "Qualify", "sales", "review")
-                    .Callout("qualify", "qualify-note", "Metric note", 9, 7, options => {
+                .SwimlaneDiagram("Metric Swimlane", swim => {
+                    swim.PageSize(20, 12, VisioMeasurementUnit.Centimeters);
+                    swim.GridSize(4, 2, 2, 1);
+                    swim.Lane("sales", "Sales");
+                    swim.Phase("review", "Review");
+                    swim.Step("qualify", "Qualify", "sales", "review");
+                    swim.Callout("qualify", "qualify-note", "Metric note", 9, 7, options => {
                         options.Width = 3;
                         options.Height = 1;
-                    }));
+                    }); });
 
             VisioPage page = Assert.Single(document.Pages);
             VisioShape laneHeader = Assert.Single(page.Shapes, shape => shape.Id == "lane-header-sales");
@@ -326,12 +328,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void SwimlaneDiagramBuilderGeneratesUniqueCalloutIds() {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"))
-                .SwimlaneDiagram("Generated", swim => swim
-                    .Lane("ops", "Operations")
-                    .Phase("work", "Work")
-                    .Step("review", "Review", "ops", "work")
-                    .Callout("review", "First note", 5.3, 5.8)
-                    .Callout("review", "Second note", 5.3, 4.9));
+                .SwimlaneDiagram("Generated", swim => {
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("work", "Work");
+                    swim.Step("review", "Review", "ops", "work");
+                    swim.Callout("review", "First note", 5.3, 5.8);
+                    swim.Callout("review", "Second note", 5.3, 4.9);
+                });
 
             VisioPage page = Assert.Single(document.Pages);
             Assert.Equal(new[] { "review-callout", "review-callout-2" }, page.Callouts().Select(shape => shape.Id).ToArray());
@@ -342,11 +345,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("sales", "Sales")
-                    .Phase("review", "Review")
-                    .Step("qualify", "Qualify", "sales", "review")
-                    .Flow("qualify", "missing")));
+                document.SwimlaneDiagram("Invalid", swim => { swim.Lane("sales", "Sales"); swim.Phase("review", "Review"); swim.Step("qualify", "Qualify", "sales", "review"); swim.Flow("qualify", "missing"); }));
 
             Assert.Contains("Unknown swimlane activity id", exception.Message);
         }
@@ -356,11 +355,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
             ArgumentException exception = Assert.Throws<ArgumentException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("sales", "Sales")
-                    .Phase("review", "Review")
-                    .Step("title", "Qualify", "sales", "review")
-                    .Title()));
+                document.SwimlaneDiagram("Invalid", swim => { swim.Lane("sales", "Sales"); swim.Phase("review", "Review"); swim.Step("title", "Qualify", "sales", "review"); swim.Title(); }));
 
             Assert.Contains("already exists", exception.Message);
         }
@@ -370,23 +365,26 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
             ArgumentException unknownTarget = Assert.Throws<ArgumentException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("sales", "Sales")
-                    .Phase("review", "Review")
-                    .Step("qualify", "Qualify", "sales", "review")
-                    .Callout("missing", "note", "No target", 4, 4)));
+                document.SwimlaneDiagram("Invalid", swim => {
+                    swim.Lane("sales", "Sales");
+                    swim.Phase("review", "Review");
+                    swim.Step("qualify", "Qualify", "sales", "review");
+                    swim.Callout("missing", "note", "No target", 4, 4);
+                }));
             ArgumentException activityCollision = Assert.Throws<ArgumentException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("sales", "Sales")
-                    .Phase("review", "Review")
-                    .Step("qualify", "Qualify", "sales", "review")
-                    .Callout("qualify", "qualify", "Duplicate id", 4, 4)));
+                document.SwimlaneDiagram("Invalid", swim => {
+                    swim.Lane("sales", "Sales");
+                    swim.Phase("review", "Review");
+                    swim.Step("qualify", "Qualify", "sales", "review");
+                    swim.Callout("qualify", "qualify", "Duplicate id", 4, 4);
+                }));
             ArgumentException laneCollision = Assert.Throws<ArgumentException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("sales", "Sales")
-                    .Phase("review", "Review")
-                    .Step("qualify", "Qualify", "sales", "review")
-                    .Callout("qualify", "lane-sales", "Duplicate id", 4, 4)));
+                document.SwimlaneDiagram("Invalid", swim => {
+                    swim.Lane("sales", "Sales");
+                    swim.Phase("review", "Review");
+                    swim.Step("qualify", "Qualify", "sales", "review");
+                    swim.Callout("qualify", "lane-sales", "Duplicate id", 4, 4);
+                }));
 
             Assert.Contains("Unknown swimlane activity id", unknownTarget.Message);
             Assert.Contains("already exists", activityCollision.Message);
@@ -398,17 +396,19 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx"));
 
             ArgumentOutOfRangeException autoPlacement = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("ops", "Operations")
-                    .Phase("review", "Review")
-                    .Step("review", "Review", "ops", "review")
-                    .Callout("review", "Invalid", VisioSide.Auto)));
+                document.SwimlaneDiagram("Invalid", swim => {
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("review", "Review");
+                    swim.Step("review", "Review", "ops", "review");
+                    swim.Callout("review", "Invalid", VisioSide.Auto);
+                }));
             ArgumentOutOfRangeException badGap = Assert.Throws<ArgumentOutOfRangeException>(() =>
-                document.SwimlaneDiagram("Invalid", swim => swim
-                    .Lane("ops", "Operations")
-                    .Phase("review", "Review")
-                    .Step("review", "Review", "ops", "review")
-                    .Callout("review", "Invalid", VisioSide.Right, double.NaN)));
+                document.SwimlaneDiagram("Invalid", swim => {
+                    swim.Lane("ops", "Operations");
+                    swim.Phase("review", "Review");
+                    swim.Step("review", "Review", "ops", "review");
+                    swim.Callout("review", "Invalid", VisioSide.Right, double.NaN);
+                }));
 
             Assert.Contains("Placement must be", autoPlacement.Message);
             Assert.Contains("finite non-negative", badGap.Message);

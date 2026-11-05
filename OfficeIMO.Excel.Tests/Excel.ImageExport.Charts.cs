@@ -1280,7 +1280,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(4, 1).SetValue("Mar");
             sheet.Cell(4, 2).SetValue(160);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B4", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Missing Font" });
-            chart.SetTitleTextStyle(fontName: "OfficeIMO Missing Chart Font", color: OfficeColor.Parse("BE123C"));
+            chart.SetTitleTextStyle(fontFamily: "OfficeIMO Missing Chart Font", color: OfficeColor.Parse("BE123C"));
 
             OfficeImageExportResult png = sheet.Range("A1:H9").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false, Scale = 2D });
 
@@ -1313,7 +1313,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 2).SetValue(120);
             ExcelChart chart = sheet.AddChart(OfficeChartType.ColumnClustered, "A1:B2", new OfficeIMO.Excel.ExcelChartOptions { Row = 1, Column = 4, Width = OfficeLength.Pixels(265), Height = OfficeLength.Pixels(170), Title = "Scoped Font" });
             chart.SetTitleTextStyle(
-                fontName: "OfficeIMO Scoped Chart Font",
+                fontFamily: "OfficeIMO Scoped Chart Font",
                 color: OfficeColor.Parse("BE123C"));
             var options = new ExcelImageExportOptions {
                 ShowGridlines = false
@@ -2114,7 +2114,7 @@ namespace OfficeIMO.Tests {
             sheet.Cell(2, 1).SetValue(20);
             sheet.Cell(3, 1).SetValue(30);
             sheet.Range("A1:A3").ConditionalFormat().DataBar(OfficeColor.Blue);
-            sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", null, "FFFF0000", stopIfTrue: true);
+            sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", null,global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), stopIfTrue: true);
 
             ExcelRangeVisualInfo snapshot = sheet.Range("A1:A3").CreateVisualSnapshot(new ExcelImageExportOptions {
                 ShowGridlines = false,

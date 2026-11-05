@@ -1,6 +1,6 @@
 # OfficeIMO.Project
 
-OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI), MPP/MPT generations 8, 9, 12, and 14, and MPX 4 through the [qualified profiles](SUPPORT.md). It calculates task schedules through the same typed document model used by the normal and fluent APIs. File operations and calculations run without Microsoft Project, COM, a proprietary seed file, or a network connection.
+OfficeIMO.Project creates, reads, edits, and saves Microsoft Project XML (MSPDI), MPP/MPT generations 8, 9, 12, and 14, and MPX 4 through the [qualified profiles](SUPPORT.md). It calculates task schedules through one typed document model. File operations and calculations run without Microsoft Project, COM, a proprietary seed file, or a network connection.
 
 Load and save retain stored schedule values. Call `CalculateSchedule` to inspect calculated dates and float, and `ApplySchedule` or `Recalculate` to update task dates explicitly. Work, cost, actuals, and timephased values remain independently stored. Microsoft Project may calculate those values when it opens an authored file.
 
@@ -39,29 +39,28 @@ project.Validate().ThrowIfErrors();
 project.Save("delivery.xml");
 ```
 
-## Use the fluent API
+## Chainable edits and forward references
 
 ```csharp
 using OfficeIMO.Project;
-using OfficeIMO.Project.Fluent;
 
-using var project = ProjectDocument.Create().AsFluent()
-    .Info(info => info.Name("Delivery"))
+using var project = ProjectDocument.Create()
     .StartsOn(new DateTime(2026, 10, 5, 8, 0, 0))
-    .StandardWorkingWeek()
-    .Resource("engineer", r => r.Name("Engineer").Work().StandardRate(125))
-    .Summary("delivery", "Delivery", tasks => tasks
-        .Task("design", "Design", t => t.Duration(ProjectDuration.WorkingDays(3)))
-        .Task("build", "Build", t => t.Duration(ProjectDuration.WorkingDays(5))
-            .After("design").Assign("engineer", ProjectUnits.Percent(50))))
-    .End();
-
-project.Tasks.GetByUid(3).Notes = "Edited through the normal API.";
+    .StandardWorkingWeek();
+project.Name = "Delivery";
+project.Resources.AddWork("Engineer").SetAlias("engineer").SetStandardRate(125);
+var phase = project.Tasks.AddSummary("Delivery");
+phase.Children.Add("Build").SetAlias("build")
+    .SetDuration(ProjectDuration.WorkingDays(5))
+    .After("design").Assign("engineer", ProjectUnits.Percent(50));
+phase.Children.Add("Design").SetAlias("design")
+    .SetDuration(ProjectDuration.WorkingDays(3));
+project.End();
 project.Recalculate(new ProjectScheduleOptions { CalculateAssignments = true });
 project.Save("delivery.xml");
 ```
 
-Builder aliases identify objects independently of their display names. `End()` validates pending alias references before adding relationships; it returns the underlying `ProjectDocument`.
+Aliases identify native tasks and resources independently of their display names. Scalar edits take effect immediately. `End()` validates all pending aliases, duplicate relationships and membership before adding any pending relationship. A failed validation leaves the batch available for correction and retry. It returns the same document and never saves or calculates a schedule.
 
 ## Inspect and edit
 

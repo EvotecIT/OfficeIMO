@@ -17,15 +17,15 @@ namespace OfficeIMO.Tests {
                 bar.AddCategories(categories);
                 bar.AddBar("Brazil", new[] { 10, 35, 18 }, OfficeColor.Brown);
                 var line = document.AddChart("Line");
-                line.AddChartAxisX(categories);
+                line.AddCategories(categories);
                 line.AddLine("Poland", new List<int> { 13, 20, 23 }, OfficeColor.Green);
                 var area = document.AddChart("Area");
-                area.AddChartAxisX(categories);
+                area.AddCategories(categories);
                 area.AddArea("USA", new List<int> { 3, 5, 8 }, OfficeColor.Blue);
                 var scatter = document.AddChart("Scatter");
                 scatter.AddScatter("Points", new List<double> { 1, 2, 3 }, new List<double> { 4, 5, 6 }, OfficeColor.Red);
                 var radar = document.AddChart("Radar");
-                radar.AddChartAxisX(categories);
+                radar.AddCategories(categories);
                 radar.AddRadar("Radar", new List<int> { 1, 2, 3 }, OfficeColor.Orange);
                 document.Save();
             }

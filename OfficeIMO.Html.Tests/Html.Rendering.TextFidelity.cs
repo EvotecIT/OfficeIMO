@@ -47,7 +47,7 @@ public sealed partial class HtmlRenderingTests {
         IReadOnlyList<OfficeDrawingText> textElements = drawing.Elements.OfType<OfficeDrawingText>().ToList();
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
         string svg = document.ToSvg(options);
-        byte[] png = document.ToPng(options);
+        byte[] png = document.ToImage(options);
         XDocument svgDocument = XDocument.Parse(svg);
 
         Assert.NotEmpty(textElements);
@@ -146,7 +146,7 @@ public sealed partial class HtmlRenderingTests {
             .First(item => item.Text == text.Text && Math.Abs(item.X - text.X) < 0.000001D && Math.Abs(item.Y - text.Y) < 0.000001D);
         Assert.Equal(text.Width, drawingText.Width, 6);
         Assert.Equal(advance, Assert.IsType<double>(drawingText.TextAdvanceWidth), 6);
-        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToImage(options));
         Assert.StartsWith("<svg", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
     }
 

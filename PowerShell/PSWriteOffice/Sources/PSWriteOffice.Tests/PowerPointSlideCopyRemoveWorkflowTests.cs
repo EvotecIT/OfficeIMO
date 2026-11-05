@@ -43,16 +43,16 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
     }
 
     [Fact]
-    public void RemovePassThruReturnsTheLiveOwningDocumentForFurtherEditing() {
+    public void RemoveReturnsNoOutputAndKeepsTheOwningDocumentEditable() {
         using var document = Create();
         document.AddSlide().AddTitle("Third");
         PowerPointSlide survivor = document.Slides[1];
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
-        shell.AddScript("Remove-OfficePowerPointSlide -Document $deck -Slide 1, 3 -PassThru -Confirm:$false");
+        shell.AddScript("Remove-OfficePowerPointSlide -Document $deck -Slide 1, 3 -Confirm:$false");
         var result = shell.Invoke();
         Assert.False(shell.HadErrors, Errors(shell));
-        Assert.Same(document, Assert.Single(result).BaseObject);
+        Assert.Empty(result);
         Assert.Same(survivor, Assert.Single(document.Slides));
         document.AddSlide().AddTitle("Replacement");
         using var saved = PowerPointDocument.Load(new MemoryStream(document.ToBytes()));
@@ -106,7 +106,7 @@ public sealed partial class PowerPointSlideEditWorkflowTests {
         PowerPointSlide first = document.Slides[0], second = document.Slides[1];
         using var runspace = Open(); runspace.SessionStateProxy.SetVariable("deck", document);
         using var shell = PowerShell.Create(); shell.Runspace = runspace;
-        shell.AddScript("Remove-OfficePowerPointSlide -Document $deck -Slide 1, 2 -PassThru -WhatIf");
+        shell.AddScript("Remove-OfficePowerPointSlide -Document $deck -Slide 1, 2 -WhatIf");
         Assert.Empty(shell.Invoke());
         Assert.False(shell.HadErrors, Errors(shell));
         Assert.Equal(2, document.Slides.Count);

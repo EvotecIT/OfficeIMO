@@ -335,8 +335,8 @@ internal static partial class RtfHtmlReader {
             bool underline = ResolveStyleValue(style => style.Underline, _underline > 0);
             run.Underline = underline;
             ApplyRichUnderline(run, underline);
-            bool strike = ResolveStyleValue(style => style.Strike, _strike > 0);
-            run.Strike = strike;
+            bool strike = ResolveStyleValue(style => style.Strikethrough, _strike > 0);
+            run.Strikethrough = strike;
             ApplyRichStrike(run, strike);
             ApplyCharacterEffects(run);
             run.CapsStyle = ResolveCapsStyle();

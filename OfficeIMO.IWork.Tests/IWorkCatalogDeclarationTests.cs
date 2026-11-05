@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] first = Message(VarintField(1, key), field == 4 ? StringField(3, "First") : BytesField(5, FormulaConstant(1d)));
         byte[] second = Message(VarintField(1, key), field == 4 ? BytesField(3, new byte[] { 0xFF }) : BytesField(5, new byte[] { 0x80 }));
         using MemoryStream package = SelectedCatalogPackage(kind, field, Message(BytesField(3, first), BytesField(3, second)));
-        (IWorkTable table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        (IWorkTable table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTableCell cell = Assert.Single(table.Cells);
         if (field == 4) {
             Assert.Equal(IWorkCellKind.Error, cell.Kind);
@@ -61,7 +61,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] broken = Message(VarintField(1, 99), BytesField(field == 4 ? 3 : 5, new byte[] { 0xFF }));
         using MemoryStream package = SelectedCatalogPackage(kind, field,
             Message(BytesField(3, broken), BytesField(3, healthy)));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         if (field == 4) Assert.Equal("First", cell.Value);
         else {
@@ -84,7 +84,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unreadable_catalog_key_does_not_establish_uniqueness(IWorkDocumentKind kind, int field) {
         using MemoryStream package = CatalogTestPackage(kind, field,
             Message(BytesField(3, Message()), BytesField(3, CatalogTestEntry(field))));
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         if (field == 6) {
             Assert.False(cell.FormulaIsComplete);
             Assert.Equal(42d, cell.Value);
@@ -104,7 +104,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Third_duplicate_cannot_restore_catalog_key_or_hide_physical_evidence(IWorkDocumentKind kind, int field) {
         byte[] entry = BytesField(3, CatalogTestEntry(field));
         using MemoryStream package = CatalogTestPackage(kind, field, Message(entry, entry, entry));
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         if (field == 6) Assert.False(cell.FormulaIsComplete);
         else Assert.Equal(IWorkCellKind.Error, cell.Kind);
         package.Position = 0;
@@ -133,8 +133,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Configured_nested_catalog_field_limit_remains_fatal(IWorkDocumentKind kind, int field) {
         using MemoryStream package = CatalogTestPackage(kind, field,
             BytesField(3, Message(Enumerable.Range(0, 9).Select(_ => VarintField(1, 0)).ToArray())));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, kind)).Message);
     }
 
@@ -145,8 +145,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Unreadable_catalog_entries_consume_catalog_budget(int field) {
         using MemoryStream package = CatalogTestPackage(IWorkDocumentKind.Numbers, field,
             Message(BytesField(3, new byte[] { 0x80 }), BytesField(3, new byte[] { 0x80 })));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxTableCatalogEntries = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, IWorkDocumentKind.Numbers)).Message);
     }
 
@@ -157,8 +157,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Catalog_evidence_budget_is_cumulative_and_snapshotted(int field) {
         using MemoryStream package = CatalogTestPackage(IWorkDocumentKind.Numbers, field,
             Message(BytesField(3, new byte[] { 0x80 }), BytesField(3, new byte[] { 0x80 })));
-        var options = new IWorkReadOptions { MaxSourceDeclarationIssues = 1 };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, options);
+        var options = new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 };
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, options);
         options.MaxSourceDeclarationIssues = 10;
         Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, IWorkDocumentKind.Numbers)).Message);
     }
@@ -167,8 +167,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Reused_catalog_keeps_each_physical_evidence_path_once() {
         using MemoryStream package = SelectedCatalogPackage(IWorkDocumentKind.Numbers, 4,
             BytesField(3, Message(VarintField(1, 1), BytesField(3, new byte[] { 0xFF }))), repeatModel: true);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
     }
@@ -178,14 +178,14 @@ public sealed partial class IWorkBoundaryTests {
     public void Unreadable_catalog_entries_retain_physical_positions_and_block_ambiguous_values(IWorkDocumentKind kind, int field) {
         using MemoryStream package = CatalogTestPackage(kind, field,
             Message(BytesField(3, new byte[] { 0x80 }), BytesField(3, CatalogTestEntry(field)), VarintField(3, 0)));
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         if (field == 6) {
             Assert.False(cell.FormulaIsComplete);
             Assert.Equal(42d, cell.Value);
         } else Assert.Equal(IWorkCellKind.Error, cell.Kind);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal(new[] { "3[1]", "3[3]" }, report.SourceDeclarationIssues.Select(issue => issue.FieldPath));
         Assert.All(report.SourceDeclarationIssues, issue => {
             Assert.Equal(13ul, issue.Owner.RecordIdentifier);
@@ -199,8 +199,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Ambiguous_string_values_still_consume_decoding_text_budget() {
         byte[] entry = BytesField(3, Message(VarintField(1, 1), StringField(3, new string('X', 40))));
         using MemoryStream package = SelectedCatalogPackage(IWorkDocumentKind.Numbers, 4, Message(entry, entry));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 50 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 50 });
         Assert.Contains("Text character count", Assert.Throws<InvalidDataException>(() => ReadSelectedRichTable(source, IWorkDocumentKind.Numbers)).Message);
     }
 
@@ -216,7 +216,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(field == 4 ? 3 : 5, new byte[] { 0xFF }));
         using MemoryStream package = SelectedCatalogPackage(kind, field,
             Message(BytesField(3, CatalogTestEntry(field)), BytesField(3, broken)));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         string expected = field == 4 ? "First" : "42";

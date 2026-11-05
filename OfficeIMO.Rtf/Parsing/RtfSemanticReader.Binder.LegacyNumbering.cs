@@ -167,7 +167,7 @@ internal static partial class RtfSemanticReader {
                     state.LegacyNumbering.UnderlineStyle = RtfUnderlineStyle.Words;
                     return true;
                 case "pnstrike":
-                    state.LegacyNumbering.Strike = ReadLegacyToggle(control);
+                    state.LegacyNumbering.Strikethrough = ReadLegacyToggle(control);
                     return true;
                 default:
                     return false;

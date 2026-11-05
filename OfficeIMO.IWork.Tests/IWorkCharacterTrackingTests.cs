@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(kind,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, Message(FloatField(3, 40), FloatField(27, -0.25f)))));
-        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTextRun run = Assert.Single(Assert.Single(Assert.Single(table.Cells).RichText!.Paragraphs).Runs);
         Assert.Equal(-0.25, run.Style.CharacterTrackingEm);
         Assert.Equal(-10, run.Style.CharacterSpacingPoints);
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))), additionalRecords: Message(
                 ArchiveRecord(19, 2021, Message(BytesField(1, ReferenceField(3, 20)), BytesField(11, Message(FloatField(3, 40), FloatField(27, tracking))))),
                 ArchiveRecord(20, 2021, BytesField(11, Message(FloatField(3, 20), FloatField(27, -0.25f))))));
-        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Pages);
+        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Pages);
         Assert.Equal(spacing, Assert.Single(Assert.Single(Assert.Single(table.Cells).RichText!.Paragraphs).Runs).Style.CharacterSpacingPoints);
     }
 }
@@ -50,7 +50,7 @@ public sealed class IWorkCharacterTrackingCorpusTests {
     [Fact]
     public void Native_Keynote_tracking_matches_independent_Apple_PowerPoint_export() {
         string root = Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(Path.Combine(root, "keynotekit", "imagedeck-v15.2.1.key"));
+        IWorkSourceDocument source = IWorkSourceDocument.Load(Path.Combine(root, "keynotekit", "imagedeck-v15.2.1.key"));
         IWorkTextStyle style = Assert.Single(source.ReadKeynote().Slides).TitleBox!.Content.Paragraphs[0].Runs[0].Style;
         Assert.Equal(-0.02, style.CharacterTrackingEm!.Value, 6);
         Assert.Equal(-2.32, style.CharacterSpacingPoints!.Value, 6);

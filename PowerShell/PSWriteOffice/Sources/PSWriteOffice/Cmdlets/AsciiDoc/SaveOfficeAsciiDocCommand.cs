@@ -8,7 +8,7 @@ namespace PSWriteOffice.Cmdlets.AsciiDoc;
 /// <example>
 ///   <summary>Load, edit, and save an AsciiDoc document.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>$document = Get-OfficeAsciiDoc -Path .\Guide.adoc
+///   <code>$document = Open-OfficeAsciiDoc -Path .\Guide.adoc
 /// $document | Save-OfficeAsciiDoc -Path .\Guide-normalized.adoc -Mode Canonical</code>
 /// </example>
 [Cmdlet(VerbsData.Save, "OfficeAsciiDoc", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
@@ -16,16 +16,12 @@ namespace PSWriteOffice.Cmdlets.AsciiDoc;
 public sealed class SaveOfficeAsciiDocCommand : PSCmdlet
 {
     /// <summary>AsciiDoc document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public AsciiDocDocument Document { get; set; } = null!;
 
     /// <summary>Destination path.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
+    [Parameter(Mandatory = true, Position = 0)]
     public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional writer settings.</summary>
-    [Parameter]
-    public AsciiDocWriterOptions? Options { get; set; }
 
     /// <summary>Writer mode. Preserve retains unchanged source; Canonical emits stable formatting.</summary>
     [Parameter]
@@ -51,8 +47,8 @@ public sealed class SaveOfficeAsciiDocCommand : PSCmdlet
 
     private AsciiDocWriterOptions BuildOptions() {
         var options = new AsciiDocWriterOptions {
-            Mode = Options?.Mode ?? AsciiDocWriterMode.Preserve,
-            LineEnding = Options?.LineEnding
+            Mode = AsciiDocWriterMode.Preserve,
+            LineEnding = null
         };
         if (Mode.HasValue) options.Mode = Mode.Value;
         if (LineEnding.HasValue) options.LineEnding = OfficeLineEndingUtilities.ToText(LineEnding.Value);

@@ -6,12 +6,12 @@ namespace PSWriteOffice.Cmdlets.OneNote;
 
 internal static class OneNoteCommandUtilities
 {
-    internal static object Read(string path, OneNoteReaderOptions? options, OneNoteNotebookReaderOptions? notebookOptions)
+    internal static object Read(string path, OneNoteLoadOptions? options, OneNoteNotebookReaderOptions? notebookOptions)
     {
         var extension = Path.GetExtension(path);
         if (extension.Equals(".one", StringComparison.OrdinalIgnoreCase))
         {
-            return OneNoteSectionReader.Read(path, options);
+            return OneNoteSection.Load(path, options);
         }
 
         var effectiveNotebookOptions = CloneNotebookOptions(notebookOptions, options);
@@ -30,7 +30,7 @@ internal static class OneNoteCommandUtilities
 
     private static OneNoteNotebookReaderOptions CloneNotebookOptions(
         OneNoteNotebookReaderOptions? source,
-        OneNoteReaderOptions? sectionOptions)
+        OneNoteLoadOptions? sectionOptions)
     {
         var effective = source ?? new OneNoteNotebookReaderOptions();
         return new OneNoteNotebookReaderOptions

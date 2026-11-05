@@ -431,110 +431,49 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Gets all structured document tags contained in the table.
+        /// Gets all structured document tags contained in the table, including nested tables.
         /// </summary>
         public List<WordStructuredDocumentTag> StructuredDocumentTags {
             get {
                 List<WordStructuredDocumentTag> list = new();
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        var paragraphs = cell.Paragraphs.Where(p => p.IsStructuredDocumentTag).ToList();
-                        foreach (var paragraph in paragraphs) {
-                            var structuredDocumentTag = paragraph.StructuredDocumentTag;
-                            if (structuredDocumentTag != null) {
-                                list.Add(structuredDocumentTag);
-                            }
-                        }
-
-                        foreach (var structuredDocumentTag in cell.Elements.OfType<WordStructuredDocumentTag>()) {
-                            list.Add(structuredDocumentTag);
-                        }
+                foreach (var cell in EnumerateContentControlCells()) {
+                    foreach (var paragraph in cell.Paragraphs) {
+                        if (paragraph.StructuredDocumentTag is WordStructuredDocumentTag control) list.Add(control);
                     }
+                    list.AddRange(cell.Elements.OfType<WordStructuredDocumentTag>());
                 }
                 return list;
             }
         }
 
-        /// <summary>
-        /// Gets all checkbox content controls contained in the table.
-        /// </summary>
-        public List<WordCheckBox> CheckBoxes {
-            get {
-                List<WordCheckBox> list = new();
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        var paragraphs = cell.Paragraphs.Where(p => p.IsCheckBox).ToList();
-                        foreach (var paragraph in paragraphs) {
-                            var checkBox = paragraph.CheckBox;
-                            if (checkBox != null) {
-                                list.Add(checkBox);
-                            }
-                        }
-                    }
-                }
-                return list;
-            }
-        }
-        /// <summary>
-        /// Gets all date picker content controls contained in the table.
-        /// </summary>
-        public List<WordDatePicker> DatePickers {
-            get {
-                List<WordDatePicker> list = new();
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        var paragraphs = cell.Paragraphs.Where(p => p.IsDatePicker).ToList();
-                        foreach (var paragraph in paragraphs) {
-                            var datePicker = paragraph.DatePicker;
-                            if (datePicker != null) {
-                                list.Add(datePicker);
-                            }
-                        }
-                    }
-                }
-                return list;
-            }
-        }
+        /// <summary>Gets all checkbox content controls contained in the table, including nested tables.</summary>
+        public List<WordCheckBox> CheckBoxes => ContentControlParagraphs
+            .Select(paragraph => paragraph.CheckBox).OfType<WordCheckBox>().ToList();
 
-        /// <summary>
-        /// Gets all dropdown list content controls contained in the table.
-        /// </summary>
-        public List<WordDropDownList> DropDownLists {
-            get {
-                List<WordDropDownList> list = new();
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        var paragraphs = cell.Paragraphs.Where(p => p.IsDropDownList).ToList();
-                        foreach (var paragraph in paragraphs) {
-                            var dropDownList = paragraph.DropDownList;
-                            if (dropDownList != null) {
-                                list.Add(dropDownList);
-                            }
-                        }
-                    }
-                }
-                return list;
-            }
-        }
+        /// <summary>Gets all date picker content controls contained in the table, including nested tables.</summary>
+        public List<WordDatePicker> DatePickers => ContentControlParagraphs
+            .Select(paragraph => paragraph.DatePicker).OfType<WordDatePicker>().ToList();
 
-        /// <summary>
-        /// Gets all repeating section content controls contained in the table.
-        /// </summary>
-        public List<WordRepeatingSection> RepeatingSections {
-            get {
-                List<WordRepeatingSection> list = new();
-                foreach (var row in this.Rows) {
-                    foreach (var cell in row.Cells) {
-                        var paragraphs = cell.Paragraphs.Where(p => p.IsRepeatingSection).ToList();
-                        foreach (var paragraph in paragraphs) {
-                            var repeatingSection = paragraph.RepeatingSection;
-                            if (repeatingSection != null) {
-                                list.Add(repeatingSection);
-                            }
-                        }
+        /// <summary>Gets all dropdown list content controls contained in the table, including nested tables.</summary>
+        public List<WordDropDownList> DropDownLists => ContentControlParagraphs
+            .Select(paragraph => paragraph.DropDownList).OfType<WordDropDownList>().ToList();
+
+        /// <summary>Gets all repeating section content controls contained in the table, including nested tables.</summary>
+        public List<WordRepeatingSection> RepeatingSections => ContentControlParagraphs
+            .Select(paragraph => paragraph.RepeatingSection).OfType<WordRepeatingSection>().ToList();
+
+        /// <summary>Shares the generic control collection's cell traversal with native family projections.</summary>
+        internal IEnumerable<WordParagraph> ContentControlParagraphs =>
+            EnumerateContentControlCells().SelectMany(cell => cell.Paragraphs);
+
+        private IEnumerable<WordTableCell> EnumerateContentControlCells() {
+            foreach (var row in Rows) {
+                foreach (var cell in row.Cells) {
+                    yield return cell;
+                    foreach (var nestedTable in cell.DirectNestedTables) {
+                        foreach (var nestedCell in nestedTable.EnumerateContentControlCells()) yield return nestedCell;
                     }
                 }
-                return list;
             }
         }
     }

@@ -95,7 +95,7 @@ public static partial class ExcelOpenDocumentConversionExtensions {
         bool? bold = appliedStyles[0].Bold;
         bool? italic = appliedStyles[0].Italic;
         bool? underline = appliedStyles[0].Underline;
-        bool? strike = appliedStyles[0].StrikeThrough;
+        bool? strike = appliedStyles[0].Strikethrough;
         if (strike == true && (appliedStyles[0].UsesNonSolidLineThroughStyle == true
             || appliedStyles[0].LineThroughType == OdfTextDecorationType.Double)) strike = null;
         string? fontName = OdfFontFamilySyntax.TryParse(appliedStyles[0].FontFamily, out OdfFontFamilySyntax? family)

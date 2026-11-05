@@ -13,9 +13,9 @@ internal sealed class HtmlStyleDeclaration {
 
     internal RtfColor? UnderlineColor { get; set; }
 
-    internal bool? Strike { get; set; }
+    internal bool? Strikethrough { get; set; }
 
-    internal bool? DoubleStrike { get; set; }
+    internal bool? DoubleStrikethrough { get; set; }
 
     internal bool? Hidden { get; set; }
 
@@ -121,8 +121,8 @@ internal sealed class HtmlStyleDeclaration {
         Underline.HasValue ||
         UnderlineStyle.HasValue ||
         UnderlineColor != null ||
-        Strike.HasValue ||
-        DoubleStrike.HasValue ||
+        Strikethrough.HasValue ||
+        DoubleStrikethrough.HasValue ||
         Hidden.HasValue ||
         Outline.HasValue ||
         Shadow.HasValue ||

@@ -74,8 +74,8 @@ public partial class VisioForeignImageRenderingTests {
             XElement sourcePayload = XDocument.Load(new MemoryStream(original)).Descendants(Ns + "ForeignData").Single();
             XElement savedPayload = XDocument.Load(new MemoryStream(reopened.ToLegacyXmlResult().Value)).Descendants(Ns + "ForeignData").Single();
             Assert.Equal(sourcePayload.Value, savedPayload.Value);
-            Assert.Equal(page.ToPng(new VisioPngSaveOptions { PixelsPerInch = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }),
-                reopened.Pages[0].ToPng(new VisioPngSaveOptions { PixelsPerInch = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }));
+            Assert.Equal(page.ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }),
+                reopened.Pages[0].ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false }));
         }
     }
 
@@ -184,7 +184,7 @@ public partial class VisioForeignImageRenderingTests {
     }
 
     private static OfficeRasterImage Render(VisioPage page) {
-        byte[] png = page.ToPng(new VisioPngSaveOptions { PixelsPerInch = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false });
+        byte[] png = page.ToImage(new VisioImageExportOptions { TargetDpi = 20, Supersampling = 1, RenderText = false, RenderStencilArtwork = false });
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out var raster)); return raster!;
     }
     private static VisioDocument Load(XDocument xml) => VisioDocument.LoadLegacyXml(new MemoryStream(Encoding.UTF8.GetBytes(xml.ToString()))).Value;

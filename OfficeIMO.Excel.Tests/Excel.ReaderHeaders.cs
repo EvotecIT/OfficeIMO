@@ -2006,9 +2006,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(2, 1).SetValue(serialValue);
                     sheet.Cell(2, 2).SetValue(serialValue);
                     sheet.Cell(2, 3).SetValue(serialValue);
-                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
-                    sheet.ColumnStyleByHeader("DateValue").NumberFormat("[h]:mm");
-                    sheet.ColumnStyleByHeader("TextValue").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("NumericValue").SetNumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("DateValue").SetNumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("TextValue").SetNumberFormat("[h]:mm");
                     document.Save();
                 }
 
@@ -2036,7 +2036,7 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetValue("NumericValue");
                     sheet.Cell(2, 1).SetValue(serialValue);
-                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("NumericValue").SetNumberFormat("[h]:mm");
                     document.Save();
                 }
 
@@ -2069,7 +2069,7 @@ namespace OfficeIMO.Tests {
                     var sheet = document.AddSheet("Data");
                     sheet.Cell(1, 1).SetValue("NumericValue");
                     sheet.Cell(2, 1).SetValue(serialValue);
-                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("NumericValue").SetNumberFormat("[h]:mm");
                     document.Save();
                 }
 
@@ -2452,9 +2452,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(2, 1).SetValue(serialValue);
                     sheet.Cell(2, 2).SetValue(serialValue);
                     sheet.Cell(2, 3).SetValue(serialValue);
-                    sheet.ColumnStyleByHeader("NumericValue").NumberFormat("[h]:mm");
-                    sheet.ColumnStyleByHeader("DateValue").NumberFormat("[h]:mm");
-                    sheet.ColumnStyleByHeader("TextValue").NumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("NumericValue").SetNumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("DateValue").SetNumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("TextValue").SetNumberFormat("[h]:mm");
                     document.Save();
                 }
 

@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(29));
             for (int column = 2; column <= 6; column++) sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(22));
             sheet.Range("A1:F1").Merge(); sheet.Cell(1, 1).SetValue("Cash-flow forecast");
-            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+            sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(22)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
             sheet.Range("A2:F2").Merge(); sheet.Cell(2, 1).SetValue("Six-month illustrative forecast / amounts in EUR");
             string[] headers = { "Month", "Opening", "Receipts", "Payments", "Net flow", "Closing" };
             for (int column = 1; column <= 6; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
@@ -38,9 +38,9 @@ namespace OfficeIMO.Examples.Showcase.Workflows {
             }
             sheet.SetRowHeight(4, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(30)));
             for (int column = 1; column <= 6; column++) {
-                sheet.Cell(4, column).SetFontColor("FFFFFF");
+                sheet.Cell(4, column).SetColor(OfficeColor.Parse("FFFFFF"));
                 sheet.Cell(4, column).SetBold(true);
-                sheet.Cell(4, column).SetFillColor("17365D");
+                sheet.Cell(4, column).SetFillColor(OfficeColor.Parse("17365D"));
             }
             document.Calculate();
             document.InspectFormulas().EnsureAllSupported().EnsureAllHaveCachedResults().EnsureNoDependencyIssues();

@@ -1,88 +1,88 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Gets legacy worksheet comments (notes) from one or more worksheets.</summary>
+/// <summary>Gets notes and threaded comments that match a filter.</summary>
 /// <example>
-///   <summary>Find comments containing review text.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$comments = Get-OfficeExcelComment -Path .\Report.xlsx -Sheet Data -TextContains review
-/// $comments |
-///     Select-Object SheetName, Address, Author, Text</code>
-///   <para>Returns matching comment metadata without modifying the workbook.</para>
+/// <summary>List all comments</summary>
+/// <code>Get-OfficeExcelComment -Path .\Finance\Forecast-2027.xlsx</code>
+/// <para>Shows every note and threaded comment in the workbook.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelComment", DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelComments")]
-[OutputType(typeof(PSObject))]
+/// <example>
+/// <summary>Collect open review threads</summary>
+/// <code>Get-OfficeExcelComment -Path .\Finance\Forecast-2027.xlsx -Kind Threaded -Author 'Anna Kowalska' |
+///     Export-OfficeExcel -Path .\Reviews\Forecast-Comments.xlsx -Title 'Open review comments'</code>
+/// <para>Finds the threaded comments left by the finance reviewer and exports them as a review list.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Get, "OfficeExcelComment", DefaultParameterSetName = "Document")]
 public sealed class GetOfficeExcelCommentCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook path to inspect.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Workbook to inspect outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name to inspect. Defaults to the current DSL sheet or all workbook sheets.</summary>
-    [Parameter]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index (0-based) to inspect. Defaults to the current DSL sheet or all workbook sheets.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>A1 cell address to match.</summary>
-    [Parameter]
-    public string? Address { get; set; }
-
-    /// <summary>A1 cell or range to match.</summary>
-    [Parameter]
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter()]
     public string? Range { get; set; }
 
     /// <summary>Comment author to match, ignoring case.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Author { get; set; }
 
     /// <summary>Text fragment to match, ignoring case.</summary>
-    [Parameter]
+    [Parameter()]
     public string? TextContains { get; set; }
+
+    /// <summary>Metadata kind to add.</summary>
+    [Parameter()]
+    public ExcelCommentKind Kind { get; set; } = ExcelCommentKind.All;
+
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
-        var path = string.Equals(ParameterSetName, ParameterSetPath, StringComparison.OrdinalIgnoreCase)
-            ? Path
-            : null;
-        var filter = CreateFilter();
-
-        foreach (var sheet in ExcelWorkbookCommandService.ResolveSheets(this, workbook.Document, ParameterSetName, Sheet, SheetIndex)) {
-            foreach (var comment in sheet.FindComments(filter)) {
-                WriteObject(ExcelCommentRecordService.CreateRecord(comment, sheet.Name, path));
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) {
+            var document = scope.Document;
+            var selected = new HashSet<string>(ExcelSheetResolver.ResolveMany(document, Sheet, Document == null && !scope.OwnsDocument ? ExcelDslContext.Current?.CurrentSheet : null).Select(s => s.Name), StringComparer.OrdinalIgnoreCase);
+            var report = document.InspectComments();
+            if (Kind != ExcelCommentKind.Threaded) foreach (var sheet in document.Sheets.Where(s => selected.Contains(s.Name)))
+                foreach (var comment in sheet.FindComments(new ExcelCommentFilter { A1Range = Range, Author = Author, TextContains = TextContains })) WriteObject(ExcelCommentRecordService.CreateRecord(comment, sheet.Name, document.FilePath));
+            if (Kind != ExcelCommentKind.Note) foreach (var comment in report.ThreadedComments) {
+                if (!selected.Contains(comment.SheetName)) continue;
+                if (Author != null && !string.Equals(comment.Author, Author, StringComparison.OrdinalIgnoreCase)) continue;
+                if (TextContains != null && comment.Text.IndexOf(TextContains, StringComparison.OrdinalIgnoreCase) < 0) continue;
+                if (Range != null) {
+                    var (r1, c1, r2, c2) = ExcelA1.ParseRange(Range.Contains(":") ? Range : Range + ":" + Range);
+                    var (r, c) = ExcelA1.ParseCellRef(comment.CellReference);
+                    if (r < r1 || r > r2 || c < c1 || c > c2) continue;
+                }
+                WriteObject(comment);
             }
         }
     }
 
-    private ExcelCommentFilter? CreateFilter() {
-        if (!string.IsNullOrWhiteSpace(Address) && !string.IsNullOrWhiteSpace(Range)) {
-            throw new PSArgumentException("Specify either -Address or -Range, not both.");
-        }
-
-        if (string.IsNullOrWhiteSpace(Address) && string.IsNullOrWhiteSpace(Range) && string.IsNullOrWhiteSpace(Author) && string.IsNullOrWhiteSpace(TextContains)) {
-            return null;
-        }
-
-        return new ExcelCommentFilter {
-            A1Range = !string.IsNullOrWhiteSpace(Address) ? Address : Range,
-            Author = Author,
-            TextContains = TextContains
-        };
-    }
 }

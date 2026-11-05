@@ -11,7 +11,7 @@ Adds a picture content control to the current paragraph.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordPictureControl [-Path] <string> [-Width <Double>] [-Height <Double>] [-Alias <string>] [-Tag <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordPictureControl [-Path] <string> [-Width <OfficeLength>] [-Height <OfficeLength>] [-Alias <string>] [-Tag <string>] [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Adds a picture content control to the current paragraph.
 
 ### EXAMPLE 1
 ```powershell
-PS> Add-OfficeWordParagraph { Add-OfficeWordPictureControl -Path .\logo.png -Width 96 -Height 32 }
+PS> Add-OfficeWordParagraph { Add-OfficeWordPictureControl -Path .\logo.png -Width 96px -Height 32px }
 ```
 
 Embeds an image inside a picture content control.
@@ -45,10 +45,10 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Height in pixels.
+Height; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -125,10 +125,10 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Width in pixels.
+Width; numbers mean points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:

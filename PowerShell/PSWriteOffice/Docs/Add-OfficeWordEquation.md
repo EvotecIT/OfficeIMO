@@ -9,9 +9,14 @@ schema: 2.0.0
 Adds an Office Math equation to a Word document or paragraph.
 
 ## SYNTAX
-### __AllParameterSets
+### Context (Default)
 ```powershell
-Add-OfficeWordEquation [-Omml] <string> [-Paragraph <WordParagraph>] [-Document <WordDocument>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordEquation [-Omml] <string> [-Paragraph <WordParagraph>] [-PassThru] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Add-OfficeWordEquation [-Omml] <string> -Document <WordDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -37,14 +42,14 @@ Document to receive a new equation paragraph.
 
 ```yaml
 Type: WordDocument
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -53,7 +58,7 @@ Office Math Markup Language content.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context, Document
 Aliases: None
 Possible values:
 
@@ -69,7 +74,7 @@ Paragraph to receive the equation.
 
 ```yaml
 Type: WordParagraph
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context
 Aliases: None
 Possible values:
 
@@ -85,7 +90,7 @@ Emit the equation paragraph.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Context, Document
 Aliases: None
 Possible values:
 
@@ -102,6 +107,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Word.WordParagraph`
+- `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS
 

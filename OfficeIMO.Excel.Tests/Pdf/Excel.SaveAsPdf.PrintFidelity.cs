@@ -6,8 +6,10 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public partial class Excel {
-    [Fact]
-    public void SaveAsPdf_PivotWithoutRenderedCellsIsCalculatedFromItsCache() {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SaveAsPdf_PivotWithoutRenderedCellsIsCalculatedFromItsCache(bool selectLiveSheet) {
         using ExcelDocument document = ExcelDocument.Create();
         ExcelSheet sheet = document.AddSheet("Sales");
         sheet.Cell(1, 1).SetValue("Region");
@@ -21,7 +23,9 @@ public partial class Excel {
         sheet.AddPivotTable(sourceRange: "A1:B5", destinationCell: "D1", new ExcelPivotTableOptions { Name = "RevenuePivot", RowFields = new[] { "Region" }, DataFields = new[] { new ExcelPivotDataField("Revenue", ExcelPivotDataFunction.Sum, "Total Revenue") } });
 
         using var stream = new MemoryStream();
-        OfficeConversionReport report = document.SaveAsPdf(stream);
+        OfficeConversionReport report = document.SaveAsPdf(stream, new ExcelPdfExportOptions {
+            Sheets = selectLiveSheet ? new[] { OfficeSheetSelector.From(sheet) } : null
+        });
         using PdfPigDocument pdf = PdfPigDocument.Open(stream.ToArray());
         string text = string.Join(" ", Enumerable.Range(1, pdf.NumberOfPages).SelectMany(page => pdf.GetPage(page).GetWords()).Select(word => word.Text));
         Assert.Contains("400", text.Split(' '));

@@ -117,7 +117,7 @@ public sealed class CabinetReaderTests {
 
         Assert.Equal(sourceName, entry.Name);
         Assert.Equal(expected, entry.Data);
-        Assert.NotEmpty(OneNoteSectionReader.Read(new MemoryStream(entry.Data, writable: false)).Pages);
+        Assert.NotEmpty(OneNoteSection.Load(new MemoryStream(entry.Data, writable: false)).Pages);
     }
 
     [Fact]

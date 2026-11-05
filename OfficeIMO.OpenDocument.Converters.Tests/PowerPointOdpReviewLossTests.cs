@@ -285,13 +285,13 @@ public sealed class PowerPointOdpReviewLossTests {
         OdfConversionResult<PowerPointDocument> result = source.ConvertToPowerPointWithEvidence();
         using PowerPointDocument target = result.Value;
         if (hideMaster) {
-            Assert.Null(target.Slides[0].BackgroundColor);
+            Assert.Null(target.Slides[0].BackgroundColor?.ToRgbHex());
             Assert.Contains(result.Report.Mappings, mapping => mapping.Feature == "slide-backgrounds" &&
                 mapping.Status == OdfConversionMappingStatus.Unsupported);
             Assert.Throws<OdfConversionLossException>(() => source.ConvertToPowerPointWithEvidence(
                 new PowerPointOpenDocumentConversionOptions { LossPolicy = OdfConversionLossPolicy.ThrowOnAnyLoss }));
         } else {
-            Assert.Equal("336699", target.Slides[0].BackgroundColor);
+            Assert.Equal("336699", target.Slides[0].BackgroundColor?.ToRgbHex());
         }
     }
 }

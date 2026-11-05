@@ -52,7 +52,7 @@ public sealed class ImageExportConformanceContracts {
         using (PowerPointDocument presentation = PowerPointDocument.Create(presentationStream)) {
             presentation.SlideSize.SetSize(OfficeIMO.OfficeLength.Points(240D),OfficeIMO.OfficeLength.Points(160D));
             PowerPointSlide slide = presentation.AddSlide();
-            slide.BackgroundColor = "336699";
+            slide.BackgroundColor = OfficeColor.Parse("336699");
             results.Add(slide.ExportImage(
                 OfficeImageExportFormat.Webp,
                 new PowerPointImageExportOptions {

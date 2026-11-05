@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -20,21 +21,24 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Loads the document, updates matching hyperlink URLs, saves the file, and closes it.</para>
 /// </example>
 [Cmdlet(VerbsData.Update, "OfficeWordText", DefaultParameterSetName = ParameterSetAuto, SupportsShouldProcess = true)]
-[Alias("Replace-OfficeWordText")]
 [OutputType(typeof(int))]
 public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetAuto = "Auto";
+    private const string ParameterSetAuto = "Context";
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPath = "Path";
 
     /// <summary>Document to update.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
     public WordDocument? Document { get; set; }
 
     /// <summary>Path to the .docx file to update in place.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetPath)]
     [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Literal input files, including FileInfo.FullName.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath"), ValidateNotNullOrEmpty]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
     /// <summary>Text to find.</summary>
     [Parameter(Mandatory = true)]
@@ -66,12 +70,18 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
     public SwitchParameter IncludeHyperlinkTooltip { get; set; }
 
     /// <summary>Open the file after saving when using <c>-Path</c>.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    [Alias("Show")]
-    public SwitchParameter Open { get; set; }
+    [Parameter(ParameterSetName = ParameterSetPath), Parameter(ParameterSetName = "LiteralPath")]
+    public SwitchParameter Show { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        if (ParameterSetName == ParameterSetPath || ParameterSetName == "LiteralPath") {
+            foreach (var input in OfficePath.ResolveInputs(this, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath"))
+                Update(input);
+        } else Update(null);
+    }
+
+    private void Update(string? inputPath) {
         if (string.IsNullOrEmpty(OldValue)) {
             throw new PSArgumentException("Provide text to replace.", nameof(OldValue));
         }
@@ -84,8 +94,9 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
                 case ParameterSetDocument:
                     document = Document;
                     break;
+                case "LiteralPath":
                 case ParameterSetPath:
-                    var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
+                    var resolvedPath = inputPath!;
                     if (!ShouldProcess(resolvedPath, "Update Word document text")) {
                         return;
                     }
@@ -102,7 +113,7 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
                 throw new InvalidOperationException("Specify -Document, -Path, or run inside New-OfficeWord.");
             }
 
-            if (ParameterSetName != ParameterSetPath && !ShouldProcess(GetDocumentTarget(document), "Update Word document text")) {
+            if (inputPath == null && !ShouldProcess(GetDocumentTarget(document), "Update Word document text")) {
                 return;
             }
 
@@ -114,8 +125,8 @@ public sealed class UpdateOfficeWordTextCommand : PSWriteOffice.Cmdlets.OfficeMu
                 replacements += ReplaceHyperlinks(document, OldValue, replacement, comparison);
             }
 
-            if (ParameterSetName == ParameterSetPath) {
-                WordDocumentService.SaveDocument(document, Open.IsPresent, null);
+            if (inputPath != null) {
+                WordDocumentService.SaveDocument(document, Show.IsPresent, null);
                 dispose = false;
             }
 

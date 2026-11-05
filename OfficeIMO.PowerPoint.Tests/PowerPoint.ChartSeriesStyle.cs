@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointChart chart = slide.AddChart();
-                    chart.SetSeriesFillColor(1, "FF0000")
-                        .SetSeriesLineColor(0, "00FF00", width: OfficeLength.Points(1));
+                    chart.SetSeriesFillColor(1, OfficeColor.Parse("FF0000"))
+                        .SetSeriesLineColor(0, OfficeColor.Parse("00FF00"), width: OfficeLength.Points(1));
                     presentation.Save();
                 }
 

@@ -82,7 +82,7 @@ public sealed class MhtmlDocumentTests {
         const string html = "<sample-card><template shadowmode='open'><p>HiddenSnapshot</p></template>VisibleLight</sample-card>";
         HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
 
-        string ordinary = PdfCore.PdfReadDocument.Open((document.ToPdf()).ToBytes()).ExtractText();
+        string ordinary = PdfCore.PdfReadDocument.Open(document.ToPdf().ToBytes()).ExtractText();
         string projected = PdfCore.PdfReadDocument.Open((document.ToPdf(new HtmlPdfExportOptions {
             ProjectSerializedShadowRoots = true
         })).ToBytes()).ExtractText();

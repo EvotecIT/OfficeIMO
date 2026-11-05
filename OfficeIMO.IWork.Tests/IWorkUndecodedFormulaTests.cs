@@ -19,7 +19,7 @@ public sealed partial class IWorkBoundaryTests {
         IWorkDocumentKind kind, string failure, bool visual) {
         using MemoryStream package = TableDependencyPackage(kind, Message(),
             cellPayload: UndecodedFormulaCell(failure));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         (IWorkTable table, _) = ReadSelectedRichTable(source, kind);
         IWorkTableCell cell = Assert.Single(table.Cells);
         Assert.Equal(IWorkCellKind.Error, cell.Kind);
@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Null(cell.Formula);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.PreservedRecords);
         Assert.Equal(visual ? IWorkProjectionKind.VisualFallback : IWorkProjectionKind.EditableReconstruction,
             report.ProjectionKind);
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
             else if (failure == "truncatedHeader") cell = cell.Take(11).ToArray();
             else WriteUInt32(cell, 8, 1u << 1);
             using MemoryStream package = TableDependencyPackage(kind, Message(), cellPayload: cell);
-            (IWorkTable table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+            (IWorkTable table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
             Assert.False(Assert.Single(table.Cells).SourceFormulaIsDeclared);
             package.Position = 0;
             IWorkConversionReport report = ConvertUnitReport(package, kind);

@@ -65,14 +65,14 @@ public sealed class SetOfficePowerPointTableCellCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var table = ResolveTable(InputObject);
-        if (Row > table.Rows)
+        if (Row > table.Rows.Count)
         {
-            throw new PSArgumentOutOfRangeException(nameof(Row), Row, $"Table contains {table.Rows} rows.");
+            throw new PSArgumentOutOfRangeException(nameof(Row), Row, $"Table contains {table.Rows.Count} rows.");
         }
 
-        if (Column > table.Columns)
+        if (Column > table.Columns.Count)
         {
-            throw new PSArgumentOutOfRangeException(nameof(Column), Column, $"Table contains {table.Columns} columns.");
+            throw new PSArgumentOutOfRangeException(nameof(Column), Column, $"Table contains {table.Columns.Count} columns.");
         }
 
         var cell = table.GetCell(Row - 1, Column - 1);

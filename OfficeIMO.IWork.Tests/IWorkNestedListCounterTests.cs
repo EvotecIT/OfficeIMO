@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(19, 2023, Message(VarintField(11, 3), VarintField(11, 3),
                     VarintField(15, 0), VarintField(15, 0), VarintField(25, 0), VarintField(25, 0))),
                 ArchiveRecord(22, 2023, VarintField(11, 0))));
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells).RichText!;
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells).RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, 1, 2, 8, 1, null, 2, 5, 3, 4 },
             content.Paragraphs.Select(paragraph => paragraph.ListNumber));
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal("  2. Child continued", IWorkReadProjection.RichTextMarkdown(content.Paragraphs[6]));
         if (kind == IWorkDocumentKind.Keynote) {
             package.Position = 0;
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(new() {
+            using var result = IWorkSourceDocument.Load(package).ToPowerPointResult(new() {
                 Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved);
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
             ? AttributeTable(7, AttributeEntry(0, ReferenceField(2, 22))) : null;
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers, starts,
             listStyles: styles, levels: levels);
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var content = Assert.Single(Assert.Single(projection.Sheets).Tables).Cells[0].RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath.StartsWith("6/1[", StringComparison.Ordinal));
@@ -92,7 +92,7 @@ public sealed partial class IWorkBoundaryTests {
             listStyles: AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)),
                 AttributeEntry(6, ReferenceField(2, 22)), AttributeEntry(11, ReferenceField(2, 19))),
             plainStyle: Message(VarintField(11, 0), FloatField(11, 1)));
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, null, null, null }, content.Paragraphs.Select(paragraph => paragraph.ListNumber));

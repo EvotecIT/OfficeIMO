@@ -9,23 +9,36 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Gets native data validation snapshots, with worksheet and source-path metadata.</summary>
 /// <example><summary>Inspect rules for a named table column.</summary>
 /// <code>Get-OfficeExcelValidation -Path .\Report.xlsx -Sheet Data -Table Sales -Header Status</code></example>
+/// <example>
+/// <summary>List validation rules</summary>
+/// <code>Get-OfficeExcelValidation -Path .\Forms\Equipment-Requests.xlsx</code>
+/// <para>Shows every data validation rule in the workbook.</para>
+/// </example>
+/// <example>
+/// <summary>Check the rules on one column</summary>
+/// <code>$book = Open-OfficeExcel -Path .\Forms\Equipment-Requests.xlsx -ReadOnly
+/// Get-OfficeExcelValidation -Document $book -Sheet Requests -Header Quantity -Table Requests
+/// Close-OfficeExcel -Document $book</code>
+/// <para>Reads the validation that applies to the Quantity column of the Requests table in an open workbook.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeExcelValidation", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ExcelDataValidationInfo))]
 public sealed class GetOfficeExcelValidationCommand : ExcelQueryCmdlet {
     /// <summary>A1 range filter; Header takes precedence when both are supplied.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Range { get; set; }
     /// <summary>Header or table column name used to resolve the range filter.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Header { get; set; }
     /// <summary>Table name for header-based range resolution.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Table { get; set; }
     /// <summary>Worksheet header row; zero uses the first row of the used range.</summary>
-    [Parameter, ValidateRange(0, 1048576)]
+    [Parameter()]
+    [ValidateRange(0, 1048576)]
     public int HeaderRow { get; set; }
     /// <summary>Include the header cell when resolving a named column.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter IncludeHeader { get; set; }
 
     /// <inheritdoc />

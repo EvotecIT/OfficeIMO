@@ -12,7 +12,7 @@ namespace OfficeIMO.TestAssets;
 // Shared by the ordinary CSV tests and the opt-in browser interoperability runner.
 internal static class BrowserCsvVectorContract {
     internal static byte[] Write(JsonElement vector) {
-        var document = new CsvDocument().WithHeader(vector.GetProperty("columns").EnumerateArray()
+        var document = CsvDocument.Create().WithHeader(vector.GetProperty("columns").EnumerateArray()
             .Select(column => column.GetProperty("header").GetString()!).ToArray());
         foreach (JsonElement row in vector.GetProperty("rows").EnumerateArray())
             document.AddRow(row.EnumerateArray().Select(Value).ToArray());

@@ -191,7 +191,7 @@ public sealed class ReaderPowerPointExtractionTests {
             slide.AddTextBox("Before table");
             PowerPointTable table = slide.AddTable(2,2);
             table.HeaderRow = true;
-            table.SetCellBorders(PowerPointTableCellBorders.All, "BFBFBF",
+            table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("BFBFBF"),
                 width: global::OfficeIMO.OfficeLength.Points(0.5D));
             table.GetCell(0, 0).Text = "Region";
             table.GetCell(0, 1).Text = "Revenue";

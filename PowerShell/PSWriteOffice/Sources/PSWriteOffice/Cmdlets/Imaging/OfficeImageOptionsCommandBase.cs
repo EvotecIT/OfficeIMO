@@ -7,19 +7,10 @@ namespace PSWriteOffice.Cmdlets.Imaging;
 
 /// <summary>Shared PowerShell-native parameters for OfficeIMO image export option builders.</summary>
 public abstract class OfficeImageOptionsCommandBase<TOptions> : OfficeCmdlet where TOptions : OfficeImageExportOptions {
-    /// <summary>Output scale multiplier.</summary>
-    [Parameter] [ValidateRange(double.Epsilon, double.MaxValue)] public double? Scale { get; set; }
     /// <summary>Maximum output width in pixels.</summary>
-    [Parameter] [ValidateRange(1, int.MaxValue)] public int? MaximumOutputWidth { get; set; }
+    [Parameter] [ValidateRange(1, int.MaxValue)] public virtual int? MaximumOutputWidth { get; set; }
     /// <summary>Maximum output height in pixels.</summary>
     [Parameter] [ValidateRange(1, int.MaxValue)] public int? MaximumOutputHeight { get; set; }
-    /// <summary>Background color name or hex value.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? BackgroundColor { get; set; }
-    /// <summary>Target output density in dots per inch.</summary>
-    [Parameter] [ValidateRange(double.Epsilon, 65535d)] public double? TargetDpi { get; set; }
     /// <summary>Maximum pixels allocated for one raster image.</summary>
     [Parameter] [ValidateRange(1, long.MaxValue)] public long? MaximumRasterPixelCount { get; set; }
     /// <summary>Reduce or reject oversized raster output.</summary>
@@ -39,11 +30,8 @@ public abstract class OfficeImageOptionsCommandBase<TOptions> : OfficeCmdlet whe
 
     /// <summary>Applies shared settings to a format-specific option object.</summary>
     protected void ApplyCommon(TOptions options) {
-        if (Scale.HasValue) options.Scale = Scale.Value;
         if (MaximumOutputWidth.HasValue) options.MaximumOutputWidth = MaximumOutputWidth.Value;
         if (MaximumOutputHeight.HasValue) options.MaximumOutputHeight = MaximumOutputHeight.Value;
-        if (!string.IsNullOrWhiteSpace(BackgroundColor)) options.BackgroundColor = OfficeColor.Parse(BackgroundColor!);
-        if (TargetDpi.HasValue) options.TargetDpi = TargetDpi.Value;
         if (MaximumRasterPixelCount.HasValue) options.MaximumRasterPixels = MaximumRasterPixelCount.Value;
         if (RasterOverflowBehavior.HasValue) options.RasterOverflowBehavior = RasterOverflowBehavior.Value;
         if (MaximumOutputCount.HasValue) options.MaximumOutputCount = MaximumOutputCount.Value;

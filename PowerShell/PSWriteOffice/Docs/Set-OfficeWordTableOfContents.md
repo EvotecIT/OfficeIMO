@@ -9,14 +9,14 @@ schema: 2.0.0
 Sets properties on a table of contents in a Word document.
 
 ## SYNTAX
-### TableOfContents
-```powershell
-Set-OfficeWordTableOfContents [-TableOfContents <WordTableOfContent>] [-Text <string>] [-TextNoContent <string>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
+### Document (Default)
 ```powershell
 Set-OfficeWordTableOfContents [-Document <WordDocument>] [-Text <string>] [-TextNoContent <string>] [-PassThru] [<CommonParameters>]
+```
+
+### TableOfContents
+```powershell
+Set-OfficeWordTableOfContents -TableOfContents <WordTableOfContent> [-Text <string>] [-TextNoContent <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -70,7 +70,7 @@ Emit the updated table of contents.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: TableOfContents, Document
+Parameter Sets: Document, TableOfContents
 Aliases: None
 Possible values:
 
@@ -90,7 +90,7 @@ Parameter Sets: TableOfContents
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -102,7 +102,7 @@ Heading text for the table of contents.
 
 ```yaml
 Type: String
-Parameter Sets: TableOfContents, Document
+Parameter Sets: Document, TableOfContents
 Aliases: None
 Possible values:
 
@@ -118,7 +118,7 @@ Text shown when the table of contents has no entries.
 
 ```yaml
 Type: String
-Parameter Sets: TableOfContents, Document
+Parameter Sets: Document, TableOfContents
 Aliases: None
 Possible values:
 

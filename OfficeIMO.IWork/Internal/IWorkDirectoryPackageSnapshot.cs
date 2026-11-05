@@ -10,11 +10,11 @@ namespace OfficeIMO.IWork.Internal;
 internal sealed class IWorkDirectoryPackageSnapshot {
     private readonly string _path;
     private readonly string _identity;
-    private readonly IWorkReadOptions _options;
+    private readonly IWorkLoadOptions _options;
     private readonly long _maximumTransportBytes;
     private string[]? _members;
 
-    internal IWorkDirectoryPackageSnapshot(string path, IWorkReadOptions options, long maximumTransportBytes) {
+    internal IWorkDirectoryPackageSnapshot(string path, IWorkLoadOptions options, long maximumTransportBytes) {
         _path = System.IO.Path.GetFullPath(path).TrimEnd(System.IO.Path.DirectorySeparatorChar, System.IO.Path.AltDirectorySeparatorChar);
         _options = options.Clone();
         _maximumTransportBytes = maximumTransportBytes;

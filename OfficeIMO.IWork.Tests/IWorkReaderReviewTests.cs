@@ -30,7 +30,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_preserves_unicode_styles_and_unique_reused_image_assets() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var style = new IWorkTextStyle(null, null, null, underline: true,
             strikethrough: true, null, "Example Font", null, null);
@@ -77,7 +77,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_splits_table_text_and_markdown_on_unicode_scalar_boundaries() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var plainStyle = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
@@ -123,7 +123,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(false, null, false)]
     public void Reader_reports_unrepresented_paragraph_or_marker_style_without_run_style(
         bool aligned, string? markerFont, bool expectedDiagnostic) {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var plainStyle = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
@@ -150,7 +150,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_bounds_escaped_and_linked_markdown_chunks() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var style = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
@@ -221,7 +221,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_reports_rotations_and_merges_and_indexes_each_table_chunk() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var rotation = new IWorkGeometry(10, 20, 100, 40, 15);
         var emptyText = new IWorkTextContent(Array.Empty<IWorkTextParagraph>(), true, true);
@@ -283,7 +283,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkParagraphBreakKind.Section)]
     [InlineData(IWorkParagraphBreakKind.Layout)]
     public void Reader_reports_explicit_layout_breaks(IWorkParagraphBreakKind breakKind) {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var style = new IWorkTextStyle(null, null, null, null, null,
             null, null, null, null);
@@ -311,7 +311,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_bounds_dense_cells_across_sparse_tables() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.numbers"), IWorkDocumentKind.Numbers);
         IWorkTable[] tables = Enumerable.Range(1, 3)
             .Select(index => new IWorkTable("Sparse " + index, 2, 2,
@@ -344,7 +344,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_links_retain_image_identity_and_empty_text_box_geometry() {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             Fixture("nim-iwork/simple.pages"), IWorkDocumentKind.Pages);
         var emptyText = new IWorkTextContent(Array.Empty<IWorkTextParagraph>(), true, true);
         var firstBox = new IWorkTextBox(emptyText, new IWorkGeometry(10, 20, 30, 40, 0),

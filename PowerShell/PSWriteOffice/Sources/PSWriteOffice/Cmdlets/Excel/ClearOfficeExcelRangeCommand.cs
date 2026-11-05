@@ -1,139 +1,92 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Clears values, formulas, styles, and range metadata from an Excel worksheet range.</summary>
+/// <summary>Clears values, formulas, styles and range metadata from a range, a header column or whole sheets.</summary>
 /// <example>
-///   <summary>Clear cell contents without removing formatting.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Clear-OfficeExcelRange -Path .\Report.xlsx -Sheet Staging -Range B2:D20 -Contents -Hyperlinks -Confirm:$false
-/// Get-OfficeExcelRange -Path .\Report.xlsx -Sheet Staging -Range B2:D20 |
-///     Select-Object Address, Value, Formula</code>
-///   <para>Removes values and formulas from the selected range and saves the workbook.</para>
+/// <summary>Clear the values of a range</summary>
+/// <code>Open-OfficeExcel -Path .\Templates\Weekly-Report.xlsx {
+///     ExcelSheet 'Data' {
+///         Clear-OfficeExcelRange A2:F200 -Include Values
+///     }
+/// }</code>
+/// <para>Removes the values from A2:F200 and keeps formatting, validation and comments.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Clear, "OfficeExcelRange", SupportsShouldProcess = true, ConfirmImpact = ConfirmImpact.Medium, DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelRangeClear")]
-public sealed class ClearOfficeExcelRangeCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+/// <example>
+/// <summary>Reset a sheet before reloading it</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Weekly-Ops.xlsx {
+///     ExcelSheet 'Data' {
+///         $cleared = Clear-OfficeExcelRange -PassThru
+///         Write-Verbose "Cleared $cleared cells"
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Ops-Week43.csv) -Name OpsData
+///     }
+/// }</code>
+/// <para>Clears everything from the Data sheet, writes the new extract and reports how many cells were cleared.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Clear, "OfficeExcelRange", DefaultParameterSetName = "Range")]
+public sealed class ClearOfficeExcelRangeCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter(ParameterSetName = "Range", Position = 0)]
+    public string? Range { get; set; }
 
-    /// <summary>Worksheet name to update. Defaults to the current DSL sheet or the first workbook sheet.</summary>
-    [Parameter]
-    public string? Sheet { get; set; }
+    /// <summary>Cell data and metadata categories to clear. Omission clears all supported categories.</summary>
+    [Parameter()]
+    public ExcelClearOptions[]? Include { get; set; }
 
-    /// <summary>Worksheet index (0-based) to update. Defaults to the current DSL sheet or the first workbook sheet.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
+    public SwitchParameter PassThru { get; set; }
 
-    /// <summary>A1 range to clear.</summary>
-    [Parameter(Mandatory = true)]
-    public string Range { get; set; } = string.Empty;
+    /// <summary>Header text identifying the target column.</summary>
+    [Parameter(ParameterSetName = "Header", Mandatory = true)]
+    public string Header { get; set; } = null!;
 
-    /// <summary>Clear values and formulas.</summary>
-    [Parameter]
-    public SwitchParameter Contents { get; set; }
+    /// <summary>Native Excel table used to resolve the source range or header.</summary>
+    [Parameter(ParameterSetName = "Header")]
+    public string? Table { get; set; }
 
-    /// <summary>Clear literal cell values.</summary>
-    [Parameter]
-    public SwitchParameter Values { get; set; }
+    /// <summary>One-based row containing the column headers.</summary>
+    [Parameter(ParameterSetName = "Header")]
+    public int? HeaderRow { get; set; }
 
-    /// <summary>Clear formulas.</summary>
-    [Parameter]
-    public SwitchParameter Formulas { get; set; }
-
-    /// <summary>Clear cell style indexes.</summary>
-    [Parameter]
-    [Alias("Formats")]
-    public SwitchParameter Styles { get; set; }
-
-    /// <summary>Clear comments in the selected range.</summary>
-    [Parameter]
-    public SwitchParameter Comments { get; set; }
-
-    /// <summary>Clear hyperlinks that overlap the selected range.</summary>
-    [Parameter]
-    public SwitchParameter Hyperlinks { get; set; }
-
-    /// <summary>Clear data validation rules that overlap the selected range.</summary>
-    [Parameter]
-    [Alias("Validation", "Validations")]
-    public SwitchParameter DataValidations { get; set; }
-
-    /// <summary>Clear conditional formatting rules that overlap the selected range.</summary>
-    [Parameter]
-    [Alias("ConditionalFormats")]
-    public SwitchParameter ConditionalFormatting { get; set; }
-
-    /// <summary>Clear merged-cell definitions that overlap the selected range.</summary>
-    [Parameter]
-    public SwitchParameter Merges { get; set; }
-
-    /// <summary>Clear sparklines whose target cells overlap the selected range.</summary>
-    [Parameter]
-    public SwitchParameter Sparklines { get; set; }
-
-    /// <summary>Clear all supported cell data and range metadata.</summary>
-    [Parameter]
-    public SwitchParameter All { get; set; }
+    /// <summary>Includes the header cell in the resolved column range.</summary>
+    [Parameter(ParameterSetName = "Header")]
+    public SwitchParameter IncludeHeader { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var options = ResolveOptions();
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        var sheet = ExcelWorkbookCommandService.ResolveSheet(this, workbook.Document, ParameterSetName, Sheet, SheetIndex);
-        var target = $"{sheet.Name}!{Range}";
-
-        if (ShouldProcess(target, $"Clear Excel range ({options})")) {
-            sheet.Range(Range).Clear(options);
-            workbook.SaveIfOwned();
-            WritePassThru(workbook.Document, workbook.OwnsDocument, Path);
+        var document = ExcelCommandTargets.Document(Document);
+        ExcelClearOptions options = Include == null ? ExcelClearOptions.All : Include.Aggregate(ExcelClearOptions.None, (left, right) => left | right);
+        int count = 0;
+        foreach (var sheet in ExcelSheetResolver.ResolveMany(document, Sheet, Document == null ? ExcelDslContext.Current?.CurrentSheet : null)) {
+            string target = ExcelTargetRangeResolver.ResolveOptional(sheet, Range, Header, Table, HeaderRow ?? 0, IncludeHeader) ?? sheet.UsedRange.Address;
+            var (first, left, last, right) = ExcelA1.ParseRange(target.Contains(":") ? target : target + ":" + target);
+            count += checked((last - first + 1) * (right - left + 1));
+            sheet.Range(target).Clear(options);
         }
+        if (PassThru) WriteObject(count);
     }
 
-    private ExcelClearOptions ResolveOptions() {
-        if (All.IsPresent || !AnyOptionSwitchPresent()) {
-            return ExcelClearOptions.All;
-        }
-
-        var options = ExcelClearOptions.None;
-        if (Contents.IsPresent) {
-            options |= ExcelClearOptions.Values | ExcelClearOptions.Formulas;
-        }
-
-        if (Values.IsPresent) options |= ExcelClearOptions.Values;
-        if (Formulas.IsPresent) options |= ExcelClearOptions.Formulas;
-        if (Styles.IsPresent) options |= ExcelClearOptions.Styles;
-        if (Comments.IsPresent) options |= ExcelClearOptions.Comments;
-        if (Hyperlinks.IsPresent) options |= ExcelClearOptions.Hyperlinks;
-        if (DataValidations.IsPresent) options |= ExcelClearOptions.DataValidations;
-        if (ConditionalFormatting.IsPresent) options |= ExcelClearOptions.ConditionalFormatting;
-        if (Merges.IsPresent) options |= ExcelClearOptions.Merges;
-        if (Sparklines.IsPresent) options |= ExcelClearOptions.Sparklines;
-        return options;
-    }
-
-    private bool AnyOptionSwitchPresent() {
-        return Contents.IsPresent
-            || Values.IsPresent
-            || Formulas.IsPresent
-            || Styles.IsPresent
-            || Comments.IsPresent
-            || Hyperlinks.IsPresent
-            || DataValidations.IsPresent
-            || ConditionalFormatting.IsPresent
-            || Merges.IsPresent
-            || Sparklines.IsPresent;
-    }
 }

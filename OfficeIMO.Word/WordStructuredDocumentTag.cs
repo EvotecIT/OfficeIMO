@@ -87,22 +87,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the inner text of the content control.
         /// </summary>
         public string? Text {
-            get {
-                if (_stdRun != null) {
-                    var run = _stdRun.SdtContentRun?.ChildElements.OfType<Run>().FirstOrDefault();
-                    var text = run?.OfType<Text>().FirstOrDefault();
-                    return text?.Text;
-                }
-
-                if (_sdtBlock != null) {
-                    var paragraph = _sdtBlock.SdtContentBlock?.ChildElements.OfType<Paragraph>().FirstOrDefault();
-                    var run = paragraph?.ChildElements.OfType<Run>().FirstOrDefault();
-                    var text = run?.OfType<Text>().FirstOrDefault();
-                    return text?.Text;
-                }
-
-                return null;
-            }
+            get => ReadText(SdtElement);
             set {
                 if (_stdRun != null) {
                     var run = _stdRun.SdtContentRun?.ChildElements.OfType<Run>().FirstOrDefault();
@@ -142,6 +127,16 @@ namespace OfficeIMO.Word {
                     text.Text = value ?? string.Empty;
                 }
             }
+        }
+
+        /// <summary>Uses the established generic SDT text projection for native specialized wrappers as well.</summary>
+        internal static string? ReadText(SdtElement? element) {
+            Run? run = element switch {
+                SdtRun inline => inline.SdtContentRun?.ChildElements.OfType<Run>().FirstOrDefault(),
+                SdtBlock block => block.SdtContentBlock?.ChildElements.OfType<Paragraph>().FirstOrDefault()?.ChildElements.OfType<Run>().FirstOrDefault(),
+                _ => null
+            };
+            return run?.OfType<Text>().FirstOrDefault()?.Text;
         }
 
         /// <summary>
@@ -255,12 +250,10 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="Color"/>.
         /// </summary>
         public OfficeColor? Color {
-            get {
-                string value = ColorValue;
-                return value.Length > 0 && OfficeColor.TryParseHex(value, out OfficeColor color) ? color : null;
-            }
+            get => WordRunColor.Read(GetRunProperties()?.Color);
             set {
-                ColorValue = value?.ToRgbHex() ?? string.Empty;
+                if (value.HasValue) VerifyRunProperties().Color = WordRunColor.Create(value.Value, _document);
+                else ColorValue = string.Empty;
             }
         }
 

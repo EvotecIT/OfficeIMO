@@ -13,7 +13,8 @@ namespace PSWriteOffice.Services;
 
 /// <summary>Binds shell option bags to the existing native merge options for one selected family.</summary>
 internal static class OfficeMergeOptionBinding {
-    internal static object Capture(EngineIntrinsics engine, OfficeMergeFamily family, object[]? values) {
+    internal static object Capture(EngineIntrinsics engine, OfficeMergeFamily family, object[]? values, out PdfLoadOptions? readOptions) {
+        readOptions = null;
         Type type = family switch {
             OfficeMergeFamily.Word => typeof(WordDocumentMergeOptions),
             OfficeMergeFamily.Excel => typeof(ExcelWorkbookMergeOptions),
@@ -25,6 +26,11 @@ internal static class OfficeMergeOptionBinding {
         foreach (object item in values ?? Array.Empty<object>()) {
             object? value = Unwrap(item);
             if (value is IDictionary) continue;
+            if (family == OfficeMergeFamily.Pdf && (value is PdfLoadOptions || value is Models.Pdf.PdfReadOptions)) {
+                if (readOptions != null) throw new PSArgumentException("Provide at most one PDF read options object.");
+                readOptions = value is PdfLoadOptions policy ? policy.Clone() : ((Models.Pdf.PdfReadOptions)value).Snapshot().LoadOptions;
+                continue;
+            }
             if (family == OfficeMergeFamily.Excel && value is ExcelMergeOptions selection) {
                 if (typed) throw new PSArgumentException("Provide at most one typed merge options object.");
                 typed = true;

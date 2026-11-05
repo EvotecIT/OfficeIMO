@@ -150,8 +150,8 @@ namespace OfficeIMO.Tests {
                         1,
                         new[] {
                             new ExcelRichTextRun("Comment font bytes") {
-                                FontName = "Arial",
-                                FontFamily = 2,
+                                FontFamily = "Arial",
+                                FontFamilyClassification = 2,
                                 FontCharacterSet = 238
                             }
                         },
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
                 ExcelCommentInfo projectedComment = Assert.Single(result.Document.Sheets[0].GetComments());
                 ExcelRichTextRun projectedRun = Assert.Single(projectedComment.RichTextRuns);
-                Assert.Equal((byte)2, projectedRun.FontFamily);
+                Assert.Equal((byte)2, projectedRun.FontFamilyClassification);
                 Assert.Equal((byte)238, projectedRun.FontCharacterSet);
             } finally {
                 TryDelete(openXmlPath);
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                         1,
                         new[] {
                             new ExcelRichTextRun("Raised comment") {
-                                FontName = "Arial",
+                                FontFamily = "Arial",
                                 VerticalTextAlignment = ExcelVerticalTextAlignment.Subscript
                             }
                         },
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
                         1,
                         new[] {
                             new ExcelRichTextRun("Comment flags") {
-                                FontName = "Arial",
+                                FontFamily = "Arial",
                                 Outline = true,
                                 Shadow = true,
                                 Condense = true,
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
                         1,
                         new[] {
                             new ExcelRichTextRun("Double accounting") {
-                                FontName = "Arial",
+                                FontFamily = "Arial",
                                 UnderlineStyle = ExcelUnderlineStyle.DoubleAccounting
                             }
                         },
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests {
                     1,
                     new[] {
                         new ExcelRichTextRun("Comment metadata") {
-                            FontName = "Arial"
+                            FontFamily = "Arial"
                         }
                     },
                     "Reviewer");

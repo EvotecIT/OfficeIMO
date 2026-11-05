@@ -5,22 +5,22 @@ namespace OfficeIMO.Publisher.Tests;
 public sealed class PublisherMasterContentTests {
     [Fact]
     public void Master_content_is_owned_once_and_edits_reproject_assigned_pages_without_changing_old_scenes() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Brand");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         document.AddPage(master.Id);
         PublisherPage last = document.AddPage(master.Id);
         var paint = OfficeShape.Rectangle(240, 96);
         paint.FillColor = OfficeColor.Red; paint.StrokeColor = null;
-        PublisherShape background = document.AddShape(master.Id, paint, 36, 72);
+        PublisherShape background = document.AddShape(master.Id, paint, OfficeLength.Points(36), OfficeLength.Points(72));
         byte[] original = PublisherPictureEditingFixture.Image(OfficeColor.Blue);
         byte[] replacement = PublisherPictureEditingFixture.Image(OfficeColor.White);
-        PublisherPicture logo = document.AddImage(master.Id, original, 72, 72, 96, 96);
-        PublisherTextFrame title = document.AddTextFrame(master.Id, 36, 72, 288, 108, Paragraph("Master content"));
-        PublisherPicture local = document.AddImage(last.Id, logo.ImageId!.Value, 180, 72, 96, 96);
+        PublisherPicture logo = document.AddImage(master.Id, original, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(96), OfficeLength.Points(96));
+        PublisherTextFrame title = document.AddTextFrame(master.Id, OfficeLength.Points(36), OfficeLength.Points(72), OfficeLength.Points(288), OfficeLength.Points(108), Paragraph("Master content"));
+        PublisherPicture local = document.AddImage(last.Id, logo.ImageId!.Value, OfficeLength.Points(180), OfficeLength.Points(72), OfficeLength.Points(96), OfficeLength.Points(96));
         var oldPages = document.Pages; var oldMaster = document.MasterPages.Single();
         document.ReplaceStoryParagraphs(title.StoryId, Paragraph("Updated master"));
-        document.SetShapeBounds(background.Id, 36, 60, 240, 96);
+        document.SetShapeBounds(background.Id, OfficeLength.Points(36), OfficeLength.Points(60), OfficeLength.Points(240), OfficeLength.Points(96));
         document.ReplacePictureImage(logo.Id, replacement);
         Assert.Equal(3, Owned(document.MasterPages.Single()).Length);
         Assert.Equal(new[] { 0, 0, 1 }, document.Pages.Select(page => Owned(page).Length));

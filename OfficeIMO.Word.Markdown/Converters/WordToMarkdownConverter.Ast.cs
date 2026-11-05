@@ -1482,7 +1482,7 @@ namespace OfficeIMO.Word.Markdown {
             string? implicitCodeFont) {
             return run.Bold
                 || run.Italic
-                || run.Strike
+                || run.Strikethrough
                 || run.VerticalTextAlignment == WordVerticalTextPosition.Superscript
                 || run.VerticalTextAlignment == WordVerticalTextPosition.Subscript
                 || (options.EnableUnderline && run.Underline.HasValue && run.Underline.Value != WordUnderlineStyle.None)
@@ -1511,7 +1511,7 @@ namespace OfficeIMO.Word.Markdown {
                 node = WrapInline("u", node);
             }
 
-            if (run.Strike) {
+            if (run.Strikethrough) {
                 node = new StrikethroughSequenceInline(WrapInlineSequence(node));
             }
 

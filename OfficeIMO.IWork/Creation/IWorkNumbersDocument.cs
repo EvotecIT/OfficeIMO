@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Creates template-free native Numbers spreadsheets with positioned scalar tables.</summary>
 /// <remarks>Instances are not thread safe. This creation model does not edit loaded packages or author formulas.</remarks>
-public sealed class IWorkNumbersDocument {
+public sealed partial class IWorkNumbersDocument {
     private readonly List<IWorkNumbersSheetBuilder> _sheets = new();
 
     private IWorkNumbersDocument() => Sheets = _sheets.AsReadOnly();
@@ -26,25 +26,26 @@ public sealed class IWorkNumbersDocument {
     }
 
     /// <summary>Encodes a deterministic native Numbers package without a template or native application.</summary>
-    public byte[] SaveBytes(IWorkNumbersWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        IWorkNumbersPackageWriter.Write(this, (options ?? new IWorkNumbersWriteOptions()).Snapshot(), cancellationToken);
+    public byte[] ToBytes(IWorkNumbersSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        IWorkNumbersPackageWriter.Write(this, (options ?? new IWorkNumbersSaveOptions()).Snapshot(), cancellationToken);
 
     /// <summary>Writes a completed package at the stream's current position and leaves the stream open.</summary>
     /// <remarks>Encoding finishes before copying. A copy failure can leave partial stream data.</remarks>
-    public void Save(Stream destination, IWorkNumbersWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public void Save(Stream destination, IWorkNumbersSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
-        IWorkNativePackageWriter.Copy(SaveBytes(options, cancellationToken), destination, cancellationToken);
+        IWorkNativePackageWriter.Copy(ToBytes(options, cancellationToken), destination, cancellationToken);
     }
 
     /// <summary>Atomically saves a native package, rejecting an existing file unless overwrite is enabled.</summary>
     /// <remarks>Validation and encoding finish before staging; failed staging preserves the existing destination.</remarks>
-    public void Save(string path, bool overwrite = false, IWorkNumbersWriteOptions? options = null,
+    public void Save(string path, bool overwrite = false, IWorkNumbersSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
-        byte[] bytes = SaveBytes(options, cancellationToken);
+        byte[] bytes = ToBytes(options, cancellationToken);
         OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken),
             cancellationToken, overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
+        FilePath = Path.GetFullPath(path);
     }
 }

@@ -209,7 +209,7 @@ public sealed class OfficeBatchOptionsTests {
     public void CopiedCommandsKeepPowerShellApostrophesInsideTheLiteral(int apostropheCode) {
         char apostrophe = (char)apostropheCode; string path = "O" + apostrophe + "Brien $report; & value.json";
         string literal = "'O" + apostrophe + apostrophe + "Brien $report; & value.json'";
-        Assert.Equal("Invoke-OfficeConversionJob -Path " + literal, OfficeBatchCommands.GetPowerShellCommand(path));
+        Assert.Equal("Convert-OfficeDocument -JobPath " + literal, OfficeBatchCommands.GetPowerShellCommand(path));
         string cliLiteral = OperatingSystem.IsWindows() ? literal : apostrophe == '\'' ? "'O'\\''Brien $report; & value.json'" : "'" + path + "'";
         Assert.Equal("officeimo workflow job run " + cliLiteral, OfficeBatchCommands.GetCliCommand(path));
     }

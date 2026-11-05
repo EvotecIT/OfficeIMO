@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             using WordDocument document = WordDocument.Create(filePath);
             List<string> categories = new() { "Food", "Housing", "Mix", "Data" };
             var line3d = document.AddChart("Line3D chart");
-            line3d.AddChartAxisX(categories);
+            line3d.AddCategories(categories);
             line3d.AddLine3D("USA", new List<int> { 5, 2, 3, 4 }, Color.Purple);
             document.Save();
 

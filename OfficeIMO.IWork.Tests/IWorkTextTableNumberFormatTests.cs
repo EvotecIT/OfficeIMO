@@ -45,7 +45,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(NumericFormat(258, 2))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(0.125d))))))));
-        IWorkTableCell source = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        IWorkTableCell source = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Formula, source.Kind);
         Assert.Equal("=0.125", source.Formula);
         Assert.Equal("0.125", source.CachedDisplayText);
@@ -63,7 +63,7 @@ public sealed partial class IWorkBoundaryTests {
 
     private static void AssertSavedTextTableNumber(MemoryStream package, IWorkDocumentKind kind,
         double value, string expectedText, string expectedColor, bool omitted = false) {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         using var saved = new MemoryStream();
         IWorkTableCell cell;
         IWorkConversionReport report;

@@ -34,6 +34,9 @@ internal static partial class PdfStamper {
         };
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string fontResourceName = GetAvailableFontResourceName(objects, pageObjectNumbers);
+        string? graphicsStateResourceName = PrepareStampOpacity(objects, pageObjectNumbers,
+            effectiveOptions.Opacity * effectiveOptions.Color.Resolve(OfficeTheme.Default).A / 255D,
+            ref nextObjectNumber, out int graphicsStateObjectNumber);
 
         for (int i = 0; i < document.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -52,10 +55,11 @@ internal static partial class PdfStamper {
                 effectiveOptions,
                 watermarkDefaults: false,
                 stampFont.GlyphHex,
-                stampFont.TextWidth);
+                stampFont.TextWidth,
+                graphicsStateResourceName);
 
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(stampPseudoId, stampStream));
-            overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
+            overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent, graphicsStateResourceName, graphicsStateObjectNumber);
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
@@ -164,6 +168,9 @@ internal static partial class PdfStamper {
         };
         var overrides = new Dictionary<int, Dictionary<string, PdfObject>>();
         string fontResourceName = GetAvailableFontResourceName(objects, pageObjectNumbers);
+        string? graphicsStateResourceName = PrepareStampOpacity(objects, pageObjectNumbers,
+            effectiveOptions.Opacity * effectiveOptions.Color.Resolve(OfficeTheme.Default).A / 255D,
+            ref nextObjectNumber, out int graphicsStateObjectNumber);
 
         for (int i = 0; i < document.Pages.Count; i++) {
             cancellationToken.ThrowIfCancellationRequested();
@@ -182,10 +189,11 @@ internal static partial class PdfStamper {
                 effectiveOptions,
                 watermarkDefaults: true,
                 stampFont.GlyphHex,
-                stampFont.TextWidth);
+                stampFont.TextWidth,
+                graphicsStateResourceName);
 
             additionalObjects.Add(new PdfPageExtractor.AdditionalObject(stampPseudoId, stampStream));
-            overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
+            overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent, graphicsStateResourceName, graphicsStateObjectNumber);
         }
 
         PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);

@@ -8,7 +8,7 @@ internal static class CandidateMasterPages {
     internal static PublisherNativeCreationPlan Create(bool paired) => PublisherNativeCreationProjection.MultipleMasters(Author(paired));
 
     internal static PublisherDocument Author(bool paired) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage centered = document.AddMasterPage("Master Page A");
         PublisherPage[] masters;
         int[] assignments;
@@ -33,7 +33,7 @@ internal static class CandidateMasterPages {
         return document;
 
         void Text(uint owner, string text, double x, double y, double width, double height, double size) {
-            document.AddTextFrame(owner, x, y, width, height, new[] {
+            document.AddTextFrame(owner, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height), new[] {
                 new OfficeRichTextParagraph(new[] { new OfficeRichTextRun(text, size, OfficeColor.Black, fontFamily: "Arial") })
             });
         }

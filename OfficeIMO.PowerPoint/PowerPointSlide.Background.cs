@@ -12,14 +12,14 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointSlide {
         /// <summary>
-        ///     Gets or sets the slide background color in hex format (e.g. "FF0000").
+        ///     Gets or sets the local solid background color, retaining native theme slots and opacity.
         /// </summary>
-        public string? BackgroundColor {
+        public OfficeColor? BackgroundColor {
             get {
                 CommonSlideData? common = SlideRoot.CommonSlideData;
                 Background? bg = common?.Background;
                 A.SolidFill? solid = bg?.BackgroundProperties?.GetFirstChild<A.SolidFill>();
-                return solid?.RgbColorModelHex?.Val;
+                return PowerPointDrawingColor.Read(solid);
             }
             set {
                 CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
@@ -36,10 +36,11 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
 
+                ClearBackgroundImage();
                 Background bg = common.Background ?? new Background();
                 BackgroundProperties props = bg.BackgroundProperties ?? new BackgroundProperties();
                 RemoveBackgroundFillChildren(props);
-                props.Append(new A.SolidFill(new A.RgbColorModelHex { Val = value }));
+                props.Append(PowerPointDrawingColor.Fill(value, AuthoringTheme));
                 bg.BackgroundProperties = props;
                 common.Background = bg;
             }
@@ -132,19 +133,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Sets a linear gradient background for the slide using two 6-digit hex colors.
+        ///     Sets a linear gradient background, retaining theme roles and color opacity.
         /// </summary>
-        public void SetBackgroundGradient(string startColor, string endColor, double angleDegrees = 135d) {
-            if (string.IsNullOrWhiteSpace(startColor)) {
-                throw new ArgumentException("Gradient start color cannot be null or empty.", nameof(startColor));
-            }
-
-            if (string.IsNullOrWhiteSpace(endColor)) {
-                throw new ArgumentException("Gradient end color cannot be null or empty.", nameof(endColor));
-            }
-
-            string normalizedStart = NormalizeHexColor(startColor);
-            string normalizedEnd = NormalizeHexColor(endColor);
+        public void SetBackgroundGradient(OfficeColor startColor, OfficeColor endColor, double angleDegrees = 135d) {
+            int angle = ToOpenXmlAngle(angleDegrees);
+            ClearBackgroundImage();
 
             CommonSlideData common = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
             Background background = common.Background ?? new Background();
@@ -155,16 +148,16 @@ namespace OfficeIMO.PowerPoint {
             A.GradientFill gradient = new() { RotateWithShape = true };
             A.GradientStopList stops = new();
             stops.Append(
-                new A.GradientStop(new A.RgbColorModelHex { Val = normalizedStart }) {
+                new A.GradientStop(PowerPointDrawingColor.Create(startColor, AuthoringTheme)) {
                     Position = 0
                 });
             stops.Append(
-                new A.GradientStop(new A.RgbColorModelHex { Val = normalizedEnd }) {
+                new A.GradientStop(PowerPointDrawingColor.Create(endColor, AuthoringTheme)) {
                     Position = 100000
                 });
             gradient.Append(stops);
             gradient.Append(new A.LinearGradientFill {
-                Angle = ToOpenXmlAngle(angleDegrees),
+                Angle = angle,
                 Scaled = false
             });
 
@@ -199,19 +192,6 @@ namespace OfficeIMO.PowerPoint {
             properties.RemoveAllChildren<A.NoFill>();
             properties.RemoveAllChildren<A.PatternFill>();
             properties.RemoveAllChildren<A.SolidFill>();
-        }
-
-        private static string NormalizeHexColor(string value) {
-            string normalized = value.Trim();
-            if (normalized.StartsWith("#", StringComparison.Ordinal)) {
-                normalized = normalized.Substring(1);
-            }
-
-            if (normalized.Length != 6 || normalized.Any(c => !Uri.IsHexDigit(c))) {
-                throw new ArgumentException("Color must be a 6-digit hex value.", nameof(value));
-            }
-
-            return normalized.ToUpperInvariant();
         }
 
         private static int ToOpenXmlAngle(double degrees) {

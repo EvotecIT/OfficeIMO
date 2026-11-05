@@ -11,7 +11,7 @@ Moves a worksheet to a one-based workbook position.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Move-OfficeExcelSheet -Position <int> [-Sheet <OfficeSheetSelector>] [-PassThru] [-Document <ExcelDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Move-OfficeExcelSheet [-Position] <int> [-Sheet <OfficeSheetSelector>] [-PassThru] [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -25,6 +25,26 @@ $book | Move-OfficeExcelSheet -Sheet Summary -Position 1
             Save-OfficeExcel -Document $book
 ```
 
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    Move-OfficeExcelSheet -Sheet Summary -Position 1
+}
+```
+
+Moves the Summary sheet to the first tab position.
+
+### EXAMPLE 3
+```powershell
+$book = Open-OfficeExcel -Path .\Reports\Tickets-2026.xlsx
+foreach ($month in 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October') {
+    Move-OfficeExcelSheet -Document $book -Sheet $month -Position 1
+}
+Save-OfficeExcel -Document $book -PassThru | Close-OfficeExcel
+```
+
+Moves the sheet for each month to the front in turn, so the most recent month ends up first.
 
 ## PARAMETERS
 
@@ -70,7 +90,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

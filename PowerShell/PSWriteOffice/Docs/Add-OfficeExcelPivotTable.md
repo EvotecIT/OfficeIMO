@@ -9,14 +9,19 @@ schema: 2.0.0
 Adds a pivot table to a worksheet.
 
 ## SYNTAX
-### Context (Default)
+### Range (Default)
 ```powershell
-Add-OfficeExcelPivotTable -SourceRange <string> -DestinationCell <string> [-Name <string>] [-RowField <string[]>] [-ColumnField <string[]>] [-PageField <string[]>] [-DataField <string[]>] [-DataFunction <ExcelPivotDataFunction[]>] [-DataDisplayName <string[]>] [-DataNumberFormat <string[]>] [-NoRowGrandTotals] [-NoColumnGrandTotals] [-PivotStyle <string>] [-Layout <ExcelPivotLayout>] [-DataOnRows] [-DataOnColumns] [-ShowHeaders] [-HideHeaders] [-ShowEmptyRows] [-HideEmptyRows] [-ShowEmptyColumns] [-HideEmptyColumns] [-ShowDrill] [-HideDrill] [-RowHeaderCaption <string>] [-ColumnHeaderCaption <string>] [-GrandTotalCaption <string>] [-MissingCaption <string>] [-ErrorCaption <string>] [-ShowDataDropDown] [-HideDataDropDown] [-ShowDropZones] [-HideDropZones] [-ShowDataTips] [-HideDataTips] [-ShowMemberPropertyTips] [-HideMemberPropertyTips] [-FieldListSortAscending] [-FieldListSortDescending] [-CustomListSort] [-NoCustomListSort] [-FieldSort <hashtable>] [-FieldHiddenItems <hashtable>] [-FieldVisibleItems <hashtable>] [-PageFieldSelection <hashtable>] [-FieldNoDefaultSubtotal <string[]>] [-FieldSubtotalTop <string[]>] [-FieldInsertBlankRow <string[]>] [-FieldInsertPageBreak <string[]>] [-FieldCompact <string[]>] [-FieldOutline <string[]>] [-FieldHideDropDowns <string[]>] [-RefreshOnOpen] [-NoRefreshOnOpen] [-SaveSourceData] [-NoSaveSourceData] [-PreserveFormatting] [-NoPreserveFormatting] [-EnableDrill] [-DisableDrill] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelPivotTable -Range <string> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-SourceSheet <OfficeSheetSelector>] [-Name <string>] [-RowField <string[]>] [-ColumnField <string[]>] [-PageField <string[]>] [-DataField <string[]>] [-DataFunction <ExcelPivotDataFunction[]>] [-DataDisplayName <string[]>] [-DataNumberFormat <string[]>] [-NoRowGrandTotals] [-NoColumnGrandTotals] [-Style <string>] [-Layout <ExcelPivotLayout>] [-DataOnRows] [-ShowHeaders] [-ShowEmptyRows] [-ShowEmptyColumns] [-ShowDrill] [-EnableDrill] [-RowHeaderCaption <string>] [-ColumnHeaderCaption <string>] [-GrandTotalCaption <string>] [-MissingCaption <string>] [-ErrorCaption <string>] [-ShowDataDropDown] [-ShowDropZones] [-ShowDataTips] [-ShowMemberPropertyTips] [-FieldListSort <ListSortDirection>] [-CustomListSort] [-FieldSort <hashtable>] [-FieldHiddenItems <hashtable>] [-FieldVisibleItems <hashtable>] [-PageFieldSelection <hashtable>] [-FieldNoDefaultSubtotal <string[]>] [-FieldSubtotalTop <string[]>] [-FieldInsertBlankRow <string[]>] [-FieldInsertPageBreak <string[]>] [-FieldCompact <string[]>] [-FieldOutline <string[]>] [-FieldHideDropDowns <string[]>] [-RefreshOnOpen] [-SaveSourceData] [-PreserveFormatting] [-PassThru] [<CommonParameters>]
 ```
 
-### Document
+### SourceSheet
 ```powershell
-Add-OfficeExcelPivotTable -Document <ExcelDocument> -SourceRange <string> -DestinationCell <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Name <string>] [-RowField <string[]>] [-ColumnField <string[]>] [-PageField <string[]>] [-DataField <string[]>] [-DataFunction <ExcelPivotDataFunction[]>] [-DataDisplayName <string[]>] [-DataNumberFormat <string[]>] [-NoRowGrandTotals] [-NoColumnGrandTotals] [-PivotStyle <string>] [-Layout <ExcelPivotLayout>] [-DataOnRows] [-DataOnColumns] [-ShowHeaders] [-HideHeaders] [-ShowEmptyRows] [-HideEmptyRows] [-ShowEmptyColumns] [-HideEmptyColumns] [-ShowDrill] [-HideDrill] [-RowHeaderCaption <string>] [-ColumnHeaderCaption <string>] [-GrandTotalCaption <string>] [-MissingCaption <string>] [-ErrorCaption <string>] [-ShowDataDropDown] [-HideDataDropDown] [-ShowDropZones] [-HideDropZones] [-ShowDataTips] [-HideDataTips] [-ShowMemberPropertyTips] [-HideMemberPropertyTips] [-FieldListSortAscending] [-FieldListSortDescending] [-CustomListSort] [-NoCustomListSort] [-FieldSort <hashtable>] [-FieldHiddenItems <hashtable>] [-FieldVisibleItems <hashtable>] [-PageFieldSelection <hashtable>] [-FieldNoDefaultSubtotal <string[]>] [-FieldSubtotalTop <string[]>] [-FieldInsertBlankRow <string[]>] [-FieldInsertPageBreak <string[]>] [-FieldCompact <string[]>] [-FieldOutline <string[]>] [-FieldHideDropDowns <string[]>] [-RefreshOnOpen] [-NoRefreshOnOpen] [-SaveSourceData] [-NoSaveSourceData] [-PreserveFormatting] [-NoPreserveFormatting] [-EnableDrill] [-DisableDrill] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelPivotTable -SourceSheet <OfficeSheetSelector> -Address <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Name <string>] [-RowField <string[]>] [-ColumnField <string[]>] [-PageField <string[]>] [-DataField <string[]>] [-DataFunction <ExcelPivotDataFunction[]>] [-DataDisplayName <string[]>] [-DataNumberFormat <string[]>] [-NoRowGrandTotals] [-NoColumnGrandTotals] [-Style <string>] [-Layout <ExcelPivotLayout>] [-DataOnRows] [-ShowHeaders] [-ShowEmptyRows] [-ShowEmptyColumns] [-ShowDrill] [-EnableDrill] [-RowHeaderCaption <string>] [-ColumnHeaderCaption <string>] [-GrandTotalCaption <string>] [-MissingCaption <string>] [-ErrorCaption <string>] [-ShowDataDropDown] [-ShowDropZones] [-ShowDataTips] [-ShowMemberPropertyTips] [-FieldListSort <ListSortDirection>] [-CustomListSort] [-FieldSort <hashtable>] [-FieldHiddenItems <hashtable>] [-FieldVisibleItems <hashtable>] [-PageFieldSelection <hashtable>] [-FieldNoDefaultSubtotal <string[]>] [-FieldSubtotalTop <string[]>] [-FieldInsertBlankRow <string[]>] [-FieldInsertPageBreak <string[]>] [-FieldCompact <string[]>] [-FieldOutline <string[]>] [-FieldHideDropDowns <string[]>] [-RefreshOnOpen] [-SaveSourceData] [-PreserveFormatting] [-PassThru] [<CommonParameters>]
+```
+
+### Table
+```powershell
+Add-OfficeExcelPivotTable -Address <string> -Table <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Name <string>] [-RowField <string[]>] [-ColumnField <string[]>] [-PageField <string[]>] [-DataField <string[]>] [-DataFunction <ExcelPivotDataFunction[]>] [-DataDisplayName <string[]>] [-DataNumberFormat <string[]>] [-NoRowGrandTotals] [-NoColumnGrandTotals] [-Style <string>] [-Layout <ExcelPivotLayout>] [-DataOnRows] [-ShowHeaders] [-ShowEmptyRows] [-ShowEmptyColumns] [-ShowDrill] [-EnableDrill] [-RowHeaderCaption <string>] [-ColumnHeaderCaption <string>] [-GrandTotalCaption <string>] [-MissingCaption <string>] [-ErrorCaption <string>] [-ShowDataDropDown] [-ShowDropZones] [-ShowDataTips] [-ShowMemberPropertyTips] [-FieldListSort <ListSortDirection>] [-CustomListSort] [-FieldSort <hashtable>] [-FieldHiddenItems <hashtable>] [-FieldVisibleItems <hashtable>] [-PageFieldSelection <hashtable>] [-FieldNoDefaultSubtotal <string[]>] [-FieldSubtotalTop <string[]>] [-FieldInsertBlankRow <string[]>] [-FieldInsertPageBreak <string[]>] [-FieldCompact <string[]>] [-FieldOutline <string[]>] [-FieldHideDropDowns <string[]>] [-RefreshOnOpen] [-SaveSourceData] [-PreserveFormatting] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,29 +31,63 @@ Adds a pivot table to a worksheet.
 
 ### EXAMPLE 1
 ```powershell
-PS> $rows = @(
-    [pscustomobject]@{ Region = 'North America'; Product = 'Standard'; Sales = 125000 }
-    [pscustomobject]@{ Region = 'EMEA'; Product = 'Standard'; Sales = 98000 }
-    [pscustomobject]@{ Region = 'APAC'; Product = 'Premium'; Sales = 143000 }
-)
-New-OfficeExcel -Path .\SalesPivot.xlsx {
-    Add-OfficeExcelSheet -Name Data {
-        Add-OfficeExcelTable -InputObject $rows -TableName Sales -AutoFit
-        Add-OfficeExcelPivotTable -SourceRange 'A1:C4' -DestinationCell 'E2' -Name 'SalesByRegion' -RowField Region -ColumnField Product -DataField Sales -DataFunction Sum -PivotStyle PivotStyleMedium9
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Orders' {
+        ExcelPivotTable -Range A1:F500 -Address H2 -RowField Region -DataField Amount -DataFunction Sum
     }
 }
 ```
 
-Writes source rows to a worksheet and creates a pivot table using the existing OfficeIMO pivot support.
+Builds a pivot table of revenue by region from the order data in A1:F500.
+
+### EXAMPLE 2
+```powershell
+$orders = Import-OfficeCsv -Path .\Data\Orders-2026.csv
+New-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+    ExcelSheet 'Orders' {
+        ExcelTable $orders -Name Orders
+        ExcelPivotTable -Table Orders -Address J3 -Name SalesPivot -RowField Region -ColumnField Quarter -PageField Product -DataField Amount -DataFunction Sum -DataDisplayName 'Revenue' -DataNumberFormat '#,##0' -Layout Tabular -RefreshOnOpen
+    }
+}
+```
+
+Writes a year of orders and pivots them by region and quarter with a product filter, naming the pivot so a slicer and conditional formats can refer to it.
+
+### EXAMPLE 3
+```powershell
+Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelPivotTable -SourceSheet Orders -Address A3 -RowField Region -ColumnField Product -DataField Amount -DataFunction Sum
+    }
+}
+```
+
+Builds a summary sheet whose pivot reads all the data on the Orders sheet.
 
 ## PARAMETERS
+
+### -Address
+A1 address of the target cell.
+
+```yaml
+Type: String
+Parameter Sets: Range, SourceSheet, Table
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -ColumnField
 Column fields (header names).
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -64,7 +103,7 @@ Optional column header caption.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -80,7 +119,7 @@ Use Excel custom-list sorting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -96,7 +135,7 @@ Display names for data fields.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -112,7 +151,7 @@ Data fields (header names). Defaults to the last column when omitted.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -128,7 +167,7 @@ Aggregation functions (Sum, Count, Average, etc.).
 
 ```yaml
 Type: ExcelPivotDataFunction[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values: Average, Count, CountNumbers, Maximum, Minimum, Product, StandardDeviation, StandardDeviationP, Sum, Variance, VarianceP
 
@@ -144,23 +183,7 @@ Number format codes for data fields.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DataOnColumns
-Show data fields on columns.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -176,39 +199,7 @@ Show data fields on rows.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DestinationCell
-Top-left destination cell for the pivot table (e.g., "F2").
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -DisableDrill
-Disable pivot detail drill interaction in Excel.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -220,15 +211,15 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to operate on outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -240,7 +231,7 @@ Allow users to drill into pivot details in Excel.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -256,7 +247,7 @@ Optional error-value caption.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -272,7 +263,7 @@ Fields using compact field layout.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -288,7 +279,7 @@ Field item captions to hide, for example @{ Region = @('Legacy') }.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -304,7 +295,7 @@ Fields whose filter drop-downs should be hidden.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -320,7 +311,7 @@ Fields that insert blank rows after items.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -336,7 +327,7 @@ Fields that insert page breaks after items.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -347,30 +338,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FieldListSortAscending
-Sort pivot field list ascending.
+### -FieldListSort
+Controls the ordering of the pivot field list.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Type: ListSortDirection
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FieldListSortDescending
-Sort pivot field list descending.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
+Possible values: Ascending, Descending
 
 Required: False
 Position: named
@@ -384,7 +359,7 @@ Fields with default subtotal disabled.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -400,7 +375,7 @@ Fields using outline field layout.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -416,7 +391,7 @@ Field sort map, for example @{ Region = 'Ascending' }.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -432,7 +407,7 @@ Fields with subtotals shown at the top.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -448,7 +423,7 @@ Field item captions to keep visible, hiding other known items.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -464,135 +439,7 @@ Optional grand total caption.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideDataDropDown
-Hide the data drop-down.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideDataTips
-Hide pivot data tips.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideDrill
-Hide drill indicators.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideDropZones
-Hide pivot drop zones.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideEmptyColumns
-Hide empty columns.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideEmptyRows
-Hide empty rows.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideHeaders
-Hide field headers.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -HideMemberPropertyTips
-Hide member property tips.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -608,7 +455,7 @@ Pivot layout (Compact, Outline, Tabular).
 
 ```yaml
 Type: ExcelPivotLayout
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values: Compact, Outline, Tabular
 
@@ -624,7 +471,7 @@ Optional missing-value caption.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -640,7 +487,7 @@ Optional pivot table name.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -656,55 +503,7 @@ Disable column grand totals.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoCustomListSort
-Disable Excel custom-list sorting.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoPreserveFormatting
-Do not preserve pivot formatting when Excel refreshes the pivot table.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoRefreshOnOpen
-Do not refresh the pivot cache when the workbook opens.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -720,23 +519,7 @@ Disable row grand totals.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NoSaveSourceData
-Do not save pivot source cache records in the workbook package.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -752,7 +535,7 @@ Page fields (header names) used as filters.
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -768,7 +551,7 @@ Selected page-field item captions, for example @{ Product = 'Standard' }.
 
 ```yaml
 Type: Hashtable
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -780,27 +563,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the worksheet after creating the pivot table.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PivotStyle
-Optional pivot table style name.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -816,11 +583,27 @@ Preserve pivot formatting when Excel refreshes the pivot table.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Range
+A1 cell range on the selected worksheet.
+
+```yaml
+Type: String
+Parameter Sets: Range
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -832,7 +615,7 @@ Refresh the pivot cache when the workbook opens.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -848,7 +631,7 @@ Row fields (header names).
 
 ```yaml
 Type: String[]
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -864,7 +647,7 @@ Optional row header caption.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -880,7 +663,7 @@ Save pivot source cache records in the workbook package.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -892,27 +675,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name when using Document.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -928,7 +695,7 @@ Show the data drop-down.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -944,7 +711,7 @@ Show pivot data tips.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -960,7 +727,7 @@ Show drill indicators.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -976,7 +743,7 @@ Show pivot drop zones.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -992,7 +759,7 @@ Show empty columns.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -1008,7 +775,7 @@ Show empty rows.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -1024,7 +791,7 @@ Show field headers.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -1040,7 +807,7 @@ Show member property tips.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
 Aliases: None
 Possible values:
 
@@ -1051,12 +818,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SourceRange
-Source data range including header row (e.g., "A1:D200").
+### -SourceSheet
+Gets or sets the source worksheet name, one-based position or native worksheet.
+
+```yaml
+Type: OfficeSheetSelector
+Parameter Sets: Range, SourceSheet
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Style
+Built-in chart style identifier.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Range, SourceSheet, Table
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Table
+Native Excel table used to resolve the source range or header.
+
+```yaml
+Type: String
+Parameter Sets: Table
 Aliases: None
 Possible values:
 

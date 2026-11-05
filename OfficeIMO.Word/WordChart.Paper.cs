@@ -9,9 +9,9 @@ namespace OfficeIMO.Word;
 public partial class WordChart {
     /// <summary>Uses percentage-only pie labels or count-only bar labels, and removes the chart background and frame.</summary>
     /// <param name="percentageLabels">True for percentage-only pie labels; false for numeric count labels.</param>
-    /// <param name="titleColor">RGB hex text color for the chart title.</param>
+    /// <param name="titleColor">Text color for the chart title.</param>
     /// <returns>The chart.</returns>
-    public WordChart SetPaperStyle(bool percentageLabels = false, string titleColor = "202428") {
+    public WordChart SetPaperStyle(bool percentageLabels = false, OfficeColor? titleColor = null) {
         var root = _chartPart?.ChartSpace;
         if (root == null) return this;
         C.ShapeProperties? frame = root.GetFirstChild<C.ShapeProperties>();
@@ -30,7 +30,7 @@ public partial class WordChart {
         frame.AddChild(new A.Outline(new A.NoFill()), true);
         foreach (A.DefaultRunProperties properties in root.Descendants<C.Title>().SelectMany(title => title.Descendants<A.DefaultRunProperties>())) {
             properties.RemoveAllChildren<A.SolidFill>();
-            properties.AddChild(new A.SolidFill(new A.RgbColorModelHex { Val = titleColor.TrimStart('#') }), true);
+            properties.AddChild(CreateChartFill(titleColor ?? OfficeColor.Parse("202428")), true);
         }
         foreach (C.DataLabels labels in root.Descendants<C.DataLabels>()) {
             if (!percentageLabels) {

@@ -1,3 +1,5 @@
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using System;
 using System.Management.Automation;
 using OfficeIMO.Word;
@@ -20,55 +22,55 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <prefix>PS&gt; </prefix>
 ///   <code>New-OfficeWord -Path .\Appendix.docx {
 ///     Add-OfficeWordParagraph -Text 'Appendix A'
-///     Add-OfficeWordShape -Type Rectangle -Width 480 -Height 36 -Left 36 -Top 72 -FillColor '#f0f5ff' -StrokeColor '#adc6ff'
+///     Add-OfficeWordShape -Type Rectangle -Width 480 -Height 36 -X 36 -Y 72 -FillColor '#f0f5ff' -StrokeColor '#adc6ff'
 /// }</code>
 ///   <para>Positions a shape with explicit offsets when the OfficeIMO anchored-shape API is desired.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordShape", DefaultParameterSetName = "Default")]
-[Alias("WordShape")]
 [OutputType(typeof(WordShape))]
+[Alias("WordShape") ]
 public sealed class AddOfficeWordShapeCommand : PSCmdlet
 {
     /// <summary>Shape type to add.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public WordShapeType Type { get; set; } = WordShapeType.Rectangle;
 
     /// <summary>Width in points.</summary>
     [Parameter]
-    [ValidateRange(0.1, double.MaxValue)]
-    public double Width { get; set; } = 120;
+    [OfficeLengthTransformation]
+    public OfficeLength Width { get; set; } = OfficeLength.Points(120);
 
     /// <summary>Height in points.</summary>
     [Parameter]
-    [ValidateRange(0.1, double.MaxValue)]
-    public double Height { get; set; } = 48;
+    [OfficeLengthTransformation]
+    public OfficeLength Height { get; set; } = OfficeLength.Points(48);
 
     /// <summary>Anchored left position in points. When omitted, the shape is inline.</summary>
     [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double? Left { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? X { get; set; }
 
     /// <summary>Anchored top position in points. When omitted, the shape is inline.</summary>
     [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double? Top { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? Y { get; set; }
 
     /// <summary>Fill color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? FillColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? FillColor { get; set; }
 
     /// <summary>Stroke color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? StrokeColor { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? StrokeColor { get; set; }
 
     /// <summary>Stroke width in points.</summary>
     [Parameter]
-    [ValidateRange(0, double.MaxValue)]
-    public double? StrokeWidth { get; set; }
+    [OfficeLengthTransformation]
+    public OfficeLength? StrokeWidth { get; set; }
 
     /// <summary>Optional title metadata.</summary>
     [Parameter]
@@ -82,15 +84,19 @@ public sealed class AddOfficeWordShapeCommand : PSCmdlet
     [Parameter]
     public SwitchParameter PassThru { get; set; }
 
+    /// <summary>Native paragraph; omission uses the active Word block.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public WordParagraph? Paragraph { get; set; }
+
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        var context = WordDslContext.Require(this);
-        var paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph();
+        var paragraph = Paragraph ?? PSWriteOffice.Foundation.OfficeDocumentContext.Find<WordParagraph>();
+        if (paragraph == null) { var context = WordDslContext.Require(this); paragraph = context.CurrentParagraph ?? context.RequireParagraphHost().AddParagraph(); }
 
-        var shape = Left.HasValue || Top.HasValue
-            ? WordShape.AddDrawingShapeAnchored(paragraph, Type, OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height), OfficeIMO.OfficeLength.Points(Left ?? 0), OfficeIMO.OfficeLength.Points(Top ?? 0))
-            : WordShape.AddDrawingShape(paragraph, Type, OfficeIMO.OfficeLength.Points(Width), OfficeIMO.OfficeLength.Points(Height));
+        var shape = X.HasValue || Y.HasValue
+            ? WordShape.AddDrawingShapeAnchored(paragraph, Type, Width, Height, X ?? OfficeLength.Zero, Y ?? OfficeLength.Zero)
+            : WordShape.AddDrawingShape(paragraph, Type, Width, Height);
 
         ApplyShape(shape);
 
@@ -102,19 +108,19 @@ public sealed class AddOfficeWordShapeCommand : PSCmdlet
 
     private void ApplyShape(WordShape shape)
     {
-        if (!string.IsNullOrWhiteSpace(FillColor))
+        if (FillColor.HasValue)
         {
-            shape.FillColor = OfficeIMO.OfficeColor.Parse(FillColor!);
+            shape.FillColor = FillColor.Value;
         }
 
-        if (!string.IsNullOrWhiteSpace(StrokeColor))
+        if (StrokeColor.HasValue)
         {
-            shape.StrokeColor = OfficeIMO.OfficeColor.Parse(StrokeColor!);
+            shape.StrokeColor = StrokeColor.Value;
         }
 
         if (StrokeWidth.HasValue)
         {
-            shape.StrokeWeight = OfficeIMO.OfficeLength.Points(StrokeWidth.Value);
+            shape.StrokeWeight = StrokeWidth.Value;
         }
 
         if (Title != null)

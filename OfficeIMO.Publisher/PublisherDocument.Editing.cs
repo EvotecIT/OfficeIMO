@@ -23,19 +23,17 @@ public sealed partial class PublisherDocument {
         Commit(model.ReplaceStory(storyId, paragraphs, cancellationToken).Project(cancellationToken), cancellationToken);
     }
 
-    /// <summary>Sets a visible, resolved, untransformed top-level text frame's bounds in page-local points and recalculates the publication. Negative page offsets allow clipped bleed; width and height must be positive.</summary>
+    /// <summary>Sets a visible, resolved, untransformed top-level text frame's physical page-local bounds and recalculates the publication. Negative page offsets allow clipped bleed; width and height must be positive.</summary>
     /// <remarks>Grouped, rotated, reflected, unresolved and table frames are unsupported. IDs, story ownership and links are retained. Fetch current frame snapshots after an edit. Failed edits leave the publication unchanged; concurrent mutation is not supported.</remarks>
-    public void SetTextFrameBounds(uint frameId, double x, double y, double width, double height, CancellationToken cancellationToken = default) {
+    public void SetTextFrameBounds(uint frameId, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Finite(x)) throw new ArgumentOutOfRangeException(nameof(x));
-        if (!Finite(y)) throw new ArgumentOutOfRangeException(nameof(y));
-        if (!Finite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (!Finite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width.ToEmus(), nameof(width));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height.ToEmus(), nameof(height));
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable native model.");
         PublisherTextFrame? frame = Pages.Concat(MasterPages).SelectMany(page => page.TextFrames).SingleOrDefault(item => item.Id == frameId);
         if (frame == null || !frame.TextStart.HasValue)
             throw new NotSupportedException("The object is not a text frame with resolved story placement.");
-        Commit(model.SetBounds(frame, x, y, width, height, cancellationToken).Project(cancellationToken), cancellationToken);
+        Commit(model.SetBounds(frame, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), cancellationToken).Project(cancellationToken), cancellationToken);
     }
 
     private void Commit(PublisherDocument candidate, CancellationToken token) {
@@ -44,5 +42,4 @@ public sealed partial class PublisherDocument {
         TextStories = candidate.TextStories; Images = candidate.Images; ReadReport = candidate.ReadReport; SourceReadReport = candidate.SourceReadReport;
         _model = candidate._model;
     }
-    private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }

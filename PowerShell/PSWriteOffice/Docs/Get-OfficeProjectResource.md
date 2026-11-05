@@ -11,7 +11,7 @@ Returns project resources.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Get-OfficeProjectResource -Document <ProjectDocument> [-Uid <int[]>] [<CommonParameters>]
+Get-OfficeProjectResource [-Document <ProjectDocument>] [-Uid <int[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,7 +36,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

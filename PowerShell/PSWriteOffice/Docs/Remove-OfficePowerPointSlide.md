@@ -11,7 +11,7 @@ Removes selected native slides or one-based slide positions.
 ## SYNTAX
 ### Slide (Default)
 ```powershell
-Remove-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector[]> [-PassThru] [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Remove-OfficePowerPointSlide [-Slide] <PowerPointSlideSelector[]> [-Document <PowerPointDocument>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -49,22 +49,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PassThru
-Return the live document after at least one slide is removed.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Slide
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Slide
 Gets or sets native slides or their one-based positions; each argument array is resolved before removal.
 
@@ -90,7 +74,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.PowerPoint.PowerPointDocument`
+- `None`
 
 ## RELATED LINKS
 

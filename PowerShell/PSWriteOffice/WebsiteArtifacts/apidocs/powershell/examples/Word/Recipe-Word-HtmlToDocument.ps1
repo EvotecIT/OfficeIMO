@@ -5,5 +5,5 @@ $html = @'
 <table><tr><th>Area</th><th>Owner</th></tr><tr><td>Identity</td><td>Platform</td></tr></table>
 '@
 
-ConvertFrom-OfficeWordHtml -Html $html -OutputPath '.\Service-Review.docx'
-ConvertTo-OfficeWordMarkdown -Path '.\Service-Review.docx' -OutputPath '.\Service-Review.md'
+Convert-OfficeDocument -To Word -From Html -Text $html -OutputPath '.\Service-Review.docx'
+Convert-OfficeDocument -To Markdown -Path '.\Service-Review.docx' -OutputPath '.\Service-Review.md'

@@ -62,10 +62,10 @@ namespace OfficeIMO.Word {
         /// Distribute columns evenly by setting their size to the same value
         /// based on the current table width settings (or 100% Pct if not set).
         /// </summary>
-        public void DistributeColumnsEvenly() {
-            if (Rows.Count == 0 || Rows[0].Cells.Count == 0) return;
+        public WordTable DistributeColumnsEvenly() {
+            if (Rows.Count == 0 || Rows[0].Cells.Count == 0) return this;
             int columnCount = Rows[0].Cells.Count;
-            if (columnCount == 0) return;
+            if (columnCount == 0) return this;
 
             CheckTableProperties();
 
@@ -118,6 +118,7 @@ namespace OfficeIMO.Word {
             }
 
             RefreshGrid();
+            return this;
         }
 
         /// <summary>
@@ -358,7 +359,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the table to AutoFit to Contents
         /// </summary>
-        public void AutoFitToContents() {
+        public WordTable AutoFitToContents() {
             CheckTableProperties();
 
             // 1. Set Table Layout to Autofit
@@ -396,6 +397,7 @@ namespace OfficeIMO.Word {
             }
             // Remove the complex/inaccurate content estimation for now
             // AdjustColumnWidthsBasedOnContent();
+            return this;
         }
 
         /// <summary>
@@ -480,7 +482,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Sets the table to AutoFit to Window (100% width)
         /// </summary>
-        public void AutoFitToWindow() {
+        public WordTable AutoFitToWindow() {
             CheckTableProperties();
 
             // 1. Set Table Layout to Fixed (or ensure it exists)
@@ -533,13 +535,14 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+            return this;
         }
 
         /// <summary>
         /// Sets the table to Fixed Width with the specified percentage
         /// </summary>
         /// <param name="percentage">Width percentage (0-100)</param>
-        public void SetFixedWidth(int percentage) {
+        public WordTable SetFixedWidth(int percentage) {
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
 
@@ -556,7 +559,7 @@ namespace OfficeIMO.Word {
             }
             _tableProperties.TableWidth.Type = TableWidthUnitValues.Pct;
             _tableProperties.TableWidth.Width = (percentage * 50).ToString(); // Convert percentage to Word units (50 = 1%)
-
+            return this;
         }
 
         private void SetLayoutAlgorithm(TableLayoutValues layout) {
@@ -569,7 +572,7 @@ namespace OfficeIMO.Word {
         /// Sets column widths using percentages. Values are scaled proportionally when they don't sum to 100.
         /// </summary>
         /// <param name="percentages">Column percentages in any positive ratio.</param>
-        public void SetColumnWidthsPercentage(params int[] percentages) {
+        public WordTable SetColumnWidthsPercentage(params int[] percentages) {
             ArgumentNullException.ThrowIfNull(percentages);
 
             if (Rows.Count == 0 || Rows[0].Cells.Count == 0) {
@@ -647,6 +650,7 @@ namespace OfficeIMO.Word {
                     tcPr.TableCellWidth.Width = widths[columnIndex].ToString();
                 }
             }
+            return this;
         }
 
         /// <summary>
@@ -674,10 +678,11 @@ namespace OfficeIMO.Word {
         /// Sets the table width to a percentage of the window width
         /// </summary>
         /// <param name="percentage">Width percentage (0-100)</param>
-        public void SetWidthPercentage(int percentage) {
+        public WordTable SetWidthPercentage(int percentage) {
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
             this.Width = WordTableWidth.Percent(percentage);
+            return this;
         }
 
         /// <summary>

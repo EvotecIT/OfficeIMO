@@ -45,8 +45,8 @@ public sealed class VisioImageExportTextShapingTests {
             FontFamily = ManagedTextShapingTestAssets.FamilyName
         };
         var provider = new ManagedTextShapingTestAssets.RecordingProvider();
-        var options = new VisioPngSaveOptions {
-            PixelsPerInch = 48D,
+        var options = new VisioImageExportOptions {
+            TargetDpi = 48D,
             Supersampling = 1,
             TextShapingProvider = provider,
             TextShapingLanguage = "ar-SA"
@@ -55,7 +55,7 @@ public sealed class VisioImageExportTextShapingTests {
             ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFont('A'));
 
-        byte[] png = page.ToPng(options);
+        byte[] png = page.ToImage(options);
 
         Assert.NotEmpty(png);
         Assert.Contains(provider.Requests, request =>

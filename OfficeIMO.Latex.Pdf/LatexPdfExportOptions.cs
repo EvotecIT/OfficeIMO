@@ -25,10 +25,7 @@ public sealed class LatexPdfExportOptions {
     }
 
     internal LatexPdfExportOptions CloneForConversion() => new LatexPdfExportOptions {
-        ProjectionOptions = new LatexMarkdownExportOptions {
-            PreserveUnsupportedAsSource = ProjectionOptions.PreserveUnsupportedAsSource,
-            IncludePreambleAsFrontMatter = ProjectionOptions.IncludePreambleAsFrontMatter
-        },
+        ProjectionOptions = ProjectionOptions.Clone(),
         MarkdownOptions = MarkdownOptions.Clone()
     };
 

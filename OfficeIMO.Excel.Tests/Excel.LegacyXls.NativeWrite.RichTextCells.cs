@@ -19,14 +19,14 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(1, 1).SetRichText(
                         new ExcelRichTextRun("Inline ") {
                             Bold = true,
-                            FontColor = "#123456",
-                            FontName = "Consolas",
+                            Color = global::OfficeIMO.OfficeColor.Parse("#123456"),
+                            FontFamily = "Consolas",
                             FontSize = global::OfficeIMO.OfficeLength.Points(13D)
                         },
                         new ExcelRichTextRun("cell") {
                             Italic = true,
                             Underline = true,
-                            FontName = "Arial",
+                            FontFamily = "Arial",
                             FontSize = global::OfficeIMO.OfficeLength.Points(11D)
                         });
 
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Rich Font Bytes");
                     sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run font bytes") {
-                        FontName = "Arial",
-                        FontFamily = 2,
+                        FontFamily = "Arial",
+                        FontFamilyClassification = 2,
                         FontCharacterSet = 238
                     });
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((byte)238, font.CharacterSet);
 
                 ExcelRichTextRun projectedRun = Assert.Single(result.Document.Sheets[0].Cell(1, 1).GetRichText());
-                Assert.Equal((byte)2, projectedRun.FontFamily);
+                Assert.Equal((byte)2, projectedRun.FontFamilyClassification);
                 Assert.Equal((byte)238, projectedRun.FontCharacterSet);
             } finally {
                 TryDelete(openXmlPath);
@@ -99,7 +99,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Rich Escapement");
                     sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Raised") {
-                        FontName = "Arial",
+                        FontFamily = "Arial",
                         VerticalTextAlignment = ExcelVerticalTextAlignment.Superscript
                     });
 
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Rich Font Flags");
                     sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run flags") {
-                        FontName = "Arial",
+                        FontFamily = "Arial",
                         Outline = true,
                         Shadow = true,
                         Condense = true,
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     ExcelSheet sheet = document.AddSheet("Rich Underline");
                     sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Accounting") {
-                        FontName = "Arial",
+                        FontFamily = "Arial",
                         UnderlineStyle = ExcelUnderlineStyle.SingleAccounting
                     });
 
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksDuplicateRichTextFontPropertiesBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich-text font properties with duplicate font name elements", (document, sheet) => {
                 sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Duplicate font") {
-                    FontName = "Arial"
+                    FontFamily = "Arial"
                 });
 
                 RunProperties properties = sheet.WorksheetPart.Worksheet!
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksUnsupportedRichTextRunMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich-text cell run metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run metadata") {
-                    FontName = "Arial"
+                    FontFamily = "Arial"
                 });
 
                 Run run = sheet.WorksheetPart.Worksheet!
@@ -294,7 +294,7 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_NativeSave_BlocksUnsupportedRichTextRunPropertyMetadataBeforeWriting() {
             AssertNativeXlsSaveNotSupported("rich-text font properties with unsupported metadata", (document, sheet) => {
                 sheet.Cell(1, 1).SetRichText(new ExcelRichTextRun("Run property metadata") {
-                    FontName = "Arial"
+                    FontFamily = "Arial"
                 });
 
                 RunProperties properties = sheet.WorksheetPart.Worksheet!
@@ -318,8 +318,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(bold, run.Bold);
             Assert.Equal(italic, run.Italic);
             Assert.Equal(underline, run.Underline);
-            Assert.Equal(fontColor, run.FontColor);
-            Assert.Equal(fontName, run.FontName);
+            Assert.Equal(fontColor, run.Color?.ToArgbHex());
+            Assert.Equal(fontName, run.FontFamily);
             Assert.Equal(fontSize.HasValue ? OfficeLength.Points(fontSize.Value) : (OfficeLength?)null, run.FontSize);
         }
     }

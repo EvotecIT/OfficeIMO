@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddSheet("Data");
             sheet.WriteData(table);
-            sheet.ColumnStyleByHeader("Amount").NumberFormat("0.0000");
+            sheet.ColumnStyleByHeader("Amount").SetNumberFormat("0.0000");
             byte[] bytes = document.ToBytes(format, new ExcelSaveOptions { DisableFastPackageWriter = standardWriter });
             using ExcelWorkbookDataReader reader = ExcelDocument.OpenReader(bytes);
             Assert.Equal(3, reader.FieldCount);

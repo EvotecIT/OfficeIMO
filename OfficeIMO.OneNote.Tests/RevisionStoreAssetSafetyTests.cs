@@ -24,7 +24,7 @@ public sealed class RevisionStoreAssetSafetyTests {
             nodeData);
         var root = new OneNoteFileNodeList(1, Array.Empty<OneNoteFileNodeListFragment>(), new[] { node });
         using var stream = new SparseFileDataFrameStream(frameOffset, frameLength, payload);
-        var options = new OneNoteReaderOptions {
+        var options = new OneNoteLoadOptions {
             MaxInputBytes = (long)(frameOffset + frameLength),
             MaxAssetBytes = 16,
             MaxTotalAssetBytes = 16

@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.Markup.PowerPoint;
 
 internal sealed partial class OfficeMarkupPowerPointExporter {
-    private static void ExportBlock(
+    private static IReadOnlyList<OfficeMarkupDiagnostic> ExportBlock(
         PowerPointSlide slide,
         OfficeMarkupBlock block,
         MarkupPowerPointExportOptions options,
@@ -19,17 +19,14 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 AddText(slide, paragraph.Text, cursor, height: EstimateTextHeight(paragraph.Text), styleResolver.Resolve(paragraph));
                 break;
             case OfficeMarkupListBlock list:
-                AddList(slide, list, cursor, options, metrics, styleResolver);
-                break;
+                return AddList(slide, list, cursor, options, metrics, styleResolver);
             case OfficeMarkupImageBlock image:
-                AddImage(slide, image, cursor, options, metrics);
-                break;
+                return AddImage(slide, image, cursor, options, metrics);
             case OfficeMarkupTableBlock table:
                 AddTable(slide, table, cursor);
                 break;
             case OfficeMarkupDiagramBlock diagram:
-                AddDiagram(slide, diagram, cursor, options, metrics, styleResolver);
-                break;
+                return AddDiagram(slide, diagram, cursor, options, metrics, styleResolver);
             case OfficeMarkupChartBlock chart:
                 AddChart(slide, chart, cursor, options, metrics);
                 break;
@@ -52,6 +49,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
                 break;
         }
+        return Array.Empty<OfficeMarkupDiagnostic>();
     }
 
     private static void ExportExtension(
@@ -140,24 +138,25 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         }
     }
 
-    private static void AddList(PowerPointSlide slide, OfficeMarkupListBlock list, LayoutCursor cursor,
+    private static IReadOnlyList<OfficeMarkupDiagnostic> AddList(PowerPointSlide slide, OfficeMarkupListBlock list, LayoutCursor cursor,
         MarkupPowerPointExportOptions options, SlideCanvasMetrics metrics, OfficeMarkupStyleResolver styleResolver) {
         if (!OfficeMarkupListTraversal.IsTextOnly(list)) {
+            var diagnostics = new List<OfficeMarkupDiagnostic>();
             for (int index = 0; index < list.Items.Count; index++) {
                 var item = list.Items[index];
                 var lead = new OfficeMarkupListBlock(list.Ordered, list.Start + index);
                 lead.Items.Add(new OfficeMarkupListItem(item.Text, item.IsTask, item.IsChecked));
-                AddList(slide, lead, cursor, options, metrics, styleResolver);
+                diagnostics.AddRange(AddList(slide, lead, cursor, options, metrics, styleResolver));
                 foreach (var child in OfficeMarkupListTraversal.ContentBlocks(item)) {
-                    ExportBlock(slide, child, options, metrics, cursor, styleResolver);
+                    diagnostics.AddRange(ExportBlock(slide, child, options, metrics, cursor, styleResolver));
                 }
             }
-            return;
+            return diagnostics;
         }
         var style = styleResolver.Resolve("body", list.Attributes);
         var items = list.Items.Select(item => item.Text).Where(text => !string.IsNullOrWhiteSpace(text)).ToList();
         if (items.Count == 0) {
-            return;
+            return Array.Empty<OfficeMarkupDiagnostic>();
         }
 
         var height = Math.Max(0.45, Math.Min(cursor.RemainingHeight, 0.28 * items.Count + 0.25));
@@ -171,9 +170,10 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         ApplyTextStyle(box, style);
         cursor.Advance(height);
+        return Array.Empty<OfficeMarkupDiagnostic>();
     }
 
-    private static void AddDiagram(
+    private static IReadOnlyList<OfficeMarkupDiagnostic> AddDiagram(
         PowerPointSlide slide,
         OfficeMarkupDiagramBlock diagram,
         LayoutCursor cursor,
@@ -192,7 +192,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                     cursor.Advance(box.Height);
                 }
 
-                return;
+                return Array.Empty<OfficeMarkupDiagnostic>();
             } finally {
                 TryDelete(imagePath);
             }
@@ -206,5 +206,14 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 cursor.Advance(box.Height);
             }
         }
+        return new[] { new OfficeMarkupDiagnostic(
+            OfficeMarkupDiagnosticSeverity.Warning,
+            options.IncludeUnsupportedBlocksAsText
+                ? "Diagram image was not rendered; source text fallback is used."
+                : "Diagram content is omitted because its image was not rendered.",
+            diagram,
+            options.IncludeUnsupportedBlocksAsText && !diagram.RenderAsImage
+                ? OfficeConversionLossKind.Approximation
+                : OfficeConversionLossKind.Omission) };
     }
 }

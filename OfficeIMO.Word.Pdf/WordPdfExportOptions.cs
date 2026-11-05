@@ -95,14 +95,14 @@ namespace OfficeIMO.Word.Pdf {
         public OfficePageOrientation? Orientation { get; set; }
 
         /// <summary>
-        /// Optional default page size applied when creating new documents.
+        /// Page size used only when a source section has no usable page size.
         /// </summary>
-        public WordPageSize? DefaultPageSize { get; set; }
+        public PdfCore.PdfPageSize? FallbackPageSize { get; set; }
 
         /// <summary>
-        /// Optional default page orientation applied when creating new documents.
+        /// Fallback orientation when the source section has no landscape orientation and no export override applies.
         /// </summary>
-        public OfficePageOrientation? DefaultOrientation { get; set; }
+        public OfficePageOrientation? FallbackOrientation { get; set; }
 
         /// <summary>
         /// Optional PDF title that overrides the Word document title.
@@ -268,8 +268,8 @@ namespace OfficeIMO.Word.Pdf {
                 PageSize = PageSize,
                 Margins = Margins,
                 Orientation = Orientation,
-                DefaultPageSize = DefaultPageSize,
-                DefaultOrientation = DefaultOrientation,
+                FallbackPageSize = FallbackPageSize,
+                FallbackOrientation = FallbackOrientation,
                 Title = Title,
                 Author = Author,
                 Subject = Subject,

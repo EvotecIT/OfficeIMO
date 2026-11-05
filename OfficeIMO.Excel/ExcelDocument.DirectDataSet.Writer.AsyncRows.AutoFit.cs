@@ -33,7 +33,8 @@ namespace OfficeIMO.Excel {
                 using (var writer = new PooledUtf8TextWriter(stream, Utf8NoBom, XmlWriterBufferSize, leaveOpen: true)) {
                     writer.Write("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
                     writer.Write("<worksheet xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\">");
-                    WriteDeclaredColumns(writer, widths, declaredStyles);
+                    if (sheet.StreamingLayout != null) writer.Write(sheet.StreamingLayout.ViewsXml);
+                    WriteDeclaredColumns(writer, widths, declaredStyles, sheet.StreamingLayout?.FirstColumn ?? 1);
                     await writer.FlushAsync().ConfigureAwait(false);
                     await spool.CopyToAsync(stream, 64 * 1024, ct).ConfigureAwait(false);
                     WriteAsyncWorksheetEnd(writer, sheet);
@@ -52,13 +53,17 @@ namespace OfficeIMO.Excel {
                 int column = 0;
                 while (!reader.EOF) {
                     ct.ThrowIfCancellationRequested();
-                    if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row") { row++; column = 0; }
+                    if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "row") {
+                        row = int.TryParse(reader.GetAttribute("r"), out int rowNumber) ? rowNumber : row + 1;
+                        column = 0;
+                    }
                     if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "c") {
                         var cell = new Cell(reader.ReadOuterXml());
                         double width = measurer.MeasureCell(cell, dateSystem,
-                            tableHeader: row == 1 && sheet.IncludeHeaders && sheet.HasTable,
+                            tableHeader: row == (sheet.StreamingLayout?.HeaderRow ?? 1) && sheet.IncludeHeaders && sheet.HasTable,
                             filterButton: sheet.IncludeAutoFilter);
-                        widths[column] = Math.Max(widths[column], NormalizeColumnWidth(width));
+                        if (sheet.StreamingLayout == null || sheet.StreamingLayout.AutoFitColumns[column])
+                            widths[column] = Math.Max(widths[column], NormalizeColumnWidth(width));
                         column++;
                     } else {
                         reader.Read();

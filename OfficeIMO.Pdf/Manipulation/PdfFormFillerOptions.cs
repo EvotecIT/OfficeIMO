@@ -14,7 +14,16 @@ public sealed class PdfFormFillerOptions : IPdfOperationCancellation {
 
     internal System.Threading.CancellationToken CancellationToken { get; set; }
 
-    object IPdfOperationCancellation.CloneForOperation() => MemberwiseClone();
+    object IPdfOperationCancellation.CloneForOperation() => Clone();
+
+    /// <summary>Copies these settings with independent appearance-font configuration.</summary>
+    /// <remarks>The registered diagnostics sink and operation cancellation token are retained.</remarks>
+    public PdfFormFillerOptions Clone() {
+        var clone = (PdfFormFillerOptions)MemberwiseClone();
+        clone._appearanceFontFamily = _appearanceFontFamily?.Clone();
+        clone._appearanceFontFallbacks = _appearanceFontFallbacks?.Clone();
+        return clone;
+    }
 
     /// <summary>Maximum XFDF source length accepted before XML materialization.</summary>
     public int MaxXfdfDocumentCharacters { get; set; } = PdfFormDataSet.DefaultMaxXfdfDocumentCharacters;

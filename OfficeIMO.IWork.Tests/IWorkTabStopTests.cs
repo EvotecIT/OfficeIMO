@@ -13,22 +13,22 @@ public sealed partial class IWorkBoundaryTests {
         byte[] tabs = Message(Enumerable.Range(0, 4).Select(i => BytesField(1,
             Message(FloatField(1, (i + 1) * 18), VarintField(2, (ulong)i), StringField(3, "")))).ToArray());
         using var package = ParagraphLayoutPackage(kind, BytesField(25, tabs));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.Equal(new double[] { 18, 36, 54, 72 }, Assert.Single(text.Paragraphs).Style.TabStops!.Select(t => t.PositionPoints));
         package.Position = 0;
         using var saved = new MemoryStream();
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else if (kind == IWorkDocumentKind.Keynote) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(options);
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
             Assert.Equal("Value", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
             return;
@@ -70,7 +70,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => FloatField(1, -18)
         };
         using var package = TabInheritancePackage(BytesField(25, BytesField(1, tab)));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(text.IsFormattingComplete);
         Assert.Empty(Assert.Single(text.Paragraphs).Style.TabStops!);
         package.Position = 0;
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(true)]
     public void Tab_lists_inherit_and_explicit_clear_removes_parent_stops(bool clear) {
         using var package = TabInheritancePackage(clear ? VarintField(24, 1) : Message());
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.Equal(clear ? 0 : 1, Assert.Single(text.Paragraphs).Style.TabStops!.Count);
     }
@@ -91,10 +91,10 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Tab_stop_materialization_uses_the_source_wide_text_budget() {
         using var baseline = ParagraphLayoutPackage(IWorkDocumentKind.Numbers, Message());
-        Assert.NotEmpty(IWorkSourceDocument.Open(baseline, new IWorkReadOptions { MaxProjectedTextItems = 20 }).ReadNumbers().Sheets);
+        Assert.NotEmpty(IWorkSourceDocument.Load(baseline, new IWorkLoadOptions { MaxProjectedTextItems = 20 }).ReadNumbers().Sheets);
         using var package = ParagraphLayoutPackage(IWorkDocumentKind.Numbers, BytesField(25,
             Message(Enumerable.Range(1, 32).Select(i => BytesField(1, FloatField(1, i))).ToArray())));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 20 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProjectedTextItems = 20 });
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -111,10 +111,10 @@ public sealed partial class IWorkBoundaryTests {
             modelFields: selectedCellStyle ? Message() : ReferenceField(24, 19),
             storeFields: selectedCellStyle ? ReferenceField(5, 20) : Message(),
             selectCellTextStyle: selectedCellStyle, additionalRecords: Message(style, catalog));
-        var bounded = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 200 });
+        var bounded = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProjectedTextItems = 200 });
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() => bounded.ReadNumbers()).Message);
         package.Position = 0;
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 1000 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProjectedTextItems = 1000 });
         var table = Assert.Single(Assert.Single(source.ReadNumbers().Sheets).Tables);
         Assert.Equal(30, Assert.Single(table.Cells).RichText!.Paragraphs.Count);
         Assert.Equal(20, table.GetParagraphStyle(1, 1)!.TabStops!.Count);

@@ -10,12 +10,12 @@ Use Reader search when the question spans formats: find a policy term across rep
 
 ```powershell
 $matches = Search-OfficeDocument -Path '.\Evidence' -Recurse `
-    -Query 'Retention policy' -Extension docx,xlsx,pptx,pdf,md `
-    -MaxDocuments 500 -MaximumResults 200 -MaxDegreeOfParallelism 4
+    -Pattern 'Retention policy' -Extension docx,xlsx,pptx,pdf,md `
+    -MaximumFiles 500 -MaximumResults 200 -ThrottleLimit 4
 ```
 
-Document, result, store-item, and concurrency limits are safety and predictability controls. Use `-NoDocumentLimit`, `-AllResults`, or `-AllStoreItems` only when the input scope is already controlled. Extension filters are applied before files consume the document ceiling.
+Document, result, store-item, and concurrency limits are safety and predictability controls. Set `-MaximumFiles`, `-MaximumResults`, or `-MaximumStoreItems` to `0` only when the input scope is already controlled. Extension filters are applied before files consume the document ceiling.
 
-The [search-folder recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-SearchFolder.ps1) searches a mixed `.\Documents` folder with one command and selects the useful result fields.
+The [search-folder recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Reader/Recipe-Reader-SearchFolder.ps1) searches a mixed `.\Documents` folder with one command and selects the useful result fields.
 
 Use `-IncludePageLocations` when page-aware PDF or paged-document results matter. For downstream retrieval or indexing, continue with [chunks and tables](/docs/pswriteoffice/reader-chunks-tables/).

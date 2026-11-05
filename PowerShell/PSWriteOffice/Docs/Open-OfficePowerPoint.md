@@ -11,12 +11,12 @@ Opens a presentation for explicit editing, or atomically saves a completed conte
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Open-OfficePowerPoint [-Path] <string> [[-Content] <scriptblock>] [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficePowerPoint [-Path] <string> [[-Content] <scriptblock>] [-PassThru] [-AllowLoss] [-Show] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPath
 ```powershell
-Open-OfficePowerPoint [[-Content] <scriptblock>] -LiteralPath <string> [-Password <securestring>] [-PassThru] [-AllowLoss] [-Show] [-WhatIf] [-Confirm] [<CommonParameters>]
+Open-OfficePowerPoint [[-Content] <scriptblock>] -LiteralPath <string> [-PassThru] [-AllowLoss] [-Show] [-Password <securestring>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -35,7 +35,7 @@ Close-OfficePowerPoint -Document $deck
 ## PARAMETERS
 
 ### -AllowLoss
-Gets or sets whether native-save loss is explicitly accepted.
+Explicitly accept native-save loss for an authoring block.
 
 ```yaml
 Type: SwitchParameter
@@ -51,7 +51,7 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Gets or sets a content block; omission returns the live document.
+An optional authoring block; omission returns the live document.
 
 ```yaml
 Type: ScriptBlock
@@ -83,7 +83,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Gets or sets whether a completed content block returns the saved FileInfo.
+Emit the FileInfo after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter
@@ -131,7 +131,7 @@ Accept wildcard characters: True
 ```
 
 ### -Show
-Gets or sets whether the saved file opens in the system default application.
+Open the saved document after a completed authoring block.
 
 ```yaml
 Type: SwitchParameter

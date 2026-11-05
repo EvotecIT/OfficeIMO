@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Appends a details/summary block with nested Markdown content.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownDetails", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownDetails")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownDetails") ]
 public sealed class AddOfficeMarkdownDetailsCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";

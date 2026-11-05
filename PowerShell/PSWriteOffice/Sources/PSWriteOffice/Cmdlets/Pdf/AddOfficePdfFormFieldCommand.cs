@@ -1,3 +1,5 @@
+using PSWriteOffice.Foundation;
+using OfficeIMO;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -13,14 +15,14 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///     Add-OfficePdfParagraph -Text 'Requester'
 ///     Add-OfficePdfFormField -Name 'Requester' -Type Text -Width 240
 ///     Add-OfficePdfParagraph -Text 'Priority'
-///     Add-OfficePdfFormField -Name 'Priority' -Type Choice -Options 'Low','Normal','High' -Value 'Normal'
+///     Add-OfficePdfFormField -Name 'Priority' -Type Choice -Option 'Low','Normal','High' -Value 'Normal'
 ///     Add-OfficePdfFormField -Name 'Approved' -Type CheckBox
 ///   }</code>
 ///   <para>Adds text, choice, and checkbox form fields to a generated PDF.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfFormField", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfFormField")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfFormField") ]
 public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -38,17 +40,21 @@ public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
     [Parameter]
     public OfficePdfFormFieldType Type { get; set; } = OfficePdfFormFieldType.Text;
 
-    /// <summary>Initial text, selected choice, or selected radio value.</summary>
+    /// <summary>Initial value; MultiSelectChoice accepts multiple selected values, other fields accept at most one.</summary>
     [Parameter]
-    public string? Value { get; set; }
+    public string[]? Value { get; set; }
 
-    /// <summary>Initial selected values for multi-select choice fields.</summary>
+    /// <summary>Export name of the checked state for a check box.</summary>
     [Parameter]
-    public string[] Values { get; set; } = System.Array.Empty<string>();
+    public string CheckedValue { get; set; } = "Yes";
 
     /// <summary>Choice or radio options.</summary>
     [Parameter]
-    public string[] Options { get; set; } = System.Array.Empty<string>();
+    public string[] Option { get; set; } = System.Array.Empty<string>();
+
+    /// <summary>Render scalar choices as a list box rather than a combo box.</summary>
+    [Parameter]
+    public SwitchParameter ListBox { get; set; }
 
     /// <summary>Initial check-box state.</summary>
     [Parameter]
@@ -56,26 +62,53 @@ public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
 
     /// <summary>Rendered field width in PDF points.</summary>
     [Parameter]
-    public double Width { get; set; } = 180;
+    [OfficeLengthTransformation]
+    public OfficeLength Width { get; set; } = OfficeLength.Points(180);
 
     /// <summary>Rendered field height in PDF points.</summary>
     [Parameter]
-    public double Height { get; set; } = 22;
+    [OfficeLengthTransformation]
+    public OfficeLength Height { get; set; } = OfficeLength.Points(22);
+
+    /// <summary>Native field text size or check-box size.</summary>
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
 
     /// <summary>Field alignment.</summary>
     [Parameter]
-    public OfficeAlignment Align { get; set; } = OfficeAlignment.Left;
+    public OfficeAlignment Alignment { get; set; } = OfficeAlignment.Left;
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (Type != OfficePdfFormFieldType.MultiSelectChoice && Value is { Length: > 1 })
+            throw new PSArgumentException("Only MultiSelectChoice accepts more than one initial Value.");
+        string? scalarValue = Value is { Length: > 0 } ? Value[0] : null;
         if (Type is OfficePdfFormFieldType.Choice or OfficePdfFormFieldType.MultiSelectChoice or OfficePdfFormFieldType.RadioButton)
         {
             EnsureOptions();
+        }
+
+        if (ListBox && Type != OfficePdfFormFieldType.Choice) throw new PSArgumentException("ListBox applies to scalar Choice fields.");
+        var cell = Document == null ? OfficeDocumentContext.Find<PdfCellContent>() : null;
+        if (cell != null) {
+            switch (Type) {
+                case OfficePdfFormFieldType.CheckBox:
+                    cell.CheckBoxes.Add(new PdfTableCellCheckBox(Name, Checked, Size, CheckedValue));
+                    break;
+                case OfficePdfFormFieldType.Choice:
+                    cell.Fields.Add(PdfTableCellFormField.ChoiceField(Name, Option, scalarValue, MyInvocation.BoundParameters.ContainsKey(nameof(Width)) ? Width : null, MyInvocation.BoundParameters.ContainsKey(nameof(Height)) ? Height : null, Size, !ListBox));
+                    break;
+                case OfficePdfFormFieldType.Text:
+                    cell.Fields.Add(PdfTableCellFormField.TextField(Name, scalarValue, MyInvocation.BoundParameters.ContainsKey(nameof(Width)) ? Width : null, MyInvocation.BoundParameters.ContainsKey(nameof(Height)) ? Height : null, Size));
+                    break;
+                default: throw new PSNotSupportedException("Native table-cell fields support text, scalar choice and check boxes; use a flowing field for this kind.");
+            }
+            return;
         }
 
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument, content =>
@@ -83,19 +116,19 @@ public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
             switch (Type)
             {
                 case OfficePdfFormFieldType.CheckBox:
-                    content.CheckBox(Name, Checked.IsPresent, align: Align);
+                    content.CheckBox(Name, Checked.IsPresent, Size, align: Alignment, checkedValueName: CheckedValue);
                     break;
                 case OfficePdfFormFieldType.Choice:
-                    content.ChoiceField(Name, Options, Value, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Align);
+                    content.ChoiceField(Name, Option, scalarValue, Width, Height, Alignment, fontSize: Size, isComboBox: !ListBox);
                     break;
                 case OfficePdfFormFieldType.MultiSelectChoice:
-                    content.MultiSelectChoiceField(Name, Options, Values.Length > 0 ? Values : Value == null ? null : new[] { Value }, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Align);
+                    content.MultiSelectChoiceField(Name, Option, Value, Width, Height, Alignment, fontSize: Size);
                     break;
                 case OfficePdfFormFieldType.RadioButton:
-                    content.RadioButtonGroup(Name, Options, Value, align: Align);
+                    content.RadioButtonGroup(Name, Option, scalarValue, align: Alignment);
                     break;
                 default:
-                    content.TextField(Name, global::OfficeIMO.OfficeLength.Points(Width), global::OfficeIMO.OfficeLength.Points(Height), Value ?? string.Empty, Align);
+                    content.TextField(Name, Width, Height, scalarValue ?? string.Empty, Alignment, fontSize: Size);
                     break;
             }
         });
@@ -108,9 +141,9 @@ public sealed class AddOfficePdfFormFieldCommand : PSCmdlet
 
     private void EnsureOptions()
     {
-        if (Options.Length == 0)
+        if (Option.Length == 0)
         {
-            throw new PSArgumentException("Choice and radio button form fields require -Options.", nameof(Options));
+            throw new PSArgumentException("Choice and radio button form fields require -Option.", nameof(Option));
         }
     }
 }

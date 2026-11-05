@@ -26,8 +26,8 @@ public class HtmlOneNoteTableCaptions {
         HtmlConversionDocument source = HtmlConversionDocument.Parse(RegulatoryTableHtml);
 
         HtmlToOneNoteSectionResult oneNoteResult = source.ConvertToOneNoteSectionWithEvidence();
-        OneNoteSection reopenedOneNote = OneNoteSectionReader.Read(
-            new MemoryStream(OneNoteSectionWriter.Write(oneNoteResult.RequireValue())));
+        OneNoteSection reopenedOneNote = OneNoteSection.Load(
+            new MemoryStream(oneNoteResult.RequireValue().ToBytes()));
         Assert.Contains(RegulatoryTableCaption, reopenedOneNote.ConvertToHtmlWithEvidence().RequireValue(), StringComparison.Ordinal);
         Assert.Single(reopenedOneNote.Pages.SelectMany(page => page.Outlines)
             .SelectMany(outline => outline.Children).OfType<OneNoteTable>());

@@ -40,9 +40,9 @@ internal static partial class PowerShellObjectNormalizer
             return null;
         }
 
-        if (TryGetDataRow(item, out var dataRow))
+        if (TryGetDataRow(item, out var dataRow, out var rowVersion))
         {
-            return ProjectDataRowDictionary(dataRow, options);
+            return ProjectDataRowDictionary(dataRow, rowVersion, options);
         }
 
         if (item is PSObject psObject)
@@ -103,9 +103,9 @@ internal static partial class PowerShellObjectNormalizer
             return true;
         }
 
-        if (TryGetDataRow(item, out var dataRow))
+        if (TryGetDataRow(item, out var dataRow, out var rowVersion))
         {
-            ProjectDataRow(dataRow, columns, out projectedColumns, out values, options);
+            ProjectDataRow(dataRow, rowVersion, columns, out projectedColumns, out values, options);
             return true;
         }
 
@@ -150,9 +150,9 @@ internal static partial class PowerShellObjectNormalizer
             return true;
         }
 
-        if (TryGetDataRow(item, out var dataRow))
+        if (TryGetDataRow(item, out var dataRow, out var rowVersion))
         {
-            ProjectDataRowInto(dataRow, columns, values, options);
+            ProjectDataRowInto(dataRow, rowVersion, columns, values, options);
             return true;
         }
 

@@ -6,30 +6,46 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelChartTrendline
 ## SYNOPSIS
-Adds or replaces an Excel chart series trendline.
+Adds or replaces a series trendline.
 
 ## SYNTAX
 ### Index (Default)
 ```powershell
-Set-OfficeExcelChartTrendline -Chart <ExcelChart> -SeriesIndex <int> -Type <OfficeChartTrendlineType> [-Order <Int32>] [-Period <Int32>] [-Forward <Double>] [-Backward <Double>] [-Intercept <Double>] [-DisplayEquation] [-DisplayRSquared] [-LineColor <string>] [-LineWidthPoints <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelChartTrendline [-Chart] <ExcelChart> -Index <int> [-Type <OfficeChartTrendlineType>] [-Order <Int32>] [-Period <Int32>] [-Forward <Double>] [-Backward <Double>] [-Intercept <Double>] [-DisplayEquation] [-DisplayRSquared] [-LineColor <OfficeColor>] [-LineWidth <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Name
 ```powershell
-Set-OfficeExcelChartTrendline -Chart <ExcelChart> -SeriesName <string> -Type <OfficeChartTrendlineType> [-IgnoreCase <bool>] [-Order <Int32>] [-Period <Int32>] [-Forward <Double>] [-Backward <Double>] [-Intercept <Double>] [-DisplayEquation] [-DisplayRSquared] [-LineColor <string>] [-LineWidthPoints <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelChartTrendline [-Chart] <ExcelChart> -Name <string> [-Type <OfficeChartTrendlineType>] [-Order <Int32>] [-Period <Int32>] [-Forward <Double>] [-Backward <Double>] [-Intercept <Double>] [-DisplayEquation] [-DisplayRSquared] [-LineColor <OfficeColor>] [-LineWidth <OfficeLength>] [-PassThru] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds or replaces an Excel chart series trendline.
+Adds or replaces a series trendline.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $chart | Set-OfficeExcelChartTrendline -SeriesIndex 0 -Type Polynomial -Order 2 -DisplayEquation -DisplayRSquared
+New-OfficeExcel -Path .\Reports\Growth.xlsx {
+    ExcelSheet 'Users' {
+        ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Monthly-Users.csv) -Category Month -Value ActiveUsers -Type Line -Address A1 -PassThru | ExcelChartTrendline -Index 1 -Type Linear
+    }
+}
 ```
 
-Adds a polynomial trendline to the first series.
+Adds a straight trendline to the first series.
+
+### EXAMPLE 2
+```powershell
+New-OfficeExcel -Path .\Reports\Storage-Forecast.xlsx {
+    ExcelSheet 'Storage' {
+        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Storage-Used.csv) -Category Month -Value UsedTB -Type Line -Address A1 -Title 'Storage used (TB)' -PassThru
+        ExcelChartTrendline -Chart $chart -Name UsedTB -Type Linear -Forward 3 -DisplayRSquared
+    }
+}
+```
+
+Fits a trendline to monthly storage use, projects it three months forward and shows the R-squared value on the chart.
 
 ## PARAMETERS
 
@@ -39,6 +55,22 @@ Backward forecast units.
 ```yaml
 Type: Double
 Parameter Sets: Index, Name
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -CaseSensitive
+Matches names and text using ordinal case sensitivity. Omission ignores case.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Name
 Aliases: None
 Possible values:
 
@@ -59,7 +91,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
@@ -113,16 +145,16 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IgnoreCase
-Ignore case when matching series name.
+### -Index
+One-based index identifying the target item.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Name
+Type: Int32
+Parameter Sets: Index
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -149,7 +181,7 @@ Accept wildcard characters: False
 Trendline line color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Index, Name
 Aliases: None
 Possible values:
@@ -161,16 +193,32 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -LineWidthPoints
-Trendline line width in points.
+### -LineWidth
+Physical line width; numbers are interpreted as points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Index, Name
 Aliases: None
 Possible values:
 
 Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Name
+Named range name.
+
+```yaml
+Type: String
+Parameter Sets: Name
+Aliases: None
+Possible values:
+
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -194,7 +242,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -225,38 +273,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SeriesIndex
-Zero-based series index.
-
-```yaml
-Type: Int32
-Parameter Sets: Index
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SeriesName
-Series name.
-
-```yaml
-Type: String
-Parameter Sets: Name
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Type
 Trendline type.
 
@@ -266,7 +282,7 @@ Parameter Sets: Index, Name
 Aliases: None
 Possible values: Exponential, Linear, Logarithmic, MovingAverage, Polynomial, Power
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -282,7 +298,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelChart`
+- `None`
 
 ## RELATED LINKS
 

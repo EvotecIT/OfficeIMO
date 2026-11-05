@@ -11,7 +11,7 @@ Saves a native mbox mailbox with output diagnostics.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeEmailMailbox [-Path] <string> -Mailbox <EmailMailbox> [-Options <EmailMailboxWriterOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeEmailMailbox [-Path] <string> -Document <EmailMailbox> [-Options <EmailMailboxWriterOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -28,8 +28,8 @@ $mailbox | Save-OfficeEmailMailbox -Path .\Archive.mbox -Options $options -PassT
 
 ## PARAMETERS
 
-### -Mailbox
-Mailbox to save.
+### -Document
+Document to save.
 
 ```yaml
 Type: EmailMailbox

@@ -17,11 +17,11 @@ namespace PSWriteOffice.Cmdlets.Confluence;
 /// <code>Remove-OfficeConfluencePage -Session $session -PageId 12345</code>
 /// <para>Uses PowerShell ShouldProcess before sending the non-retried delete request.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Remove, "OfficeConfluencePage", SupportsShouldProcess = true)]
+[Cmdlet(VerbsCommon.Remove, "OfficeConfluencePage", SupportsShouldProcess = true, DefaultParameterSetName = "Session")]
 [OutputType(typeof(ConfluencePageWritePlan))]
 public sealed class RemoveOfficeConfluencePageCommand : AsyncPSCmdlet {
     /// <summary>Configured session required for a live delete operation.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = "Session")]
     public ConfluenceSession? Session { get; set; }
 
     /// <summary>Page identifier.</summary>
@@ -38,7 +38,7 @@ public sealed class RemoveOfficeConfluencePageCommand : AsyncPSCmdlet {
     public SwitchParameter Draft { get; set; }
 
     /// <summary>Return the exact delete plan without contacting Confluence.</summary>
-    [Parameter]
+    [Parameter(Mandatory = true, ParameterSetName = "Plan")]
     public SwitchParameter PlanOnly { get; set; }
 
     /// <summary>Return the completed delete plan after a live operation.</summary>

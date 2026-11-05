@@ -1,78 +1,71 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Adds OfficeIMO-owned workbook slicer binding metadata.</summary>
+/// <summary>Adds slicer or timeline binding metadata for a pivot table or table.</summary>
 /// <example>
-///   <summary>Add slicer binding metadata for a pivot field.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$slicer = Add-OfficeExcelSlicer -Path .\Report.xlsx -Name RegionSlicer -SourceName Region -PivotTableName SalesPivot -PassThru
-/// Get-OfficeExcelDataModel -Path .\Report.xlsx |
-///     Select-Object -ExpandProperty SlicerCacheCount</code>
-///   <para>Writes portable OfficeIMO binding metadata. It does not create native Excel slicer caches or UI shapes.</para>
+/// <summary>Add a slicer for a pivot field</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+///     ExcelSlicer -Name RegionSlicer -SourceName Region -PivotTable SalesPivot
+/// }</code>
+/// <para>Adds slicer metadata for the Region field of the SalesPivot pivot table.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelSlicer", DefaultParameterSetName = ParameterSetContext, SupportsShouldProcess = true)]
+/// <example>
+/// <summary>Add a timeline for order dates</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+///     ExcelSlicer -Name OrderDateTimeline -SourceName OrderDate -PivotTable SalesPivot -Timeline
+/// }</code>
+/// <para>Adds timeline metadata for the OrderDate field so readers can filter the pivot table by period in Excel.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Add, "OfficeExcelSlicer", DefaultParameterSetName = "Default")]
 [Alias("ExcelSlicer")]
-[OutputType(typeof(PSObject))]
 public sealed class AddOfficeExcelSlicerCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
-
-    /// <summary>Workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <summary>Slicer cache name.</summary>
-    [Parameter(Mandatory = true)]
-    public string Name { get; set; } = string.Empty;
+    [Parameter(ParameterSetName = "Default", Mandatory = true)]
+    public string Name { get; set; } = null!;
 
     /// <summary>Source field, table column, or pivot field name.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? SourceName { get; set; }
 
-    /// <summary>Pivot table name the slicer is intended to filter.</summary>
-    [Parameter]
-    public string? PivotTableName { get; set; }
+    /// <summary>Native pivot table whose data or entire range is targeted.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public string? PivotTable { get; set; }
 
     /// <summary>Caller-supplied slicer cache XML. When provided, OfficeIMO preserves it within its pivot-interaction metadata envelope.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? Xml { get; set; }
 
-    /// <summary>Emit metadata about the added package part.</summary>
-    [Parameter]
+    /// <summary>Creates timeline metadata instead of a standard slicer.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Timeline { get; set; }
+
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, workbook.Document, Path, "Update Excel workbook")) {
-            return;
-        }
-
-        ExcelPackagePartInfo part = workbook.Document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
-            Name = Name,
-            SourceName = SourceName,
-            PivotTableName = PivotTableName,
-            Xml = Xml
-        });
-
-        string contentType = part.ContentType;
-        workbook.SaveIfOwned();
-
-        if (PassThru.IsPresent) {
-            var result = new PSObject();
-            result.Properties.Add(new PSNoteProperty("Name", Name));
-            result.Properties.Add(new PSNoteProperty("Kind", "Slicer"));
-            result.Properties.Add(new PSNoteProperty("ContentType", contentType));
-            WriteObject(result);
-        }
+        var document = ExcelCommandTargets.Document(Document);
+        object result = Timeline ? document.AddWorkbookTimelineCache(new ExcelTimelineCacheOptions { Name = Name, SourceName = SourceName, PivotTableName = PivotTable, Xml = Xml }) : document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions { Name = Name, SourceName = SourceName, PivotTableName = PivotTable, Xml = Xml });
+        if (PassThru) WriteObject(result);
     }
+
 }

@@ -658,7 +658,7 @@ public class CsvDocumentFromObjectsTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RoundTrip." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
@@ -684,7 +684,7 @@ public class CsvDocumentFromObjectsTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Stream." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .AddRow("Beta", 2)
@@ -710,7 +710,7 @@ public class CsvDocumentFromObjectsTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RawRecords." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
@@ -736,7 +736,7 @@ public class CsvDocumentFromObjectsTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RawRecordsReusable." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .AddRow("Beta", 2)
@@ -766,7 +766,7 @@ public class CsvDocumentFromObjectsTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.FieldSpans." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
@@ -792,7 +792,7 @@ public class CsvDocumentFromObjectsTests
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Bounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
         try
         {
-            new CsvDocument()
+            CsvDocument.Create()
                 .WithHeader("Name", "Value")
                 .AddRow("Alpha", 1)
                 .Save(path, new CsvSaveOptions { NewLine = "\n" });
@@ -848,7 +848,7 @@ public class CsvDocumentFromObjectsTests
             File.WriteAllText(path, original);
 
             Assert.Throws<ArgumentOutOfRangeException>(() =>
-                new CsvDocument()
+                CsvDocument.Create()
                     .WithHeader("Name", "Value")
                     .AddRow("Replacement", 2)
                     .Save(path, new CsvSaveOptions
@@ -880,7 +880,7 @@ public class CsvDocumentFromObjectsTests
             File.WriteAllText(path, original);
 
             Assert.Throws<PlatformNotSupportedException>(() =>
-                new CsvDocument()
+                CsvDocument.Create()
                     .WithHeader("Name", "Value")
                     .AddRow("Replacement", 2)
                     .Save(path, new CsvSaveOptions

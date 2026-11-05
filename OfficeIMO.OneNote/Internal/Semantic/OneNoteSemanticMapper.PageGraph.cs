@@ -2,11 +2,11 @@ namespace OfficeIMO.OneNote;
 
 internal static partial class OneNoteSemanticMapper {
     private sealed class PageMappingState {
-        private readonly OneNoteReaderOptions _options;
+        private readonly OneNoteLoadOptions _options;
         private readonly HashSet<string> _visited = new HashSet<string>(StringComparer.Ordinal);
         private readonly HashSet<string> _active = new HashSet<string>(StringComparer.Ordinal);
 
-        internal PageMappingState(OneNoteReaderOptions options) {
+        internal PageMappingState(OneNoteLoadOptions options) {
             _options = options;
         }
 

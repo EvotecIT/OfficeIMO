@@ -22,7 +22,7 @@ public sealed class ExcelTableFormatWorkflowTests {
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
         shell.AddScript("""
-            Add-OfficeExcelTable -Worksheet $sheet -InputObject @(
+            Add-OfficeExcelTable -Sheet $sheet -InputObject @(
                 [pscustomobject]@{ Region = 'North'; Growth = 0.12 }
                 [pscustomobject]@{ Region = 'South'; Growth = -0.03 }
             ) -Name Sales -ColumnFormat @{ Growth = 'Percent' } -NoHeader:$noHeader
@@ -49,7 +49,7 @@ public sealed class ExcelTableFormatWorkflowTests {
         using var runspace = Open();
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
-        shell.AddCommand("Add-OfficeExcelTable").AddParameter("Worksheet", sheet)
+        shell.AddCommand("Add-OfficeExcelTable").AddParameter("Sheet", sheet)
             .AddParameter("InputObject", new Hashtable { ["Growth"] = 0.12 })
             .AddParameter("ColumnFormat", new Hashtable { ["Typo"] = "Percent" });
         var failure = Record.Exception(() => shell.Invoke());

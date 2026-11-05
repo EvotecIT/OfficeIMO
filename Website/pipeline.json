@@ -8,7 +8,9 @@
     {
       "task": "engine-lock",
       "id": "engine-lock-ci",
-      "modes": ["ci"],
+      "modes": [
+        "ci"
+      ],
       "operation": "verify",
       "path": "./.powerforge/engine-lock.json",
       "failOnDrift": true,
@@ -390,7 +392,10 @@
         "../OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj",
         "../OfficeIMO.Word.Rtf/OfficeIMO.Word.Rtf.csproj",
         "../OfficeIMO.Workflows/OfficeIMO.Workflows.csproj",
-        "../OfficeIMO.Archives/OfficeIMO.Archives.csproj"
+        "../OfficeIMO.Archives/OfficeIMO.Archives.csproj",
+        "../OfficeIMO.Publisher/OfficeIMO.Publisher.csproj",
+        "../OfficeIMO.Publisher.Pdf/OfficeIMO.Publisher.Pdf.csproj",
+        "../OfficeIMO.Reader.Publisher/OfficeIMO.Reader.Publisher.csproj"
       ],
       "configuration": "Release",
       "framework": "net8.0"
@@ -2743,6 +2748,39 @@
           "docsHome": "/docs/capabilities/packages/",
           "includeNamespace": "OfficeIMO",
           "packageId": "OfficeIMO.Archives"
+        },
+        {
+          "id": "publisher",
+          "xml": "../OfficeIMO.Publisher/bin/Release/net8.0/OfficeIMO.Publisher.xml",
+          "assembly": "../OfficeIMO.Publisher/bin/Release/net8.0/OfficeIMO.Publisher.dll",
+          "out": "./_site/api/publisher",
+          "title": "OfficeIMO.Publisher API Reference",
+          "baseUrl": "/api/publisher",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Publisher"
+        },
+        {
+          "id": "publisher-pdf",
+          "xml": "../OfficeIMO.Publisher.Pdf/bin/Release/net8.0/OfficeIMO.Publisher.Pdf.xml",
+          "assembly": "../OfficeIMO.Publisher.Pdf/bin/Release/net8.0/OfficeIMO.Publisher.Pdf.dll",
+          "out": "./_site/api/publisher-pdf",
+          "title": "OfficeIMO.Publisher.Pdf API Reference",
+          "baseUrl": "/api/publisher-pdf",
+          "docsHome": "/docs/capabilities/packages/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Publisher.Pdf"
+        },
+        {
+          "id": "reader-publisher",
+          "xml": "../OfficeIMO.Reader.Publisher/bin/Release/net8.0/OfficeIMO.Reader.Publisher.xml",
+          "assembly": "../OfficeIMO.Reader.Publisher/bin/Release/net8.0/OfficeIMO.Reader.Publisher.dll",
+          "out": "./_site/api/reader-publisher",
+          "title": "OfficeIMO.Reader.Publisher API Reference",
+          "baseUrl": "/api/reader-publisher",
+          "docsHome": "/docs/reader/",
+          "includeNamespace": "OfficeIMO",
+          "packageId": "OfficeIMO.Reader.Publisher"
         }
       ],
       "suiteEntries": [
@@ -2928,7 +2966,9 @@
     {
       "task": "hosting",
       "id": "export-static-redirects",
-      "dependsOn": ["build-site-xref-refresh"],
+      "dependsOn": [
+        "build-site-xref-refresh"
+      ],
       "siteRoot": "./_site",
       "target": "github-pages"
     },

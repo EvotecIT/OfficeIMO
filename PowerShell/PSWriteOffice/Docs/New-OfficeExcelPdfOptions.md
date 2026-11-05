@@ -6,25 +6,35 @@ schema: 2.0.0
 ---
 # New-OfficeExcelPdfOptions
 ## SYNOPSIS
-Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable Excel-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficeExcelPdfOptions [-PdfOptions <PdfCreateOptions>] [-FontFamily <string>] [-PageSize <PdfPageSize>] [-MarginLeft <Double>] [-MarginTop <Double>] [-MarginRight <Double>] [-MarginBottom <Double>] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-SheetName <string[]>] [-RespectWorkbookSheetVisibility] [-UseWorksheetPrintAreas] [-UseWorksheetPageSetup] [-UseWorksheetPrintTitleRows] [-UseWorksheetPageBreaks] [-UseWorksheetHeadersAndFooters] [-UseWorksheetHeaderFooterImages] [-UseWorksheetCellStyles] [-UseWorksheetHyperlinks] [-UseWorksheetImages] [-UseWorksheetCharts] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-UseWorksheetMergedCells] [-UseWorksheetColumnWidths] [-UseWorksheetRowHeights] [-RespectWorksheetHiddenRowsAndColumns] [-IncludeSheetHeadings] [-HeaderRowCount <Int32>] [-MaxRowsPerSheet <Int32>] [-UseBoundedWorksheetRead] [-EmptyCellText <string>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
+New-OfficeExcelPdfOptions [-PdfOptions <PdfCreateOptions>] [-Font <string>] [-PageSize <PdfPageSize>] [-MarginLeft <OfficeLength>] [-MarginTop <OfficeLength>] [-MarginRight <OfficeLength>] [-MarginBottom <OfficeLength>] [-WorksheetLayout <ExcelPdfWorksheetLayoutMode>] [-Sheet <OfficeSheetSelector[]>] [-RespectWorkbookSheetVisibility] [-UseWorksheetPrintAreas] [-UseWorksheetPageSetup] [-UseWorksheetPrintTitleRows] [-UseWorksheetPageBreaks] [-UseWorksheetHeadersAndFooters] [-UseWorksheetHeaderFooterImages] [-UseWorksheetCellStyles] [-UseWorksheetHyperlinks] [-UseWorksheetImages] [-UseWorksheetCharts] [-ChartStyle <OfficeChartStyle>] [-ChartLayout <OfficeChartLayout>] [-UseWorksheetMergedCells] [-UseWorksheetColumnWidths] [-UseWorksheetRowHeights] [-RespectWorksheetHiddenRowsAndColumns] [-IncludeSheetHeadings] [-HeaderRowCount <Int32>] [-MaxRowsPerSheet <Int32>] [-UseBoundedWorksheetRead] [-EmptyCellText <string>] [-AllowSystemFontEmbedding] [-AllowDocumentFontEmbedding] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates discoverable Excel-to-PDF conversion options for Export-OfficeDocumentPdf.
+Creates discoverable Excel-to-PDF conversion options for Convert-OfficeDocument -To Pdf.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeExcelPdfOptions -SheetName Summary,Services -UseWorksheetCharts -UseWorksheetImages
-Export-OfficeDocumentPdf -InputPath .\Report.xlsx -Path .\Report.pdf -ExcelOptions $options
+$pdf = New-OfficeExcelPdfOptions -Sheet Summary, Orders -UseWorksheetPrintAreas
+Convert-OfficeDocument -Path .\Reports\Q3-Sales.xlsx -OutputPath .\Reports\Q3-Sales.pdf -Options $pdf
 ```
 
+Converts only the Summary and Orders sheets, honouring the print areas set in the workbook.
+
+### EXAMPLE 2
+```powershell
+$pdf = New-OfficeExcelPdfOptions -PageSize A4 -MarginLeft 1.5cm -MarginRight 1.5cm -UseWorksheetPageSetup -UseWorksheetHeadersAndFooters -UseWorksheetPrintTitleRows -RespectWorkbookSheetVisibility
+Get-ChildItem -Path .\Reports -Filter *.xlsx |
+    Convert-OfficeDocument -To Pdf -OutputDirectory .\Pdf -Options $pdf
+```
+
+Converts every workbook in the folder to A4 PDFs that use each sheet's page setup, headers and repeated titles.
 
 ## PARAMETERS
 
@@ -108,7 +118,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FontFamily
+### -Font
 Default font family used when the workbook does not specify one.
 
 ```yaml
@@ -160,7 +170,7 @@ Accept wildcard characters: False
 Bottom page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -176,7 +186,7 @@ Accept wildcard characters: False
 Left page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -192,7 +202,7 @@ Accept wildcard characters: False
 Right page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -208,7 +218,7 @@ Accept wildcard characters: False
 Top page margin in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -300,13 +310,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -SheetName
-Worksheet names to export. The default exports all eligible sheets.
+### -Sheet
+Worksheet names, wildcard patterns or one-based positions. Live worksheet inputs are captured by name for reusable saved conversions.
 
 ```yaml
-Type: String[]
+Type: OfficeSheetSelector[]
 Parameter Sets: Default
-Aliases: SheetNames
+Aliases: None
 Possible values:
 
 Required: False

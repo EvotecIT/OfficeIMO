@@ -21,7 +21,7 @@ Describe 'OfficeIMO 3.4.4 integration' {
             }
         } | Out-Null
 
-        $rows = @(Get-OfficeExcelData -Path $path -Sheet Text)
+        $rows = @(Import-OfficeExcel -Path $path -Sheet Text)
         $rows | Should -HaveCount 3
         for ($index = 0; $index -lt $values.Count; $index++) {
             [System.String]::Equals($rows[$index].Text, $values[$index], [System.StringComparison]::Ordinal) |
@@ -35,9 +35,9 @@ Describe 'OfficeIMO 3.4.4 integration' {
         New-OfficePdf -Path $source { PdfParagraph 'Original body' } | Out-Null
         foreach ($watermark in @($false, $true)) {
             $output = Join-Path $TestDrive "stamped-$watermark.pdf"
-            Add-OfficePdfStamp -Path $source -OutputPath $output -Image $image -X 20 -Y 20 -Width 30 -Height 30 -Watermark:$watermark
-            (Get-OfficePdfPreflight -Path $output).CanRead | Should -BeTrue
-            (Read-OfficePdf -Path $output).Images.Count | Should -BeGreaterThan 0
+            Add-OfficePdfStamp -Path $source -OutputPath $output -ImagePath $image -X 20 -Y 20 -Width 30 -Height 30 -Behind:$watermark
+            (Get-OfficePdfDiagnostic -Type Preflight -Path $output).CanRead | Should -BeTrue
+            (Read-OfficeDocument -Path $output).Assets.Count | Should -BeGreaterThan 0
         }
         $handle = [System.IO.File]::Open($image, 'Open', 'ReadWrite', 'None')
         $handle.Dispose()
@@ -52,13 +52,13 @@ Describe 'OfficeIMO 3.4.4 integration' {
 
         { New-OfficePdf -Path (Join-Path $TestDrive 'oversized-inline.pdf') { PdfImage -Path $image -Width 20 -Height 20 } -ErrorAction Stop } |
             Should -Throw '*Encoded image input*exceeds*byte limit*'
-        { New-OfficePdf -Path (Join-Path $TestDrive 'oversized-background.pdf') { Set-OfficePdfBackgroundImage -Path $image } -ErrorAction Stop } |
+        { New-OfficePdf -Path (Join-Path $TestDrive 'oversized-background.pdf') { Set-OfficePdfBackground -ImagePath $image } -ErrorAction Stop } |
             Should -Throw '*Encoded image input*exceeds*byte limit*'
-        { New-OfficePdfTableCellImage -Path $image -Width 20 -Height 20 -ErrorAction Stop } |
+        { New-OfficePdfTableCell { PdfImage -Path $image -Width 20 -Height 20 } -ErrorAction Stop } |
             Should -Throw '*Encoded image input*exceeds*byte limit*'
         foreach ($watermark in @($false, $true)) {
             $output = Join-Path $TestDrive "blocked-$watermark.pdf"
-            { Add-OfficePdfStamp -Path $source -OutputPath $output -Image $image -Watermark:$watermark -ErrorAction Stop } |
+            { Add-OfficePdfStamp -Path $source -OutputPath $output -ImagePath $image -Behind:$watermark -ErrorAction Stop } |
                 Should -Throw '*exceeds the configured maximum size*'
             Test-Path -LiteralPath $output | Should -BeFalse
         }

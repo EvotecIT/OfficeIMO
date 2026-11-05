@@ -16,7 +16,7 @@
     "formatCount": 28,
     "capabilityCount": 137,
     "packageCount": 80,
-    "operationCount": 1442
+    "operationCount": 1444
   },
   "fidelityStates": [
     {
@@ -4389,10 +4389,11 @@
     {
       "id": "OfficeIMO.Pdf",
       "slug": "pdf",
-      "capabilityCount": 21,
+      "capabilityCount": 22,
       "formats": [
         "HEIC",
         "JPEG",
+        "Markdown",
         "PDF",
         "Pdf.Native",
         "PNG",
@@ -4414,7 +4415,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 1
+              "count": 2
             }
           ]
         },
@@ -5879,13 +5880,14 @@
     {
       "id": "OfficeIMO.Workflows",
       "slug": "workflows",
-      "capabilityCount": 9,
+      "capabilityCount": 10,
       "formats": [
         "Book project",
         "Book.Project",
         "DOCX",
         "EPUB",
-        "Markdown"
+        "Markdown",
+        "PowerPoint"
       ],
       "sourceCatalogs": [
         "OfficeConversionCapabilityCatalog",
@@ -5899,7 +5901,7 @@
               "id": "Partial",
               "label": "Partial",
               "description": "A bounded subset is implemented with explicit limits.",
-              "count": 3
+              "count": 4
             }
           ]
         },

@@ -5,10 +5,10 @@
       "old": "ExcelIWorkConverter.ConvertNumbersToExcel(path | stream, IWorkReadOptions, IWorkConversionOptions[, CancellationToken]) / ConvertNumbersToExcelResult",
       "kind": "method",
       "action": "remove",
-      "new": "IWorkSourceDocument.Open(path | stream, IWorkDocumentKind.Numbers, readOptions[, ct]).ToExcel(...) / ToExcelResult(...)",
+      "new": "IWorkSourceDocument.Load(path | stream, IWorkDocumentKind.Numbers, loadOptions[, ct]).ToExcel(...) / ToExcelResult(...)",
       "reason": "Converters use the shared shape: To{Target}(options[, out OfficeConversionReport], ct), To{Target}Async returning OfficeConversionResult<T>, and SaveAs{Target}(path | stream) returning OfficeConversionReport. Result, Bytes and Stream twins are removed.",
       "category": "conversion",
-      "replacement": "Open the source with IWorkSourceDocument.Open and call ToExcel, SaveAsExcel or ToExcelResult; append RequireCompleteEditableReconstruction() to keep the strict behaviour.",
+      "replacement": "Load the source with IWorkSourceDocument.Load and call ToExcel, SaveAsExcel or ToExcelResult; use ToExcelResult(...).RequireCompleteEditableReconstruction() to require complete editable output.",
       "applied": true
     },
     {

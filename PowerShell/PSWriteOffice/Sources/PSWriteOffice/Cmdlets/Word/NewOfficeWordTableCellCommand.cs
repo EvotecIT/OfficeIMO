@@ -1,116 +1,88 @@
+using System;
 using System.Management.Automation;
+using OfficeIMO;
 using OfficeIMO.Word;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Table;
-using PSWriteOffice.Services.Text;
+using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Creates a reusable Word table cell definition for explicit table rows.</summary>
-/// <example>
-///   <summary>Create a full-width Word table section row.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$row = @(New-OfficeWordTableCell -Text 'Identity systems' -ColumnSpan 3)</code>
-///   <para>The returned cell can be passed to WordTable inside explicit row arrays.</para>
-/// </example>
-[Cmdlet(VerbsCommon.New, "OfficeWordTableCell")]
-[Alias("WordTableCellSpec")]
+/// <summary>Creates a plain or recorded rich Word cell for explicit table rows.</summary>
+[Cmdlet(VerbsCommon.New, "OfficeWordTableCell", DefaultParameterSetName = "Text")]
 [OutputType(typeof(OfficeTableCellSpec))]
-public sealed class NewOfficeWordTableCellCommand : PSCmdlet
-{
-    /// <summary>Cell text.</summary>
-    [Parameter(Position = 0)]
+public sealed class NewOfficeWordTableCellCommand : PSCmdlet {
+    /// <summary>Text for the cell.</summary>
+    [Parameter(ParameterSetName = "Text", Position = 0)]
     public string? Text { get; set; }
-
-    /// <summary>Rich text runs for the cell. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.</summary>
-    [Parameter]
-    [Alias("Runs")]
-    public object[]? Run { get; set; }
-
-    /// <summary>Number of logical columns covered by the cell.</summary>
-    [Parameter]
-    [ValidateRange(1, int.MaxValue)]
+    /// <summary>ColumnSpan for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
     public int ColumnSpan { get; set; } = 1;
-
-    /// <summary>Number of logical rows covered by the cell.</summary>
-    [Parameter]
-    [ValidateRange(1, int.MaxValue)]
+    /// <summary>RowSpan for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
     public int RowSpan { get; set; } = 1;
-
-    /// <summary>Cell text color. Named colors and hexadecimal colors are accepted.</summary>
-    [Parameter]
-    [Alias("Color", "FontColor")]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? TextColor { get; set; }
-
-    /// <summary>Cell fill color. Named colors and hexadecimal colors are accepted.</summary>
-    [Parameter]
-    [Alias("BackgroundColor", "CellFill")]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? FillColor { get; set; }
-
-    /// <summary>Cell font size in points.</summary>
-    [Parameter]
-    [ValidateRange(1, int.MaxValue)]
-    public double? FontSize { get; set; }
-
-    /// <summary>Render the cell text in bold.</summary>
-    [Parameter]
+    /// <summary>BackgroundColor for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? BackgroundColor { get; set; }
+    /// <summary>Alignment for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
+    public OfficeAlignment? Alignment { get; set; }
+    /// <summary>VerticalAlignment for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [Parameter(ParameterSetName = "Content")]
+    public WordTableVerticalAlignment? VerticalAlignment { get; set; }
+    /// <summary>Bold for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
     public SwitchParameter Bold { get; set; }
-
-    /// <summary>Render the cell text in italics.</summary>
-    [Parameter]
+    /// <summary>Italic for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
     public SwitchParameter Italic { get; set; }
-
-    /// <summary>Render the cell text with underline.</summary>
-    [Parameter]
-    public SwitchParameter Underline { get; set; }
-
-    /// <summary>Optional Word underline style.</summary>
-    [Parameter]
-    public WordUnderlineStyle? UnderlineStyle { get; set; }
-
-    /// <summary>Render the cell text with strikethrough.</summary>
-    [Parameter]
-    public SwitchParameter Strike { get; set; }
-
-    /// <summary>Horizontal cell alignment.</summary>
-    [Parameter]
-    public WordParagraphAlignment? Align { get; set; }
-
-    /// <summary>Vertical cell alignment.</summary>
-    [Parameter]
-    public WordTableVerticalAlignment? VerticalAlign { get; set; }
-
+    /// <summary>Strikethrough for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public SwitchParameter Strikethrough { get; set; }
+    /// <summary>Underline for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public WordUnderlineStyle? Underline { get; set; }
+    /// <summary>Color for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? Color { get; set; }
+    /// <summary>Font for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    public string? Font { get; set; }
+    /// <summary>Size for the cell.</summary>
+    [Parameter(ParameterSetName = "Text")]
+    [OfficeLengthTransformation]
+    public OfficeLength? Size { get; set; }
+    /// <summary>Content for the cell.</summary>
+    [Parameter(ParameterSetName = "Content", Mandatory = true, Position = 0)]
+    public ScriptBlock? Content { get; set; }
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if (!string.IsNullOrEmpty(Text) && Run is { Length: > 0 })
-        {
-            throw new PSArgumentException("Use either -Text or -Run, not both.");
+    protected override void ProcessRecord() {
+        var content = new WordCellContent();
+        if (Content != null) { using (OfficeDocumentContext.Push(content)) Content.InvokeReturnAsIs(); }
+        else {
+            string text = Text ?? string.Empty;
+            bool bold = Bold, italic = Italic, strike = Strikethrough;
+            var underline = Underline; var color = Color; var font = Font; var size = Size;
+            content.Text.Add(paragraph => {
+                var run = paragraph.AddFormattedText(text, bold, italic, underline);
+                run.Strikethrough = strike;
+                if (color.HasValue) run.Color = color.Value;
+                if (font != null) run.FontFamily = font;
+                if (size.HasValue) run.FontSize = size.Value;
+            });
         }
-
-        var runs = Run is { Length: > 0 } ? OfficeTextRunParser.ParseMany(Run) : null;
-        WriteObject(new OfficeTableCellSpec(Text, ColumnSpan, RowSpan, CreateStyle(), runs));
-    }
-
-    private OfficeTableCellStyle? CreateStyle()
-    {
-        var style = new OfficeTableCellStyle
-        {
-            TextColor = TextColor,
-            FillColor = FillColor,
-            FontSize = FontSize,
-            Bold = Bold.IsPresent,
-            Italic = Italic.IsPresent,
-            Underline = Underline.IsPresent || UnderlineStyle.HasValue,
-            UnderlineStyle = UnderlineStyle?.ToString(),
-            Strike = Strike.IsPresent,
-            Align = Align?.ToString(),
-            VerticalAlign = VerticalAlign?.ToString()
+        var style = new OfficeTableCellStyle {
+            FillColor = BackgroundColor?.ToString(), Align = Alignment?.ToString(), VerticalAlign = VerticalAlignment?.ToString()
         };
-
-        return style.HasAnyValue ? style : null;
+        WriteObject(new OfficeTableCellSpec(Text, ColumnSpan, RowSpan, style.HasAnyValue ? style : null, runs: null, nativeCell: content));
     }
 }

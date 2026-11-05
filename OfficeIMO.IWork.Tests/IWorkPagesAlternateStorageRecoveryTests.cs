@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
                 ReferenceField(validField, 11), ReferenceField(invalidField, 12)),
             Message(ArchiveRecord(11, 2001, StringField(3, "Recoverable text")),
                 ArchiveRecord(12, 15, Message())));
-        var projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        var projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ReadPages();
         Assert.Equal("Recoverable text", Assert.Single(projection.TextBoxes));
         var issue = Assert.Single(projection.SourceReferenceIssues);
         Assert.Equal(IWorkSourceReferenceIssueKind.UnexpectedTargetType, issue.Kind);
@@ -22,10 +22,10 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(12ul, issue.TargetIdentifier);
         Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED");
         package.Position = 0;
-        using var fallback = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var fallback = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(fallback.IsVisualFallback);
         package.Position = 0;
-        using var partial = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var partial = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(partial.IsVisualFallback);
         using var saved = new MemoryStream(); partial.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(ReferenceField(2, 11), ReferenceField(4, 12)),
             Message(ArchiveRecord(11, 2001, StringField(3, "First")),
                 ArchiveRecord(12, 2001, StringField(3, "Second"))));
-        var projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ReadPages();
+        var projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ReadPages();
         Assert.Empty(projection.TextBoxes);
         Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_PAGES_DRAWABLE_UNSUPPORTED");
     }

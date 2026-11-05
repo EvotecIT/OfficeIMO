@@ -6,30 +6,53 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportSheet
 ## SYNOPSIS
-Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
+Creates a report worksheet and lays out report blocks inside it.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeExcelReportSheet [-Name] <string> [[-Content] <scriptblock>] [-SectionHeaderFillColor <string>] [-KeyFillColor <string>] [-NoAutoFit] [-AutoFitRows] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelReportSheet [-Name] <string> [[-Content] <scriptblock>] [-Document <ExcelDocument>] [-HeadingFillColor <OfficeColor>] [-KeyFillColor <OfficeColor>] [-NoAutoFit] [-AutoFitRows] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a worksheet through the OfficeIMO report builder and runs report-block cmdlets inside it.
+Creates a report worksheet and lays out report blocks inside it.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\report.xlsx {
-  Add-OfficeExcelReportSheet -Name Summary {
-    Add-OfficeExcelReportTitle -Title 'Operational Summary' -Subtitle 'Current view'
-    Add-OfficeExcelReportKpiRow -InputObject @{ Ready = 12; Blocked = 2 }
-  }
+New-OfficeExcel -Path .\Reports\Operations.xlsx {
+    ExcelReportSheet 'Summary' {
+        ExcelReportTitle 'Operations summary' 'Week 43, 2026'
+        ExcelReportKpi ([ordered]@{ Uptime = '99.97%'; Incidents = 4; 'Changes shipped' = 37 })
+    }
 }
 ```
 
-Creates a report-oriented worksheet with title and KPI blocks.
+Adds a Summary report sheet with a title and a KPI row, laid out by the report builder in the workbook theme.
+
+### EXAMPLE 2
+```powershell
+$sites = Import-OfficeCsv -Path .\Data\Site-Availability.csv
+$legend = @(
+    [pscustomobject]@{ Status = 'Met'; Meaning = 'Availability at or above the 99.9% target' }
+    [pscustomobject]@{ Status = 'Missed'; Meaning = 'Below target; a service credit may apply' }
+)
+New-OfficeExcel -Path .\Reports\Service-Review-October.xlsx -Theme Boardroom {
+    ExcelReportSheet 'Review' {
+        ExcelReportTitle 'Service review' 'October 2026'
+        ExcelReportKpi ([ordered]@{ Availability = '99.94%'; 'P1 incidents' = 1; 'Mean time to restore' = '42 min'; 'Changes' = 128 })
+        ExcelReportCallout Warning 'Two sites missed target' 'Gdansk and Porto were below 99.9% after the network maintenance on 14 October.'
+        ExcelReportHeading 'Availability by site'
+        ExcelReportTable $sites 'Sites'
+        ExcelReportChart -Type Column -Category Site -Value Availability -Title 'Availability by site'
+        ExcelReportSpacer
+        ExcelReportLegend 'Status' -Header Status, Meaning -InputObject $legend
+    }
+}
+```
+
+Lays out a complete service review: title, KPIs, a callout, a site table with its chart and a legend, all styled by the theme.
 
 ## PARAMETERS
 
@@ -50,7 +73,7 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Report block script to run inside the composer context.
+Excel child commands executed in the current content scope.
 
 ```yaml
 Type: ScriptBlock
@@ -65,11 +88,43 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Caller-owned workbook; omission uses the enclosing Excel content block.
+
+```yaml
+Type: ExcelDocument
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -HeadingFillColor
+Fill colour for report section headings.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -KeyFillColor
 Override the key-cell fill color used by KPI and property blocks.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -98,7 +153,7 @@ Accept wildcard characters: False
 ```
 
 ### -NoAutoFit
-Skip composer auto-fit finalization.
+Retains native column widths without fitting them to the data.
 
 ```yaml
 Type: SwitchParameter
@@ -114,26 +169,10 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the created worksheet.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SectionHeaderFillColor
-Override the section-header fill color.
-
-```yaml
-Type: String
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -150,7 +189,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 

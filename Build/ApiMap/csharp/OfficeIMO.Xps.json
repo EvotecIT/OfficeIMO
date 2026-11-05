@@ -29,6 +29,36 @@
       "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Xps.XpsPage.AddPath : XpsPage",
+      "new": "OfficeIMO.Xps.XpsPage.AddPath : XpsVisual",
+      "action": "change",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Add methods return the visual actually created.",
+      "replacement": "Retain the page variable for sibling additions. The returned handle exposes Page, GetMarkup and validated ReplaceMarkup. Path/Glyphs/image-brush XML and resource checks stay native. Page-wide ReplaceMarkup invalidates previous visual handles; a visual replacement preserves sibling handles.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Xps.XpsPage.AddText : XpsPage",
+      "new": "OfficeIMO.Xps.XpsPage.AddText : XpsVisual",
+      "action": "change",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Add methods return the visual actually created.",
+      "replacement": "Retain the page variable for sibling additions. The returned handle exposes Page, GetMarkup and validated ReplaceMarkup. Path/Glyphs/image-brush XML and resource checks stay native. Page-wide ReplaceMarkup invalidates previous visual handles; a visual replacement preserves sibling handles.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.Xps.XpsPage.AddImage : XpsPage",
+      "new": "OfficeIMO.Xps.XpsPage.AddImage : XpsVisual",
+      "action": "change",
+      "kind": "method",
+      "category": "authoring",
+      "reason": "Add methods return the visual actually created.",
+      "replacement": "Retain the page variable for sibling additions. The returned handle exposes Page, GetMarkup and validated ReplaceMarkup. Path/Glyphs/image-brush XML and resource checks stay native. Page-wide ReplaceMarkup invalidates previous visual handles; a visual replacement preserves sibling handles.",
+      "applied": true
     }
   ]
 }

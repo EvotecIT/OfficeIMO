@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal PowerPointTable Table { get; }
         internal IReadOnlyList<string> Headers => _header == null
-            ? Enumerable.Range(1, Table.Columns).Select(i => "Column " + i).ToArray() : Values(_header);
+            ? Enumerable.Range(1, Table.ColumnCount).Select(i => "Column " + i).ToArray() : Values(_header);
         internal IReadOnlyList<IReadOnlyList<string>> Rows => _rows.Select(Values).ToArray();
         private IReadOnlyList<string> Values(A.TableRow row) => row.Elements<A.TableCell>().Select(c => Table.WrapCell(c).Text).ToArray();
 

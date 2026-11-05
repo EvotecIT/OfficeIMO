@@ -8,12 +8,11 @@ Excel often sits in the middle of a pipeline: CSV or application data arrives, a
 
 ## Import delimited text
 
-`Import-OfficeExcelDelimitedText` adds normalized CSV or other delimited data to an existing workbook. Specify the delimiter and culture rather than relying on machine defaults.
+Read CSV or other delimited input with `Import-OfficeCsv`, then pass its rows to `Export-OfficeExcel`. Specify the delimiter and culture rather than relying on machine defaults.
 
 ```powershell
-Import-OfficeExcelDelimitedText -Path '.\Report.xlsx' `
-    -SourcePath '.\Sales.csv' -Delimiter ';' `
-    -CultureName 'en-US' -SheetName Sales
+Import-OfficeCsv -Path '.\Sales.csv' -Delimiter ';' -Culture en-US |
+    Export-OfficeExcel -Path '.\Report.xlsx' -Sheet Sales -Append
 ```
 
 The [delimited-import recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Excel/Recipe-Excel-ImportDelimited.ps1) imports an existing semicolon-delimited file into a named worksheet.

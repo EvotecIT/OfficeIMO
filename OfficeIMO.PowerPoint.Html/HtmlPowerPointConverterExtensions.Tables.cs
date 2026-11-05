@@ -88,7 +88,7 @@ public static partial class HtmlPowerPointConverterExtensions {
             foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Bold = true;
         }
         string fill = NormalizeSemanticColor(cell.Style?.GetValue("background-color"));
-        if (fill.Length > 0) targetCell.FillColor = fill;
+        if (fill.Length > 0) targetCell.FillColor = OfficeColor.ParseHex(fill);
         string color = NormalizeSemanticColor(cell.Style?.GetValue("color"));
         if (global::OfficeIMO.OfficeColor.TryParseHex(color, out global::OfficeIMO.OfficeColor textColor)) {
             foreach (PptCore.PowerPointTextRun run in targetCell.Runs) run.Color = textColor;

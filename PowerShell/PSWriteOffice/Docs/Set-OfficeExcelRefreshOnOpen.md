@@ -6,37 +6,36 @@ schema: 2.0.0
 ---
 # Set-OfficeExcelRefreshOnOpen
 ## SYNOPSIS
-Configures workbook data refresh metadata for Excel-compatible applications to run when the file opens.
+Turns refresh-on-open on or off for pivot caches and connections.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Set-OfficeExcelRefreshOnOpen [-PivotTables] [-Connections] [-Disable] [-SavePivotSourceData] [-NoSavePivotSourceData] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Path
-```powershell
-Set-OfficeExcelRefreshOnOpen [-Path] <string> [-PivotTables] [-Connections] [-Disable] [-SavePivotSourceData] [-NoSavePivotSourceData] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Set-OfficeExcelRefreshOnOpen -Document <ExcelDocument> [-PivotTables] [-Connections] [-Disable] [-SavePivotSourceData] [-NoSavePivotSourceData] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Set-OfficeExcelRefreshOnOpen [-Document <ExcelDocument>] [-PivotTables] [-Connections] [-Disable] [-SavePivotSourceData] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Configures workbook data refresh metadata for Excel-compatible applications to run when the file opens.
+Turns refresh-on-open on or off for pivot caches and connections.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $refresh = Set-OfficeExcelRefreshOnOpen -Path .\Report.xlsx -PivotTables -Connections -NoSavePivotSourceData -PassThru
-Get-OfficeExcelDataModel -Path .\Report.xlsx |
-    Select-Object ConnectionPartCount, QueryTablePartCount
+Open-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+    ExcelRefreshOnOpen -PivotTables
+}
 ```
 
-Sets workbook metadata through OfficeIMO so pivot caches refresh on open.
+Makes Excel refresh every pivot cache when the workbook opens.
+
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Archive\Sales-2026-09.xlsx {
+    ExcelRefreshOnOpen -PivotTables -Connections -Disable -PassThru
+}
+```
+
+Turns off refresh-on-open for pivot tables and connections in a month-end copy, so the archived figures stay as they were.
 
 ## PARAMETERS
 
@@ -45,7 +44,7 @@ Update workbook connection refresh-on-open metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -61,7 +60,7 @@ Disable refresh-on-open instead of enabling it.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -73,64 +72,32 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to update outside the DSL context.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -NoSavePivotSourceData
-Do not save pivot cache source data.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Path, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PassThru
-Emit the update summary.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
 Required: False
 Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Path
-Workbook path to update.
-
-```yaml
-Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
-Possible values:
-
-Required: True
-Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -141,7 +108,7 @@ Update pivot cache refresh-on-open metadata.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -157,7 +124,7 @@ Preserve pivot cache source data.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Path, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -177,7 +144,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

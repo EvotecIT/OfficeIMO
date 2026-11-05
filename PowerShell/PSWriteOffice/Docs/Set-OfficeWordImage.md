@@ -11,7 +11,7 @@ Updates OfficeIMO Word image sizing, wrapping, crop, and metadata.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeWordImage [-Image] <WordImage> [-Width <OfficeLength>] [-Height <OfficeLength>] [-Wrap <WordImageTextWrapping>] [-CropTop <Int32>] [-CropBottom <Int32>] [-CropLeft <Int32>] [-CropRight <Int32>] [-Rotation <Int32>] [-Opacity <Int32>] [-HorizontalFlip <Boolean>] [-VerticalFlip <Boolean>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeWordImage [-Image] <WordImage> [-Width <OfficeLength>] [-Height <OfficeLength>] [-Wrap <WordImageTextWrapping>] [-CropTop <Int32>] [-CropBottom <Int32>] [-CropLeft <Int32>] [-CropRight <Int32>] [-Rotation <Int32>] [-Opacity <Int32>] [-HorizontalFlip] [-VerticalFlip] [-Title <string>] [-Description <string>] [-Hidden] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -132,7 +132,7 @@ Accept wildcard characters: False
 Whether the image is hidden.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -148,7 +148,7 @@ Accept wildcard characters: False
 Horizontally flip the image.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -244,7 +244,7 @@ Accept wildcard characters: False
 Vertically flip the image.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:

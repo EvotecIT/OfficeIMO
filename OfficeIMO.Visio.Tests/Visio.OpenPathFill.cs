@@ -153,8 +153,8 @@ public sealed class VisioOpenPathFillTests {
     private static bool IsClosed(XElement path) => path.Attribute("d")!.Value.EndsWith(" Z", StringComparison.Ordinal);
 
     private static OfficeRasterImage Raster(VisioPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = 100, BackgroundColor = OfficeColor.White, Supersampling = 1,
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions {
+            TargetDpi = 100, BackgroundColor = OfficeColor.White, Supersampling = 1,
             RenderText = false, RenderStencilArtwork = false
         }), out OfficeRasterImage? image));
         return image!;

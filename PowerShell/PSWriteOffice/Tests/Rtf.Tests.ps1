@@ -12,15 +12,15 @@ Describe 'RTF cmdlets' {
         $rtfPath = Join-Path $TestDrive 'HtmlSource.rtf'
         $htmlPath = Join-Path $TestDrive 'HtmlRoundtrip.html'
 
-        ConvertTo-OfficeRtf -Html '<h1>Status</h1><p>Ready for HTML bridge</p>' -OutputPath $rtfPath -PassThru |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Rtf -From Html -Text '<h1>Status</h1><p>Ready for HTML bridge</p>' -OutputPath $rtfPath |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
 
         Test-Path -LiteralPath $rtfPath | Should -BeTrue
-        $html = ConvertFrom-OfficeRtf -Path $rtfPath -As Html
+        $html = Convert-OfficeDocument -To Html -Path $rtfPath -AsString
         $html | Should -Match 'Ready for HTML bridge'
 
-        ConvertFrom-OfficeRtf -Path $rtfPath -As Html -OutputPath $htmlPath -PassThru |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Html -Path $rtfPath -OutputPath $htmlPath |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
         (Get-Content -LiteralPath $htmlPath -Raw) | Should -Match 'Ready for HTML bridge'
     }
 
@@ -35,10 +35,10 @@ Describe 'RTF cmdlets' {
             }
         } | Out-Null
 
-        ConvertTo-OfficeRtf -WordPath $docPath -OutputPath $rtfPath -PassThru |
-            Should -BeOfType System.IO.FileInfo
-        ConvertFrom-OfficeRtf -Path $rtfPath -As Word -OutputPath $roundtripPath -PassThru |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Rtf -Path $docPath -OutputPath $rtfPath |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
+        Convert-OfficeDocument -To Word -Path $rtfPath -OutputPath $roundtripPath |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
 
         $document = Open-OfficeWord -Path $roundtripPath -ReadOnly
         try {
@@ -55,14 +55,14 @@ Describe 'RTF cmdlets' {
 
         New-OfficeRtf -Path $rtfPath -Text 'RTF PDF bridge' | Out-Null
 
-        ConvertFrom-OfficeRtf -Path $rtfPath -As Pdf -OutputPath $pdfPath -PassThru |
-            Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -To Pdf -Path $rtfPath -OutputPath $pdfPath |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
         Test-Path -LiteralPath $pdfPath | Should -BeTrue
         ([System.IO.File]::ReadAllBytes($pdfPath)[0..3] -join ',') | Should -Be '37,80,68,70'
 
-        ConvertTo-OfficeRtf -PdfPath $pdfPath -OutputPath $roundtripRtf -PassThru |
-            Should -BeOfType System.IO.FileInfo
-        (Get-OfficeRtf -Path $roundtripRtf).ToRtfLossless() | Should -Match 'RTF PDF bridge'
+        Convert-OfficeDocument -To Rtf -Path $pdfPath -OutputPath $roundtripRtf |
+            Should -BeOfType OfficeIMO.OfficeConversionReport
+        (Open-OfficeRtf -Path $roundtripRtf -AsResult).ToRtfLossless() | Should -Match 'RTF PDF bridge'
     }
 
     It 'creates and reads RTF files through OfficeIMO.Rtf' {
@@ -73,7 +73,7 @@ Describe 'RTF cmdlets' {
         $file | Should -BeOfType System.IO.FileInfo
         Test-Path -LiteralPath $path | Should -BeTrue
 
-        $rtf = Get-OfficeRtf -Path $path
+        $rtf = Open-OfficeRtf -Path $path -AsResult
         $rtf.GetType().FullName | Should -Be 'OfficeIMO.Rtf.RtfReadResult'
         $rtf.Document.Paragraphs.Count | Should -Be 2
         $rtf.Document.Paragraphs[0].ToPlainText() | Should -Be 'Summary'
@@ -88,7 +88,7 @@ Describe 'RTF cmdlets' {
         $file = Update-OfficeRtfText -Path $sourcePath -OutputPath $outputPath -OldText Draft -NewText Final -AppendParagraph 'Reviewed' -DocumentProperty @{ Title = 'Final report' } -UserProperty @{ Client = 'Contoso' } -DocumentVariable @{ Stage = 'Final' } -PassThru
 
         $file | Should -BeOfType System.IO.FileInfo
-        $rtf = Get-OfficeRtf -Path $outputPath
+        $rtf = Open-OfficeRtf -Path $outputPath -AsResult
         ($rtf.Document.Paragraphs | ForEach-Object ToPlainText) -join "`n" | Should -Match 'Final summary'
         ($rtf.Document.Paragraphs | ForEach-Object ToPlainText) -join "`n" | Should -Match 'Reviewed'
         $rtf.ToRtfLossless() | Should -Match 'Final report'

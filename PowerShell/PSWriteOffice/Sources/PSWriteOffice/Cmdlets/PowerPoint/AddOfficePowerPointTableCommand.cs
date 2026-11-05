@@ -23,8 +23,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///   <para>Creates a table with headers and two data rows.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointTable", DefaultParameterSetName = ParameterSetInputObject)]
-[Alias("PowerPointTable")]
 [OutputType(typeof(PowerPointTable))]
+[Alias("PowerPointTable") ]
 public sealed class AddOfficePowerPointTableCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     private const string ParameterSetInputObject = "InputObject";
     private const string ParameterSetSize = "Size";

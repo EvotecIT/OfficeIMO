@@ -11,10 +11,8 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Excel {
-        [Theory]
-        [InlineData(true, false, false, true)]
-        [InlineData(false, false, true, false)]
-        public void WriteDataReader_RequireStreamingRejectsBufferingBeforeReading(bool sharedStrings, bool autoFit, bool table, bool headers) {
+        [Fact]
+        public void WriteDataReader_RequireStreamingRejectsSharedStringsBeforeReading() {
             var source = new DataTable();
             source.Columns.Add("Value", typeof(int));
             source.Rows.Add(42);
@@ -24,10 +22,7 @@ namespace OfficeIMO.Tests {
                 var destination1 = output;
                 var writeOptions1 = new ExcelWriterOptions {
                     RequireStreaming = true,
-                    UseSharedStrings = sharedStrings,
-                    AutoFit = autoFit,
-                    CreateTable = table,
-                    IncludeHeaders = headers
+                    UseSharedStrings = true
                 };
                 using (var workbookWriter1 = ExcelDocument.CreateWriter(destination1, writeOptions1, leaveOpen: true)) {
                     return workbookWriter1.WriteTable(writeOptions1.SheetName, reader);
@@ -36,6 +31,69 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, output.Length);
             Assert.True(reader.Read());
             Assert.Equal(42, reader.GetInt32(0));
+        }
+
+        [Fact]
+        public void StreamingWriter_RequireStreamingWritesHeaderlessTableInOnePass() {
+            var source = new DataTable();
+            source.Columns.Add("Id", typeof(int));
+            source.Columns.Add("Name", typeof(string));
+            source.Rows.Add(42, "First");
+            source.Rows.Add(84, "Second");
+            using var reader = source.CreateDataReader();
+            using var output = new MemoryStream();
+            int enumerations = 0;
+            int written = 0;
+            bool sourceDisposed = false;
+            ExcelDataSetImportResult result;
+            using (var writer = ExcelDocument.CreateWriter(output, new ExcelWriterOptions {
+                RequireStreaming = true,
+                IncludeHeaders = false,
+                CreateTable = true,
+                Address = "C5",
+                Title = "Results"
+            }, leaveOpen: true)) {
+                result = writer.WriteTable("Data", Rows(), ["Id", "Name"], (row, record) => {
+                    row.Write(record.GetInt32(0)).Write(record.GetString(1));
+                    written++;
+                });
+            }
+
+            Assert.Equal(1, enumerations);
+            Assert.Equal(2, written);
+            Assert.True(sourceDisposed);
+            Assert.False(reader.IsClosed);
+            Assert.Equal(2, result.RowCount);
+            Assert.Equal("C6:D7", result.Range);
+            output.Position = 0;
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            var worksheet = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            var table = worksheet.TableDefinitionParts.Single().Table!;
+            Assert.Equal(0U, table.HeaderRowCount?.Value);
+            Assert.Equal("C6:D7", table.Reference?.Value);
+            Assert.Equal(new[] { "Id", "Name" }, table.TableColumns!.Elements<TableColumn>().Select(column => column.Name!.Value));
+            Assert.Null(table.AutoFilter);
+            Assert.Null(spreadsheet.WorkbookPart.SharedStringTablePart);
+            var cells = worksheet.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
+            Assert.Equal(5, cells.Count);
+            Assert.Equal("Results", GetSpreadsheetCellText(spreadsheet, cells["C5"]));
+            Assert.Equal("42", cells["C6"].CellValue!.Text);
+            Assert.Equal("First", GetSpreadsheetCellText(spreadsheet, cells["D6"]));
+            Assert.Equal("84", cells["C7"].CellValue!.Text);
+            Assert.Equal("Second", GetSpreadsheetCellText(spreadsheet, cells["D7"]));
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+
+            IEnumerable<IDataRecord> Rows() {
+                Assert.Equal(1, ++enumerations);
+                int read = 0;
+                try {
+                    while (reader.Read()) {
+                        read++;
+                        yield return reader;
+                        Assert.Equal(read, written);
+                    }
+                } finally { sourceDisposed = true; }
+            }
         }
 
         [Fact]
@@ -433,8 +491,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Second", values[2, 1]);
         }
 
-        [Fact]
-        public void WriteDataReader_HeaderlessEmptyReaderWritesValidEmptySheet() {
+        [Theory]
+        [InlineData("A1", null)]
+        [InlineData("C5", null)]
+        [InlineData("C5", "Results")]
+        public void WriteDataReader_HeaderlessEmptyReaderWritesValidEmptySheet(string address, string? title) {
             var table = new DataTable("Empty");
             table.Columns.Add("Id", typeof(int));
             using var reader = table.CreateDataReader();
@@ -445,7 +506,9 @@ namespace OfficeIMO.Tests {
             var destination13 = output;
 
             var writeOptions13 = new ExcelWriterOptions {
-                IncludeHeaders = false
+                IncludeHeaders = false,
+                Address = address,
+                Title = title
             };
 
             using (var workbookWriter13 = ExcelDocument.CreateWriter(destination13, writeOptions13, leaveOpen: true)) {
@@ -458,7 +521,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(string.Empty, result.Range);
             Assert.Equal(0, result.RowCount);
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
-            Assert.Empty(spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet.Descendants<Cell>());
+            var cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Cell>();
+            if (title == null) Assert.Empty(cells);
+            else {
+                Cell cell = Assert.Single(cells);
+                Assert.Equal(address, cell.CellReference?.Value);
+                Assert.Equal(title, GetSpreadsheetCellText(spreadsheet, cell));
+            }
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 

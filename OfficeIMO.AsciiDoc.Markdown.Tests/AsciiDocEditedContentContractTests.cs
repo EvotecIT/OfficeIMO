@@ -16,15 +16,15 @@ public sealed class AsciiDocEditedContentContractTests {
         definition.Description = "Changed definition";
 
         string native = document.ToAsciiDoc();
-        AsciiDocToMarkdownResult conversion = document.ToMarkdownDocumentResult();
-        string markdown = ((conversion.Value.ToMarkdown()));
+        var conversion = document.ToMarkdown(null);
+        string markdown = ((conversion.ToMarkdown()));
         foreach (string value in new[] { "Changed title", "Latest", "Changed item", "Changed note", "Changed term", "Changed definition" }) {
             Assert.Contains(value, native, StringComparison.Ordinal);
             Assert.Contains(value, markdown, StringComparison.Ordinal);
         }
         Assert.Equal("Latest *paragraph*", paragraph.Text);
         Assert.DoesNotContain("Original", markdown, StringComparison.Ordinal);
-        using var word = conversion.Value.ToWord();
+        using var word = conversion.ToWord();
         Assert.Contains("Latest", string.Join(" ", word.Paragraphs.Select(item => item.Text)), StringComparison.Ordinal);
     }
 
@@ -34,23 +34,24 @@ public sealed class AsciiDocEditedContentContractTests {
     [InlineData("--")]
     public void CompoundContainerPreservesAllParagraphsAndLists(string delimiter) {
         string source = delimiter + "\nFirst paragraph.\n\nSecond paragraph.\n\n* List item\n" + delimiter + "\n";
-        AsciiDocToMarkdownResult result = AsciiDocDocument.Parse(source).ToMarkdownDocumentResult();
-        Assert.Equal(2, result.Value.Blocks.OfType<ParagraphBlock>().Count());
-        Assert.Single(result.Value.Blocks.OfType<UnorderedListBlock>());
-        string markdown = ((result.Value.ToMarkdown()));
+        var result = AsciiDocDocument.Parse(source).ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport2);
+        var resultReport = (AsciiDocToMarkdownReport)conversionReport2;
+        Assert.Equal(2, result.Blocks.OfType<ParagraphBlock>().Count());
+        Assert.Single(result.Blocks.OfType<UnorderedListBlock>());
+        string markdown = ((result.ToMarkdown()));
         Assert.Contains("First paragraph.", markdown, StringComparison.Ordinal);
         Assert.Contains("Second paragraph.", markdown, StringComparison.Ordinal);
         Assert.Contains("List item", markdown, StringComparison.Ordinal);
-        Assert.Equal(AsciiDocMarkdownConversionOutcome.Simplified, Assert.Single(result.Report.NativeDiagnostics).Outcome);
+        Assert.Equal(AsciiDocMarkdownConversionOutcome.Simplified, Assert.Single(resultReport.NativeDiagnostics).Outcome);
     }
 
     [Fact]
     public void AttributeAssignmentsCaptureDocumentOrderAndUnsetFinalMetadata() {
         const string source = ":version: one\n:captured: {version}\n:draft:\n\n{version}\n\n:version: two\n:draft!:\n\n{version}\n\n{captured}\n";
-        AsciiDocToMarkdownResult result = AsciiDocDocument.Parse(source).ToMarkdownDocumentResult();
-        string[] paragraphs = result.Value.Blocks.OfType<ParagraphBlock>().Select(item => { using var blockDocument = MarkdownDocument.Create(); blockDocument.Add(item); return blockDocument.ToMarkdown(); }).ToArray();
+        var result = AsciiDocDocument.Parse(source).ToMarkdown(null);
+        string[] paragraphs = result.Blocks.OfType<ParagraphBlock>().Select(item => { using var blockDocument = MarkdownDocument.Create(); blockDocument.Add(item); return blockDocument.ToMarkdown(); }).ToArray();
         Assert.Equal(new[] { "one", "two", "one" }, paragraphs.Select(value => value.Trim()));
-        Assert.DoesNotContain("draft:", ((result.Value.ToMarkdown())), StringComparison.Ordinal);
+        Assert.DoesNotContain("draft:", ((result.ToMarkdown())), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -58,7 +59,7 @@ public sealed class AsciiDocEditedContentContractTests {
         AsciiDocDocument document = AsciiDocDocument.Parse(":value: before\n\n====\n{value}\n\n:value: inside\n\n{value}\n====\n\n{value}\n");
         AsciiDocDelimitedBlock container = document.BlocksOfType<AsciiDocDelimitedBlock>().Single();
         container.Body!.BlocksOfType<AsciiDocParagraph>().Last().Text = "Edited {value}";
-        var paragraphs = document.ToMarkdownDocumentResult().Value.Blocks.OfType<ParagraphBlock>()
+        var paragraphs = document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport4).Blocks.OfType<ParagraphBlock>()
             .Select(block => { using var blockDocument = MarkdownDocument.Create(); blockDocument.Add(block); return blockDocument.ToMarkdown().Trim(); }).ToArray();
         Assert.Equal(new[] { "before", "Edited inside", "inside" }, paragraphs);
     }
@@ -66,7 +67,9 @@ public sealed class AsciiDocEditedContentContractTests {
     [Fact]
     public void CompoundFallbackDiagnosticsUseOriginalSourceLines() {
         AsciiDocDocument document = AsciiDocDocument.Parse("= Title\n\n====\ncustom:value[]\n====\n");
-        AsciiDocMarkdownConversionDiagnostic inline = Assert.Single(document.ToMarkdownDocumentResult().Report.NativeDiagnostics, diagnostic => diagnostic.Code == "ADOCMD102");
+        document.ToMarkdown(null, out OfficeConversionReport report);
+        AsciiDocMarkdownConversionDiagnostic inline = Assert.Single(((AsciiDocToMarkdownReport)report).NativeDiagnostics,
+            diagnostic => diagnostic.Code == "ADOCMD102");
         Assert.Equal(4, inline.SourceSpan.Start.Line);
     }
 }

@@ -13,25 +13,24 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// $cell = $table | Get-OfficeWordTableCell -Row 1 -Column 2
 /// $cell.Paragraphs |
 ///     Select-Object -Property Text</code>
-///   <para>Gets a zero-based table cell from an OfficeIMO table object and inspects its paragraphs.</para>
+///   <para>Gets a one-based table cell from an OfficeIMO table object and inspects its paragraphs.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeWordTableCell", DefaultParameterSetName = "Default")]
-[Alias("WordTableCells")]
 [OutputType(typeof(WordTableCell))]
 public sealed class GetOfficeWordTableCellCommand : PSCmdlet
 {
     /// <summary>Table to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0, ParameterSetName = "Default")]
     public WordTable Table { get; set; } = null!;
 
-    /// <summary>Optional zero-based row index.</summary>
+    /// <summary>Optional one-based row index.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
+    [ValidateRange(1, int.MaxValue)]
     public int? Row { get; set; }
 
-    /// <summary>Optional zero-based column index.</summary>
+    /// <summary>Optional one-based column index.</summary>
     [Parameter]
-    [ValidateRange(0, int.MaxValue)]
+    [ValidateRange(1, int.MaxValue)]
     public int? Column { get; set; }
 
     /// <inheritdoc />
@@ -47,22 +46,22 @@ public sealed class GetOfficeWordTableCellCommand : PSCmdlet
 
     private IEnumerable<WordTableCell> ResolveCells()
     {
-        if (Row.HasValue && Row.Value >= Table.RowsCount)
+        if (Row.HasValue && Row.Value > Table.RowCount)
         {
-            throw new PSArgumentOutOfRangeException(nameof(Row), Row.Value, $"Table contains {Table.RowsCount} rows.");
+            throw new PSArgumentOutOfRangeException(nameof(Row), Row.Value, $"Table contains {Table.RowCount} rows.");
         }
 
         if (Row.HasValue)
         {
-            var row = Table.Rows[Row.Value];
+            var row = Table.Rows[Row.Value - 1];
             if (Column.HasValue)
             {
-                if (Column.Value >= row.CellsCount)
+                if (Column.Value > row.CellsCount)
                 {
                     throw new PSArgumentOutOfRangeException(nameof(Column), Column.Value, $"Row {Row.Value} contains {row.CellsCount} cells.");
                 }
 
-                yield return row.Cells[Column.Value];
+                yield return row.Cells[Column.Value - 1];
                 yield break;
             }
 
@@ -77,9 +76,9 @@ public sealed class GetOfficeWordTableCellCommand : PSCmdlet
         {
             if (Column.HasValue)
             {
-                if (Column.Value < row.CellsCount)
+                if (Column.Value <= row.CellsCount)
                 {
-                    yield return row.Cells[Column.Value];
+                    yield return row.Cells[Column.Value - 1];
                 }
                 continue;
             }

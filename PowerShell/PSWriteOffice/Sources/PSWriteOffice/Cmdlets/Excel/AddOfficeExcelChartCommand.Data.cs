@@ -29,21 +29,27 @@ public sealed partial class AddOfficeExcelChartCommand {
             return new ChartPlan(data, Range, !NoHeader.IsPresent);
         }
 
+        return PlanTable(sheet, Table, Category, Value);
+    }
+
+    internal static ChartPlan ReportTablePlan(ExcelSheet sheet, string table, string? category, string[]? values) => PlanTable(sheet, table, category, values);
+
+    private static ChartPlan PlanTable(ExcelSheet sheet, string tableName, string? category, string[]? values) {
         var table = sheet.GetTables().SingleOrDefault(item =>
-            string.Equals(item.Name, Table, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(item.DisplayName, Table, StringComparison.OrdinalIgnoreCase));
-        if (table == null) throw new PSArgumentException($"Table '{Table}' was not found on sheet '{sheet.Name}'.", nameof(Table));
+            string.Equals(item.Name, tableName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.DisplayName, tableName, StringComparison.OrdinalIgnoreCase));
+        if (table == null) throw new PSArgumentException($"tableName '{tableName}' was not found on sheet '{sheet.Name}'.", nameof(tableName));
         var tableBounds = ParseSourceRange(table.Range);
         int firstRow = tableBounds.Top + (table.HasHeaderRow ? 1 : 0);
         int lastRow = tableBounds.Bottom - (table.TotalsRowShown ? 1 : 0);
-        if (firstRow > lastRow) throw new PSArgumentException($"Table '{Table}' contains no data rows.", nameof(Table));
+        if (firstRow > lastRow) throw new PSArgumentException($"tableName '{tableName}' contains no data rows.", nameof(tableName));
         string[] names = table.Columns.Select(column => column.Name).ToArray();
         if (names.Length != tableBounds.Right - tableBounds.Left + 1) {
-            throw new PSArgumentException($"Table '{Table}' has an inconsistent column definition.", nameof(Table));
+            throw new PSArgumentException($"tableName '{tableName}' has an inconsistent column definition.", nameof(tableName));
         }
 
-        int categoryIndex = FindColumn(names, Category ?? names[0], nameof(Category));
-        int[] valueIndexes = SelectValues(names, categoryIndex,
+        int categoryIndex = FindColumn(names, category ?? names[0], nameof(category));
+        int[] valueIndexes = SelectValues(names, categoryIndex, values,
             index => Enumerable.Range(firstRow, lastRow - firstRow + 1).All(row =>
                 TryReadNumber(sheet, row, tableBounds.Left + index, out _)));
         int[] valueColumns = valueIndexes.Select(index => tableBounds.Left + index).ToArray();
@@ -66,7 +72,7 @@ public sealed partial class AddOfficeExcelChartCommand {
         }
         var names = table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray();
         int categoryIndex = FindColumn(names, Category!, nameof(Category));
-        int[] valueIndexes = SelectValues(names, categoryIndex, _ => false);
+        int[] valueIndexes = SelectValues(names, categoryIndex, Value, _ => false);
         var categories = table.Rows.Cast<DataRow>().Select(row => CategoryText(row[categoryIndex])).ToArray();
         var series = valueIndexes.Select(index => new OfficeSeries(names[index],
             table.Rows.Cast<DataRow>().Select(row => RequireNumber(row[index], names[index])))).ToArray();
@@ -86,17 +92,17 @@ public sealed partial class AddOfficeExcelChartCommand {
     }
 
     /// <summary>Resolves explicit headers or infers fully numeric columns, excluding the category and duplicate selections.</summary>
-    private int[] SelectValues(string[] names, int category, Func<int, bool> isNumeric) {
+    private static int[] SelectValues(string[] names, int category, string[]? values, Func<int, bool> isNumeric) {
         int[] indexes;
-        if (Value == null) {
+        if (values == null) {
             indexes = Enumerable.Range(0, names.Length).Where(index => index != category && isNumeric(index)).ToArray();
         } else {
-            if (Value.Length == 0) throw new PSArgumentException("Provide at least one value column.", nameof(Value));
-            indexes = Value.Select(name => FindColumn(names, name, nameof(Value))).ToArray();
-            if (indexes.Contains(category)) throw new PSArgumentException("A category column cannot also be a value column.", nameof(Value));
-            if (indexes.Distinct().Count() != indexes.Length) throw new PSArgumentException("Value columns must be distinct.", nameof(Value));
+            if (values.Length == 0) throw new PSArgumentException("Provide at least one value column.", nameof(values));
+            indexes = values.Select(name => FindColumn(names, name, nameof(values))).ToArray();
+            if (indexes.Contains(category)) throw new PSArgumentException("A category column cannot also be a value column.", nameof(values));
+            if (indexes.Distinct().Count() != indexes.Length) throw new PSArgumentException("values columns must be distinct.", nameof(values));
         }
-        if (indexes.Length == 0) throw new PSArgumentException("No numeric value columns were found; select numeric columns with -Value.", nameof(Value));
+        if (indexes.Length == 0) throw new PSArgumentException("No numeric value columns were found; select numeric columns with -values.", nameof(values));
         return indexes;
     }
 
@@ -166,7 +172,7 @@ public sealed partial class AddOfficeExcelChartCommand {
         return (top, left, bottom, right);
     }
 
-    private sealed class ChartPlan {
+    internal sealed class ChartPlan {
         internal ChartPlan(OfficeChartData data, string? sourceRange, bool hasHeaders, DataTable? inputTable = null, int startRow = 0) {
             Data = data;
             SourceRange = sourceRange;

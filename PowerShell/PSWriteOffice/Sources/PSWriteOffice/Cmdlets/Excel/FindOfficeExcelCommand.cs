@@ -1,92 +1,94 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
-using System.Text.RegularExpressions;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
+using System.Text.RegularExpressions;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Finds text in worksheet values.</summary>
+/// <summary>Finds cells whose values match a pattern in a workbook, sheet or range.</summary>
 /// <example>
-///   <summary>Find status values and export their addresses.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$matches = Find-OfficeExcel -Path .\Report.xlsx -Text Ready -Sheet Summary
-/// $matches |
-///     Select-Object -Property Sheet, Address, Value |
-///     Export-Csv -Path .\ReadyCells.csv -NoTypeInformation</code>
-///   <para>Returns matching cells with sheet, address, row, column, and value metadata for review or proof.</para>
+/// <summary>Find cells containing a value</summary>
+/// <code>Find-OfficeExcel -Path .\Reports\Inventory.xlsx -Pattern 'WEB01' -SimpleMatch</code>
+/// <para>Lists every cell in the workbook that mentions the server WEB01.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Find, "OfficeExcel", DefaultParameterSetName = ParameterSetPath)]
-[OutputType(typeof(PSObject))]
+/// <example>
+/// <summary>Find retired certificates that are still listed</summary>
+/// <code>$old = Import-OfficeCsv -Path .\Security\Retired-Certificates.csv
+/// foreach ($certificate in $old) {
+///     Find-OfficeExcel -Path .\Security\Certificates.xlsx -Sheet Inventory -Pattern $certificate.Thumbprint -SimpleMatch -Exact
+/// }</code>
+/// <para>Looks up each retired certificate thumbprint on the inventory sheet and shows where it still appears.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Find, "OfficeExcel", DefaultParameterSetName = "Document")]
 public sealed class FindOfficeExcelCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook path to inspect.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Workbook to inspect outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Text or pattern to find.</summary>
+    /// <summary>Date or DateTime number format pattern.</summary>
     [Parameter(Mandatory = true, Position = 1)]
-    public string Text { get; set; } = string.Empty;
+    public string Pattern { get; set; } = null!;
 
-    /// <summary>Worksheet name. Defaults to all sheets for path/document use and current sheet inside an ExcelSheet block.</summary>
-    [Parameter]
-    [Alias("WorksheetName")]
-    public string? Sheet { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Worksheet index when using a workbook object or path.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>A1 range to search. Defaults to each selected worksheet's used range.</summary>
-    [Parameter]
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter()]
     public string? Range { get; set; }
 
-    /// <summary>Use case-sensitive matching.</summary>
-    [Parameter]
+    /// <summary>Uses literal text matching instead of regular expressions.</summary>
+    [Parameter()]
+    public SwitchParameter SimpleMatch { get; set; }
+
+    /// <summary>Matches names and text using ordinal case sensitivity. Omission ignores case.</summary>
+    [Parameter()]
     public SwitchParameter CaseSensitive { get; set; }
 
-    /// <summary>Treat -Text as a regular expression.</summary>
-    [Parameter]
-    public SwitchParameter Regex { get; set; }
-
     /// <summary>Require an exact cell text match instead of substring matching.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter Exact { get; set; }
+
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
-        var document = workbook.Document;
-        foreach (var sheet in ExcelWorkbookCommandService.ResolveSheets(this, document, ParameterSetName, Sheet, SheetIndex)) {
-            var range = string.IsNullOrWhiteSpace(Range) ? sheet.UsedRange.Address : Range!;
-            foreach (var cell in sheet.EnumerateRange(range)) {
-                var cellText = Convert.ToString(cell.Value, CultureInfo.InvariantCulture) ?? string.Empty;
-                if (IsMatch(cellText)) {
-                    WriteObject(CreateRecord(sheet.Name, cell.Row, cell.Column, cell.Value));
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) {
+            foreach (var sheet in ExcelSheetResolver.ResolveMany(scope.Document, Sheet, Document == null && !scope.OwnsDocument ? ExcelDslContext.Current?.CurrentSheet : null))
+                foreach (var cell in sheet.EnumerateRange(Range ?? sheet.UsedRange.Address)) {
+                    if (IsMatch(Convert.ToString(cell.Value, CultureInfo.InvariantCulture) ?? string.Empty)) WriteObject(CreateRecord(sheet.Name, cell.Row, cell.Column, cell.Value));
                 }
-            }
         }
     }
-
     private bool IsMatch(string value) {
         var comparison = CaseSensitive.IsPresent ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase;
-        if (Regex.IsPresent) {
+        if (!SimpleMatch.IsPresent) {
             var options = CaseSensitive.IsPresent ? RegexOptions.None : RegexOptions.IgnoreCase;
-            return System.Text.RegularExpressions.Regex.IsMatch(value, Text, options);
+            return System.Text.RegularExpressions.Regex.IsMatch(value, Pattern, options);
         }
 
         return Exact.IsPresent
-            ? string.Equals(value, Text, comparison)
-            : value.IndexOf(Text, comparison) >= 0;
+            ? string.Equals(value, Pattern, comparison)
+            : value.IndexOf(Pattern, comparison) >= 0;
     }
 
     private static PSObject CreateRecord(string sheetName, int row, int column, object? value) {
@@ -98,4 +100,5 @@ public sealed class FindOfficeExcelCommand : PSCmdlet {
         record.Properties.Add(new PSNoteProperty("Value", value));
         return record;
     }
+
 }

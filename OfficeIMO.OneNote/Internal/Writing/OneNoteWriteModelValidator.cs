@@ -11,7 +11,7 @@ internal static class OneNoteWriteModelValidator {
         int maxContentDepth) {
         ArgumentNullException.ThrowIfNull(section);
         var state = new ValidationState(
-            OneNoteWriterOptions.DefaultMaxSectionGroupDepth,
+            OneNoteSaveOptions.DefaultMaxSectionGroupDepth,
             maxPageRelationshipDepth,
             maxContentDepth,
             validateSectionContent: true);
@@ -20,7 +20,7 @@ internal static class OneNoteWriteModelValidator {
 
     internal static void ValidateNotebook(
         OneNoteNotebook notebook,
-        OneNoteWriterOptions options,
+        OneNoteSaveOptions options,
         bool validateSectionContent) {
         ArgumentNullException.ThrowIfNull(notebook);
         ArgumentNullException.ThrowIfNull(options);

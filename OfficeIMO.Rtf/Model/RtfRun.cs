@@ -39,10 +39,10 @@ public sealed partial class RtfRun : IRtfInline {
     public RtfUnderlineStyle? DirectUnderlineStyle { get; set; }
 
     /// <summary>Whether the run is struck through.</summary>
-    public bool Strike { get; set; }
+    public bool Strikethrough { get; set; }
 
     /// <summary>Whether the run uses double strikethrough.</summary>
-    public bool DoubleStrike { get; set; }
+    public bool DoubleStrikethrough { get; set; }
 
     /// <summary>Whether the run is hidden text.</summary>
     public bool Hidden { get => DirectHidden ?? false; set => DirectHidden = value; }
@@ -207,14 +207,14 @@ public sealed partial class RtfRun : IRtfInline {
     }
 
     /// <summary>Enables strike-through formatting.</summary>
-    public RtfRun SetStrike(bool value = true) {
-        Strike = value;
+    public RtfRun SetStrikethrough(bool value = true) {
+        Strikethrough = value;
         return this;
     }
 
     /// <summary>Enables double strike-through formatting.</summary>
-    public RtfRun SetDoubleStrike(bool value = true) {
-        DoubleStrike = value;
+    public RtfRun SetDoubleStrikethrough(bool value = true) {
+        DoubleStrikethrough = value;
         return this;
     }
 

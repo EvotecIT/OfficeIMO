@@ -46,6 +46,12 @@ public sealed class LatexMarkdownConversionDiagnostic {
 
 /// <summary>LaTeX-to-Markdown options.</summary>
 public sealed class LatexMarkdownExportOptions {
+    /// <summary>Creates an independent copy of these conversion settings.</summary>
+    public LatexMarkdownExportOptions Clone() => (LatexMarkdownExportOptions)MemberwiseClone();
+
+    /// <summary>Rejects conversion when the completed report describes fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Preserves unsupported source in visible <c>latex</c> code blocks.</summary>
     public bool PreserveUnsupportedAsSource { get; set; } = true;
     /// <summary>Includes preamble title, author, date, and document class as YAML front matter.</summary>
@@ -54,6 +60,12 @@ public sealed class LatexMarkdownExportOptions {
 
 /// <summary>Markdown-to-LaTeX options.</summary>
 public sealed class MarkdownLatexExportOptions {
+    /// <summary>Creates an independent copy of these conversion settings.</summary>
+    public MarkdownLatexExportOptions Clone() => (MarkdownLatexExportOptions)MemberwiseClone();
+
+    /// <summary>Rejects conversion when the completed report describes fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Generated document class.</summary>
     public string DocumentClass { get; set; } = "article";
     /// <summary>Output line ending.</summary>
@@ -65,7 +77,7 @@ public sealed class MarkdownLatexExportOptions {
 }
 
 /// <summary>Markdown result from LaTeX.</summary>
-public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDocument> {
+internal sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDocument> {
     /// <summary>Gets the typed conversion report.</summary>
     public new LatexToMarkdownReport Report => (LatexToMarkdownReport)base.Report;
 
@@ -74,12 +86,12 @@ public sealed class LatexToMarkdownResult : OfficeConversionResult<MarkdownDocum
 }
 
 /// <summary>Canonical LaTeX result from Markdown.</summary>
-public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument> {
+internal sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument> {
     /// <summary>Gets the typed conversion report.</summary>
     public new MarkdownToLatexReport Report => (MarkdownToLatexReport)base.Report;
 
     internal MarkdownToLatexResult(string source, LatexDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics)
-        : base(value, new MarkdownToLatexReport(diagnostics)) {
+        : base(value, new MarkdownToLatexReport(source, diagnostics)) {
         Source = source ?? throw new ArgumentNullException(nameof(source));
     }
     /// <summary>Generated source.</summary>
@@ -88,7 +100,7 @@ public sealed class MarkdownToLatexResult : OfficeConversionResult<LatexDocument
 
 /// <summary>LaTeX-to-Markdown conversion diagnostics captured for one operation.</summary>
 public sealed class LatexToMarkdownReport : OfficeConversionReport {
-    internal LatexToMarkdownReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+    internal LatexToMarkdownReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) : base("Latex", "Markdown") {
         NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
         FidelityDiagnostics = CreateFidelityDiagnostics(NativeDiagnostics, "OfficeIMO.Latex.Markdown");
     }
@@ -120,7 +132,11 @@ public sealed class LatexToMarkdownReport : OfficeConversionReport {
 
 /// <summary>Markdown-to-LaTeX conversion diagnostics captured for one operation.</summary>
 public sealed class MarkdownToLatexReport : OfficeConversionReport {
-    internal MarkdownToLatexReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+    /// <summary>Exact canonical source produced by this conversion, before subsequent model edits or serialization.</summary>
+    public string GeneratedSource { get; }
+
+    internal MarkdownToLatexReport(string generatedSource, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) : base("Markdown", "Latex") {
+        GeneratedSource = generatedSource ?? throw new ArgumentNullException(nameof(generatedSource));
         NativeDiagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
         FidelityDiagnostics = LatexToMarkdownReport.CreateFidelityDiagnostics(NativeDiagnostics, "OfficeIMO.Latex.Markdown");
     }

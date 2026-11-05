@@ -22,8 +22,8 @@ public sealed class PublisherNativeWritingTests {
         PublisherTextStory story = Assert.Single(unchanged.TextStories);
         unchanged.ReplaceStoryParagraphs(story.Id, story.Paragraphs);
         PublisherTextFrame frame = Assert.Single(unchanged.Pages[0].TextFrames);
-        unchanged.SetTextFrameBounds(frame.Id, frame.X, frame.Y, frame.Width, frame.Height);
-        unchanged.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, frame.VerticalAlignment);
+        unchanged.SetTextFrameBounds(frame.Id, OfficeLength.Points(frame.X), OfficeLength.Points(frame.Y), OfficeLength.Points(frame.Width), OfficeLength.Points(frame.Height));
+        unchanged.SetTextFrameLayout(frame.Id, frame.ColumnCount, OfficeLength.Points(frame.ColumnSpacing), frame.Padding, frame.VerticalAlignment);
         Assert.Equal(text, unchanged.PrepareNativeBytes(MaximumBytes).CopyBytes());
     }
 
@@ -33,7 +33,7 @@ public sealed class PublisherNativeWritingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         Assert.Equal(source, document.PrepareNativeBytes(MaximumBytes).CopyBytes());
         PublisherShape shape = Assert.Single(document.Pages[0].Shapes);
-        document.SetShapeBounds(shape.Id, 36, 48, 120, 84);
+        document.SetShapeBounds(shape.Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.True(prepared.IsPrepared);
         string name = OfficeOlePropertySetWriter.SummaryInformationStreamName;
@@ -52,7 +52,7 @@ public sealed class PublisherNativeWritingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         Assert.Equal(source, document.PrepareNativeBytes(MaximumBytes).CopyBytes());
         PublisherShape shape = Assert.Single(document.Pages[0].Shapes);
-        document.SetShapeBounds(shape.Id, 36, 48, 120, 84);
+        document.SetShapeBounds(shape.Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
         Assert.Contains(prepared.Diagnostics, item => item.Location == OfficeOlePropertySetWriter.SummaryInformationStreamName
@@ -67,8 +67,8 @@ public sealed class PublisherNativeWritingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherShape original = Assert.Single(document.Pages[0].Shapes);
         OfficeShape paint = original.CreateShape();
-        document.SetShapeBounds(original.Id, 36, 48, 120, 84);
-        document.SetShapePaint(original.Id, OfficeColor.Blue, paint.StrokeColor, paint.StrokeWidth,
+        document.SetShapeBounds(original.Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
+        document.SetShapePaint(original.Id, OfficeColor.Blue, paint.StrokeColor, OfficeLength.Points(paint.StrokeWidth),
             paint.FillOpacity ?? 1, paint.StrokeOpacity ?? 1);
         var pages = document.Pages; var report = document.SourceReadReport;
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
@@ -111,7 +111,7 @@ public sealed class PublisherNativeWritingTests {
             .Concat(document.Pages[0].TextFrames).ToArray();
         Assert.Equal(4, originals.Length);
         foreach (PublisherTextFrame frame in originals)
-            document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
+            document.SetTextFrameBounds(frame.Id, OfficeLength.Points(frame.X + 6), OfficeLength.Points(frame.Y + 12), OfficeLength.Points(frame.Width), OfficeLength.Points(frame.Height));
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
         byte[] output = prepared.CopyBytes(); AssertPreservedStorage(source, output);
@@ -129,7 +129,7 @@ public sealed class PublisherNativeWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/PictureOwnership/native-pictureownership.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherPicture original = document.Pages[0].Pictures[0], sibling = document.Pages[0].Pictures[1];
-        document.SetPictureBounds(original.Id, 84, 168, 120, 72);
+        document.SetPictureBounds(original.Id, OfficeLength.Points(84), OfficeLength.Points(168), OfficeLength.Points(120), OfficeLength.Points(72));
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));
         byte[] output = prepared.CopyBytes(); AssertPreservedStorage(source, output);
@@ -144,9 +144,10 @@ public sealed class PublisherNativeWritingTests {
     }
 
     [Theory]
-    [InlineData("8.2", true)]
-    [InlineData("0.00001", false)]
-    public void Stroke_width_uses_exact_native_point_values_and_refuses_off_grid_requests(string widthText, bool representable) {
+    [InlineData("8.2", true, 8.2, 104140U)]
+    [InlineData("0.00001", true, 0D, 0U)]
+    [InlineData("400000", false, 0D, 0U)]
+    public void Typed_stroke_widths_keep_native_values_and_refuse_out_of_range_values(string widthText, bool representable, double expectedWidth, uint expectedNativeWidth) {
         double width = double.Parse(widthText, System.Globalization.CultureInfo.InvariantCulture);
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
@@ -154,7 +155,7 @@ public sealed class PublisherNativeWritingTests {
         PublisherNativeShapeBinding binding = Artwork(Compound(source)).Shapes.Single(item => item.Id == shape.Id).NativeBinding!;
         Assert.Single(binding.Properties, slot => slot.Id == 0x01CB && (slot.RawOperationId & 0xC000) == 0);
         OfficeShape prior = shape.CreateShape();
-        document.SetShapePaint(shape.Id, prior.FillColor, prior.StrokeColor, width, prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
+        document.SetShapePaint(shape.Id, prior.FillColor, prior.StrokeColor, OfficeLength.Points(width), prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
         if (!representable) {
             Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
             return;
@@ -162,11 +163,11 @@ public sealed class PublisherNativeWritingTests {
         byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         AssertPreservedStorage(source, output);
         PublisherShape saved = Assert.Single(PublisherDocument.Load(output).Pages[0].Shapes);
-        Assert.Equal(8.2, saved.CreateShape().StrokeWidth);
+        Assert.Equal(expectedWidth, saved.CreateShape().StrokeWidth);
         Assert.Equal((prior.FillColor, prior.StrokeColor, prior.FillOpacity, prior.StrokeOpacity),
             (saved.CreateShape().FillColor, saved.CreateShape().StrokeColor, saved.CreateShape().FillOpacity, saved.CreateShape().StrokeOpacity));
         PublisherNativePropertySlot slot = Assert.Single(Artwork(Compound(output)).Shapes.Single(item => item.Id == shape.Id).NativeBinding!.Properties, value => value.Id == 0x01CB);
-        Assert.Equal(104140U, slot.Value.Original);
+        Assert.Equal(expectedNativeWidth, slot.Value.Original);
     }
 
     [Theory]
@@ -177,7 +178,7 @@ public sealed class PublisherNativeWritingTests {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
         PublisherShape shape = document.Pages[0].Shapes[0]; OfficeShape prior = shape.CreateShape();
         OfficeColor? fill = change == "visibility" ? null : change == "alpha" ? OfficeColor.FromRgba(255, 0, 0, 128) : prior.FillColor;
-        document.SetShapePaint(shape.Id, fill, prior.StrokeColor, prior.StrokeWidth,
+        document.SetShapePaint(shape.Id, fill, prior.StrokeColor, OfficeLength.Points(prior.StrokeWidth),
             change == "missing-opacity" ? 0.5 : prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
@@ -197,7 +198,7 @@ public sealed class PublisherNativeWritingTests {
     [InlineData("source-free")]
     public void Unsupported_current_mutation_families_refuse_output_instead_of_copying_the_unchanged_source(string mutation) {
         const string file = "NativeComparison/Text/native-text.pub";
-        PublisherDocument document = mutation == "source-free" ? PublisherDocument.Create(612, 792)
+        PublisherDocument document = mutation == "source-free" ? PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792))
             : PublisherDocument.Load(PublisherNativeTests.Fixture(file));
         PublisherPage page = document.Pages[0];
         switch (mutation) {
@@ -211,11 +212,11 @@ public sealed class PublisherNativeWritingTests {
                     originalParagraph.Indent, originalParagraph.LineHeightFactor).WithTabStops(originalParagraph.TabStops) }); break;
             case "page": document.AddPage(); break;
             case "master": document.AddMasterPage("New master"); break;
-            case "continuation": document.AddLinkedTextFrame(page.TextFrames[0].Id, page.Id, 40, 300, 200, 60); break;
-            case "text-frame": document.AddTextFrame(page.Id, 40, 300, 200, 60, Paragraphs("New story")); break;
-            case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), 40, 300); break;
-            case "picture": document.AddImage(page.Id, PictureBytes(), 40, 300, 40, 30); break;
-            case "table": document.AddTable(page.Id, 40, 300, new[] { 60D }, new[] { 30D }); break;
+            case "continuation": document.AddLinkedTextFrame(page.TextFrames[0].Id, page.Id, OfficeLength.Points(40), OfficeLength.Points(300), OfficeLength.Points(200), OfficeLength.Points(60)); break;
+            case "text-frame": document.AddTextFrame(page.Id, OfficeLength.Points(40), OfficeLength.Points(300), OfficeLength.Points(200), OfficeLength.Points(60), Paragraphs("New story")); break;
+            case "shape": document.AddShape(page.Id, OfficeShape.Rectangle(40, 30), OfficeLength.Points(40), OfficeLength.Points(300)); break;
+            case "picture": document.AddImage(page.Id, PictureBytes(), OfficeLength.Points(40), OfficeLength.Points(300), OfficeLength.Points(40), OfficeLength.Points(30)); break;
+            case "table": document.AddTable(page.Id, OfficeLength.Points(40), OfficeLength.Points(300), new OfficeLength[] { OfficeLength.Points(60D) }, new OfficeLength[] { OfficeLength.Points(30D) }); break;
         }
         var pages = document.Pages; var stories = document.TextStories; var images = document.Images;
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
@@ -228,15 +229,16 @@ public sealed class PublisherNativeWritingTests {
     [Fact]
     public void Nonrepresentable_anchor_and_opaque_active_carrier_refuse_edited_output_but_leave_exact_copy_available() {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
-        PublisherDocument fractional = PublisherDocument.Load(source);
-        PublisherShape shape = fractional.Pages[0].Shapes[0];
-        fractional.SetShapeBounds(shape.Id, 1D / 3, 48, 120, 84);
-        Assert.False(fractional.PrepareNativeBytes(MaximumBytes).IsPrepared);
+        PublisherDocument outOfRange = PublisherDocument.Load(source);
+        PublisherShape shape = outOfRange.Pages[0].Shapes[0];
+        Assert.Throws<ArgumentOutOfRangeException>(() => outOfRange.SetShapeBounds(shape.Id,
+            OfficeLength.Emus(2L * int.MaxValue), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84)));
+        Assert.Equal(source, outOfRange.PrepareNativeBytes(MaximumBytes).CopyBytes());
 
         byte[] carrier = OfficeCompoundFileWriter.Rewrite(Compound(source), new Dictionary<string, byte[]> { ["Objects/opaque"] = new byte[] { 1, 2, 3 } });
         PublisherDocument active = PublisherDocument.Load(carrier);
         Assert.Equal(carrier, active.PrepareNativeBytes(MaximumBytes).CopyBytes());
-        active.SetShapeBounds(active.Pages[0].Shapes[0].Id, 36, 48, 120, 84);
+        active.SetShapeBounds(active.Pages[0].Shapes[0].Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
         PublisherNativePreparation refused = active.PrepareNativeBytes(MaximumBytes);
         Assert.False(refused.IsPrepared);
         Assert.Contains(refused.Diagnostics, item => item.Message.Contains("active-content"));
@@ -268,7 +270,7 @@ public sealed class PublisherNativeWritingTests {
         }
         PublisherDocument document = PublisherDocument.Load(bytes);
         Assert.Equal(bytes, document.PrepareNativeBytes(MaximumBytes).CopyBytes());
-        document.SetShapeBounds(document.Pages[0].Shapes[0].Id, 36, 48, 120, 84);
+        document.SetShapeBounds(document.Pages[0].Shapes[0].Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.False(prepared.IsPrepared);
         Assert.Contains(prepared.Diagnostics, item => item.LossKind == OfficeConversionLossKind.Failure
@@ -292,7 +294,7 @@ public sealed class PublisherNativeWritingTests {
         }, paragraph.Alignment, paragraph.LineHeight, paragraph.Margins, paragraph.Indent, paragraph.LineHeightFactor).WithTabStops(paragraph.TabStops) });
         if (moveFrame) {
             PublisherTextFrame frame = document.Pages[0].TextFrames[0];
-            document.SetTextFrameBounds(frame.Id, frame.X + 6, frame.Y + 12, frame.Width, frame.Height);
+            document.SetTextFrameBounds(frame.Id, OfficeLength.Points(frame.X + 6), OfficeLength.Points(frame.Y + 12), OfficeLength.Points(frame.Width), OfficeLength.Points(frame.Height));
         }
         PublisherNativePreparation prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.True(prepared.IsPrepared, string.Join("; ", prepared.Diagnostics.Select(item => item.Message)));

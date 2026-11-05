@@ -7,7 +7,7 @@ namespace OfficeIMO.Latex.Markdown.Tests;
 
 public sealed class LatexStructuredContentTests {
     private static MarkdownDocument Convert(string body) => LatexDocument.Parse(
-        "\\documentclass{article}\\begin{document}" + body + "\\end{document}").ToMarkdownDocumentResult().Value;
+        "\\documentclass{article}\\begin{document}" + body + "\\end{document}").ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport1);
 
     [Fact]
     public void List_items_own_nested_quotations_and_following_paragraphs_in_source_order() {

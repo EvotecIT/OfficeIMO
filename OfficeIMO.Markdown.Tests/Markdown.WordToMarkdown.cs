@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             paragraph.AddText(" and ");
             paragraph.AddText("italic").Italic = true;
             paragraph.AddText(" with ");
-            paragraph.AddText("strike").Strike = true;
+            paragraph.AddText("strike").Strikethrough = true;
             paragraph.AddText(" and ");
             paragraph.AddText("code").SetFontFamily(WordFontResolver.Resolve("monospace")!);
 

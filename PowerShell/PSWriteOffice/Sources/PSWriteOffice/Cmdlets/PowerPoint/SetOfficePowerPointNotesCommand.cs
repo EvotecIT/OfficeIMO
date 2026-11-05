@@ -19,16 +19,12 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     Set-OfficePowerPointNotes -Text 'Explain the margin before revenue.'
 /// Save-OfficePowerPoint -Document $deck</code></example>
 [Cmdlet(VerbsCommon.Set, "OfficePowerPointNotes", DefaultParameterSetName = "Text")]
-[Alias("PowerPointNotes")]
 [OutputType(typeof(PowerPointSlide))]
+[Alias("PowerPointNotes") ]
 public sealed class SetOfficePowerPointNotesCommand : OfficeCmdlet {
     /// <summary>Gets or sets a native slide or one-based position; omission uses the current slide content block.</summary>
-    [Parameter(ValueFromPipeline = true), PowerPointSlideTransformation]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Text"), PowerPointSlideTransformation]
     public PowerPointSlideSelector? Slide { get; set; }
-
-    /// <summary>Gets or sets the document for numeric selection; omission uses the enclosing document block.</summary>
-    [Parameter, ValidateNotNull]
-    public PowerPointDocument? Document { get; set; }
 
     /// <summary>Gets or sets the notes text; an empty string clears the notes.</summary>
     [Parameter(Mandatory = true, Position = 0), AllowEmptyString]
@@ -40,7 +36,7 @@ public sealed class SetOfficePowerPointNotesCommand : OfficeCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var document = Document ?? OfficeDocumentContext.Find<PowerPointDocument>();
+        var document = OfficeDocumentContext.Find<PowerPointDocument>();
         try {
             if (Slide == null) {
                 var content = PowerPointContentScope.Current;

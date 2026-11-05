@@ -22,7 +22,7 @@ public sealed partial class IWorkWorkflowTests {
             A(13, 6005, Join(V(1, 4), B(3, Join(V(1, 1), R(4, 30))))),
             A(30, 6004, B(11, B(9, padding))));
         WritePackage(files.Input, records);
-        Assert.True(IWorkSourceDocument.Open(files.Input).ReadNumbers().HasEditableContent);
+        Assert.True(IWorkSourceDocument.Load(files.Input).ReadNumbers().HasEditableContent);
         var request = files.Request("numbers-xlsx");
         request.RegisteredConversionSettings = allowPartial ? new IWorkWorkflowSettings {
             ConversionOptions = new IWorkConversionOptions { AllowPartialEditableReconstruction = true }

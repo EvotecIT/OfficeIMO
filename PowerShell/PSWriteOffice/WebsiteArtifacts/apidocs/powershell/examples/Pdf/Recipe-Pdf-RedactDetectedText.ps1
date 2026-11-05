@@ -7,7 +7,7 @@ New-OfficePdf -Path $source {
     PdfParagraph 'Visible status: Closed'
 }
 
-ConvertTo-OfficePdfRedacted `
+Remove-OfficePdfContent `
     -Path $source `
     -OutputPath $redacted `
     -Text 'Secret account' `

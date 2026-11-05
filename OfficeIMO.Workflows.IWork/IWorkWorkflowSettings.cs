@@ -8,7 +8,7 @@ namespace OfficeIMO.Workflows.IWork;
 /// <summary>Per-request read bounds and acceptance choices for an Apple workflow conversion.</summary>
 public sealed class IWorkWorkflowSettings : IOfficeConversionSettings {
     /// <summary>Source package and materialization limits. The workflow input limit also applies.</summary>
-    public IWorkReadOptions ReadOptions { get; set; } = new() { PreserveSourceRecords = false };
+    public IWorkLoadOptions ReadOptions { get; set; } = new() { PreserveSourceRecords = false };
     /// <summary>Representation, partial reconstruction, preview coverage, and worksheet naming choices.</summary>
     public IWorkConversionOptions ConversionOptions { get; set; } = new() { RequireCompleteVisualCoverage = true };
     /// <summary>Pages PDF layout and font options, snapshotted for each request.</summary>

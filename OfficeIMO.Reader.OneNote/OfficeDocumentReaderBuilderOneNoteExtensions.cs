@@ -19,7 +19,7 @@ public static class OfficeDocumentReaderBuilderOneNoteExtensions {
             Description = "Native offline OneNote adapter backed by OfficeIMO.OneNote.",
             Kind = ReaderInputKind.OneNote,
             Extensions = new[] { ".one", ".onetoc2", ".onepkg" },
-            DefaultMaxInputBytes = global::OfficeIMO.OneNote.OneNoteReaderOptions.DefaultMaxInputBytes,
+            DefaultMaxInputBytes = global::OfficeIMO.OneNote.OneNoteLoadOptions.DefaultMaxInputBytes,
             WarningBehavior = ReaderWarningBehavior.Mixed,
             DeterministicOutput = true,
             ReadPath = (path, options, ct) => OneNoteReaderAdapter.Read(path, options, ReaderOneNoteOptionsCloner.CloneNullable(registered), ct),

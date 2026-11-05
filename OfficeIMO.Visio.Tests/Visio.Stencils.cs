@@ -8,7 +8,6 @@ using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using OfficeIMO.Visio.Stencils;
 using Xunit;
 
@@ -192,17 +191,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentCanPlaceStencilShapes() {
+        public void NativeCanPlaceStencilShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.AsFluent()
-                .AddPage("Stencil Page", page => page
-                    .AddStencilShape(id: "input", stencil: VisioStencils.BlockDiagram.Get("block.storage"), x: OfficeLength.Inches(3), y: OfficeLength.Inches(4), text: "Storage")
-                    .AddStencilShape(id: "worker", catalog: VisioStencils.BlockDiagram, stencilIdOrName: "component", x: OfficeLength.Inches(6), y: OfficeLength.Inches(4), text: "Worker")
-                    .AddStencilShape(id: "router", stencilIdOrName: "net.router", x: OfficeLength.Inches(9), y: OfficeLength.Inches(4), text: "Router")
-                    .AddConnector("input", "worker", fromSide: VisioSide.Right, toSide: VisioSide.Left))
-                .End();
+            document
+                .AddPage("Stencil Page", page => {
+                    page.AddStencilShape(id: "input", stencil: VisioStencils.BlockDiagram.Get("block.storage"), x: OfficeLength.Inches(3), y: OfficeLength.Inches(4), text: "Storage");
+                    page.AddStencilShape(id: "worker", catalog: VisioStencils.BlockDiagram, stencilIdOrName: "component", x: OfficeLength.Inches(6), y: OfficeLength.Inches(4), text: "Worker");
+                    page.AddStencilShape(id: "router", stencilIdOrName: "net.router", x: OfficeLength.Inches(9), y: OfficeLength.Inches(4), text: "Router");
+                    page.AddConnector("input", "worker", fromSide: VisioSide.Right, toSide: VisioSide.Left);
+                });
             document.Save();
 
             Assert.Empty(VisioValidator.Validate(filePath));
@@ -233,10 +232,11 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PageCanRenderStencilCatalogGallery() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
-                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9)
-                .Add("gallery.queue", "Queue", "Data", "Integration", 1.4, 0.8)
-                .Add("gallery.worker", "Worker", "Rectangle", "Compute", 1.6, 0.9));
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => {
+                builder.Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9);
+                builder.Add("gallery.queue", "Queue", "Data", "Integration", 1.4, 0.8);
+                builder.Add("gallery.worker", "Worker", "Rectangle", "Compute", 1.6, 0.9);
+            });
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Gallery", OfficeLength.Inches(5), OfficeLength.Inches(4));
 
@@ -265,8 +265,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilCatalogGalleryReservesIdsAndKeepsUnitlessStencilSizesInInches() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Metric Gallery Catalog", builder => builder
-                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Metric Gallery Catalog", builder => builder.Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Metric Gallery", OfficeLength.Centimeters(29.7), OfficeLength.Centimeters(21), scaleUnit: VisioMeasurementUnit.Centimeters);
             VisioStencilGalleryOptions options = new() {
@@ -295,8 +294,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilCatalogGalleryReservesExistingConnectorIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder
-                .Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Gallery Catalog", builder => builder.Add("gallery.api", "API", "Process", "Integration", 1.8, 0.9));
             VisioDocument document = VisioDocument.Create(filePath);
             VisioPage page = document.AddPage("Gallery", OfficeLength.Inches(5), OfficeLength.Inches(4));
             VisioShape left = new VisioShape("left", OfficeLength.Inches(0.8), OfficeLength.Inches(0.8), OfficeLength.Inches(0.5), OfficeLength.Inches(0.5), "L");
@@ -323,12 +321,27 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilGalleryDocumentCreatesPagedCategoryReviewDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
-                .AddWithMetadata("review.worker", "Worker", "Process", "Compute", 1.6, 0.9, keywords: new[] { "service" }, aliases: new[] { "processor" }, tags: new[] { "runtime" })
-                .AddWithMetadata("review.runtime", "Runtime", "Rectangle", "Compute", 1.6, 0.9, keywords: new[] { "container" })
-                .AddWithMetadata("review.api", "API", "Process", "Integration", 1.7, 0.9, keywords: new[] { "gateway" })
-                .AddWithMetadata("review.queue", "Queue", "Data", "Integration", 1.5, 0.85, keywords: new[] { "broker" })
-                .AddWithMetadata("review.topic", "Topic", "Data", "Integration", 1.5, 0.85, keywords: new[] { "event" }));
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => {
+                builder.AddWithMetadata("review.worker", "Worker", "Process", "Compute", 1.6, 0.9, keywords: new[] {
+                    "service"
+                }, aliases: new[] {
+                    "processor"
+                }, tags: new[] {
+                    "runtime"
+                });
+                builder.AddWithMetadata("review.runtime", "Runtime", "Rectangle", "Compute", 1.6, 0.9, keywords: new[] {
+                    "container"
+                });
+                builder.AddWithMetadata("review.api", "API", "Process", "Integration", 1.7, 0.9, keywords: new[] {
+                    "gateway"
+                });
+                builder.AddWithMetadata("review.queue", "Queue", "Data", "Integration", 1.5, 0.85, keywords: new[] {
+                    "broker"
+                });
+                builder.AddWithMetadata("review.topic", "Topic", "Data", "Integration", 1.5, 0.85, keywords: new[] {
+                    "event"
+                });
+            });
 
             VisioDocument document = VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
                 Title = "Reusable stencil review",
@@ -374,9 +387,10 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilGalleryDocumentRestoresExistingMasterPreferenceAndReservesOverviewIds() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
-                .AddWithMetadata("review.api", "API", "Process", "A/B", 1.7, 0.9)
-                .AddWithMetadata("review.worker", "Worker", "Process", "A B", 1.6, 0.9));
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => {
+                builder.AddWithMetadata("review.api", "API", "Process", "A/B", 1.7, 0.9);
+                builder.AddWithMetadata("review.worker", "Worker", "Process", "A B", 1.6, 0.9);
+            });
             VisioDocument document = VisioDocument.Create(filePath);
             document.UseMastersByDefault = false;
 
@@ -396,8 +410,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void StencilGalleryDocumentValidatesPagingOptions() {
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder
-                .Add("review.worker", "Worker", "Process", "Compute", 1.6, 0.9));
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Review Catalog", builder => builder.Add("review.worker", "Worker", "Process", "Compute", 1.6, 0.9));
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             Assert.Throws<ArgumentOutOfRangeException>(() => VisioStencilGalleryDocument.Create(filePath, catalog, new VisioStencilGalleryDocumentOptions {
@@ -410,9 +423,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void CustomStencilCatalogBuilderCreatesSearchablePaletteAndPlaceableShapes() {
-            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Custom Infrastructure", builder => builder
-                .Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis", "memory-store")
-                .AddWithMetadata(
+            VisioStencilCatalog catalog = VisioStencilCatalog.Create("Custom Infrastructure", builder => {
+                builder.Add("custom.cache", "Cache", "Process", "Infrastructure", 1.8, 0.9, "redis", "memory-store");
+                builder.AddWithMetadata(
                     "custom.archive",
                     "Object Archive",
                     "Data",
@@ -422,7 +435,7 @@ namespace OfficeIMO.Tests {
                     keywords: new[] { "blob" },
                     aliases: new[] { "object-store" },
                     tags: new[] { "cloud", "storage" },
-                    iconNameU: "Data"));
+                    iconNameU: "Data"); });
 
             Assert.Equal(new[] { "Infrastructure" }, catalog.Categories);
             Assert.Equal("Cache", Assert.Single(catalog.Search("redis")).Name);
@@ -495,9 +508,9 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilCatalogManifestRoundTripsMetadataAndLoadedCatalogCanPlaceShapes() {
             string manifestPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".officeimo-visio-stencils.xml");
-            VisioStencilCatalog source = VisioStencilCatalog.Create("Reusable Infrastructure", builder => builder
-                .Add("infra.api", "API", "Process", "Infrastructure", 1.8, 0.9, "service", "http")
-                .AddWithMetadata(
+            VisioStencilCatalog source = VisioStencilCatalog.Create("Reusable Infrastructure", builder => {
+                builder.Add("infra.api", "API", "Process", "Infrastructure", 1.8, 0.9, "service", "http");
+                builder.AddWithMetadata(
                     "infra.queue",
                     "Queue",
                     "Data",
@@ -507,7 +520,7 @@ namespace OfficeIMO.Tests {
                     keywords: new[] { "bus" },
                     aliases: new[] { "message-queue" },
                     tags: new[] { "async", "cloud" },
-                    iconNameU: "Data"));
+                    iconNameU: "Data"); });
 
             source.Save(manifestPath);
             VisioStencilCatalog loadedCatalog = VisioStencilCatalog.Load(manifestPath);
@@ -551,7 +564,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void StencilCatalogManifestPreservesLicensingAndUnsupportedState() {
             VisioStencilCatalog source = VisioStencilCatalog.Create(
-                "Licensed package", builder => builder.AddWithMetadata(
+                "Licensed package", builder => { builder.AddWithMetadata(
                     "external.unsupported",
                     "Unsupported package master",
                     "VendorMaster",
@@ -568,7 +581,7 @@ namespace OfficeIMO.Tests {
                     sourceConnectionPoints: null,
                     isSupported: false,
                     sourceLicense: "Vendor license - redistribution prohibited",
-                    sourceAttribution: "Example Vendor"));
+                    sourceAttribution: "Example Vendor"); });
 
             using MemoryStream manifest = new();
             source.Save(manifest);
@@ -597,8 +610,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void StencilCatalogManifestDropsSourcePackagePathsByDefault() {
-            VisioStencilCatalog source = VisioStencilCatalog.Create("Untrusted Catalog", builder => builder
-                .AddWithMetadata(
+            VisioStencilCatalog source = VisioStencilCatalog.Create("Untrusted Catalog", builder => builder.AddWithMetadata(
                     "external.master",
                     "External Master",
                     "ExternalMaster",
@@ -634,8 +646,7 @@ namespace OfficeIMO.Tests {
             string manifestPath = Path.Combine(baseDirectory, "catalog.xml");
 
             try {
-                VisioStencilCatalog source = VisioStencilCatalog.Create("Untrusted Catalog", builder => builder
-                    .AddWithMetadata(
+                VisioStencilCatalog source = VisioStencilCatalog.Create("Untrusted Catalog", builder => builder.AddWithMetadata(
                         "external.master",
                         "External Master",
                         "ExternalMaster",

@@ -8,8 +8,8 @@ public sealed class PublisherTableBorderAuthoringTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Shared_grid_ranges_create_split_replace_and_clear_without_changing_other_edges(bool vertical) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
-        uint id = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 50D, 60D, 70D, 80D }, new[] { 40D, 50D, 60D, 70D }).Id;
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
+        uint id = document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(50D), OfficeLength.Points(60D), OfficeLength.Points(70D), OfficeLength.Points(80D) }, new OfficeLength[] { OfficeLength.Points(40D), OfficeLength.Points(50D), OfficeLength.Points(60D), OfficeLength.Points(70D) }).Id;
         var blue = new OfficeBorderSide(OfficeColor.FromRgb(0, 0, 255), 2);
         var red = new OfficeBorderSide(OfficeColor.FromRgb(255, 0, 0), 3);
         // One perpendicular edge and a parallel edge on another grid line.
@@ -64,8 +64,8 @@ public sealed class PublisherTableBorderAuthoringTests {
 
     [Fact]
     public void Merged_interiors_and_merging_a_bordered_table_refuse_without_publishing_partial_state() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
-        uint id = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D, 180D }, new[] { 42D, 54D }).Id;
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
+        uint id = document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(180D) }, new OfficeLength[] { OfficeLength.Points(42D), OfficeLength.Points(54D) }).Id;
         document.MergeTableCells(id, 0, 0, 1, 2);
         string before = document.ToSvg();
         Assert.Throws<ArgumentException>(() => document.SetTableBorderStyle(id, 0, 1, 1, 1, new OfficeBorderSide(OfficeColor.Black, 1)));
@@ -80,9 +80,9 @@ public sealed class PublisherTableBorderAuthoringTests {
 
     [Fact]
     public void Border_creation_obeys_the_copied_projection_budget_and_cancels_atomically() {
-        var options = new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 6 } };
-        PublisherDocument document = PublisherDocument.Create(612, 792, options);
-        uint id = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D, 180D }, new[] { 42D }).Id;
+        var options = new PublisherCreateOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 6 } };
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792), options);
+        uint id = document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(180D) }, new OfficeLength[] { OfficeLength.Points(42D) }).Id;
         options.Limits.MaxItems = 100;
         var side = new OfficeBorderSide(OfficeColor.Black, 1);
         var ranges = new[] { (0,0,0,1), (0,1,0,2), (1,0,1,1), (1,1,1,2), (0,0,1,0), (0,1,1,1), (0,2,1,2) };

@@ -141,7 +141,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a value indicating whether the run is struck through.
         /// </summary>
-        public bool Strike {
+        public bool Strikethrough {
             get {
                 var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.Strike);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Gets or sets a value indicating whether the run has a double strikethrough.
         /// </summary>
-        public bool DoubleStrike {
+        public bool DoubleStrikethrough {
             get {
                 var runProperties = ScopedRunProperties;
                 return IsOnOffPropertyEnabled(runProperties?.DoubleStrike);
@@ -305,12 +305,7 @@ namespace OfficeIMO.Word {
         /// Gets or sets the text color using <see cref="OfficeIMO.OfficeColor"/>.
         /// </summary>
         public OfficeIMO.OfficeColor? Color {
-            get {
-                string value = RunColorValue;
-                return value.Length > 0 && OfficeIMO.OfficeColor.TryParseHex(value, out OfficeIMO.OfficeColor color)
-                    ? color
-                    : null;
-            }
+            get => WordRunColor.Read(ScopedRunProperties?.Color);
             set {
                 if (value != null) {
                     SetRunColor(value.Value);

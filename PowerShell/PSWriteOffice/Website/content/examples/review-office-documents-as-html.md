@@ -24,27 +24,29 @@ $rows = @(
 New-OfficeExcel -Path $workbookPath {
     Add-OfficeExcelSheet -Name 'Services' -Content {
         Set-OfficeExcelRow -Row 1 -Values 'Service', 'Status', 'Owner'
-        Add-OfficeExcelTable -Data $rows -TableName 'Services' -TableStyle 'TableStyleMedium4'
-        Set-OfficeExcelColumn -Column 1, 2, 3 -AutoFit
+        Add-OfficeExcelTable -InputObject $rows -Name 'Services' -TableStyle 'TableStyleMedium4'
+        foreach ($column in 1..3) {
+            Set-OfficeExcelColumn -Column $column -AutoFit
+        }
     }
 }
 
-$deck = New-OfficePowerPoint -Path $deckPath -NoSave
-$slide = Add-OfficePowerPointSlide -Presentation $deck -Layout 1 -PassThru
-Set-OfficePowerPointSlideTitle -Slide $slide -Title 'Service Review'
+$deck = New-OfficePowerPoint -Path $deckPath
+$slide = Add-OfficePowerPointSlide -Document $deck -TemplateLayout 1 -PassThru
+Set-OfficePowerPointSlide -Slide $slide -Title 'Service Review'
 Add-OfficePowerPointTextBox -Slide $slide -Text 'Review the service status before the weekly meeting.' -X 80 -Y 140 -Width 560 -Height 80
 $deck | Save-OfficePowerPoint
 $deck | Close-OfficePowerPoint
 
-ConvertTo-OfficeExcelHtml -Path $workbookPath -OutputPath (Join-Path $outputDirectory 'ServiceReview.workbook.html') -Title 'Workbook Review'
-ConvertTo-OfficePowerPointHtml -Path $deckPath -Profile VisualReview -OutputPath (Join-Path $outputDirectory 'ServiceReview.deck.visual.html') -Title 'Deck Review'
+Convert-OfficeDocument -Path $workbookPath -To Html -OutputPath (Join-Path $outputDirectory 'ServiceReview.workbook.html') -Options (New-OfficeExcelHtmlOptions -Title 'Workbook Review')
+Convert-OfficeDocument -Path $deckPath -To Html -OutputPath (Join-Path $outputDirectory 'ServiceReview.deck.visual.html') -Options (New-OfficePowerPointHtmlOptions -Profile VisualReview -Title 'Deck Review')
 ```
 
 ## What this demonstrates
 
 - creating real Excel and PowerPoint files first
-- exporting workbook content as HTML through `ConvertTo-OfficeExcelHtml`
-- exporting deck review output through `ConvertTo-OfficePowerPointHtml`
+- exporting workbook content as HTML through `Convert-OfficeDocument -To Html` with `New-OfficeExcelHtmlOptions`
+- exporting deck review output through `Convert-OfficeDocument -To Html` with `New-OfficePowerPointHtmlOptions`
 - using the visual profile when layout review matters more than raw text
 
 ## Source

@@ -11,7 +11,7 @@ Adds a rectangle shape to the current Visio page.
 ## SYNTAX
 ### Page (Default)
 ```powershell
-Add-OfficeVisioRectangle [[-Text] <string>] [-Page <VisioPage>] [-Key <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Name <string>] [-NameU <string>] [-FillColor <OfficeColor>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioRectangle [[-Text] <string>] [-Page <VisioPage>] [-Key <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Name <string>] [-NameU <string>] [-FillColor <OfficeColor>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-Bold] [-Italic] [-Strikethrough] [-Underline <OfficeTextDecorationStyle>] [-Font <string>] [-Size <OfficeLength>] [-Color <OfficeColor>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -30,11 +30,59 @@ Adds a rectangle and registers a key for later connector commands.
 
 ## PARAMETERS
 
+### -Alignment
+Whole-shape horizontal text alignment.
+
+```yaml
+Type: OfficeAlignment
+Parameter Sets: Page
+Aliases: None
+Possible values: Left, Center, Right, Justify, Start, End
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Angle
 Rotation in degrees.
 
 ```yaml
 Type: Double
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bold
+Apply bold text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Color
+Text color, including CSS names and theme roles.
+
+```yaml
+Type: OfficeColor
 Parameter Sets: Page
 Aliases: None
 Possible values:
@@ -78,11 +126,43 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Font
+Font family for the shape's text.
+
+```yaml
+Type: String
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Height
 Physical shape height.
 
 ```yaml
 Type: OfficeLength
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Italic
+Apply italic text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Page
 Aliases: None
 Possible values:
@@ -222,6 +302,38 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Size
+Font size; a number means points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Strikethrough
+Apply one strikethrough line; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Page
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Text
 Text placed inside the shape.
 
@@ -233,6 +345,22 @@ Possible values:
 
 Required: False
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Underline
+Native Visio underline variant.
+
+```yaml
+Type: OfficeTextDecorationStyle
+Parameter Sets: Page
+Aliases: None
+Possible values: None, Single, Double
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

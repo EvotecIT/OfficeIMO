@@ -493,18 +493,3 @@ internal static partial class LatexToMarkdownConverter {
         };
     }
 }
-
-/// <summary>Conversion extensions.</summary>
-public static partial class LatexMarkdownConverterExtensions {
-    /// <summary>Converts a native LaTeX document to Markdown.</summary>
-    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexMarkdownExportOptions? options = null) =>
-        LatexToMarkdownConverter.Convert(document, options);
-
-    /// <summary>Converts the current document with cooperative cancellation, rebinding edited source before projection.</summary>
-    public static LatexToMarkdownResult ToMarkdownDocumentResult(this LatexDocument document, LatexMarkdownExportOptions? options,
-        System.Threading.CancellationToken cancellationToken) => LatexToMarkdownConverter.Project(document, options, cancellationToken).Result;
-
-    /// <summary>Converts a LaTeX document to a typed Markdown document.</summary>
-    public static MarkdownDocument ToMarkdownDocument(this LatexDocument document, LatexMarkdownExportOptions? options = null) =>
-        document.ToMarkdownDocumentResult(options).Value;
-}

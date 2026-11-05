@@ -26,6 +26,25 @@ Save-OfficeExcel -Document $workbook -SaveOptions $options
 ```
 
 
+### EXAMPLE 2
+```powershell
+$saveOptions = New-OfficeExcelSaveOptions -ValidateOpenXml
+```
+
+Creates save options that check the written workbook against the Open XML schema.
+
+### EXAMPLE 3
+```powershell
+$saveOptions = New-OfficeExcelSaveOptions -EvaluateFormulas -FullCalculationOnOpen -RepairDefinedNames
+Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx -SaveOptions $saveOptions {
+    ExcelSheet 'Assumptions' {
+        ExcelCell B4 0.035
+    }
+}
+```
+
+Changes an assumption in the budget model, evaluates the formulas and asks Excel to recalculate fully when the file is next opened.
+
 ## PARAMETERS
 
 ### -ClearCachedFormulaResults

@@ -18,20 +18,50 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <code>$visual | ExcelImage -Document $book -Sheet Summary -Address B2:G12 -Name Health</code></example>
 /// <example><summary>Download and resize a status badge.</summary>
 /// <code>ExcelImage -Url https://status.example.com/badge.png -Address H1 -Width 4cm</code></example>
+/// <example>
+/// <summary>Add a logo</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     ExcelSheet 'Cover' {
+///         ExcelImage .\Assets\Logo.png -Address A1 -AltText 'Northwind Traders logo'
+///     }
+/// }</code>
+/// <para>Places the company logo at A1 of the cover sheet at its natural size.</para>
+/// </example>
+/// <example>
+/// <summary>Fit a site photo into a range</summary>
+/// <code>Open-OfficeExcel -Path .\Facilities\Inspection-Gdansk.xlsx {
+///     ExcelSheet 'Findings' {
+///         ExcelImage .\Photos\Gdansk-Roof-0412.jpg -Address D2:J20 -Placement MoveAndSize -AltText 'Roof drainage at the Gdansk warehouse'
+///     }
+/// }</code>
+/// <para>Stretches an inspection photo across D2:J20 so it moves and resizes with the cells.</para>
+/// </example>
+/// <example>
+/// <summary>Add an image from a URL</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Status.xlsx {
+///     ExcelSheet 'Summary' {
+///         ExcelImage -Url https://status.example.com/badge/production.png -Address H1 -Width 4cm -AltText 'Production status'
+///     }
+/// }</code>
+/// <para>Downloads a published status badge and places it at a fixed width on the summary sheet.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeExcelImage", DefaultParameterSetName = "Path")]
 [Alias("ExcelImage")]
 [OutputType(typeof(ExcelImage))]
 public sealed class AddOfficeExcelImageCommand : OfficeVisualCommandBase {
     /// <summary>Literal local image path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path"), ValidateNotNullOrEmpty]
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    [ValidateNotNullOrEmpty]
     public string? Path { get; set; }
 
     /// <summary>HTTP or HTTPS image URI; local files use Path.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = "Url"), ValidateNotNull]
+    [Parameter(ParameterSetName = "Url", Mandatory = true)]
+    [ValidateNotNull]
     public Uri? Url { get; set; }
 
     /// <summary>ChartForgeX artifact, OfficeVisualSource, prepared visual or SVG path.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Visual"), ValidateNotNull]
+    [Parameter(ParameterSetName = "Visual", Mandatory = true, ValueFromPipeline = true)]
+    [ValidateNotNull]
     public object? InputObject { get; set; }
 
     /// <summary>Workbook to modify outside the Excel DSL.</summary>
@@ -39,39 +69,45 @@ public sealed class AddOfficeExcelImageCommand : OfficeVisualCommandBase {
     public ExcelDocument? Document { get; set; }
 
     /// <summary>Sheet name, one-based position or native worksheet belonging to Document.</summary>
-    [Parameter, OfficeSheetTransformation]
+    [Parameter()]
+    [OfficeSheetTransformation]
     public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>A1 cell or range; defaults to A1. Use B2:B2 for a two-cell anchor over one cell.</summary>
-    [Parameter, ValidateNotNullOrEmpty]
+    [Parameter()]
+    [ValidateNotNullOrEmpty]
     public string Address { get; set; } = "A1";
 
     /// <summary>Positive percentage of the source size; exclusive with dimensions and range anchors.</summary>
-    [Parameter]
+    [Parameter()]
     public double? Scale { get; set; }
 
     /// <summary>Horizontal start-marker offset; numbers mean points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter()]
+    [OfficeLengthTransformation]
     public OfficeLength OffsetX { get; set; }
 
     /// <summary>Vertical start-marker offset; numbers mean points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter()]
+    [OfficeLengthTransformation]
     public OfficeLength OffsetY { get; set; }
 
     /// <summary>Horizontal end-marker offset for a range anchor; numbers mean points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter()]
+    [OfficeLengthTransformation]
     public OfficeLength EndOffsetX { get; set; }
 
     /// <summary>Vertical end-marker offset for a range anchor; numbers mean points.</summary>
-    [Parameter, OfficeLengthTransformation]
+    [Parameter()]
+    [OfficeLengthTransformation]
     public OfficeLength EndOffsetY { get; set; }
 
     /// <summary>Drawing name in Excel's selection pane.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Name { get; set; }
 
     /// <summary>Accessible image description; omitted visual descriptions are retained.</summary>
-    [Parameter]
+    [Parameter()]
     public string? AltText { get; set; }
 
     /// <inheritdoc />
@@ -81,23 +117,23 @@ public sealed class AddOfficeExcelImageCommand : OfficeVisualCommandBase {
     protected override string AlternativeTextParameterName => nameof(AltText);
 
     /// <summary>Clear accessible title and description and mark the image decorative.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter Decorative { get; set; }
 
     /// <summary>Allow interactive aspect-ratio changes in Excel; the default locks the ratio.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter NoLockAspectRatio { get; set; }
 
     /// <summary>Movement and resizing behavior of a two-cell anchor.</summary>
-    [Parameter]
+    [Parameter()]
     public ExcelImagePlacement Placement { get; set; } = ExcelImagePlacement.MoveAndSize;
 
     /// <summary>Clockwise rotation in degrees.</summary>
-    [Parameter]
+    [Parameter()]
     public double Rotation { get; set; }
 
     /// <summary>Return the native editable ExcelImage.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />

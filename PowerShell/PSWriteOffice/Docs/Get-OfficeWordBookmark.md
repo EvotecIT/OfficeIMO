@@ -6,38 +6,51 @@ schema: 2.0.0
 ---
 # Get-OfficeWordBookmark
 ## SYNOPSIS
-Gets bookmarks from a Word document.
+Gets bookmarks, optionally by name (wildcards).
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordBookmark [-Path] <string> [-Name <string[]>] [<CommonParameters>]
+Get-OfficeWordBookmark [-Name <string[]>] [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordBookmark -Document <WordDocument> [-Name <string[]>] [<CommonParameters>]
+Get-OfficeWordBookmark [-Path] <string[]> [-Name <string[]>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordBookmark -LiteralPath <string[]> [-Name <string[]>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns WordBookmark objects, optionally filtered by name.
+Gets bookmarks, optionally by name (wildcards).
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $bookmarks = Get-OfficeWordBookmark -Path .\Report.docx -Name 'Appendix*', 'ExecutiveSummary'
-$bookmarks |
-    Select-Object -Property Name |
-    Format-Table -AutoSize
+Get-OfficeWordBookmark -Name @('Name')
 ```
 
-Loads the document read-only, filters bookmark names with wildcards, and displays the matching navigation targets.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordBookmark -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordBookmark -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Word document to read.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -45,19 +58,35 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Name
-Bookmark name filter (wildcards supported).
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Name
+Name for this inspection.
+
+```yaml
+Type: String[]
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -65,23 +94,23 @@ Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: True
+Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the .docx file.
+Path for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -89,7 +118,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

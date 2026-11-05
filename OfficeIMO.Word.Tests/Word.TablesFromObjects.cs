@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
 
                 var table = document.AddTable(items, new WordTableOptions { Style = WordTableStyle.TableGrid });
 
-                Assert.Equal(3, table.RowsCount);
+                Assert.Equal(3, table.RowCount);
                 Assert.Equal(2, table.Rows[0].CellsCount);
                 Assert.Equal("Name", table.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("Value", table.Rows[0].Cells[1].Paragraphs[0].Text);
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
 
                 var table = document.AddTable(items, new WordTableOptions { Style = WordTableStyle.TableGrid, IncludeHeaders = false });
 
-                Assert.Equal(1, table.RowsCount);
+                Assert.Equal(1, table.RowCount);
                 Assert.Equal("Gamma", table.Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("3", table.Rows[0].Cells[1].Paragraphs[0].Text);
 

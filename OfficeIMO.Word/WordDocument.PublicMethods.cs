@@ -168,9 +168,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>
         /// Creates a chart ready for combining bar and line series.
-        /// Use <see cref="WordChart.AddChartAxisX"/> to supply category labels
-        /// and then call <see cref="WordChart.AddBar(string,int,OfficeIMO.OfficeColor)"/> or
-        /// <see cref="WordChart.AddLine"/> to add data. The call to <c>AddChartAxisX</c> must be performed
+        /// Use <see cref="WordChart.AddCategories"/> to supply category labels
+        /// and then call <see cref="WordChart.AddBar{T}(string,IEnumerable{T},OfficeIMO.OfficeColor)"/> or
+        /// <see cref="WordChart.AddLine"/> to add data. The call to <c>AddCategories</c> must be performed
         /// before adding any series so both chart types share the same axes.
         /// </summary>
         public WordChart AddComboChart(string title = "", bool roundedCorners = false, OfficeLength? width = null, OfficeLength? height = null) {
@@ -512,7 +512,6 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordShape"/>.</returns>
         public WordShape AddShape(WordShapeType shapeType, OfficeLength width, OfficeLength height,
             OfficeColor? fillColor = null, OfficeColor? strokeColor = null, OfficeLength? strokeWeight = null, double arcSize = 0.25) {
-            WordShape.ValidateVmlColors(fillColor, strokeColor);
             var paragraph = AddParagraph();
             return paragraph.AddShape(shapeType, width, height, fillColor, strokeColor, strokeWeight, arcSize);
         }

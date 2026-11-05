@@ -1,7 +1,7 @@
 namespace OfficeIMO.OneNote;
 
 internal static class OneNoteFileHeaderReader {
-    public static OneNoteFileHeader Read(byte[] prefix, long? actualFileLength, OneNoteReaderOptions options) {
+    public static OneNoteFileHeader Read(byte[] prefix, long? actualFileLength, OneNoteLoadOptions options) {
         ArgumentNullException.ThrowIfNull(prefix);
         ArgumentNullException.ThrowIfNull(options);
         if (prefix.Length >= 4 && prefix[0] == (byte)'M' && prefix[1] == (byte)'S' && prefix[2] == (byte)'C' && prefix[3] == (byte)'F') {
@@ -27,7 +27,7 @@ internal static class OneNoteFileHeaderReader {
             48);
     }
 
-    private static OneNoteFileHeader ReadRevisionStore(byte[] data, long? actualFileLength, OneNoteReaderOptions options) {
+    private static OneNoteFileHeader ReadRevisionStore(byte[] data, long? actualFileLength, OneNoteLoadOptions options) {
         OneNoteBinary.EnsureRange(data, 0, OneNoteFormatConstants.RevisionStoreHeaderLength);
 
         Guid fileType = OneNoteBinary.ReadGuid(data, 0);
@@ -56,7 +56,7 @@ internal static class OneNoteFileHeaderReader {
         return header;
     }
 
-    private static OneNoteFileHeader ReadPackageStore(byte[] data, long? actualFileLength, OneNoteReaderOptions options) {
+    private static OneNoteFileHeader ReadPackageStore(byte[] data, long? actualFileLength, OneNoteLoadOptions options) {
         OneNoteBinary.EnsureRange(data, 0, OneNoteFormatConstants.PackageStoreFixedPrefixLength + 1);
         Guid fileType = OneNoteBinary.ReadGuid(data, 0);
         if (fileType != OneNoteFormatConstants.SectionFileType) {
@@ -121,7 +121,7 @@ internal static class OneNoteFileHeaderReader {
         return header;
     }
 
-    private static void ValidateRevisionStoreHeader(byte[] data, OneNoteFileHeader header, OneNoteReaderOptions options) {
+    private static void ValidateRevisionStoreHeader(byte[] data, OneNoteFileHeader header, OneNoteLoadOptions options) {
         uint expectedVersion = header.FileKind == OneNoteFileKind.Section ? 0x2AU : 0x1BU;
         for (int offset = 64; offset <= 76; offset += 4) {
             if (OneNoteBinary.ReadUInt32(data, offset) != expectedVersion) {
@@ -224,7 +224,7 @@ internal static class OneNoteFileHeaderReader {
 
     private static void ReportOrThrow(
         OneNoteFileHeader header,
-        OneNoteReaderOptions options,
+        OneNoteLoadOptions options,
         string code,
         string message,
         long offset) {

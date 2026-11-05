@@ -23,24 +23,27 @@ namespace PSWriteOffice.Cmdlets.Csv;
 /// <example>
 ///   <summary>Read rows as dictionaries.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Import-OfficeCsv -Path .\data.csv -AsHashtable | ForEach-Object { $_['Name'] }</code>
+///   <code>Import-OfficeCsv -Path .\data.csv -As Hashtable | ForEach-Object { $_['Name'] }</code>
 ///   <para>Uses hashtables for dynamic schemas or key-based access.</para>
 /// </example>
 /// <example>
 ///   <summary>Read rows as a DataTable.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Import-OfficeCsv -Path .\data.csv -AsDataTable</code>
+///   <code>Import-OfficeCsv -Path .\data.csv -As DataTable</code>
 ///   <para>Emits one DataTable per input file for database and table-oriented workflows.</para>
 /// </example>
 [Cmdlet(VerbsData.Import, "OfficeCsv", DefaultParameterSetName = ParameterSetPathDelimiter)]
-public sealed class ImportOfficeCsvCommand : PSCmdlet
+public sealed partial class ImportOfficeCsvCommand : PSCmdlet
 {
-    private const string ParameterSetPathDelimiter = "PathDelimiter";
+    private const string ParameterSetPathDelimiter = "Path";
     private const string ParameterSetPathCulture = "PathCulture";
     private const string ParameterSetPathDetect = "PathDetect";
-    private const string ParameterSetLiteralPathDelimiter = "LiteralPathDelimiter";
+    private const string ParameterSetLiteralPathDelimiter = "LiteralPath";
     private const string ParameterSetLiteralPathCulture = "LiteralPathCulture";
     private const string ParameterSetLiteralPathDetect = "LiteralPathDetect";
+    private const string ParameterSetTextDelimiter = "Text";
+    private const string ParameterSetTextCulture = "TextCulture";
+    private const string ParameterSetTextDetect = "TextDetect";
     private const string ParameterSetDocument = "Document";
     private readonly CsvPowerShellRowWriter _rowWriter = new();
     private readonly List<CsvParseError> _parseErrors = new();
@@ -50,30 +53,38 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     private bool _asHashtable;
 
     /// <summary>CSV document to read when already loaded.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument), ValidateNotNull]
     public CsvDocument? Document { get; set; }
 
     /// <summary>Path to one or more CSV files. Wildcards are supported.</summary>
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPathCulture)]
     [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPathDetect)]
-    [Alias("FilePath")]
     public string[]? Path { get; set; }
 
     /// <summary>Literal path to one or more CSV files.</summary>
     [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetLiteralPathDelimiter)]
     [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetLiteralPathCulture)]
     [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetLiteralPathDetect)]
-    [Alias("PSPath", "LP")]
+    [Alias("PSPath", "FullName")]
     public string[]? LiteralPath { get; set; }
+
+    /// <summary>CSV text to parse without creating a temporary file.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetTextDetect), AllowEmptyString]
+    public string Text { get; set; } = string.Empty;
 
     /// <summary>Treat the first record as data and generate default column names.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter NoHeader { get; set; }
 
     /// <summary>Explicit header names to use; when provided, the first CSV record is treated as data.</summary>
@@ -81,8 +92,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public string[]? Header { get; set; }
 
     /// <summary>Number of parsed CSV records to skip before header discovery or data output.</summary>
@@ -90,34 +104,36 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     [ValidateRange(0, int.MaxValue)]
     public int SkipRows { get; set; }
 
-    /// <summary>Field delimiter character.</summary>
+    /// <summary>Field delimiter, including multi-character delimiters.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
-    public char Delimiter { get; set; } = ',';
-
-    /// <summary>Field delimiter text for multi-character delimiters such as || or ::.</summary>
-    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
-    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
-    public string? DelimiterText { get; set; }
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    public string Delimiter { get; set; } = ",";
 
     /// <summary>Detect the delimiter from the first meaningful records.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetPathDetect)]
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter DetectDelimiter { get; set; }
 
     /// <summary>Delimiter candidates to consider when detecting the delimiter.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public char[]? DelimiterCandidates { get; set; }
 
     /// <summary>Use the list separator from the selected or current culture as the delimiter.</summary>
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetPathCulture)]
     [Parameter(Mandatory = true, ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetTextCulture)]
     public SwitchParameter UseCulture { get; set; }
 
     /// <summary>Trim whitespace around unquoted fields.</summary>
@@ -125,35 +141,47 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
-    public bool TrimWhitespace { get; set; }
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
+    public SwitchParameter TrimWhitespace { get; set; }
 
     /// <summary>Allow empty lines in the input.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter AllowEmptyLines { get; set; }
 
-    /// <summary>Skip comment rows starting with # while discovering the header.</summary>
+    /// <summary>Keep comment rows while discovering the header.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
-    public bool SkipCommentRowsBeforeHeader { get; set; } = true;
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
+    public SwitchParameter NoSkipCommentRowsBeforeHeader { get; set; }
 
     /// <summary>Skip comment rows throughout the file.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter SkipCommentRows { get; set; }
 
     /// <summary>Character that identifies comment rows.</summary>
@@ -161,26 +189,35 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public char CommentCharacter { get; set; } = '#';
 
-    /// <summary>Recognize W3C Extended Log File Format #Fields: rows as headers.</summary>
+    /// <summary>Disable W3C Extended Log File Format #Fields: headers.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
-    public bool RecognizeW3CFieldsHeader { get; set; } = true;
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
+    public SwitchParameter NoW3CFieldsHeader { get; set; }
 
     /// <summary>Controls how rows with fewer or more fields than the header are handled.</summary>
     [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public CsvColumnCountMismatchPolicy ColumnCountMismatchPolicy { get; set; } = CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields;
 
     /// <summary>Controls how duplicate header names are handled.</summary>
@@ -188,8 +225,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public CsvDuplicateHeaderBehavior DuplicateHeaderBehavior { get; set; } = CsvDuplicateHeaderBehavior.Rename;
 
     /// <summary>Token that is materialized as null when importing rows.</summary>
@@ -197,8 +237,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public string? NullValue { get; set; }
 
     /// <summary>Additional date/time formats used by typed conversions and validation.</summary>
@@ -206,8 +249,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public string[]? DateTimeFormats { get; set; }
 
     /// <summary>Controls whether malformed quoted fields are parsed leniently or rejected.</summary>
@@ -215,8 +261,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public CsvQuoteParsingMode QuoteParsingMode { get; set; } = CsvQuoteParsingMode.Lenient;
 
     /// <summary>Static columns appended to every imported row.</summary>
@@ -224,8 +273,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public IDictionary? StaticColumns { get; set; }
 
     /// <summary>Compression used when reading files. Auto infers from the file extension.</summary>
@@ -252,8 +304,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public CsvReadMode Mode { get; set; } = CsvReadMode.Stream;
 
     /// <summary>Culture used for type conversions.</summary>
@@ -261,8 +316,11 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     [Parameter(ParameterSetName = ParameterSetPathCulture)]
     [Parameter(ParameterSetName = ParameterSetPathDetect)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
     [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public CultureInfo? Culture { get; set; }
 
     /// <summary>Encoding used when reading the file.</summary>
@@ -275,86 +333,162 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
     public Encoding? Encoding { get; set; }
 
     /// <summary>How parse errors are handled.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public CsvParseErrorAction ParseErrorAction { get; set; } = CsvParseErrorAction.Throw;
 
     /// <summary>Collect parse errors and write them as non-terminating errors after each file.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter CollectParseErrors { get; set; }
 
     /// <summary>Maximum number of collected parse errors before parsing fails.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     [ValidateRange(0, int.MaxValue)]
     public int MaxParseErrors { get; set; } = 100;
 
     /// <summary>Maximum length allowed for any parsed field.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     [ValidateRange(1, int.MaxValue)]
     public int? MaxFieldLength { get; set; }
 
     /// <summary>Maximum length allowed for fields parsed from quoted records.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     [ValidateRange(1, int.MaxValue)]
     public int? MaxQuotedFieldLength { get; set; }
 
     /// <summary>Normalize curly quote characters to straight quotes.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter NormalizeQuotes { get; set; }
 
     /// <summary>Reuse repeated string values through a per-read cache.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter InternStrings { get; set; }
 
     /// <summary>Report progress every N parsed records.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     [ValidateRange(1, int.MaxValue)]
     public int? ProgressInterval { get; set; }
 
-    /// <summary>Infer typed columns when -AsDataTable or -AsDataReader is used.</summary>
-    [Parameter]
+    /// <summary>Infer typed columns when -As DataTable or -As DataReader is used.</summary>
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public SwitchParameter InferSchema { get; set; }
 
     /// <summary>Maximum row count inspected when schema inference is enabled.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     [ValidateRange(1, int.MaxValue)]
     public int SchemaSampleRows { get; set; } = 1000;
 
     /// <summary>Explicit column types used when emitting DataTable or IDataReader output.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathCulture)]
+    [Parameter(ParameterSetName = ParameterSetLiteralPathDetect)]
+    [Parameter(ParameterSetName = ParameterSetTextDelimiter)]
+    [Parameter(ParameterSetName = ParameterSetTextCulture)]
+    [Parameter(ParameterSetName = ParameterSetTextDetect)]
     public IDictionary? ColumnType { get; set; }
 
-    /// <summary>Emit dictionaries instead of PSCustomObjects.</summary>
+    /// <summary>Output shape: Object, Hashtable, DataTable, DataReader or Document.</summary>
     [Parameter]
-    public SwitchParameter AsHashtable { get; set; }
-
-    /// <summary>Emit a forward-only IDataReader for database bulk-copy workflows.</summary>
-    [Parameter]
-    public SwitchParameter AsDataReader { get; set; }
-
-    /// <summary>Emit one DataTable per input file instead of enumerating row objects.</summary>
-    [Parameter]
-    public SwitchParameter AsDataTable { get; set; }
+    public OfficeCsvOutput As { get; set; }
 
     /// <inheritdoc />
     protected override void BeginProcessing()
     {
+        if (string.IsNullOrEmpty(Delimiter)) throw new PSArgumentException("Delimiter cannot be empty.", nameof(Delimiter));
         CsvCommandValidation.EnsureHeaderOptions(NoHeader, Header);
-        var selectedOutputModes = (AsDataTable.IsPresent ? 1 : 0) + (AsDataReader.IsPresent ? 1 : 0) + (AsHashtable.IsPresent ? 1 : 0);
-        if (selectedOutputModes > 1)
+        if (!Enum.IsDefined(typeof(OfficeCsvOutput), As)) throw new PSArgumentException("Unsupported CSV output shape.", nameof(As));
+        if (As != OfficeCsvOutput.DataReader && As != OfficeCsvOutput.Document && DuplicateHeaderBehavior == CsvDuplicateHeaderBehavior.Preserve)
         {
-            throw new PSArgumentException("Specify only one of -AsDataTable, -AsDataReader, or -AsHashtable.");
-        }
-
-        if (!AsDataReader.IsPresent && DuplicateHeaderBehavior == CsvDuplicateHeaderBehavior.Preserve)
-        {
-            throw new PSArgumentException("DuplicateHeaderBehavior Preserve cannot be used with row object, hashtable, or DataTable output. Use -AsDataReader, or choose Rename or Throw.");
+            throw new PSArgumentException("DuplicateHeaderBehavior Preserve cannot be used with row object, hashtable, or DataTable output. Use -As DataReader, or choose Rename or Throw.");
         }
 
         if (ColumnType is { Count: > 0 })
         {
-            if (!AsDataReader.IsPresent && !AsDataTable.IsPresent)
+            if (!(As == OfficeCsvOutput.DataReader) && !(As == OfficeCsvOutput.DataTable))
             {
-                throw new PSArgumentException("-ColumnType can only be used with -AsDataTable or -AsDataReader.");
+                throw new PSArgumentException("-ColumnType can only be used with -As DataTable or -As DataReader.");
             }
 
             if (InferSchema.IsPresent)
@@ -363,14 +497,24 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
             }
         }
 
-        _asDataReader = AsDataReader.IsPresent;
-        _asDataTable = AsDataTable.IsPresent;
-        _asHashtable = AsHashtable.IsPresent;
+        _asDataReader = (As == OfficeCsvOutput.DataReader);
+        _asDataTable = (As == OfficeCsvOutput.DataTable);
+        _asHashtable = (As == OfficeCsvOutput.Hashtable);
     }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (ParameterSetName == ParameterSetDocument) {
+            _rowWriter.Reset();
+            WriteDocumentRows(Document ?? throw new PSArgumentNullException(nameof(Document)));
+            return;
+        }
+        ApplyCultureDelimiter();
+        if (ParameterSetName.StartsWith("Text", StringComparison.Ordinal)) {
+            WriteText();
+            return;
+        }
         var document = Document;
 
         if (document == null)
@@ -384,7 +528,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
                     throw new FileNotFoundException($"File '{resolved}' was not found.", resolved);
                 }
 
-                if (Mode == CsvReadMode.Stream && !RequiresMaterializedRows())
+                if (Mode == CsvReadMode.Stream && As != OfficeCsvOutput.Document && !RequiresMaterializedRows())
                 {
                     _rowWriter.Reset();
                     _parseErrors.Clear();
@@ -424,6 +568,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
 
     private void WriteDocumentRows(CsvDocument document, string? tableName = null)
     {
+        if (As == OfficeCsvOutput.Document) { WriteObject(document); return; }
         if (_asDataReader)
         {
             WriteDataReader(document);
@@ -487,7 +632,7 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
             throw new PSArgumentException("The selected culture must provide a single-character list separator.");
         }
 
-        Delimiter = separator[0];
+        Delimiter = separator;
     }
 
     private bool IsLiteralPathParameterSet() =>
@@ -530,16 +675,16 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
             HasHeaderRow = Header is null && !NoHeader.IsPresent,
             Header = Header,
             SkipInitialRecords = SkipRows,
-            Delimiter = Delimiter,
-            DelimiterText = DelimiterText,
+            Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
+            DelimiterText = DetectDelimiter ? null : Delimiter,
             DetectDelimiter = DetectDelimiter.IsPresent,
             DelimiterCandidates = DelimiterCandidates,
             TrimWhitespace = TrimWhitespace,
             AllowEmptyLines = AllowEmptyLines.IsPresent,
-            SkipCommentRowsBeforeHeader = SkipCommentRowsBeforeHeader,
+            SkipCommentRowsBeforeHeader = !NoSkipCommentRowsBeforeHeader,
             SkipCommentRows = SkipCommentRows.IsPresent,
             CommentCharacter = CommentCharacter,
-            RecognizeW3CFieldsHeader = RecognizeW3CFieldsHeader,
+            RecognizeW3CFieldsHeader = !NoW3CFieldsHeader,
             ColumnCountMismatchPolicy = ColumnCountMismatchPolicy,
             CancellationToken = _cancellation.Token,
             ProgressReportInterval = ProgressInterval ?? 0,
@@ -584,16 +729,16 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
             HasHeaderRow = Header is null && !NoHeader.IsPresent,
             Header = Header,
             SkipInitialRecords = SkipRows,
-            Delimiter = Delimiter,
-            DelimiterText = DelimiterText,
+            Delimiter = Delimiter.Length == 1 ? Delimiter[0] : ',',
+            DelimiterText = DetectDelimiter ? null : Delimiter,
             DetectDelimiter = DetectDelimiter.IsPresent,
             DelimiterCandidates = DelimiterCandidates,
             TrimWhitespace = TrimWhitespace,
             AllowEmptyLines = AllowEmptyLines.IsPresent,
-            SkipCommentRowsBeforeHeader = SkipCommentRowsBeforeHeader,
+            SkipCommentRowsBeforeHeader = !NoSkipCommentRowsBeforeHeader,
             SkipCommentRows = SkipCommentRows.IsPresent,
             CommentCharacter = CommentCharacter,
-            RecognizeW3CFieldsHeader = RecognizeW3CFieldsHeader,
+            RecognizeW3CFieldsHeader = !NoW3CFieldsHeader,
             ColumnCountMismatchPolicy = ColumnCountMismatchPolicy,
             CancellationToken = _cancellation.Token,
             ProgressReportInterval = ProgressInterval ?? 0,
@@ -629,93 +774,6 @@ public sealed class ImportOfficeCsvCommand : PSCmdlet
         }
 
         return options;
-    }
-
-    private CsvDataTableOptions CreateDataTableOptions(string? tableName) =>
-        new()
-        {
-            TableName = tableName,
-            Schema = CreateExplicitSchema(),
-            InferSchema = InferSchema.IsPresent,
-            SchemaSampleRows = SchemaSampleRows
-        };
-
-    private CsvReaderOptions CreateDataReaderOptions() => ConfigureReaderOptions(new CsvReaderOptions());
-
-    private CsvReaderOptions ConfigureReaderOptions(CsvReaderOptions options)
-    {
-        options.Schema = CreateExplicitSchema();
-        options.InferSchema = InferSchema.IsPresent;
-        options.SchemaSampleRows = SchemaSampleRows;
-        return options;
-    }
-
-    private CsvSchema? CreateExplicitSchema()
-    {
-        if (ColumnType is not { Count: > 0 })
-        {
-            return null;
-        }
-
-        var builder = new CsvSchemaBuilder();
-        foreach (DictionaryEntry entry in ColumnType)
-        {
-            var columnName = Convert.ToString(entry.Key, CultureInfo.InvariantCulture);
-            if (string.IsNullOrWhiteSpace(columnName))
-            {
-                throw new PSArgumentException("-ColumnType keys must be non-empty column names.");
-            }
-
-            builder.Column(columnName).AsType(ResolveColumnType(entry.Value, columnName));
-        }
-
-        return builder.Build();
-    }
-
-    private static Type ResolveColumnType(object? value, string columnName)
-    {
-        if (value is PSObject psObject)
-        {
-            value = psObject.BaseObject;
-        }
-
-        if (value is Type type)
-        {
-            return Nullable.GetUnderlyingType(type) ?? type;
-        }
-
-        if (value is string typeName)
-        {
-            return ResolveColumnTypeName(typeName, columnName);
-        }
-
-        throw new PSArgumentException($"ColumnType value for '{columnName}' must be a .NET type or a supported type name.");
-    }
-
-    private static Type ResolveColumnTypeName(string typeName, string columnName)
-    {
-        if (string.IsNullOrWhiteSpace(typeName))
-        {
-            throw new PSArgumentException($"ColumnType value for '{columnName}' cannot be empty.");
-        }
-
-        var trimmedTypeName = typeName.Trim();
-        return trimmedTypeName.ToLowerInvariant() switch
-        {
-            "bool" or "boolean" => typeof(bool),
-            "byte" => typeof(byte),
-            "short" or "int16" => typeof(short),
-            "int" or "int32" => typeof(int),
-            "long" or "int64" => typeof(long),
-            "decimal" => typeof(decimal),
-            "double" => typeof(double),
-            "float" or "single" => typeof(float),
-            "datetime" => typeof(DateTime),
-            "guid" => typeof(Guid),
-            "string" => typeof(string),
-            _ => Type.GetType(trimmedTypeName, throwOnError: false) ??
-                throw new PSArgumentException($"ColumnType value '{typeName}' for '{columnName}' is not a supported type name.")
-        };
     }
 
     private void WriteCsvProgress(CsvProgress progress)

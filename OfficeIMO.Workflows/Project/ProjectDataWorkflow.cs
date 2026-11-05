@@ -11,7 +11,7 @@ public static class ProjectDataWorkflow {
     public static CsvDocument CreateCsv(ProjectDataTable table, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(table);
         cancellationToken.ThrowIfCancellationRequested();
-        var csv = new CsvDocument().WithHeader(table.Headers.ToArray());
+        var csv = CsvDocument.Create().WithHeader(table.Headers.ToArray());
         foreach (var row in table.Rows) { cancellationToken.ThrowIfCancellationRequested(); csv.AddRow(row.Cast<object?>().ToArray()); }
         return csv;
     }

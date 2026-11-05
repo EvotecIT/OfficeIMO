@@ -14,9 +14,10 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentSheet", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OdsSheet))]
+[Alias("OpenDocumentSheet") ]
 public sealed class AddOfficeOpenDocumentSheetCommand : PSCmdlet {
     /// <summary>OpenDocument spreadsheet. Omit inside New-OfficeOpenDocument -Content.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public OdsDocument? Document { get; set; }
 
     /// <summary>Worksheet name.</summary>

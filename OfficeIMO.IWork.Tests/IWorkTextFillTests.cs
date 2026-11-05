@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(paragraphStyle ? 5 : 8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: Message(ArchiveRecord(19, paragraphStyle ? 2022u : 2021u, BytesField(11, properties)),
                 ArchiveRecord(20, 2021, BytesField(11, VarintField(46, 1)))));
-        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTextContent text = Assert.Single(table.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.Equal("003366", Assert.Single(Assert.Single(text.Paragraphs).Runs).Style!.Color!.RgbHex);
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(IWorkDocumentKind.Numbers,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2021, BytesField(11, properties)));
-        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+        var (table, _) = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.False(Assert.Single(table.Cells).RichText!.IsFormattingComplete);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false);

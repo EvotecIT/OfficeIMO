@@ -3,15 +3,15 @@ namespace OfficeIMO.OneNote;
 internal sealed class OneNoteNotebookSerializationPlan {
     private const string TocFileName = "Open Notebook.onetoc2";
     private const string RecycleBinDirectoryName = "OneNote_RecycleBin";
-    private readonly OneNoteWriterOptions _options;
+    private readonly OneNoteSaveOptions _options;
     private readonly List<OneNoteCabinetEntry> _entries = new List<OneNoteCabinetEntry>();
     private long _expandedBytes;
 
-    private OneNoteNotebookSerializationPlan(OneNoteWriterOptions options) { _options = options; }
+    private OneNoteNotebookSerializationPlan(OneNoteSaveOptions options) { _options = options; }
 
     internal IReadOnlyList<OneNoteCabinetEntry> Entries => _entries.AsReadOnly();
 
-    internal static OneNoteNotebookSerializationPlan Create(OneNoteNotebook notebook, OneNoteWriterOptions options) {
+    internal static OneNoteNotebookSerializationPlan Create(OneNoteNotebook notebook, OneNoteSaveOptions options) {
         ArgumentNullException.ThrowIfNull(notebook);
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: true);
@@ -32,7 +32,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
         return plan;
     }
 
-    internal static byte[] CreateRootTableOfContents(OneNoteNotebook notebook, OneNoteWriterOptions options) {
+    internal static byte[] CreateRootTableOfContents(OneNoteNotebook notebook, OneNoteSaveOptions options) {
         ArgumentNullException.ThrowIfNull(notebook);
         OneNoteWriterValidation.ValidateNotebookOptions(options);
         OneNoteWriteModelValidator.ValidateNotebook(notebook, options, validateSectionContent: false);
@@ -141,7 +141,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
 
     private static byte[] SerializeGraph(
         OneNoteWriteGraph graph,
-        OneNoteWriterOptions options,
+        OneNoteSaveOptions options,
         bool toc,
         OneNoteStorageFormat sourceStorageFormat,
         long maxOutputBytes,

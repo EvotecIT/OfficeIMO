@@ -8,6 +8,18 @@ public partial class ExcelDocument {
     /// <summary>Gets the creation palette for status colors that have no native theme slot.</summary>
     internal OfficeTheme EffectiveCreationTheme => _creationTheme ?? OfficeTheme.Default;
 
+    /// <summary>Gets the known palette for native color authoring, or null when DrawingML supplies no status roles.</summary>
+    internal OfficeTheme? ColorTheme => _creationTheme;
+
+    /// <summary>Applies the shared palette and font scheme to the workbook and uses it for subsequent authoring defaults.</summary>
+    /// <remarks>Native theme-linked formatting follows the new palette. Literal cell formatting retains its authored values.</remarks>
+    public ExcelDocument ApplyTheme(OfficeTheme theme) {
+        ArgumentNullException.ThrowIfNull(theme);
+        SetWorkbookThemeXml(CreateWorkbookThemeXml(theme));
+        _creationTheme = theme;
+        return this;
+    }
+
     private static string CreateWorkbookThemeXml(OfficeTheme theme) {
         var xml = XDocument.Parse(Encoding.UTF8.GetString(DefaultThemeBytes.Value));
         XNamespace a = "http://schemas.openxmlformats.org/drawingml/2006/main";

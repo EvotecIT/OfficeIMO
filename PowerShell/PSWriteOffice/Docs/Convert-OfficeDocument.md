@@ -11,7 +11,7 @@ Converts files through OfficeIMO's native routes and portable batch engine.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Convert-OfficeDocument [-Path] <string[]> -To <string> [-Plan] [-ReportPath <string>] [-Recurse] [-Extension <string[]>] [-MaximumFiles <int>] [-ThrottleLimit <int>] [-Resume] [-RetryFailed] [-CheckpointPath <string>] [-AllowEmpty] [-SaveJob <string>] [-JobName <string>] [-PasswordVariable <string>] [-PdfPasswordVariable <string>] [-OutputDirectory <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-Path] <string[]> -To <string> [-Plan] [-ReportPath <string>] [-Recurse] [-Extension <string[]>] [-MaximumFiles <int>] [-ThrottleLimit <int>] [-Resume] [-RetryFailed] [-CheckpointPath <string>] [-AllowEmpty] [-SaveJob <string>] [-JobName <string>] [-PasswordVariable <string>] [-PdfPasswordVariable <string>] [-OutputDirectory <string>] [-Options <Object[]>] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-Page <OfficePageRange>] [-Dpi <Double>] [-Show] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Job
@@ -21,27 +21,27 @@ Convert-OfficeDocument -JobPath <string> [-Plan] [-ReportPath <string>] [-RetryF
 
 ### LiteralPath
 ```powershell
-Convert-OfficeDocument -LiteralPath <string[]> -To <string> [-Plan] [-ReportPath <string>] [-Recurse] [-Extension <string[]>] [-MaximumFiles <int>] [-ThrottleLimit <int>] [-Resume] [-RetryFailed] [-CheckpointPath <string>] [-AllowEmpty] [-SaveJob <string>] [-JobName <string>] [-PasswordVariable <string>] [-PdfPasswordVariable <string>] [-OutputDirectory <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument -LiteralPath <string[]> -To <string> [-Plan] [-ReportPath <string>] [-Recurse] [-Extension <string[]>] [-MaximumFiles <int>] [-ThrottleLimit <int>] [-Resume] [-RetryFailed] [-CheckpointPath <string>] [-AllowEmpty] [-SaveJob <string>] [-JobName <string>] [-PasswordVariable <string>] [-PdfPasswordVariable <string>] [-OutputDirectory <string>] [-Options <Object[]>] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-Page <OfficePageRange>] [-Dpi <Double>] [-Show] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### PathFile
 ```powershell
-Convert-OfficeDocument [-Path] <string[]> [-OutputPath] <string> [-To <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-Path] <string[]> [-OutputPath] <string> [-To <string>] [-Options <Object[]>] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-Page <OfficePageRange>] [-Dpi <Double>] [-Show] [-From <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### LiteralPathFile
 ```powershell
-Convert-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-To <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-OutputPath] <string> -LiteralPath <string[]> [-To <string>] [-Options <Object[]>] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-Page <OfficePageRange>] [-Dpi <Double>] [-Show] [-From <string>] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Text
 ```powershell
-Convert-OfficeDocument [-Text] <string> -To <string> -From <string> [-OutputPath <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-Text] <string> -To <string> -From <string> [-OutputPath <string>] [-Options <Object[]>] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-Show] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Convert-OfficeDocument [-Document] <Object> [-OutputPath <string>] [-To <string>] [-Options <Object[]>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
+Convert-OfficeDocument [-Document] <Object> [-OutputPath <string>] [-To <string>] [-Options <Object[]>] [-Theme <OfficeThemeInput>] [-Password <securestring>] [-Route <string>] [-OutputProfile <OfficeConversionProfile>] [-FailOnLoss] [-AllowLegacyImportLoss] [-CompressPdf] [-NoClobber] [-SkipUpToDate] [-AutoRename] [-MaximumInputBytes <long>] [-MaximumOutputBytes <long>] [-MaximumXmlCharactersInPart <long>] [-SummaryVariable <string>] [-Ocr] [-OcrOptions <OfficeOcrOptions>] [-Page <OfficePageRange>] [-Dpi <Double>] [-Show] [-From <string>] [-AsString] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -66,6 +66,12 @@ Get-ChildItem ./reports -Filter *.docx | Convert-OfficeDocument -To Pdf -OutputD
 ```powershell
 Convert-OfficeDocument -Path ./reports -Recurse -To Pdf -OutputDirectory ./pdf -SaveJob ./reports.officejob.json
             Convert-OfficeDocument -JobPath ./reports.officejob.json -Plan
+```
+
+
+### EXAMPLE 4
+```powershell
+'<h1>Review</h1>', '<p>Approved.</p>' | Convert-OfficeDocument -Text { $_ } -From Html -To Pdf -OutputPath ./review.pdf
 ```
 
 
@@ -180,6 +186,22 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -Dpi
+Raster density for OCR and PDF to Word or PowerPoint, from 36 through 600.
+
+```yaml
+Type: Double
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
@@ -344,11 +366,43 @@ Accept wildcard characters: False
 ```
 
 ### -NoClobber
-Leave an existing destination unchanged and report its input as skipped.
+Leave existing file-input outputs unchanged and report their inputs as skipped. In-memory sources refuse an existing destination.
 
 ```yaml
 Type: SwitchParameter
 Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Ocr
+Recognize an original image or PDF before converting through the native OCR projections. OcrOptions also enables recognition.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OcrOptions
+Optional provider, session and recognition policies. Captured before execution; never serialized into a job.
+
+```yaml
+Type: OfficeOcrOptions
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Document
 Aliases: None
 Possible values:
 
@@ -415,6 +469,22 @@ Type: OfficeConversionProfile
 Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
 Aliases: None
 Possible values: Faithful, Lightweight, PrintReady, TextOnly
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Page
+One-based PDF source pages. An existing OCR review already owns its recognized selection.
+
+```yaml
+Type: OfficePageRange
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Document
+Aliases: None
+Possible values:
 
 Required: False
 Position: named
@@ -599,6 +669,22 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Show
+Open each newly published output in its default application. Requires file output; unavailable with AsString, Plan or SaveJob. Skipped and reused outputs are not opened.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -SkipUpToDate
 Skip a file whose existing output has a strictly newer UTC modification time.
 
@@ -632,7 +718,7 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Literal source content, interpreted according to From rather than as a filename.
+Literal source content. Select a string pipeline explicitly with -Text { $_ }; records are separated by a newline and converted together once. Unqualified string pipelines remain file paths, including with From.
 
 ```yaml
 Type: String
@@ -643,7 +729,23 @@ Possible values:
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue)
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Theme
+Built-in theme, shared theme object or document/template theme for Markdown to Word/PowerPoint and HTML to Word. Overrides route-option themes. Advanced creation settings are execution-only in saved jobs.
+
+```yaml
+Type: OfficeThemeInput
+Parameter Sets: Path, LiteralPath, PathFile, LiteralPathFile, Text, Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 

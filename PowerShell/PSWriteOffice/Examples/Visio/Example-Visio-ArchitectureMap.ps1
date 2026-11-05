@@ -13,10 +13,10 @@ $svgPath = Join-Path $OutputDirectory 'Example-Visio-ArchitectureMap.svg'
 $pngPath = Join-Path $OutputDirectory 'Example-Visio-ArchitectureMap.png'
 
 New-OfficeVisio -Path $path -Title 'Service architecture map' -Author 'PSWriteOffice' -Width 12in -Height 7.5in -UseMastersByDefault -RequestRecalcOnOpen {
-    VisioStencilImport -BuiltIn Architecture -Name Arch -Default
-    VisioStencilImport -BuiltIn Cloud -Name Cloud
-    VisioStencilImport -BuiltIn SecurityIdentity -Name Security
-    VisioStencilImport -BuiltIn DataPlatform -Name Data
+    VisioStencilCatalog -BuiltIn Architecture -Name Arch -Default
+    VisioStencilCatalog -BuiltIn Cloud -Name Cloud
+    VisioStencilCatalog -BuiltIn SecurityIdentity -Name Security
+    VisioStencilCatalog -BuiltIn DataPlatform -Name Data
 
     VisioTextBox 'SaaS control plane' -X 6in -Y 6.85in -Width 4.2in -Height 0.42in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
     VisioTextBox 'Boundaries, trust points, and platform services are editable Visio shapes.' -X 6in -Y 6.43in -Width 6.8in -Height 0.28in -FillColor '#FFFFFF' -LineColor '#FFFFFF'

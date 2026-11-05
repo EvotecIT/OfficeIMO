@@ -17,6 +17,8 @@ public sealed partial class ConvertOfficeDocumentCommand {
     private async Task ConvertLiveDocumentAsync() {
         if (NoClobber && AutoRename) throw new PSArgumentException("NoClobber and AutoRename cannot be combined.");
         if (SkipUpToDate) throw new PSArgumentException("SkipUpToDate applies to file inputs, not live documents.");
+        if (OfficeArgumentValue.Unwrap(Document) is OfficeIMO.Pdf.Ocr.PdfSearchableOcrReview review) { await ConvertOcrReviewAsync(review); return; }
+        if (HasOcrRequest) throw new PSArgumentException("OCR requires an original image/PDF path or an existing OCR review.");
         var source = OfficeLiveDocumentSource.Create(Document);
         var target = OfficeFormatSelection.Parse(To ?? System.IO.Path.GetExtension(OutputPath))!;
         bool outputText = AsString.IsPresent || OutputPath == null;
@@ -45,9 +47,10 @@ public sealed partial class ConvertOfficeDocumentCommand {
             SetSummary(report);
             WriteObject(TextEncoding.GetString(output.ToArray()));
         } else {
-            report = await OfficeConverter.ConvertAsync(input, OfficeConverter.FormatForExtension(source.Extension), outputPath!, options, CancelToken);
+            report = await ConvertFileOutputAsync(outputPath!, () => OfficeConverter.ConvertAsync(input, OfficeConverter.FormatForExtension(source.Extension), outputPath!, options, CancelToken));
             SetSummary(report);
             WriteObject(report);
+            OpenPublishedOutput(report);
         }
     }
 }

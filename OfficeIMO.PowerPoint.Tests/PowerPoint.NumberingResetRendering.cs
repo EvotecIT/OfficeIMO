@@ -62,7 +62,7 @@ public sealed class PowerPointNumberingResetRenderingTests {
         paragraph.Runs[0].FontSize = global::OfficeIMO.OfficeLength.Points(12);
         if (characterBullet) paragraph.SetBullet('*');
         else paragraph.SetNumbered(PowerPointNumberingScheme.ArabicPeriod, 7);
-        paragraph.SetBulletFont("Times New Roman").SetBulletSize(global::OfficeIMO.OfficeLength.Points(11));
+        paragraph.SetBulletFontFamily("Times New Roman").SetBulletSize(global::OfficeIMO.OfficeLength.Points(11));
         using var saved = new MemoryStream(); presentation.Save(saved); saved.Position = 0;
         using var reopened = PowerPointDocument.Load(saved);
         var result = reopened.ConvertToPdfWithEvidence(new PowerPointPdfExportOptions {

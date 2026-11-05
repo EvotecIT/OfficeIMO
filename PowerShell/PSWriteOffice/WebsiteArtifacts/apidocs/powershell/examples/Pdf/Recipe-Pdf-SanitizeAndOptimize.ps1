@@ -7,5 +7,5 @@ New-OfficePdf -Path $source {
     PdfParagraph ('Repeated delivery evidence. ' * 60)
 }
 
-ConvertTo-OfficePdfSanitized -Path $source -OutputPath $sanitized
-ConvertTo-OfficePdfOptimized -Path $sanitized -OutputPath $optimized -AllowLarger -PassThruReport
+Optimize-OfficePdf -Sanitize -PassThru -Path $source -OutputPath $sanitized
+Optimize-OfficePdf -Path $sanitized -OutputPath $optimized -AllowLarger -PassThru

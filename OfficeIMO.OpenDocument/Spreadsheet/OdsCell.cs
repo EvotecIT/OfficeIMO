@@ -71,7 +71,7 @@ public sealed class OdsCell {
     /// <summary>Explicit or inherited underline line count.</summary>
     public OdfTextDecorationType? UnderlineType { get => Resolve(style => style.UnderlineType); set => EnsureStyle().UnderlineType = value; }
     /// <summary>Explicit or inherited strikethrough state.</summary>
-    public bool? StrikeThrough { get => Resolve(style => style.StrikeThrough); set => EnsureStyle().StrikeThrough = value; }
+    public bool? Strikethrough { get => Resolve(style => style.Strikethrough); set => EnsureStyle().Strikethrough = value; }
     /// <summary>Explicit or inherited native strikethrough pattern.</summary>
     public OdfTextDecorationStyle? LineThroughStyle { get => Resolve(style => style.LineThroughStyle); set => EnsureStyle().LineThroughStyle = value; }
     /// <summary>Explicit or inherited strikethrough line count.</summary>
@@ -442,7 +442,7 @@ public sealed class OdsCellRun {
     /// <summary>Explicit or inherited prototype underline line count.</summary>
     public OdfTextDecorationType? UnderlineType => Cell.UnderlineType;
     /// <summary>Explicit or inherited prototype strikethrough state.</summary>
-    public bool? StrikeThrough => Cell.StrikeThrough;
+    public bool? Strikethrough => Cell.Strikethrough;
     /// <summary>Explicit or inherited prototype strikethrough pattern.</summary>
     public OdfTextDecorationStyle? LineThroughStyle => Cell.LineThroughStyle;
     /// <summary>Explicit or inherited prototype strikethrough line count.</summary>

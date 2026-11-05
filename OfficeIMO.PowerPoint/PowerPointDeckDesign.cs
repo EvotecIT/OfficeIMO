@@ -22,22 +22,24 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates a deck design from a brand accent, deck seed, and mood.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public static PowerPointDeckDesign FromBrand(string accentColor, string seed,
             PowerPointDesignMood mood = PowerPointDesignMood.Corporate, string? name = null,
             string? eyebrow = null, string? footerLeft = null, string? footerRight = null,
-            string headingFontName = "Poppins", string bodyFontName = "Lato") {
+            string headingFontFamily = "Poppins", string bodyFontFamily = "Lato") {
+#pragma warning restore RS0026
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
 
             PowerPointDesignTheme theme = PowerPointDesignTheme
-                .FromBrand(accentColor, name, headingFontName, bodyFontName)
+                .FromBrand(accentColor, name, headingFontFamily, bodyFontFamily)
                 .WithVariation(seed)
                 .WithMood(mood);
 
             PowerPointDesignIntent intent = PowerPointDesignIntent.FromMood(mood, seed);
             PowerPointDesignDirection direction = new(mood.ToString(), mood, intent.Density, intent.VisualStyle,
-                theme.HeadingFontName, theme.BodyFontName, mood != PowerPointDesignMood.Minimal);
+                theme.HeadingFontFamily, theme.BodyFontFamily, mood != PowerPointDesignMood.Minimal);
 
             return new PowerPointDeckDesign(theme, intent, direction, seed, eyebrow, footerLeft, footerRight,
                 direction.ShowDirectionMotif);
@@ -55,11 +57,11 @@ namespace OfficeIMO.PowerPoint {
             }
 
             PowerPointDesignTheme theme = PowerPointDesignTheme
-                .FromBrand(accentColor, name, direction.HeadingFontName, direction.BodyFontName)
+                .FromBrand(accentColor, name, direction.HeadingFontFamily, direction.BodyFontFamily)
                 .WithVariation(seed)
                 .WithMood(direction.Mood);
-            theme.HeadingFontName = direction.HeadingFontName;
-            theme.BodyFontName = direction.BodyFontName;
+            theme.HeadingFontFamily = direction.HeadingFontFamily;
+            theme.BodyFontFamily = direction.BodyFontFamily;
             theme.SyncTypographyStyleToFonts();
             theme.Validate();
 
@@ -74,9 +76,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates several deterministic design directions from the same brand accent and content seed.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public static IReadOnlyList<PowerPointDeckDesign> CreateAlternativesFromBrand(string accentColor, string seed,
             int count = 3, string? name = null, string? eyebrow = null, string? footerLeft = null,
-            string? footerRight = null, string headingFontName = "Poppins", string bodyFontName = "Lato") {
+            string? footerRight = null, string headingFontFamily = "Poppins", string bodyFontFamily = "Lato") {
+#pragma warning restore RS0026
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
@@ -92,12 +96,12 @@ namespace OfficeIMO.PowerPoint {
                 string candidateName = string.IsNullOrWhiteSpace(name)
                     ? direction.Name + " Direction"
                     : name + " " + direction.Name;
-                string candidateHeadingFont = headingFontName == "Poppins" && bodyFontName == "Lato"
-                    ? direction.HeadingFontName
-                    : headingFontName;
-                string candidateBodyFont = headingFontName == "Poppins" && bodyFontName == "Lato"
-                    ? direction.BodyFontName
-                    : bodyFontName;
+                string candidateHeadingFont = headingFontFamily == "Poppins" && bodyFontFamily == "Lato"
+                    ? direction.HeadingFontFamily
+                    : headingFontFamily;
+                string candidateBodyFont = headingFontFamily == "Poppins" && bodyFontFamily == "Lato"
+                    ? direction.BodyFontFamily
+                    : bodyFontFamily;
                 PowerPointDesignDirection candidateDirection = new(direction.Name, direction.Mood,
                     direction.Density, direction.VisualStyle, candidateHeadingFont, candidateBodyFont,
                     direction.ShowDirectionMotif);
@@ -111,10 +115,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates deterministic design alternatives from a curated scenario recipe.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public static IReadOnlyList<PowerPointDeckDesign> CreateAlternativesFromBrand(string accentColor, string seed,
             PowerPointDesignRecipe recipe, int count = 0, string? name = null, string? eyebrow = null,
-            string? footerLeft = null, string? footerRight = null, string? headingFontName = null,
-            string? bodyFontName = null) {
+            string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null,
+            string? bodyFontFamily = null) {
+#pragma warning restore RS0026
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
@@ -134,12 +140,12 @@ namespace OfficeIMO.PowerPoint {
                 string candidateName = string.IsNullOrWhiteSpace(name)
                     ? recipe.Name + " " + direction.Name
                     : name + " " + direction.Name;
-                string candidateHeadingFont = string.IsNullOrWhiteSpace(headingFontName)
-                    ? direction.HeadingFontName
-                    : headingFontName!;
-                string candidateBodyFont = string.IsNullOrWhiteSpace(bodyFontName)
-                    ? direction.BodyFontName
-                    : bodyFontName!;
+                string candidateHeadingFont = string.IsNullOrWhiteSpace(headingFontFamily)
+                    ? direction.HeadingFontFamily
+                    : headingFontFamily!;
+                string candidateBodyFont = string.IsNullOrWhiteSpace(bodyFontFamily)
+                    ? direction.BodyFontFamily
+                    : bodyFontFamily!;
                 PowerPointDesignDirection candidateDirection = new(direction.Name, direction.Mood,
                     direction.Density, direction.VisualStyle, candidateHeadingFont, candidateBodyFont,
                     direction.ShowDirectionMotif);
@@ -153,10 +159,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Creates deterministic design alternatives from caller-supplied creative directions.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public static IReadOnlyList<PowerPointDeckDesign> CreateAlternativesFromBrand(string accentColor, string seed,
             IEnumerable<PowerPointDesignDirection> directions, string? name = null, string? eyebrow = null,
-            string? footerLeft = null, string? footerRight = null, string? headingFontName = null,
-            string? bodyFontName = null) {
+            string? footerLeft = null, string? footerRight = null, string? headingFontFamily = null,
+            string? bodyFontFamily = null) {
+#pragma warning restore RS0026
             if (string.IsNullOrWhiteSpace(seed)) {
                 throw new ArgumentException("Deck design seed cannot be null or empty.", nameof(seed));
             }
@@ -181,12 +189,12 @@ namespace OfficeIMO.PowerPoint {
                 string candidateName = string.IsNullOrWhiteSpace(name)
                     ? direction.Name + " Direction"
                     : name + " " + direction.Name;
-                string candidateHeadingFont = string.IsNullOrWhiteSpace(headingFontName)
-                    ? direction.HeadingFontName
-                    : headingFontName!;
-                string candidateBodyFont = string.IsNullOrWhiteSpace(bodyFontName)
-                    ? direction.BodyFontName
-                    : bodyFontName!;
+                string candidateHeadingFont = string.IsNullOrWhiteSpace(headingFontFamily)
+                    ? direction.HeadingFontFamily
+                    : headingFontFamily!;
+                string candidateBodyFont = string.IsNullOrWhiteSpace(bodyFontFamily)
+                    ? direction.BodyFontFamily
+                    : bodyFontFamily!;
                 PowerPointDesignDirection candidateDirection = new(direction.Name, direction.Mood,
                     direction.Density, direction.VisualStyle, candidateHeadingFont, candidateBodyFont,
                     direction.ShowDirectionMotif);

@@ -8,6 +8,6 @@ New-OfficePdf -Path $path -CreateOutlineFromHeadings {
     PdfParagraph 'Evidence is retained for 90 days.'
 }
 
-Get-OfficePdfInfo -Path $path
-Get-OfficePdfPreflight -Path $path
-Get-OfficePdfText -Path $path -ByPage
+(Get-OfficeDocumentInfo -Detailed -Path $path).Details
+Get-OfficePdfDiagnostic -Type Preflight -Path $path
+Read-OfficeDocument -As Text -Path $path -ByPage

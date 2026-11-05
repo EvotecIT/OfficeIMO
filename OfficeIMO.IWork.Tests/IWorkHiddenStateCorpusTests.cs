@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
             .Single(item => item.GetProperty("path").GetString() == relativePath);
         string path = Path.Combine(root, relativePath);
         Assert.Equal(expected.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        IWorkSourceDocument source = IWorkSourceDocument.Open(path);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(path);
         IReadOnlyList<IWorkTable> tables;
         IReadOnlyList<IWorkDiagnostic> diagnostics;
         IReadOnlyList<IWorkSourceDeclarationIssue> declarations;

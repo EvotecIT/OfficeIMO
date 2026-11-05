@@ -12,7 +12,7 @@ public static partial class ExcelIWorkConverter {
         void Apply(OfficeBorderSide? side, ExcelCellBorders edge) {
             if (side is not { } value) return;
             target.SetBorder(edge, value.IsVisible ? ExcelBorderWidth(value.Width) : ExcelBorderStyle.None,
-                value.IsVisible ? value.Color.ToRgbHex() : null);
+                value.IsVisible ? value.Color : (OfficeColor?)null);
         }
     }
 

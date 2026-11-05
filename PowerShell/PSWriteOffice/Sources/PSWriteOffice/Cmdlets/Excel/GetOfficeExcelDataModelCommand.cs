@@ -1,48 +1,55 @@
-#pragma warning disable CS1591
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Inspects workbook data model, query, connection, and external-link package parts.</summary>
+/// <summary>Reports connection, query-table, data-model and external-link parts in a workbook.</summary>
 /// <example>
-///   <summary>Detect query/model metadata that OfficeIMO preserves but does not execute.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$model = Get-OfficeExcelDataModel -Path .\WorkbookWithQueries.xlsx
-/// if ($model.HasDataModelOrQueries) {
-///     $model.Details | ForEach-Object { "Preserved package part: $_" }
-/// }</code>
-///   <para>Separates preserved connection/query/data-model parts from executable refresh behavior so automation can decide whether Excel refresh is required.</para>
+/// <summary>Report data connections</summary>
+/// <code>Get-OfficeExcelDataModel -Path .\Reports\Live-Sales.xlsx</code>
+/// <para>Lists connections, query tables, data-model parts and external links in the workbook.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelDataModel")]
-[Alias("ExcelDataModel", "ExcelPowerQuery")]
-[OutputType(typeof(PSObject))]
+/// <example>
+/// <summary>Find workbooks with external data</summary>
+/// <code>Get-ChildItem -Path \\files\Finance -Filter *.xlsx -Recurse |
+///     Get-OfficeExcelDataModel |
+///     Format-List</code>
+/// <para>Reports the data model of every workbook on the finance share, to find files that depend on databases or other workbooks.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Get, "OfficeExcelDataModel", DefaultParameterSetName = "Document")]
 public sealed class GetOfficeExcelDataModelCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
+    /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
-        var report = workbook.Document.InspectDataModel();
-        var output = new PSObject();
-        output.Properties.Add(new PSNoteProperty("Path", workbook.Document.FilePath));
-        output.Properties.Add(new PSNoteProperty("HasDataModelOrQueries", report.HasDataModelOrQueries));
-        output.Properties.Add(new PSNoteProperty("ConnectionPartCount", report.ConnectionPartCount));
-        output.Properties.Add(new PSNoteProperty("QueryTablePartCount", report.QueryTablePartCount));
-        output.Properties.Add(new PSNoteProperty("ModelPartCount", report.ModelPartCount));
-        output.Properties.Add(new PSNoteProperty("ExternalLinkPartCount", report.ExternalLinkPartCount));
-        output.Properties.Add(new PSNoteProperty("Details", report.Details));
-        WriteObject(output);
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) {
+            var document = scope.Document;
+            var current = Document == null && !scope.OwnsDocument ? ExcelDslContext.Current?.CurrentSheet : null;
+            WriteObject(document.InspectDataModel());
+        }
     }
+
 }
-#pragma warning restore CS1591

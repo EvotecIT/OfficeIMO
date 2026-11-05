@@ -296,13 +296,27 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Removes workbook-level structure/window protection metadata.
+        /// Removes the selected workbook structure/window restrictions. With both selected (the default),
+        /// removes all workbook protection metadata. A subset preserves other restrictions and password hashes.
         /// </summary>
-        public void UnprotectWorkbook() {
+        /// <param name="structure">Whether to remove the workbook structure restriction.</param>
+        /// <param name="windows">Whether to remove the workbook window restriction.</param>
+        public void UnprotectWorkbook(bool structure = true, bool windows = true) {
+            if (!structure && !windows) {
+                throw new ArgumentException("Select at least one workbook restriction to remove.");
+            }
             var workbook = WorkbookRoot;
             var protection = workbook.GetFirstChild<WorkbookProtection>();
             if (protection != null) {
-                workbook.RemoveChild(protection);
+                if (structure && windows) {
+                    workbook.RemoveChild(protection);
+                } else {
+                    if (structure) protection.LockStructure = false;
+                    if (windows) protection.LockWindows = false;
+                    if (protection.LockStructure?.Value != true && protection.LockWindows?.Value != true && protection.LockRevision?.Value != true) {
+                        workbook.RemoveChild(protection);
+                    }
+                }
                 workbook.Save();
                 MarkPackageDirty();
             }

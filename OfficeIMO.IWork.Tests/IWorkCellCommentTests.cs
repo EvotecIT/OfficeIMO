@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Qualified_root_cell_comments_retain_text_author_time_and_comment_only_empty_cells(IWorkDocumentKind kind) {
         using var package = CommentPackage(kind, empty: true);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, cell.Kind);
         IWorkCellComment comment = Assert.IsType<IWorkCellComment>(cell.Comment);
         Assert.Equal("Review this\nplease ", comment.Text);
@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
         package.Position = 0;
         if (kind == IWorkDocumentKind.Numbers) {
-            using var result = IWorkSourceDocument.Open(package).ToExcelResult();
+            using var result = IWorkSourceDocument.Load(package).ToExcelResult();
             Assert.False(result.IsVisualFallback, string.Join("\n", result.Report.Diagnostics.Select(d => d.Code + ": " + d.Message)));
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var reopened = ExcelDocument.Load(saved);
@@ -33,7 +33,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.False(reopened.Sheets[0].TryGetCellValueSnapshot(1, 1, out _));
         } else if (kind == IWorkDocumentKind.Pages) {
             using var source = CommentPackage(kind, empty: true);
-            using var result = IWorkSourceDocument.Open(source, kind).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+            using var result = IWorkSourceDocument.Load(source, kind).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
             Assert.False(result.IsVisualFallback);
             Assert.DoesNotContain(result.Report.Diagnostics, d => d.Code == "IWORK_PAGES_TABLE_COMMENTS_OMITTED");
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -56,7 +56,7 @@ public sealed partial class IWorkBoundaryTests {
             using var source = CommentPackage(kind);
             Assert.True(ConvertUnitReport(source, kind, visual: false).IsPartialEditableReconstruction);
             using var strict = CommentPackage(kind);
-            IWorkSourceDocument strictSource = IWorkSourceDocument.Open(strict, kind);
+            IWorkSourceDocument strictSource = IWorkSourceDocument.Load(strict, kind);
             using var result = strictSource.ToPowerPointResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false }); Assert.True(result.IsVisualFallback);
         }
     }
@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
             cellPayload: CommentCell(false), additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 10), BytesField(3, entry), fault == 1 ? BytesField(3, entry) : Message())),
                 ArchiveRecord(14, 3056, comment), ArchiveRecord(15, 212, StringField(1, "Reviewer"))));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         IWorkTableCell cell = Assert.Single(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells);
         Assert.Null(cell.Comment); Assert.Equal(42d, cell.Value);
         Assert.Equal(IWorkCellUnsupportedFeatures.Comment, cell.UnsupportedFeatures);
@@ -97,11 +97,11 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Comments_charge_source_wide_text_and_catalog_limits_for_repeated_uses() {
         using var characters = CommentPackage(IWorkDocumentKind.Numbers, repeatModel: true);
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(characters,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 40 }).ReadNumbers());
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(characters,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 40 }).ReadNumbers());
         using var entries = CommentPackage(IWorkDocumentKind.Numbers, repeatModel: true);
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(entries,
-            new IWorkReadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers());
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(entries,
+            new IWorkLoadOptions { MaxTableCatalogEntries = 1 }).ReadNumbers());
     }
 
     [Theory]
@@ -140,7 +140,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(13, 6005, Message(VarintField(1, 10), BytesField(3, Message(VarintField(1, 1), ReferenceField(10, 14))))),
                 ArchiveRecord(14, 3056, Message(StringField(1, text), BytesField(2, Message(DoubleField(1, 42d))), ReferenceField(3, 15))),
                 ArchiveRecord(15, 212, StringField(1, author))));
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_DESTINATION_UNSUPPORTED");
     }
@@ -158,7 +158,7 @@ public sealed partial class IWorkBoundaryTests {
                 ArchiveRecord(15, 212, StringField(1, "Reviewer")),
                 ArchiveRecord(16, 3056, Message(StringField(1, "Second"), BytesField(2, Message(DoubleField(1, 43d))), ReferenceField(3, 17))),
                 ArchiveRecord(17, 212, StringField(1, "reviewer"))));
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, d => d.Message.Contains("differ only by case", StringComparison.Ordinal));
     }
@@ -169,7 +169,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("Text", "line\rbreak")]
     public void Pages_comments_that_cannot_be_preserved_require_destination_fallback_even_under_partial_policy(string text, string author) {
         using var package = CommentPackage(IWorkDocumentKind.Pages, text: text, author: author);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(
             IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true }));
         IWorkCellComment sourceComment = result.Projection.Tables[0].Cells[0].Comment!;
         Assert.Equal(text, sourceComment.Text);
@@ -182,7 +182,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Pages_comment_roots_on_repeated_table_models_have_distinct_saved_destination_anchors() {
         using var package = CommentPackage(IWorkDocumentKind.Pages, repeatModel: true);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, result.Value.Comments.Count);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

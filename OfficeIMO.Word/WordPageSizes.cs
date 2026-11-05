@@ -166,6 +166,24 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>
+        /// Applies a physical paper size in the requested orientation, or the section's current orientation when omitted.
+        /// </summary>
+        /// <remarks>Unlike individual dimension edits, both dimensions are oriented together. Clears the printer paper code.</remarks>
+        internal void SetSize(OfficeIMO.Drawing.OfficePageSize size, OfficePageOrientation? orientation = null) {
+            if (size.Width <= OfficeLength.Zero || size.Height <= OfficeLength.Zero)
+                throw new ArgumentOutOfRangeException(nameof(size), "Page dimensions must be positive.");
+            var effectiveOrientation = (orientation ?? Orientation).ToOpenXml();
+            var orientedSize = effectiveOrientation == PageOrientationValues.Landscape ? size.Landscape() : size.Portrait();
+            uint width = checked((uint)orientedSize.Width.ToTwips());
+            uint height = checked((uint)orientedSize.Height.ToTwips());
+            var pageSize = EnsurePageSize();
+            pageSize.Width = width;
+            pageSize.Height = height;
+            pageSize.Orient = effectiveOrientation;
+            pageSize.Code = null;
+        }
+
         private PageSize EnsurePageSize() {
             var pageSize = _section._sectionProperties.GetFirstChild<PageSize>();
             if (pageSize == null) {
@@ -176,7 +194,7 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Get or Set section/page Width
+        /// Gets or sets the section width. Explicit dimension edits clear the printer paper code without changing orientation.
         /// </summary>
         public global::OfficeIMO.OfficeLength? Width {
             get {
@@ -188,11 +206,12 @@ namespace OfficeIMO.Word {
                 var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageSize = EnsurePageSize();
                 pageSize.Width = wordNativeValue;
+                pageSize.Code = null;
             }
         }
 
         /// <summary>
-        /// Get or Set section/page Height
+        /// Gets or sets the section height. Explicit dimension edits clear the printer paper code without changing orientation.
         /// </summary>
         public global::OfficeIMO.OfficeLength? Height {
             get {
@@ -204,6 +223,7 @@ namespace OfficeIMO.Word {
                 var wordNativeValue = checked((uint?)(value?.ToTwips()));
                 var pageSize = EnsurePageSize();
                 pageSize.Height = wordNativeValue;
+                pageSize.Code = null;
             }
         }
 

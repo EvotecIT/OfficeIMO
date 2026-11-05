@@ -25,11 +25,11 @@ internal static partial class NativeKeynoteWriterSmoke {
             new IWorkTextRunData("\nZażółć — café", "Arial", 24, "660066")
         }, 60, 80, 840, 250);
         document.AddSlide();
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == RichAcceptedSha256,
             "NativeAOT rich runs differ from the independently decoded and Apple-opened package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "NativeAOT rich runs are nondeterministic.");
-        IWorkTextContent content = IWorkSourceDocument.Open(bytes).ReadKeynote().Slides[1].TextBoxes.Single().Content;
+        Require(bytes.SequenceEqual(document.ToBytes()), "NativeAOT rich runs are nondeterministic.");
+        IWorkTextContent content = IWorkSourceDocument.Load(bytes).ReadKeynote().Slides[1].TextBoxes.Single().Content;
         Require(content.PlainText == "Bold 😀 plain\nItalic\nZażółć — café\n", "NativeAOT rich text lost Unicode or paragraph boundaries.");
         IWorkTextRun[] runs = content.Paragraphs.SelectMany(paragraph => paragraph.Runs).ToArray();
         IWorkTextStyle first = runs.Single(run => run.Text == "Bold 😀").Style;
@@ -38,7 +38,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT rich run lost decoration.");
         Require(reset.Bold == false && reset.Italic == false && reset.Underline == false && reset.Strikethrough == false
             && reset.FontSizePoints == 24 && reset.Color?.RgbHex == "000000", "NativeAOT plain run failed to reset formatting.");
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -49,7 +49,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             "NativeAOT saved PPTX inherited earlier character decoration.");
         using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
         try {
-            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaxTextRuns = 10 });
+            document.Save(unchanged, new IWorkKeynoteSaveOptions { MaxTextRuns = 10 });
             throw new InvalidOperationException("NativeAOT character-run budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "NativeAOT run-budget failure changed the destination.");

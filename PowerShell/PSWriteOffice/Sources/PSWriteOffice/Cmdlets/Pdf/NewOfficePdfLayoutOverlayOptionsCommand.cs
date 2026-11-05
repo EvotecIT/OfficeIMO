@@ -25,13 +25,13 @@ public sealed class NewOfficePdfLayoutOverlayOptionsCommand : OfficeCmdlet {
     [Parameter]
     public SwitchParameter NoReadingOrder { get; set; }
     /// <summary>Word-box color or theme color role.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? WordColor { get; set; }
     /// <summary>Line-box color or theme color role.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? LineColor { get; set; }
     /// <summary>Paragraph-region color or theme color role.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor? RegionColor { get; set; }
     /// <summary>Maximum boxes and labels in one overlay.</summary>
     [Parameter, ValidateRange(1, int.MaxValue)]

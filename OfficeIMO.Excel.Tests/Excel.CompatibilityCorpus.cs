@@ -407,9 +407,9 @@ namespace OfficeIMO.Tests {
                     sheet.Cell(2, 1).SetValue(3d);
                     sheet.Cell(2, 2).SetValue(1.5d);
                     sheet.Cell(2, 3).SetValue(7d);
-                    sheet.ColumnStyleByHeader("QuotedDays").NumberFormat("0 \"days\"");
-                    sheet.ColumnStyleByHeader("Duration").NumberFormat("[h]:mm");
-                    sheet.ColumnStyleByHeader("EscapedHours").NumberFormat("0\\h");
+                    sheet.ColumnStyleByHeader("QuotedDays").SetNumberFormat("0 \"days\"");
+                    sheet.ColumnStyleByHeader("Duration").SetNumberFormat("[h]:mm");
+                    sheet.ColumnStyleByHeader("EscapedHours").SetNumberFormat("0\\h");
                 });
 
                 using var reader = ExcelDocumentReader.Open(filePath);

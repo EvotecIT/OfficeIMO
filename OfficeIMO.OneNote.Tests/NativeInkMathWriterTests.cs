@@ -27,7 +27,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNotePage resultPage = Assert.Single(roundTrip.Pages);
         OneNoteInk result = Assert.IsType<OneNoteInk>(Assert.Single(resultPage.Outlines).Children.Single());
         OfficeInkStroke resultStroke = Assert.Single(result.Strokes);
@@ -70,11 +70,11 @@ public sealed class NativeInkMathWriterTests {
         ink.Ink.Add(new OfficeInkStroke().AddPoint(0.1D, 0.2D).AddPoint(0.3D, 0.4D));
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
-        byte[] bytes = OneNoteSectionWriter.Write(section);
-        var options = new OneNoteReaderOptions { MaxInkPathValues = 3 };
+        byte[] bytes = section.ToBytes();
+        var options = new OneNoteLoadOptions { MaxInkPathValues = 3 };
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionReader.Read(new MemoryStream(bytes), options));
+            OneNoteSection.Load(new MemoryStream(bytes), options));
 
         Assert.Equal("ONENOTE_INK_PATH_LIMIT", exception.Code);
     }
@@ -89,7 +89,7 @@ public sealed class NativeInkMathWriterTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+            section.ToBytes(new OneNoteSaveOptions {
                 MaxInkPathValues = 3,
                 ValidateRoundTrip = false
             }));
@@ -120,7 +120,7 @@ public sealed class NativeInkMathWriterTests {
             .Select(item => Assert.Single(item.Properties, property =>
                 (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.InkTransparency).Scalar!.Value)
             .ToArray();
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OfficeInkStroke[] actual = Assert.IsType<OneNoteInk>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Strokes.ToArray();
 
@@ -161,7 +161,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(new OneNoteMath { MathMl = OfficeMathMarkup.ToMathMl(expression) });
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteParagraph result = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children.Single());
         OfficeMathExpression roundTripExpression = Assert.Single(result.Runs).MathExpression!;
 
@@ -180,7 +180,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteParagraph result = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children.Single());
 
         Assert.Equal(expression, Assert.Single(result.Runs).MathExpression);
@@ -242,7 +242,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNotePage loadedPage = Assert.Single(loaded.Pages);
         OneNoteInk loadedInk = Assert.IsType<OneNoteInk>(Assert.Single(Assert.Single(loadedPage.Outlines).Children));
         OfficeInkStroke opaqueStroke = Assert.Single(loadedInk.Strokes);
@@ -288,7 +288,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OfficeInkStroke actual = Assert.Single(Assert.IsType<OneNoteInk>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Strokes);
 
@@ -311,7 +311,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => section.ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_INK_AFFINE_TIP", error.Code);
     }
@@ -348,7 +348,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => section.ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_OPAQUE_INK_BOUNDS", error.Code);
     }
@@ -363,7 +363,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNotePage loadedPage = Assert.Single(loaded.Pages);
         OneNoteInk loadedInk = Assert.IsType<OneNoteInk>(Assert.Single(Assert.Single(loadedPage.Outlines).Children));
         OfficeInkStroke loadedStroke = Assert.Single(loadedInk.Strokes);
@@ -423,7 +423,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(ink);
         section.Pages.Add(page);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNotePage loadedPage = Assert.Single(loaded.Pages);
         OneNoteInk loadedInk = Assert.IsType<OneNoteInk>(Assert.Single(Assert.Single(loadedPage.Outlines).Children));
         OneNoteMaterializedObjectSpace sourceSpace = loaded.PreservationState!.GetPageSpace(loadedPage)!;
@@ -433,7 +433,7 @@ public sealed class NativeInkMathWriterTests {
         loadedInk.PreservedInkScaleX = 2D;
         loadedInk.PreservedInkScaleY = 3D;
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(loaded)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(loaded.ToBytes()));
         OfficeInkStroke actual = Assert.Single(Assert.IsType<OneNoteInk>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Strokes);
 
@@ -453,7 +453,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(child);
         section.Pages.Add(page);
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNotePage loadedPage = Assert.Single(loaded.Pages);
         OneNoteInk[] inks = Assert.Single(loadedPage.Outlines).Children.OfType<OneNoteInk>().ToArray();
         Assert.Equal(2, inks.Length);
@@ -488,8 +488,8 @@ public sealed class NativeInkMathWriterTests {
         });
         section.Pages.Add(page);
 
-        byte[] bytes = OneNoteSectionWriter.Write(section);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(bytes));
+        byte[] bytes = section.ToBytes();
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(bytes));
         OneNotePage actualPage = Assert.Single(roundTrip.Pages);
         OneNoteMedia actual = Assert.IsType<OneNoteMedia>(Assert.Single(Assert.Single(actualPage.Outlines).Children));
 
@@ -516,7 +516,7 @@ public sealed class NativeInkMathWriterTests {
         });
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteMedia actual = Assert.IsType<OneNoteMedia>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children));
 
@@ -539,7 +539,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteParagraph result = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children.Single());
 
         Assert.Equal(3, result.Runs.Count);
@@ -563,7 +563,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteParagraph actual = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children.Single());
 
         Assert.Equal(2, actual.Runs.Count);
@@ -604,8 +604,8 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        byte[] bytes = OneNoteSectionWriter.Write(section);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(bytes));
+        byte[] bytes = section.ToBytes();
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(bytes));
         OneNoteParagraph actual = Assert.IsType<OneNoteParagraph>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children));
 
@@ -626,7 +626,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteTextRun actual = Assert.Single(Assert.IsType<OneNoteParagraph>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Runs);
 
@@ -702,7 +702,7 @@ public sealed class NativeInkMathWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => section.ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_MATH_COLUMNS", error.Code);
     }
@@ -723,7 +723,7 @@ public sealed class NativeInkMathWriterTests {
             page.DirectContent.Add(paragraph);
             section.Pages.Add(page);
 
-            OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+            OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => section.ToBytes());
 
             Assert.Equal("ONENOTE_WRITE_MATH_CHARACTER", error.Code);
         });
@@ -778,7 +778,7 @@ public sealed class NativeInkMathWriterTests {
         Assert.Equal(98UL, Scalar(descriptors.ChildPropertySets[1], OneNoteSchema.MathInlineObjectType));
         Assert.Equal(5UL, Scalar(descriptors.ChildPropertySets[1], OneNoteSchema.MathInlineObjectCount));
         Assert.Equal((ulong)';', Scalar(descriptors.ChildPropertySets[1], OneNoteSchema.MathInlineObjectCharacter2));
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteTextRun actual = Assert.Single(Assert.IsType<OneNoteParagraph>(
             Assert.Single(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children)).Runs);
         Assert.True(actual.Style.Bold);

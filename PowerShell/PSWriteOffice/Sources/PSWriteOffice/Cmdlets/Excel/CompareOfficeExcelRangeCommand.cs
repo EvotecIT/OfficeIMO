@@ -1,119 +1,96 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Compares two Excel worksheets or ranges and returns cell-level differences.</summary>
+/// <summary>Compares two worksheets or ranges cell by cell.</summary>
 /// <example>
-///   <summary>Compare current and expected ranges before publishing.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$differences = Compare-OfficeExcelRange -Path .\Report.xlsx -LeftSheet Current -RightSheet Expected -LeftRange A1:D20 -RightRange A1:D20 -TrimStrings -IgnoreCase
-/// if ($differences) {
-///     $differences | Export-Csv -Path .\RangeDifferences.csv -NoTypeInformation
-/// }</code>
-///   <para>Compares two ranges and exports cell-level differences when the workbook does not match the expected sheet.</para>
+/// <summary>Compare a sheet in two versions</summary>
+/// <code>Compare-OfficeExcelRange -ReferencePath .\Finance\Budget-v1.xlsx -DifferencePath .\Finance\Budget-v2.xlsx -Sheet Budget |
+///     Select-Object Kind, ReferenceCell, ReferenceValue, DifferenceValue</code>
+/// <para>Lists the cells of the Budget sheet that differ between two versions of the workbook.</para>
 /// </example>
-[Cmdlet(VerbsData.Compare, "OfficeExcelRange", DefaultParameterSetName = ParameterSetPath)]
-[Alias("Compare-OfficeExcelSheet", "ExcelCompare")]
-[OutputType(typeof(ExcelRangeDifference))]
+/// <example>
+/// <summary>Reconcile two lists in one workbook</summary>
+/// <code>$compare = @{
+///     ReferencePath   = '.\Finance\Reconciliation-October.xlsx'
+///     Sheet           = 'Ledger'
+///     Range           = 'A1:F400'
+///     DifferenceSheet = 'Bank'
+///     DifferenceRange = 'A1:F400'
+/// }
+/// Compare-OfficeExcelRange @compare -TrimStrings -IgnoreCase |
+///     Export-OfficeExcel -Path .\Finance\Reconciliation-Differences.xlsx -Title 'Ledger and bank differences'</code>
+/// <para>Compares the ledger with the bank statement range by range, ignoring case and stray spaces, and writes the differences to a review workbook.</para>
+/// </example>
+[Cmdlet(VerbsData.Compare, "OfficeExcelRange", DefaultParameterSetName = "Path")]
 public sealed class CompareOfficeExcelRangeCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Path to the workbook containing the reference values.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    public string ReferencePath { get; set; } = null!;
 
-    /// <summary>Left workbook path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath", "LeftPath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Workbook path to compare against.</summary>
+    [Parameter(ParameterSetName = "Path", Position = 1)]
+    public string? DifferencePath { get; set; }
 
-    /// <summary>Left workbook object.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Optional right workbook path. Defaults to the left workbook.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    public string? RightPath { get; set; }
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter()]
+    public string? Range { get; set; }
 
-    /// <summary>Optional right workbook object. Defaults to the left workbook.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument? RightDocument { get; set; }
+    /// <summary>Worksheet selector in the difference workbook.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? DifferenceSheet { get; set; }
 
-    /// <summary>Left worksheet name. Defaults to the current sheet in a sheet block, otherwise the first sheet.</summary>
-    [Parameter]
-    public string? LeftSheet { get; set; }
-
-    /// <summary>Left worksheet index.</summary>
-    [Parameter]
-    public int? LeftSheetIndex { get; set; }
-
-    /// <summary>Right worksheet name. Defaults to the left sheet.</summary>
-    [Parameter]
-    public string? RightSheet { get; set; }
-
-    /// <summary>Right worksheet index.</summary>
-    [Parameter]
-    public int? RightSheetIndex { get; set; }
-
-    /// <summary>Left A1 range. Defaults to the left worksheet used range.</summary>
-    [Parameter]
-    public string? LeftRange { get; set; }
-
-    /// <summary>Right A1 range. Defaults to the right worksheet used range.</summary>
-    [Parameter]
-    public string? RightRange { get; set; }
+    /// <summary>A1 range containing the comparison values in the difference workbook.</summary>
+    [Parameter()]
+    public string? DifferenceRange { get; set; }
 
     /// <summary>Compare strings after trimming whitespace.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter TrimStrings { get; set; }
 
     /// <summary>Compare strings case-insensitively.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter IgnoreCase { get; set; }
 
     /// <summary>Treat null and empty string values as different.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter StrictNullEmpty { get; set; }
+
+    /// <summary>Caller-owned workbook containing the reference values.</summary>
+    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    public ExcelDocument ReferenceDocument { get; set; } = null!;
+
+    /// <summary>Workbook document to compare against.</summary>
+    [Parameter(ParameterSetName = "Document")]
+    public ExcelDocument? DifferenceDocument { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var leftWorkbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
-        var leftDocument = leftWorkbook.Document;
-        using var rightWorkbook = ResolveRightWorkbook(leftDocument);
-        var rightDocument = rightWorkbook.Document;
-        var leftSheet = ExcelWorkbookCommandService.ResolveSheet(this, leftDocument, ParameterSetName, LeftSheet, LeftSheetIndex);
-        var rightSheet = ResolveRightSheet(rightDocument, leftSheet.Name);
-
-        var options = new ExcelRangeCompareOptions {
-            TrimStrings = TrimStrings.IsPresent,
-            IgnoreCase = IgnoreCase.IsPresent,
-            TreatNullAndEmptyStringAsEqual = !StrictNullEmpty.IsPresent
-        };
-
-        var differences = leftDocument.CompareRanges(
-            leftSheet,
-            string.IsNullOrWhiteSpace(LeftRange) ? leftSheet.UsedRange.Address : LeftRange!,
-            rightSheet,
-            string.IsNullOrWhiteSpace(RightRange) ? rightSheet.UsedRange.Address : RightRange!,
-            options);
-
+        using var reference = ParameterSetName == "Path" ? ExcelWorkbookCommandService.OpenWorkbook(this, ReferencePath!, readOnly: true) : new ExcelWorkbookCommandScope(ReferenceDocument!, ownsDocument: false);
+        using var difference = DifferencePath != null ? ExcelWorkbookCommandService.OpenWorkbook(this, DifferencePath, readOnly: true) : new ExcelWorkbookCommandScope(DifferenceDocument ?? reference.Document, ownsDocument: false);
+        var referenceSheet = ExcelSheetResolver.Resolve(reference.Document, Sheet);
+        var differenceSheet = DifferenceSheet == null ? difference.Document[referenceSheet.Name] : ExcelSheetResolver.Resolve(difference.Document, DifferenceSheet);
+        var differences = reference.Document.CompareRanges(referenceSheet, Range ?? referenceSheet.UsedRange.Address, differenceSheet, DifferenceRange ?? differenceSheet.UsedRange.Address, new ExcelRangeCompareOptions { TrimStrings = TrimStrings, IgnoreCase = IgnoreCase, TreatNullAndEmptyStringAsEqual = !StrictNullEmpty });
         WriteObject(differences, enumerateCollection: true);
     }
 
-    private ExcelWorkbookCommandScope ResolveRightWorkbook(ExcelDocument leftDocument) {
-        if (ParameterSetName == ParameterSetPath && !string.IsNullOrWhiteSpace(RightPath)) {
-            return ExcelWorkbookCommandService.OpenWorkbook(this, RightPath!, readOnly: true);
-        }
-
-        return new ExcelWorkbookCommandScope(RightDocument ?? leftDocument, ownsDocument: false);
-    }
-
-    private ExcelSheet ResolveRightSheet(ExcelDocument document, string leftSheetName) {
-        if (!string.IsNullOrWhiteSpace(RightSheet) || RightSheetIndex.HasValue) {
-            return ExcelSheetResolver.Resolve(document, RightSheet, RightSheetIndex);
-        }
-
-        return document[leftSheetName];
-    }
 }

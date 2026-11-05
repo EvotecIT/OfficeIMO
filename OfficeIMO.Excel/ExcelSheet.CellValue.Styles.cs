@@ -126,7 +126,7 @@ namespace OfficeIMO.Excel {
         /// <param name="column">The 1-based column index of the cell to fill.</param>
         /// <param name="color">Background color. Native theme roles remain linked to the workbook theme.</param>
         internal void CellBackground(int row, int column, OfficeIMO.OfficeColor color) {
-            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color);
+            var spreadsheetColor = ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme);
             WriteCellStyle(row, column, cell => {
                 ApplyBackground(cell, spreadsheetColor);
             });
@@ -583,9 +583,9 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to style.</param>
         /// <param name="column">The 1-based column index of the cell to style.</param>
         /// <param name="style">The border style to apply on all four sides.</param>
-        /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
-        internal void CellBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null) =>
-            CellBorder(row, column, ExcelCellBorders.All, style, hexColor);
+        /// <param name="color">Optional literal or theme-based border color.</param>
+        internal void CellBorder(int row, int column, ExcelBorderStyle style, OfficeColor? color = null) =>
+            CellBorder(row, column, ExcelCellBorders.All, style, color);
 
         /// <summary>
         /// Applies diagonal border lines to a single cell.
@@ -593,10 +593,10 @@ namespace OfficeIMO.Excel {
         /// <param name="row">The 1-based row index of the cell to style.</param>
         /// <param name="column">The 1-based column index of the cell to style.</param>
         /// <param name="style">The diagonal border style.</param>
-        /// <param name="hexColor">Optional border color expressed as ARGB or RGB hex.</param>
+        /// <param name="color">Optional literal or theme-based border color.</param>
         /// <param name="diagonalUp">Whether to draw the bottom-left to top-right diagonal.</param>
         /// <param name="diagonalDown">Whether to draw the top-left to bottom-right diagonal.</param>
-        internal void CellDiagonalBorder(int row, int column, ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
+        internal void CellDiagonalBorder(int row, int column, ExcelBorderStyle style, OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true) {
             WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
@@ -604,7 +604,7 @@ namespace OfficeIMO.Excel {
                 EnsureDefaultStylePrimitives(stylesheet);
 
                 var baseFormat = GetBaseCellFormat(stylesheet, cell.StyleIndex?.Value ?? 0U);
-                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style.ToOpenXml(), hexColor, diagonalUp, diagonalDown));
+                var borderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(baseFormat.BorderId), border => SetDiagonalBorder(border, style.ToOpenXml(), color.HasValue ? ExcelColor.ToSpreadsheetColor(color.Value, _excelDocument.ColorTheme) : null, diagonalUp, diagonalDown));
                 ApplyCellFormatOverride(stylesheet, cell, format => {
                     format.BorderId = borderId;
                     format.ApplyBorder = true;
@@ -615,25 +615,23 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Applies a font color (ARGB hex or #RRGGBB) to a single cell.
+        /// Applies a literal or theme-based font color to a single cell.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to recolor.</param>
         /// <param name="column">The 1-based column index of the cell to recolor.</param>
-        /// <param name="hexColor">The desired font color expressed as an ARGB or RGB hex string.</param>
-        internal void CellFontColor(int row, int column, string hexColor) {
-            if (string.IsNullOrWhiteSpace(hexColor)) return;
+        /// <param name="color">The text color; native theme roles remain linked to the workbook theme.</param>
+        internal void CellFontColor(int row, int column, OfficeColor color) {
+            Color nativeColor = ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme);
             WriteCellStyle(row, column, cell => {
                 var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureDefaultStylePrimitives(stylesheet);
 
-                string argb = NormalizeHexColor(hexColor);
-
-                ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-color", argb, () => {
+                ApplyDerivedCellFormat(stylesPart, stylesheet, cell, "font-color", nativeColor.OuterXml, () => {
                     uint baseIndex = cell.StyleIndex?.Value ?? 0U;
                     var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
-                    var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColor(font, argb));
+                    var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetFontColorElement(font, nativeColor));
                     ApplyCellFormatOverride(stylesheet, cell, format => {
                         format.FontId = fontId;
                         format.ApplyFont = true;

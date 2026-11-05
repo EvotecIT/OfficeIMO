@@ -41,8 +41,10 @@ namespace OfficeIMO.Examples.Html {
 
             HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
             document.SaveAsPdf(pdfPath, options);
-            document.SaveAsPng(pngPath, options);
-            document.SaveAsSvg(svgPath, options);
+            options.Format = OfficeImageExportFormat.Png;
+            document.SaveAsImage(pngPath, options);
+            options.Format = OfficeImageExportFormat.Svg;
+            document.SaveAsImage(svgPath, options);
 
             Console.WriteLine($"✓ Created: {pdfPath}");
             Console.WriteLine($"✓ Created: {pngPath}");

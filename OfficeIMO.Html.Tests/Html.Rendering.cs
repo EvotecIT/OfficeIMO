@@ -105,7 +105,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<p>Resolved image</p><img src='https://assets.example.test/logo.png' width='50' height='30' alt='logo'>",
             options);
-        string svg = await HtmlConversionDocument.Parse("<img src='https://assets.example.test/logo.png' width='50' height='30' alt='logo'>").ToSvgAsync(options);
+        string svg = (await HtmlConversionDocument.Parse("<img src='https://assets.example.test/logo.png' width='50' height='30' alt='logo'>").ToSvgAsync(options)).Value;
 
         Assert.Equal(2, calls);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual is HtmlRenderImage image && image.ContentType == "image/png" && image.Bytes.Length == imageBytes.Length);
@@ -2166,8 +2166,8 @@ public sealed partial class HtmlRenderingTests {
             return options;
         }
 
-        byte[] firstPng = HtmlConversionDocument.Parse(html).ToPng(ImageOptions());
-        byte[] secondPng = HtmlConversionDocument.Parse(html).ToPng(ImageOptions());
+        byte[] firstPng = HtmlConversionDocument.Parse(html).ToImage(ImageOptions());
+        byte[] secondPng = HtmlConversionDocument.Parse(html).ToImage(ImageOptions());
         string firstSvg = HtmlConversionDocument.Parse(html).ToSvg(ImageOptions());
         string secondSvg = HtmlConversionDocument.Parse(html).ToSvg(ImageOptions());
         byte[] firstPdf = (OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(PdfOptions())).ToBytes();
@@ -3023,7 +3023,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(number.X < hebrew.Min(run => run.X));
         for (int index = 1; index < hebrew.Count; index++) Assert.True(hebrew[index].X < hebrew[index - 1].X);
         Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BidiLayoutUnsupported || diagnostic.Code == HtmlRenderDiagnosticCodes.ComplexTextShapingUnsupported);
-        Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
+        Assert.True(HtmlConversionDocument.Parse(html).ToImage().Length > 8);
         var svg = System.Xml.Linq.XDocument.Parse(HtmlConversionDocument.Parse(html).ToSvg());
         string svgLogicalText = string.Concat(svg.Descendants().Select(element =>
             element.Name.LocalName == "text" ? element.Value : (string?)element.Attribute("aria-label") ?? string.Empty));

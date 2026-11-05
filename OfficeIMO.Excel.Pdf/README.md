@@ -35,7 +35,7 @@ using OfficeIMO.Pdf;
 using var workbook = ExcelDocument.Load("monthly-report.xlsx");
 
 var options = new ExcelPdfExportOptions {
-    SheetNames = new[] { "Summary", "Revenue", "Costs" },
+    Sheets = new[] { new OfficeSheetSelector("Summary"), new OfficeSheetSelector("Revenue"), new OfficeSheetSelector("Costs") },
     UseWorksheetPrintAreas = true,
     UseWorksheetPageSetup = true,
     UseWorksheetHeadersAndFooters = true,

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string] $StencilPackagePath,
     [string] $OutputDirectory = (Join-Path $PSScriptRoot '..\..\Artefacts\Examples\Visio'),
     [switch] $Open
@@ -29,14 +29,14 @@ $path = Join-Path $OutputDirectory 'Example-Visio-PackageStencil.vsdx'
 $svgPath = Join-Path $OutputDirectory 'Example-Visio-PackageStencil.svg'
 $pngPath = Join-Path $OutputDirectory 'Example-Visio-PackageStencil.png'
 
-$catalog = Get-OfficeVisioStencilCatalog -Path $StencilPackagePath -CatalogName 'Loaded package' -IncludeUnsupportedMasters
+$catalog = Import-OfficeVisioStencilCatalog -Path $StencilPackagePath -CatalogName 'Loaded package' -IncludeUnsupportedMasters
 $sampleStencils = @(Find-OfficeVisioStencil -Catalog $catalog -First 3)
 if ($sampleStencils.Count -eq 0) {
     throw "No stencil masters were discovered in $StencilPackagePath."
 }
 
 New-OfficeVisio -Path $path -Title 'Package-backed stencils' -Author 'PSWriteOffice' -Width 10in -Height 6.5in -UseMastersByDefault -RequestRecalcOnOpen {
-    VisioStencilImport -Catalog $catalog -Name Package -Default
+    VisioStencilCatalog -Catalog $catalog -Name Package -Default
     VisioTextBox 'Package-backed stencil import' -X 5in -Y 5.8in -Width 4.6in -Height 0.38in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
     VisioTextBox "Loaded from $([System.IO.Path]::GetFileName($StencilPackagePath))" -X 5in -Y 5.42in -Width 5.2in -Height 0.26in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
 

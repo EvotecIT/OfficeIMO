@@ -9,7 +9,7 @@ internal static partial class OneNotePackageStoreReader {
     private const ulong ObjectGroupType = 0x05;
     private const ulong ObjectBlobType = 0x0A;
 
-    internal static OneNoteRevisionStore Read(Stream stream, OneNoteFileHeader header, OneNoteReaderOptions options) {
+    internal static OneNoteRevisionStore Read(Stream stream, OneNoteFileHeader header, OneNoteLoadOptions options) {
         FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, options);
         FssHttpStreamObject package = RequireExactlyOne(
             packaging.Children,
@@ -37,7 +37,7 @@ internal static partial class OneNotePackageStoreReader {
             graph.FileDataObjects.AsReadOnly());
     }
 
-    private static List<PackageDataElement> ReadDataElements(Stream stream, FssHttpStreamObject package, OneNoteReaderOptions options) {
+    private static List<PackageDataElement> ReadDataElements(Stream stream, FssHttpStreamObject package, OneNoteLoadOptions options) {
         var elements = new List<PackageDataElement>();
         var ids = new HashSet<PackageGuidKey>();
         foreach (FssHttpStreamObject item in package.Children) {
@@ -61,7 +61,7 @@ internal static partial class OneNotePackageStoreReader {
         return elements;
     }
 
-    private static PackageGraph ReconstructGraph(Stream stream, List<PackageDataElement> elements, PackageIndex index, OneNoteReaderOptions options) {
+    private static PackageGraph ReconstructGraph(Stream stream, List<PackageDataElement> elements, PackageIndex index, OneNoteLoadOptions options) {
         var byElementId = elements.ToDictionary(item => new PackageGuidKey(item.Id));
         var revisionElements = elements.Where(item => item.Type == RevisionManifestType)
             .Select(item => ReadRevisionManifest(stream, item, options))
@@ -135,7 +135,7 @@ internal static partial class OneNotePackageStoreReader {
                (value.Identifier == new Guid("84DEFAB9-AAA3-4A0D-A3A8-520C77AC7073") && value.Value == 1);
     }
 
-    private static OneNoteExtendedGuid ReadCellManifest(Stream stream, PackageDataElement element, OneNoteReaderOptions options) {
+    private static OneNoteExtendedGuid ReadCellManifest(Stream stream, PackageDataElement element, OneNoteLoadOptions options) {
         FssHttpStreamObject current = RequireExactlyOne(
             element.Node.Children,
             item => item.Type == 0x0B,
@@ -149,7 +149,7 @@ internal static partial class OneNotePackageStoreReader {
         return revision;
     }
 
-    private static PackageRevisionElement ReadRevisionManifest(Stream stream, PackageDataElement element, OneNoteReaderOptions options) {
+    private static PackageRevisionElement ReadRevisionManifest(Stream stream, PackageDataElement element, OneNoteLoadOptions options) {
         FssHttpStreamObject revisionNode = RequireExactlyOne(
             element.Node.Children,
             item => item.Type == 0x1A,

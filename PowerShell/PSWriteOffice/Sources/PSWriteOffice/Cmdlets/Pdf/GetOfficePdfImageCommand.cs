@@ -1,90 +1,85 @@
-using OfficeIMO.Core.Internal;
+using System;
 using System.IO;
 using System.Management.Automation;
 using System.Security;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
-using PSWriteOffice.Services;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Gets or extracts image resources from a PDF.</summary>
-/// <example>
-///   <summary>Extract images from selected pages.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$proof = @(
-///     Get-OfficePdfImage -Path .\Examples\Documents\Report.pdf -PageRange '1-2'
-///     Get-OfficePdfImage -Path .\Examples\Documents\Report.pdf -OutputDirectory .\Examples\Documents\PdfImages -BaseName 'report-image'
-/// )
-/// $proof</code>
-///   <para>Returns image metadata or writes extracted images to disk.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePdfImage")]
+/// <summary>Lists image resources, or extracts them with -OutputDirectory.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficePdfImage", DefaultParameterSetName = "Path", SupportsShouldProcess = true)]
 [OutputType(typeof(PdfExtractedImage), typeof(FileInfo))]
-public sealed class GetOfficePdfImageCommand : PSCmdlet
-{
-    /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Optional page ranges such as 1-3,5.</summary>
-    [Parameter]
-    public string? PageRange { get; set; }
-
-    /// <summary>Optional directory where images should be written.</summary>
-    [Parameter]
+public sealed class GetOfficePdfImageCommand : PSCmdlet {
+    /// <summary>Path for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Page for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [OfficePageRangeTransformation]
+    public OfficePageRange? Page { get; set; }
+    /// <summary>OutputDirectory for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string? OutputDirectory { get; set; }
-
-    /// <summary>Base file name used when extracting images to disk.</summary>
-    [Parameter]
+    /// <summary>BaseName for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
     public string BaseName { get; set; } = "image";
-
-    /// <summary>Password used to authenticate an encrypted PDF.</summary>
-    [Parameter]
+    /// <summary>NoClobber for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    public SwitchParameter NoClobber { get; set; }
+    /// <summary>Password for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed extraction restrictions.</summary>
-    [Parameter]
+    /// <summary>IgnorePermissionRestrictions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter IgnorePermissionRestrictions { get; set; }
+    /// <summary>LoadOptions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
+    public PdfLoadOptions? LoadOptions { get; set; }
+    /// <summary>LiteralPath for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    public PdfDocument? Document { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var inputPath = PdfCommandUtilities.ResolvePath(this, Path);
-        var document = PdfDocument.Load(
-            inputPath,
-            PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
-        var images = string.IsNullOrWhiteSpace(PageRange)
-            ? document.Images.Extract()
-            : document.Images.Extract(PageRange!);
-        if (!string.IsNullOrWhiteSpace(OutputDirectory))
-        {
-            var outputDirectory = PdfCommandUtilities.ResolvePath(this, OutputDirectory!);
-            PdfCommandUtilities.EnsureOutputDirectory(outputDirectory);
-            int savedIndex = 0;
-            foreach (var image in images)
-            {
-                if (!image.IsImageFile || string.IsNullOrWhiteSpace(image.FileExtension))
-                {
-                    continue;
-                }
+    protected override void ProcessRecord() => PdfInspectionSource.Visit(this, ParameterSetName, Path, LiteralPath, Document, LoadOptions, Password, IgnorePermissionRestrictions, Inspect);
 
-                savedIndex++;
-                string extension = image.FileExtension!.TrimStart('.');
-                string fileName = $"{BaseName}-{savedIndex:D4}.{extension}";
-                string outputPath = OfficeFileOutput.WriteUnique(outputDirectory, fileName, image.Bytes);
-                WriteObject(new FileInfo(outputPath));
-            }
-
-            return;
+    private void Inspect(PdfDocument document) {
+        string? directory = OutputDirectory == null ? null : OfficePath.ResolveOutput(SessionState, OutputDirectory, directory: true);
+        if (directory != null && !ShouldProcess(directory, "Extract PDF images")) return;
+        var images = Page == null ? document.Images.Extract() : document.Images.Extract(Page.ToString());
+        int savedIndex = 0;
+        foreach (var image in images) {
+            if (directory == null) { WriteObject(image); continue; }
+            if (!image.IsImageFile || string.IsNullOrWhiteSpace(image.FileExtension)) continue;
+            string name = $"{BaseName}-{++savedIndex:D4}.{image.FileExtension!.TrimStart('.')}";
+            WriteObject(new FileInfo(WriteExtraction(directory, name, image.Bytes)));
         }
+    }
 
-        foreach (var image in images)
-        {
-            WriteObject(image);
-        }
+    private string WriteExtraction(string directory, string name, byte[] bytes) {
+        if (!NoClobber) return OfficeFileOutput.WriteUnique(directory, name, bytes);
+        string path = System.IO.Path.Combine(directory, OfficeFileOutput.GetSafeFileName(name));
+        OfficeFileOutput.Write(path, bytes, overwrite: false);
+        return path;
     }
 }

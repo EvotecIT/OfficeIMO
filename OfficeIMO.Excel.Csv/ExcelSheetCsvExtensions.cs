@@ -2,6 +2,8 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.CSV;
 using OfficeIMO.Excel;
 
@@ -68,84 +70,76 @@ public static class ExcelSheetCsvExtensions {
         return ImportCsvCore(sheet, reader, resolved, cancellationToken);
     }
 
-    /// <summary>Converts the worksheet used range to CSV text.</summary>
-    public static string ToCsv(
-        this ExcelSheet sheet,
-        bool headersInFirstRow = true,
-        CsvSaveOptions? csvOptions = null,
-        ExcelReaderOptions? readOptions = null,
-        CancellationToken cancellationToken = default) {
-        return ToCsvCore(sheet, a1Range: null, headersInFirstRow, csvOptions, readOptions, cancellationToken);
-    }
+    /// <summary>Projects the selected worksheet values into a materialized CSV model.</summary>
+    public static CsvDocument ToCsv(this ExcelSheet sheet, ExcelCsvExportOptions? options = null,
+        CancellationToken cancellationToken = default) => sheet.ToCsv(options, out _, cancellationToken);
 
-    /// <summary>Converts an A1 worksheet range to CSV text.</summary>
-    public static string ToCsv(
-        this ExcelSheet sheet,
-        string a1Range,
-        bool headersInFirstRow = true,
-        CsvSaveOptions? csvOptions = null,
-        ExcelReaderOptions? readOptions = null,
-        CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentException("Range cannot be empty.", nameof(a1Range));
-        return ToCsvCore(sheet, a1Range, headersInFirstRow, csvOptions, readOptions, cancellationToken);
-    }
-
-    /// <summary>Converts the worksheet used range to a materialized CSV document.</summary>
-    public static CsvDocument ToCsvDocument(
-        this ExcelSheet sheet,
-        bool headersInFirstRow = true,
-        ExcelReaderOptions? readOptions = null,
-        CancellationToken cancellationToken = default) {
-        return ToCsvDocumentCore(sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
-    }
-
-    /// <summary>Converts an A1 worksheet range to a materialized CSV document.</summary>
-    public static CsvDocument ToCsvDocument(
-        this ExcelSheet sheet,
-        string a1Range,
-        bool headersInFirstRow = true,
-        ExcelReaderOptions? readOptions = null,
-        CancellationToken cancellationToken = default) {
-        if (string.IsNullOrWhiteSpace(a1Range)) throw new ArgumentException("Range cannot be empty.", nameof(a1Range));
-        return ToCsvDocumentCore(sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
-    }
-
-    /// <summary>Saves the worksheet used range as CSV.</summary>
-    public static void SaveAsCsv(
-        this ExcelSheet sheet,
-        string path,
-        bool headersInFirstRow = true,
-        CsvSaveOptions? csvOptions = null,
-        ExcelReaderOptions? readOptions = null,
-        CancellationToken cancellationToken = default) {
+    /// <summary>Projects values and reports the limits of CSV fidelity for workbook features.</summary>
+    public static CsvDocument ToCsv(this ExcelSheet sheet, ExcelCsvExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(sheet);
-        using ExcelWorkbookDataReader reader = CreateSheetReader(
-            sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
-        CsvDocument.WriteDataReader(
-            path,
-            reader,
-            ResolveSaveOptions(csvOptions, headersInFirstRow),
-            cancellationToken);
+        ExcelCsvExportOptions resolved = ResolveExportOptions(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        report = CreateExportReport(sheet);
+        if (resolved.FailOnLoss) report.ThrowIfLoss();
+        return ToCsvDocumentCore(sheet, resolved.Range, resolved.HeadersInFirstRow, resolved.ReadOptions, cancellationToken);
     }
 
-    /// <summary>Saves the worksheet used range to a caller-owned CSV stream.</summary>
-    public static void SaveAsCsv(
-        this ExcelSheet sheet,
-        Stream stream,
-        bool headersInFirstRow = true,
-        CsvSaveOptions? csvOptions = null,
-        ExcelReaderOptions? readOptions = null,
-        CancellationToken cancellationToken = default) {
+    /// <summary>Projects worksheet values asynchronously and returns the model and fidelity report.</summary>
+    public static Task<OfficeConversionResult<CsvDocument>> ToCsvAsync(this ExcelSheet sheet,
+        ExcelCsvExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (sheet.ToCsv(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
+
+    /// <summary>Streams worksheet values as CSV without materializing the target document.</summary>
+    public static OfficeConversionReport SaveAsCsv(this ExcelSheet sheet,
+        string path, ExcelCsvExportOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(sheet);
-        using ExcelWorkbookDataReader reader = CreateSheetReader(
-            sheet, a1Range: null, headersInFirstRow, readOptions, cancellationToken);
-        CsvDocument.WriteDataReader(
-            stream,
-            reader,
-            ResolveSaveOptions(csvOptions, headersInFirstRow),
-            leaveOpen: true,
-            cancellationToken: cancellationToken);
+        ExcelCsvExportOptions resolved = ResolveExportOptions(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeConversionReport report = CreateExportReport(sheet);
+        if (resolved.FailOnLoss) report.ThrowIfLoss();
+        using ExcelWorkbookDataReader reader = CreateSheetReader(sheet, resolved.Range, resolved.HeadersInFirstRow, resolved.ReadOptions, cancellationToken);
+        OfficeConversionFailures.Run(report, () => CsvDocument.WriteDataReader(path, reader,
+            ResolveSaveOptions(resolved.SaveOptions, resolved.HeadersInFirstRow), cancellationToken));
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
+
+    /// <summary>Streams worksheet values as CSV without materializing the target document.</summary>
+    public static OfficeConversionReport SaveAsCsv(this ExcelSheet sheet,
+        Stream stream, ExcelCsvExportOptions? options = null, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(sheet);
+        ExcelCsvExportOptions resolved = ResolveExportOptions(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeConversionReport report = CreateExportReport(sheet);
+        if (resolved.FailOnLoss) report.ThrowIfLoss();
+        using ExcelWorkbookDataReader reader = CreateSheetReader(sheet, resolved.Range, resolved.HeadersInFirstRow, resolved.ReadOptions, cancellationToken);
+        OfficeConversionFailures.Run(report, () => CsvDocument.WriteDataReader(stream, reader,
+            ResolveSaveOptions(resolved.SaveOptions, resolved.HeadersInFirstRow), leaveOpen: true, cancellationToken: cancellationToken));
+        return report;
+    }
+
+    /// <summary>Asynchronously streams worksheet values as CSV without materializing the target document.</summary>
+    public static Task<OfficeConversionReport> SaveAsCsvAsync(this ExcelSheet sheet,
+        string path, ExcelCsvExportOptions? options = null, CancellationToken cancellationToken = default) {
+        return Task.Run(() => sheet.SaveAsCsv(path, options, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>Asynchronously streams worksheet values as CSV without materializing the target document.</summary>
+    public static Task<OfficeConversionReport> SaveAsCsvAsync(this ExcelSheet sheet,
+        Stream stream, ExcelCsvExportOptions? options = null, CancellationToken cancellationToken = default) {
+        return Task.Run(() => sheet.SaveAsCsv(stream, options, cancellationToken), cancellationToken);
+    }
+
+    private static ExcelCsvExportOptions ResolveExportOptions(ExcelCsvExportOptions? options) {
+        ExcelCsvExportOptions resolved = options ?? new ExcelCsvExportOptions();
+        if (resolved.Range != null && string.IsNullOrWhiteSpace(resolved.Range)) throw new ArgumentException("Range cannot be empty.", nameof(options));
+        return resolved;
+    }
+
+    private static OfficeConversionReport CreateExportReport(ExcelSheet sheet) => new OfficeConversionReport("Excel", "CSV",
+        diagnostics: new[] { new OfficeDiagnostic("EXCEL_CSV_VALUES_ONLY", OfficeDiagnosticSeverity.Warning,
+            "CSV projects selected cell values. Workbook formatting, formulas, drawings and other native features are not assessed for preservation.",
+            sheet.Name, "Excel.Csv", OfficeConversionLossKind.Unassessed) });
 
     internal static ExcelCsvImportResult ImportCsvCore(
         ExcelSheet sheet,
@@ -181,25 +175,6 @@ public static class ExcelSheetCsvExtensions {
         return new ExcelCsvImportResult(imported.SheetName, imported.TableName, imported.Range, delimiterText);
     }
 
-    private static string ToCsvCore(
-        ExcelSheet sheet,
-        string? a1Range,
-        bool headersInFirstRow,
-        CsvSaveOptions? csvOptions,
-        ExcelReaderOptions? readOptions,
-        CancellationToken cancellationToken) {
-        ArgumentNullException.ThrowIfNull(sheet);
-        using ExcelWorkbookDataReader reader = CreateSheetReader(
-            sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
-        using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        CsvDocument.WriteDataReader(
-            writer,
-            reader,
-            ResolveSaveOptions(csvOptions, headersInFirstRow),
-            cancellationToken);
-        return writer.ToString();
-    }
-
     private static CsvDocument ToCsvDocumentCore(
         ExcelSheet sheet,
         string? a1Range,
@@ -209,7 +184,7 @@ public static class ExcelSheetCsvExtensions {
         ArgumentNullException.ThrowIfNull(sheet);
         using ExcelWorkbookDataReader reader = CreateSheetReader(
             sheet, a1Range, headersInFirstRow, readOptions, cancellationToken);
-        var document = new CsvDocument();
+        var document = CsvDocument.Create();
         if (reader.FieldCount == 0) return document;
 
         var headers = new string[reader.FieldCount];

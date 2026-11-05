@@ -9,14 +9,14 @@ schema: 2.0.0
 Sets or clears the generated PDF page border decoration.
 
 ## SYNTAX
-### Context (Default)
+### Border (Default)
 ```powershell
-Set-OfficePdfPageBorder [-Color <string>] [-Width <Double>] [-Inset <Double>] [-Opacity <Double>] [-DashStyle <OfficeStrokeDashStyle>] [-Clear] [-PassThru] [<CommonParameters>]
+Set-OfficePdfPageBorder [-Color <OfficeColor>] [-Width <OfficeLength>] [-Inset <OfficeLength>] [-Opacity <Double>] [-DashStyle <OfficeStrokeDashStyle>] [<CommonParameters>]
 ```
 
-### Document
+### Clear
 ```powershell
-Set-OfficePdfPageBorder -Document <PdfDocument> [-Color <string>] [-Width <Double>] [-Inset <Double>] [-Opacity <Double>] [-DashStyle <OfficeStrokeDashStyle>] [-Clear] [-PassThru] [<CommonParameters>]
+Set-OfficePdfPageBorder -Clear [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,11 +41,11 @@ Clear the generated PDF page border decoration.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Clear
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -56,8 +56,8 @@ Accept wildcard characters: False
 Border color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Border
 Aliases: None
 Possible values:
 
@@ -73,7 +73,7 @@ Border dash style.
 
 ```yaml
 Type: OfficeStrokeDashStyle
-Parameter Sets: Context, Document
+Parameter Sets: Border
 Aliases: None
 Possible values: Solid, Dash, Dot, DashDot, DashDotDot
 
@@ -84,28 +84,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Document
-Compatibility parameter. Page composition is supported only inside New-OfficePdf.
-
-```yaml
-Type: PdfDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Inset
 Distance from the page edge to the border path in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Border
 Aliases: None
 Possible values:
 
@@ -121,23 +105,7 @@ Border opacity from 0 through 1.
 
 ```yaml
 Type: Double
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -PassThru
-Emit the updated document.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Border
 Aliases: None
 Possible values:
 
@@ -152,8 +120,8 @@ Accept wildcard characters: False
 Border stroke width in PDF points.
 
 ```yaml
-Type: Double
-Parameter Sets: Context, Document
+Type: OfficeLength
+Parameter Sets: Border
 Aliases: None
 Possible values:
 
@@ -169,11 +137,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## OUTPUTS
 
-- `OfficeIMO.Pdf.PdfDocument`
+- `None`
 
 ## RELATED LINKS
 

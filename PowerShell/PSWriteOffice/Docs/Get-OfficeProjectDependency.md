@@ -11,7 +11,7 @@ Returns project dependencies.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Get-OfficeProjectDependency -Document <ProjectDocument> [<CommonParameters>]
+Get-OfficeProjectDependency [-Document <ProjectDocument>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -36,7 +36,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

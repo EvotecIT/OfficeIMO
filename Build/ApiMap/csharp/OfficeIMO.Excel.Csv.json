@@ -16,6 +16,33 @@
       "new": "OfficeIMO.Excel.Csv.ExcelCsvImportOptions.ReaderOptions : CsvReaderOptions",
       "replacement": "Use one CsvReaderOptions object. The import defaults keep DetectDelimiter = true and InferSchema = true; when replacing the object, set the defaults your import needs.",
       "category": "options"
+    },
+    {
+      "old": "CsvDocument.ToExcelDocument(ExcelCsvImportOptions, ExcelCreateOptions, CancellationToken)",
+      "kind": "method",
+      "action": "merge",
+      "new": "CsvDocument.ToExcel(CsvExcelExportOptions[, out OfficeConversionReport], CancellationToken)",
+      "replacement": "Move the existing import options to CsvExcelExportOptions.ImportOptions and the create options to CreateOptions. The returned detached workbook remains caller-owned. Typed schema and omitted-header limits are reported; FailOnLoss rejects them.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "ExcelSheet.ToCsv(...) : string / ToCsvDocument(...) : CsvDocument",
+      "kind": "method",
+      "action": "merge",
+      "new": "ExcelSheet.ToCsv(ExcelCsvExportOptions[, out OfficeConversionReport], CancellationToken) : CsvDocument",
+      "replacement": "Move a1Range, headersInFirstRow and readOptions to Range, HeadersInFirstRow and ReadOptions. Serialize the returned model with CsvDocument.ToString(CsvSaveOptions). Headerless serialization sets CsvSaveOptions.IncludeHeader = false. Encoding, date/culture/null and compression remain CSV serialization concerns.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "CsvDocument.SaveAsExcel(...) : void / ExcelSheet.SaveAsCsv(...) : void",
+      "kind": "method",
+      "action": "merge",
+      "new": "SaveAsExcel(path|stream, CsvExcelExportOptions, CancellationToken) / SaveAsCsv(path|stream, ExcelCsvExportOptions, CancellationToken) : OfficeConversionReport",
+      "replacement": "Move native save options to CsvExcelExportOptions.SaveOptions or ExcelCsvExportOptions.SaveOptions. Async forms return Task<OfficeConversionReport>. Worksheet CSV saves still stream the data reader, linking caller/read cancellation and retaining CSV NoClobber, Append and compression policies.",
+      "category": "conversion",
+      "applied": true
     }
   ]
 }

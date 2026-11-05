@@ -6,42 +6,55 @@ schema: 2.0.0
 ---
 # Get-OfficeWordField
 ## SYNOPSIS
-Gets fields from a Word document.
+Gets fields, filtered by type or field code text.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordField [-Path] <string> [-FieldType <WordFieldType[]>] [-Contains <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeWordField [-FieldType <WordFieldType[]>] [-Contains <string>] [-CaseSensitive] [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordField -Document <WordDocument> [-FieldType <WordFieldType[]>] [-Contains <string>] [-CaseSensitive] [<CommonParameters>]
+Get-OfficeWordField [-Path] <string[]> [-FieldType <WordFieldType[]>] [-Contains <string>] [-CaseSensitive] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordField -LiteralPath <string[]> [-FieldType <WordFieldType[]>] [-Contains <string>] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns WordField objects, optionally filtered by type or field code.
+Gets fields, filtered by type or field code text.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $fields = Get-OfficeWordField -Path .\Report.docx -Contains 'TOC'
-$fields |
-    Select-Object -Property FieldType, Field |
-    Format-Table -AutoSize
+Get-OfficeWordField -CaseSensitive
 ```
 
-Filters Word fields by field-code text before running a field or table-of-contents refresh.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordField -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordField -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -CaseSensitive
-Use case-sensitive matching for Contains.
+CaseSensitive for this inspection.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -53,11 +66,11 @@ Accept wildcard characters: False
 ```
 
 ### -Contains
-Filter by field code text.
+Contains for this inspection.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -69,7 +82,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Word document to read.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -77,7 +90,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -85,11 +98,11 @@ Accept wildcard characters: False
 ```
 
 ### -FieldType
-Filter by field type.
+FieldType for this inspection.
 
 ```yaml
 Type: WordFieldType[]
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: AddressBlock, Advance, Ask, Author, AutoNum, AutoNumLgl, AutoNumOut, AutoText, AutoTextList, Bibliography, Citation, Comments, Compare, CreateDate, Database, Date, DocProperty, DocVariable, Embed, FileName, FileSize, GoToButton, GreetingLine, HyperlinkIf, IncludePicture, IncludeText, Index, Info, Keywords, LastSavedBy, Link, ListNum, MacroButton, MergeField, MergeRec, MergeSeq, Next, NextIf, NoteRef, NumChars, NumPages, NumWords, Page, PageRef, Print, PrintDate, Private, Quote, RD, Ref, RevNum, SaveDate, Section, SectionPages, Seq, Set, SkipIf, StyleRef, Subject, Symbol, TA, TC, Template, Time, Title, TOA, TOC, UserAddress, UserInitials, UserName, XE, Formula, EQ
 
@@ -100,20 +113,36 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the .docx file.
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Path for this inspection.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -121,7 +150,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS

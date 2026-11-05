@@ -9,6 +9,106 @@
       "category": "limits",
       "reason": "Load and parse budgets use one Max vocabulary and sit under a discoverable Limits object.",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkReadOptions",
+      "new": "OfficeIMO.IWork.IWorkLoadOptions",
+      "action": "rename",
+      "kind": "type",
+      "category": "options",
+      "reason": "Native lifecycle options use Load/Save vocabulary.",
+      "replacement": "Rename the options type without changing its settings or application-specific boundaries.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkPagesWriteOptions",
+      "new": "OfficeIMO.IWork.IWorkPagesSaveOptions",
+      "action": "rename",
+      "kind": "type",
+      "category": "options",
+      "reason": "Native lifecycle options use Load/Save vocabulary.",
+      "replacement": "Rename the options type without changing its settings or application-specific boundaries.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkNumbersWriteOptions",
+      "new": "OfficeIMO.IWork.IWorkNumbersSaveOptions",
+      "action": "rename",
+      "kind": "type",
+      "category": "options",
+      "reason": "Native lifecycle options use Load/Save vocabulary.",
+      "replacement": "Rename the options type without changing its settings or application-specific boundaries.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkKeynoteWriteOptions",
+      "new": "OfficeIMO.IWork.IWorkKeynoteSaveOptions",
+      "action": "rename",
+      "kind": "type",
+      "category": "options",
+      "reason": "Native lifecycle options use Load/Save vocabulary.",
+      "replacement": "Rename the options type without changing its settings or application-specific boundaries.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkSourceDocument.Open",
+      "new": "OfficeIMO.IWork.IWorkSourceDocument.Load",
+      "action": "rename",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Source loading uses the common vocabulary.",
+      "replacement": "Keep the same path, stream or byte input, expected application kind, options and cancellation token. Loaded snapshots remain distinct from native creation models; BeginEdit creates a preservation session.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkPagesDocument.SaveBytes",
+      "new": "OfficeIMO.IWork.IWorkPagesDocument.ToBytes",
+      "action": "rename",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Native byte serialization uses ToBytes.",
+      "replacement": "Rename SaveBytes and its application save-options type. Create(path) associates an output; Save() uses that path. Existing-file overwrite remains opt-in. IDisposable owns no caller streams.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkNumbersDocument.SaveBytes",
+      "new": "OfficeIMO.IWork.IWorkNumbersDocument.ToBytes",
+      "action": "rename",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Native byte serialization uses ToBytes.",
+      "replacement": "Rename SaveBytes and its application save-options type. Create(path) associates an output; Save() uses that path. Existing-file overwrite remains opt-in. IDisposable owns no caller streams.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkKeynoteDocument.SaveBytes",
+      "new": "OfficeIMO.IWork.IWorkKeynoteDocument.ToBytes",
+      "action": "rename",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Native byte serialization uses ToBytes.",
+      "replacement": "Rename SaveBytes and its application save-options type. Create(path) associates an output; Save() uses that path. Existing-file overwrite remains opt-in. IDisposable owns no caller streams.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkNativeEditSession.SaveBytesResult",
+      "new": "OfficeIMO.IWork.IWorkNativeEditSession.ToBytes(out IWorkNativeSaveReport report, IWorkNativeSaveOptions options = null, CancellationToken cancellationToken = default)",
+      "action": "merge",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Byte serialization retains its operation-level preservation evidence in an out report.",
+      "replacement": "byte[] bytes = edit.ToBytes(out IWorkNativeSaveReport report, options, cancellationToken); replaces result.GetPackageBytes()/result.Report. SaveBytes becomes ToBytes. Bytes are caller-owned; the captured source remains immutable. Save(path/stream) still returns the actual preservation report.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.IWork.IWorkNativeEditSession.SaveBytes",
+      "new": "OfficeIMO.IWork.IWorkNativeEditSession.ToBytes",
+      "action": "rename",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Byte serialization retains its operation-level preservation evidence in an out report.",
+      "replacement": "Use ToBytes(options, cancellationToken). To retain operation-level preservation evidence, use ToBytes(out IWorkNativeSaveReport report, options, cancellationToken).",
+      "applied": true
     }
   ]
 }

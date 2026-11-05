@@ -9,14 +9,24 @@ schema: 2.0.0
 Adds a Markdown table of contents placeholder.
 
 ## SYNTAX
-### Context (Default)
+### Placement (Default)
 ```powershell
-Add-OfficeMarkdownTableOfContents [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Ordered] [-TitleLevel <int>] [-PlaceAtTop] [-ForPreviousHeading] [-ForSection <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTableOfContents [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Numbered] [-TitleLevel <int>] [-Placement <MarkdownTocPlacement>] [-PassThru] [<CommonParameters>]
 ```
 
-### Document
+### DocumentPlacement
 ```powershell
-Add-OfficeMarkdownTableOfContents -Document <MarkdownDocument> [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Ordered] [-TitleLevel <int>] [-PlaceAtTop] [-ForPreviousHeading] [-ForSection <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownTableOfContents -Document <MarkdownDocument> [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Numbered] [-TitleLevel <int>] [-Placement <MarkdownTocPlacement>] [-PassThru] [<CommonParameters>]
+```
+
+### DocumentSection
+```powershell
+Add-OfficeMarkdownTableOfContents -Document <MarkdownDocument> -Section <string> [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Numbered] [-TitleLevel <int>] [-PassThru] [<CommonParameters>]
+```
+
+### Section
+```powershell
+Add-OfficeMarkdownTableOfContents -Section <string> [-Title <string>] [-MinLevel <int>] [-MaxLevel <int>] [-Numbered] [-TitleLevel <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,7 +42,7 @@ PS> New-OfficeMarkdown -Path .\Report.md {
     Add-OfficeMarkdownParagraph -Text 'Current state and risks.'
     Add-OfficeMarkdownHeading -Level 2 -Text 'Appendix'
     Add-OfficeMarkdownParagraph -Text 'Supporting evidence.'
-    Add-OfficeMarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -PlaceAtTop
+    Add-OfficeMarkdownTableOfContents -Title 'Contents' -MinLevel 2 -MaxLevel 3 -Placement Top
 }
 ```
 
@@ -45,7 +55,7 @@ Markdown document to update outside the DSL context.
 
 ```yaml
 Type: MarkdownDocument
-Parameter Sets: Document
+Parameter Sets: DocumentPlacement, DocumentSection
 Aliases: None
 Possible values:
 
@@ -56,44 +66,12 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -ForPreviousHeading
-Scope the TOC to the previous heading.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ForSection
-Scope the TOC to the named section heading.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -MaxLevel
 Maximum heading depth included in the table of contents.
 
 ```yaml
 Type: Int32
-Parameter Sets: Context, Document
+Parameter Sets: Placement, DocumentPlacement, DocumentSection, Section
 Aliases: None
 Possible values:
 
@@ -109,7 +87,7 @@ Minimum heading depth included in the table of contents.
 
 ```yaml
 Type: Int32
-Parameter Sets: Context, Document
+Parameter Sets: Placement, DocumentPlacement, DocumentSection, Section
 Aliases: None
 Possible values:
 
@@ -120,12 +98,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Ordered
+### -Numbered
 Generate an ordered table of contents list.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Placement, DocumentPlacement, DocumentSection, Section
 Aliases: None
 Possible values:
 
@@ -141,7 +119,7 @@ Emit the updated Markdown document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Placement, DocumentPlacement, DocumentSection, Section
 Aliases: None
 Possible values:
 
@@ -152,16 +130,32 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PlaceAtTop
-Insert the TOC at the start of the document.
+### -Placement
+Where to place the TOC.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Type: MarkdownTocPlacement
+Parameter Sets: Placement, DocumentPlacement
+Aliases: None
+Possible values: Current, Top, PreviousHeading
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Section
+Scope the TOC to the named section heading.
+
+```yaml
+Type: String
+Parameter Sets: DocumentSection, Section
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -173,7 +167,7 @@ Heading text displayed above the generated table of contents.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Placement, DocumentPlacement, DocumentSection, Section
 Aliases: None
 Possible values:
 
@@ -189,7 +183,7 @@ Heading level used for the TOC title.
 
 ```yaml
 Type: Int32
-Parameter Sets: Context, Document
+Parameter Sets: Placement, DocumentPlacement, DocumentSection, Section
 Aliases: None
 Possible values:
 

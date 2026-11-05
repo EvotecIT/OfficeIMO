@@ -22,7 +22,7 @@ public sealed class ReaderPublisherPictureEditingTests {
 
         byte[] replacement = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
         document.ReplacePictureImage(originalPicture.Id, replacement);
-        document.SetPictureBounds(originalPicture.Id, 108, 144, 144, 72);
+        document.SetPictureBounds(originalPicture.Id, OfficeLength.Points(108), OfficeLength.Points(144), OfficeLength.Points(144), OfficeLength.Points(72));
         PublisherPicture currentPicture = Assert.Single(document.Pages[0].Pictures);
         Assert.NotEqual(originalPicture.ImageId, currentPicture.ImageId);
         int currentImageId = Assert.IsType<int>(currentPicture.ImageId);

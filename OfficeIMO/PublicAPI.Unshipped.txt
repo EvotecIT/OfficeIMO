@@ -1,4 +1,6 @@
 #nullable enable
+OfficeIMO.OfficeConversionOptions.CsvSave.get -> OfficeIMO.CSV.CsvSaveOptions?
+OfficeIMO.OfficeConversionOptions.CsvSave.set -> void
 OfficeIMO.OfficeConversionOptions.PowerPointHtml.get -> OfficeIMO.PowerPoint.Html.PowerPointHtmlExportOptions?
 OfficeIMO.OfficeConversionOptions.PowerPointHtml.set -> void
 OfficeIMO.OfficeBatchItemReport.SkippedReason.get -> string?
@@ -58,3 +60,46 @@ static OfficeIMO.OfficeDocument.Inspect(object! document, OfficeIMO.OfficeInspec
 static OfficeIMO.OfficeDocument.Inspect(string! path) -> OfficeIMO.OfficeDocumentInfo!
 static OfficeIMO.OfficeDocument.Inspect(string! path, OfficeIMO.OfficeInspectOptions? options) -> OfficeIMO.OfficeDocumentInfo!
 static OfficeIMO.OfficeDocument.Inspect(string! path, OfficeIMO.OfficeInspectOptions? options, System.Threading.CancellationToken cancellationToken) -> OfficeIMO.OfficeDocumentInfo!
+OfficeIMO.OfficeDocumentValidationOptions
+OfficeIMO.OfficeDocumentValidationOptions.Excel.get -> OfficeIMO.OfficeExcelValidationOptions?
+OfficeIMO.OfficeDocumentValidationOptions.Excel.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.OfficeDocumentValidationOptions() -> void
+OfficeIMO.OfficeDocumentValidationOptions.Password.get -> string?
+OfficeIMO.OfficeDocumentValidationOptions.Password.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.Pdf.get -> OfficeIMO.OfficePdfValidationOptions?
+OfficeIMO.OfficeDocumentValidationOptions.Pdf.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.PdfRead.get -> OfficeIMO.Pdf.PdfLoadOptions?
+OfficeIMO.OfficeDocumentValidationOptions.PdfRead.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.PowerPointAccessibility.get -> OfficeIMO.PowerPoint.PowerPointAccessibilityOptions?
+OfficeIMO.OfficeDocumentValidationOptions.PowerPointAccessibility.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.Security.get -> OfficeIMO.OfficePackageSecurityOptions?
+OfficeIMO.OfficeDocumentValidationOptions.Security.set -> void
+OfficeIMO.OfficeDocumentValidationOptions.Untrusted.get -> bool
+OfficeIMO.OfficeDocumentValidationOptions.Untrusted.set -> void
+OfficeIMO.OfficeExcelValidationOptions
+OfficeIMO.OfficeExcelValidationOptions.Capability.get -> OfficeIMO.Excel.ExcelPreflightCapability[]?
+OfficeIMO.OfficeExcelValidationOptions.Capability.set -> void
+OfficeIMO.OfficeExcelValidationOptions.Doctor.get -> OfficeIMO.Excel.ExcelWorkbookDoctorOptions!
+OfficeIMO.OfficeExcelValidationOptions.Doctor.set -> void
+OfficeIMO.OfficeExcelValidationOptions.IncludeFeatures.get -> bool
+OfficeIMO.OfficeExcelValidationOptions.IncludeFeatures.set -> void
+OfficeIMO.OfficeExcelValidationOptions.IncludeRepairHints.get -> bool
+OfficeIMO.OfficeExcelValidationOptions.IncludeRepairHints.set -> void
+OfficeIMO.OfficeExcelValidationOptions.OfficeExcelValidationOptions() -> void
+OfficeIMO.OfficePdfValidationOptions
+OfficeIMO.OfficePdfValidationOptions.Capability.get -> OfficeIMO.Pdf.PdfPreflightCapability[]?
+OfficeIMO.OfficePdfValidationOptions.Capability.set -> void
+OfficeIMO.OfficePdfValidationOptions.DifferenceDocument.get -> OfficeIMO.Pdf.PdfDocument?
+OfficeIMO.OfficePdfValidationOptions.DifferenceDocument.set -> void
+OfficeIMO.OfficePdfValidationOptions.DifferencePath.get -> string?
+OfficeIMO.OfficePdfValidationOptions.DifferencePath.set -> void
+OfficeIMO.OfficePdfValidationOptions.ExternalValidation.get -> OfficeIMO.Pdf.PdfExternalValidationResult![]?
+OfficeIMO.OfficePdfValidationOptions.ExternalValidation.set -> void
+OfficeIMO.OfficePdfValidationOptions.OfficePdfValidationOptions() -> void
+OfficeIMO.OfficePdfValidationOptions.Profile.get -> OfficeIMO.Pdf.PdfComplianceProfile?
+OfficeIMO.OfficePdfValidationOptions.Profile.set -> void
+OfficeIMO.OfficePdfValidationOptions.Proof.get -> bool
+OfficeIMO.OfficePdfValidationOptions.Proof.set -> void
+OfficeIMO.OfficePdfValidationOptions.Rewrite.get -> OfficeIMO.Pdf.PdfRewritePreservationOptions?
+OfficeIMO.OfficePdfValidationOptions.Rewrite.set -> void
+static OfficeIMO.OfficeDocument.Validate(object! document, OfficeIMO.OfficeDocumentCheck[]? checks = null, OfficeIMO.OfficeDocumentValidationOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.OfficeValidationReport!

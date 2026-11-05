@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.Collections;
 using System.Globalization;
@@ -16,15 +17,19 @@ namespace PSWriteOffice.Cmdlets.Rtf;
 /// Update-OfficeRtfText -Path .\Input.rtf -OutputPath .\Output.rtf -OldText Draft -NewText Final -PassThru</code>
 ///   <para>Uses OfficeIMO.Rtf's lossless editor to update visible text while preserving untouched RTF syntax.</para>
 /// </example>
-[Cmdlet(VerbsData.Update, "OfficeRtfText", SupportsShouldProcess = true)]
-[Alias("Replace-OfficeRtfText", "RtfText")]
+[Cmdlet(VerbsData.Update, "OfficeRtfText", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
 [OutputType(typeof(FileInfo))]
 public sealed class UpdateOfficeRtfTextCommand : PSCmdlet
 {
     /// <summary>Source RTF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = "Path")]
     [Alias("FilePath")]
     public string Path { get; set; } = string.Empty;
+
+    /// <summary>Literal source RTF file.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath")]
+    public string LiteralPath { get; set; } = string.Empty;
 
     /// <summary>Destination RTF file path.</summary>
     [Parameter(Mandatory = true)]
@@ -70,7 +75,9 @@ public sealed class UpdateOfficeRtfTextCommand : PSCmdlet
             throw new PSArgumentException("Specify both -OldText and -NewText for replacement.");
         }
 
-        var sourcePath = PdfCommandUtilities.ResolvePath(this, Path);
+        var sources = OfficePath.ResolveInput(SessionState, ParameterSetName == "LiteralPath" ? LiteralPath : Path, ParameterSetName == "LiteralPath");
+        if (sources.Count != 1) throw new PSArgumentException("RTF update requires one input file.");
+        var sourcePath = sources[0];
         var outputPath = PdfCommandUtilities.ResolvePath(this, OutputPath);
         if (!PdfCommandUtilities.ShouldWrite(this, outputPath, "Write updated RTF document"))
         {

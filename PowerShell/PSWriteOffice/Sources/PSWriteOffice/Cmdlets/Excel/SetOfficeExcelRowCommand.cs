@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Management.Automation;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
@@ -9,114 +10,122 @@ namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Writes values and applies row layout to a worksheet in a DSL block or through the pipeline.</summary>
 /// <example>
-///   <summary>Write a row starting at column A.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelRow -Row 2 -Values 'North', 1200 }</code>
-///   <para>Writes two values into row 2, columns A and B.</para>
+/// <summary>Write a header row</summary>
+/// <code>New-OfficeExcel -Path .\Rota.xlsx {
+///     ExcelSheet 'On call' {
+///         ExcelRow 1 'Week', 'Primary', 'Secondary', 'Escalation' -Bold
+///     }
+/// }</code>
+/// <para>Writes column labels across row 1 and makes them bold.</para>
 /// </example>
 /// <example>
-///   <summary>Wrap a report row and adjust its height through the worksheet pipeline.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$sheet | Set-OfficeExcelRow -Row 2 -WrapText $true -AutoFit</code>
-///   <para>Preserves existing cell formatting while wrapping the used row span and fitting its height. Save the workbook after editing.</para>
+/// <summary>Write a header band under a title</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+///     ExcelSheet 'Departments' {
+///         ExcelCell A1 'Budget 2027 by department'
+///         ExcelRow 3 'Department', 'Q1', 'Q2', 'Q3', 'Q4', 'Total' -Bold -BackgroundColor '#F1F5F9' -Height 22
+///     }
+/// }</code>
+/// <para>Writes the quarter labels into row 3 below the sheet title, with a light fill and a taller row so the band stands apart from the data.</para>
 /// </example>
 /// <example>
-///   <summary>Update a named worksheet through the workbook pipeline.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$workbook | Set-OfficeExcelRow -Sheet 'Review' -Row 2 -Values 'Identity', 'Ready'</code>
-///   <para>Selects the worksheet by name without opening a DSL scope.</para>
+/// <summary>Write a totals row with formulas</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     ExcelSheet 'Departments' {
+///         ExcelRow 20 'Total', '=SUM(B4:B19)', '=SUM(C4:C19)', '=SUM(D4:D19)', '=SUM(E4:E19)' -Formula -Bold
+///     }
+/// }</code>
+/// <para>Adds a totals row whose cells are formulas; without -Formula the same strings would be stored as text.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelRow", DefaultParameterSetName = "Default")]
 [Alias("ExcelRow")]
 public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    /// <summary>Worksheet to modify outside a DSL context.</summary>
-    [Parameter(ValueFromPipeline = true)]
-    [Alias("SheetObject")]
-    public ExcelSheet? Worksheet { get; set; }
-
-    /// <summary>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet or SheetIndex.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    /// <summary>Workbook to modify. Accepts pipeline input; select its worksheet with Sheet.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
     public ExcelDocument? Document { get; set; }
 
     /// <summary>Worksheet name when using Document. The first worksheet is used when no selector is supplied.</summary>
-    [Parameter]
-    public string? Sheet { get; set; }
-
-    /// <summary>Zero-based worksheet index when using Document.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>1-based row index.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
     public int Row { get; set; }
 
     /// <summary>Values to write across the row. Numeric, Boolean, and date values retain their native Excel types; strings remain text.</summary>
-    [Parameter(Position = 1)]
+    [Parameter(ParameterSetName = "Default", Position = 1)]
     public object[]? Values { get; set; }
 
     /// <summary>Starting column index (1-based).</summary>
-    [Parameter]
-    public int StartColumn { get; set; } = 1;
+    [Parameter(ParameterSetName = "Default")]
+    public object StartColumn { get; set; } = 1;
 
     /// <summary>Explicit row height in points.</summary>
-    [Parameter]
-    public double? Height { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [ExcelColumnWidthTransformation(RowHeight = true)]
+    public ExcelColumnWidth? Height { get; set; }
 
     /// <summary>Clear any custom row height.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ClearHeight { get; set; }
 
     /// <summary>Auto-fit row height after writing values and applying style.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter AutoFit { get; set; }
 
     /// <summary>Hide or unhide the row. Use -Hidden:$false to unhide.</summary>
-    [Parameter]
-    public bool? Hidden { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Hidden { get; set; }
 
     /// <summary>Apply or clear bold styling across the target row span.</summary>
-    [Parameter]
-    public bool? Bold { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Bold { get; set; }
 
     /// <summary>Apply or clear italic styling across the target row span.</summary>
-    [Parameter]
-    public bool? Italic { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Italic { get; set; }
 
     /// <summary>Apply or clear underline styling across the target row span.</summary>
-    [Parameter]
-    public bool? Underline { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Underline { get; set; }
 
     /// <summary>Apply or clear wrap text across the target row span.</summary>
-    [Parameter]
-    public bool? WrapText { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter WrapText { get; set; }
 
     /// <summary>Apply a font family across the target row span.</summary>
-    [Parameter]
-    public string? FontName { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public string? Font { get; set; }
 
     /// <summary>Apply a background color across the target row span.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? BackgroundColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? BackgroundColor { get; set; }
 
     /// <summary>First 1-based column affected by style options.</summary>
-    [Parameter]
-    public int? FirstColumn { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public object? FirstColumn { get; set; }
 
     /// <summary>Last 1-based column affected by style options.</summary>
-    [Parameter]
-    public int? LastColumn { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public object? LastColumn { get; set; }
+
+    /// <summary>Interpret explicitly prefixed row strings as formulas.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter Formula { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var sheet = ExcelSheetResolver.ResolveTarget(this, Worksheet, Document, Sheet, SheetIndex);
+        var sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
 
+        int startColumn = ExcelCommandTargets.Column(StartColumn);
         if (Row < 1) {
             throw new ArgumentOutOfRangeException(nameof(Row), "Row index must be 1 or greater.");
         }
 
-        if (StartColumn < 1) {
+        if (startColumn < 1) {
             throw new ArgumentOutOfRangeException(nameof(StartColumn), "StartColumn must be 1 or greater.");
         }
 
@@ -130,26 +139,32 @@ public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutat
             var cells = new List<(int Row, int Column, object Value)>(values.Length);
             for (int i = 0; i < values.Length; i++) {
                 var value = PowerShellObjectNormalizer.NormalizeCellValueForTable(values[i]) ?? string.Empty;
-                cells.Add((Row, StartColumn + i, value));
+                cells.Add((Row, startColumn + i, value));
             }
 
-            sheet.SetValues(cells);
+            if (Formula) {
+                foreach (var item in cells) {
+                    var cell = sheet.Cell(item.Row, item.Column);
+                    if (item.Value is string text && text.StartsWith("=", StringComparison.Ordinal)) cell.SetFormula(text);
+                    else cell.SetValue(item.Value);
+                }
+            } else sheet.SetValues(cells);
         }
 
         if (hasLayout) {
             sheet.SetRowLayout(Row, new ExcelRowLayoutOptions {
-                Height = Height.HasValue ? ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(Height.Value)) : (ExcelColumnWidth?)null,
+                Height = Height,
                 ClearHeight = ClearHeight.IsPresent,
                 AutoFit = AutoFit.IsPresent,
-                Hidden = Hidden,
-                Bold = Bold,
-                Italic = Italic,
-                Underline = Underline,
-                WrapText = WrapText,
-                FontName = FontName,
+                Hidden = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Hidden)),
+                Bold = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Bold)),
+                Italic = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Italic)),
+                Underline = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(Underline)),
+                WrapText = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(WrapText)),
+                FontFamily = Font,
                 BackgroundColor = BackgroundColor,
-                FirstColumn = FirstColumn ?? (values.Length > 0 ? StartColumn : null),
-                LastColumn = LastColumn ?? (values.Length > 0 ? StartColumn + values.Length - 1 : null)
+                FirstColumn = FirstColumn == null ? (values.Length > 0 ? startColumn : (int?)null) : ExcelCommandTargets.Column(FirstColumn),
+                LastColumn = LastColumn == null ? (values.Length > 0 ? startColumn + values.Length - 1 : (int?)null) : ExcelCommandTargets.Column(LastColumn)
             });
         }
         WritePassThru(sheet);
@@ -159,14 +174,14 @@ public sealed class SetOfficeExcelRowCommand : PSWriteOffice.Cmdlets.OfficeMutat
         return Height.HasValue ||
             ClearHeight.IsPresent ||
             AutoFit.IsPresent ||
-            Hidden.HasValue ||
-            Bold.HasValue ||
-            Italic.HasValue ||
-            Underline.HasValue ||
-            WrapText.HasValue ||
-            !string.IsNullOrWhiteSpace(FontName) ||
-            !string.IsNullOrWhiteSpace(BackgroundColor) ||
-            FirstColumn.HasValue ||
-            LastColumn.HasValue;
+            MyInvocation.BoundParameters.ContainsKey(nameof(Hidden)) ||
+            MyInvocation.BoundParameters.ContainsKey(nameof(Bold)) ||
+            MyInvocation.BoundParameters.ContainsKey(nameof(Italic)) ||
+            MyInvocation.BoundParameters.ContainsKey(nameof(Underline)) ||
+            MyInvocation.BoundParameters.ContainsKey(nameof(WrapText)) ||
+            !string.IsNullOrWhiteSpace(Font) ||
+            BackgroundColor.HasValue ||
+            FirstColumn != null ||
+            LastColumn != null;
     }
 }

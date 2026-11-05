@@ -82,23 +82,23 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointDesignDirection(string name, PowerPointDesignMood mood,
             PowerPointSlideDensity density, PowerPointVisualStyle visualStyle,
-            string headingFontName, string bodyFontName, bool showDirectionMotif = true) {
+            string headingFontFamily, string bodyFontFamily, bool showDirectionMotif = true) {
             if (string.IsNullOrWhiteSpace(name)) {
                 throw new ArgumentException("Direction name cannot be null or empty.", nameof(name));
             }
-            if (string.IsNullOrWhiteSpace(headingFontName)) {
-                throw new ArgumentException("Heading font cannot be null or empty.", nameof(headingFontName));
+            if (string.IsNullOrWhiteSpace(headingFontFamily)) {
+                throw new ArgumentException("Heading font cannot be null or empty.", nameof(headingFontFamily));
             }
-            if (string.IsNullOrWhiteSpace(bodyFontName)) {
-                throw new ArgumentException("Body font cannot be null or empty.", nameof(bodyFontName));
+            if (string.IsNullOrWhiteSpace(bodyFontFamily)) {
+                throw new ArgumentException("Body font cannot be null or empty.", nameof(bodyFontFamily));
             }
 
             Name = name;
             Mood = mood;
             Density = density;
             VisualStyle = visualStyle;
-            HeadingFontName = headingFontName;
-            BodyFontName = bodyFontName;
+            HeadingFontFamily = headingFontFamily;
+            BodyFontFamily = bodyFontFamily;
             ShowDirectionMotif = showDirectionMotif;
         }
 
@@ -125,12 +125,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Heading font for generated text.
         /// </summary>
-        public string HeadingFontName { get; }
+        public string HeadingFontFamily { get; }
 
         /// <summary>
         ///     Body font for generated text.
         /// </summary>
-        public string BodyFontName { get; }
+        public string BodyFontFamily { get; }
 
         /// <summary>
         ///     Whether this direction uses repeated direction markers by default.

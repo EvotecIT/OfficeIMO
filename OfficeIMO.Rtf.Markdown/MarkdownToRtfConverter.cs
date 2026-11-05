@@ -854,7 +854,7 @@ internal static class MarkdownToRtfConverter {
             run.Note == null &&
             run.Bold == style.Bold &&
             run.Italic == style.Italic &&
-            run.Strike == style.Strike &&
+            run.Strikethrough == style.Strikethrough &&
             run.UnderlineStyle == (style.Underline ? RtfUnderlineStyle.Single : RtfUnderlineStyle.None) &&
             run.HighlightColorIndex == style.HighlightColorIndex &&
             run.FontId == style.FontId &&
@@ -864,7 +864,7 @@ internal static class MarkdownToRtfConverter {
     private static void ApplyStyle(RtfRun run, InlineStyle style) {
         if (style.Bold) run.SetBold();
         if (style.Italic) run.SetItalic();
-        if (style.Strike) run.SetStrike();
+        if (style.Strikethrough) run.SetStrikethrough();
         if (style.Underline) run.SetUnderline(RtfUnderlineStyle.Single);
         if (style.HighlightColorIndex.HasValue) run.SetHighlightColor(style.HighlightColorIndex.Value);
         if (style.FontId.HasValue) run.FontId = style.FontId.Value;
@@ -885,7 +885,7 @@ internal static class MarkdownToRtfConverter {
         private InlineStyle(bool bold, bool italic, bool strike, bool underline, int? highlightColorIndex, int? fontId, RtfVerticalPosition? verticalPosition) {
             Bold = bold;
             Italic = italic;
-            Strike = strike;
+            Strikethrough = strike;
             Underline = underline;
             HighlightColorIndex = highlightColorIndex;
             FontId = fontId;
@@ -896,7 +896,7 @@ internal static class MarkdownToRtfConverter {
 
         internal bool Italic { get; }
 
-        internal bool Strike { get; }
+        internal bool Strikethrough { get; }
 
         internal bool Underline { get; }
 
@@ -906,18 +906,18 @@ internal static class MarkdownToRtfConverter {
 
         internal RtfVerticalPosition? VerticalPosition { get; }
 
-        internal InlineStyle WithBold() => new InlineStyle(true, Italic, Strike, Underline, HighlightColorIndex, FontId, VerticalPosition);
+        internal InlineStyle WithBold() => new InlineStyle(true, Italic, Strikethrough, Underline, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithItalic() => new InlineStyle(Bold, true, Strike, Underline, HighlightColorIndex, FontId, VerticalPosition);
+        internal InlineStyle WithItalic() => new InlineStyle(Bold, true, Strikethrough, Underline, HighlightColorIndex, FontId, VerticalPosition);
 
         internal InlineStyle WithStrike() => new InlineStyle(Bold, Italic, true, Underline, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithUnderline() => new InlineStyle(Bold, Italic, Strike, true, HighlightColorIndex, FontId, VerticalPosition);
+        internal InlineStyle WithUnderline() => new InlineStyle(Bold, Italic, Strikethrough, true, HighlightColorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithHighlight(int colorIndex) => new InlineStyle(Bold, Italic, Strike, Underline, colorIndex, FontId, VerticalPosition);
+        internal InlineStyle WithHighlight(int colorIndex) => new InlineStyle(Bold, Italic, Strikethrough, Underline, colorIndex, FontId, VerticalPosition);
 
-        internal InlineStyle WithFont(int fontId) => new InlineStyle(Bold, Italic, Strike, Underline, HighlightColorIndex, fontId, VerticalPosition);
+        internal InlineStyle WithFont(int fontId) => new InlineStyle(Bold, Italic, Strikethrough, Underline, HighlightColorIndex, fontId, VerticalPosition);
 
-        internal InlineStyle WithVerticalPosition(RtfVerticalPosition verticalPosition) => new InlineStyle(Bold, Italic, Strike, Underline, HighlightColorIndex, FontId, verticalPosition);
+        internal InlineStyle WithVerticalPosition(RtfVerticalPosition verticalPosition) => new InlineStyle(Bold, Italic, Strikethrough, Underline, HighlightColorIndex, FontId, verticalPosition);
     }
 }

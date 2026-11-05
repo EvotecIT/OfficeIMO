@@ -6,51 +6,68 @@ schema: 2.0.0
 ---
 # Get-OfficePdfRedactionPlan
 ## SYNOPSIS
-Previews explicit or text-matched PDF redaction areas before content is removed.
+Previews explicit, literal-text or bounded regular-expression redaction selections without changing PDF content.
 
 ## SYNTAX
-### Rectangle (Default)
+### Text (Default)
 ```powershell
-Get-OfficePdfRedactionPlan [-Path] <string> -PageNumber <int> -X <double> -Y <double> -Width <double> -Height <double> [-Label <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfRedactionPlan [-Path] <string[]> -Text <string[]> [-CaseSensitive] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### Pattern
+```powershell
+Get-OfficePdfRedactionPlan [-Path] <string[]> -Pattern <string[]> [-CaseSensitive] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
 ```
 
 ### Area
 ```powershell
-Get-OfficePdfRedactionPlan [-Path] <string> -Area <PdfRedactionArea[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfRedactionPlan [-Path] <string[]> -Area <PdfRedactionArea[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
 ```
 
-### Text
+### Rectangle
 ```powershell
-Get-OfficePdfRedactionPlan [-Path] <string> -Text <string[]> [-MatchCase] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfRedactionPlan [-Path] <string[]> -Page <int> -X <OfficeLength> -Y <OfficeLength> -Width <OfficeLength> -Height <OfficeLength> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-Label <string>] [<CommonParameters>]
+```
+
+### TextLiteralPath
+```powershell
+Get-OfficePdfRedactionPlan -Text <string[]> -LiteralPath <string[]> [-CaseSensitive] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### PatternLiteralPath
+```powershell
+Get-OfficePdfRedactionPlan -LiteralPath <string[]> -Pattern <string[]> [-CaseSensitive] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### AreaLiteralPath
+```powershell
+Get-OfficePdfRedactionPlan -LiteralPath <string[]> -Area <PdfRedactionArea[]> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [<CommonParameters>]
+```
+
+### RectangleLiteralPath
+```powershell
+Get-OfficePdfRedactionPlan -LiteralPath <string[]> -Page <int> -X <OfficeLength> -Y <OfficeLength> -Width <OfficeLength> -Height <OfficeLength> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-Label <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-This command reports redaction impact only. It does not remove or rewrite PDF content.
+Previews explicit, literal-text or bounded regular-expression redaction selections without changing PDF content.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficePdfRedactionPlan -Path .\Report.pdf -PageNumber 1 -X 72 -Y 650 -Width 240 -Height 32
+Get-OfficePdfRedactionPlan -LiteralPath './Report[1].pdf' -Pattern 'Account: \d+'
 ```
 
-Returns line-level text blocks and annotations that intersect the rectangle.
-
-### EXAMPLE 2
-```powershell
-PS> Get-OfficePdfRedactionPlan -Path .\Report.pdf -Text 'Account number'
-```
-
-Derives reviewable redaction areas from logical text blocks containing the supplied text.
 
 ## PARAMETERS
 
 ### -Area
-One or more pre-created OfficeIMO.Pdf redaction areas.
+Area setting.
 
 ```yaml
 Type: PdfRedactionArea[]
-Parameter Sets: Area
+Parameter Sets: Area, AreaLiteralPath
 Aliases: None
 Possible values:
 
@@ -61,12 +78,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Height
-Rectangle height in PDF points.
+### -CaseSensitive
+CaseSensitive setting.
 
 ```yaml
-Type: Double
-Parameter Sets: Rectangle
+Type: SwitchParameter
+Parameter Sets: Text, Pattern, TextLiteralPath, PatternLiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Height
+Height setting.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Rectangle, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -78,11 +111,11 @@ Accept wildcard characters: False
 ```
 
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed extraction restrictions.
+IgnorePermissionRestrictions setting.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Rectangle, Area, Text
+Parameter Sets: Text, Pattern, Area, Rectangle, TextLiteralPath, PatternLiteralPath, AreaLiteralPath, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -94,11 +127,11 @@ Accept wildcard characters: False
 ```
 
 ### -Label
-Optional redaction area label.
+Label setting.
 
 ```yaml
 Type: String
-Parameter Sets: Rectangle
+Parameter Sets: Rectangle, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -109,12 +142,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MatchCase
-Use case-sensitive literal text matching.
+### -LiteralPath
+Literal input PDF paths; accepts FileInfo.FullName.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: Text
+Type: String[]
+Parameter Sets: TextLiteralPath, PatternLiteralPath, AreaLiteralPath, RectangleLiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native parsing, authentication and resource policy.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Text, Pattern, Area, Rectangle, TextLiteralPath, PatternLiteralPath, AreaLiteralPath, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -125,12 +174,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageNumber
-One-based page number for the redaction rectangle.
+### -Page
+Page setting.
 
 ```yaml
 Type: Int32
-Parameter Sets: Rectangle
+Parameter Sets: Rectangle, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -142,11 +191,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to read a Standard password-encrypted PDF.
+Password setting.
 
 ```yaml
 Type: SecureString
-Parameter Sets: Rectangle, Area, Text
+Parameter Sets: Text, Pattern, Area, Rectangle, TextLiteralPath, PatternLiteralPath, AreaLiteralPath, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -158,27 +207,43 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-PDF file path.
+Input PDF paths with wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: Rectangle, Area, Text
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Text, Pattern, Area, Rectangle
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: False
+Accept wildcard characters: True
+```
+
+### -Pattern
+Pattern setting.
+
+```yaml
+Type: String[]
+Parameter Sets: Pattern, PatternLiteralPath
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Text
-Literal text used to derive redaction areas from matching logical text blocks.
+Text setting.
 
 ```yaml
 Type: String[]
-Parameter Sets: Text
+Parameter Sets: Text, TextLiteralPath
 Aliases: None
 Possible values:
 
@@ -190,11 +255,11 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Rectangle width in PDF points.
+Width setting.
 
 ```yaml
-Type: Double
-Parameter Sets: Rectangle
+Type: OfficeLength
+Parameter Sets: Rectangle, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -206,11 +271,11 @@ Accept wildcard characters: False
 ```
 
 ### -X
-Left coordinate in PDF points.
+X setting.
 
 ```yaml
-Type: Double
-Parameter Sets: Rectangle
+Type: OfficeLength
+Parameter Sets: Rectangle, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -222,11 +287,11 @@ Accept wildcard characters: False
 ```
 
 ### -Y
-Bottom coordinate in PDF points.
+Y setting.
 
 ```yaml
-Type: Double
-Parameter Sets: Rectangle
+Type: OfficeLength
+Parameter Sets: Rectangle, RectangleLiteralPath
 Aliases: None
 Possible values:
 
@@ -242,7 +307,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 
 ## OUTPUTS
 

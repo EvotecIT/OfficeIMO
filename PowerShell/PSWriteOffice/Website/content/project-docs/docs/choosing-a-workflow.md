@@ -11,7 +11,7 @@ PSWriteOffice exposes several paths that can reach the same file format. Choosin
 Use the pipeline for a simple data export. It is the shortest route from PowerShell objects, database results, or API responses to a workbook:
 
 ```powershell
-$rows | Export-OfficeExcel -Path '.\Report.xlsx' -WorksheetName 'Data' -TableName 'Data'
+$rows | Export-OfficeExcel -Path '.\Report.xlsx' -Sheet 'Data' -TableName 'Data'
 ```
 
 Move to the object or DSL surface only when the output needs more structure.
@@ -24,11 +24,11 @@ This path works well for scheduled reports, build artifacts, exports, invoices, 
 
 ## Build incrementally with document objects
 
-Leave out the content block on `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint`, `New-OfficePdf` or `New-OfficeMarkdown` when loops and conditions need a live document. Add content through explicit `-Document`, `-Worksheet`, `-Presentation`, `-Slide`, or pipeline targets, then save once. This is also the natural migration path for scripts that previously held a PSWriteWord or PSWriteExcel document variable.
+Leave out the content block on `New-OfficeWord`, `New-OfficeExcel`, `New-OfficePowerPoint`, `New-OfficePdf` or `New-OfficeMarkdown` when loops and conditions need a live document. Add content through explicit `-Document`, `-Worksheet`, `-Document`, `-Slide`, or pipeline targets, then save once. This is also the natural migration path for scripts that previously held a PSWriteWord or PSWriteExcel document variable.
 
 ## Load and change an existing file
 
-Use a `Get-*` or import command to open the document, target specific content with `Find-*` or `Get-*`, apply `Set-*`, `Update-*`, `Add-*`, or `Remove-*` operations, and finish with the matching `Save-*` command.
+Use the matching `Open-Office*` command to open the document, target specific content with `Find-*` or `Get-*`, apply `Set-*`, `Update-*`, `Add-*`, or `Remove-*` operations, and finish with the matching `Save-*` command.
 
 Keep mutation explicit. A useful script shape is:
 
@@ -40,19 +40,19 @@ Keep mutation explicit. A useful script shape is:
 
 ## Inspect without changing
 
-Use inspection and preflight commands when the job needs evidence rather than a rewritten file. Examples include `Get-OfficeWordStatistics`, `Get-OfficeExcelPreflight`, `Get-OfficePowerPointInspection`, `Get-OfficePdfDiagnostic`, `Get-OfficeVisioInfo`, and the Reader result commands.
+Use inspection and preflight commands when the job needs evidence rather than a rewritten file. Use `Get-OfficeDocumentInfo -Detailed` for native snapshots, `Test-OfficeDocument` for document checks, `New-OfficeExcelTestOptions` for workbook capability checks, and `Get-OfficePdfDiagnostic` for PDF evidence.
 
-Inspection-first workflows are appropriate for inventory, compliance gates, support diagnostics, and deciding which conversion route to use.
+Inspection-first workflows are appropriate for inventory, compliance gates, support diagnostics, and deciding which conversion route to use. `Get-OfficeDocumentCapability -Protection` lists supported protection operations; `-Conversion -From Word -To Pdf` lists conversion contracts.
 
 ## Normalize many formats
 
-Use `New-OfficeDocumentReader` and the `Get-OfficeDocument*` commands when downstream code should not branch on every source format. Reader exposes normalized documents, chunks, hierarchy, structured data, tables, visuals, assets, detections, and ingest results through one family of commands.
+Use `New-OfficeDocumentReader` with `Read-OfficeDocument` when downstream code should not branch on every source format. Select chunks, hierarchy, structured data, tables, visuals, assets, or ingestion summaries with `-As`. `Get-OfficeDocumentInfo` handles detection and inspection.
 
 Choose the format-specific family instead when the script must edit native features that the normalized model intentionally does not preserve.
 
 ## Convert and review
 
-Use focused converters when the destination format is the outcome. HTML review commands are useful for browser-based review; Markdown is useful for source control and text pipelines; PDF is useful for fixed-layout delivery. Conversion can be loss-aware rather than lossless, so inspect diagnostics for complex documents and retain the source artifact.
+Use `Convert-OfficeDocument` when the destination format is the outcome. HTML review commands are useful for browser-based review; Markdown is useful for source control and text pipelines; PDF is useful for fixed-layout delivery. Conversion can be loss-aware rather than lossless, so inspect diagnostics for complex documents and retain the source artifact.
 
 ## Continue
 

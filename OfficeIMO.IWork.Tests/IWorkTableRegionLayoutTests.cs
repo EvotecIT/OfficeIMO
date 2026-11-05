@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
         }, kind: kind, rowCount: 4, secondStyleReference: 31,
             modelDeclarations: Message(VarintField(9, 1), VarintField(10, 1), VarintField(11, 1), DoubleField(16, 40),
                 ReferenceField(18, 41), ReferenceField(19, 42), ReferenceField(20, 43), ReferenceField(21, 44)));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         IWorkTable table;
@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
             CellLayoutStyle(30, selected ? invalid : Message()),
             CellLayoutStyle(40, selected ? Message(VarintField(8, 1), BytesField(9, CellPadding(4))) : invalid)
         }, rowCount: 2, modelDeclarations: ReferenceField(18, 40));
-        var projection = IWorkSourceDocument.Open(package).ReadPages();
+        var projection = IWorkSourceDocument.Load(package).ReadPages();
         var table = Assert.Single(projection.Tables);
         Assert.False(projection.HasEditableContent); Assert.Equal(42d, table.GetCell(1, 1)!.Value);
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == (selected
@@ -110,7 +110,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unused_region_layout_references_are_not_traversed_and_inherited_layout_reaches_unstored_cells() {
         using var package = CellFillPackage(new[] { CellLayoutStyle(30, Message()), CellLayoutStyle(40, Message(), 41), RegionLayout(41, 4, 1) },
             rowCount: 2, modelDeclarations: Message(ReferenceField(18, 40), ReferenceField(19, 99)));
-        var projection = IWorkSourceDocument.Open(package).ReadPages(); var table = Assert.Single(projection.Tables);
+        var projection = IWorkSourceDocument.Load(package).ReadPages(); var table = Assert.Single(projection.Tables);
         Assert.True(projection.HasEditableContent); Assert.Empty(projection.SourceReferenceIssues); Assert.Empty(projection.SourceDeclarationIssues);
         Assert.Null(table.GetCell(2, 2)); Assert.Equal(4, table.GetPadding(2, 2)!.LeftPoints);
         Assert.Equal(IWorkCellVerticalAlignment.Middle, table.GetVerticalAlignment(2, 2));

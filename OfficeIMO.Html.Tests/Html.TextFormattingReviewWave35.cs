@@ -79,8 +79,8 @@ public sealed class HtmlTextFormattingReviewWave35Tests {
             """).ConvertToWordWithEvidence().RequireValue();
 
         WordParagraph run = Assert.Single(imported.Paragraphs);
-        Assert.True(run.DoubleStrike);
-        Assert.False(run.Strike);
+        Assert.True(run.DoubleStrikethrough);
+        Assert.False(run.Strikethrough);
     }
 
     [Fact]

@@ -11,13 +11,13 @@ Appends a row to an existing Word table.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordTableRow [-Table] <WordTable> [[-Values] <Object>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordTableRow [-Table] <WordTable> [[-InputObject] <Object>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
 Adds a new row to a WordTable that was already created or found in an existing
 document. The command accepts scalar values, arrays, dictionaries, ordered dictionaries, and
-PowerShell objects. Values are expanded from left to right across cells; missing values become empty
+PowerShell objects. InputObject are expanded from left to right across cells; missing values become empty
 cells. This keeps existing-document editing simple without forcing callers back into the Word DSL.
 
 ## EXAMPLES
@@ -26,7 +26,7 @@ cells. This keeps existing-document editing simple without forcing callers back 
 ```powershell
 PS> $doc = Open-OfficeWord -Path .\Report.docx
 $doc | Get-OfficeWordTable | Select-Object -First 1 |
-    Add-OfficeWordTableRow -Values 'Service', 'Ready', 'Low'
+    Add-OfficeWordTableRow -InputObject 'Service', 'Ready', 'Low'
 ```
 
 Adds one table row and writes the supplied values into its cells.
@@ -35,7 +35,7 @@ Adds one table row and writes the supplied values into its cells.
 ```powershell
 PS> $doc = Open-OfficeWord -Path .\Report.docx
 $table = Find-OfficeWordTable -Document $doc -Text 'Risk marker' | Select-Object -First 1
-$table | Add-OfficeWordTableRow -Values ([ordered]@{
+$table | Add-OfficeWordTableRow -InputObject ([ordered]@{
     Item  = 'Mitigation plan'
     Owner = 'Service Desk'
     State = 'Ready'
@@ -46,6 +46,22 @@ $doc | Close-OfficeWord -Save
 Uses an ordered dictionary so values are written into predictable table columns.
 
 ## PARAMETERS
+
+### -InputObject
+InputObject to write into the new row. Arrays, dictionaries, ordered dictionaries, and objects are expanded across cells.
+
+```yaml
+Type: Object
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: 1
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -PassThru
 Emit the created row for additional OfficeIMO-level edits.
@@ -76,22 +92,6 @@ Required: True
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -Values
-Values to write into the new row. Arrays, dictionaries, ordered dictionaries, and objects are expanded across cells.
-
-```yaml
-Type: Object
-Parameter Sets: Default
-Aliases: Data, InputObject
-Possible values:
-
-Required: False
-Position: 1
-Default value: None
-Accept pipeline input: False
 Accept wildcard characters: False
 ```
 

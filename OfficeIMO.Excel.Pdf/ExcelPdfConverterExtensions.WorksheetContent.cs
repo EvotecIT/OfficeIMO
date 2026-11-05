@@ -29,27 +29,11 @@ namespace OfficeIMO.Excel.Pdf {
             return new OfficeIMO.Pdf.PdfPageMargins(margins.Left,margins.Top,margins.Right,margins.Bottom);
         }
 
-        private static IReadOnlyList<string> GetSheetNames(ExcelDocumentReader reader, ExcelPdfExportOptions options) {
-            IReadOnlyList<string> requestedNames = options.SheetNames ?? Array.Empty<string>();
-            if (requestedNames.Count == 0) {
-                return reader.GetSheetNames();
-            }
-
-            var names = new List<string>(requestedNames.Count);
-            foreach (string name in requestedNames) {
-                if (string.IsNullOrWhiteSpace(name)) {
-                    throw new ArgumentException("Sheet names cannot contain null, empty, or whitespace values.", nameof(options));
-                }
-
-                ExcelSheetReader sheet = reader.GetSheet(name);
-                names.Add(sheet.Name);
-            }
-
-            return names;
-        }
+        private static IReadOnlyList<string> GetSheetNames(ExcelDocument document, ExcelPdfExportOptions options) =>
+            OfficeSheetSelector.ResolveMany(document, options.Sheets).Select(sheet => sheet.Name).ToArray();
 
         private static bool HasExplicitSheetSelection(ExcelPdfExportOptions options) {
-            return options.SheetNames != null && options.SheetNames.Count > 0;
+            return options.Sheets != null && options.Sheets.Count > 0;
         }
 
         private static bool ShouldSkipWorkbookSheet(ExcelSheet? workbookSheet, ExcelPdfExportOptions options, bool hasExplicitSheetSelection) {

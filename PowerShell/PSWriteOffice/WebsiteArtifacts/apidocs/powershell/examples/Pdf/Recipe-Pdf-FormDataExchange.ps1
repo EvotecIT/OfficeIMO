@@ -7,7 +7,7 @@ New-OfficePdf -Path $form {
     PdfText 'Owner'
     PdfFormField -Name Owner -Type Text -Value 'Platform' -Width 280
     PdfText 'Decision'
-    PdfFormField -Name Decision -Type Choice -Options Approve,Reject,Defer -Value Defer -Width 220
+    PdfFormField -Name Decision -Type Choice -Option Approve,Reject,Defer -Value Defer -Width 220
 }
 
 Export-OfficePdfXfdf -Path $form -OutputPath $xfdf

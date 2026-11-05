@@ -14,10 +14,10 @@ internal static class NativePagesHeaderFooterWriterSmoke {
         document.AddParagraph("Native header and footer creation", fontSizePoints: 20);
         for (int index = 1; index <= 72; index++)
             document.AddParagraph("Body line " + index.ToString("D2", CultureInfo.InvariantCulture) + " — header/footer creation");
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == "9A8A0DC6ACE759E222054A2B7365A53DDA88CC561C8706322645E5B92C2B66F2",
             "Pages header/footer creation differs from the independent Apple-accepted graph.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "Page-text creation is not deterministic.");
+        Require(bytes.SequenceEqual(document.ToBytes()), "Page-text creation is not deterministic.");
         Verify(bytes, "OfficeIMO — Pages header", "Zażółć café — footer");
         string source = Path.Combine(AppContext.BaseDirectory, "pages-created-headers-edited.pages");
         byte[] native = File.ReadAllBytes(source);
@@ -34,7 +34,7 @@ internal static class NativePagesHeaderFooterWriterSmoke {
             () => document.SetHeader(new IWorkTextRunData("", "Times New Roman", 24, "003366", bold: true)),
             () => document.SetFooter("") }) {
             try { setEmpty(); throw new InvalidOperationException("Zero-length page text was accepted."); }
-            catch (ArgumentException) { Require(bytes.SequenceEqual(document.SaveBytes()), "Rejected page text mutated the model."); }
+            catch (ArgumentException) { Require(bytes.SequenceEqual(document.ToBytes()), "Rejected page text mutated the model."); }
         }
         document.ClearHeader(); document.ClearFooter();
         Require(document.Header == null && document.Footer == null && document.HeaderDistancePoints == 0 && document.FooterDistancePoints == 0,
@@ -43,14 +43,14 @@ internal static class NativePagesHeaderFooterWriterSmoke {
     }
 
     private static void Verify(byte[] bytes, string header, string footer) {
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(new MemoryStream(bytes)).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(new MemoryStream(bytes)).ReadPages();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
             "Page text has incomplete declarations or references.");
         Require(projection.Sections.Count == 1 && projection.Sections[0].DefaultPageHeaderContents.Single().PlainText == header
             && projection.Sections[0].DefaultPageFooterContents.Single().PlainText == footer
             && projection.PageLayout!.HeaderMarginPoints == 30 && projection.PageLayout.FooterMarginPoints == 36,
             "Page text or distances differ.");
-        using var result = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); result.Value.Save(output); output.Position = 0;
         using var saved = WordprocessingDocument.Open(output, false);

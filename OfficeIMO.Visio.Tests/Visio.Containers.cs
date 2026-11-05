@@ -4,7 +4,6 @@ using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 using Color = OfficeIMO.OfficeColor;
 
@@ -244,36 +243,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentContainerEditingKeepsLoadedContainersEasyToMaintainById() {
+        public void NativeContainerEditingKeepsLoadedContainersEasyToMaintainById() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("Fluent containers", page => page
-                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "API")
-                    .AddRectangle("db", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Database")
-                    .AddContainer("tier", "Runtime tier", new[] { "api", "db" }, options => {
+            using var nativeDocument4 = VisioDocument.Create(filePath);
+            nativeDocument4.AddPage("Fluent containers", page => {
+                page.AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "API");
+                page.AddRectangle("db", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Database");
+                page.AddContainer("tier", "Runtime tier", new[] {
+                    "api", "db"
+                }, options => {
                         options.Margin = 0.25;
                         options.HeadingHeight = 0.35;
-                    }))
-                .End()
-                .Save();
+                    }); });
+            nativeDocument4.Save();
 
-            VisioDocument.Load(filePath)
-                .AsFluent()
-                .GetPage("Fluent containers", page => page
-                    .AddRectangle("cache", OfficeLength.Inches(6), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Cache")
-                    .AddToContainer("tier", new[] { "cache" }, options => {
+            using var nativeDocument3 = VisioDocument.Load(filePath);
+            nativeDocument3.GetPage("Fluent containers", page => {
+                page.AddRectangle("cache", OfficeLength.Inches(6), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Cache");
+                page.AddToContainer("tier", new[] {
+                    "cache"
+                }, options => {
                         options.Margin = 0.35;
                         options.HeadingHeight = 0.3;
-                    })
-                    .RemoveFromContainer("tier", new[] { "db" }, options => {
+                    }); page.RemoveFromContainer("tier", new[] { "db" }, options => {
                         options.Margin = 0.35;
                         options.HeadingHeight = 0.3;
-                    }))
-                .End()
-                .Save(updatedPath);
+                    }); });
+            nativeDocument3.Save(updatedPath);
 
             Assert.Empty(VisioValidator.Validate(updatedPath));
             AssertContainerMembershipXml(updatedPath, "Runtime tier", new[] { "API", "Cache" }, new[] { "Database" });
@@ -286,23 +284,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void FluentCanInspectAndConfigureLoadedContainerMetadataById() {
+        public void NativeCanInspectAndConfigureLoadedContainerMetadataById() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             string updatedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             int seenMemberCount = 0;
 
-            VisioDocument.Create(filePath)
-                .AsFluent()
-                .AddPage("Fluent metadata", page => page
-                    .AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "API")
-                    .AddRectangle("db", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Database")
-                    .AddContainer("tier", "Runtime tier", new[] { "api", "db" }))
-                .End()
-                .Save();
+            using var nativeDocument2 = VisioDocument.Create(filePath);
+            nativeDocument2.AddPage("Fluent metadata", page => {
+                page.AddRectangle("api", OfficeLength.Inches(2), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "API");
+                page.AddRectangle("db", OfficeLength.Inches(4), OfficeLength.Inches(4), OfficeLength.Inches(1.3), OfficeLength.Inches(0.7), "Database");
+                page.AddContainer("tier", "Runtime tier", new[] {
+                    "api", "db"
+                });
+            });
+            nativeDocument2.Save();
 
-            VisioDocument.Load(filePath)
-                .AsFluent()
-                .GetPage("Fluent metadata", page => {
+            using var nativeDocument1 = VisioDocument.Load(filePath);
+            nativeDocument1.GetPage("Fluent metadata", page => {
                     seenMemberCount = page.ContainerInfo("tier").MemberCount;
                     page.ConfigureContainer("tier", options => {
                         options.Margin = 0.4;
@@ -310,9 +308,8 @@ namespace OfficeIMO.Tests {
                         options.NoRibbon = true;
                         options.ShapeStyle = new VisioShapeStyle(Color.LightCyan, Color.DodgerBlue, 0.025);
                     }, refit: true);
-                })
-                .End()
-                .Save(updatedPath);
+                });
+            nativeDocument1.Save(updatedPath);
 
             Assert.Equal(2, seenMemberCount);
             Assert.Empty(VisioValidator.Validate(updatedPath));

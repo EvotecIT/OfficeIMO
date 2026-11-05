@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
                     lastRow);
 
                 if (visualOptions.NumericColumnFormats.TryGetValue(header, out string? format)) {
-                    columnStyle.NumberFormat(format);
+                    columnStyle.SetNumberFormat(format);
                 } else if (visualOptions.NumericColumnDecimals.TryGetValue(header, out int decimals)) {
                     columnStyle.Number(decimals);
                 }
@@ -49,11 +49,11 @@ namespace OfficeIMO.Excel {
                     Sheet.CreateConditionalIconSet(columnRange, ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false, percentThresholds: null, numberThresholds: null);
 
                 if (visualOptions.TextBackgrounds.TryGetValue(header, out var backgroundMap)) {
-                    columnStyle.BackgroundByTextMap(backgroundMap);
+                    columnStyle.SetFillColorByTextMap(backgroundMap);
                 }
 
                 if (visualOptions.BoldByText.TryGetValue(header, out var boldValues)) {
-                    columnStyle.BoldByTextSet(boldValues);
+                    columnStyle.SetBoldByTextSet(boldValues);
                 }
             }
 

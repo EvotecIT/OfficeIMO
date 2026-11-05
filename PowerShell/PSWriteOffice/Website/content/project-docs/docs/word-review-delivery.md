@@ -8,7 +8,7 @@ Treat review and delivery as explicit stages after content generation or modific
 
 ## Review changes
 
-`Compare-OfficeWordDocument` produces comparison evidence between a reference and a candidate. `Get-OfficeWordReview` exposes comments and revisions. Use `Resolve-OfficeWordRevision` only after the acceptance rule is known; filter by author, revision type, or review decision instead of accepting everything by default.
+`Compare-OfficeDocument -ReferencePath .\Before.docx -DifferencePath .\After.docx` returns `AreEqual`, `Differences`, and the native Word comparison in `NativeReport`. Add `-OutputPath .\Redline.docx` to save the redline. `Get-OfficeWordReview` exposes comments and revisions. Use `Resolve-OfficeWordRevision` only after the acceptance rule is known; filter by author, revision type, or review decision instead of accepting everything by default.
 
 ## Finalize document state
 
@@ -20,6 +20,6 @@ Before delivery:
 4. apply protection when recipients should not freely edit the result;
 5. save to the delivery path and reopen it read-only.
 
-`Protect-OfficeWordDocument` and `Unprotect-OfficeWordDocument` make the protection boundary explicit. `Update-OfficeWordField` and `Update-OfficeWordTableOfContents` handle calculated presentation state.
+`Protect-OfficeDocument` and `Unprotect-OfficeDocument` make the protection boundary explicit. `Update-OfficeWordField` and `Update-OfficeWordTableOfContents` handle calculated presentation state.
 
 The [approval-checklist recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-ApprovalChecklist.ps1) demonstrates content controls and a watermark. Combine it with [read and inspect](/docs/pswriteoffice/word-read-inspect/) for delivery readback.

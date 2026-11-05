@@ -155,9 +155,9 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public IReadOnlyList<PowerPointDeckDesign> CreateAlternativesFromBrand(string accentColor, string seed,
             int count = 0, string? name = null, string? eyebrow = null, string? footerLeft = null,
-            string? footerRight = null, string? headingFontName = null, string? bodyFontName = null) {
+            string? footerRight = null, string? headingFontFamily = null, string? bodyFontFamily = null) {
             return PowerPointDeckDesign.CreateAlternativesFromBrand(accentColor, seed, this, count, name, eyebrow,
-                footerLeft, footerRight, headingFontName, bodyFontName);
+                footerLeft, footerRight, headingFontFamily, bodyFontFamily);
         }
 
         /// <summary>

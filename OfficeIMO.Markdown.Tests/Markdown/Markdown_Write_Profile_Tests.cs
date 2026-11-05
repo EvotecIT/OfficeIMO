@@ -187,7 +187,7 @@ Lead[^1]
     [Fact]
     public void CommonMark_Write_Profile_Renders_Gfm_Only_Inlines_As_Raw_Html() {
         var paragraph = new ParagraphBlock(new InlineSequence()
-            .Strike("old")
+            .Strikethrough("old")
             .Text("and")
             .Highlight("new"));
         var doc = MarkdownDocument.Create();
@@ -438,7 +438,7 @@ HTML text
     [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Renders_OfficeOnly_Inlines_As_Raw_Html() {
         var doc = MarkdownDocument.Create();
-        doc.Add(new ParagraphBlock(new InlineSequence().Strike("old").Highlight("new").Inserted("added").Superscript("up").Subscript("down")));
+        doc.Add(new ParagraphBlock(new InlineSequence().Strikethrough("old").Highlight("new").Inserted("added").Superscript("up").Subscript("down")));
 
         var markdown = doc.ToMarkdown(MarkdownSaveOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
 

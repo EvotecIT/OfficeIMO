@@ -11,12 +11,12 @@ Adds a Markdown image.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeMarkdownImage [-Path] <string> [-Alt <string>] [-Title <string>] [-Width <Double>] [-Height <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownImage [-Path] <string> [-Alt <string>] [-Title <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeMarkdownImage [-Path] <string> -Document <MarkdownDocument> [-Alt <string>] [-Title <string>] [-Width <Double>] [-Height <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownImage [-Path] <string> -Document <MarkdownDocument> [-Alt <string>] [-Title <string>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -28,7 +28,7 @@ Adds a Markdown image.
 ```powershell
 PS> New-OfficeMarkdown -Path .\Report.md {
     Add-OfficeMarkdownHeading -Level 2 -Text 'Architecture'
-    Add-OfficeMarkdownImage -Path '.\Assets\architecture.png' -Alt 'Architecture diagram' -Title 'Current architecture' -Width 640
+    Add-OfficeMarkdownImage -Path '.\Assets\architecture.png' -Alt 'Architecture diagram' -Title 'Current architecture' -Width 640px
 }
 ```
 
@@ -69,10 +69,10 @@ Accept wildcard characters: False
 ```
 
 ### -Height
-Optional height in pixels.
+Optional image height; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -133,10 +133,10 @@ Accept wildcard characters: False
 ```
 
 ### -Width
-Optional width in pixels.
+Optional image width; numbers mean points and unit suffixes are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:

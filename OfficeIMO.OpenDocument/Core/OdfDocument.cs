@@ -153,8 +153,6 @@ public abstract partial class OdfDocument {
         return Serialize(options).RequireValue();
     }
 
-    /// <summary>Serializes the document in a new writable memory stream positioned at the beginning.</summary>
-    public MemoryStream ToStream(OdfSaveOptions? options = null) => new MemoryStream(ToBytes(options));
 
     private static void EnsurePath(string path) {
         if (string.IsNullOrWhiteSpace(path)) {

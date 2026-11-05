@@ -13,8 +13,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reused_pages_headers_charge_the_character_budget_for_each_destination() {
         using MemoryStream package = CreatePagesPackageWithSharedHeader();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedTextCharacters = 12 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProjectedTextCharacters = 12 });
 
         Assert.Throws<InvalidDataException>(() => source.ReadPages());
     }
@@ -23,7 +23,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Keynote_right_paragraph_indents_use_visual_fallback() {
         using MemoryStream package = CreateKeynotePackageWithRightIndent();
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -38,7 +38,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, sheetNameBytes: Encoding.UTF8.GetBytes(sheetName));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);
@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("a", 1, 1, 2d)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.True(result.Projection.HasEditableContent);

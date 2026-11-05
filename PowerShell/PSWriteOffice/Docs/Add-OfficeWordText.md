@@ -11,17 +11,17 @@ Adds styled text or a hyperlink to the current or given Word paragraph.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficeWordText [-Text] <string[]> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordText [-Text] <string[]> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-BackgroundColor <OfficeColor>] [-Baseline <OfficeTextBaseline>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Link
 ```powershell
-Add-OfficeWordText [-Text] <string[]> -Link <uri> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Tooltip <string>] [-NoHistory] [-NoLinkStyle] [-PassThru] [<CommonParameters>]
+Add-OfficeWordText [-Text] <string[]> -Link <uri> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Tooltip <string>] [-NoHistory] [-NoLinkStyle] [-BackgroundColor <OfficeColor>] [-Baseline <OfficeTextBaseline>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Anchor
 ```powershell
-Add-OfficeWordText [-Text] <string[]> -Anchor <string> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Tooltip <string>] [-NoHistory] [-NoLinkStyle] [-PassThru] [<CommonParameters>]
+Add-OfficeWordText [-Text] <string[]> -Anchor <string> [-Paragraph <WordParagraph>] [-Bold] [-Italic] [-Strikethrough] [-Underline <WordUnderlineStyle>] [-Color <OfficeColor>] [-Font <string>] [-Size <OfficeLength>] [-Tooltip <string>] [-NoHistory] [-NoLinkStyle] [-BackgroundColor <OfficeColor>] [-Baseline <OfficeTextBaseline>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -53,6 +53,38 @@ Aliases: None
 Possible values:
 
 Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -BackgroundColor
+Run highlight or shading color; explicit null clears both.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Text, Link, Anchor
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Baseline
+Normal, superscript or subscript baseline.
+
+```yaml
+Type: OfficeTextBaseline
+Parameter Sets: Text, Link, Anchor
+Aliases: None
+Possible values: Normal, Superscript, Subscript
+
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -188,7 +220,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the target paragraph, or each created hyperlink for Link and Anchor.
+Emit each newly created run, or each hyperlink for Link and Anchor.
 
 ```yaml
 Type: SwitchParameter

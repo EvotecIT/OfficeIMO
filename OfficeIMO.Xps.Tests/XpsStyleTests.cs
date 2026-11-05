@@ -90,7 +90,7 @@ public sealed class XpsStyleTests {
 
     private static XpsDocument Create(string simulation, bool sideways = false, bool rtl = false, XpsFormat format = XpsFormat.OpenXps) {
         var doc = XpsDocument.Create(format); string font = doc.AddFont(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "Fixtures", "RobotoFlex.ttf")));
-        var page = doc.AddPage(300, 180).AddText("II", font, 100, rtl ? 250 : 30, 120);
+        var page = doc.AddPage(300, 180).AddText("II", font, 100, rtl ? 250 : 30, 120).Page;
         var xml = page.GetMarkup(); var run = xml.Elements().Single(); run.SetAttributeValue("StyleSimulations", simulation);
         run.SetAttributeValue("IsSideways", sideways ? "true" : "false"); run.SetAttributeValue("BidiLevel", rtl ? "1" : "0"); page.ReplaceMarkup(xml);
         return doc;

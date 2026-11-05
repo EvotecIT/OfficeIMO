@@ -11,7 +11,7 @@ Saves a live Word document without closing it.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeWord [-Document] <WordDocument> [-Path <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeWord [-Document] <WordDocument> [[-Path] <string>] [-Password <securestring>] [-AllowLoss] [-Show] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -110,7 +110,7 @@ Aliases: None
 Possible values:
 
 Required: False
-Position: named
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Primary_record_messages_are_cached_by_record_identity() {
         using MemoryStream package = CreatePagesPackage(
             includeBody: true, textBox: null, includePreview: false);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(
+        IWorkSourceDocument source = IWorkSourceDocument.Load(
             package, IWorkDocumentKind.Pages);
         IWorkArchiveRecord document = Assert.Single(source.Records,
             record => record.MessageType == 10000);
@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_primary_record_is_rejected_once_for_repeated_selections() {
         var record = new IWorkArchiveRecord(1, 5, Array.Empty<uint>(), Array.Empty<ulong>(),
             Array.Empty<ulong>(), "Index/Slide.iwa", 0, new byte[] { 0x80 });
-        var index = new IWorkObjectIndex(new[] { record }, new IWorkReadOptions());
+        var index = new IWorkObjectIndex(new[] { record }, new IWorkLoadOptions());
 
         InvalidDataException first = Assert.Throws<InvalidDataException>(() => index.Message(record));
         InvalidDataException second = Assert.Throws<InvalidDataException>(() => index.Message(record));
@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Selected_nested_message_reuses_success_and_malformed_results() {
-        var options = new IWorkReadOptions();
+        var options = new IWorkLoadOptions();
         IWorkWireMessage valid = IWorkProtobuf.Parse(BytesField(11, Message(VarintField(1, 7))), options);
         Assert.Same(valid.GetMessage(11), valid.GetMessage(11));
 
@@ -52,7 +52,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Repeated_distinct_Keynote_body_placeholders_disable_editable_reconstruction() {
         using MemoryStream package = CreateKeynotePackageWithDistinctBodyPlaceholders();
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
                 conflictingNumberValue: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Sub-tick date", 1, 1, 0.00000015d, date: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         IWorkTableCell cell = Assert.Single(Assert.Single(
             Assert.Single(result.Projection.Sheets).Tables).Cells);
 
@@ -114,7 +114,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Text_colors_reject_conflicting_color_models() {
         using MemoryStream package = CreatePagesPackageWithConflictingColorModels();
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

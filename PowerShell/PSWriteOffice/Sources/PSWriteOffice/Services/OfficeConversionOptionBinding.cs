@@ -11,7 +11,33 @@ using PSWriteOffice.Foundation;
 namespace PSWriteOffice.Services;
 
 /// <summary>Routes PowerShell option values to existing adapter-owned option properties.</summary>
-internal static class OfficeConversionOptionBinding {
+internal static partial class OfficeConversionOptionBinding {
+    /// <summary>Overrides themes on captured options for the executable native document-creation routes.</summary>
+    internal static void ApplyTheme(OfficeConversionOptions options, OfficeThemeInput input,
+        IReadOnlyList<OfficeConversionCapability> routes) {
+        bool wordMarkdown = routes.Any(route => route.Id == "markdown-docx");
+        bool wordHtml = routes.Any(route => route.Id == "html-docx");
+        bool powerPointMarkdown = routes.Any(route => route.Id == "markdown-pptx");
+        if (!wordMarkdown && !wordHtml && !powerPointMarkdown)
+            throw new PSArgumentException("Theme requires a selected Markdown to Word/PowerPoint or HTML to Word creation route.");
+        OfficeTheme theme = input.Resolve(OfficeTheme.FromDocument);
+        if (wordMarkdown) {
+            options.MarkdownWord ??= new OfficeIMO.Word.Markdown.MarkdownWordExportOptions();
+            options.MarkdownWord.Theme = OfficeIMO.Markdown.MarkdownVisualTheme.FromOfficeTheme(theme);
+        }
+        if (wordHtml) {
+            options.HtmlWord ??= new OfficeIMO.Word.Html.HtmlWordExportOptions();
+            options.HtmlWord.Theme = theme;
+        }
+        if (powerPointMarkdown) {
+            options.RegisteredSettings ??= new OfficeWorkflowRouteSettings();
+            if (options.RegisteredSettings is not OfficeWorkflowRouteSettings settings)
+                throw new PSArgumentException("Markdown to PowerPoint requires OfficeWorkflowRouteSettings.");
+            settings.MarkdownPowerPoint ??= new MarkdownToPowerPointOptions();
+            settings.MarkdownPowerPoint.Theme = theme;
+        }
+    }
+
     internal static OfficeConversionOptions Capture(EngineIntrinsics engine, object[]? values,
         IReadOnlyList<OfficeConversionCapability> routes) {
         var result = new OfficeConversionOptions();
@@ -70,21 +96,18 @@ internal static class OfficeConversionOptionBinding {
         if (registered.Length == 0) yield break;
         options.RegisteredSettings ??= new OfficeWorkflowRouteSettings();
         if (options.RegisteredSettings is not OfficeWorkflowRouteSettings settings) yield break;
-        var names = new HashSet<string>(StringComparer.Ordinal);
+        var properties = typeof(OfficeWorkflowRouteSettings).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(property => property.SetMethod?.IsPublic == true && property.PropertyType.IsClass &&
+                property.PropertyType != typeof(string) && property.PropertyType.GetConstructor(Type.EmptyTypes) != null).ToArray();
+        var populatedSettings = new OfficeWorkflowRouteSettings();
+        foreach (var property in properties) property.SetValue(populatedSettings, Activator.CreateInstance(property.PropertyType));
+        var acceptedSettings = new HashSet<string>(StringComparer.Ordinal);
         foreach (var route in registered) {
-            switch (route.Id) {
-                case "rtf-pdf": names.Add(nameof(settings.Rtf)); break;
-                case "odg-pdf": names.Add(nameof(settings.Draw)); break;
-                case "visio-pdf": names.Add(nameof(settings.Visio)); break;
-                case "xps-pdf": names.Add(nameof(settings.Xps)); break;
-                case "djvu-pdf": names.Add(nameof(settings.DjVu)); break;
-                case "chm-pdf": names.Add(nameof(settings.ChmHtml)); names.Add(nameof(settings.Chm)); break;
-                case "chm-markdown":
-                case "chm-epub": names.Add(nameof(settings.Chm)); break;
-                case "publisher-pdf": names.Add(nameof(settings.PublisherRead)); names.Add(nameof(settings.PublisherPdf)); break;
-            }
+            var selected = populatedSettings.ForRoute(route.Id);
+            foreach (var property in properties)
+                if (property.GetValue(selected) != null) acceptedSettings.Add(property.Name);
         }
-        foreach (var property in typeof(OfficeWorkflowRouteSettings).GetProperties().Where(property => names.Contains(property.Name)))
+        foreach (var property in properties.Where(property => acceptedSettings.Contains(property.Name)))
             yield return (settings, property);
     }
 

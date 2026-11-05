@@ -11,7 +11,12 @@ Captures a portable report from a current calculated schedule.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Get-OfficeProjectView -Document <ProjectDocument> [-Schedule <ProjectScheduleResult>] [-Kind <ProjectViewKind>] [-Options <ProjectViewOptions>] [<CommonParameters>]
+Get-OfficeProjectView [-Document <ProjectDocument>] [-Schedule <ProjectScheduleResult>] [-Kind <ProjectViewKind>] [<CommonParameters>]
+```
+
+### Options
+```powershell
+Get-OfficeProjectView -Options <ProjectViewOptions> [-Document <ProjectDocument>] [-Schedule <ProjectScheduleResult>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,11 +37,11 @@ Project document.
 
 ```yaml
 Type: ProjectDocument
-Parameter Sets: Document
+Parameter Sets: Document, Options
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -64,11 +69,11 @@ Optional explicit report settings.
 
 ```yaml
 Type: ProjectViewOptions
-Parameter Sets: Document
+Parameter Sets: Options
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -80,7 +85,7 @@ Current schedule result for this project revision. Omission calculates a report 
 
 ```yaml
 Type: ProjectScheduleResult
-Parameter Sets: Document
+Parameter Sets: Document, Options
 Aliases: None
 Possible values:
 

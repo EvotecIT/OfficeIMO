@@ -266,7 +266,7 @@ namespace OfficeIMO.PowerPoint {
             properties.RemoveAllChildren<A.SolidFill>();
             properties.RemoveAllChildren<A.NoFill>();
             if (geometry.FillColor is OfficeColor fill) {
-                result.FillColor = fill.ToRgbHex();
+                result.FillColor = fill;
                 double fillOpacity = CombineOpacity(fill.A,
                     geometry.FillOpacity);
                 if (fillOpacity < 1D) {
@@ -278,7 +278,7 @@ namespace OfficeIMO.PowerPoint {
                 properties.InsertAfter(new A.NoFill(), customGeometry);
             }
 
-            result.OutlineColor = geometry.StrokeColor?.ToRgbHex();
+            result.OutlineColor = geometry.StrokeColor;
             if (geometry.StrokeColor is OfficeColor stroke) {
                 result.OutlineWidth = OfficeLength.Emus(PowerPointShape.ToDrawingLineWidth(geometry.StrokeWidth, nameof(geometry.StrokeWidth)));
                 result.OutlineDash = MapCustomGeometryDash(

@@ -276,10 +276,10 @@ internal static partial class RtfSemanticReader {
                     state.CharacterOffsetHalfPoints = control.Parameter.HasValue && control.Parameter.Value != 0 ? -control.Parameter.Value : null;
                     return;
                 case "strike":
-                    state.Strike = !control.HasParameter || control.Parameter != 0;
+                    state.Strikethrough = !control.HasParameter || control.Parameter != 0;
                     return;
                 case "striked":
-                    state.DoubleStrike = !control.HasParameter || control.Parameter != 0;
+                    state.DoubleStrikethrough = !control.HasParameter || control.Parameter != 0;
                     return;
                 case "caps":
                     state.CapsStyle = !control.HasParameter || control.Parameter != 0 ? RtfCapsStyle.Caps : RtfCapsStyle.None;

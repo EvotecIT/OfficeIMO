@@ -72,8 +72,8 @@ namespace OfficeIMO.PowerPoint {
             Mood = direction.Mood;
             Density = direction.Density;
             VisualStyle = direction.VisualStyle;
-            HeadingFontName = direction.HeadingFontName;
-            BodyFontName = direction.BodyFontName;
+            HeadingFontFamily = direction.HeadingFontFamily;
+            BodyFontFamily = direction.BodyFontFamily;
             ShowsDirectionMotif = direction.ShowDirectionMotif;
         }
 
@@ -105,12 +105,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Heading font used by this direction.
         /// </summary>
-        public string HeadingFontName { get; }
+        public string HeadingFontFamily { get; }
 
         /// <summary>
         ///     Body font used by this direction.
         /// </summary>
-        public string BodyFontName { get; }
+        public string BodyFontFamily { get; }
 
         /// <summary>
         ///     Whether this direction uses repeated direction markers by default.
@@ -120,7 +120,7 @@ namespace OfficeIMO.PowerPoint {
         /// <inheritdoc />
         public override string ToString() {
             return Index + ": " + Name + " (" + Mood + ", " + VisualStyle + ", " +
-                   HeadingFontName + "/" + BodyFontName + ")";
+                   HeadingFontFamily + "/" + BodyFontFamily + ")";
         }
     }
 }

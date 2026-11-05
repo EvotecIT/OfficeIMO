@@ -87,8 +87,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             if (shape is PowerPointTable table) {
-                for (int row = 0; row < table.Rows; row++) {
-                    for (int column = 0; column < table.Columns; column++) {
+                for (int row = 0; row < table.RowCount; row++) {
+                    for (int column = 0; column < table.ColumnCount; column++) {
                         PowerPointTableCell cell = table.GetCell(row, column);
                         var cellActions = new List<LegacyPptWriterTextInteraction>();
                         if (cell.Cell.TextBody != null

@@ -11,7 +11,7 @@ Exports a captured Project report through the shared PDF, HTML, Word, Excel or P
 ## SYNTAX
 ### View (Default)
 ```powershell
-Export-OfficeProjectReport [-Path] <string> -View <ProjectView> [-Force] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Export-OfficeProjectReport [-Path] <string> -View <ProjectView> [-NoClobber] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,8 +29,8 @@ $view | Export-OfficeProjectReport -Path ./delivery.docx
 
 ## PARAMETERS
 
-### -Force
-Replace an existing destination.
+### -NoClobber
+Refuse replacement of an existing destination.
 
 ```yaml
 Type: SwitchParameter

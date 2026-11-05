@@ -15,15 +15,15 @@ $data = @(
 New-OfficeExcel -Path $workbookPath {
     Add-OfficeExcelSheet -Name 'Service Review' -Content {
         Set-OfficeExcelRow -Row 1 -Values 'Service', 'Status', 'Incidents', 'Owner'
-        Add-OfficeExcelTable -Data $data -Name 'ServiceStatus' -TableStyle 'TableStyleMedium4'
-        Set-OfficeExcelFormula -Cell 'E2' -Formula '=SUM(ServiceStatus[Incidents])'
-        Set-OfficeExcelCell -Cell 'E1' -Value 'Total incidents'
+        Add-OfficeExcelTable -InputObject $data -Name 'ServiceStatus' -TableStyle 'TableStyleMedium4'
+        Set-OfficeExcelCell -Address 'E2' -Formula '=SUM(ServiceStatus[Incidents])'
+        Set-OfficeExcelCell -Address 'E1' -Value 'Total incidents'
         Set-OfficeExcelColumn -Column 1, 2, 3, 4, 5 -AutoFit
     }
 }
 
-ConvertTo-OfficeExcelHtml -Path $workbookPath -OutputPath $semanticHtmlPath -Title 'Service Workbook Review'
-ConvertTo-OfficeExcelHtml -Path $workbookPath -Profile VisualReview -OutputPath $visualHtmlPath -Title 'Service Workbook Visual Review'
+Convert-OfficeDocument -Path $workbookPath -To Html -OutputPath $semanticHtmlPath -Options (New-OfficeExcelHtmlOptions -Title 'Service Workbook Review')
+Convert-OfficeDocument -Path $workbookPath -To Html -OutputPath $visualHtmlPath -Options (New-OfficeExcelHtmlOptions -Profile VisualReview -Title 'Service Workbook Visual Review')
 
 Write-Host "Workbook saved to $workbookPath"
 Write-Host "Semantic HTML saved to $semanticHtmlPath"

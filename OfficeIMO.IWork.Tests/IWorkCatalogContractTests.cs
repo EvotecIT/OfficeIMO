@@ -21,7 +21,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => BytesField(1, Message())
         };
         using var package = CatalogContractPackage(field, metadata);
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         IWorkTableCell cell = Assert.Single(table.Cells);
         if (field is 4 or 17) Assert.Equal(IWorkCellKind.Error, cell.Kind);
@@ -55,7 +55,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(22, 6005u)] [InlineData(22, 6201u)]
     public void Both_registered_data_list_types_preserve_selected_values(int field, uint type) {
         using var package = CatalogContractPackage(field, VarintField(1, CatalogListKind(field)), type);
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         IWorkTable table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         IWorkTableCell cell = Assert.Single(table.Cells);
         Assert.Empty(projection.SourceReferenceIssues);
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, 4)] [InlineData(IWorkDocumentKind.Keynote, 6)]
     public void Wrong_type_string_or_formula_catalog_cannot_decode_plausible_payload(IWorkDocumentKind kind, int field) {
         using var package = SelectedCatalogPackage(kind, field, BytesField(3, CatalogTestEntry(field)), catalogType: 2021);
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         var cell = Assert.Single(table.Cells);
         if (field == 4) Assert.Equal(IWorkCellKind.Error, cell.Kind);
         else { Assert.Equal(42d, cell.Value); Assert.False(cell.FormulaIsComplete); }
@@ -90,7 +90,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(4)] [InlineData(5)] [InlineData(6)] [InlineData(17)] [InlineData(19)] [InlineData(22)]
     public void Invalid_list_kind_still_charges_declared_catalog_entry_work(int field) {
         using var package = CatalogContractPackage(field, VarintField(1, 99), entries: 2);
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -101,7 +101,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Rejected_formula_catalog_kind_preserves_cache_after_destination_save_and_reopen(IWorkDocumentKind kind) {
         using var package = SelectedCatalogPackage(kind, 6,
             Message(VarintField(1, 1), BytesField(3, CatalogTestEntry(6))), includeCatalogKind: false);
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         IWorkConversionReport report;

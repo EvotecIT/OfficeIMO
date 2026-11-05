@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, runs.Count);
                 Assert.Equal("Shared ", runs[0].Text);
                 Assert.True(runs[0].Bold);
-                Assert.Equal("Arial", runs[0].FontName);
+                Assert.Equal("Arial", runs[0].FontFamily);
                 Assert.Equal("rich text", runs[1].Text);
                 Assert.True(runs[1].Italic);
                 Assert.True(runs[1].Underline);

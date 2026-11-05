@@ -10,7 +10,7 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Data' {
-        ExcelTable -Data $rows -Name 'Sales' -AutoFit
+        ExcelTable -InputObject $rows -Name 'Sales'
         ExcelNamedRange -Name 'SalesData' -Range 'A1:B4'
     }
     ExcelSheet 'Notes' {
@@ -23,13 +23,13 @@ New-OfficeExcel -Path $path {
 Write-Host "Workbook saved to $path"
 Write-Host ''
 Write-Host 'Explicit range read:'
-Get-OfficeExcelRange -Path $path -Sheet 'Data' -Range 'A1:B4' | Format-Table
+Import-OfficeExcel -Path $path -Sheet 'Data' -Range 'A1:B4' | Format-Table
 
 Write-Host ''
 Write-Host 'Used range read as DataTable:'
-$usedRange = Get-OfficeExcelUsedRange -Path $path -Sheet 'Notes' -AsDataTable
+$usedRange = Import-OfficeExcel -Path $path -Sheet 'Notes' -As DataTable
 $usedRange | Format-Table
 
 Write-Host ''
 Write-Host 'TOC rows:'
-Get-OfficeExcelRange -Path $path -Sheet 'TOC' -Range 'A3:C5' -AsHashtable | Format-Table
+Import-OfficeExcel -Path $path -Sheet 'TOC' -Range 'A3:C5' -As Hashtable | Format-Table

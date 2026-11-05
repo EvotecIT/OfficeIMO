@@ -11,25 +11,25 @@ namespace OfficeIMO.Workflows.IWork;
 public static partial class IWorkWorkflow {
     /// <summary>Creates a runner with iWork-to-Office and complete-editable-subset PDF routes.</summary>
     /// <remarks>Defaults reject partial editable reconstruction and visual previews without known full-document coverage. Local ZIP files and directory bundles, and provider ZIP streams, use captured inputs and publication-time source verification.</remarks>
-    public static OfficeWorkflowRunner CreateRunner(IWorkReadOptions? readOptions = null,
+    public static OfficeWorkflowRunner CreateRunner(IWorkLoadOptions? readOptions = null,
         IWorkConversionOptions? conversionOptions = null) => new(null, null, conversions: CreateRegistrations(readOptions, conversionOptions));
 
     /// <summary>Captures independent read and acceptance options for registration alongside other format adapters.</summary>
-    public static IReadOnlyList<OfficeWorkflowConversionRegistration> CreateRegistrations(IWorkReadOptions? readOptions = null,
+    public static IReadOnlyList<OfficeWorkflowConversionRegistration> CreateRegistrations(IWorkLoadOptions? readOptions = null,
         IWorkConversionOptions? conversionOptions = null) {
-        IWorkReadOptions reading = (readOptions ?? new IWorkReadOptions { PreserveSourceRecords = false }).Clone();
+        IWorkLoadOptions reading = (readOptions ?? new IWorkLoadOptions { PreserveSourceRecords = false }).Clone();
         IWorkConversionOptions conversion = (conversionOptions ?? new IWorkConversionOptions { RequireCompleteVisualCoverage = true }).Clone();
         var registrations = new List<OfficeWorkflowConversionRegistration> {
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("pages-docx", (input, output, limits, settings, token) => {
-                using PagesToWordResult result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToWordResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
+                using PagesToWordResult result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Pages, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToWordResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
                 return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("numbers-xlsx", (input, output, limits, settings, token) => {
-                using NumbersToExcelResult result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToExcelResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
+                using NumbersToExcelResult result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Numbers, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToExcelResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
                 return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits)),
             OfficeWorkflowConversionRegistration.Create<IWorkWorkflowSettings>("keynote-pptx", (input, output, limits, settings, token) => {
-                using KeynoteToPowerPointResult result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToPowerPointResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
+                using KeynoteToPowerPointResult result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Keynote, Bound(settings?.ReadOptions ?? reading, limits), cancellationToken: token).ToPowerPointResult(settings?.ConversionOptions ?? conversion, cancellationToken: token);
                 return SaveWithEvidence(Evidence(result.Report, result.Source), () => result.Value.SaveAsync(output, token).GetAwaiter().GetResult());
             }, (path, limits, settings) => DirectoryInput(path, Bound(settings?.ReadOptions ?? reading, limits), limits))
         };
@@ -46,7 +46,7 @@ public static partial class IWorkWorkflow {
         }
     }
 
-    private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkReadOptions reading, OfficeOperationLimits limits) {
+    private static OfficeWorkflowStreamInput DirectoryInput(string path, IWorkLoadOptions reading, OfficeOperationLimits limits) {
         var snapshot = new IWorkDirectoryPackageSnapshot(path, reading, limits.MaximumInputBytes);
         return new OfficeWorkflowStreamInput(Path.GetFileName(path), token => Task.Run(() => snapshot.OpenStream(token), token), null, OfficeWorkflowSourceSnapshotKind.DirectoryPackage, new DirectorySourceGuard(snapshot));
     }
@@ -56,8 +56,8 @@ public static partial class IWorkWorkflow {
             Task.FromResult(snapshot.CanPublish(path, isDirectory, token));
     }
 
-    private static IWorkReadOptions Bound(IWorkReadOptions options, OfficeOperationLimits limits) {
-        IWorkReadOptions copy = options.Clone();
+    private static IWorkLoadOptions Bound(IWorkLoadOptions options, OfficeOperationLimits limits) {
+        IWorkLoadOptions copy = options.Clone();
         copy.MaxPackageBytes = Math.Min(copy.MaxPackageBytes, limits.MaximumInputBytes);
         return copy;
     }

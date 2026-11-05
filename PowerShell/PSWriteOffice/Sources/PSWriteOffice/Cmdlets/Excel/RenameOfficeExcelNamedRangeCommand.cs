@@ -1,93 +1,75 @@
-#pragma warning disable CS1591
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Renames a workbook or sheet-scoped Excel named range.</summary>
+/// <summary>Renames a defined name.</summary>
 /// <example>
-///   <summary>Rename a named range and keep the workbook reusable.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$workbook = Open-OfficeExcel -Path .\Report.xlsx
-/// $renamed = $workbook | Rename-OfficeExcelNamedRange -Name RevenueRange -NewName Revenue_Current -PassThru
-/// Save-OfficeExcel -Document $workbook</code>
-///   <para>Renames the defined name through OfficeIMO validation before saving the workbook.</para>
+/// <summary>Rename a defined name</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     Rename-OfficeExcelNamedRange Rate TaxRate
+/// }</code>
+/// <para>Renames Rate to TaxRate; formulas that use the name follow the change.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Rename, "OfficeExcelNamedRange", SupportsShouldProcess = true, DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelNamedRangeRename")]
-[OutputType(typeof(bool))]
-public sealed class RenameOfficeExcelNamedRangeCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+/// <example>
+/// <summary>Apply a naming convention</summary>
+/// <code>$names = Get-OfficeExcelNamedRange -Path .\Finance\Pricing-Model.xlsx | Where-Object SheetName -eq 'Inputs'
+/// Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+///     foreach ($name in $names) {
+///         Rename-OfficeExcelNamedRange -Name $name.Name -NewName "in_$($name.Name)" -ValidationMode Strict
+///     }
+/// }</code>
+/// <para>Prefixes every input name of the pricing model with in_ so inputs are easy to tell apart from calculations.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Rename, "OfficeExcelNamedRange", DefaultParameterSetName = "Default")]
+public sealed class RenameOfficeExcelNamedRangeCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name for a sheet-scoped operation.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
-
-    /// <summary>Zero-based worksheet index for a sheet-scoped operation.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Named range name.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Name { get; set; } = string.Empty;
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
+    public string Name { get; set; } = null!;
 
     /// <summary>New named range name.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
-    public string NewName { get; set; } = string.Empty;
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 1)]
+    public string NewName { get; set; } = null!;
 
     /// <summary>Use workbook-global scope from inside the DSL.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Global { get; set; }
 
     /// <summary>Defined-name validation mode.</summary>
-    [Parameter]
-    public ExcelDefinedNameValidationMode ValidationMode { get; set; } = ExcelDefinedNameValidationMode.Sanitize;
-    /// <summary>Emit a result object.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
+    public ExcelDefinedNameValidationMode? ValidationMode { get; set; }
+
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
-    /// <summary>Save the workbook immediately after renaming the name.</summary>
-    [Parameter]
-    public SwitchParameter Save { get; set; }
-
-    protected override void ProcessRecord()
-    {
-        ExcelDocument document;
-        ExcelSheet? scope = null;
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            document = Document;
-            scope = ExcelSheetResolver.ResolveOptional(document, Sheet, SheetIndex);
-        }
-        else
-        {
-            var context = ExcelDslContext.Require(this);
-            document = context.Document;
-            if (!Global.IsPresent)
-            {
-                scope = context.CurrentSheet;
-            }
-        }
-
-        if (ShouldProcess(Name, "Rename Excel named range"))
-        {
-            var renamed = document.RenameNamedRange(Name, NewName, scope, ValidationMode, save: false);
-            if (renamed && Save.IsPresent)
-            {
-                document.Save();
-            }
-            if (PassThru.IsPresent)
-            {
-                WriteObject(renamed);
-            }
-        }
+    /// <inheritdoc />
+    protected override void ProcessRecord() {
+        var document = ExcelCommandTargets.Document(Document);
+        ExcelSheet? scope = Global ? null : Sheet == null ? (Document == null ? ExcelDslContext.Current?.CurrentSheet : null) : Sheet.Resolve(document.Sheets, sheet => sheet.Name);
+        bool changed = document.RenameNamedRange(Name, NewName, scope, save: false, validationMode: ValidationMode ?? ExcelDefinedNameValidationMode.Sanitize);
+        if (PassThru) WriteObject(changed);
     }
+
 }
-#pragma warning restore CS1591

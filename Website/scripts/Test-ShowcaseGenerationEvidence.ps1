@@ -35,7 +35,14 @@ $receipt.package | Add-Member -NotePropertyName name -NotePropertyValue 'PSWrite
 $receipt.package | Add-Member -NotePropertyName files -NotePropertyValue @([pscustomobject]@{ path = 'PSWriteOffice.psd1'; sha256 = 'a' * 64 }, [pscustomobject]@{ path = 'PSWriteOffice.psm1'; sha256 = 'b' * 64 })
 $receipt.package | Add-Member -NotePropertyName fileCount -NotePropertyValue 2
 $receipt.outputs[0] | Add-Member -NotePropertyName diagnostics -NotePropertyValue ([pscustomobject]@{ pageCount = 1; fonts = @() })
-$receipt | Add-Member -NotePropertyName conversions -NotePropertyValue @([pscustomobject]@{ outputPath = '/downloads/showcase/report.pdf'; outputSha256 = 'output-hash'; routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'fixture'; report = [pscustomobject]@{ Diagnostics = @() }; warnings = @() })
+$receipt | Add-Member -NotePropertyName conversions -NotePropertyValue @([pscustomobject]@{
+    inputPath = '/downloads/showcase/report.docx'; inputSha256 = 'docx-hash'
+    outputPath = '/downloads/showcase/report.pdf'; outputSha256 = 'output-hash'
+    routeId = 'docx-pdf'; command = 'Convert-OfficeDocument'
+    routeEvidence = 'recipe-explicit-Route-docx-pdf-with-public-conversion-report'
+    report = [pscustomobject]@{ Source = '/fixture/report.docx'; Target = 'Pdf'; OutputPath = '/fixture/report.pdf'; Diagnostics = @() }
+    warnings = @()
+})
 $receipt | Add-Member -NotePropertyName previews -NotePropertyValue @([pscustomobject]@{ path = '/downloads/showcase/preview.png'; rendering = [ordered]@{ tool = 'pdftocairo'; version = 'fixture'; executableSha256 = 'c' * 64; page = 1; inputSha256 = 'output-hash'; sha256 = 'preview-hash'; diagnostics = @() } })
 $receipt | Add-Member -NotePropertyName evidenceProducer -NotePropertyValue (Get-ShowcaseEvidenceProducerBinding $TestRoot)
 $receipt | Add-Member -NotePropertyName receiptSha256 -NotePropertyValue (Get-ShowcaseGenerationReceiptHash $receipt)
@@ -76,7 +83,7 @@ foreach ($mutation in 'missing-review', 'changed-review', 'duplicate-review', 'w
     $result = @(Complete-ShowcaseGenerationEvidence @arguments)[0]
     Assert-Contract ($result.state -ceq 'generated' -and $result.previewReview.state -ceq 'pending') 'A damaged preview attestation must return to pending without inventing a new generation.'
 }
-foreach ($mutation in 'missing-files', 'partial-files', 'duplicate-files', 'invalid-file-hash', 'missing-conversions', 'missing-report', 'missing-warnings', 'missing-previews', 'missing-renderer', 'changed-render-input', 'missing-font-diagnostics', 'missing-host', 'changed-receipt-hash') {
+foreach ($mutation in 'missing-files', 'partial-files', 'duplicate-files', 'invalid-file-hash', 'missing-conversions', 'missing-report', 'wrong-command', 'wrong-route', 'changed-conversion-input', 'changed-conversion-input-hash', 'changed-conversion-output-hash', 'changed-report-source', 'changed-report-target', 'changed-report-output', 'missing-warnings', 'missing-previews', 'missing-renderer', 'changed-render-input', 'missing-font-diagnostics', 'missing-host', 'changed-receipt-hash') {
     $corrupt = $healthy | ConvertFrom-Json -Depth 30
     switch ($mutation) {
         'missing-files' { $corrupt.package.files = @() }
@@ -85,6 +92,14 @@ foreach ($mutation in 'missing-files', 'partial-files', 'duplicate-files', 'inva
         'invalid-file-hash' { $corrupt.package.files[0].sha256 = 'not-a-hash' }
         'missing-conversions' { $corrupt.conversions = @() }
         'missing-report' { $corrupt.conversions[0].report = $null }
+        'wrong-command' { $corrupt.conversions[0].command = 'Unrelated-Command' }
+        'wrong-route' { $corrupt.conversions[0].routeId = 'xlsx-pdf' }
+        'changed-conversion-input' { $corrupt.conversions[0].inputPath = '/downloads/showcase/unrelated.docx' }
+        'changed-conversion-input-hash' { $corrupt.conversions[0].inputSha256 = 'changed' }
+        'changed-conversion-output-hash' { $corrupt.conversions[0].outputSha256 = 'changed' }
+        'changed-report-source' { $corrupt.conversions[0].report.Source = '/fixture/unrelated.docx' }
+        'changed-report-target' { $corrupt.conversions[0].report.Target = 'Html' }
+        'changed-report-output' { $corrupt.conversions[0].report.OutputPath = '/fixture/unrelated.pdf' }
         'missing-warnings' { $corrupt.conversions[0].PSObject.Properties.Remove('warnings') }
         'missing-previews' { $corrupt.previews = @() }
         'missing-renderer' { $corrupt.previews[0].rendering = $null }
@@ -93,6 +108,8 @@ foreach ($mutation in 'missing-files', 'partial-files', 'duplicate-files', 'inva
         'missing-host' { $corrupt.host = $null }
         'changed-receipt-hash' { $corrupt.receiptSha256 = 'd' * 64 }
     }
+    # Rebind the claim so these cases exercise its contracts, not just hash mismatch.
+    if ($mutation -ne 'changed-receipt-hash') { $corrupt.receiptSha256 = Get-ShowcaseGenerationReceiptHash $corrupt }
     $arguments.Previous = @($corrupt)
     Assert-Contract ((@(Complete-ShowcaseGenerationEvidence @arguments))[0].state -ceq 'invalidated') 'A truncated or changed producer claim must invalidate the receipt.'
 }

@@ -5,7 +5,7 @@ using OfficeIMO.PowerPoint.IWork;
 
 internal static class NativeImageResizeSmoke {
     internal static void Run() {
-        var source = IWorkSourceDocument.Open(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "preservation.key")));
+        var source = IWorkSourceDocument.Load(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "preservation.key")));
         var images = source.ReadKeynote().Slides.SelectMany(slide => slide.Images).ToArray();
         var edit = source.BeginEdit();
         for (int index = 0; index < 3; index++) {
@@ -20,9 +20,9 @@ internal static class NativeImageResizeSmoke {
             }
         }
         var options = new IWorkNativeSaveOptions { AllowUnassessedVisualCaches = true };
-        byte[] bytes = edit.SaveBytes(options);
+        byte[] bytes = edit.ToBytes(options);
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == "49D1293B65A1AA6EAB6FD9A15FF0A1D482EF76760344F61A5D48F0D5E1F5A851"
-            && bytes.SequenceEqual(edit.SaveBytes(options)), "Image resizing differs from the independently decoded Apple-accepted package.");
+            && bytes.SequenceEqual(edit.ToBytes(options)), "Image resizing differs from the independently decoded Apple-accepted package.");
         Verify(source, bytes, edited: false);
         byte[] native = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "preservation-resized-edited.key"));
         Require(Convert.ToHexString(SHA256.HashData(native)) == "B079128AD659C0130E28BEA97D62824FF504B3A0BC34E77C6B380421210FE099",
@@ -32,20 +32,20 @@ internal static class NativeImageResizeSmoke {
             edit.ResizeKeynoteImage(images[2].SourceIdentity!, 960, 168);
             throw new InvalidOperationException("Out-of-canvas resize was accepted.");
         } catch (ArgumentOutOfRangeException) { }
-        Require(bytes.SequenceEqual(edit.SaveBytes(options)), "Rejected resize changed prior edits.");
+        Require(bytes.SequenceEqual(edit.ToBytes(options)), "Rejected resize changed prior edits.");
         for (int index = 0; index < 3; index++) {
             var image = images[index];
             edit.MoveKeynoteImage(image.SourceIdentity!, (float)image.Geometry!.LeftPoints, (float)image.Geometry.TopPoints);
             edit.ResizeKeynoteImage(image.SourceIdentity!, (float)image.Geometry.WidthPoints, (float)image.Geometry.HeightPoints);
         }
-        var restored = edit.SaveBytesResult();
-        Require(restored.Report.UpdatedRecords.Count == 0
-            && restored.Report.OutputPackageContentHash == source.ComputePackageContentHash(), "Restoring original image frames lost source bytes.");
+        _ = edit.ToBytes(out var restoredReport);
+        Require(restoredReport.UpdatedRecords.Count == 0
+            && restoredReport.OutputPackageContentHash == source.ComputePackageContentHash(), "Restoring original image frames lost source bytes.");
         Console.WriteLine("PASS | native Keynote image resizing | exact composed package, PNG/alpha/JPEG resources, Apple edit/reopen, strict saved PPTX, pending-frame bounds and restoration");
     }
 
     private static void Verify(IWorkSourceDocument original, byte[] bytes, bool edited) {
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadKeynote(); var before = original.ReadKeynote();
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadKeynote(); var before = original.ReadKeynote();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.Slides.Count == 3, "Resized source has incomplete declarations.");
         using var result = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });

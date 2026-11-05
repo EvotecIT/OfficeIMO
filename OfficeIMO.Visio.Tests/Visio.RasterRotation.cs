@@ -79,8 +79,8 @@ public sealed class VisioRasterRotationTests {
     }
 
     private static void AssertRedOrientation(VisioPage page, double degrees, IOfficeRasterImageCodec? codec = null) {
-        var image = VisualBaselineTestSupport.DecodePng(page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = 50, Supersampling = 1, ImageCodec = codec, ResolveConnectorLabelOverlaps = false
+        var image = VisualBaselineTestSupport.DecodePng(page.ToImage(new VisioImageExportOptions {
+            TargetDpi = 50, Supersampling = 1, ImageCodec = codec, ResolveConnectorLabelOverlaps = false
         }), "Rotated PNG must decode.");
         var points = new List<(double X, double Y)>();
         for (int y = 0; y < image.Height; y++)

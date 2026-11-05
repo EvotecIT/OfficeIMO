@@ -2,8 +2,9 @@ namespace OfficeIMO.Markup;
 
 public sealed partial class OfficeMarkupCSharpEmitter {
     private static void EmitWorkbook(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
+        sb.AppendLine("using OfficeIMO;");
+        sb.AppendLine("using OfficeIMO.Drawing;");
         sb.AppendLine("using OfficeIMO.Excel;");
-        sb.AppendLine("using OfficeIMO.Excel.Enums;");
         sb.AppendLine();
         sb.AppendLine($"using ExcelDocument workbook = ExcelDocument.Create({options.FilePathVariable});");
         sb.AppendLine("ExcelSheet? sheet = null;");
@@ -32,7 +33,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
                     break;
                 case OfficeMarkupNamedTableBlock table:
                     var (tableSheetExpression, tableRange) = ResolveWorkbookTarget(GetAttribute(table.Attributes, "sheet"), table.Range);
-                    sb.AppendLine($"{tableSheetExpression}.AddTable({CsString(tableRange)}, hasHeader: {BoolLiteral(table.HasHeader)}, name: {CsString(table.Name)}, style: TableStyle.TableStyleMedium2);");
+                    sb.AppendLine($"{tableSheetExpression}.AddTable({CsString(tableRange)}, hasHeader: {BoolLiteral(table.HasHeader)}, name: {CsString(table.Name)}, style: ExcelTableStyle.TableStyleMedium2);");
                     break;
                 case OfficeMarkupChartBlock chart:
                     EmitExcelChart(chart, sb, ++chartIndex);
@@ -92,11 +93,11 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             }
 
             if (!string.IsNullOrWhiteSpace(fill)) {
-                sb.AppendLine($"{subject}.SetFillColor({CsString(fill!)});");
+                sb.AppendLine($"{subject}.SetFillColor(OfficeIMO.OfficeColor.Parse({CsString(fill!)}));");
             }
 
             if (!string.IsNullOrWhiteSpace(fontColor)) {
-                sb.AppendLine($"{subject}.SetFontColor({CsString(fontColor!)});");
+                sb.AppendLine($"{subject}.SetColor(OfficeIMO.OfficeColor.Parse({CsString(fontColor!)}));");
             }
 
             if (!string.IsNullOrWhiteSpace(bold) && IsTruthy(bold!)) {
@@ -125,7 +126,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
 
             if (TryGetBorderStyleIdentifier(border, out var borderStyleIdentifier)) {
                 var borderColorArgument = !string.IsNullOrWhiteSpace(borderColor)
-                    ? $", {CsString(borderColor!)}"
+                    ? $", OfficeIMO.OfficeColor.Parse({CsString(borderColor!)})"
                     : string.Empty;
                 sb.AppendLine($"{subject}.SetBorder(ExcelBorderStyle.{borderStyleIdentifier}{borderColorArgument});");
             }

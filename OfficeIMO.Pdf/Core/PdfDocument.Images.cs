@@ -48,6 +48,7 @@ public sealed class PdfImageDocumentSource {
     internal static PdfImageDocumentSource FromFile(string path, long maximumEncodedImageBytes, CancellationToken cancellationToken) {
         byte[] bytes = PdfImageInput.ReadFile(path, maximumEncodedImageBytes, cancellationToken);
         if (bytes.Length == 0) throw new ArgumentException("Image bytes cannot be empty.", nameof(path));
+        PdfImageInput.ValidateRasterContent(bytes, Path.GetFileName(path), cancellationToken);
         return new PdfImageDocumentSource(bytes, Path.GetFileName(path), takeOwnership: true);
     }
 

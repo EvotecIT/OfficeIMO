@@ -157,21 +157,12 @@ public partial class WordList : WordElement {
     /// Gets or sets the color of the numbering symbols. Setting <see langword="null"/> removes the color.
     /// </summary>
     public OfficeIMO.OfficeColor? Color {
-        get {
-            string value = (GetNumberingProperty<string>(props => {
-                var color = props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault();
-                return color?.Val ?? string.Empty;
-            }, string.Empty)) ?? string.Empty;
-            return OfficeIMO.OfficeColor.TryParse(value, out var parsed) ? parsed : null;
-        }
+        get => GetNumberingProperty<OfficeColor?>(props =>
+            WordRunColor.Read(props.Elements<DocumentFormat.OpenXml.Wordprocessing.Color>().FirstOrDefault()), null);
         set {
             SetNumberingProperty(props => {
                 props.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.Color>();
-                if (value.HasValue) {
-                    props.Append(new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        Val = value.Value.ToRgbHex()
-                    });
-                }
+                if (value.HasValue) props.Append(WordRunColor.Create(value.Value, _document));
             }, value.HasValue);
         }
     }
@@ -208,7 +199,7 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets a value indicating whether the numbering symbols have a strikethrough.
     /// </summary>
-    public bool Strike {
+    public bool Strikethrough {
         get => GetNumberingProperty(props => props.Elements<Strike>().Any(), false);
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<Strike>();
@@ -221,7 +212,7 @@ public partial class WordList : WordElement {
     /// <summary>
     /// Gets or sets a value indicating whether the numbering symbols have a double strikethrough.
     /// </summary>
-    public bool DoubleStrike {
+    public bool DoubleStrikethrough {
         get => GetNumberingProperty(props => props.Elements<DoubleStrike>().Any(), false);
         set => SetNumberingProperty(props => {
             props.RemoveAllChildren<DoubleStrike>();

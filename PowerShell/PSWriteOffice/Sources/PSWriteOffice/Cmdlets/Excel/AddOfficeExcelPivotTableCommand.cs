@@ -5,313 +5,272 @@ using System.Linq;
 using System.Management.Automation;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 /// <summary>Adds a pivot table to a worksheet.</summary>
 /// <example>
-///   <summary>Create a pivot table from a report data sheet.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$rows = @(
-///     [pscustomobject]@{ Region = 'North America'; Product = 'Standard'; Sales = 125000 }
-///     [pscustomobject]@{ Region = 'EMEA'; Product = 'Standard'; Sales = 98000 }
-///     [pscustomobject]@{ Region = 'APAC'; Product = 'Premium'; Sales = 143000 }
-/// )
-/// New-OfficeExcel -Path .\SalesPivot.xlsx {
-///     Add-OfficeExcelSheet -Name Data {
-///         Add-OfficeExcelTable -InputObject $rows -TableName Sales -AutoFit
-///         Add-OfficeExcelPivotTable -SourceRange 'A1:C4' -DestinationCell 'E2' -Name 'SalesByRegion' -RowField Region -ColumnField Product -DataField Sales -DataFunction Sum -PivotStyle PivotStyleMedium9
+/// <summary>Summarise sales in a pivot table</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     ExcelSheet 'Orders' {
+///         ExcelPivotTable -Range A1:F500 -Address H2 -RowField Region -DataField Amount -DataFunction Sum
 ///     }
 /// }</code>
-///   <para>Writes source rows to a worksheet and creates a pivot table using the existing OfficeIMO pivot support.</para>
+/// <para>Builds a pivot table of revenue by region from the order data in A1:F500.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeExcelPivotTable", DefaultParameterSetName = ParameterSetContext)]
+/// <example>
+/// <summary>Pivot revenue by region and quarter</summary>
+/// <code>$orders = Import-OfficeCsv -Path .\Data\Orders-2026.csv
+/// New-OfficeExcel -Path .\Reports\Sales-2026.xlsx {
+///     ExcelSheet 'Orders' {
+///         ExcelTable $orders -Name Orders
+///         ExcelPivotTable -Table Orders -Address J3 -Name SalesPivot -RowField Region -ColumnField Quarter -PageField Product -DataField Amount -DataFunction Sum -DataDisplayName 'Revenue' -DataNumberFormat '#,##0' -Layout Tabular -RefreshOnOpen
+///     }
+/// }</code>
+/// <para>Writes a year of orders and pivots them by region and quarter with a product filter, naming the pivot so a slicer and conditional formats can refer to it.</para>
+/// </example>
+/// <example>
+/// <summary>Put the pivot on its own sheet</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     ExcelSheet 'Summary' {
+///         ExcelPivotTable -SourceSheet Orders -Address A3 -RowField Region -ColumnField Product -DataField Amount -DataFunction Sum
+///     }
+/// }</code>
+/// <para>Builds a summary sheet whose pivot reads all the data on the Orders sheet.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Add, "OfficeExcelPivotTable", DefaultParameterSetName = "Range")]
 [Alias("ExcelPivotTable")]
 public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
 {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter(ParameterSetName = "Range", Mandatory = true)]
+    public string Range { get; set; } = null!;
 
-    /// <summary>Source data range including header row (e.g., "A1:D200").</summary>
+    /// <summary>Gets or sets the source worksheet name, one-based position or native worksheet.</summary>
+    [Parameter(ParameterSetName = "Range")]
+    [Parameter(ParameterSetName = "SourceSheet", Mandatory = true)]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? SourceSheet { get; set; }
+
+    /// <summary>A1 address of the target cell.</summary>
     [Parameter(Mandatory = true)]
-    public string SourceRange { get; set; } = string.Empty;
-
-    /// <summary>Top-left destination cell for the pivot table (e.g., "F2").</summary>
-    [Parameter(Mandatory = true)]
-    public string DestinationCell { get; set; } = string.Empty;
+    public string Address { get; set; } = null!;
 
     /// <summary>Optional pivot table name.</summary>
-    [Parameter]
+    [Parameter()]
     public string? Name { get; set; }
 
     /// <summary>Row fields (header names).</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? RowField { get; set; }
 
     /// <summary>Column fields (header names).</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? ColumnField { get; set; }
 
     /// <summary>Page fields (header names) used as filters.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? PageField { get; set; }
 
     /// <summary>Data fields (header names). Defaults to the last column when omitted.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? DataField { get; set; }
 
     /// <summary>Aggregation functions (Sum, Count, Average, etc.).</summary>
-    [Parameter]
+    [Parameter()]
     public ExcelPivotDataFunction[]? DataFunction { get; set; }
 
     /// <summary>Display names for data fields.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? DataDisplayName { get; set; }
 
     /// <summary>Number format codes for data fields.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? DataNumberFormat { get; set; }
 
     /// <summary>Disable row grand totals.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter NoRowGrandTotals { get; set; }
 
     /// <summary>Disable column grand totals.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter NoColumnGrandTotals { get; set; }
 
-    /// <summary>Optional pivot table style name.</summary>
-    [Parameter]
-    [ArgumentCompleter(typeof(OfficeExcelPivotStyleArgumentCompleter))]
-    public string? PivotStyle { get; set; }
+    /// <summary>Built-in chart style identifier.</summary>
+    [Parameter()]
+    [ArgumentCompleter(typeof(PSWriteOffice.Completion.OfficeExcelPivotStyleArgumentCompleter))]
+    public string? Style { get; set; }
 
     /// <summary>Pivot layout (Compact, Outline, Tabular).</summary>
-    [Parameter]
+    [Parameter()]
     public ExcelPivotLayout Layout { get; set; } = ExcelPivotLayout.Compact;
 
     /// <summary>Show data fields on rows.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter DataOnRows { get; set; }
 
-    /// <summary>Show data fields on columns.</summary>
-    [Parameter]
-    public SwitchParameter DataOnColumns { get; set; }
-
     /// <summary>Show field headers.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowHeaders { get; set; }
 
-    /// <summary>Hide field headers.</summary>
-    [Parameter]
-    public SwitchParameter HideHeaders { get; set; }
-
     /// <summary>Show empty rows.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowEmptyRows { get; set; }
 
-    /// <summary>Hide empty rows.</summary>
-    [Parameter]
-    public SwitchParameter HideEmptyRows { get; set; }
-
     /// <summary>Show empty columns.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowEmptyColumns { get; set; }
 
-    /// <summary>Hide empty columns.</summary>
-    [Parameter]
-    public SwitchParameter HideEmptyColumns { get; set; }
-
     /// <summary>Show drill indicators.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowDrill { get; set; }
 
-    /// <summary>Hide drill indicators.</summary>
-    [Parameter]
-    public SwitchParameter HideDrill { get; set; }
+    /// <summary>Allow users to drill into pivot details in Excel.</summary>
+    [Parameter()]
+    public SwitchParameter EnableDrill { get; set; }
 
     /// <summary>Optional row header caption.</summary>
-    [Parameter]
+    [Parameter()]
     public string? RowHeaderCaption { get; set; }
 
     /// <summary>Optional column header caption.</summary>
-    [Parameter]
+    [Parameter()]
     public string? ColumnHeaderCaption { get; set; }
 
     /// <summary>Optional grand total caption.</summary>
-    [Parameter]
+    [Parameter()]
     public string? GrandTotalCaption { get; set; }
 
     /// <summary>Optional missing-value caption.</summary>
-    [Parameter]
+    [Parameter()]
     public string? MissingCaption { get; set; }
 
     /// <summary>Optional error-value caption.</summary>
-    [Parameter]
+    [Parameter()]
     public string? ErrorCaption { get; set; }
 
     /// <summary>Show the data drop-down.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowDataDropDown { get; set; }
 
-    /// <summary>Hide the data drop-down.</summary>
-    [Parameter]
-    public SwitchParameter HideDataDropDown { get; set; }
-
     /// <summary>Show pivot drop zones.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowDropZones { get; set; }
 
-    /// <summary>Hide pivot drop zones.</summary>
-    [Parameter]
-    public SwitchParameter HideDropZones { get; set; }
-
     /// <summary>Show pivot data tips.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowDataTips { get; set; }
 
-    /// <summary>Hide pivot data tips.</summary>
-    [Parameter]
-    public SwitchParameter HideDataTips { get; set; }
-
     /// <summary>Show member property tips.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter ShowMemberPropertyTips { get; set; }
 
-    /// <summary>Hide member property tips.</summary>
-    [Parameter]
-    public SwitchParameter HideMemberPropertyTips { get; set; }
-
-    /// <summary>Sort pivot field list ascending.</summary>
-    [Parameter]
-    public SwitchParameter FieldListSortAscending { get; set; }
-
-    /// <summary>Sort pivot field list descending.</summary>
-    [Parameter]
-    public SwitchParameter FieldListSortDescending { get; set; }
+    /// <summary>Controls the ordering of the pivot field list.</summary>
+    [Parameter()]
+    public System.ComponentModel.ListSortDirection? FieldListSort { get; set; }
 
     /// <summary>Use Excel custom-list sorting.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter CustomListSort { get; set; }
 
-    /// <summary>Disable Excel custom-list sorting.</summary>
-    [Parameter]
-    public SwitchParameter NoCustomListSort { get; set; }
-
     /// <summary>Field sort map, for example @{ Region = 'Ascending' }.</summary>
-    [Parameter]
+    [Parameter()]
     public Hashtable? FieldSort { get; set; }
 
     /// <summary>Field item captions to hide, for example @{ Region = @('Legacy') }.</summary>
-    [Parameter]
+    [Parameter()]
     public Hashtable? FieldHiddenItems { get; set; }
 
     /// <summary>Field item captions to keep visible, hiding other known items.</summary>
-    [Parameter]
+    [Parameter()]
     public Hashtable? FieldVisibleItems { get; set; }
 
     /// <summary>Selected page-field item captions, for example @{ Product = 'Standard' }.</summary>
-    [Parameter]
+    [Parameter()]
     public Hashtable? PageFieldSelection { get; set; }
 
     /// <summary>Fields with default subtotal disabled.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldNoDefaultSubtotal { get; set; }
 
     /// <summary>Fields with subtotals shown at the top.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldSubtotalTop { get; set; }
 
     /// <summary>Fields that insert blank rows after items.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldInsertBlankRow { get; set; }
 
     /// <summary>Fields that insert page breaks after items.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldInsertPageBreak { get; set; }
 
     /// <summary>Fields using compact field layout.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldCompact { get; set; }
 
     /// <summary>Fields using outline field layout.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldOutline { get; set; }
 
     /// <summary>Fields whose filter drop-downs should be hidden.</summary>
-    [Parameter]
+    [Parameter()]
     public string[]? FieldHideDropDowns { get; set; }
 
     /// <summary>Refresh the pivot cache when the workbook opens.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter RefreshOnOpen { get; set; }
 
-    /// <summary>Do not refresh the pivot cache when the workbook opens.</summary>
-    [Parameter]
-    public SwitchParameter NoRefreshOnOpen { get; set; }
-
     /// <summary>Save pivot source cache records in the workbook package.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter SaveSourceData { get; set; }
 
-    /// <summary>Do not save pivot source cache records in the workbook package.</summary>
-    [Parameter]
-    public SwitchParameter NoSaveSourceData { get; set; }
-
     /// <summary>Preserve pivot formatting when Excel refreshes the pivot table.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter PreserveFormatting { get; set; }
 
-    /// <summary>Do not preserve pivot formatting when Excel refreshes the pivot table.</summary>
-    [Parameter]
-    public SwitchParameter NoPreserveFormatting { get; set; }
-
-    /// <summary>Allow users to drill into pivot details in Excel.</summary>
-    [Parameter]
-    public SwitchParameter EnableDrill { get; set; }
-
-    /// <summary>Disable pivot detail drill interaction in Excel.</summary>
-    [Parameter]
-    public SwitchParameter DisableDrill { get; set; }
-
-    /// <summary>Emit the worksheet after creating the pivot table.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
     public SwitchParameter PassThru { get; set; }
+
+    /// <summary>Native Excel table used to resolve the source range or header.</summary>
+    [Parameter(ParameterSetName = "Table", Mandatory = true)]
+    public string Table { get; set; } = null!;
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
         var sheet = ResolveSheet();
         var dataFields = BuildDataFields();
-        var dataOnRows = ResolveToggle(DataOnRows, DataOnColumns, "DataOnRows/DataOnColumns");
-        var showHeaders = ResolveToggle(ShowHeaders, HideHeaders, "ShowHeaders/HideHeaders");
-        var showEmptyRows = ResolveToggle(ShowEmptyRows, HideEmptyRows, "ShowEmptyRows/HideEmptyRows");
-        var showEmptyColumns = ResolveToggle(ShowEmptyColumns, HideEmptyColumns, "ShowEmptyColumns/HideEmptyColumns");
-        var showDrill = ResolveToggle(ShowDrill, HideDrill, "ShowDrill/HideDrill");
-        var showDataDropDown = ResolveToggle(ShowDataDropDown, HideDataDropDown, "ShowDataDropDown/HideDataDropDown");
-        var showDropZones = ResolveToggle(ShowDropZones, HideDropZones, "ShowDropZones/HideDropZones");
-        var showDataTips = ResolveToggle(ShowDataTips, HideDataTips, "ShowDataTips/HideDataTips");
-        var showMemberPropertyTips = ResolveToggle(ShowMemberPropertyTips, HideMemberPropertyTips, "ShowMemberPropertyTips/HideMemberPropertyTips");
-        var fieldListSortAscending = ResolveToggle(FieldListSortAscending, FieldListSortDescending, "FieldListSortAscending/FieldListSortDescending");
-        var customListSort = ResolveToggle(CustomListSort, NoCustomListSort, "CustomListSort/NoCustomListSort");
+        var dataOnRows = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(DataOnRows));
+        var showHeaders = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowHeaders));
+        var showEmptyRows = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowEmptyRows));
+        var showEmptyColumns = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowEmptyColumns));
+        var showDrill = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowDrill));
+        var showDataDropDown = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowDataDropDown));
+        var showDropZones = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowDropZones));
+        var showDataTips = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowDataTips));
+        var showMemberPropertyTips = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowMemberPropertyTips));
+        var fieldListSortAscending = FieldListSort.HasValue ? FieldListSort == System.ComponentModel.ListSortDirection.Ascending : (bool?)null;
+        var customListSort = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(CustomListSort));
         var pivotOptions = new ExcelPivotTableOptions
         {
-            RefreshOnOpen = ResolveToggle(RefreshOnOpen, NoRefreshOnOpen, "RefreshOnOpen/NoRefreshOnOpen"),
-            SaveSourceData = ResolveToggle(SaveSourceData, NoSaveSourceData, "SaveSourceData/NoSaveSourceData"),
-            PreserveFormatting = ResolveToggle(PreserveFormatting, NoPreserveFormatting, "PreserveFormatting/NoPreserveFormatting"),
-            EnableDrill = ResolveToggle(EnableDrill, DisableDrill, "EnableDrill/DisableDrill")
+            RefreshOnOpen = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(RefreshOnOpen)),
+            SaveSourceData = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(SaveSourceData)),
+            PreserveFormatting = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(PreserveFormatting)),
+            EnableDrill = OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(EnableDrill))
         };
 
         InvokeAddPivotTable(
@@ -401,7 +360,7 @@ public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
             authoredOptions.DataFields = (dataFields)is { } authoredDataFields4 ? System.Linq.Enumerable.ToList(authoredDataFields4) : System.Array.Empty<ExcelPivotDataField>();
             authoredOptions.ShowRowGrandTotals = !NoRowGrandTotals.IsPresent;
             authoredOptions.ShowColumnGrandTotals = !NoColumnGrandTotals.IsPresent;
-            authoredOptions.PivotStyleName = PivotStyle;
+            authoredOptions.PivotStyleName = Style;
             authoredOptions.Layout = layout;
             authoredOptions.DataOnRows = dataOnRows;
             authoredOptions.ShowHeaders = showHeaders;
@@ -420,7 +379,9 @@ public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
             authoredOptions.ShowMemberPropertyTips = showMemberPropertyTips;
             authoredOptions.FieldListSortAscending = fieldListSortAscending;
             authoredOptions.CustomListSort = customListSort;
-            sheet.AddPivotTable(SourceRange, DestinationCell, options: authoredOptions);
+            ExcelSheet source = SourceSheet == null ? sheet : SourceSheet.Resolve(sheet.Document.Sheets, s => s.Name);
+            string range = Table != null ? source.GetTableRange(Table) ?? throw new PSArgumentException("Table does not exist on the source worksheet.") : Range ?? source.UsedRange.Address;
+            sheet.AddPivotTable(source, range, Address, options: authoredOptions);
         }
     }
 
@@ -566,31 +527,6 @@ public sealed class AddOfficeExcelPivotTableCommand : PSCmdlet
         return new ExcelPivotDataField(fieldName, function, displayName, numberFormatId: null, numberFormat: numberFormat);
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
+    private ExcelSheet ResolveSheet() => ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
 
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
-
-    private static bool? ResolveToggle(SwitchParameter enable, SwitchParameter disable, string name)
-    {
-        if (enable.IsPresent && disable.IsPresent)
-        {
-            throw new PSArgumentException($"Cannot set both {name}.");
-        }
-
-        if (enable.IsPresent) return true;
-        if (disable.IsPresent) return false;
-        return null;
-    }
 }

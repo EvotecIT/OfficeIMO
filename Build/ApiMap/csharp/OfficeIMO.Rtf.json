@@ -94,6 +94,60 @@
       "reason": "Lifecycle options are named {Format}LoadOptions and {Format}SaveOptions; ReaderOptions is reserved for forward-only readers.",
       "category": "options",
       "applied": true
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfRun.SetDoubleStrike",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfRun.SetDoubleStrikethrough",
+      "replacement": "Use SetDoubleStrikethrough with the same formatting value.",
+      "reason": "Use the shared Strikethrough vocabulary for native text decoration; the RTF strike and striked controls and inheritance semantics are unchanged.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfRun.SetStrike",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfRun.SetStrikethrough",
+      "replacement": "Use SetStrikethrough with the same formatting value.",
+      "reason": "Use the shared Strikethrough vocabulary for native text decoration; the RTF strike and striked controls and inheritance semantics are unchanged.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfRun.DoubleStrike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfRun.DoubleStrikethrough",
+      "replacement": "Use DoubleStrikethrough with the same formatting value.",
+      "reason": "Use the shared Strikethrough vocabulary for native text decoration; the RTF strike and striked controls and inheritance semantics are unchanged.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfRun.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfRun.Strikethrough",
+      "replacement": "Use Strikethrough with the same formatting value.",
+      "reason": "Use the shared Strikethrough vocabulary for native text decoration; the RTF strike and striked controls and inheritance semantics are unchanged.",
+      "category": "naming"
+    },
+    {
+      "old": "OfficeIMO.Rtf.RtfLegacyNumbering.Strike",
+      "kind": "property",
+      "action": "rename",
+      "new": "OfficeIMO.Rtf.RtfLegacyNumbering.Strikethrough",
+      "replacement": "Use Strikethrough with the same formatting value.",
+      "reason": "Use the shared Strikethrough vocabulary for native text decoration; the RTF strike and striked controls and inheritance semantics are unchanged.",
+      "category": "naming"
+    },
+    {
+      "old": "RtfDocument.Create / Load(path) / Save(path) / host-owned document path tracking",
+      "kind": "method",
+      "action": "change",
+      "new": "RtfDocument.Create(path), FilePath, Save()/SaveAsync() and IDisposable",
+      "replacement": "Create(path) associates without writing; path loads and successful file saves retain the destination. Save() requires that association. Stream saves do not change it and disposal never saves.",
+      "reason": "The native model owns its explicit persistence lifecycle, allowing thin PowerShell Save/Close commands without a second path registry.",
+      "category": "lifecycle"
     }
   ]
 }

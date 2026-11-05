@@ -1,6 +1,7 @@
 using System.Management.Automation;
 using OfficeIMO.Markdown;
 using PSWriteOffice.Services.Markdown;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Markdown;
 
@@ -15,21 +16,28 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 /// }</code>
 ///   <para>Appends paragraph text to the current Markdown document.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeMarkdownParagraph", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownParagraph")]
+[Cmdlet(VerbsCommon.Add, "OfficeMarkdownParagraph", DefaultParameterSetName = "Text")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownParagraph") ]
 public sealed class AddOfficeMarkdownParagraphCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Markdown document to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "DocumentText")]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "DocumentContent")]
     public MarkdownDocument Document { get; set; } = null!;
 
     /// <summary>Paragraph text.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "DocumentText"), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
+
+    /// <summary>Rich text composed with MarkdownText children.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Content")]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "DocumentContent")]
+    public ScriptBlock? Content { get; set; }
 
     /// <summary>Emit the Markdown document after appending the paragraph.</summary>
     [Parameter]
@@ -39,7 +47,8 @@ public sealed class AddOfficeMarkdownParagraphCommand : PSCmdlet
     protected override void ProcessRecord()
     {
         var doc = ResolveDocument();
-        doc.P(Text ?? string.Empty);
+        if (Content == null) doc.AddParagraph(Text);
+        else doc.AddParagraph(inline => { using (OfficeDocumentContext.Push(inline)) Content.InvokeReturnAsIs(); });
 
         if (PassThru.IsPresent)
         {
@@ -49,7 +58,7 @@ public sealed class AddOfficeMarkdownParagraphCommand : PSCmdlet
 
     private MarkdownDocument ResolveDocument()
     {
-        if (ParameterSetName == ParameterSetDocument)
+        if (ParameterSetName.StartsWith("Document", System.StringComparison.Ordinal))
         {
             return Document ?? throw new PSArgumentException("Provide a Markdown document.");
         }

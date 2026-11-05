@@ -15,7 +15,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [OutputType(typeof(PdfImageExportOptions))]
 public sealed class NewOfficePdfImageOptionsCommand : OfficeImageOptionsCommandBase<PdfImageExportOptions> {
     /// <summary>Maximum thumbnail width or height.</summary>
-    [Parameter] [ValidateRange(1, int.MaxValue)] public int? ThumbnailMaxDimension { get; set; }
+    [Parameter(ParameterSetName = "Default")] [ValidateRange(1, int.MaxValue)] public int? ThumbnailMaxDimension { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {

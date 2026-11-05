@@ -1,87 +1,79 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
-using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Text.RegularExpressions;
+using OfficeIMO;
 using OfficeIMO.Word;
 using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets tables from a Word document or section.</summary>
-/// <example>
-///   <summary>Count top-level and nested tables.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$tables = Get-OfficeWordTable -Path .\Report.docx -IncludeNested
-/// [pscustomobject]@{
-///     Path = '.\Report.docx'
-///     TableCount = @($tables).Count
-/// }</code>
-///   <para>Reads tables from the document and includes nested tables when validating a composed report.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordTable")]
+/// <summary>Gets tables, optionally only those with a cell matching a pattern.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordTable", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordTable))]
 public sealed class GetOfficeWordTableCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetSection = "Section";
+    /// <summary>Document paths; supports wildcards.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Section to enumerate.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetSection)]
-    public WordSection Section { get; set; } = null!;
-
-    /// <summary>Include nested tables.</summary>
-    [Parameter]
+    /// <summary>Include tables nested in cells.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
     public SwitchParameter IncludeNested { get; set; }
+
+    /// <summary>Optional regular expression, or literal text with SimpleMatch.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public string? Pattern { get; set; }
+
+    /// <summary>Treat Pattern as literal text.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter SimpleMatch { get; set; }
+
+    /// <summary>Use case-sensitive matching.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    public SwitchParameter CaseSensitive { get; set; }
+
+    /// <summary>Exact document paths, including literal brackets.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Caller-owned document; omission uses the enclosing Word content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
+
+    /// <summary>Caller-owned section to inspect.</summary>
+    [Parameter(ParameterSetName = "Section", Mandatory = true, ValueFromPipeline = true)]
+    public WordSection? Section { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
+        if (ParameterSetName == "Section") InspectSection(Section!);
+        else WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, InspectDocument);
+    }
 
-        try {
-            IEnumerable<WordTable> tables;
+    private void InspectDocument(WordDocument document) => Emit(IncludeNested ? document.TablesIncludingNestedTables : document.Tables);
+    private void InspectSection(WordSection section) => Emit(IncludeNested ? section.TablesIncludingNestedTables : section.Tables);
 
-            if (ParameterSetName == ParameterSetSection) {
-                if (Section == null) {
-                    tables = Array.Empty<WordTable>();
-                } else {
-                    tables = IncludeNested.IsPresent
-                        ? Section.TablesIncludingNestedTables
-                        : Section.Tables;
-                }
-            } else {
-                if (ParameterSetName == ParameterSetPath) {
-                    var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                    document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                    dispose = true;
-                } else {
-                    document = Document;
-                }
-
-                if (document == null) {
-                    throw new InvalidOperationException("Word document was not provided.");
-                }
-
-                tables = IncludeNested.IsPresent
-                    ? document.TablesIncludingNestedTables
-                    : document.Tables;
-            }
-
-            WriteObject(tables, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
+    private void Emit(IEnumerable<WordTable> items) {
+        if (Pattern != null) {
+            var matches = SimpleMatch ? WordObjectSearch.CreateTextMatcher(Pattern, CaseSensitive)
+                : WordObjectSearch.CreateRegexMatcher(Pattern, CaseSensitive);
+            items = items.Where(item => WordObjectSearch.MatchesTable(item, matches));
         }
+        WriteObject(items, true);
     }
 }

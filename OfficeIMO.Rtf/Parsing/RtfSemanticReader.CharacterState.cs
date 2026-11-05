@@ -15,8 +15,8 @@ internal static partial class RtfSemanticReader {
 
         /// <summary>Authored UnderlineStyle override. Null inherits from the selected style; an explicit default clears that style value.</summary>
         public RtfUnderlineStyle? DirectUnderlineStyle { get; set; }
-        public bool Strike { get; set; }
-        public bool DoubleStrike { get; set; }
+        public bool Strikethrough { get; set; }
+        public bool DoubleStrikethrough { get; set; }
         public bool Hidden { get => DirectHidden ?? false; set => DirectHidden = value; }
         public bool? DirectHidden { get; set; }
         public bool Outline { get; set; }
@@ -121,8 +121,8 @@ internal static partial class RtfSemanticReader {
                 DirectBold = DirectBold,
                 DirectItalic = DirectItalic,
                 DirectUnderlineStyle = DirectUnderlineStyle,
-                Strike = Strike,
-                DoubleStrike = DoubleStrike,
+                Strikethrough = Strikethrough,
+                DoubleStrikethrough = DoubleStrikethrough,
                 DirectHidden = DirectHidden,
                 Outline = Outline,
                 Shadow = Shadow,
@@ -220,8 +220,8 @@ internal static partial class RtfSemanticReader {
             Bold = false;
             Italic = false;
             UnderlineStyle = RtfUnderlineStyle.None;
-            Strike = false;
-            DoubleStrike = false;
+            Strikethrough = false;
+            DoubleStrikethrough = false;
             Hidden = false;
             Outline = false;
             Shadow = false;

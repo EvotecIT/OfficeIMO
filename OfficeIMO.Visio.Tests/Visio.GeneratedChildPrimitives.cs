@@ -118,8 +118,8 @@ public sealed class VisioGeneratedChildPrimitivesTests {
     })).Descendants(Svg + "g").Single(g => (string?)g.Attribute("data-visio-shape-id") == id);
 
     private static OfficeRasterImage Raster(VisioPage page) {
-        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = 100, BackgroundColor = OfficeColor.White, Supersampling = 1,
+        Assert.True(OfficeRasterImageDecoder.TryDecode(page.ToImage(new VisioImageExportOptions {
+            TargetDpi = 100, BackgroundColor = OfficeColor.White, Supersampling = 1,
             RenderText = false, RenderStencilArtwork = false
         }), out OfficeRasterImage? image));
         return image!;

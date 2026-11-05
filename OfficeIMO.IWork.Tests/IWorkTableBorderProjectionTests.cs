@@ -29,7 +29,7 @@ public sealed partial class IWorkBoundaryTests {
             modelDeclarations: Message(VarintField(9, 1), VarintField(10, 1), VarintField(11, 1)),
             styleRecords: new[] { ArchiveRecord(40, 6003, BytesField(11, Message(
                 BytesField(49, BorderStroke(3, 1, 0, 0)), BytesField(51, BorderStroke(1)), BytesField(57, BorderStroke(2, 0, 0, 1))))) });
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var table = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().Tables[0],
             IWorkDocumentKind.Numbers => source.ReadNumbers().Sheets[0].Tables[0],
@@ -47,7 +47,7 @@ public sealed partial class IWorkBoundaryTests {
             tableStyleReference: ReferenceField(3, 40), modelDeclarations: Message(VarintField(9, 1), VarintField(10, 1)),
             styleRecords: new[] { ArchiveRecord(40, 6003, BytesField(11, Message(
                 BytesField(47, BorderStroke(2)), BytesField(49, BorderStroke(1)), BytesField(51, BorderStroke(1, defect: "pattern"))))) });
-        var projection = IWorkSourceDocument.Open(package).ReadKeynote();
+        var projection = IWorkSourceDocument.Load(package).ReadKeynote();
         Assert.Empty(projection.SourceDeclarationIssues);
         Assert.DoesNotContain(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
         AssertBorder(projection.Slides[0].Tables[0].GetBorders(1, 1).Right, "000000", 1);
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Inherited_borders_and_later_sparse_shared_edge_edits_survive_each_saved_destination(IWorkDocumentKind kind) {
         using var package = BorderPackage(kind);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         IWorkTable table;
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(11, BorderStroke(0)), BytesField(13, BorderStroke(0)));
         var styles = new[] { ArchiveRecord(30, 6004, BytesField(1, ReferenceField(3, 31))),
             ArchiveRecord(31, 6004, BytesField(11, properties)) };
-        using var package = CellFillPackage(styles, kind: kind); var source = IWorkSourceDocument.Open(package);
+        using var package = CellFillPackage(styles, kind: kind); var source = IWorkSourceDocument.Load(package);
         IWorkTable table = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().Tables[0],
             IWorkDocumentKind.Numbers => source.ReadNumbers().Sheets[0].Tables[0],
@@ -139,7 +139,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("equal-order-conflict")]
     public void Unsupported_or_ambiguous_border_declarations_keep_source_dimensions_and_report_loss(string defect) {
         using var package = BorderPackage(IWorkDocumentKind.Numbers, defect: defect);
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.False(projection.HasEditableContent); Assert.Equal(3, table.RowCount); Assert.Equal(2, table.ColumnCount);
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED"
             && diagnostic.LossKind == OfficeConversionLossKind.Unassessed);
@@ -152,7 +152,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Pages, 13f)]
     [InlineData(IWorkDocumentKind.Keynote, 1584.25f)]
     public void Destination_border_width_bounds_reject_before_constructing_invalid_office_output(IWorkDocumentKind kind, float width) {
-        using var package = BorderPackage(kind, width: width, sparse: false); var source = IWorkSourceDocument.Open(package);
+        using var package = BorderPackage(kind, width: width, sparse: false); var source = IWorkSourceDocument.Load(package);
         var policy = IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(policy); Assert.True(result.IsVisualFallback);
@@ -167,7 +167,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Competing_selected_cell_styles_do_not_choose_an_arbitrary_shared_edge() {
         using var package = CellFillPackage(new[] { ArchiveRecord(30, 6004, BytesField(11, Message(
             BytesField(11, BorderStroke(3, 1, 0, 0)), BytesField(13, BorderStroke(1, 0, 0, 1))))) });
-        var projection = IWorkSourceDocument.Open(package).ReadPages(); var table = Assert.Single(projection.Tables);
+        var projection = IWorkSourceDocument.Load(package).ReadPages(); var table = Assert.Single(projection.Tables);
         Assert.Equal(42d, table.GetCell(1, 1)!.Value); Assert.False(projection.HasEditableContent);
         Assert.Null(table.GetBorders(1, 1).Right); Assert.Null(table.GetBorders(1, 2).Left);
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
@@ -180,7 +180,7 @@ public sealed partial class IWorkBoundaryTests {
             tableStyleReference: ReferenceField(3, 40), modelDeclarations: ReferenceField(18, 50),
             styleRecords: new[] { ArchiveRecord(40, 6003, BytesField(11, BytesField(60, BorderStroke(1)))),
                 ArchiveRecord(50, 6004, BytesField(11, BytesField(10, BorderStroke(3, 1, 0, 0)))) });
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.True(projection.HasEditableContent); AssertBorder(table.GetBorders(1, 1).Bottom, "FF0000", 3);
         AssertBorder(table.GetBorders(2, 1).Top, "FF0000", 3);
     }
@@ -193,7 +193,7 @@ public sealed partial class IWorkBoundaryTests {
                     ArchiveRecord(40, 6003, BytesField(11, BytesField(60, BorderStroke(1)))),
                     ArchiveRecord(70, 6372, ReferenceField(1, state == "missing-group" ? 99UL : 71UL)),
                     ArchiveRecord(71, 6373, VarintField(6, state == "enabled" ? 1UL : 0UL)) });
-            var projection = IWorkSourceDocument.Open(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
+            var projection = IWorkSourceDocument.Load(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
             Assert.Equal(state == "disabled", projection.HasEditableContent);
             if (state == "disabled") { AssertBorder(table.GetBorders(1, 1).Bottom, "000000", 1); Assert.Empty(projection.SourceDeclarationIssues); }
             else {
@@ -208,8 +208,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Grouping_reference_expansion_retains_the_source_wide_dimension_limit_as_fatal() {
         using var package = DimensionPackage(IWorkDocumentKind.Numbers, modelDeclarations: ReferenceField(86, 70),
             styleRecords: new[] { ArchiveRecord(70, 6372, ReferenceField(1, 71)), ArchiveRecord(71, 6373, VarintField(6, 0)) });
-        var error = Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxTableDimensionEntries = 1 }).ReadNumbers());
+        var error = Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxTableDimensionEntries = 1 }).ReadNumbers());
         Assert.Contains("dimension entries", error.Message);
     }
 
@@ -220,7 +220,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] grouping = pivot ? ReferenceField(85, 70) : BytesField(81, BytesField(2, VarintField(6, 1)));
         using var package = DimensionPackage(IWorkDocumentKind.Numbers, modelDeclarations: grouping,
             styleRecords: new[] { ArchiveRecord(70, 6370, Message()) });
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers(); Assert.False(projection.HasEditableContent);
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers(); Assert.False(projection.HasEditableContent);
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_GROUPING_UNSUPPORTED");
         Assert.Contains(projection.SourceDeclarationIssues, issue => issue.FieldPath == (pivot ? "85" : "81/2[1]/6"));
     }
@@ -230,7 +230,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DimensionPackage(IWorkDocumentKind.Numbers, tableStyleReference: ReferenceField(3, 40),
             styleRecords: new[] { ArchiveRecord(40, 6003, Message(BytesField(1, ReferenceField(3, 41)), BytesField(11, VarintField(33, 0)))),
                 ArchiveRecord(41, 6003, BytesField(11, Message(BytesField(59, BorderStroke(1)), BytesField(61, BorderStroke(1, defect: "pattern"))))) });
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers(); var table = Assert.Single(Assert.Single(projection.Sheets).Tables);
         Assert.True(projection.HasEditableContent); Assert.Empty(projection.SourceDeclarationIssues);
         AssertBorder(table.GetBorders(3, 1).Right, "000000", 0); AssertBorder(table.GetBorders(3, 2).Right, "000000", 1);
     }
@@ -239,7 +239,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Pages)]
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Destination_border_precision_requires_partial_policy_and_records_rounding(IWorkDocumentKind kind) {
-        using var package = BorderPackage(kind, width: 0.3f, sparse: false); var source = IWorkSourceDocument.Open(package);
+        using var package = BorderPackage(kind, width: 0.3f, sparse: false); var source = IWorkSourceDocument.Load(package);
         var strict = IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions());
         var partial = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
@@ -262,7 +262,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(0.6f, "hair")]
     public void Numbers_quantized_border_widths_report_approximation_and_preserve_saved_color(float width, string expected) {
         using var package = BorderPackage(IWorkDocumentKind.Numbers, width: width, sparse: false);
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "IWORK_NUMBERS_BORDER_WIDTH_APPROXIMATED"
             && diagnostic.LossKind == OfficeConversionLossKind.Approximation);

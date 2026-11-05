@@ -119,8 +119,8 @@ public sealed class VisioArcGeometryContractTests {
     private static void AssertPoint((double X, double Y) point, double x, double y) => Assert.True(Near(point, x, y), $"Expected ({x}, {y}), got {point}.");
 
     private static OfficeRasterImage Raster(VisioPage page) {
-        byte[] png = page.ToPng(new VisioPngSaveOptions {
-            PixelsPerInch = Density, Supersampling = 1, RenderText = false, RenderConnectorLabels = false,
+        byte[] png = page.ToImage(new VisioImageExportOptions {
+            TargetDpi = Density, Supersampling = 1, RenderText = false, RenderConnectorLabels = false,
             RenderStencilArtwork = false, ResolveConnectorLabelOverlaps = false
         });
         Assert.True(OfficeRasterImageDecoder.TryDecode(png, out OfficeRasterImage? image));

@@ -35,6 +35,20 @@ Get-ChildItem ./Reports -Filter *.xlsx | Get-OfficeExcelPageBreak -Sheet 'Report
 ```
 
 
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelPageBreak -Path .\Reports\Inventory.xlsx
+```
+
+Shows the manual row and column page breaks of every sheet.
+
+### EXAMPLE 3
+```powershell
+Get-OfficeExcelPageBreak -Path .\Reports\Inventory.xlsx -Sheet Servers -Row
+```
+
+Lists only the row breaks of the Servers sheet before the report is sent to print.
+
 ## PARAMETERS
 
 ### -Column

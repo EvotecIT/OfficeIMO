@@ -104,7 +104,7 @@ public sealed class PublisherStoryHyphenationTests {
         document.SetStoryAutomaticHyphenation(story.Id, false);
         document.ReplaceStoryParagraphs(story.Id, new[] { paragraph });
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
-        document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Bottom);
+        document.SetTextFrameLayout(frame.Id, frame.ColumnCount, OfficeLength.Points(frame.ColumnSpacing), frame.Padding, OfficeTextVerticalAlignment.Bottom);
         var prepared = document.PrepareNativeBytes(MaximumBytes);
         Assert.True(prepared.IsPrepared, string.Join("\n", prepared.Diagnostics.Select(d => d.Code + ": " + d.Message)));
         PublisherDocument reloaded = PublisherDocument.Load(Save(document));

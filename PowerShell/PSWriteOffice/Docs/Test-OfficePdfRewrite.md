@@ -11,7 +11,7 @@ Creates a proof report for user-visible signals preserved by a PDF rewrite.
 ## SYNTAX
 ### Path (Default)
 ```powershell
-Test-OfficePdfRewrite [-ReferencePath] <string> [-DifferencePath] <string> [-Options <PdfRewritePreservationOptions>] [-FailOnLoss] [-ReferencePassword <securestring>] [-IgnoreReferencePermissionRestrictions] [-DifferencePassword <securestring>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
+Test-OfficePdfRewrite [-ReferencePath] <string> [-DifferencePath] <string> [-Options <Object[]>] [-FailOnLoss] [-Password <securestring>] [-IgnorePermissionRestrictions] [-DifferencePassword <securestring>] [-IgnoreDifferencePermissionRestrictions] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -91,7 +91,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -IgnoreReferencePermissionRestrictions
+### -IgnorePermissionRestrictions
 After authentication, explicitly ignore restrictions on the original PDF.
 
 ```yaml
@@ -111,7 +111,7 @@ Accept wildcard characters: False
 Optional required preservation signals and limits.
 
 ```yaml
-Type: PdfRewritePreservationOptions
+Type: Object[]
 Parameter Sets: Path
 Aliases: None
 Possible values:
@@ -123,7 +123,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ReferencePassword
+### -Password
 Password used to authenticate the original PDF.
 
 ```yaml

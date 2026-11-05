@@ -23,9 +23,9 @@ public static partial class PowerPointDocumentService {
         brief.WithFonts(theme.Fonts.Heading.Family, theme.Fonts.Body.Family);
         var design = brief.CreateDesign();
         // The brief selects composition intent. Theme remains the user's palette and typeface choice.
-        design.Theme.AccentColor = theme.Palette.Accent1.ToRgbHex();
-        design.Theme.Accent2Color = theme.Palette.Accent2.ToRgbHex();
-        design.Theme.Accent3Color = theme.Palette.Accent3.ToRgbHex();
+        design.Theme.AccentColor = theme.Palette.Accent1;
+        design.Theme.Accent2Color = theme.Palette.Accent2;
+        design.Theme.Accent3Color = theme.Palette.Accent3;
         return design;
     }
 }

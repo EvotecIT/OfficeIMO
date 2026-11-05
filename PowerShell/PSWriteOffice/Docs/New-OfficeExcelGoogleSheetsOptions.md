@@ -26,6 +26,23 @@ Export-OfficeExcelGoogleSpreadsheet -Document $workbook -Options $options -Mode 
 ```
 
 
+### EXAMPLE 2
+```powershell
+$googleSession = New-OfficeGoogleWorkspaceSession -KeyPath .\Secrets\reporting-sa.json -Scope Spreadsheets, DriveFile
+Export-OfficeExcelGoogleSpreadsheet -Path .\Reports\Q3-Sales.xlsx -Session $googleSession -Options (New-OfficeExcelGoogleSheetsOptions -Title 'Q3 sales' -FolderId $folderId)
+```
+
+Exports a workbook to a Drive folder under a fixed title.
+
+### EXAMPLE 3
+```powershell
+$google = New-OfficeExcelGoogleSheetsOptions -Charts WarnAndSkip -PivotTables WarnAndSkip -FunctionMapping @{ 'XLOOKUP' = 'XLOOKUP'; 'CONCAT' = 'CONCATENATE' } -Locale 'en_GB' -TimeZone 'Europe/London'
+$plan = Export-OfficeExcelGoogleSpreadsheet -Path .\Finance\Budget-2027.xlsx -Options $google -Mode Plan
+$plan | Format-List
+```
+
+Plans an export that skips charts and pivot tables with a warning and maps a custom function name.
+
 ## PARAMETERS
 
 ### -Charts

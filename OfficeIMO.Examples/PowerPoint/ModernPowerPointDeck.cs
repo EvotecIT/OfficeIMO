@@ -94,7 +94,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             // Brand values come from the theme itself, so composition keeps the Modern palette and fonts.
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#" + theme.Palette.Accent1.ToRgbHex(), "modern-example",
-                headingFontName: theme.Fonts.Heading.Family, bodyFontName: theme.Fonts.Body.Family, footerLeft: "OfficeIMO · Modern deck");
+                headingFontFamily: theme.Fonts.Heading.Family, bodyFontFamily: theme.Fonts.Body.Family, footerLeft: "OfficeIMO · Modern deck");
             PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(design);
             options.ApplyTheme = false;
             presentation.Compose(plan, options);

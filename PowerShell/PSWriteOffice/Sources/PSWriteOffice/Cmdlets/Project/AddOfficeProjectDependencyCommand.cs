@@ -1,3 +1,5 @@
+using PSWriteOffice.Services.Project;
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -11,22 +13,25 @@ namespace PSWriteOffice.Cmdlets.Project;
 /// <summary>Adds a finish-to-start relationship between two tasks.</summary>
 /// <example>
 ///   <summary>Adds a finish-to-start relationship between two tasks.</summary>
-///   <code>$project | Add-OfficeProjectDependency -PredecessorUid 1 -SuccessorUid 2</code>
+///   <code>$project | Add-OfficeProjectDependency -Predecessor 1 -Successor 2</code>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeProjectDependency", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ProjectDependency))]
+[Alias("ProjectDependency") ]
 public sealed class AddOfficeProjectDependencyCommand : PSCmdlet {
     /// <summary>Project to inspect or change.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
 
     /// <summary>Predecessor task UID.</summary>
-    [Parameter(Mandatory = true)]
-    public int PredecessorUid { get; set; }
+    [Parameter(Mandatory = true, Position = 0)]
+    [OfficeProjectTaskTransformation]
+    public OfficeProjectTaskSelector Predecessor { get; set; } = null!;
 
     /// <summary>Successor task UID.</summary>
-    [Parameter(Mandatory = true)]
-    public int SuccessorUid { get; set; }
+    [Parameter(Mandatory = true, Position = 1)]
+    [OfficeProjectTaskTransformation]
+    public OfficeProjectTaskSelector Successor { get; set; } = null!;
 
     /// <summary>Dependency relationship.</summary>
     [Parameter]
@@ -42,7 +47,8 @@ public sealed class AddOfficeProjectDependencyCommand : PSCmdlet {
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        var dependency = Document.Dependencies.Add(Document.Tasks.GetByUid(PredecessorUid), Document.Tasks.GetByUid(SuccessorUid));
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
+        var dependency = Document.Dependencies.Add(Predecessor.Resolve(Document), Successor.Resolve(Document));
         dependency.Type = Type;
         dependency.Lag = ProjectDuration.WorkingDays(LagDays);
         if (PassThru.IsPresent) WriteObject(dependency);

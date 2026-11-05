@@ -12,7 +12,7 @@ $agenda = @(
 )
 
 New-OfficePowerPoint -Path $path -Theme Modern -Force -PassThru {
-    PowerPointSlide -Title 'Automation Workshop' -Layout Title -Subtitle 'From repeatable data to reviewable documents' {
+    PowerPointSlide -Title 'Automation Workshop' -TemplateLayout Title -Subtitle 'From repeatable data to reviewable documents' {
         PowerPointNotes 'Ask participants to name one document they rebuild manually every week.'
     }
     PowerPointSlide -Title 'Learning objectives' {

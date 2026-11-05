@@ -22,7 +22,7 @@ internal static partial class FixtureCorpus {
             box.FontSize = OfficeLength.Points(14);
             box.Paragraphs[0].Runs[0].Underline = true;
             var bar = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(140), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10));
-            bar.FillColor = "10B981";
+            bar.FillColor = OfficeColor.Parse("10B981");
             var group = slide.GroupShapes(new PowerPointShape[] { box, bar });
             if (variant.Nested) group = slide.GroupShapes(new PowerPointShape[] {
                 group, slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(160), OfficeIMO.OfficeLength.Points(200), OfficeIMO.OfficeLength.Points(10))

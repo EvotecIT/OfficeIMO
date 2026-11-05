@@ -1,7 +1,7 @@
 namespace OfficeIMO.IWork.Internal;
 
 internal sealed class IWorkProjectionBudget {
-    private readonly IWorkReadOptions _options;
+    private readonly IWorkLoadOptions _options;
     private int _tableCount;
     private int _imageCount;
     private int _drawableReferenceCount;
@@ -15,7 +15,7 @@ internal sealed class IWorkProjectionBudget {
     private long _projectedImageByteCount;
     private long _formulaRenderingOperations;
 
-    internal IWorkProjectionBudget(IWorkReadOptions options) {
+    internal IWorkProjectionBudget(IWorkLoadOptions options) {
         _options = options;
     }
 

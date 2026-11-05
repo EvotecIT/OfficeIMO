@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointAutoShape rect = slide.AddRectangle(OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(1000000), OfficeIMO.OfficeLength.Emus(2000000), OfficeIMO.OfficeLength.Emus(1000000), "Styled Rect");
-                rect.FillColor = "E7F7FF";
-                rect.OutlineColor = "007ACC";
+                rect.FillColor = OfficeColor.Parse("E7F7FF");
+                rect.OutlineColor = OfficeColor.Parse("007ACC");
                 rect.OutlineWidth = global::OfficeIMO.OfficeLength.Points(2);
                 rect.FillTransparency = 25;
                 rect.Rotation = 15;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 rect.VerticalFlip = true;
 
                 PowerPointAutoShape accent = slide.AddEllipse(OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(1200000), OfficeIMO.OfficeLength.Emus(1500000), OfficeIMO.OfficeLength.Emus(800000), "Accent");
-                accent.FillColor = "FDEBD0";
+                accent.FillColor = OfficeColor.Parse("FDEBD0");
                 accent.SendToBack();
 
                 presentation.Save();
@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Accent", shapes.First().Name);
 
                 PowerPointAutoShape rect = shapes.Single(s => s.Name == "Styled Rect");
-                Assert.Equal("E7F7FF", rect.FillColor);
-                Assert.Equal("007ACC", rect.OutlineColor);
+                Assert.Equal(OfficeColor.Parse("E7F7FFBF"), rect.FillColor);
+                Assert.Equal(OfficeColor.Parse("007ACC"), rect.OutlineColor);
                 Assert.Equal(2, rect.OutlineWidth?.ToPoints() ?? 0, 2);
                 Assert.Equal(25, rect.FillTransparency);
                 Assert.Equal(15, rect.Rotation ?? 0, 2);

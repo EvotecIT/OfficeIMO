@@ -33,7 +33,7 @@ public sealed class UpdateOfficeWordTableOfContentsCommand : PSCmdlet
     private const string ParameterSetDocument = "Document";
 
     /// <summary>Table of contents to update.</summary>
-    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetTableOfContents)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetTableOfContents)]
     public WordTableOfContent? TableOfContents { get; set; }
 
     /// <summary>Document to update when provided explicitly.</summary>

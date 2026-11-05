@@ -35,6 +35,22 @@ Get-OfficeExcelValidation -Path .\Report.xlsx -Sheet Data -Table Sales -Header S
 ```
 
 
+### EXAMPLE 2
+```powershell
+Get-OfficeExcelValidation -Path .\Forms\Equipment-Requests.xlsx
+```
+
+Shows every data validation rule in the workbook.
+
+### EXAMPLE 3
+```powershell
+$book = Open-OfficeExcel -Path .\Forms\Equipment-Requests.xlsx -ReadOnly
+Get-OfficeExcelValidation -Document $book -Sheet Requests -Header Quantity -Table Requests
+Close-OfficeExcel -Document $book
+```
+
+Reads the validation that applies to the Quantity column of the Requests table in an open workbook.
+
 ## PARAMETERS
 
 ### -Document

@@ -5,8 +5,9 @@ internal static class AsciiDocToMarkdownConverter {
     /// <summary>Converts recognized AsciiDoc semantics and reports every fallback or omission.</summary>
     internal static AsciiDocToMarkdownResult Convert(
         AsciiDocDocument document,
-        AsciiDocMarkdownExportOptions? options = null) {
+        AsciiDocMarkdownExportOptions? options = null, System.Threading.CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
+        cancellationToken.ThrowIfCancellationRequested();
         options ??= new AsciiDocMarkdownExportOptions();
         if (options.MaximumBlockNestingDepth < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaximumBlockNestingDepth must be positive.");
         options = options.WithReferences(options.References ?? AsciiDocReferenceCatalog.Create(document, options.MaximumBlockNestingDepth));
@@ -20,12 +21,14 @@ internal static class AsciiDocToMarkdownConverter {
         AddFrontMatter(document, markdown, options, diagnostics);
 
         foreach (AsciiDocBlockContext context in document.GetBlockContexts(null, true, options.MaximumBlockNestingDepth)) {
+            cancellationToken.ThrowIfCancellationRequested();
             AsciiDocBlock block = context.Block;
             if (attachedBlocks.Contains(block)) continue;
             AddBlock(markdown, block, context.Attributes, options, diagnostics);
         }
 
         AddFootnotes(markdown, options, diagnostics);
+        cancellationToken.ThrowIfCancellationRequested();
         return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 

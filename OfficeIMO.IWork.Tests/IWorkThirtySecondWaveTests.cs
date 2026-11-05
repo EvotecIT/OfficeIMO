@@ -11,8 +11,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Metadata_only_pages_text_boxes_respect_the_text_item_budget() {
         using MemoryStream package = CreatePagesPackageWithMetadataOnlyTextBoxes();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedTextItems = 3 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProjectedTextItems = 3 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -22,8 +22,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Metadata_only_keynote_text_boxes_respect_the_text_item_budget() {
         using MemoryStream package = CreateKeynotePackageWithMetadataOnlyTextBoxes();
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote,
-            new IWorkReadOptions { MaxProjectedTextItems = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote,
+            new IWorkLoadOptions { MaxProjectedTextItems = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
 
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
                 populatedOffsetBeyondColumns: true)
         }, includePreview: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Trailing empty", 1, 1, 42d, emptyOffsetBeyondColumns: true)
         });
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.False(result.IsVisualFallback);
         Assert.Equal(42d, result.Value.Sheets[0].Cell(1, 1).GetValue<double>());
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Linked",
             includePreview: true, textBoxDrawable: Message(StringField(field, value)));
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -79,7 +79,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(Array.Empty<TableSpec>(), textBox: "Text",
             includePreview: true, textBoxDrawable: new byte[] { 0x08, 0x80 });
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,

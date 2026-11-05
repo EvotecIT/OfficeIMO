@@ -9,9 +9,8 @@ Word has two distinct merge workflows. Document merge appends complete files int
 ## Combine complete documents
 
 ```powershell
-Join-OfficeWordDocument `
-    -Path '.\Cover.docx' `
-    -AppendPath '.\Report.docx','.\Appendix.docx' `
+Merge-OfficeDocument `
+    -Path '.\Cover.docx','.\Report.docx','.\Appendix.docx' `
     -OutputPath '.\Delivery-Pack.docx'
 ```
 
@@ -19,14 +18,14 @@ The [merge-documents recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/P
 
 ## Fill merge fields
 
-Add `MergeField` fields while authoring a template, then call `Invoke-OfficeWordMailMerge -Values` with a hashtable. For a batch, create or copy one output per record so each file remains independently reviewable.
+Add `MergeField` fields while authoring a template, then call `Invoke-OfficeWordMailMerge -InputObject` with a hashtable. For a batch, create or copy one output per record so each file remains independently reviewable.
 
 ```powershell
 WordParagraph {
     WordText 'Hello '
     WordField -Type MergeField -Parameters '"FirstName"'
 }
-Invoke-OfficeWordMailMerge -Values @{ FirstName = 'Ada' }
+Invoke-OfficeWordMailMerge -InputObject @{ FirstName = 'Ada' }
 ```
 
 The [mail-merge letters recipe](https://github.com/EvotecIT/OfficeIMO/blob/master/PowerShell/PSWriteOffice/Examples/Word/Recipe-Word-MailMergeLetters.ps1) generates two personalized order confirmations from ordinary PowerShell hashtables.

@@ -11,12 +11,12 @@ Lists or downloads Confluence page attachments.
 ## SYNTAX
 ### List (Default)
 ```powershell
-Get-OfficeConfluenceAttachment -Session <ConfluenceSession> -PageId <string> [-Cursor <string>] [-Limit <int>] [-AsPage] [-WhatIf] [-Confirm] [<CommonParameters>]
+Get-OfficeConfluenceAttachment -Session <ConfluenceSession> -PageId <string> [-Cursor <string>] [-Limit <int>] [-AsBatch] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ### Download
 ```powershell
-Get-OfficeConfluenceAttachment -Session <ConfluenceSession> -PageId <string> -AttachmentId <string> [-OutFile <string>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
+Get-OfficeConfluenceAttachment -Session <ConfluenceSession> -PageId <string> -AttachmentId <string> [-OutputPath <string>] [-Force] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -33,7 +33,7 @@ Follows attachment cursors and streams attachment metadata.
 
 ## PARAMETERS
 
-### -AsPage
+### -AsBatch
 Return attachment batches rather than individual metadata objects.
 
 ```yaml
@@ -113,7 +113,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OutFile
+### -OutputPath
 Optional destination path. Without this parameter, the download is returned as one byte array.
 
 ```yaml

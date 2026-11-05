@@ -20,23 +20,23 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddShape(
                     OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
-                rectangle.Fill("C0504D").Stroke("4F81BD", global::OfficeIMO.OfficeLength.Points(2.5D));
+                rectangle.Fill(OfficeColor.Parse("C0504D")).Stroke(OfficeColor.Parse("4F81BD"), global::OfficeIMO.OfficeLength.Points(2.5D));
                 rectangle.FillTransparency = 25;
                 rectangle.OutlineDash = PowerPointLineDashStyle.DashDot;
                 rectangle.Rotation = 30D;
                 rectangle.HorizontalFlip = true;
-                rectangle.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(4D),
+                rectangle.SetShadow(OfficeColor.Parse("222222"), blur: OfficeIMO.OfficeLength.Points(4D),
                     distance: OfficeIMO.OfficeLength.Points(3D), angleDegrees: 45D,
                     transparencyPercent: 35);
 
                 PowerPointAutoShape chevron = slide.AddShape(
                     OfficePresetShapeType.Chevron, OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(70));
-                chevron.Fill("9BBB59").Stroke("8064A2", global::OfficeIMO.OfficeLength.Points(1.25D));
+                chevron.Fill(OfficeColor.Parse("9BBB59")).Stroke(OfficeColor.Parse("8064A2"), global::OfficeIMO.OfficeLength.Points(1.25D));
                 chevron.VerticalFlip = true;
 
                 PowerPointAutoShape line = slide.AddShape(
                     OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(180), OfficeIMO.OfficeLength.Points(40));
-                line.Stroke("00B050", global::OfficeIMO.OfficeLength.Points(3D));
+                line.Stroke(OfficeColor.Parse("00B050"), global::OfficeIMO.OfficeLength.Points(3D));
                 line.OutlineDash = PowerPointLineDashStyle
                     .LargeDashDotDot;
                 line.SetLineEnds(OfficeLineMarkerKind.Triangle,
@@ -48,8 +48,8 @@ namespace OfficeIMO.Tests {
 
                 PowerPointTextBox text = slide.AddTextBox(
                     "Styled text",global::OfficeIMO.OfficeLength.Points(24),global::OfficeIMO.OfficeLength.Points(200),global::OfficeIMO.OfficeLength.Points(160),global::OfficeIMO.OfficeLength.Points(45));
-                text.FillColor = "F2F2F2";
-                text.OutlineColor = "7F7F7F";
+                text.FillColor = OfficeColor.Parse("F2F2F2");
+                text.OutlineColor = OfficeColor.Parse("7F7F7F");
                 text.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1D);
                 text.Rotation = -15D;
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument projected = PowerPointDocument
                 .Load(input);
             Assert.Equal(30D, projected.Slides[0].Shapes
-                .Single(shape => shape.FillColor == "C0504D").Rotation);
+                .Single(shape => shape.FillColor == OfficeColor.Parse("C0504DBF")).Rotation);
             Assert.Contains(projected.Slides[0].Shapes
                 .OfType<PowerPointAutoShape>(), shape =>
                     shape.ShapeType == OfficePresetShapeType.Chevron);
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
             using PowerPointDocument source = PowerPointDocument.Create();
             PowerPointAutoShape shape = source.AddSlide(PowerPointSlideLayoutType.Blank)
                 .AddShape(OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(24), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
-            shape.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(1D), distance: OfficeIMO.OfficeLength.Points(1D),
+            shape.SetShadow(OfficeColor.Parse("222222"), blur: OfficeIMO.OfficeLength.Points(1D), distance: OfficeIMO.OfficeLength.Points(1D),
                 angleDegrees: 0D, transparencyPercent: 0);
             P.Shape element = Assert.IsType<P.Shape>(shape.Element);
             A.OuterShadow shadow = element.ShapeProperties!
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                         global::OfficeIMO.OfficeLength.Points(32).ToEmus(),
                         global::OfficeIMO.OfficeLength.Points(180).ToEmus(),
                         global::OfficeIMO.OfficeLength.Points(90).ToEmus());
-                connector.Stroke("4472C4", global::OfficeIMO.OfficeLength.Points(2.25D));
+                connector.Stroke(OfficeColor.Parse("4472C4"), global::OfficeIMO.OfficeLength.Points(2.25D));
                 connector.OutlineDash = PowerPointLineDashStyle.DashDot;
                 connector.SetLineEnds(OfficeLineMarkerKind.Oval,
                     OfficeLineMarkerKind.Triangle,
@@ -286,10 +286,10 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank);
                 PowerPointAutoShape rectangle = slide.AddShape(
                     OfficePresetShapeType.Rectangle, OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(50));
-                rectangle.Fill("4472C4");
+                rectangle.Fill(OfficeColor.Parse("4472C4"));
                 PowerPointAutoShape ellipse = slide.AddShape(
                     OfficePresetShapeType.Ellipse, OfficeIMO.OfficeLength.Points(125), OfficeIMO.OfficeLength.Points(50), OfficeIMO.OfficeLength.Points(65), OfficeIMO.OfficeLength.Points(45));
-                ellipse.Fill("ED7D31");
+                ellipse.Fill(OfficeColor.Parse("ED7D31"));
                 PowerPointGroupShape inner = slide.GroupShapes(
                     new PowerPointShape[] { rectangle, ellipse },
                     "Inner group");
@@ -379,7 +379,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlideLayoutType.Blank)
                 .AddShape(OfficePresetShapeType.Rectangle,
                     OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
-            shape.SetGlow("4472C4", radius: OfficeIMO.OfficeLength.Points(5D));
+            shape.SetGlow(OfficeColor.Parse("4472C4"), radius: OfficeIMO.OfficeLength.Points(5D));
 
             LegacyPptWritePreflightReport preflight = source
                 .AnalyzeLegacyPptWrite();
@@ -398,8 +398,8 @@ namespace OfficeIMO.Tests {
                         PowerPointSlideLayoutType.Blank)
                     .AddShape(OfficePresetShapeType.Rectangle,
                         OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(120), OfficeIMO.OfficeLength.Points(70));
-                shape.Fill("4472C4").Stroke("203864", global::OfficeIMO.OfficeLength.Points(2D));
-                shape.SetShadow("222222", blur: OfficeIMO.OfficeLength.Points(3D),
+                shape.Fill(OfficeColor.Parse("4472C4")).Stroke(OfficeColor.Parse("203864"), global::OfficeIMO.OfficeLength.Points(2D));
+                shape.SetShadow(OfficeColor.Parse("222222"), blur: OfficeIMO.OfficeLength.Points(3D),
                     distance: OfficeIMO.OfficeLength.Points(2D), angleDegrees: 90D,
                     transparencyPercent: 40);
                 sourceBytes = source.ToBytes(new PowerPointSaveOptions { Format = PowerPointFileFormat.Ppt });
@@ -411,9 +411,9 @@ namespace OfficeIMO.Tests {
                 .Load(input);
             PowerPointAutoShape edited = Assert.Single(imported.Slides[0]
                 .Shapes.OfType<PowerPointAutoShape>());
-            edited.FillColor = "ED7D31";
+            edited.FillColor = OfficeColor.Parse("ED7D31");
             edited.FillTransparency = 10;
-            edited.OutlineColor = "A5A5A5";
+            edited.OutlineColor = OfficeColor.Parse("A5A5A5");
             edited.OutlineWidth = global::OfficeIMO.OfficeLength.Points(3D);
             edited.OutlineDash = PowerPointLineDashStyle.LargeDash;
             edited.Rotation = 42D;

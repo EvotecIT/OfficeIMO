@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(kind,
             Message(VarintField(11, 1), StringField(16, "1.")),
             inherited: false, indent: 0, aliases: true);
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         foreach (var cell in ReadSelectedRichTable(source, kind).Item1.Cells) {
             var paragraph = Assert.Single(cell.RichText!.Paragraphs);
             Assert.Equal(IWorkListMarkerKind.Image, paragraph.ListMarkerKind);
@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         var report = ConvertUnitReport(package, kind, visual: true,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false, MaxSourceDeclarationIssues = 1 });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false, MaxSourceDeclarationIssues = 1 });
         var issue = Assert.Single(report.SourceDeclarationIssues);
         Assert.Equal(19ul, issue.Owner.RecordIdentifier);
         Assert.Equal("11", issue.FieldPath);
@@ -49,7 +49,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("Ab.")]
     public void Literal_text_markers_survive_docx_without_becoming_counters(string label) {
         using MemoryStream package = CreatePagesPackageWithListLabel(label);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
         Assert.False(result.IsVisualFallback);
         Assert.Equal(IWorkListMarkerKind.Text, Assert.Single(result.Projection.Body.Paragraphs).ListMarkerKind);
         using var saved = new MemoryStream();
@@ -83,7 +83,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] fields = Message(VarintField(11, 3), VarintField(15, (ulong)kind));
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using (MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Pages, fields, inherited: false, indent: 0)) {
-            using var result = IWorkSourceDocument.Open(package).ToWordResult(policy);
+            using var result = IWorkSourceDocument.Load(package).ToWordResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             using var saved = new MemoryStream();
             result.Value.Save(saved); saved.Position = 0;
@@ -96,7 +96,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(document));
         }
         using (MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote, fields, inherited: false, indent: 0)) {
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(policy);
+            using var result = IWorkSourceDocument.Load(package).ToPowerPointResult(policy);
             Assert.True(result.Report.IsPartialEditableReconstruction);
             using var saved = new MemoryStream();
             result.Value.Save(saved); saved.Position = 0;
@@ -113,7 +113,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(11, 1), VarintField(11, 2), FloatField(13, 0), FloatField(13, 18),
                 StringField(16, "Dormant"), StringField(16, "•")), inherited: false, indent: 18);
-        var projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        var projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var text = Assert.Single(Assert.Single(projection.Sheets).Tables).Cells[0].RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.Equal(IWorkListMarkerKind.Text, Assert.Single(text.Paragraphs).ListMarkerKind);
@@ -124,7 +124,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Missing_number_kind_does_not_reuse_dormant_string_labels() {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers,
             Message(VarintField(11, 3), StringField(16, "4.")), inherited: false, indent: 0);
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.Null(Assert.Single(text.Paragraphs).ListLabel);
         Assert.Equal(IWorkListMarkerKind.Number, Assert.Single(text.Paragraphs).ListMarkerKind);
@@ -136,7 +136,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("a")]
     public void PowerPoint_does_not_infer_numbering_from_literal_text(string label) {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(1, text: "Item", listLabel: label);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         if (label.Length > 1) {
             Assert.True(result.IsVisualFallback);
         } else {

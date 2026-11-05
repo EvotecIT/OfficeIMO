@@ -62,6 +62,7 @@ namespace OfficeIMO.PowerPoint {
                 LoadExistingSlides();
             }
 
+            document.Features.Set<PowerPointDocument>(this);
             PowerPointChartAxisIdGenerator.Initialize(_presentationPart);
         }
 

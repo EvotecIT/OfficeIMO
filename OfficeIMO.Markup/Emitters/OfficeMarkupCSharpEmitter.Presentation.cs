@@ -2,6 +2,7 @@ namespace OfficeIMO.Markup;
 
 public sealed partial class OfficeMarkupCSharpEmitter {
     private static void EmitPresentation(OfficeMarkupDocument document, OfficeMarkupEmitterOptions options, StringBuilder sb) {
+        sb.AppendLine("using OfficeIMO;");
         sb.AppendLine("using OfficeIMO.PowerPoint;");
         sb.AppendLine("using OfficeIMO.Drawing;");
         sb.AppendLine();
@@ -24,7 +25,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             if (!string.IsNullOrWhiteSpace(slide.Transition)) {
                 var resolvedTransition = OfficeMarkupTransitionResolver.Parse(slide.Transition);
                 if (!string.IsNullOrWhiteSpace(resolvedTransition.ResolvedIdentifier)) {
-                    sb.AppendLine($"slide{slideIndex}.Transition = SlideTransition.{resolvedTransition.ResolvedIdentifier};");
+                    sb.AppendLine($"slide{slideIndex}.Transition = PowerPointSlideTransition.{resolvedTransition.ResolvedIdentifier};");
                     EmitTransitionAssignments(sb, $"slide{slideIndex}", resolvedTransition);
                 }
 
@@ -193,7 +194,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
 
     private static void EmitTransitionAssignments(StringBuilder sb, string slideVariable, OfficeMarkupResolvedTransition resolvedTransition) {
         if (TryGetTransitionSpeed(resolvedTransition, out var speedIdentifier)) {
-            sb.AppendLine($"{slideVariable}.TransitionSpeed = SlideTransitionSpeed.{speedIdentifier};");
+            sb.AppendLine($"{slideVariable}.TransitionSpeed = PowerPointSlideTransitionSpeed.{speedIdentifier};");
         }
 
         if (TryGetTransitionSeconds(resolvedTransition, out var durationSeconds, "duration", "dur")) {

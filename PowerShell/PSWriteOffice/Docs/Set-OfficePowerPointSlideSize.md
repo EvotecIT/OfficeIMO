@@ -11,7 +11,7 @@ Sets a presentation's slide size using a preset or physical lengths.
 ## SYNTAX
 ### Preset (Default)
 ```powershell
-Set-OfficePowerPointSlideSize -Preset <PowerPointSlideSizePreset> [-Portrait] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
+Set-OfficePowerPointSlideSize [-Preset] <PowerPointSlideSizePreset> [-Portrait] [-PassThru] [-Document <PowerPointDocument>] [<CommonParameters>]
 ```
 
 ### Size
@@ -115,7 +115,7 @@ Aliases: None
 Possible values: Screen4x3, Screen16x9, Screen16x10
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

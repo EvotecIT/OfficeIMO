@@ -20,7 +20,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         table.GetCell(0, 0).Text = "Keep header";
         table.GetCell(1, 0).Text = "Keep neighbor";
         table.GetCell(1, 1).Text = "Old cell";
-        table.GetCell(1, 1).FillColor = "FFFF00";
+        table.GetCell(1, 1).FillColor = OfficeColor.Parse("FFFF00");
         using var runspace = Open();
         runspace.SessionStateProxy.SetVariable("subject", cell ? table : (object)box);
         runspace.SessionStateProxy.SetVariable("inner", inner);
@@ -60,7 +60,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal(6, paragraphs[1].SpaceAfter!.Value.ToPoints());
         Assert.Equal("Keep header", persistedTable.GetCell(0, 0).Text);
         Assert.Equal("Keep neighbor", persistedTable.GetCell(1, 0).Text);
-        Assert.Equal("FFFF00", persistedTable.GetCell(1, 1).FillColor);
+        Assert.Equal(OfficeColor.Parse("FFFF00"), persistedTable.GetCell(1, 1).FillColor);
         Assert.Equal(720000L, persistedBox.Left.ToEmus());
         Assert.Equal(1080000L, persistedBox.Top.ToEmus());
         Assert.Equal(2880000L, persistedBox.Width.ToEmus());

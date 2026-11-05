@@ -11,22 +11,22 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Relative_line_spacing_is_recovered_and_destination_layout_is_preserved_or_reported(IWorkDocumentKind kind) {
         using var package = ParagraphLayoutPackage(kind, BytesField(13, FloatField(2, 1.15f)));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.Equal((double)1.15f, Assert.Single(text.Paragraphs).Style.LineSpacingMultiplier);
         package.Position = 0;
         using var saved = new MemoryStream();
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else if (kind == IWorkDocumentKind.Keynote) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             result.Value.Save(saved);
         } else {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(options);
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(options);
             Assert.Empty(result.Report.SourceDeclarationIssues);
             Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_NUMBERS_EXCEL_RICH_TEXT_PARTIAL");
             Assert.Equal("Value", result.Value.Sheets[0].Cell(1, 1).GetValue<string>());
@@ -71,7 +71,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(19, 2022, Message(BytesField(1, ReferenceField(3, 20)), BytesField(12, BytesField(13, spacing)))),
                 ArchiveRecord(20, 2022, BytesField(12, BytesField(13, FloatField(2, 2))))));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(text.IsFormattingComplete);
         Assert.Null(Assert.Single(text.Paragraphs).Style.LineSpacingMultiplier);
         package.Position = 0;
@@ -88,7 +88,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(19, 2022, Message(BytesField(1, ReferenceField(3, 20)), BytesField(12, clear ? VarintField(12, 1) : Message()))),
                 ArchiveRecord(20, 2022, BytesField(12, BytesField(13, Message(VarintField(1, 0), FloatField(2, 2)))))));
-        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
+        var text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.Equal(clear ? null : (double?)2, Assert.Single(text.Paragraphs).Style.LineSpacingMultiplier);
     }
@@ -102,10 +102,10 @@ public sealed partial class IWorkBoundaryTests {
         using var package = ParagraphLayoutPackage(kind, BytesField(13, FloatField(2, multiplier)));
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(options));
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(IWorkTestPolicy.ForIncompletePreview(options));
             Assert.True(result.IsVisualFallback);
         } else {
-            using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(options));
+            using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(options));
             Assert.True(result.IsVisualFallback);
         }
     }

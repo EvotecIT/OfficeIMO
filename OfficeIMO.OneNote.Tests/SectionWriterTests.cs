@@ -8,10 +8,10 @@ public sealed class SectionWriterTests {
     public void CreatesAndReadsDesktopSectionWithHierarchyAndRichText() {
         OneNoteSection original = CreateSection();
 
-        byte[] data = OneNoteSectionWriter.Write(original);
+        byte[] data = original.ToBytes();
         using var stream = new MemoryStream(data);
         OneNoteFileHeader header = OneNoteFileProbe.ReadHeader(stream);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(stream);
+        OneNoteSection roundTrip = OneNoteSection.Load(stream);
 
         Assert.Equal(OneNoteStorageFormat.RevisionStore, header.StorageFormat);
         Assert.Equal(OneNoteFileKind.Section, header.FileKind);
@@ -49,17 +49,17 @@ public sealed class SectionWriterTests {
         var section = new OneNoteSection { Name = "Hierarchy" };
         section.Pages.Add(new OneNotePage { Title = "Extreme level", Level = int.MaxValue });
 
-        byte[] data = OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+        byte[] data = section.ToBytes(new OneNoteSaveOptions {
             StorageFormat = storageFormat
         });
-        OneNoteSection result = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection result = OneNoteSection.Load(new MemoryStream(data));
 
         Assert.Equal(int.MaxValue, Assert.Single(result.Pages).Level);
     }
 
     [Fact]
     public void EmitsCommittedDesktopPhysicalStructures() {
-        byte[] data = OneNoteSectionWriter.Write(CreateSection());
+        byte[] data = CreateSection().ToBytes();
 
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
 
@@ -178,7 +178,7 @@ public sealed class SectionWriterTests {
         });
         section.Pages.Add(page);
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
         Assert.Empty(page.DirectContent);
         OneNoteOutline normalizedOutline = Assert.Single(page.Outlines);
         Assert.Same(paragraph, normalizedOutline.Children[0]);
@@ -193,7 +193,7 @@ public sealed class SectionWriterTests {
         Assert.Equal(2.4F, FloatValue(Property(outline, OneNoteSchema.OffsetFromParentVertical)));
         Assert.Equal(normalizedOutline.Id, outline.Id);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(data));
 
         OneNotePage result = Assert.Single(roundTrip.Pages);
         Assert.Empty(result.DirectContent);
@@ -208,7 +208,7 @@ public sealed class SectionWriterTests {
 
     [Fact]
     public void PlacesRootManifestAfterFirstObjectSpaceManifest() {
-        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(OneNoteSectionWriter.Write(CreateSection())));
+        OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(CreateSection().ToBytes()));
         OneNoteFileNodeId[] declarations = store.RootFileNodeList.Nodes
             .Where(node => node.Id == OneNoteFileNodeId.ObjectSpaceManifestListReference || node.Id == OneNoteFileNodeId.ObjectSpaceManifestRoot)
             .Select(node => node.Id)
@@ -221,7 +221,7 @@ public sealed class SectionWriterTests {
 
     [Fact]
     public void EmitsAndValidatesTransactionChecksum() {
-        byte[] data = OneNoteSectionWriter.Write(CreateSection());
+        byte[] data = CreateSection().ToBytes();
         OneNoteFileHeader header = OneNoteFileProbe.ReadHeader(new MemoryStream(data));
         OneNoteFileChunkReference transaction = Assert.IsType<OneNoteFileChunkReference>(header.TransactionLog);
         int offset = checked((int)transaction.Offset);
@@ -241,7 +241,7 @@ public sealed class SectionWriterTests {
     public void DestinationStreamRemainsOpen() {
         using var destination = new MemoryStream();
 
-        OneNoteSectionWriter.Write(CreateSection(), destination);
+        CreateSection().Save(destination);
         destination.WriteByte(0);
 
         Assert.True(destination.Length > 1);
@@ -304,7 +304,7 @@ public sealed class SectionWriterTests {
         Assert.NotEmpty(timeBearingObjects);
         Assert.All(timeBearingObjects, item => Assert.NotNull(Property(item, OneNoteSchema.LastModifiedTime).Scalar));
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteOutline result = Assert.Single(Assert.Single(roundTrip.Pages).Outlines);
         OneNoteParagraph resultList = Assert.IsType<OneNoteParagraph>(result.Children[0]);
         Assert.True(resultList.List!.Ordered);
@@ -342,7 +342,7 @@ public sealed class SectionWriterTests {
         OneNoteWriteObjectSpace pageSpace = new OneNoteWriteGraphBuilder().BuildSection(section).ObjectSpaces[1];
         OneNoteWriteObject nativeTable = Assert.Single(pageSpace.Objects, item => item.Jcid == OneNoteSchema.JcidTableNode);
         byte[] widths = Property(nativeTable, OneNoteSchema.TableColumnWidths).Data!;
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNoteTable actual = Assert.IsType<OneNoteTable>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children.Single());
 
         Assert.Equal(new[] { 1D, 1D }, table.ColumnWidths);
@@ -364,7 +364,7 @@ public sealed class SectionWriterTests {
         table.Rows.Add(second);
 
         OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(CreateTableSection(table)));
+            (CreateTableSection(table)).ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_TABLE_TOPOLOGY", error.Code);
     }
@@ -384,9 +384,9 @@ public sealed class SectionWriterTests {
         tooNarrow.ColumnWidths.Add(0.5D);
 
         OneNoteFormatException mismatch = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(CreateTableSection(countMismatch)));
+            (CreateTableSection(countMismatch)).ToBytes());
         OneNoteFormatException width = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(CreateTableSection(tooNarrow)));
+            (CreateTableSection(tooNarrow)).ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_TABLE_WIDTHS", mismatch.Code);
         Assert.Equal("ONENOTE_WRITE_TABLE_WIDTH", width.Code);
@@ -425,11 +425,11 @@ public sealed class SectionWriterTests {
         page.Outlines.Add(outline);
         section.Pages.Add(page);
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
         OneNoteRevisionStoreObject definition = Assert.Single(store.Objects, item => item.Jcid.Value == OneNoteSchema.JcidNoteTagSharedDefinition);
         Assert.Equal(1U, definition.ReferenceCount);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(data));
         OneNoteParagraph result = Assert.IsType<OneNoteParagraph>(Assert.Single(Assert.Single(roundTrip.Pages).Outlines).Children[0]);
         Assert.Collection(result.Tags,
             normal => {
@@ -469,7 +469,7 @@ public sealed class SectionWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
 
         OneNotePage resultPage = Assert.Single(roundTrip.Pages);
         Assert.Empty(resultPage.DirectContent);
@@ -490,7 +490,7 @@ public sealed class SectionWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
 
-        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => section.ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_TASK_TAG_CHECKABILITY", exception.Code);
     }
@@ -500,11 +500,11 @@ public sealed class SectionWriterTests {
         var section = new OneNoteSection { Name = "Deleted pages" };
         section.Pages.Add(new OneNotePage { Title = "Recoverable", IsDeleted = true });
 
-        OneNoteSection deleted = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection deleted = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         Assert.True(Assert.Single(deleted.Pages).IsDeleted);
 
         deleted.Pages[0].IsDeleted = false;
-        OneNoteSection restored = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(deleted)));
+        OneNoteSection restored = OneNoteSection.Load(new MemoryStream(deleted.ToBytes()));
 
         Assert.False(Assert.Single(restored.Pages).IsDeleted);
     }
@@ -520,7 +520,7 @@ public sealed class SectionWriterTests {
         page.ConflictPages.Add(conflict);
         section.Pages.Add(page);
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
         var materializer = new OneNoteObjectSpaceMaterializer(store);
         OneNoteMaterializedObjectSpace sectionSpace = materializer.FindCurrentSpaceByRootJcid(
@@ -538,7 +538,7 @@ public sealed class SectionWriterTests {
         Assert.Equal(OneNoteSchema.JcidPageManifestNode, Assert.IsType<OneNoteRevisionStoreObject>(conflictSpace.GetRoot(1)).Jcid.Value);
         Assert.Equal(OneNoteSchema.JcidConflictPageMetadata, Assert.IsType<OneNoteRevisionStoreObject>(conflictSpace.GetRoot(2)).Jcid.Value);
 
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(data));
 
         OneNotePage current = Assert.Single(roundTrip.Pages);
         Assert.Equal("Current", current.Title);
@@ -554,7 +554,7 @@ public sealed class SectionWriterTests {
     public void RoundTripsVersionHistoryThroughDesktopRevisionContexts() {
         OneNoteSection section = CreateVersionedSection();
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
 
         AssertVersionHistoryRoundTrip(data);
     }
@@ -563,7 +563,7 @@ public sealed class SectionWriterTests {
     public void RoundTripsVersionHistoryThroughFssHttpCells() {
         OneNoteSection section = CreateVersionedSection();
 
-        byte[] data = OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+        byte[] data = section.ToBytes(new OneNoteSaveOptions {
             StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage
         });
 
@@ -597,8 +597,8 @@ public sealed class SectionWriterTests {
         current.VersionHistory.Add(version);
         section.Pages.Add(current);
 
-        byte[] data = OneNoteSectionWriter.Write(section, new OneNoteWriterOptions { StorageFormat = storageFormat });
-        OneNotePage roundTrip = Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages);
+        byte[] data = section.ToBytes(new OneNoteSaveOptions { StorageFormat = storageFormat });
+        OneNotePage roundTrip = Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages);
 
         OneNotePage nestedVersion = Assert.Single(Assert.Single(roundTrip.ConflictPages).VersionHistory);
         Assert.Equal("Conflict version", nestedVersion.Title);
@@ -613,13 +613,13 @@ public sealed class SectionWriterTests {
 
     [Fact]
     public void LoadedFssHttpSectionPreservesItsStorageFormatByDefault() {
-        OneNoteSection source = OneNoteSectionReader.Read(Path.Combine(AppContext.BaseDirectory, "Fixtures", "testOneNoteFromOffice365.one"));
+        OneNoteSection source = OneNoteSection.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", "testOneNoteFromOffice365.one"));
         Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, source.StorageFormat);
 
-        byte[] data = OneNoteSectionWriter.Write(source);
+        byte[] data = source.ToBytes();
 
         Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, OneNoteFileProbe.ReadHeader(new MemoryStream(data)).StorageFormat);
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(data));
         Assert.Equal(source.Pages.Select(page => page.Title), roundTrip.Pages.Select(page => page.Title));
     }
 
@@ -705,7 +705,7 @@ public sealed class SectionWriterTests {
 
     private static void AssertVersionHistoryRoundTrip(byte[] data) {
         OneNoteRevisionStore store = OneNoteRevisionStoreReader.Read(new MemoryStream(data));
-        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+        OneNoteSection roundTrip = OneNoteSection.Load(new MemoryStream(data));
         OneNotePage current = Assert.Single(roundTrip.Pages);
         OneNotePage version = Assert.Single(current.VersionHistory);
         Assert.Equal("Current page", current.Title);

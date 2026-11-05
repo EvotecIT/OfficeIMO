@@ -1,109 +1,68 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Automatically fits Excel row heights and/or column widths.</summary>
-/// <para>Targets the current worksheet context or a worksheet on a supplied document.</para>
+/// <summary>Fits column widths and row heights to their content.</summary>
 /// <example>
-///   <summary>Auto-fit columns in the current DSL sheet.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Invoke-OfficeExcelAutoFit -Columns }</code>
-///   <para>Adjusts column widths for the active sheet.</para>
+/// <summary>Fit every column and row</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+///     ExcelSheet 'Servers' {
+///         ExcelAutoFit
+///     }
+/// }</code>
+/// <para>Fits all columns and rows of the current sheet to their content.</para>
 /// </example>
-[Cmdlet(VerbsLifecycle.Invoke, "OfficeExcelAutoFit", DefaultParameterSetName = ParameterSetContext)]
+/// <example>
+/// <summary>Fit only the columns you changed</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Changes.xlsx {
+///     ExcelSheet 'Changes' {
+///         ExcelColumn F -Values (Import-OfficeCsv -Path .\Data\Change-Notes.csv).Note -StartRow 2
+///         ExcelAutoFit -Column E, F
+///     }
+/// }</code>
+/// <para>Writes long notes into column F and refits only columns E and F, leaving the widths of the rest as designed.</para>
+/// </example>
+[Cmdlet(VerbsLifecycle.Invoke, "OfficeExcelAutoFit", DefaultParameterSetName = "Default")]
 [Alias("ExcelAutoFit")]
-public sealed class InvokeOfficeExcelAutoFitCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+public sealed class InvokeOfficeExcelAutoFitCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>Auto-fit all columns.</summary>
-    [Parameter]
-    public SwitchParameter Columns { get; set; }
-
-    /// <summary>Auto-fit all rows.</summary>
-    [Parameter]
-    public SwitchParameter Rows { get; set; }
-
-    /// <summary>Auto-fit both rows and columns.</summary>
-    [Parameter]
-    public SwitchParameter All { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Auto-fit specific column indexes (1-based).</summary>
-    [Parameter]
-    public int[]? Column { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public object[]? Column { get; set; }
 
     /// <summary>Auto-fit specific row indexes (1-based).</summary>
-    [Parameter]
-    public int[]? Row { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public object[]? Row { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        var sheet = ResolveSheet();
-
-        var hasColumnList = Column != null && Column.Length > 0;
-        var hasRowList = Row != null && Row.Length > 0;
-
-        var autoColumns = All.IsPresent || Columns.IsPresent;
-        var autoRows = All.IsPresent || Rows.IsPresent;
-
-        if (!hasColumnList && !hasRowList && !autoColumns && !autoRows)
-        {
-            autoColumns = true;
-        }
-
-        if (hasColumnList)
-        {
-            sheet.AutoFitColumnsFor(Column!);
-        }
-        else if (autoColumns)
-        {
-            sheet.AutoFitColumns();
-        }
-
-        if (hasRowList)
-        {
-            foreach (var rowIndex in Row!.Where(r => r > 0))
-            {
-                sheet.AutoFitRow(rowIndex);
-            }
-        }
-        else if (autoRows)
-        {
-            sheet.AutoFitRows();
-        }
+    protected override void ProcessRecord() {
+        var sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
+        bool all = Column == null && Row == null;
+        if (all || Column?.Any(value => Convert.ToString(value) == "*") == true) sheet.AutoFitColumns();
+        else if (Column != null) sheet.AutoFitColumnsFor(Column.Select(ExcelCommandTargets.Column));
+        if (all || Row?.Any(value => Convert.ToString(value) == "*") == true) sheet.AutoFitRows();
+        else if (Row != null) foreach (object value in Row) sheet.AutoFitRow(Convert.ToInt32(value, CultureInfo.InvariantCulture));
     }
 
-    private ExcelSheet ResolveSheet()
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Provide an Excel document.");
-            }
-
-            return ExcelSheetResolver.Resolve(Document, Sheet, SheetIndex);
-        }
-
-        var context = ExcelDslContext.Require(this);
-        return context.RequireSheet();
-    }
 }

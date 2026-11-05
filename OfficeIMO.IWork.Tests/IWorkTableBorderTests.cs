@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
         string path = CorpusFixture("native-exports/keynote-table-borders-v15.4.key");
         Assert.Equal("2032CE6CDEE7F75DA8DE21D502B47D4E5C7F4EB4D152786A84DD81FEDA176D45",
             Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(path))));
-        using var result = IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote).ToPowerPointResult();
         Assert.False(result.IsVisualFallback);
         var table = Assert.Single(result.Projection.Slides[0].Tables);
         Assert.True(table.HasBorderDeclarations);
@@ -34,7 +34,7 @@ public sealed partial class IWorkBoundaryTests {
             Assert.Empty(reopened.ValidateDocument());
             var target = reopened.Slides[0].Tables.Single();
             Assert.False(target.FirstRow); Assert.False(target.FirstColumn); Assert.False(target.LastRow); Assert.False(target.BandedRows);
-            for (int row = 0; row < target.Rows; row++) for (int column = 0; column < target.Columns; column++)
+            for (int row = 0; row < target.RowCount; row++) for (int column = 0; column < target.ColumnCount; column++)
                 Assert.All(target.GetCell(row, column).Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.False(run.Bold));
         }
         saved.Position = 0; using var zip = new ZipArchive(saved, ZipArchiveMode.Read, leaveOpen: true);
@@ -58,17 +58,17 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Native_border_layer_and_run_budget_is_source_wide_and_rejects_before_conversion() {
         string path = CorpusFixture("native-exports/keynote-table-borders-v15.4.key");
-        var source = IWorkSourceDocument.Open(path, new IWorkReadOptions { MaxTableBorderEntries = 3 });
+        var source = IWorkSourceDocument.Load(path, new IWorkLoadOptions { MaxTableBorderEntries = 3 });
         var error = Assert.Throws<InvalidDataException>(() => source.ReadKeynote());
         Assert.Contains("stroke declarations", error.Message);
-        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkReadOptions { MaxTableBorderEntries = 0 }.Clone());
+        Assert.Throws<ArgumentOutOfRangeException>(() => new IWorkLoadOptions { MaxTableBorderEntries = 0 }.Clone());
     }
 
     [Fact]
     public void Owned_native_table_borders_do_not_materialize_empty_source_cells() {
         var document = IWorkKeynoteDocument.Create();
         document.AddSlide().AddTable(IWorkTableData.Create(3, 3), 0, 0, 300, 150);
-        var table = Assert.Single(Assert.Single(IWorkSourceDocument.Open(document.SaveBytes()).ReadKeynote().Slides).Tables);
+        var table = Assert.Single(Assert.Single(IWorkSourceDocument.Load(document.ToBytes()).ReadKeynote().Slides).Tables);
         Assert.Empty(table.Cells);
         AssertBorder(table.GetBorders(2, 2).Bottom, "000000", 1);
         AssertBorder(table.GetBorders(3, 3).Right, "000000", 1);

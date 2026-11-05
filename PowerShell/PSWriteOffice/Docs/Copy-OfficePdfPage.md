@@ -6,38 +6,81 @@ schema: 2.0.0
 ---
 # Copy-OfficePdfPage
 ## SYNOPSIS
-Copies selected PDF pages into a new PDF.
+Copy PDF pages through the native PDF engine.
 
 ## SYNTAX
-### __AllParameterSets
+### Document (Default)
 ```powershell
-Copy-OfficePdfPage -Path <string> -PageRange <string> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Copy-OfficePdfPage -Page <OfficePageRange> [-Document <PdfDocument>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Path
+```powershell
+Copy-OfficePdfPage [-Path] <string[]> -Page <OfficePageRange> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### PathDirectory
+```powershell
+Copy-OfficePdfPage [-Path] <string[]> -Page <OfficePageRange> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Copy-OfficePdfPage -Page <OfficePageRange> -LiteralPath <string[]> -OutputPath <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPathDirectory
+```powershell
+Copy-OfficePdfPage -Page <OfficePageRange> -LiteralPath <string[]> -OutputDirectory <string> [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Copies selected PDF pages into a new PDF.
+Copy PDF pages through the native PDF engine.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $proof = @(
-    Copy-OfficePdfPage -Path .\Examples\Documents\Report.pdf -PageRange '1-2,5' -OutputPath .\Examples\Documents\ExecutivePages.pdf
-    Get-OfficePdfInfo -Path .\Examples\Documents\ExecutivePages.pdf | Select-Object PageCount
-)
-$proof
+Copy-OfficePdfPage -Page 'Value'
 ```
 
-Copies selected pages and inspects the resulting PDF.
+
+### EXAMPLE 2
+```powershell
+Copy-OfficePdfPage -Page 'Value' -LiteralPath @('C:\Path') -OutputPath 'C:\Path'
+```
+
+
+### EXAMPLE 3
+```powershell
+Copy-OfficePdfPage -Page 'Value' -LiteralPath @('C:\Path') -OutputDirectory 'Value'
+```
+
 
 ## PARAMETERS
 
+### -Document
+Explicit native input; omission uses the enclosing New-/Open- content block.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed assembly restrictions.
+After authentication, explicitly ignore owner-imposed usage restrictions.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -48,12 +91,44 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -OutputPath
-Output PDF path.
+### -LiteralPath
+Literal input files, including FileInfo.FullName.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath, LiteralPathDirectory
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+Native source parsing, authentication and resource settings.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -OutputDirectory
+Destination folder retaining input file names.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: PathDirectory, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -64,12 +139,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageRange
-Page ranges such as 1-3,5.
+### -OutputPath
+Single-file destination.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Page
+Caller-ordered one-based pages or range expression.
+
+```yaml
+Type: OfficePageRange
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -81,11 +172,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emit the updated native document or each saved FileInfo.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Document, Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -97,11 +188,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted PDF.
+Source password.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, PathDirectory, LiteralPath, LiteralPathDirectory
 Aliases: None
 Possible values:
 
@@ -113,19 +204,19 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Input PDF path.
+Input files with FileSystem wildcard expansion.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath
+Type: String[]
+Parameter Sets: Path, PathDirectory
+Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
-Accept wildcard characters: False
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -133,10 +224,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `None`
+- `OfficeIMO.Pdf.PdfDocument`
+- `System.String[]`
 
 ## OUTPUTS
 
+- `OfficeIMO.Pdf.PdfDocument`
 - `System.IO.FileInfo`
 
 ## RELATED LINKS

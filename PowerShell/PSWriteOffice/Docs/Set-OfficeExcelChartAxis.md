@@ -11,7 +11,7 @@ Configures common Excel chart axis titles, formats, scale, and gridlines.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeExcelChartAxis -Chart <ExcelChart> [-AxisGroup <OfficeChartAxisGroup>] [-CategoryTitle <string>] [-ValueTitle <string>] [-CategoryNumberFormat <string>] [-ValueNumberFormat <string>] [-SourceLinked <bool>] [-ValueMinimum <Double>] [-ValueMaximum <Double>] [-ValueMajorUnit <Double>] [-ValueMinorUnit <Double>] [-CategoryMinimum <Double>] [-CategoryMaximum <Double>] [-CategoryMajorUnit <Double>] [-CategoryMinorUnit <Double>] [-ShowCategoryMajorGridlines] [-ShowCategoryMinorGridlines] [-ShowValueMajorGridlines] [-ShowValueMinorGridlines] [-CategoryGridlineColor <string>] [-ValueGridlineColor <string>] [-GridlineWidthPoints <Double>] [-PassThru] [<CommonParameters>]
+Set-OfficeExcelChartAxis [-Chart] <ExcelChart> [-AxisGroup <OfficeChartAxisGroup>] [-CategoryTitle <string>] [-ValueTitle <string>] [-CategoryNumberFormat <string>] [-ValueNumberFormat <string>] [-SourceLinked] [-ValueMinimum <Double>] [-ValueMaximum <Double>] [-ValueMajorUnit <Double>] [-ValueMinorUnit <Double>] [-CategoryMinimum <Double>] [-CategoryMaximum <Double>] [-CategoryMajorUnit <Double>] [-CategoryMinorUnit <Double>] [-ShowCategoryMajorGridlines] [-ShowCategoryMinorGridlines] [-ShowValueMajorGridlines] [-ShowValueMinorGridlines] [-CategoryGridlineColor <OfficeColor>] [-ValueGridlineColor <OfficeColor>] [-GridlineWidth <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,18 +21,27 @@ Configures common Excel chart axis titles, formats, scale, and gridlines.
 
 ### EXAMPLE 1
 ```powershell
-PS> $chart | Set-OfficeExcelChartAxis -CategoryTitle 'Month' -ValueTitle 'Revenue' -ValueNumberFormat '$#,##0' -ValueMinimum 0 -ValueMajorUnit 100 -ShowValueMajorGridlines
+New-OfficeExcel -Path .\Reports\Regions.xlsx {
+    ExcelSheet 'Summary' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Region-Revenue.csv) -Name RegionSummary
+        ExcelChart -Table RegionSummary -Address F2 -Type Column -PassThru | ExcelChartAxis -ValueTitle 'Revenue (USD)'
+    }
+}
 ```
 
-Sets axis titles, value formatting, scale, and major value gridlines.
+Adds a value axis title to a new chart.
 
 ### EXAMPLE 2
 ```powershell
-PS> $chart |
-                Set-OfficeExcelChartAxis -CategoryTitle 'Week' -CategoryNumberFormat 'yyyy-mm-dd' -CategoryMinimum 46000 -CategoryMaximum 46090 -CategoryMajorUnit 14 -CategoryMinorUnit 7
+New-OfficeExcel -Path .\Reports\Availability.xlsx {
+    ExcelSheet 'Uptime' {
+        $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -PassThru
+        ExcelChartAxis -Chart $chart -ValueMinimum 0.95 -ValueMaximum 1 -ValueMajorUnit 0.01 -ValueNumberFormat '0%' -CategoryTitle 'Site'
+    }
+}
 ```
 
-Configures the chart's X axis through OfficeIMO's category/date-axis scale support while keeping the workbook chart object on the pipeline.
+Scales the value axis from 95 to 100 percent with a percentage format, so small differences in site uptime are visible.
 
 ## PARAMETERS
 
@@ -56,7 +65,7 @@ Accept wildcard characters: False
 Optional category gridline color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -174,17 +183,17 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -GridlineWidthPoints
+### -GridlineWidth
 Optional gridline width in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -280,7 +289,7 @@ Accept wildcard characters: False
 Keep axis number formats linked to source cells.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -296,7 +305,7 @@ Accept wildcard characters: False
 Optional value gridline color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:

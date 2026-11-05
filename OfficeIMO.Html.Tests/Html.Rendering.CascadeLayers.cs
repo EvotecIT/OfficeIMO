@@ -410,6 +410,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Lime, text.Color);
         Assert.Contains("#0000ff", svg, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("#00ff00", svg, StringComparison.OrdinalIgnoreCase);
-        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToImage(options));
     }
 }

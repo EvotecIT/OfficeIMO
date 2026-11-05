@@ -4,6 +4,7 @@ using System.Management.Automation;
 using System.Security;
 using OfficeIMO;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
 using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Tests.Foundation;
@@ -25,6 +26,52 @@ public sealed class FoundationBindingTests {
             var length = (OfficeLength)new OfficeLengthTransformationAttribute().Transform(null!, PSObject.AsPSObject(input));
             Assert.Equal(emus, length.ToEmus());
         } finally { CultureInfo.CurrentCulture = saved; }
+    }
+    [Fact]
+    public void LengthCollectionsBindEachInvariantValueAndRejectInvalidElements() {
+        var binder = new OfficeLengthTransformationAttribute();
+        var lengths = Assert.IsType<OfficeLength[]>(binder.Transform(null!, new object[] { "1in", 12, PSObject.AsPSObject("5cm") }));
+        Assert.Equal(new[] { 914400L, 152400L, 1800000L }, lengths.Select(value => value.ToEmus()));
+        Assert.Throws<ArgumentTransformationMetadataException>(() => binder.Transform(null!, new object[] { "1in", "bad" }));
+        Assert.Throws<ArgumentTransformationMetadataException>(() => binder.Transform(null!, new object?[] { "1in", null }!));
+    }
+    [Fact]
+    public void NativeWorksheetOptionTablesUseTheCanonicalDeferredSelectors() {
+        var binder = new OfficeOptionsTransformationAttribute(typeof(OfficeIMO.Excel.Pdf.ExcelPdfExportOptions));
+        var options = Assert.IsType<OfficeIMO.Excel.Pdf.ExcelPdfExportOptions>(binder.Transform(null!, new Hashtable {
+            ["Sheets"] = new object[] { "Annual*", 2 }
+        }));
+        Assert.Equal("Annual*", options.Sheets![0].Name);
+        Assert.Equal(2, options.Sheets[1].Position);
+        var single = Assert.IsType<OfficeIMO.Excel.Pdf.ExcelPdfExportOptions>(binder.Transform(null!, new Hashtable { ["Sheets"] = "Only" }));
+        Assert.Equal("Only", Assert.Single(single.Sheets!).Name);
+    }
+    [Fact]
+    public void PdfReadOptionsBindAsIndependentNativePolicySnapshots() {
+        var source = new PSWriteOffice.Models.Pdf.PdfReadOptions {
+            LoadOptions = new OfficeIMO.Pdf.PdfLoadOptions { Password = "open", PermissionPolicy = OfficeIMO.Pdf.PdfPermissionPolicy.IgnoreRestrictions }
+        };
+        var policy = Assert.IsType<OfficeIMO.Pdf.PdfLoadOptions>(new OfficeOptionsTransformationAttribute(typeof(OfficeIMO.Pdf.PdfLoadOptions)).Transform(null!, source));
+        Assert.NotSame(source.LoadOptions, policy);
+        Assert.Equal("open", policy.Password);
+        Assert.Equal(OfficeIMO.Pdf.PdfPermissionPolicy.IgnoreRestrictions, policy.PermissionPolicy);
+        Assert.NotSame(source.LoadOptions.Limits, policy.Limits);
+        source.LoadOptions = new OfficeIMO.Pdf.PdfLoadOptions { Password = "different" };
+        Assert.Equal("open", policy.Password);
+    }
+    [Fact]
+    public void AccountSecretsKeepCredentialIdentityWithoutSharingPasswordMetadata() {
+        using var secret = new SecureString();
+        secret.AppendChar('x');
+        var binder = new OfficePasswordTransformationAttribute { PreserveUserName = true };
+        using var first = Assert.IsType<SecureString>(binder.Transform(null!, new PSCredential("first@example.com", secret)));
+        using var second = Assert.IsType<SecureString>(binder.Transform(null!, new PSCredential("second@example.com", secret)));
+        Assert.NotSame(secret, first);
+        Assert.Equal("first@example.com", OfficePasswordTransformationAttribute.ResolveUserName(first, null));
+        Assert.Equal("second@example.com", OfficePasswordTransformationAttribute.ResolveUserName(second, null));
+        Assert.Equal("first@example.com", OfficePasswordTransformationAttribute.ResolveUserName(first, "FIRST@example.com"));
+        Assert.Throws<PSArgumentException>(() => OfficePasswordTransformationAttribute.ResolveUserName(first, "second@example.com"));
+        Assert.Equal(1, secret.Length);
     }
     [Theory]
     [InlineData("2,5cm")][InlineData("NaN")][InlineData("Infinity")][InlineData("2yards")][InlineData(true)]
@@ -87,28 +134,44 @@ public sealed class FoundationBindingTests {
     }
     [Fact]
     public void SheetSelectorDistinguishesNameFromPosition() {
-        Assert.Equal("1", OfficeSheetSelector.From("1").Name);
-        Assert.Equal(1, OfficeSheetSelector.From(1).Position);
-        Assert.Throws<ArgumentTransformationMetadataException>(() => OfficeSheetSelector.From(0));
-        Assert.Throws<ArgumentTransformationMetadataException>(() => OfficeSheetSelector.From(1.5));
-        Assert.Throws<ArgumentTransformationMetadataException>(() => OfficeSheetSelector.From(new object()));
-        var sheets = new[] { new object(), new object() };
-        Assert.Same(sheets[0], OfficeSheetSelector.From(1).Resolve(sheets, _ => "1"));
-        Assert.Throws<ArgumentException>(() => OfficeSheetSelector.From(3).Resolve(sheets, _ => "1"));
+        var binder = new OfficeSheetTransformationAttribute();
+        var byName = (OfficeSheetSelector)binder.Transform(null!, PSObject.AsPSObject("1"));
+        var byPosition = (OfficeSheetSelector)binder.Transform(null!, PSObject.AsPSObject(1));
+        Assert.Equal("1", byName.Name);
+        Assert.Equal(1, byPosition.Position);
+        Assert.Throws<ArgumentTransformationMetadataException>(() => binder.Transform(null!, 0));
+        Assert.Throws<ArgumentTransformationMetadataException>(() => binder.Transform(null!, 1.5));
+        Assert.Throws<ArgumentTransformationMetadataException>(() => binder.Transform(null!, new object()));
+        using var book = ExcelDocument.Create();
+        book.AddSheet("Report");
+        book.AddSheet("1");
+        book.AddSheet("Sales West");
+        book.AddSheet("Sales East");
+        Assert.Equal("1", byName.Resolve(book.Sheets, sheet => sheet.Name).Name);
+        Assert.Equal("Report", byPosition.Resolve(book.Sheets, sheet => sheet.Name).Name);
+        Assert.Throws<ArgumentException>(() => OfficeSheetSelector.From(5).Resolve(book.Sheets, sheet => sheet.Name));
+        var mixed = (OfficeSheetSelector[])binder.Transform(null!, PSObject.AsPSObject(new object[] {
+            PSObject.AsPSObject("sALes *"), PSObject.AsPSObject(4), PSObject.AsPSObject(1)
+        }));
+        Assert.Equal(new[] { "Report", "Sales West", "Sales East" },
+            OfficeSheetSelector.ResolveMany(book, mixed).Select(sheet => sheet.Name));
+        Assert.Throws<ArgumentException>(() => OfficeSheetSelector.ResolveMany(book,
+            new[] { OfficeSheetSelector.From("Missing*") }));
     }
 
     [Fact]
     public void NativeSheetMembershipSurvivesWrapperRefreshButRejectsForeignAndReplacedSheets() {
-        using var book = OfficeIMO.Excel.ExcelDocument.Create();
+        using var book = ExcelDocument.Create();
         var original = book.AddSheet("Data");
-        var selector = OfficeSheetSelector.From(original);
+        var binder = new OfficeSheetTransformationAttribute();
+        var selector = (OfficeSheetSelector)binder.Transform(null!, PSObject.AsPSObject(original));
         book.AddSheet("Other");
         Assert.Equal("Data", selector.Resolve(book.Sheets, sheet => sheet.Name).Name);
         book.SheetCachingEnabled = false;
         var selected = selector.Resolve(book.Sheets, sheet => sheet.Name);
         selected.Cell(1, 1).SetValue("Same native worksheet");
         Assert.Equal("Same native worksheet", original.Cell(1, 1).GetValue<string>());
-        using var foreign = OfficeIMO.Excel.ExcelDocument.Create();
+        using var foreign = ExcelDocument.Create();
         Assert.Throws<ArgumentException>(() => OfficeSheetSelector.From(foreign.AddSheet("Data"))
             .Resolve(book.Sheets, sheet => sheet.Name));
         book.RemoveWorksheet("Data");

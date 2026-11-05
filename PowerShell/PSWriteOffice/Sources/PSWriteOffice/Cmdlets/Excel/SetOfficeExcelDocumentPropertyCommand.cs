@@ -7,36 +7,43 @@ namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Sets a built-in or application document property on an Excel workbook.</summary>
 /// <example>
-///   <summary>Stamp publishing metadata while creating a workbook.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>New-OfficeExcel -Path .\Report.xlsx {
-///     Set-OfficeExcelDocumentProperty -Name Title -Value 'Operational dashboard'
-///     Set-OfficeExcelDocumentProperty -Name Department -Value 'Operations' -Custom
+/// <summary>Set the document title</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     Set-OfficeExcelDocumentProperty Title 'Q3 sales'
 /// }</code>
-///   <para>Updates built-in or custom workbook properties through the current Excel DSL context.</para>
+/// <para>Sets the built-in Title property.</para>
+/// </example>
+/// <example>
+/// <summary>Tag a workbook with custom metadata</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     Set-OfficeExcelDocumentProperty -Name Owner -Value 'Sales Operations' -Custom
+///     Set-OfficeExcelDocumentProperty -Name Classification -Value 'Internal' -Custom
+///     Set-OfficeExcelDocumentProperty -Name ReviewDate -Value (Get-Date).AddMonths(6) -Custom
+/// }</code>
+/// <para>Adds owner, classification and review-date custom properties that document management can search.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelDocumentProperty", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelDocument))]
 public sealed class SetOfficeExcelDocumentPropertyCommand : PSCmdlet
 {
     /// <summary>Workbook to update when provided explicitly.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
     public ExcelDocument? Document { get; set; }
 
     /// <summary>Property name to update.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
     public string Name { get; set; } = string.Empty;
 
     /// <summary>Property value.</summary>
-    [Parameter(Position = 1)]
+    [Parameter(ParameterSetName = "Default", Position = 1)]
     public object? Value { get; set; }
 
     /// <summary>Emit the updated workbook.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <summary>Treat the property as a custom workbook property.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Custom { get; set; }
 
     /// <inheritdoc />

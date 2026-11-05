@@ -399,7 +399,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     run.Bold
                     || run.Italic
                     || run.Underline
-                    || run.Strike
+                    || run.Strikethrough
                     || run.FontSize.HasValue
                     || !string.IsNullOrWhiteSpace(run.FontFamily)
                     || !string.IsNullOrWhiteSpace(run.Color?.ToRgbHex()));
@@ -462,7 +462,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     Bold = run.Bold,
                     Italic = run.Italic,
                     Underline = run.Underline,
-                    Strike = run.Strike,
+                    Strikethrough = run.Strikethrough,
                     FontSize = run.FontSize is OfficeLength fontSize ? checked((int)fontSize.ToPoints()) : null,
                     FontFamily = run.FontFamily,
                     ForegroundColorHex = run.Color?.ToRgbHex(),

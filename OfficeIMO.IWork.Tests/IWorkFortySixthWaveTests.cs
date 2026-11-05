@@ -14,9 +14,9 @@ public sealed partial class IWorkBoundaryTests {
                 formulaPayload: formula)
         });
 
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Numbers,
-            new IWorkReadOptions { MaxFormulaNodes = 1 });
+            new IWorkLoadOptions { MaxFormulaNodes = 1 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(
             () => source.ReadNumbers());
@@ -29,9 +29,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesImagePackage(
             duplicateMetadata: false, imageCount: 1,
             imageBytes: ValidPreviewPng(), metadataEntryCount: 2);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxImageMetadataEntries = 1 });
+            new IWorkLoadOptions { MaxImageMetadataEntries = 1 });
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
         var budget = new IWorkProjectionBudget(source.Options);
@@ -48,8 +48,8 @@ public sealed partial class IWorkBoundaryTests {
             Array.Empty<TableSpec>(), sheetReferenceCount: 2);
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers,
-                new IWorkReadOptions { MaxProjectedSheets = 1 }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers,
+                new IWorkLoadOptions { MaxProjectedSheets = 1 }));
         Assert.Contains("sheet count", exception.Message,
             StringComparison.OrdinalIgnoreCase);
     }

@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word
             // 3) Line chart (Monochrome palette), then override 1 series
             doc.AddParagraph("Line (MonochromeGray palette) with one override").SetStyle(WordParagraphStyles.Heading2);
             var line = doc.AddChart("KPIs",false,OfficeIMO.OfficeLength.Pixels(600),OfficeIMO.OfficeLength.Pixels(320));
-            line.AddChartAxisX(categories);
+            line.AddCategories(categories);
             line.AddLine("Throughput", new List<int> { 100, 140, 180, 220 }, OfficeIMO.OfficeColor.Black);
             line.AddLine("Latency", new List<int> { 80, 60, 70, 50 }, OfficeIMO.OfficeColor.Black);
             line.ApplyPalette(WordChart.WordChartPalette.MonochromeGray).SetSeriesColor(1, OfficeIMO.OfficeColor.ParseHex("#d63939")) // emphasize Latency (series index 1)

@@ -137,9 +137,9 @@ namespace OfficeIMO.Tests {
                 PowerPointSlide slide = presentation.AddSlide();
                 PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", width: global::OfficeIMO.OfficeLength.Points(1));
+                table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("FF0000"), width: global::OfficeIMO.OfficeLength.Points(1));
 
-                Assert.Equal("FF0000", table.GetCell(0, 0).BorderColor);
+                Assert.Equal(OfficeColor.Parse("FF0000"), table.GetCell(0, 0).BorderColor);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointTable table = slide.AddTable(rows: 1,columns: 1,left: global::OfficeIMO.OfficeLength.Emus(0),top: global::OfficeIMO.OfficeLength.Emus(0),width: global::OfficeIMO.OfficeLength.Emus(4000),height: global::OfficeIMO.OfficeLength.Emus(2000));
 
-                    table.SetCellBorders(PowerPointTableCellBorders.All, "FF0000", width: global::OfficeIMO.OfficeLength.Points(1),
+                    table.SetCellBorders(PowerPointTableCellBorders.All, OfficeColor.Parse("FF0000"), width: global::OfficeIMO.OfficeLength.Points(1),
                         dash: PowerPointLineDashStyle.Dash);
                     presentation.Save();
                 }

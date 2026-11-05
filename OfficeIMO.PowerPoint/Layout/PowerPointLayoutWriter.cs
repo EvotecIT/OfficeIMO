@@ -289,7 +289,7 @@ namespace OfficeIMO.PowerPoint {
 
         /// <summary>Sets a solid slide background.</summary>
         internal void Background(string hex) {
-            Slide.BackgroundColor = hex;
+            Slide.BackgroundColor = OfficeColor.Parse(hex);
         }
     }
 }

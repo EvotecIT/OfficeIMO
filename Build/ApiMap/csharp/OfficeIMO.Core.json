@@ -1007,6 +1007,30 @@
       "replacement": "Pass new OfficeTextSearchOptions { MatchCase = true } where code passed StringComparison.Ordinal; omit options for the case-insensitive default.",
       "reason": "One set of Find/ReplaceAll comparison settings shared by Word, PowerPoint and PDF, with the same case-insensitive, partial-word default.",
       "category": "search"
+    },
+    {
+      "old": "OfficeIMO.Drawing.OfficeColorExtensions.ToHexColor(OfficeColor color)",
+      "kind": "method",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use OfficeColor.ToRgbHex() for RGB. ToArgbHex(), ToHex() and ToCssColor() retain their distinct ARGB, RGBA and CSS contracts.",
+      "reason": "The unused forwarding method adds no color conversion capability; remove its empty extension class.",
+      "file": "OfficeIMO.Core/OfficeColorExtensions.cs",
+      "category": "formatting",
+      "phase": "3.6-shared-formatting",
+      "applied": "implemented"
+    },
+    {
+      "old": "OfficeIMO.Drawing.OfficeColorExtensions",
+      "kind": "type",
+      "action": "remove",
+      "new": null,
+      "replacement": "Use OfficeColor.ToRgbHex() for RGB. ToArgbHex(), ToHex() and ToCssColor() retain their distinct ARGB, RGBA and CSS contracts.",
+      "reason": "The unused forwarding method adds no color conversion capability; remove its empty extension class.",
+      "file": "OfficeIMO.Core/OfficeColorExtensions.cs",
+      "category": "formatting",
+      "phase": "3.6-shared-formatting",
+      "applied": "implemented"
     }
   ],
   "extraChanges": [
@@ -1620,6 +1644,11 @@
       "reason": "Read the referenced DrawingML palette and Latin heading/body fonts from DOCX/DOTX, XLSX/XLTX or PPTX/POTX without copying document content. PowerPoint uses its first declared slide master; composition sizes and spacing retain Modern defaults.",
       "file": "OfficeIMO.Core/Themes/OfficeTheme.FromDocument.cs",
       "applied": "implemented"
+    },
+    {
+      "subject": "Common read-only validation evidence",
+      "note": "OfficeDocumentCheck and OfficeValidationReport provide IsValid, detached diagnostics/native evidence, ToMarkdown and ThrowIfFailed for the native validation operation. Unsupported checks are explicitly not applicable; no file is repaired or saved.",
+      "status": "applied"
     }
   ],
   "applicationStatus": "Phase A applied and validated on the supported macOS targets. Phase B and Tier 2 entries retain their status; Windows .NET Framework validation remains pending.",

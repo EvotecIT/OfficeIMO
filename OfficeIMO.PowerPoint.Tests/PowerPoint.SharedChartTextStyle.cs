@@ -17,10 +17,10 @@ public sealed class PowerPointSharedChartTextStyleTests {
             new[] { new OfficeSeries("Actual", new[] { 10D, 20D }) });
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
         chart.SetTitle("Trajectory")
-            .SetTitleTextStyle(fontName: "Arial")
-            .SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial");
+            .SetTitleTextStyle(fontFamily: "Arial")
+            .SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial");
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal("Arial", snapshot.Style.FontFamily);
@@ -36,10 +36,10 @@ public sealed class PowerPointSharedChartTextStyleTests {
             new[] { new OfficeSeries("Actual", new[] { 10D, 20D }) });
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
         chart.SetTitle("Trajectory")
-            .SetTitleTextStyle(fontName: "Georgia")
-            .SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial");
+            .SetTitleTextStyle(fontFamily: "Georgia")
+            .SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial");
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal("Arial", snapshot.Style.FontFamily);
@@ -53,13 +53,13 @@ public sealed class PowerPointSharedChartTextStyleTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                 new OfficeSeries("Actual", new[] { 10D, 20D })
             }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial")
+        chart.SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial")
             .SetCategoryAxisTitle("Quarter")
-            .SetCategoryAxisTitleTextStyle(fontName: "Georgia")
+            .SetCategoryAxisTitleTextStyle(fontFamily: "Georgia")
             .SetValueAxisTitle("Revenue")
-            .SetValueAxisTitleTextStyle(fontName: "Georgia");
+            .SetValueAxisTitleTextStyle(fontFamily: "Georgia");
 
         Assert.True(chart.TryGetOfficeSnapshot(
             out OfficeChartSnapshot snapshot));
@@ -76,13 +76,13 @@ public sealed class PowerPointSharedChartTextStyleTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                 new OfficeSeries("Actual", new[] { 10D, 20D })
             }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial")
+        chart.SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial")
             .SetCategoryAxisTitle("Quarter")
-            .SetCategoryAxisTitleTextStyle(fontName: "Georgia")
+            .SetCategoryAxisTitleTextStyle(fontFamily: "Georgia")
             .SetValueAxisTitle("Revenue")
-            .SetValueAxisTitleTextStyle(fontName: "Times New Roman");
+            .SetValueAxisTitleTextStyle(fontFamily: "Times New Roman");
 
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
@@ -93,7 +93,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1" }, new[] {
                 new OfficeSeries("Actual", new[] { 10D })
             }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetTitle("First").SetTitleTextStyle(fontName: "Arial");
+        chart.SetTitle("First").SetTitleTextStyle(fontFamily: "Arial");
         C.Chart openXmlChart = presentation.OpenXmlDocument.PresentationPart!
             .SlideParts.Single().ChartParts.Single().ChartSpace!
             .GetFirstChild<C.Chart>()!;
@@ -113,7 +113,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1" }, new[] {
                 new OfficeSeries("Actual", new[] { 10D })
             }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetTitle("First").SetTitleTextStyle(fontName: "Arial");
+        chart.SetTitle("First").SetTitleTextStyle(fontFamily: "Arial");
         C.Chart openXmlChart = presentation.OpenXmlDocument.PresentationPart!
             .SlideParts.Single().ChartParts.Single().ChartSpace!
             .GetFirstChild<C.Chart>()!;
@@ -191,9 +191,9 @@ public sealed class PowerPointSharedChartTextStyleTests {
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 20D }) });
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Georgia")
-            .SetValueAxisLabelTextStyle(fontName: "Arial");
+        chart.SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Georgia")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial");
 
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
@@ -206,7 +206,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
             new[] { "Q1", "Q2" },
             new[] { new OfficeSeries("Actual", new[] { 10D, 20D }) });
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetLegendTextStyle(fontName: "Arial");
+        chart.SetLegendTextStyle(fontFamily: "Arial");
 
         Assert.False(chart.TryGetOfficeSnapshot(out _));
     }
@@ -221,10 +221,10 @@ public sealed class PowerPointSharedChartTextStyleTests {
             new[] { new OfficeSeries("Actual", new[] { 10D, 20D }) });
         PowerPointChart chart = slide.AddChart(OfficeChartType.ColumnClustered, data, new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
         chart.SetTitle("Trajectory")
-            .SetTitleTextStyle(fontName: "+mj-lt")
-            .SetLegendTextStyle(fontName: "+mn-lt")
-            .SetCategoryAxisLabelTextStyle(fontName: "+mn-lt")
-            .SetValueAxisLabelTextStyle(fontName: "+mn-lt");
+            .SetTitleTextStyle(fontFamily: "+mj-lt")
+            .SetLegendTextStyle(fontFamily: "+mn-lt")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "+mn-lt")
+            .SetValueAxisLabelTextStyle(fontFamily: "+mn-lt");
 
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal("Theme Body", snapshot.Style.FontFamily);
@@ -239,9 +239,9 @@ public sealed class PowerPointSharedChartTextStyleTests {
         PowerPointChart chart = presentation.AddSlide().AddChart(OfficeChartType.ColumnClustered, new OfficeChartData(new[] { "Q1", "Q2" }, new[] {
                 new OfficeSeries("Actual", new[] { 10D, 20D })
             }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
-        chart.SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial");
+        chart.SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial");
         C.Chart openXmlChart = presentation.OpenXmlDocument.PresentationPart!
             .SlideParts.Single().ChartParts.Single().ChartSpace!
             .GetFirstChild<C.Chart>()!;
@@ -313,7 +313,7 @@ public sealed class PowerPointSharedChartTextStyleTests {
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot inherited));
         Assert.Equal("Chart Default", inherited.Style.TitleFontFamily);
 
-        chart.SetTitleTextStyle(fontName: "Arial");
+        chart.SetTitleTextStyle(fontFamily: "Arial");
         Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot local));
         Assert.Equal("Arial", local.Style.TitleFontFamily);
     }
@@ -327,9 +327,9 @@ public sealed class PowerPointSharedChartTextStyleTests {
                 new OfficeSeries("Actual", new[] { 10D, 20D })
             }), new OfficeIMO.PowerPoint.PowerPointChartOptions { Left = global::OfficeIMO.OfficeLength.Points(40), Top = global::OfficeIMO.OfficeLength.Points(40), Width = global::OfficeIMO.OfficeLength.Points(500), Height = global::OfficeIMO.OfficeLength.Points(300) });
         chart.SetTitle("Trajectory")
-            .SetLegendTextStyle(fontName: "Arial")
-            .SetCategoryAxisLabelTextStyle(fontName: "Arial")
-            .SetValueAxisLabelTextStyle(fontName: "Arial");
+            .SetLegendTextStyle(fontFamily: "Arial")
+            .SetCategoryAxisLabelTextStyle(fontFamily: "Arial")
+            .SetValueAxisLabelTextStyle(fontFamily: "Arial");
         C.Title title = presentation.OpenXmlDocument.PresentationPart!
             .SlideParts.Single().ChartParts.Single().ChartSpace!
             .GetFirstChild<C.Chart>()!.GetFirstChild<C.Title>()!;

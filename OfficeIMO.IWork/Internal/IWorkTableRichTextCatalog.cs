@@ -6,7 +6,7 @@ internal sealed class IWorkTableRichTextCatalog {
     private const uint TextStorageArchive = 2001;
     private readonly IWorkObjectIndex _index;
     private readonly IWorkProjectionBudget _budget;
-    private readonly IWorkReadOptions _options;
+    private readonly IWorkLoadOptions _options;
     private readonly IWorkSourceReferenceIssueCollector _references;
     private readonly Dictionary<uint, (IWorkWireMessage Message, int Position)> _entries = new();
     private readonly HashSet<uint> _attempted = new();
@@ -17,7 +17,7 @@ internal sealed class IWorkTableRichTextCatalog {
     private IWorkArchiveRecord? _list;
 
     private IWorkTableRichTextCatalog(IWorkObjectIndex index, IWorkProjectionBudget budget,
-        IWorkReadOptions options, IWorkSourceReferenceIssueCollector references) {
+        IWorkLoadOptions options, IWorkSourceReferenceIssueCollector references) {
         _index = index;
         _budget = budget;
         _options = options;
@@ -89,7 +89,7 @@ internal sealed class IWorkTableRichTextCatalog {
     }
 
     private bool TryReadRecord(IWorkObjectIndex index, IWorkArchiveRecord record,
-        IWorkReadOptions options, Dictionary<ulong, IWorkWireMessage?> cache,
+        IWorkLoadOptions options, Dictionary<ulong, IWorkWireMessage?> cache,
         out IWorkWireMessage? message) {
         if (cache.TryGetValue(record.Identifier, out message)) return message != null;
         message = null;

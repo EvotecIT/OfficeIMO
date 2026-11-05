@@ -11,7 +11,7 @@ Creates bounded EML, MSG, and TNEF reader settings through ordinary PowerShell p
 ## SYNTAX
 ### Options (Default)
 ```powershell
-New-OfficeEmailReaderOptions [-MaxInputBytes <long>] [-MaxHeaderBytes <int>] [-MaxHeaderCount <int>] [-MaxPartCount <int>] [-MaxMimeDepth <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-MaxNestedMessageDepth <int>] [-ExcludeAttachmentContent] [-PreserveRawSource] [-MaxCompoundDirectoryEntries <int>] [-MaxMapiPropertyCount <int>] [-MaxDecodedPropertyBytes <long>] [-MaxTnefAttributeCount <int>] [-MaxAttachmentCount <int>] [<CommonParameters>]
+New-OfficeEmailReaderOptions [-MaxInputBytes <long>] [-MaxHeaderBytes <int>] [-MaxHeaderCount <int>] [-MaxPartCount <int>] [-MaxMimeDepth <int>] [-MaxAttachmentBytes <long>] [-MaxTotalAttachmentBytes <long>] [-MaxNestedMessageDepth <int>] [-NoAttachmentContent] [-PreserveRawSource] [-MaxCompoundDirectoryEntries <int>] [-MaxMapiPropertyCount <int>] [-MaxDecodedPropertyBytes <long>] [-MaxTnefAttributeCount <int>] [-MaxAttachmentCount <int>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,28 +21,12 @@ Creates bounded EML, MSG, and TNEF reader settings through ordinary PowerShell p
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeEmailReaderOptions -ExcludeAttachmentContent -MaxAttachmentBytes 25MB
+PS> $options = New-OfficeEmailReaderOptions -NoAttachmentContent -MaxAttachmentBytes 25MB
 Get-OfficeEmail -Path .\Message.msg -Options $options -AsResult
 ```
 
 
 ## PARAMETERS
-
-### -ExcludeAttachmentContent
-Do not retain decoded attachment payloads in memory.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -MaxAttachmentBytes
 Maximum decoded bytes for one attachment.
@@ -241,6 +225,22 @@ Maximum aggregate decoded attachment bytes.
 
 ```yaml
 Type: Int64
+Parameter Sets: Options
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoAttachmentContent
+Do not retain decoded attachment payloads in memory.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Options
 Aliases: None
 Possible values:

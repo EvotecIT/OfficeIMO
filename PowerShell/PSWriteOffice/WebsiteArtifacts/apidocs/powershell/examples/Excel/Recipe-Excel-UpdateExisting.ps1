@@ -6,11 +6,11 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     ExcelSheet 'Readiness' {
-        ExcelTable -Data $rows -Name 'Readiness' -AutoFit
+        ExcelTable -InputObject $rows -Name 'Readiness'
     }
 }
 
-Update-OfficeExcelText -Path $path -Sheet 'Readiness' -OldValue 'Draft' -NewValue 'Ready'
+Update-OfficeExcelText -Path $path -Sheet 'Readiness' -Pattern 'Draft' -Replacement 'Ready'
 
 Edit-OfficeExcelRow -Path $path -Sheet 'Readiness' -ScriptBlock {
     param($row)

@@ -2,7 +2,7 @@ namespace OfficeIMO.Visio;
 
 public partial class VisioPage {
     /// <summary>Adds a centered title near the top of the page with physical dimensions.</summary>
-    public VisioShape AddTitle(string text, string id = "title", OfficeLength? height = null, OfficeLength? topMargin = null) {
+    public VisioShape AddTitle(string text, string id = "title", OfficeLength? height = null, OfficeLength? topMargin = null, Action<VisioShape>? configure = null) {
         OfficeLength titleHeight = height ?? OfficeLength.Inches(0.5);
         OfficeLength margin = topMargin ?? OfficeLength.Inches(0.35);
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(titleHeight, OfficeLength.Zero, nameof(height));
@@ -15,6 +15,7 @@ public partial class VisioPage {
             HorizontalAlignment = OfficeAlignment.Center,
             VerticalAlignment = VisioTextVerticalAlignment.Middle
         };
+        configure?.Invoke(shape);
         return shape;
     }
 }

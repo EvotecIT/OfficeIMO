@@ -16,9 +16,9 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void DisjointExcelConditionalRangesKeepTheirOwnOrderedMaps() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", null, "FFFF0000", stopIfTrue: true, priority: 1);
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", null, "FF0000FF", priority: 2);
-        sheet.Range("C1:C2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "5", "FF00FF00", priority: 3);
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", null, OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), stopIfTrue: true, priority: 1);
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", null, OfficeColor.FromRgba(0x00, 0x00, 0xFF, 0xFF), priority: 2);
+        sheet.Range("C1:C2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "5", OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF), priority: 3);
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
@@ -57,8 +57,8 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void OverlappingExcelConditionalRangesRemainWholeSheetLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
-        sheet.Range("A2:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF0000FF");
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
+        sheet.Range("A2:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0x00, 0x00, 0xFF, 0xFF));
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
@@ -70,9 +70,9 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void UnsupportedDisjointExcelRangeDoesNotPartiallyApplyOtherRange() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
         sheet.Cell(1, 3).SetValue("Styled").SetBold();
-        sheet.Range("C1:C2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF0000FF");
+        sheet.Range("C1:C2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0x00, 0x00, 0xFF, 0xFF));
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
@@ -84,8 +84,8 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void DisjointExcelConditionalRangesShareOneCellBudget() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A2048").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
-        sheet.Range("C1:C2049").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF0000FF");
+        sheet.Range("A1:A2048").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
+        sheet.Range("C1:C2049").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0x00, 0x00, 0xFF, 0xFF));
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
@@ -103,7 +103,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         ExcelSheet sheet = source.AddSheet("Data");
         for (int index = 0; index < ruleCount; index++) {
             string range = ((char)('A' + index)).ToString() + "1";
-            sheet.Range(range).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", null, "FFFF0000", priority: index + 1);
+            sheet.Range(range).ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", null, OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), priority: index + 1);
         }
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
@@ -117,8 +117,8 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void ExcelOrderedNumericFillRulesBecomeOdsStyleMaps() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", null, "FFFF0000", stopIfTrue: true, priority: 1);
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "10", "FF00FF00", priority: 2);
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", null, OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF), stopIfTrue: true, priority: 1);
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.Between, "1", "10", OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF), priority: 2);
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsDocument reopened = OdsDocument.Load(new MemoryStream(result.Value.ToBytes()));
@@ -149,8 +149,8 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void ExcelRulesWithoutFirstMatchSemanticsRemainExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: "FFFF0000");
-        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: "FF00FF00");
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "10", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
+        sheet.Range("A1:A2").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.LessThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0x00, 0xFF, 0x00, 0xFF));
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
@@ -163,7 +163,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
         sheet.Cell(1, 1).SetValue("Styled").SetBold();
-        sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
+        sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         OdsSheet output = result.Value.Sheets.Single();
@@ -179,7 +179,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     [InlineData("0.00000000000000000000000000001")]
     public void ExcelNumericBoundsOutsideExactDecimalSubsetRemainExplicitLoss(string bound) {
         using ExcelDocument source = ExcelDocument.Create();
-        source.AddSheet("Data").Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, bound, fillColor: "FFFF0000");
+        source.AddSheet("Data").Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, bound, fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
 
         OdfConversionResult<OdsDocument> result = source.ConvertToOpenDocumentWithEvidence();
         Assert.Null(result.Value.Sheets.Single().Cell(0, 0).StyleName);
@@ -191,7 +191,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void ExcelIndexedDifferentialFillRemainsExplicitLoss() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
+        sheet.Range("A1").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
         using MemoryStream packageStream = new MemoryStream(source.ToBytes());
         using (SpreadsheetDocument package = SpreadsheetDocument.Open(packageStream, true)) {
             Stylesheet stylesheet = package.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
@@ -213,7 +213,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
     public void ExcelConditionalRuleIsReportedWhenConvertingToOds() {
         using ExcelDocument source = ExcelDocument.Create();
         ExcelSheet sheet = source.AddSheet("Data");
-        sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: "FFFF0000");
+        sheet.Range("A1:A3").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "0", fillColor: global::OfficeIMO.OfficeColor.FromRgba(0xFF, 0x00, 0x00, 0xFF));
         sheet.AddConditionalFormattingRule(new ExcelConditionalFormattingInfo {
             Source = ExcelConditionalFormattingSource.Office2010Extension,
             Range = "A1:A3",
@@ -416,9 +416,9 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         OdfStyle baseStyle = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
-        baseStyle.StrikeThrough = !strike;
+        baseStyle.Strikethrough = !strike;
         OdfStyle applied = source.Styles.CreateNamed("Strike", OdfStyleFamily.TableCell);
-        applied.StrikeThrough = strike;
+        applied.Strikethrough = strike;
         baseStyle.AddConditionalMap("cell-content()>0", applied.Name);
         sheet.Cell(0, 0).StyleName = baseStyle.Name;
 
@@ -548,7 +548,7 @@ public sealed class SpreadsheetConditionalFormattingLossTests {
         OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         OdfStyle applied = source.Styles.CreateNamed("DoubleStrike", OdfStyleFamily.TableCell);
-        applied.StrikeThrough = true;
+        applied.Strikethrough = true;
         applied.LineThroughType = OdfTextDecorationType.Double;
         OdfStyle baseStyle = source.Styles.CreateAutomatic(OdfStyleFamily.TableCell);
         baseStyle.AddConditionalMap("cell-content()>0", applied.Name);

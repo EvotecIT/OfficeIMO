@@ -39,7 +39,7 @@ internal sealed partial class IWorkReadProjection {
         _readerOptions = readerOptions;
         _options = options;
         _cancellationToken = cancellationToken;
-        _projectionBudget = new IWorkProjectionBudget((options.ReadOptions ?? new IWorkReadOptions()).Clone());
+        _projectionBudget = new IWorkProjectionBudget((options.ReadOptions ?? new IWorkLoadOptions()).Clone());
     }
 
     internal void AddNumbers(IWorkNumbersProjection source) {

@@ -19,7 +19,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the fill color and returns the shape for chaining.
         /// </summary>
-        public PowerPointAutoShape Fill(string color) {
+        public PowerPointAutoShape Fill(OfficeColor color) {
             FillColor = color;
             return this;
         }
@@ -27,7 +27,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the outline color (and optional physical width) and returns the shape for chaining.
         /// </summary>
-        public PowerPointAutoShape Stroke(string color, OfficeLength? width = null) {
+        public PowerPointAutoShape Stroke(OfficeColor color, OfficeLength? width = null) {
             if (width.HasValue) ToDrawingLineWidth(width.Value, nameof(width));
             OutlineColor = color;
             if (width.HasValue) {

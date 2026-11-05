@@ -8,8 +8,8 @@ internal sealed partial class IWorkKeynoteArchiveBuilder : IWorkNativeCreationGr
     private const ulong DocumentId = 1, MetadataId = 2, ShowId = 3, ThemeId = 4;
     private const ulong DefaultCharacterId = 6, DefaultParagraphId = 7, DefaultFrameId = 8, BlankBackgroundId = 9;
     private const ulong TextPresetId = 15, BlankSlideId = 30, BlankNodeId = 31;
-    private readonly IWorkKeynoteWriteOptions _limits;
-    internal IWorkKeynoteArchiveBuilder(IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken, byte[] modelHash)
+    private readonly IWorkKeynoteSaveOptions _limits;
+    internal IWorkKeynoteArchiveBuilder(IWorkKeynoteSaveOptions limits, CancellationToken cancellationToken, byte[] modelHash)
         : base(limits.MaxPackageBytes, cancellationToken, modelHash, IWorkDocumentKind.Keynote, 5, 14) {
         _limits = limits;
     }

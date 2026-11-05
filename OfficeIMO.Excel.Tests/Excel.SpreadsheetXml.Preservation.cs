@@ -116,7 +116,7 @@ public sealed class ExcelSpreadsheetXmlPreservationTests {
     [Fact]
     public void Unmapped_nested_metadata_is_visible_in_export_diagnostics() {
         using var document = ExcelDocument.Create(); var sheet = document.AddSheet("Data"); sheet.Cell(1, 1).SetValue("Protected");
-        sheet.SetTabColor("FF0000"); sheet.Protect(new() { AllowSelectLockedCells = false });
+        sheet.SetTabColor(global::OfficeIMO.OfficeColor.Parse("FF0000")); sheet.Protect(new() { AllowSelectLockedCells = false });
         var result = document.ExportSpreadsheetXml();
         Assert.Contains(result.Report.Diagnostics, item => item.Message.Contains("tabColor"));
         using var copy = ExcelDocument.ImportSpreadsheetXml(result.Value).Value;

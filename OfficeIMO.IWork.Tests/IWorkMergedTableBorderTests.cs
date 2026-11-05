@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
             modelDeclarations: Message(VarintField(9, 1), VarintField(11, 1)),
             styleRecords: new[] { ArchiveRecord(40, 6003, BytesField(11, Message(
                 BytesField(46, BorderStroke(2)), BytesField(54, BorderStroke(conflict ? 3 : 2))))) });
-        var projection = IWorkSourceDocument.Open(package).ReadKeynote();
+        var projection = IWorkSourceDocument.Load(package).ReadKeynote();
         if (conflict) {
             Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
             Assert.False(projection.HasEditableContent);
@@ -35,7 +35,7 @@ public sealed partial class IWorkBoundaryTests {
             secondBucketPayload: Message(VarintField(1, 1)), tableStyleReference: ReferenceField(3, 40),
             modelDeclarations: Message(VarintField(10, 1), VarintField(11, 1)),
             styleRecords: new[] { ArchiveRecord(40, 6003, BytesField(11, Message(BytesField(55, BorderStroke(2))))) });
-        var table = IWorkSourceDocument.Open(package).ReadKeynote().Slides[0].Tables[0];
+        var table = IWorkSourceDocument.Load(package).ReadKeynote().Slides[0].Tables[0];
         for (int column = 1; column <= 2; column++) {
             AssertBorder(table.GetBorders(1, column).Top, "000000", 2);
             AssertBorder(table.GetBorders(1, column).Bottom, "000000", 2);
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
     [MemberData(nameof(MergedBorderDestinations))]
     public void Saved_merged_cells_retain_perimeter_edges_instead_of_interior_grid(IWorkDocumentKind kind, int rows, int columns) {
         using var package = MergedBorderPackage(kind, rows, columns);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
             using var result = source.ToWordResult(); result.Report.RequireCompleteEditableReconstruction();
@@ -73,8 +73,8 @@ public sealed partial class IWorkBoundaryTests {
             using var result = source.ToPowerPointResult(); result.Report.RequireCompleteEditableReconstruction();
             // Border evidence does not depend on the host's minimum font line box.
             var authoredTable = result.Value.Slides[0].Tables.First();
-            for (int row = 0; row < authoredTable.Rows; row++) authoredTable.SetRowHeight(row, OfficeIMO.OfficeLength.Points(60D));
-            authoredTable.Height = OfficeLength.Points(authoredTable.Rows * 60D);
+            for (int row = 0; row < authoredTable.RowCount; row++) authoredTable.SetRowHeight(row, OfficeIMO.OfficeLength.Points(60D));
+            authoredTable.Height = OfficeLength.Points(authoredTable.RowCount * 60D);
             result.Value.Save(saved); saved.Position = 0;
             using var reopened = PowerPointDocument.Load(saved); Assert.Empty(reopened.ValidateDocument());
             var pdf = reopened.ToPdf();
@@ -117,7 +117,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Varying_merged_perimeter_requires_partial_policy_and_reports_approximation(IWorkDocumentKind kind) {
         using var package = MergedBorderPackage(kind, 1, 2, varyingTop: true);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var strict = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly };
         Assert.Contains("merged", Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) { using var result = source.ToWordResult(strict); }
@@ -139,7 +139,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Saved_Excel_merge_clears_interior_border_when_its_perimeter_is_undeclared(bool horizontalEdge) {
         using var package = MergedBorderPackage(IWorkDocumentKind.Numbers, horizontalEdge ? 3 : 1, horizontalEdge ? 1 : 2,
             missingOuterVertical: !horizontalEdge, missingOuterHorizontal: horizontalEdge);
-        using var result = IWorkSourceDocument.Open(package).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package).ToExcelResult();
         result.Report.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = ExcelDocument.Load(saved);

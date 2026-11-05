@@ -4,20 +4,19 @@ description: "Detect formats and extract normalized documents, chunks, hierarchy
 layout: docs
 ---
 
-Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 18 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type.
+Reader is the cross-format path for search, review, ingestion, migration, OCR, and AI preparation. Its 11 exported commands expose the normalized OfficeIMO.Reader model and the easy local image OCR entry point without forcing the caller to switch on every native document type.
 
 ## What Reader returns
 
-- `Get-OfficeDocument` returns the normalized document envelope.
-- `Get-OfficeDocumentDetection` reports detected format and routing evidence.
-- `Get-OfficeDocumentCapability` explains the selected adapter's supported output.
-- `Get-OfficeDocumentHierarchy` exposes section and structural relationships.
-- `Get-OfficeDocumentChunk` returns bounded text/content chunks.
-- `Get-OfficeDocumentStructured` exposes structured content.
-- `Get-OfficeDocumentTable`, `Get-OfficeDocumentVisual`, and `Get-OfficeDocumentAsset` return non-text material explicitly.
-- `Get-OfficeDocumentBatch` and `Get-OfficeDocumentIngest` support pipeline-scale processing.
+- `Read-OfficeDocument` returns the normalized document envelope.
+- `Get-OfficeDocumentInfo` reports detected format and routing evidence.
+- `Get-OfficeDocumentCapability` explains the registered adapters' supported output.
+- `Read-OfficeDocument -As Hierarchy` exposes section and structural relationships.
+- `-As Chunks` returns bounded text/content chunks; `-As Structure` exposes structured content.
+- `-As Tables`, `-As Visuals`, and `-As Assets` return non-text material explicitly.
+- `Read-OfficeDocument -Path .\Knowledge -Recurse -As Ingest` returns a corpus ingestion summary.
 - `Search-OfficeDocument` searches the normalized result.
-- `Get-OfficeImageText` performs local image OCR and can return either plain text or the canonical typed OCR result.
+- `Read-OfficeDocument -Path .\scan.png -As Text -Ocr` performs local image OCR; OCR settings come from `New-OfficeOcrOptions`.
 
 ## Choose Reader versus a native family
 
@@ -35,4 +34,4 @@ Reader adapters are modular. A deployment can carry only the adapters it needs, 
 
 Detect first, inspect capabilities, extract the required surfaces, and record warnings/provenance with the output. Do not silently reduce a document to plain text when tables, visuals, or assets matter to the consumer.
 
-See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.
+See the [document Reader examples](https://github.com/EvotecIT/OfficeIMO/tree/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Reader) and search the [command reference](/api/powershell/) for `OfficeDocument`.

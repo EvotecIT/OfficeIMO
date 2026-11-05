@@ -20,6 +20,7 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
     private double? _width;
     private double? _height;
     private double _opacity = 1D;
+    private double _rotationDegrees;
     private OfficeBlendMode _blendMode = OfficeBlendMode.Normal;
     private OfficeAlignment _horizontalAlignment = OfficeAlignment.Center;
     private PdfVerticalAlign _verticalAlignment = PdfVerticalAlign.Middle;
@@ -70,6 +71,14 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
     public double? Width { get => _width; set { ValidateOptionalPositive(value, nameof(Width)); _width = value; } }
     /// <summary>Optional target rectangle height in physical points in the normalized target-page frame.</summary>
     public double? Height { get => _height; set { ValidateOptionalPositive(value, nameof(Height)); _height = value; } }
+    /// <summary>Rotation in degrees around the target rectangle origin, in the normalized target-page frame.</summary>
+    public double RotationDegrees {
+        get => _rotationDegrees;
+        set {
+            if (double.IsNaN(value) || double.IsInfinity(value)) throw new ArgumentOutOfRangeException(nameof(RotationDegrees), value, "Imported page rotation must be finite.");
+            _rotationDegrees = value;
+        }
+    }
     /// <summary>Imported page opacity from 0 through 1.</summary>
     public double Opacity {
         get => _opacity;
@@ -112,6 +121,7 @@ public sealed class PdfPageOverlayOptions : IPdfOperationCancellation {
         Width = Width,
         Height = Height,
         Opacity = Opacity,
+        RotationDegrees = RotationDegrees,
         BlendMode = BlendMode,
         BehindContent = behindContent ?? BehindContent,
         SourceReadOptions = SourceReadOptions

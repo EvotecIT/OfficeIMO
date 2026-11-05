@@ -20,16 +20,16 @@ $svgPath = Join-Path $outputDirectory 'OnboardingFlow.svg'
 $pngPath = Join-Path $outputDirectory 'OnboardingFlow.png'
 
 New-OfficeVisio -Path $visioPath -Title 'Customer onboarding flow' -UseMastersByDefault -RequestRecalcOnOpen {
-    Import-OfficeVisioStencil -BuiltIn Flowchart -Name Flow -Default
+    Import-OfficeVisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default
 
-    VisioStencil -Catalog Flow -Stencil process -Key intake -Text 'Intake' -X 1.5 -Y 4
-    VisioStencil -Catalog Flow -Stencil decision -Key review -Text 'Review?' -X 4 -Y 4
-    VisioStencil -Catalog Flow -Stencil data -Key archive -Text 'Archive' -X 6.5 -Y 4
+    VisioStencil -Catalog Flow -Stencil process -Key intake -Text 'Intake' -X 1.5in -Y 4in
+    VisioStencil -Catalog Flow -Stencil decision -Key review -Text 'Review?' -X 4in -Y 4in
+    VisioStencil -Catalog Flow -Stencil data -Key archive -Text 'Archive' -X 6.5in -Y 4in
     VisioConnector -From intake -To review -Kind RightAngle -EndArrow Triangle -Label 'submit'
     VisioConnector -From review -To archive -Kind RightAngle -EndArrow Triangle -Label 'store'
 }
 
-Get-OfficeVisioInfo -Path $visioPath -AsText
+(Get-OfficeDocumentInfo -Path $visioPath -Detailed).Details.ToText()
 Export-OfficeDocumentImage -Path $visioPath -Page 1 -OutputPath $svgPath | Out-Null
 Export-OfficeDocumentImage -Path $visioPath -Page 1 -OutputPath $pngPath | Out-Null
 ```

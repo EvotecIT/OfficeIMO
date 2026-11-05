@@ -56,7 +56,7 @@ public class CsvDocumentSaveBenchmarks {
             NewLine = "\n", Encoding = Utf8, CompressionType = Compression,
             CompressionLevel = CompressionLevel.Fastest
         };
-        _document = new CsvDocument().WithHeader(Headers);
+        _document = CsvDocument.Create().WithHeader(Headers);
         _rows = new object?[RowCount][];
         for (int index = 0; index < RowCount; index++) {
             string text = Shape switch {

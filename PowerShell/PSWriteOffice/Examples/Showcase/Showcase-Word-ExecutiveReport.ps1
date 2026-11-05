@@ -36,7 +36,7 @@ $actions = @(
 
 New-OfficeWord -Path $path {
     WordSection {
-        WordPageSetup -PageSize A4 -Top 1134 -Bottom 1134 -Left 1134 -Right 1134
+        WordPageSetup -PageSize A4 -MarginTop 56.7pt -MarginBottom 56.7pt -MarginLeft 56.7pt -MarginRight 56.7pt
         WordHeader {
             WordParagraph {
                 WordText -Bold 'PSWriteOffice Showcase'
@@ -90,7 +90,7 @@ New-OfficeWord -Path $path {
             WordTableCondition -FilterScript { $_.Status -eq 'Needs action' } -BackgroundColor '#fde2e2'
             WordTableCondition -FilterScript { $_.Status -eq 'Watch' } -BackgroundColor '#fff4cc'
         }
-        $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
+        $table | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTop 0.12cm -MarginBottom 0.12cm -MarginLeft 0.16cm -MarginRight 0.16cm
 
         WordParagraph {
             Set-OfficeWordParagraph -Style Heading1 -PageBreakBefore:$true -KeepWithNext:$true -SpacingAfter 8
@@ -99,12 +99,12 @@ New-OfficeWord -Path $path {
         WordParagraph 'Recorded incidents fell from eight in January to three in June. June availability is 99.82%; percentages and incident counts use different units and are reported separately.'
         WordParagraph {
             Set-OfficeWordParagraph -SpacingBefore 12 -SpacingAfter 12
-            WordChart -Type Line -Data $trend -Category Month -Value Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -HeightPixels 240
+            WordChart -Type Line -InputObject $trend -Category Month -Value Incidents -Title 'Incidents by month' -XAxisTitle 'Month' -YAxisTitle 'Incidents' -FitToPageWidth -WidthFraction 1 -Height 240px
         }
 
         WordParagraph -Text 'Action Plan' -Style Heading1
         $actionTable = WordTable -InputObject ($actions | Select-Object Priority, Action, Owner, Due) -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru
-        $actionTable | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTopCentimeters 0.12 -MarginBottomCentimeters 0.12 -MarginLeftCentimeters 0.16 -MarginRightCentimeters 0.16
+        $actionTable | Get-OfficeWordTableCell | Set-OfficeWordTableCell -MarginTop 0.12cm -MarginBottom 0.12cm -MarginLeft 0.16cm -MarginRight 0.16cm
         WordParagraph {
             WordText 'Jump back to '
             WordText -Text 'Executive Summary' -Anchor 'ExecutiveSummary'

@@ -33,7 +33,7 @@ public class CsvDocumentTextFormattingTests
                 break;
             case "CustomNull": options.NullValue = "<missing, value>"; missing = "\"<missing, value>\""; break;
         }
-        var document = new CsvDocument().WithHeader("Number", "Flag", "Text", "Missing")
+        var document = CsvDocument.Create().WithHeader("Number", "Flag", "Text", "Missing")
             .AddRow(12.50m, true, "Łódź, \"quoted\"\nnext;end", null)
             .AddRow(-2, false, "plain", DBNull.Value);
         string firstHeader = profile == "SelectedQuotes" ? "\"Number\"" : "Number";
@@ -54,7 +54,7 @@ public class CsvDocumentTextFormattingTests
             NewLine = "\n",
             Culture = CultureInfo.GetCultureInfo(cultureName)
         };
-        var document = new CsvDocument().AddRow(new ShortFormattedValue());
+        var document = CsvDocument.Create().AddRow(new ShortFormattedValue());
 
         Assert.Equal("\"" + number + ",\"\"quoted\"\"\"\n", document.ToString(options));
     }
@@ -62,7 +62,7 @@ public class CsvDocumentTextFormattingTests
     [Fact]
     public void ToString_Propagates_Custom_Formatting_Failure()
     {
-        var document = new CsvDocument().AddRow(new ShortFormattedValue(throwOnFormat: true));
+        var document = CsvDocument.Create().AddRow(new ShortFormattedValue(throwOnFormat: true));
 
         var error = Assert.Throws<FormatException>(() => document.ToString());
         Assert.Equal("Cannot format this value.", error.Message);

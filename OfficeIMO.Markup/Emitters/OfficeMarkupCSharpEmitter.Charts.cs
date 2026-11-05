@@ -134,7 +134,7 @@ public sealed partial class OfficeMarkupCSharpEmitter {
 
         var dataVariable = $"chartData{chartIndex}";
         EmitExcelChartData(chart, dataVariable, sb);
-        sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart({dataVariable}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
+        sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart(OfficeChartType.{chartType}, {dataVariable}, new ExcelChartOptions {{ Row = {row}, Column = {column}, Width = OfficeLength.Pixels({width}), Height = OfficeLength.Pixels({height}), Title = {CsString(chart.Title ?? string.Empty)} }});");
         EmitExcelChartSemanticOptions(chart, chartVariable, sb);
     }
 
@@ -154,23 +154,19 @@ public sealed partial class OfficeMarkupCSharpEmitter {
             var sourceSheetVariable = $"chartSourceSheet{chartIndex}";
             sb.AppendLine($"var {sourceSheetVariable} = GetOrAddSheet({CsString(sourceSheetName)});");
             EmitExcelChartDataRangeFromSource(sb, chartIndex, sourceSheetVariable, localSource);
-            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart(chartDataRange{chartIndex}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
+            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart(OfficeChartType.{chartType}, chartDataRange{chartIndex}, new ExcelChartOptions {{ Row = {row}, Column = {column}, Width = OfficeLength.Pixels({width}), Height = OfficeLength.Pixels({height}), Title = {CsString(chart.Title ?? string.Empty)} }});");
             return;
         }
 
-        if (source.IndexOf(':') >= 0) {
-            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChartFromRange({CsString(source)}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
-        } else {
-            sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChartFromTable({CsString(source)}, row: {row}, column: {column}, width: OfficeLength.Pixels({width}), height: OfficeLength.Pixels({height}), type: OfficeChartType.{chartType}, title: {CsString(chart.Title ?? string.Empty)});");
-        }
+        sb.AppendLine($"var {chartVariable} = {chartSheetExpression}.AddChart(OfficeChartType.{chartType}, {CsString(source)}, new ExcelChartOptions {{ Row = {row}, Column = {column}, Width = OfficeLength.Pixels({width}), Height = OfficeLength.Pixels({height}), Title = {CsString(chart.Title ?? string.Empty)} }});");
     }
 
     private static void EmitExcelChartDataRangeFromSource(StringBuilder sb, int chartIndex, string sourceSheetVariable, string localSource) {
         if (localSource.IndexOf(':') >= 0) {
-            sb.AppendLine($"var (chartR1_{chartIndex}, chartC1_{chartIndex}, chartR2_{chartIndex}, chartC2_{chartIndex}) = A1.ParseRange({CsString(localSource)});");
+            sb.AppendLine($"var (chartR1_{chartIndex}, chartC1_{chartIndex}, chartR2_{chartIndex}, chartC2_{chartIndex}) = ExcelA1.ParseRange({CsString(localSource)});");
         } else {
             sb.AppendLine($"var chartSourceRange{chartIndex} = {sourceSheetVariable}.GetTableRange({CsString(localSource)}) ?? throw new global::System.InvalidOperationException({CsString("Chart source table was not found.")});");
-            sb.AppendLine($"var (chartR1_{chartIndex}, chartC1_{chartIndex}, chartR2_{chartIndex}, chartC2_{chartIndex}) = A1.ParseRange(chartSourceRange{chartIndex});");
+            sb.AppendLine($"var (chartR1_{chartIndex}, chartC1_{chartIndex}, chartR2_{chartIndex}, chartC2_{chartIndex}) = ExcelA1.ParseRange(chartSourceRange{chartIndex});");
         }
 
         sb.AppendLine($"var chartDataRange{chartIndex} = new ExcelChartDataRange({sourceSheetVariable}.Name, chartR1_{chartIndex}, chartC1_{chartIndex}, chartR2_{chartIndex} - chartR1_{chartIndex}, chartC2_{chartIndex} - chartC1_{chartIndex}, hasHeaderRow: true);");

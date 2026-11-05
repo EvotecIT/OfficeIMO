@@ -16,31 +16,32 @@ public sealed class LatexMarkdownConversionTests {
 
     [Fact]
     public void TechnicalLatex_ConvertsToTypedMarkdownWithExplicitMathAndCitationLoss() {
-        LatexToMarkdownResult result = LatexDocument.ParseResult(Source).Document.ToMarkdownDocumentResult();
+        var result = LatexDocument.ParseResult(Source).Document.ToMarkdown(null, out OfficeIMO.OfficeConversionReport conversionReport1);
+        var resultReport = (LatexToMarkdownReport)conversionReport1;
 
-        Assert.Equal("Guide", result.Value.Blocks.OfType<HeadingBlock>().First().Text);
-        Assert.Contains(result.Value.Blocks.OfType<HeadingBlock>(), heading => heading.Text == "Start");
-        ParagraphBlock paragraph = Assert.Single(result.Value.Blocks.OfType<ParagraphBlock>(), block =>
+        Assert.Equal("Guide", result.Blocks.OfType<HeadingBlock>().First().Text);
+        Assert.Contains(result.Blocks.OfType<HeadingBlock>(), heading => heading.Text == "Start");
+        ParagraphBlock paragraph = Assert.Single(result.Blocks.OfType<ParagraphBlock>(), block =>
             block.Inlines.Nodes.OfType<BoldSequenceInline>().Any());
         Assert.Contains(paragraph.Inlines.Nodes, node => node is LinkInline);
         Assert.Contains(paragraph.Inlines.Nodes, node => node is CodeSpanInline);
-        Assert.Single(result.Value.Blocks.OfType<UnorderedListBlock>());
-        ImageBlock image = Assert.Single(result.Value.Blocks.OfType<ImageBlock>());
+        Assert.Single(result.Blocks.OfType<UnorderedListBlock>());
+        ImageBlock image = Assert.Single(result.Blocks.OfType<ImageBlock>());
         Assert.Equal("plot.png", image.Path);
         Assert.Equal("Plot", image.Caption);
-        Assert.Single(result.Value.Blocks.OfType<TableBlock>());
-        Assert.Single(result.Value.Blocks.OfType<CalloutBlock>());
-        Assert.Single(result.Value.Blocks.OfType<SemanticFencedBlock>());
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
-        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
+        Assert.Single(result.Blocks.OfType<TableBlock>());
+        Assert.Single(result.Blocks.OfType<CalloutBlock>());
+        Assert.Single(result.Blocks.OfType<SemanticFencedBlock>());
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
+        Assert.Contains(resultReport.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
         Assert.Equal(Source, LatexDocument.ParseResult(Source).Document.ToLatex());
     }
 
     [Fact]
     public void LatexProjection_UsesExistingWordBridge() {
-        LatexToMarkdownResult conversion = LatexDocument.ParseResult(Source).Document.ToMarkdownDocumentResult();
+        var conversion = LatexDocument.ParseResult(Source).Document.ToMarkdown(null);
 
-        using var word = conversion.Value.ToWord();
+        using var word = conversion.ToWord();
         string text = string.Join(" ", word.Paragraphs.Select(paragraph => paragraph.Text));
 
         Assert.Contains("Guide", text, StringComparison.Ordinal);
@@ -75,21 +76,22 @@ public sealed class LatexMarkdownConversionTests {
             "![Plot](plot.png)\n";
         MarkdownDocument document = MarkdownDocument.Parse(markdown);
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport3);
+        var resultReport = (MarkdownToLatexReport)conversionReport3;
 
-        Assert.Contains("\\documentclass{article}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\usepackage{graphicx}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\usepackage{hyperref}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\title{Guide}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\section{Start}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\begin{itemize}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\begin{tabular}{ll}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\begin{figure}", result.Source, StringComparison.Ordinal);
-        Assert.True(result.Value.IsRecognizedProfile);
-        Assert.Equal(result.Source, result.Value.ToLatex());
-        Assert.Single(result.Value.Lists);
-        Assert.Single(result.Value.Tables);
-        Assert.Single(result.Value.Figures);
+        Assert.Contains("\\documentclass{article}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\usepackage{graphicx}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\usepackage{hyperref}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\title{Guide}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\section{Start}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\begin{itemize}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\begin{tabular}{ll}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\begin{figure}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.True(result.IsRecognizedProfile);
+        Assert.Equal(resultReport.GeneratedSource, result.ToLatex());
+        Assert.Single(result.Lists);
+        Assert.Single(result.Tables);
+        Assert.Single(result.Figures);
     }
 
     [Fact]
@@ -102,32 +104,35 @@ public sealed class LatexMarkdownConversionTests {
         MarkdownDocument document = MarkdownDocument.Create();
         document.Add(table);
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport4);
+        var resultReport = (MarkdownToLatexReport)conversionReport4;
 
-        Assert.Contains("\\usepackage{multirow}", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\multicolumn{2}{l}{", result.Source, StringComparison.Ordinal);
-        Assert.Contains("\\multirow{2}{*}{", result.Source, StringComparison.Ordinal);
+        Assert.Contains("\\usepackage{multirow}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\multicolumn{2}{l}{", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Contains("\\multirow{2}{*}{", resultReport.GeneratedSource, StringComparison.Ordinal);
     }
 
     [Fact]
     public void UnsupportedMarkdown_IsVisibleInVerbatimAndDiagnosed() {
         MarkdownDocument document = MarkdownDocument.Create().Hr();
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport5);
+        var resultReport = (MarkdownToLatexReport)conversionReport5;
 
-        Assert.Contains("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
-        Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.NativeDiagnostics).Outcome);
+        Assert.Contains("\\begin{verbatim}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(resultReport.NativeDiagnostics).Outcome);
     }
 
     [Fact]
     public void MarkdownFootnoteReference_UsesDefinitionBodyAndDoesNotEmitDefinitionFallback() {
         MarkdownDocument document = MarkdownDocument.Parse("Text[^1].\n\n[^1]: real **text**\n");
 
-        MarkdownToLatexResult result = document.ToLatexDocumentResult();
+        var result = document.ToLatex(null, out OfficeIMO.OfficeConversionReport conversionReport6);
+        var resultReport = (MarkdownToLatexReport)conversionReport6;
 
-        Assert.Contains("\\footnote{real \\textbf{text}}", result.Source, StringComparison.Ordinal);
-        Assert.DoesNotContain("\\footnote{1}", result.Source, StringComparison.Ordinal);
-        Assert.DoesNotContain("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Report.NativeDiagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
+        Assert.Contains("\\footnote{real \\textbf{text}}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\footnote{1}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain("\\begin{verbatim}", resultReport.GeneratedSource, StringComparison.Ordinal);
+        Assert.DoesNotContain(resultReport.NativeDiagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
     }
 }

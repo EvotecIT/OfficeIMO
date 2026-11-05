@@ -30,7 +30,7 @@ internal static class IWorkPreservationPackageWriter {
         }
         byte[] bytes = IWorkNativePackageWriter.WriteEntries(entries, limits.MaxPackageBytes, token);
         // Carrier/encoded entry sizes can grow; retain captured decompression and structural budgets.
-        IWorkReadOptions verification = source.Options.Snapshot();
+        IWorkLoadOptions verification = source.Options.Snapshot();
         verification.MaxPackageBytes = Math.Max(verification.MaxPackageBytes, bytes.Length);
         long outputEntryBytes = 0;
         foreach (var entry in entries) {
@@ -42,7 +42,7 @@ internal static class IWorkPreservationPackageWriter {
         verification.MaxTotalEntryBytes = Math.Max(verification.MaxTotalEntryBytes, outputEntryBytes);
         verification.MaxSnappyChunkBytes = Math.Max(verification.MaxSnappyChunkBytes,
             Math.Min(65_536, verification.MaxDecompressedIwaBytes));
-        IWorkSourceDocument reopened = IWorkSourceDocument.Open(bytes, source.Kind, verification, token);
+        IWorkSourceDocument reopened = IWorkSourceDocument.Load(bytes, source.Kind, verification, token);
         if (reopened.Records.Count != source.Records.Count || reopened.Entries.Count != source.Entries.Count)
             throw new InvalidDataException("The saved package changed source entry or record membership.");
         var diagnostics = new List<IWorkDiagnostic> {

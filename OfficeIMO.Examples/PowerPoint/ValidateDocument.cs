@@ -53,7 +53,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 },                includeHeaders: true,left: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Left.ToCentimeters()),top: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Top.ToCentimeters()),width: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Width.ToCentimeters()),height: global::OfficeIMO.OfficeLength.Centimeters(bodyBox.Height.ToCentimeters()));
             table.ApplyStyle(PowerPointTableStylePreset.Default);
             table.SetColumnWidthsEvenly();
-            for (int c = 0; c < table.Columns; c++) {
+            for (int c = 0; c < table.ColumnCount; c++) {
                 PowerPointTableCell header = table.GetCell(0, c);
                 header.Bold = true;
                 header.HorizontalAlignment = PowerPointTextAlignment.Center;

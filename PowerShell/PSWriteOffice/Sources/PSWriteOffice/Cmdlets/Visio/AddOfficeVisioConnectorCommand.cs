@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Management.Automation;
+using OfficeIMO;
+using PSWriteOffice.Foundation;
 using OfficeIMO.Visio;
 using PSWriteOffice.Services.Visio;
 
@@ -17,32 +19,21 @@ namespace PSWriteOffice.Cmdlets.Visio;
 /// }</code>
 ///   <para>Adds a routed connector between shapes registered in the current DSL scope.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Add, "OfficeVisioConnector", DefaultParameterSetName = ByKeyParameterSet)]
-[Alias("VisioConnector")]
+[Cmdlet(VerbsCommon.Add, "OfficeVisioConnector", DefaultParameterSetName = "Page")]
 [OutputType(typeof(VisioConnector))]
+[Alias("VisioConnector") ]
 public sealed class AddOfficeVisioConnectorCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ByKeyParameterSet = "ByKey";
-    private const string ByShapeParameterSet = "ByShape";
 
     /// <summary>Target page. Optional inside <c>VisioPage</c> or <c>OfficeVisio</c>.</summary>
     [Parameter(ValueFromPipeline = true)]
     public VisioPage? Page { get; set; }
 
-    /// <summary>Source shape key, id, or name.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ByKeyParameterSet)]
-    public string From { get; set; } = string.Empty;
-
-    /// <summary>Target shape key, id, or name.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ByKeyParameterSet)]
-    public string To { get; set; } = string.Empty;
-
-    /// <summary>Source shape object.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ByShapeParameterSet)]
-    public VisioShape FromShape { get; set; } = null!;
-
-    /// <summary>Target shape object.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ByShapeParameterSet)]
-    public VisioShape ToShape { get; set; } = null!;
+    /// <summary>Source shape object or a registered key, id or name.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Page")]
+    public object From { get; set; } = null!;
+    /// <summary>Target shape object or a registered key, id or name.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = "Page")]
+    public object To { get; set; } = null!;
 
     /// <summary>Connector kind.</summary>
     [Parameter]
@@ -62,13 +53,12 @@ public sealed class AddOfficeVisioConnectorCommand : PSWriteOffice.Cmdlets.Offic
 
     /// <summary>Line color name or hex value.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? LineColor { get; set; }
+    [OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? LineColor { get; set; }
 
     /// <summary>Line weight.</summary>
-    [Parameter]
-    public double? LineWeight { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? LineWeight { get; set; }
 
     /// <summary>Native Visio line-pattern index: 0 hides the line, 1 is solid, and 2 through 23 select built-in patterns.</summary>
     [Parameter]
@@ -87,16 +77,22 @@ public sealed class AddOfficeVisioConnectorCommand : PSWriteOffice.Cmdlets.Offic
     protected override void ProcessRecord() {
         var context = VisioDslContext.Current;
         var page = Page ?? (context ?? VisioDslContext.Require(this)).RequirePage();
-        var fromShape = ParameterSetName == ByShapeParameterSet
-            ? FromShape
-            : ResolveShape(context, page, From);
-        var toShape = ParameterSetName == ByShapeParameterSet
-            ? ToShape
-            : ResolveShape(context, page, To);
+        var fromShape = ResolveShapeInput(context, page, From);
+        var toShape = ResolveShapeInput(context, page, To);
 
         var connector = page.AddConnector(fromShape, toShape, Kind, FromSide, ToSide);
-        VisioShapeCommandUtilities.ApplyConnectorStyle(connector, LineColor, LineWeight, LinePattern, BeginArrow, EndArrow, Label);
+        VisioShapeCommandUtilities.ApplyConnectorStyle(connector, LineColor?.Resolve(OfficeTheme.Default).ToString(), LineWeight?.ToInches(), LinePattern, BeginArrow, EndArrow, Label);
         WritePassThru(connector);
+    }
+
+    private VisioShape ResolveShapeInput(VisioDslContext? context, VisioPage page, object input) {
+        object value = input is PSObject wrapped ? wrapped.BaseObject : input;
+        if (value is VisioShape shape) {
+            if (!page.AllShapes().Contains(shape)) throw new PSArgumentException("The connector shape must belong to its target page.");
+            return shape;
+        }
+        if (value is string key) return ResolveShape(context, page, key);
+        throw new PSArgumentException("From and To accept a VisioShape or a shape key, id or name.");
     }
 
     private VisioShape ResolveShape(VisioDslContext? context, VisioPage page, string value) {

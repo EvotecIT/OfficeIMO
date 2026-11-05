@@ -16,11 +16,11 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     private OneNoteMaterializedObjectSpace? _activeSourceSpace;
 
     internal OneNoteWriteGraphBuilder(
-        long maxPayloadBytes = OneNoteReaderOptions.DefaultMaxInputBytes,
+        long maxPayloadBytes = OneNoteLoadOptions.DefaultMaxInputBytes,
         bool preserveUnknownData = true,
-        int maxPageRelationshipDepth = OneNoteReaderOptions.DefaultMaxPageRelationshipDepth,
-        int maxContentDepth = OneNoteWriterOptions.DefaultMaxContentDepth,
-        int maxInkPathValues = OneNoteReaderOptions.DefaultMaxInkPathValues) {
+        int maxPageRelationshipDepth = OneNoteLoadOptions.DefaultMaxPageRelationshipDepth,
+        int maxContentDepth = OneNoteSaveOptions.DefaultMaxContentDepth,
+        int maxInkPathValues = OneNoteLoadOptions.DefaultMaxInkPathValues) {
         _maxPayloadBytes = maxPayloadBytes;
         _preserveUnknownData = preserveUnknownData;
         _maxPageRelationshipDepth = maxPageRelationshipDepth;

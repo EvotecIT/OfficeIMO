@@ -3,7 +3,7 @@ namespace OfficeIMO.OneNote;
 internal static partial class OneNoteSemanticMapper {
     internal static void CollapseInlineMathRuns(
         OneNoteParagraph paragraph,
-        int maximumNativeMathDepth = OneNoteReaderOptions.DefaultMaxPropertySetDepth) {
+        int maximumNativeMathDepth = OneNoteLoadOptions.DefaultMaxPropertySetDepth) {
         if (!paragraph.Runs.Any(IsNativeMathRun)) return;
         var semanticRuns = new List<OneNoteTextRun>();
         int index = 0;

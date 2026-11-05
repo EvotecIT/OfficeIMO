@@ -491,7 +491,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
                 new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
         source.AddSlide(PowerPointSlideLayoutType.Title);
         PowerPointSlide overrideSlide = source.AddSlide(PowerPointSlideLayoutType.Blank);
-        overrideSlide.BackgroundColor = "CC5500";
+        overrideSlide.BackgroundColor = OfficeColor.Parse("CC5500");
 
         OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes()));
@@ -563,7 +563,7 @@ public sealed class PowerPointOdpPresentationSemanticsTests {
         source.OpenXmlDocument.PresentationPart!.SlideMasterParts.First().SlideMaster!
             .CommonSlideData!.Background = new Background(new BackgroundProperties(
                 new A.SolidFill(new A.RgbColorModelHex { Val = "336699" })));
-        source.AddSlide(PowerPointSlideLayoutType.Blank).SetBackgroundGradient("FF0000", "0000FF");
+        source.AddSlide(PowerPointSlideLayoutType.Blank).SetBackgroundGradient(OfficeColor.Parse("FF0000"), OfficeColor.Parse("0000FF"));
 
         OdfConversionResult<OdpPresentation> conversion = source.ConvertToOpenDocumentWithEvidence();
         OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(conversion.Value.ToBytes()));

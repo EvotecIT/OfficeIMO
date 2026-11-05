@@ -255,9 +255,12 @@ public partial class Excel {
         Assert.Equal(global::OfficeIMO.OfficeColor.FromRgb(248, 250, 252), style.RowStripeFill);
     }
 
-    [Fact]
-    public void SaveAsPdf_ExcelWorkbook_Respects_Selected_Sheets() {
-        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSelectedSheets.xlsx");
+    [Theory]
+    [InlineData("name")]
+    [InlineData("position")]
+    [InlineData("pattern")]
+    public void SaveAsPdf_ExcelWorkbook_Respects_Selected_Sheets(string selection) {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfSelectedSheets-" + selection + ".xlsx");
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
@@ -270,7 +273,11 @@ public partial class Excel {
             document.Save();
 
             bytes = document.ToPdf(new ExcelPdfExportOptions {
-                SheetNames = new[] { "summary" }
+                Sheets = new[] { selection switch {
+                    "position" => OfficeSheetSelector.From(1),
+                    "pattern" => OfficeSheetSelector.From("Summ*"),
+                    _ => OfficeSheetSelector.From("summary")
+                } }
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
         }
 
@@ -304,7 +311,7 @@ public partial class Excel {
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
             explicitHiddenBytes = document.ToPdf(new ExcelPdfExportOptions {
-                SheetNames = new[] { "Hidden" },
+                Sheets = new[] { new OfficeSheetSelector("Hidden") },
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             }).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });

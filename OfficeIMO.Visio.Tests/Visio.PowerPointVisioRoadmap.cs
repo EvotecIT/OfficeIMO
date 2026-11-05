@@ -404,12 +404,10 @@ namespace OfficeIMO.Tests {
                 "visio/macros/_rels/project.bin.rels");
             using (Stream output = relationshipEntry.Open())
                 vbaRelationships.Save(output);
-            UpdateXmlEntry(archive, "visio/_rels/document.xml.rels", document => {
-                document.Root!.Add(new XElement(relationships + "Relationship",
+            UpdateXmlEntry(archive, "visio/_rels/document.xml.rels", document => document.Root!.Add(new XElement(relationships + "Relationship",
                     new XAttribute("Id", "rIdVba"),
                     new XAttribute("Type", "http://schemas.microsoft.com/office/2006/relationships/vbaProject"),
-                    new XAttribute("Target", "macros/project.bin")));
-            });
+                    new XAttribute("Target", "macros/project.bin"))));
             UpdateXmlEntry(archive, "[Content_Types].xml", document => {
                 XNamespace types = "http://schemas.openxmlformats.org/package/2006/content-types";
                 document.Root!.Add(new XElement(types + "Override",

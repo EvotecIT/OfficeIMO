@@ -2,20 +2,21 @@
   "package": "OfficeIMO.Markdown",
   "status": "M0 change map, generated from the OfficeIMO 3.5.3 net8.0 build (b7d2cf5137) by reflection plus source lookup. Signatures are reflection renderings: default values are unquoted and \"CancellationToken cancellationToken = null\" means \"= default\".",
   "summary": {
-    "changes": 78,
+    "changes": 80,
     "byAction": {
       "change": 14,
       "internalize": 17,
-      "merge": 16,
+      "merge": 17,
       "move": 1,
       "remove": 3,
-      "rename": 27
+      "rename": 28
     },
     "byCategory": {
       "lifecycle": 27,
-      "naming": 30,
+      "naming": 31,
       "options": 4,
-      "visibility": 17
+      "visibility": 17,
+      "authoring": 1
     },
     "packageMoves": 1
   },
@@ -1040,7 +1041,7 @@
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
-      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Kind, IncludeCssInFragment). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
       "phase": "A",
       "applied": "applied"
     },
@@ -1052,7 +1053,7 @@
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
-      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Kind, IncludeCssInFragment). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
       "phase": "A",
       "applied": "applied"
     },
@@ -1064,7 +1065,7 @@
       "reason": "One way to do each thing.",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
-      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Fragment, IncludeCss). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
+      "notes": "Three HTML string forms; fragment/CSS become options (MarkdownHtmlExportOptions.Kind, IncludeCssInFragment). Markdown->HTML is Markdown's own string renderer with no HTML-engine dependency, so it can stay in this package (record as a documented exception to \"conversions live in adapters\").",
       "phase": "A",
       "applied": "applied"
     },
@@ -1085,7 +1086,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtml(string path | Stream stream, MarkdownHtmlExportOptions options = null) : OfficeConversionReport",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "Returns void today; no Stream overload.",
@@ -1097,7 +1098,7 @@
       "kind": "method",
       "action": "change",
       "new": "OfficeIMO.Markdown.MarkdownDocument.SaveAsHtmlAsync(string path | Stream stream, MarkdownHtmlExportOptions options = null) : Task<OfficeConversionReport>",
-      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From… factories (design: Conversion).",
+      "reason": "Conversion forms are SaveAs{Target} and To{Target}, always called on the source document; there are no static From\u2026 factories (design: Conversion).",
       "file": "OfficeIMO.Markdown/Core/MarkdownDoc.cs",
       "category": "lifecycle",
       "notes": "Returns void today; no Stream overload.",
@@ -2063,6 +2064,42 @@
       "replacement": "A non-null Name or Caption throws NotSupportedException (Name was silently ignored). Add a heading or paragraph before the table instead.",
       "reason": "Markdown tables have neither a native name nor a caption, so the intent is reported instead of ignored.",
       "category": "tables"
+    },
+    {
+      "old": "OfficeIMO.Markdown.MarkdownParagraphBuilder",
+      "kind": "type",
+      "action": "merge",
+      "new": "OfficeIMO.Markdown.InlineSequence",
+      "replacement": "Compose paragraphs with AddParagraph(Action<InlineSequence>), P(Action<InlineSequence>) and MarkdownQuoteBuilder.P(Action<InlineSequence>).",
+      "reason": "The existing inline model already owns text, links and all inline formatting; a forwarding paragraph wrapper duplicates that model. The document-returning Markdown shortcuts remain supported.",
+      "category": "authoring"
+    },
+    {
+      "old": "OfficeIMO.Markdown.InlineSequence.Strike(string text)",
+      "kind": "method",
+      "action": "rename",
+      "new": "OfficeIMO.Markdown.InlineSequence.Strikethrough(string text)",
+      "replacement": "Use Strikethrough(text).",
+      "reason": "One spelling for the same text decoration across the public models.",
+      "category": "naming"
+    },
+    {
+      "old": "Host-only OfficeTheme to MarkdownVisualTheme preset selection",
+      "kind": "type",
+      "action": "change",
+      "new": "MarkdownVisualTheme.FromOfficeTheme(OfficeTheme)",
+      "replacement": "Projects native palette/table styling and retains complete immutable SourceTheme through Clone; native Markdown HTML emits the shared OfficeTheme CSS tokens and Markdown-to-Word creation consumes its native typography/theme. Custom theme values are retained instead of reducing to a named preset.",
+      "category": "conversion",
+      "applied": true
+    },
+    {
+      "old": "Markdown HTML facade parses ReaderOptions before rendering",
+      "kind": "property",
+      "action": "change",
+      "new": "MarkdownHtmlExportOptions.ReaderOptions",
+      "replacement": "The canonical markdown-html source route captures native MarkdownLoadOptions, including dialect, normalization, URL and size limits, and applies them before parsing. Rendering an already parsed MarkdownDocument keeps its existing tree.",
+      "category": "conversion",
+      "applied": true
     }
   ],
   "packageMoves": [

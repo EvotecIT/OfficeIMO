@@ -58,7 +58,7 @@ internal static partial class DocumentFeatureShowcase {
                 cell.FontSize = global::OfficeIMO.OfficeLength.Points(20);
                 cell.Bold = row == 0;
                 cell.Color = OfficeColor.Parse(row == 0 ? "FFFFFF" : "17365D");
-                cell.FillColor = row == 0 ? "17365D" : row % 2 == 0 ? "EAF1FB" : "F8FAFC";
+                cell.FillColor = OfficeColor.Parse(row == 0 ? "17365D" : row % 2 == 0 ? "EAF1FB" : "F8FAFC");
                 cell.VerticalAlignment = PowerPointTextVerticalAlignment.Center;
                 cell.PaddingLeft = global::OfficeIMO.OfficeLength.Points(14);
                 cell.HorizontalAlignment = column == 0 ? PowerPointTextAlignment.Left : PowerPointTextAlignment.Center;
@@ -75,7 +75,7 @@ internal static partial class DocumentFeatureShowcase {
         string[] fills = { "EAF1FB", "F1EAFC", "E7F6ED" };
         for (int index = 0; index < titles.Length; index++) {
             double left = 1.5 + index * 10.3;
-            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(left), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(7.5), "Stage " + (index + 1)).Fill(fills[index]).Stroke("CBD5E1", global::OfficeIMO.OfficeLength.Points(1));
+            slide.AddRectangle(OfficeIMO.OfficeLength.Centimeters(left), OfficeIMO.OfficeLength.Centimeters(5.5), OfficeIMO.OfficeLength.Centimeters(9.3), OfficeIMO.OfficeLength.Centimeters(7.5), "Stage " + (index + 1)).Fill(OfficeColor.Parse(fills[index])).Stroke(OfficeColor.Parse("CBD5E1"), global::OfficeIMO.OfficeLength.Points(1));
             PowerPointTextBox label = slide.AddTextBox(titles[index],global::OfficeIMO.OfficeLength.Centimeters(left + 0.5),global::OfficeIMO.OfficeLength.Centimeters(6.2),global::OfficeIMO.OfficeLength.Centimeters(8.3),global::OfficeIMO.OfficeLength.Centimeters(1.5));
             label.FontSize = global::OfficeIMO.OfficeLength.Points(24);
             label.Color = OfficeColor.Parse("17365D");
@@ -104,7 +104,7 @@ internal static partial class DocumentFeatureShowcase {
         text.AddBullet("Leave enough room to read.");
         text.ApplyAutoSpacing(lineSpacingMultiplier: 1.25, spaceAfter: global::OfficeIMO.OfficeLength.Points(12));
         PowerPointTextBox note = slide.AddTextBox("Editable text\n\nSearch, select, and revise the content in the slide.",global::OfficeIMO.OfficeLength.Centimeters(22),global::OfficeIMO.OfficeLength.Centimeters(5),global::OfficeIMO.OfficeLength.Centimeters(9.5),global::OfficeIMO.OfficeLength.Centimeters(10));
-        note.FillColor = "EAF1FB";
+        note.FillColor = OfficeColor.Parse("EAF1FB");
         note.Color = OfficeColor.Parse("17365D");
         note.FontSize = global::OfficeIMO.OfficeLength.Points(22);
         note.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.6), global::OfficeIMO.OfficeLength.Centimeters(0.6), global::OfficeIMO.OfficeLength.Centimeters(0.6), global::OfficeIMO.OfficeLength.Centimeters(0.6));

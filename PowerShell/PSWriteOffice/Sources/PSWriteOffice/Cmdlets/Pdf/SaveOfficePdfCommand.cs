@@ -22,7 +22,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficePdfCommand : OfficeCmdlet {
     /// <summary>Live PDF to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public PdfDocument Document { get; set; } = null!;
 
     /// <summary>Optional destination; omission uses the native document's associated path.</summary>

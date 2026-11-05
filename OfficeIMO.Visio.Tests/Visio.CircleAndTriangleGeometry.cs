@@ -4,7 +4,6 @@ using System.IO.Packaging;
 using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Visio;
-using OfficeIMO.Visio.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -13,9 +12,10 @@ namespace OfficeIMO.Tests {
         public void CircleAndTriangleEmitExpectedGeometry() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             var doc = VisioDocument.Create(filePath);
-            doc.AsFluent().AddPage("Page-1", p => p
-                .AddCircle("C1", x:OfficeLength.Inches( 2), y:OfficeLength.Inches( 2), diameter:OfficeLength.Inches( 1))
-                .AddTriangle("T1", x:OfficeLength.Inches( 4), y:OfficeLength.Inches( 4), width:OfficeLength.Inches( 2), height:OfficeLength.Inches( 1)));
+            doc.AddPage("Page-1", p => {
+                p.AddCircle("C1", x:OfficeLength.Inches( 2), y:OfficeLength.Inches( 2), diameter:OfficeLength.Inches( 1));
+                p.AddTriangle("T1", x:OfficeLength.Inches( 4), y:OfficeLength.Inches( 4), width:OfficeLength.Inches( 2), height:OfficeLength.Inches( 1));
+            });
             doc.Save();
 
             using Package package = Package.Open(filePath, FileMode.Open, FileAccess.Read);

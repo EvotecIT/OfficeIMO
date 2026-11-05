@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Same", 1, 1, 42d), new TableSpec("Same", 1, 1, 84d)
         });
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers, new IWorkReadOptions { PreserveSourceRecords = false }).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers, new IWorkLoadOptions { PreserveSourceRecords = false }).ToExcelResult(new IWorkConversionOptions { NormalizeWorksheetNames = true });
         Assert.Empty(result.Report.PreservedRecords);
         IWorkSourceUnitCount tables = Count(result.Report, IWorkSourceUnitKind.Table);
         Assert.Equal(2, tables.TotalCount);
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateNumbersPackage(new[] {
             new TableSpec("Recovered", 1, 1, 42d), new TableSpec("Missing", 1, 1, 0d, missingModel: true)
         }, includePreview: true);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         IWorkSourceUnitCount tables = Count(result.Report, IWorkSourceUnitKind.Table);
         Assert.Equal(2, tables.TotalCount);
@@ -58,7 +58,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Independent_keynote_slides_retain_their_native_identities() {
-        using var result = IWorkSourceDocument.Open(CorpusFixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(CorpusFixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });
         Assert.False(result.IsVisualFallback);
         Assert.Equal(2, Count(result.Report, IWorkSourceUnitKind.Slide).ReconstructedCount);
         Assert.Equal(2, result.Projection.Slides.Select(slide => slide.SourceIdentity!.RecordIdentifier).Distinct().Count());
@@ -74,7 +74,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void A_visual_preview_does_not_establish_individual_source_unit_coverage() {
-        using var result = IWorkSourceDocument.Open(CorpusFixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
+        using var result = IWorkSourceDocument.Load(CorpusFixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote).ToPowerPointResult(IWorkTestPolicy.ForIncompletePreview(new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly }));
         Assert.True(result.IsVisualFallback);
         Assert.False(result.Report.HasCompleteVisualCoverage);
         Assert.NotEmpty(result.Report.SourceUnits);
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Unused_header_records_are_excluded_from_document_unit_counts() {
         using MemoryStream package = CreatePagesPackageWithTwoSections(emptySecondSection: true);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult();
         IWorkSourceUnitCount text = Count(result.Report, IWorkSourceUnitKind.Text);
         Assert.Equal(2, text.TotalCount);
         Assert.Equal(2, text.ReconstructedCount);

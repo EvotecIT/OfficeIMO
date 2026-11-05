@@ -11,17 +11,17 @@ Adds a table to a PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfTable [-InputObject] <Object> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-Align <OfficeAlignment>] [-TableStyle <string>] [-HeaderFill <string>] [-HeaderTextColor <string>] [-TextColor <string>] [-RowStripeFill <string>] [-BorderColor <string>] [-BorderWidth <Double>] [-FontSize <Double>] [-HeaderFontSize <Double>] [-LineHeight <Double>] [-CellPaddingX <Double>] [-CellPaddingY <Double>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-Caption <string>] [-CaptionAlign <OfficeAlignment>] [-CaptionColor <string>] [-CaptionFontSize <Double>] [-ColumnWidthPoints <double[]>] [-ColumnWidthWeights <double[]>] [-ColumnAlign <OfficeAlignment[]>] [-AutoFitColumns] [-RightAlignNumeric] [-ShrinkTextToFit] [-MinimumShrinkFontSize <Double>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderFill] [-NoRowStripeFill] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfTable [-InputObject] <Object[]> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfTable [-InputObject] <Object> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-Align <OfficeAlignment>] [-TableStyle <string>] [-HeaderFill <string>] [-HeaderTextColor <string>] [-TextColor <string>] [-RowStripeFill <string>] [-BorderColor <string>] [-BorderWidth <Double>] [-FontSize <Double>] [-HeaderFontSize <Double>] [-LineHeight <Double>] [-CellPaddingX <Double>] [-CellPaddingY <Double>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-Caption <string>] [-CaptionAlign <OfficeAlignment>] [-CaptionColor <string>] [-CaptionFontSize <Double>] [-ColumnWidthPoints <double[]>] [-ColumnWidthWeights <double[]>] [-ColumnAlign <OfficeAlignment[]>] [-AutoFitColumns] [-RightAlignNumeric] [-ShrinkTextToFit] [-MinimumShrinkFontSize <Double>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderFill] [-NoRowStripeFill] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfTable [-InputObject] <Object[]> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ### PipelineDocument
 ```powershell
-Add-OfficePdfTable [-InputObject] <Object> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-Align <OfficeAlignment>] [-TableStyle <string>] [-HeaderFill <string>] [-HeaderTextColor <string>] [-TextColor <string>] [-RowStripeFill <string>] [-BorderColor <string>] [-BorderWidth <Double>] [-FontSize <Double>] [-HeaderFontSize <Double>] [-LineHeight <Double>] [-CellPaddingX <Double>] [-CellPaddingY <Double>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-Caption <string>] [-CaptionAlign <OfficeAlignment>] [-CaptionColor <string>] [-CaptionFontSize <Double>] [-ColumnWidthPoints <double[]>] [-ColumnWidthWeights <double[]>] [-ColumnAlign <OfficeAlignment[]>] [-AutoFitColumns] [-RightAlignNumeric] [-ShrinkTextToFit] [-MinimumShrinkFontSize <Double>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderFill] [-NoRowStripeFill] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfTable [-InputObject] <Object[]> -Document <PdfDocument> [-Property <string[]>] [-Header <string[]>] [-View <OfficeTableView>] [-CollectionSeparator <string>] [-DictionaryEntrySeparator <string>] [-DictionaryKeyValueSeparator <string>] [-MaxCollectionItems <int>] [-MaxNestingDepth <int>] [-ColumnFormat <hashtable>] [-Alignment <OfficeAlignment>] [-TableStyle <string>] [-HeaderBackgroundColor <OfficeColor>] [-HeaderColor <OfficeColor>] [-Color <OfficeColor>] [-BandColor <OfficeColor>] [-BorderColor <OfficeColor>] [-BorderWidth <OfficeLength>] [-Size <OfficeLength>] [-HeaderSize <OfficeLength>] [-LineHeight <Double>] [-CellPaddingX <OfficeLength>] [-CellPaddingY <OfficeLength>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-Caption <string>] [-CaptionAlignment <OfficeAlignment>] [-CaptionColor <OfficeColor>] [-CaptionSize <OfficeLength>] [-ColumnWidth <OfficeLength[]>] [-ColumnWeight <double[]>] [-ColumnAlignment <OfficeAlignment[]>] [-AutoFit] [-NoNumericAlignment] [-ShrinkToFit] [-MinimumSize <OfficeLength>] [-KeepTogether] [-KeepWithNext] [-NoBorder] [-NoHeaderBackground] [-NoBanding] [-HeaderRowCount <Int32>] [-RepeatHeaderRowCount <Int32>] [-FooterRowCount <Int32>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -45,7 +45,7 @@ Converts PowerShell objects into a table using selected properties and friendly 
 
 ## PARAMETERS
 
-### -Align
+### -Alignment
 Table alignment.
 
 ```yaml
@@ -61,7 +61,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -AutoFitColumns
+### -AutoFit
 Measure flexible columns from content.
 
 ```yaml
@@ -77,11 +77,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -BandColor
+Alternating body row fill color. Named colors and hexadecimal values are accepted.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -BorderColor
 Border color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -97,7 +113,7 @@ Accept wildcard characters: False
 Border width in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -125,7 +141,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CaptionAlign
+### -CaptionAlignment
 Caption alignment.
 
 ```yaml
@@ -145,7 +161,7 @@ Accept wildcard characters: False
 Caption color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -157,11 +173,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CaptionFontSize
+### -CaptionSize
 Caption font size in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -177,7 +193,7 @@ Accept wildcard characters: False
 Horizontal cell padding in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -193,7 +209,7 @@ Accept wildcard characters: False
 Vertical cell padding in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -221,7 +237,23 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ColumnAlign
+### -Color
+Body text color. Named colors and hexadecimal values are accepted.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ColumnAlignment
 Per-column horizontal alignment.
 
 ```yaml
@@ -237,8 +269,24 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ColumnWidthPoints
-Fixed column widths in PDF points.
+### -ColumnFormat
+Invariant .NET display formats keyed by selected property name.
+
+```yaml
+Type: Hashtable
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -ColumnWeight
+Relative column width weights.
 
 ```yaml
 Type: Double[]
@@ -253,11 +301,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ColumnWidthWeights
-Relative column width weights.
+### -ColumnWidth
+Fixed column widths in PDF points.
 
 ```yaml
-Type: Double[]
+Type: OfficeLength[]
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -317,22 +365,6 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -FontSize
-Body cell font size in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: Context, Document, PipelineDocument
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -FooterRowCount
 Number of trailing rows rendered as footer rows.
 
@@ -365,11 +397,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeaderFill
+### -HeaderBackgroundColor
 Header fill color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -381,11 +413,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeaderFontSize
-Header cell font size in PDF points.
+### -HeaderColor
+Header text color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: Double
+Type: OfficeColor
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -413,11 +445,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -HeaderTextColor
-Header text color. Named colors and hexadecimal values are accepted.
+### -HeaderSize
+Header cell font size in PDF points.
 
 ```yaml
-Type: String
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -433,7 +465,7 @@ Accept wildcard characters: False
 Objects or row arrays to render as a table.
 
 ```yaml
-Type: Object
+Type: Object[]
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -525,11 +557,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MinimumShrinkFontSize
-Smallest font size, in points, used by -ShrinkTextToFit.
+### -MinimumSize
+Smallest font size, in points, used by -ShrinkToFit.
 
 ```yaml
-Type: Double
+Type: OfficeLength
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoBanding
+Disable alternating row fill.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -557,7 +605,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NoHeaderFill
+### -NoHeaderBackground
 Disable the header fill.
 
 ```yaml
@@ -573,8 +621,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -NoRowStripeFill
-Disable alternating row fill.
+### -NoNumericAlignment
+Right-align numeric-looking cell values.
 
 ```yaml
 Type: SwitchParameter
@@ -594,7 +642,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document, PipelineDocument
+Parameter Sets: Document, PipelineDocument
 Aliases: None
 Possible values:
 
@@ -637,39 +685,7 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -RightAlignNumeric
-Right-align numeric-looking cell values.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document, PipelineDocument
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RowStripeFill
-Alternating body row fill color. Named colors and hexadecimal values are accepted.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document, PipelineDocument
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ShrinkTextToFit
+### -ShrinkToFit
 Reduce table text size when needed so cell text fits within the resolved cell width.
 
 ```yaml
@@ -685,11 +701,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Size
+Body cell font size in PDF points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Context, Document, PipelineDocument
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -SpacingAfter
 Spacing after the table in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -705,7 +737,7 @@ Accept wildcard characters: False
 Spacing before the table in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document, PipelineDocument
 Aliases: None
 Possible values:
@@ -719,22 +751,6 @@ Accept wildcard characters: False
 
 ### -TableStyle
 OfficeIMO table style preset or supported Word table style name.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document, PipelineDocument
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TextColor
-Body text color. Named colors and hexadecimal values are accepted.
 
 ```yaml
 Type: String
@@ -771,7 +787,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Pdf.PdfDocument`
-- `System.Object`
+- `System.Object[]`
 
 ## OUTPUTS
 

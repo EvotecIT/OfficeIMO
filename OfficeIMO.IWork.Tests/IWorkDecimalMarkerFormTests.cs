@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Decimal_marker_forms_preserve_source_counters_and_saved_DOCX_markers(ulong numberType,
         string sample, params string[] markers) {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Pages, numberType: numberType);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var content = Assert.Single(source.ReadPages().Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, 8, 3, 4 }, content.Paragraphs.Select(p => p.ListNumber));
@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Decimal_marker_forms_use_existing_PPTX_numbering_and_typed_starts(ulong numberType,
         PowerPointNumberingScheme scheme) {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Keynote, numberType: numberType);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(new() {
+        using var result = IWorkSourceDocument.Load(package).ToPowerPointResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var content = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);

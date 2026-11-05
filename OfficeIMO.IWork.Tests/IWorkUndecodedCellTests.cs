@@ -18,7 +18,7 @@ public sealed partial class IWorkBoundaryTests {
         cell[0] = 4; // Unknown storage cannot establish formula presence.
         using MemoryStream package = TableDependencyPackage(kind, Message(), cellPayload: cell);
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Empty(report.FormulaCells);
         Assert.Empty(report.PreservedRecords);
         IWorkSourceCellIssue issue = Assert.Single(report.SourceCellIssues);
@@ -41,7 +41,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] cell = new byte[formula ? 16 : 12]; cell[0] = 5; cell[1] = 8;
         WriteUInt32(cell, 8, formula ? 1u << 9 : 0);
         using MemoryStream package = TableDependencyPackage(kind, Message(), cellPayload: cell);
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1;
         IWorkTableCell projected = Assert.Single(table.Cells);
         Assert.False(projected.HasDecodeError);
         Assert.Equal("#ERROR", projected.CachedDisplayText);
@@ -65,7 +65,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] tile = Message(BytesField(5, new byte[] { 0x80 }), BytesField(5, row));
         using MemoryStream package = TableDependencyPackage(kind, Message(), rows: 2, columns: 3,
             tilePayload: tile, additionalRecords: ArchiveRecord(99, 6002, tile));
-        var options = new IWorkReadOptions { MaxMaterializedCells = 1 };
+        var options = new IWorkLoadOptions { MaxMaterializedCells = 1 };
         IWorkConversionReport report = ConvertUnitReport(package, kind, readOptions: options);
         IWorkSourceCellIssue issue = Assert.Single(report.SourceCellIssues);
         Assert.Equal((2, 3), (issue.Row, issue.Column));
@@ -86,7 +86,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Partial_saved_output_retains_existing_decode_marker_and_report_evidence(IWorkDocumentKind kind) {
         using MemoryStream package = TableDependencyPackage(kind, Message(),
             cellPayload: UndecodedFormulaCell("truncatedValue"));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         var options = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         IWorkConversionReport report;

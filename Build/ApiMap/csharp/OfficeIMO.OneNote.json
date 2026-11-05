@@ -1,6 +1,57 @@
 {
   "package": "OfficeIMO.OneNote",
-  "changes": [],
+  "changes": [
+    {
+      "old": "OfficeIMO.OneNote.OneNoteReaderOptions",
+      "new": "OfficeIMO.OneNote.OneNoteLoadOptions",
+      "action": "rename",
+      "kind": "type",
+      "category": "options",
+      "reason": "Section lifecycle options use Load/Save names.",
+      "replacement": "Rename the type; native validation, opaque data, limits and writer encoding remain unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OneNote.OneNoteWriterOptions",
+      "new": "OfficeIMO.OneNote.OneNoteSaveOptions",
+      "action": "rename",
+      "kind": "type",
+      "category": "options",
+      "reason": "Section lifecycle options use Load/Save names.",
+      "replacement": "Rename the type; native validation, opaque data, limits and writer encoding remain unchanged.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OneNote.OneNoteSectionReader.Read",
+      "new": "OfficeIMO.OneNote.OneNoteSection.Load",
+      "action": "change",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Section loading belongs to the existing section model.",
+      "replacement": "Use OneNoteSection.Load(path/seekableStream, options). Path loads associate FilePath; SourcePath remains source/package-entry provenance. Reader implementation is internal.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OneNote.OneNoteSectionWriter.Write",
+      "new": "OfficeIMO.OneNote.OneNoteSection.Save",
+      "action": "change",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Section saving belongs to the section model.",
+      "replacement": "section.Save(path/stream, options) persists; section.ToBytes(options) returns native bytes. Create(path) associates a destination; Save() uses it. Only successful path saves rebind FilePath; streams remain caller-owned. Notebook-directory and onepkg operations retain their own contracts.",
+      "applied": true
+    },
+    {
+      "old": "OfficeIMO.OneNote.OneNoteSection.ToByteArray",
+      "new": "OfficeIMO.OneNote.OneNoteSection.ToBytes",
+      "action": "rename",
+      "kind": "method",
+      "category": "lifecycle",
+      "reason": "Native bytes use the common name.",
+      "replacement": "Rename ToByteArray(options) to ToBytes(options), retaining validation and encoding options.",
+      "applied": true
+    }
+  ],
   "extraChanges": [
     {
       "old": "OneNotePageImageExportBuilder; OneNotePageImageBatchExportBuilder; fluent ToImage / ToImages",

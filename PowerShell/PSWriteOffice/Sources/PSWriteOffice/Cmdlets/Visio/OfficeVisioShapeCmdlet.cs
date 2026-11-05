@@ -8,7 +8,7 @@ using PSWriteOffice.Services.Visio;
 namespace PSWriteOffice.Cmdlets.Visio;
 
 /// <summary>Shared physical geometry and styling for the four basic Visio shape commands.</summary>
-public abstract class OfficeVisioShapeCmdlet : OfficeMutationCmdlet {
+public abstract class OfficeVisioShapeCmdlet : OfficeVisioTextCmdlet {
     /// <summary>Target page; the current page is used inside a Visio content block.</summary>
     [Parameter(ValueFromPipeline = true)]
     public VisioPage? Page { get; set; }
@@ -73,6 +73,7 @@ public abstract class OfficeVisioShapeCmdlet : OfficeMutationCmdlet {
         VisioDslContext? context = VisioDslContext.Current;
         VisioPage page = Page ?? VisioDslContext.Require(this).RequirePage();
         VisioShape shape = CreateShape(page);
+        ApplyTextStyle(shape);
         VisioShapeCommandUtilities.ApplyShapeStyle(shape, Name ?? Key, NameU,
             FillColor?.Resolve(OfficeTheme.Default).ToString(), LineColor?.Resolve(OfficeTheme.Default).ToString(),
             LineWeight?.ToInches(), LinePattern, FillPattern, Angle.HasValue ? Angle.Value * Math.PI / 180D : null);

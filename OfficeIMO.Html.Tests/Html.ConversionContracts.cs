@@ -208,7 +208,7 @@ public partial class Html {
                 typeof(HtmlPdfConverterExtensions), "ToPdf", "ToPdf",
                 typeof(PdfHtmlConverterExtensions), "ToHtml", "ToHtml"),
             [HtmlConversionTarget.Image] = new(
-                typeof(HtmlImageExportExtensions), "ToPng", "ExportImage", null, null, null),
+                typeof(HtmlImageExportExtensions), "ToImage", "ToImage", null, null, null),
             [HtmlConversionTarget.Reader] = new(
                 typeof(OfficeDocumentReader), "ReadDocument", "ReadDocument", null, null, null)
         };

@@ -4,6 +4,7 @@ using System.Management.Automation.Runspaces;
 using OfficeIMO.Pdf;
 using OfficeIMO.Word;
 using PSWriteOffice.Cmdlets.Pdf;
+using PSWriteOffice.Cmdlets.Conversion;
 
 namespace PSWriteOffice.Tests;
 
@@ -14,6 +15,8 @@ public sealed class DocumentPdfCmdletTests {
         string root = Path.Combine(AppContext.BaseDirectory, "pswriteoffice-pdf-stop-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         using var shaper = new PausedShaper();
+        string input = Path.Combine(root, "input.txt");
+        string output = Path.Combine(root, "stopped.pdf");
         try {
             string font = new[] {
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Fonts), "arial.ttf"),
@@ -24,25 +27,52 @@ public sealed class DocumentPdfCmdletTests {
             }.First(File.Exists);
             var options = new PdfCreateOptions { DefaultFont = PdfStandardFont.Courier, TextShapingProvider = shaper }
                 .EmbedStandardFont(PdfStandardFont.Courier, font);
-            string input = Path.Combine(root, "input.txt");
             File.WriteAllText(input, "Stop during actual PDF generation");
-            string output = Path.Combine(root, "stopped.pdf");
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output)
-                .AddParameter("TextOptions", new PdfTextImportOptions { PdfOptions = options });
-            IAsyncResult invocation = shell.BeginInvoke();
-            Assert.True(await Task.Run(() => shaper.Entered.Wait(TimeSpan.FromSeconds(15))), "The real font shaper was not reached during save.");
-            IAsyncResult stopping = shell.BeginStop(null, null);
-            Assert.True(SpinWait.SpinUntil(() => shell.InvocationStateInfo.State == PSInvocationState.Stopping, TimeSpan.FromSeconds(5)));
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output)
+                .AddParameter("Options", new PdfTextImportOptions { PdfOptions = options });
+            try {
+                IAsyncResult invocation = shell.BeginInvoke();
+                Assert.True(await Task.Run(() => shaper.Entered.Wait(TimeSpan.FromSeconds(15))), "The real font shaper was not reached during save.");
+                IAsyncResult stopping = shell.BeginStop(null, null);
+                Assert.True(SpinWait.SpinUntil(() => shell.InvocationStateInfo.State == PSInvocationState.Stopping, TimeSpan.FromSeconds(5)));
+                shaper.Release.Set();
+                await Task.Run(() => shell.EndStop(stopping));
+                Assert.Throws<PipelineStoppedException>(() => shell.EndInvoke(invocation));
+            } finally {
+                shaper.Release.Set();
+            }
+        } finally {
             shaper.Release.Set();
-            await Task.Run(() => shell.EndStop(stopping));
-            Assert.Throws<PipelineStoppedException>(() => shell.EndInvoke(invocation));
-            Assert.False(File.Exists(output));
-            Assert.Empty(Directory.GetFiles(root, "*.tmp"));
-        } finally { shaper.Release.Set(); Directory.Delete(root, true); }
+            // Pipeline stop can complete before the canceled engine worker releases its source.
+            if (File.Exists(input)) {
+                bool sourceReleased = await Task.Run(() => SpinWait.SpinUntil(() => {
+                    try {
+                        using var lease = new FileStream(input, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                        return true;
+                    } catch (IOException error) when ((error.HResult & 0xffff) == 32) {
+                        return false;
+                    }
+                }, TimeSpan.FromSeconds(15)));
+                Assert.True(sourceReleased, $"The canceled conversion did not release '{input}'.");
+            }
+            try {
+                Assert.False(File.Exists(output));
+                Assert.Empty(Directory.GetFiles(root, "*.tmp"));
+            } finally {
+                Directory.Delete(root, true);
+            }
+        }
+    }
+
+    private static OfficeBatchSummary InvokeSummary(PowerShell shell, Runspace runspace) {
+        shell.AddParameter("SummaryVariable", "summary");
+        shell.Invoke();
+        Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
+        return Assert.IsType<OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
     }
 
     private sealed class PausedShaper : OfficeIMO.Drawing.IOfficeTextShapingProvider, IDisposable {
@@ -67,20 +97,20 @@ public sealed class DocumentPdfCmdletTests {
             if (extension == ".txt") File.WriteAllText(input, "  # Literal text\n<b>kept as text</b>");
             else { using var word = WordDocument.Create(); word.AddParagraph("Legacy DOC evidence"); word.Save(input); }
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output).AddParameter("WhatIf");
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output).AddParameter("WhatIf");
             shell.Invoke(); Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error)); Assert.False(File.Exists(output));
             shell.Commands.Clear();
             byte[] original = File.ReadAllBytes(input);
             using (var rejecting = PowerShell.Create()) {
                 rejecting.Runspace = runspace;
-                rejecting.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", input);
+                rejecting.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", input);
                 Assert.Throws<CmdletInvocationException>(() => rejecting.Invoke());
                 Assert.Equal(original, File.ReadAllBytes(input));
             }
-            shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output).AddParameter("PassThru");
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output);
             Assert.Single(shell.Invoke()); Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
             Assert.Single(PdfDocument.Load(output).Read().Pages);
         } finally { Directory.Delete(root, true); }
@@ -96,16 +126,19 @@ public sealed class DocumentPdfCmdletTests {
             byte[] existing = { 1, 2, 3 };
             File.WriteAllBytes(output, existing);
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using (var refusing = PowerShell.Create()) {
                 refusing.Runspace = runspace;
-                refusing.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output).AddParameter("NoClobber");
-                Assert.IsType<IOException>(Assert.Throws<CmdletInvocationException>(() => refusing.Invoke()).InnerException);
+                refusing.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output).AddParameter("NoClobber");
+                var skipped = Assert.IsType<OfficeBatchItemReport>(Assert.Single(refusing.Invoke()).BaseObject);
+                Assert.False(refusing.HadErrors, string.Join("\n", refusing.Streams.Error));
+                Assert.True(skipped.Skipped);
+                Assert.Equal("OutputExists", skipped.SkippedReason);
                 Assert.Equal(existing, File.ReadAllBytes(output));
             }
             using var replacing = PowerShell.Create(); replacing.Runspace = runspace;
-            replacing.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPath", input).AddParameter("Path", output);
+            replacing.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input).AddParameter("OutputPath", output);
             replacing.Invoke(); Assert.False(replacing.HadErrors, string.Join("\n", replacing.Streams.Error));
             Assert.Single(PdfDocument.Load(output).Read().Pages);
         } finally { Directory.Delete(root, true); }
@@ -119,17 +152,17 @@ public sealed class DocumentPdfCmdletTests {
         try {
             File.WriteAllText(Path.Combine(input, "one.txt"), "Archive cmdlet evidence");
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            void AddCommand() => shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputDirectory", input)
-                .AddParameter("OutputDirectory", output).AddParameter("CheckpointDirectory", checkpoint);
+            void AddCommand() => shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", input)
+                .AddParameter("OutputDirectory", output).AddParameter("Resume").AddParameter("CheckpointPath", Path.Combine(checkpoint, "batch.json"));
             AddCommand(); shell.AddParameter("WhatIf"); shell.Invoke();
             Assert.False(Directory.Exists(output)); Assert.False(Directory.Exists(checkpoint));
             shell.Commands.Clear(); AddCommand();
             Assert.Single(shell.Invoke()); Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
             shell.Commands.Clear(); AddCommand();
-            var resumed = Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
+            var resumed = InvokeSummary(shell, runspace);
             Assert.Equal(1, resumed.Reused);
         } finally { Directory.Delete(root, true); }
     }
@@ -137,7 +170,7 @@ public sealed class DocumentPdfCmdletTests {
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void FailedBatchBoundsWarningsWithoutLosingSummaryOrStructuredOutcomes(bool itemResults) {
+    public void FailedBatchRetainsSummaryAndStructuredOutcomesForBothInputShapes(bool explicitPaths) {
         string root = Path.Combine(AppContext.BaseDirectory, "pswriteoffice-failed-batch-" + Guid.NewGuid().ToString("N"));
         string input = Path.Combine(root, "source");
         Directory.CreateDirectory(input);
@@ -147,32 +180,30 @@ public sealed class DocumentPdfCmdletTests {
                 File.WriteAllText(path, "Malformed package fixture");
             }
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
-            shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("OutputDirectory", Path.Combine(root, "output"))
-                .AddParameter("MaximumConcurrency", 4).AddParameter("SummaryVariable", "summary");
-            if (itemResults) {
-                shell.AddParameter("InputPaths", paths).AddParameter("ItemResults");
+            shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("OutputDirectory", Path.Combine(root, "output"))
+                .AddParameter("ThrottleLimit", 4).AddParameter("SummaryVariable", "summary");
+            if (explicitPaths) {
+                shell.AddParameter("Path", paths);
             } else {
-                shell.AddParameter("InputDirectory", input);
+                shell.AddParameter("Path", input);
             }
             var output = shell.Invoke();
             Assert.True(shell.HadErrors);
-            Assert.StartsWith("OfficeDocumentPdfBatchFailed", Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
+            Assert.StartsWith("OfficeConversionJobFailed", Assert.Single(shell.Streams.Error).FullyQualifiedErrorId);
             var summary = Assert.IsType<OfficeIMO.OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(103, summary.Selected); Assert.Equal(103, summary.Failed); Assert.Equal(0, summary.Completed);
-            if (itemResults) {
-                Assert.Equal(103, output.Count);
-                Assert.All(output, item => Assert.Equal(OfficeIMO.OfficeBatchItemStatus.Failed,
-                    Assert.IsType<OfficeIMO.OfficeBatchItemReport>(item.BaseObject).Status));
-                Assert.Empty(shell.Streams.Warning);
-            } else {
-                Assert.Same(summary, Assert.Single(output).BaseObject);
-                Assert.Equal(101, shell.Streams.Warning.Count);
-                Assert.Equal(100, shell.Streams.Warning.Count(warning => warning.Message.Contains(".docx:")));
-                Assert.Equal("3 further failure messages were suppressed. Use -ItemResults for structured per-file outcomes.", shell.Streams.Warning[100].Message);
-            }
+            var outcomes = output.Select(item => Assert.IsType<OfficeBatchItemReport>(item.BaseObject)).ToArray();
+            Assert.Equal(103, outcomes.Length);
+            Assert.Equal(paths.OrderBy(path => path, StringComparer.Ordinal),
+                outcomes.Select(item => item.InputPath).OrderBy(path => path, StringComparer.Ordinal));
+            Assert.All(outcomes, item => {
+                Assert.Equal(OfficeBatchItemStatus.Failed, item.Status);
+                Assert.NotEmpty(item.Diagnostics);
+            });
+            Assert.Empty(shell.Streams.Warning);
             Assert.Empty(Directory.GetFiles(Path.Combine(root, "output")));
         } finally { Directory.Delete(root, true); }
     }
@@ -185,20 +216,20 @@ public sealed class DocumentPdfCmdletTests {
             string input = Path.Combine(root, "one.txt"), output = Path.Combine(root, "output"), checkpoint = Path.Combine(root, "state");
             File.WriteAllText(input, "Encrypted batch output");
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
             var settings = new PdfTextImportOptions { PdfOptions = new PdfCreateOptions().SetEncryption("Synthetic output reader", "Synthetic output owner") };
-            void AddCommand() => shell.AddCommand("Export-OfficeDocumentPdf").AddParameter("InputPaths", new[] { input })
-                .AddParameter("OutputDirectory", output).AddParameter("CheckpointDirectory", checkpoint).AddParameter("TextOptions", settings);
+            void AddCommand() => shell.AddCommand("Convert-OfficeDocument").AddParameter("To", "Pdf").AddParameter("Path", new[] { input })
+                .AddParameter("OutputDirectory", output).AddParameter("Resume").AddParameter("CheckpointPath", Path.Combine(checkpoint, "batch.json")).AddParameter("Options", settings);
             AddCommand();
-            var first = Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject);
+            var first = InvokeSummary(shell, runspace);
             Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error)); Assert.Equal(1, first.Completed); Assert.Equal(0, first.Failed);
             var encrypted = PdfDocument.Load(Path.Combine(output, "one.pdf"),
                 new PdfLoadOptions { Password = "Synthetic output reader" });
             Assert.True(encrypted.Inspect().Security.HasEncryption); Assert.Single(encrypted.Read().Pages);
             shell.Commands.Clear(); AddCommand();
-            Assert.Equal(1, Assert.IsType<OfficeIMO.OfficeBatchSummary>(Assert.Single(shell.Invoke()).BaseObject).Reused);
+            Assert.Equal(1, InvokeSummary(shell, runspace).Reused);
         } finally { Directory.Delete(root, true); }
     }
 
@@ -211,7 +242,7 @@ public sealed class DocumentPdfCmdletTests {
             File.WriteAllText(Path.Combine(root, "two.html"), "<h1>HTML pipeline text</h1>");
             File.WriteAllText(Path.Combine(root, "three.bin"), "Skipped input");
             var state = InitialSessionState.CreateDefault();
-            state.Commands.Add(new SessionStateCmdletEntry("Export-OfficeDocumentPdf", typeof(ExportOfficeDocumentPdfCommand), null));
+            state.Commands.Add(new SessionStateCmdletEntry("Convert-OfficeDocument", typeof(ConvertOfficeDocumentCommand), null));
             state.Commands.Add(new SessionStateCmdletEntry("New-OfficeHtmlPdfOptions", typeof(NewOfficeHtmlPdfOptionsCommand), null));
             using var runspace = RunspaceFactory.CreateRunspace(state); runspace.Open();
             using var shell = PowerShell.Create(); shell.Runspace = runspace;
@@ -220,12 +251,14 @@ public sealed class DocumentPdfCmdletTests {
             runspace.SessionStateProxy.SetVariable("textSettings", new PdfTextImportOptions {
                 PdfOptions = new PdfCreateOptions { PageSetup = { Size = new PdfPageSize(global::OfficeIMO.OfficeLength.Points(240), global::OfficeIMO.OfficeLength.Points(180)) }, DefaultFontSize = global::OfficeIMO.OfficeLength.Points(14) }
             });
-            shell.AddScript("$htmlSettings = New-OfficeHtmlPdfOptions -Margin 12 -InteractiveFormControls $false; Get-ChildItem -LiteralPath $source -File | Export-OfficeDocumentPdf -OutputDirectory $destination -TextOptions $textSettings -HtmlOptions $htmlSettings -ItemResults -SummaryVariable summary");
+            shell.AddScript("$htmlSettings = New-OfficeHtmlPdfOptions -Margin 12 -NoInteractiveFormControls; Get-ChildItem -LiteralPath $source -File | Convert-OfficeDocument -OutputDirectory $destination -To Pdf -Options $textSettings,$htmlSettings -SummaryVariable summary");
             var results = shell.Invoke();
             Assert.False(shell.HadErrors, string.Join("\n", shell.Streams.Error));
-            var items = results.Select(item => Assert.IsType<OfficeIMO.OfficeBatchItemReport>(item.BaseObject)).ToArray();
-            Assert.Equal(3, items.Length);
-            Assert.Single(items, item => item.Skipped);
+            Assert.Equal(3, results.Count);
+            Assert.Equal(2, results.Count(item => item.BaseObject is OfficeConversionReport));
+            var skipped = Assert.IsType<OfficeBatchItemReport>(Assert.Single(results,
+                item => item.BaseObject is OfficeBatchItemReport).BaseObject);
+            Assert.True(skipped.Skipped);
             var summary = Assert.IsType<OfficeIMO.OfficeBatchSummary>(runspace.SessionStateProxy.GetVariable("summary"));
             Assert.Equal(2, summary.Completed); Assert.Equal(1, summary.Skipped); Assert.Equal(0, summary.Failed);
             var textPdf = PdfDocument.Load(Path.Combine(root, "output", "one.pdf")).Read();

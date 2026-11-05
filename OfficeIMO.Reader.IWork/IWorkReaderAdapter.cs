@@ -9,7 +9,7 @@ internal static class IWorkReaderAdapter {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(sourceName) || !stream.CanSeek) return false;
         if (!ExpectedKind(sourceName!).HasValue) return false;
-        IWorkReadOptions readOptions = options.ReadOptions ?? new IWorkReadOptions();
+        IWorkLoadOptions readOptions = options.ReadOptions ?? new IWorkLoadOptions();
         long maximumPackageBytes = Math.Min(readOptions.MaxPackageBytes,
             readerOptions.MaxInputBytes ?? readOptions.MaxPackageBytes);
         return IWorkContainerProbe.HasModernIndex(stream, maximumPackageBytes,
@@ -21,20 +21,20 @@ internal static class IWorkReaderAdapter {
         ReaderIWorkOptions options, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         IWorkDocumentKind? expected = ExpectedKind(path);
-        IWorkReadOptions bounded = (options.ReadOptions ?? new IWorkReadOptions()).Clone();
+        IWorkLoadOptions bounded = (options.ReadOptions ?? new IWorkLoadOptions()).Clone();
         if (readerOptions.MaxInputBytes is long maximumBytes) {
             bounded.MaxPackageBytes = Math.Min(bounded.MaxPackageBytes, maximumBytes);
         }
         ReaderAdapterInputSnapshot? input = Directory.Exists(path) ? null
             : DocumentReaderEngine.ReadAdapterInput(path, readerOptions, cancellationToken,
                 bounded.MaxPackageBytes, IWorkContainerReader.OpenPackageFileForRead);
-        IWorkSourceDocument source = input != null
+        using IWorkSourceDocument source = input != null
             ? expected.HasValue
-                ? IWorkSourceDocument.Open(input.Bytes, expected.Value, bounded, cancellationToken)
-                : IWorkSourceDocument.Open(input.Bytes, bounded, cancellationToken)
+                ? IWorkSourceDocument.Load(input.Bytes, expected.Value, bounded, cancellationToken)
+                : IWorkSourceDocument.Load(input.Bytes, bounded, cancellationToken)
             : expected.HasValue
-                ? IWorkSourceDocument.Open(path, expected.Value, bounded, cancellationToken)
-                : IWorkSourceDocument.Open(path, bounded, cancellationToken);
+                ? IWorkSourceDocument.Load(path, expected.Value, bounded, cancellationToken)
+                : IWorkSourceDocument.Load(path, bounded, cancellationToken);
         OfficeDocumentReadResult result = Project(source, path, readerOptions, options, cancellationToken);
         if (source.ContainerKind == IWorkContainerKind.DirectoryBundle) {
             result.Source.LengthBytes = source.ContainerLengthBytes;
@@ -51,12 +51,12 @@ internal static class IWorkReaderAdapter {
         string logicalName = string.IsNullOrWhiteSpace(sourceName)
             ? "document.pages" : sourceName!.Trim();
         IWorkDocumentKind? expected = ExpectedKind(logicalName);
-        IWorkReadOptions bounded = (options.ReadOptions ?? new IWorkReadOptions()).Clone();
+        IWorkLoadOptions bounded = (options.ReadOptions ?? new IWorkLoadOptions()).Clone();
         ReaderAdapterInputSnapshot input = DocumentReaderEngine.ReadAdapterInput(stream, logicalName,
             readerOptions, cancellationToken, bounded.MaxPackageBytes);
-        IWorkSourceDocument source = expected.HasValue
-            ? IWorkSourceDocument.Open(input.Bytes, expected.Value, bounded, cancellationToken)
-            : IWorkSourceDocument.Open(input.Bytes, bounded, cancellationToken);
+        using IWorkSourceDocument source = expected.HasValue
+            ? IWorkSourceDocument.Load(input.Bytes, expected.Value, bounded, cancellationToken)
+            : IWorkSourceDocument.Load(input.Bytes, bounded, cancellationToken);
         OfficeDocumentReadResult result = Project(source, logicalName, readerOptions, options, cancellationToken);
         ApplyCapturedSource(result, input, readerOptions.ComputeHashes);
         return result;

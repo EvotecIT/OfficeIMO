@@ -1,73 +1,76 @@
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Core.Internal;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-/// <summary>Typed OfficeIMO Markup to PowerPoint conversion helpers.</summary>
+/// <summary>Converts typed OfficeIMO Markup into editable PowerPoint documents.</summary>
 public static class OfficeMarkupPowerPointConverterExtensions {
-    /// <summary>Converts presentation-profile markup to an editable detached presentation.</summary>
-    public static PowerPointDocument ToPowerPointDocument(
-        this OfficeMarkupDocument document,
-        MarkupPowerPointExportOptions? options = null) {
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
-        if (result.Succeeded) return result.Value;
-        result.Value.Dispose();
-        return result.RequireValue();
-    }
+    /// <summary>Converts markup into a detached document owned by the caller.</summary>
+    public static PowerPointDocument ToPowerPoint(this OfficeMarkupDocument document, MarkupPowerPointExportOptions? options = null,
+        CancellationToken cancellationToken = default) => document.ToPowerPoint(options, out _, cancellationToken);
 
-    /// <summary>Converts presentation-profile markup and returns the presentation with structured evidence.</summary>
-    public static OfficeMarkupPowerPointConversionResult ToPowerPointDocumentResult(
-        this OfficeMarkupDocument document,
-        MarkupPowerPointExportOptions? options = null) {
+    /// <summary>Converts markup and retains mapping and native validation evidence.</summary>
+    public static PowerPointDocument ToPowerPoint(this OfficeMarkupDocument document, MarkupPowerPointExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
+        cancellationToken.ThrowIfCancellationRequested();
         MarkupPowerPointExportOptions resolved = options ?? new MarkupPowerPointExportOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
-        return new OfficeMarkupPowerPointExporter().Build(document, resolved, diagnostics);
+        var result = new OfficeMarkupPowerPointExporter().Build(document, resolved, diagnostics);
+        report = result.Report;
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!result.Succeeded) throw new OfficeConversionException("Markup conversion failed validation.", report);
+            if (resolved.FailOnLoss && report.HasLoss) throw new OfficeConversionException("Markup conversion reported fidelity loss.", report);
+            return result.Value;
+        } catch { result.Value.Dispose(); throw; }
     }
 
-    /// <summary>Converts presentation-profile markup and saves it as a PowerPoint presentation.</summary>
-    public static OfficeMarkupPowerPointConversionReport SaveAsPowerPoint(
-        this OfficeMarkupDocument document,
-        string path,
-        MarkupPowerPointExportOptions? options = null) {
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
-        using (result.Value) result.RequireValue().Save(path);
-        return result.Report;
-    }
+    /// <summary>Converts markup asynchronously and returns the document with its completed report.</summary>
+    public static Task<OfficeConversionResult<PowerPointDocument>> ToPowerPointAsync(this OfficeMarkupDocument document,
+        MarkupPowerPointExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
 
-    /// <summary>Converts presentation-profile markup and writes it to a caller-owned stream.</summary>
-    public static OfficeMarkupPowerPointConversionReport SaveAsPowerPoint(
-        this OfficeMarkupDocument document,
-        Stream stream,
-        MarkupPowerPointExportOptions? options = null) {
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
-        using (result.Value) result.RequireValue().Save(stream);
-        return result.Report;
-    }
-
-    /// <summary>Converts presentation-profile markup and asynchronously saves it as a PowerPoint presentation.</summary>
-    public static async Task<OfficeMarkupPowerPointConversionReport> SaveAsPowerPointAsync(
-        this OfficeMarkupDocument document,
-        string path,
-        MarkupPowerPointExportOptions? options = null,
+    /// <summary>Writes converted PowerPoint output and returns its report.</summary>
+    public static OfficeConversionReport SaveAsPowerPoint(
+        this OfficeMarkupDocument document, string path, MarkupPowerPointExportOptions? options = null,
         CancellationToken cancellationToken = default) {
+        using PowerPointDocument value = document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
-        using (result.Value) await result.RequireValue().SaveAsync(path, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        OfficeConversionFailures.Run(report, () => value.Save(path));
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts presentation-profile markup and asynchronously writes it to a caller-owned stream.</summary>
-    public static async Task<OfficeMarkupPowerPointConversionReport> SaveAsPowerPointAsync(
-        this OfficeMarkupDocument document,
-        Stream stream,
-        MarkupPowerPointExportOptions? options = null,
+    /// <summary>Writes converted PowerPoint output and returns its report.</summary>
+    public static OfficeConversionReport SaveAsPowerPoint(
+        this OfficeMarkupDocument document, Stream stream, MarkupPowerPointExportOptions? options = null,
         CancellationToken cancellationToken = default) {
+        using PowerPointDocument value = document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupPowerPointConversionResult result = document.ToPowerPointDocumentResult(options);
-        using (result.Value) await result.RequireValue().SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        OfficeConversionFailures.Run(report, () => value.Save(stream));
+        return report;
+    }
+
+    /// <summary>Asynchronously writes converted PowerPoint output and returns its report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsPowerPointAsync(
+        this OfficeMarkupDocument document, string path, MarkupPowerPointExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        using PowerPointDocument value = document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, cancellationToken)).ConfigureAwait(false);
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
+    }
+
+    /// <summary>Asynchronously writes converted PowerPoint output and returns its report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsPowerPointAsync(
+        this OfficeMarkupDocument document, Stream stream, MarkupPowerPointExportOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        using PowerPointDocument value = document.ToPowerPoint(options, out OfficeConversionReport report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, cancellationToken)).ConfigureAwait(false);
+        return report;
     }
 
     private static IReadOnlyList<OfficeMarkupDiagnostic> CollectDiagnostics(
@@ -87,11 +90,6 @@ public static class OfficeMarkupPowerPointConverterExtensions {
                     options.IncludeUnsupportedBlocksAsText
                         ? OfficeConversionLossKind.Approximation
                         : OfficeConversionLossKind.Omission));
-            } else if (block is OfficeMarkupDiagramBlock && !options.RenderMermaidDiagrams) {
-                diagnostics.Add(new OfficeMarkupDiagnostic(
-                    OfficeMarkupDiagnosticSeverity.Warning,
-                    "Diagram markup is represented as source text because diagram rendering is disabled.",
-                    block));
             }
         }
 

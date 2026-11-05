@@ -11,7 +11,7 @@ Adds a typed field before rows are appended.
 ## SYNTAX
 ### Table (Default)
 ```powershell
-Add-OfficeAccessColumn [-Name] <string> -Table <AccessTable> [-Type <AccessDataType>] [-MaxLength <Int32>] [-AutoNumberSeed <int>] [-Precision <int>] [-Scale <int>] [-PassThru] [<CommonParameters>]
+Add-OfficeAccessColumn [-Name] <string> [-Table <AccessTable>] [-Type <AccessDataType>] [-MaxLength <Int32>] [-AutoNumberSeed <int>] [-Precision <int>] [-Scale <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -132,7 +132,7 @@ Parameter Sets: Table
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

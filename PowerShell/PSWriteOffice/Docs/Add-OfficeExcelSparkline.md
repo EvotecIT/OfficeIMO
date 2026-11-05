@@ -9,14 +9,9 @@ schema: 2.0.0
 Adds sparklines to a worksheet.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Add-OfficeExcelSparkline -DataRange <string> -LocationRange <string> [-Type <ExcelSparklineType>] [-ShowMarkers] [-ShowHighLow] [-ShowFirstLast] [-ShowNegative] [-ShowAxis] [-SeriesColor <string>] [-AxisColor <string>] [-NegativeColor <string>] [-MarkersColor <string>] [-HighColor <string>] [-LowColor <string>] [-FirstColor <string>] [-LastColor <string>] [-PassThru] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Add-OfficeExcelSparkline -Document <ExcelDocument> -DataRange <string> -LocationRange <string> [-Sheet <string>] [-SheetIndex <Int32>] [-Type <ExcelSparklineType>] [-ShowMarkers] [-ShowHighLow] [-ShowFirstLast] [-ShowNegative] [-ShowAxis] [-SeriesColor <string>] [-AxisColor <string>] [-NegativeColor <string>] [-MarkersColor <string>] [-HighColor <string>] [-LowColor <string>] [-FirstColor <string>] [-LastColor <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelSparkline -DataRange <string> -LocationRange <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Type <ExcelSparklineType>] [-ShowMarkers] [-ShowHighLow] [-ShowFirstLast] [-ShowNegative] [-ShowAxis] [-SeriesColor <OfficeColor>] [-AxisColor <OfficeColor>] [-NegativeColor <OfficeColor>] [-MarkerColor <OfficeColor>] [-HighColor <OfficeColor>] [-LowColor <OfficeColor>] [-FirstColor <OfficeColor>] [-LastColor <OfficeColor>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,10 +21,26 @@ Adds sparklines to a worksheet.
 
 ### EXAMPLE 1
 ```powershell
-PS> ExcelSheet 'Data' { Add-OfficeExcelSparkline -DataRange 'B2:M2' -LocationRange 'N2' }
+Open-OfficeExcel -Path .\Reports\Budget-2027.xlsx {
+    ExcelSheet 'Departments' {
+        ExcelSparkline -DataRange B2:M20 -LocationRange N2:N20
+    }
+}
 ```
 
-Creates a line sparkline in N2 using B2:M2.
+Draws a sparkline for each row of monthly figures in the column next to them.
+
+### EXAMPLE 2
+```powershell
+New-OfficeExcel -Path .\Reports\Site-Incidents.xlsx {
+    ExcelSheet 'Incidents' {
+        ExcelTable (Import-OfficeCsv -Path .\Data\Incidents-By-Week.csv) -Name Incidents
+        ExcelSparkline -DataRange B2:M9 -LocationRange N2:N9 -Type Column -ShowHighLow
+    }
+}
+```
+
+Adds column sparklines with the highest and lowest weeks marked, so each site's pattern is visible at a glance.
 
 ## PARAMETERS
 
@@ -37,8 +48,8 @@ Creates a line sparkline in N2 using B2:M2.
 Axis color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -54,7 +65,7 @@ A1 range containing source data (e.g., "B2:M2").
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -70,11 +81,11 @@ Workbook to operate on outside the DSL context.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -85,8 +96,8 @@ Accept wildcard characters: False
 First point color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -101,8 +112,8 @@ Accept wildcard characters: False
 High point color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -117,8 +128,8 @@ Accept wildcard characters: False
 Last point color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -134,7 +145,7 @@ A1 range where the sparklines will be placed (e.g., "N2:N2").
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -149,8 +160,8 @@ Accept wildcard characters: False
 Low point color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -161,12 +172,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -MarkersColor
+### -MarkerColor
 Markers color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -181,8 +192,8 @@ Accept wildcard characters: False
 Negative point color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -198,7 +209,7 @@ Emit the worksheet after adding sparklines.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -213,8 +224,8 @@ Accept wildcard characters: False
 Series color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
-Parameter Sets: Context, Document
+Type: OfficeColor
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -229,24 +240,8 @@ Accept wildcard characters: False
 Worksheet name when using Document.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Worksheet index (0-based) when using Document.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -262,7 +257,7 @@ Show axis.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -278,7 +273,7 @@ Show first/last points.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -294,7 +289,7 @@ Show high/low points.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -310,7 +305,7 @@ Show markers for each point.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -326,7 +321,7 @@ Show negative points.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -342,7 +337,7 @@ Sparkline type (Line, Column, WinLoss).
 
 ```yaml
 Type: ExcelSparklineType
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values: Line, Column, Stacked
 

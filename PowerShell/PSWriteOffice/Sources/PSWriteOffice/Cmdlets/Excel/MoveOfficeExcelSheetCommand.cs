@@ -11,17 +11,35 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <example><summary>Move the summary worksheet to the front.</summary>
 /// <code>$book | Move-OfficeExcelSheet -Sheet Summary -Position 1
 /// Save-OfficeExcel -Document $book</code></example>
-[Cmdlet(VerbsCommon.Move, "OfficeExcelSheet", DefaultParameterSetName = "Default", SupportsShouldProcess = true)]
+/// <example>
+/// <summary>Move a sheet to the front</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     Move-OfficeExcelSheet -Sheet Summary -Position 1
+/// }</code>
+/// <para>Moves the Summary sheet to the first tab position.</para>
+/// </example>
+/// <example>
+/// <summary>Order monthly sheets newest first</summary>
+/// <code>$book = Open-OfficeExcel -Path .\Reports\Tickets-2026.xlsx
+/// foreach ($month in 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October') {
+///     Move-OfficeExcelSheet -Document $book -Sheet $month -Position 1
+/// }
+/// Save-OfficeExcel -Document $book -PassThru | Close-OfficeExcel</code>
+/// <para>Moves the sheet for each month to the front in turn, so the most recent month ends up first.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Move, "OfficeExcelSheet", DefaultParameterSetName = "Default")]
 [OutputType(typeof(ExcelSheet))]
 public sealed class MoveOfficeExcelSheetCommand : OfficeDocumentCmdlet<ExcelDocument> {
     /// <summary>Gets or sets a worksheet name, one-based position or native worksheet.</summary>
-    [Parameter, OfficeSheetTransformation, ValidateNotNull]
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation, ValidateNotNull]
     public OfficeSheetSelector? Sheet { get; set; }
     /// <summary>Gets or sets the one-based destination position.</summary>
-    [Parameter(Mandatory = true), ValidateRange(1, int.MaxValue)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
+    [ValidateRange(1, int.MaxValue)]
     public int Position { get; set; }
     /// <summary>Gets or sets whether to return the moved native worksheet.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
@@ -29,7 +47,6 @@ public sealed class MoveOfficeExcelSheetCommand : OfficeDocumentCmdlet<ExcelDocu
         try {
             ExcelSheet sheet = ExcelSheetResolver.ResolveTarget(this, Document, Sheet);
             if (Position > sheet.Document.Sheets.Count) throw new ArgumentOutOfRangeException(nameof(Position), "Position is outside the workbook.");
-            if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, sheet.Document, null, "Move worksheet " + sheet.Name)) return;
             sheet.Document.ReorderWorksheet(sheet, Position - 1);
             if (PassThru) WriteObject(sheet);
         } catch (ArgumentException error) { InvalidArgument(error, Document); }

@@ -16,7 +16,7 @@ public partial class ExcelDocument {
             var columns = CreateColumnWritePlans(model, stylePlan, cancellationToken);
             var sheet = model.Sheets[0];
             int count = await WriteAsyncWorksheetRows(archive, sheet, model.DateTimeOffsetWriteStrategy,
-                model.DateSystem, columns[0], rows, writeRow, ExcelA1.MaxRows - (sheet.IncludeHeaders ? 1 : 0),
+                model.DateSystem, columns[0], rows, writeRow, sheet.StreamingLayout?.MaximumRows ?? ExcelA1.MaxRows - (sheet.IncludeHeaders ? 1 : 0),
                 null, stylePlan.TabularStyles, cancellationToken,
                 autoFit ? new DocumentFormat.OpenXml.Spreadsheet.Stylesheet(CreateStylesXml(stylePlan, theme)) : null).ConfigureAwait(false);
             if (!sheet.HasTable) return count;
@@ -24,7 +24,7 @@ public partial class ExcelDocument {
             WriteTextEntry(archive, "xl/worksheets/_rels/sheet" + index + ".xml.rels",
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">" +
                 "<Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/table\" Target=\"../tables/table" + index + ".xml\"/></Relationships>");
-            WriteTable(archive, sheet, ExcelSheet.BuildObjectExportRange(1, sheet.Table.ColumnCount, count, sheet.IncludeHeaders));
+            WriteTable(archive, sheet, sheet.StreamingLayout?.Range(sheet.Table.ColumnCount, count, sheet.IncludeHeaders) ?? ExcelSheet.BuildObjectExportRange(1, sheet.Table.ColumnCount, count, sheet.IncludeHeaders));
             return count;
         }
 

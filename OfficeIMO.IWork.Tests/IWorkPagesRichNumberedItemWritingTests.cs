@@ -8,8 +8,8 @@ namespace OfficeIMO.IWork.Tests;
 public sealed class IWorkPagesRichNumberedItemWritingTests {
     [Fact]
     public void Rich_items_preserve_counters_character_resets_and_plain_markers_in_saved_Word() {
-        var document = Example(); byte[] bytes = document.SaveBytes(); Assert.Equal(bytes, document.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var document = Example(); byte[] bytes = document.ToBytes(); Assert.Equal(bytes, document.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         var authored = document.Paragraphs.Where(paragraph => paragraph.NumberedList != null).ToArray();
         var items = projection.Body.Paragraphs.Where(paragraph => paragraph.ListNumber.HasValue).ToArray();
@@ -48,12 +48,12 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
     public void Rich_runs_are_snapshotted_and_empty_ranges_do_not_change_visible_styling() {
         var document = IWorkPagesDocument.Create(); var list = document.CreateNumberedList();
         var runs = new List<IWorkTextRunData> { new("", fontName: "Times New Roman"), new("Visible", "Arial", 12, bold: true) };
-        var paragraph = list.AddRichItem(runs); byte[] baseline = document.SaveBytes(); runs.Clear();
-        Assert.Single(paragraph.Runs); Assert.Equal("Visible", paragraph.Text); Assert.Equal(baseline, document.SaveBytes());
+        var paragraph = list.AddRichItem(runs); byte[] baseline = document.ToBytes(); runs.Clear();
+        Assert.Single(paragraph.Runs); Assert.Equal("Visible", paragraph.Text); Assert.Equal(baseline, document.ToBytes());
         Assert.Throws<NotSupportedException>(() => ((IList<IWorkTextRunData>)paragraph.Runs).Clear());
         var blank = list.AddRichItem(new[] { new IWorkTextRunData("", "Arial", 12, italic: true) });
         Assert.Equal(2, blank.ListNumber); Assert.Single(blank.Runs); Assert.Equal("", blank.Text);
-        var projection = IWorkSourceDocument.Open(document.SaveBytes()).ReadPages();
+        var projection = IWorkSourceDocument.Load(document.ToBytes()).ReadPages();
         Assert.Equal(new int?[] { 1, 2 }, projection.Body.Paragraphs.Where(item => item.ListNumber.HasValue).Select(item => item.ListNumber));
     }
 
@@ -62,7 +62,7 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
         var document = IWorkPagesDocument.Create(); var list = document.CreateNumberedList();
         var valid = new[] { new IWorkTextRunData("Item", "Arial", 12) };
         Assert.Throws<InvalidOperationException>(() => list.AddRichItem(valid, level: 1));
-        list.AddItem("Before", restartAt: 7); byte[] baseline = document.SaveBytes();
+        list.AddItem("Before", restartAt: 7); byte[] baseline = document.ToBytes();
         Assert.Throws<ArgumentNullException>(() => list.AddRichItem(null!));
         Assert.Throws<ArgumentException>(() => list.AddRichItem(Array.Empty<IWorkTextRunData>()));
         Assert.Throws<ArgumentException>(() => list.AddRichItem(new IWorkTextRunData[] { null! }));
@@ -71,7 +71,7 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
         Assert.Throws<ArgumentException>(() => list.AddRichItem(new[] { new IWorkTextRunData("Size", "Arial", 14.5f) }));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddRichItem(valid, level: 9));
         Assert.Throws<ArgumentOutOfRangeException>(() => list.AddRichItem(valid, restartAt: 0));
-        Assert.Equal(baseline, document.SaveBytes()); Assert.Single(list.Items); Assert.Single(document.BodyBlocks);
+        Assert.Equal(baseline, document.ToBytes()); Assert.Single(list.Items); Assert.Single(document.BodyBlocks);
         Assert.Equal(8, list.AddRichItem(valid).ListNumber);
     }
 
@@ -83,7 +83,7 @@ public sealed class IWorkPagesRichNumberedItemWritingTests {
         using var output = new MemoryStream(); output.WriteByte(9);
         Assert.Throws<InvalidDataException>(() => document.Save(output, new() { MaxTextRuns = 2 }));
         Assert.Equal(new byte[] { 9 }, output.ToArray());
-        Assert.NotEmpty(document.SaveBytes(new() { MaxTextRuns = 3 }));
+        Assert.NotEmpty(document.ToBytes(new() { MaxTextRuns = 3 }));
     }
 
     internal static IWorkPagesDocument Example() {

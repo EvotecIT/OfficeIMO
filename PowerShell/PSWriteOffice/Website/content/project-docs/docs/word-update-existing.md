@@ -17,7 +17,7 @@ Update-OfficeWordText -Path '.\Input\FY24-Report.docx' `
     -IncludeHyperlinkAnchor -IncludeHyperlinkTooltip
 ```
 
-Use `-WhatIf` before a broad replacement. `Find-OfficeWord` can count the old and new values before and after the operation.
+Use `-WhatIf` before a broad replacement. `Get-OfficeWordParagraph` can count the old and new values before and after the operation.
 
 ## Modify live objects
 

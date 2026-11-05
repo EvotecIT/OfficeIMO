@@ -25,6 +25,24 @@ Open-OfficeExcel -Path ./Report.xlsx { Remove-OfficeExcelPageBreak -Sheet 'Repor
 ```
 
 
+### EXAMPLE 2
+```powershell
+Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+    Remove-OfficeExcelPageBreak -Sheet Servers -Row 41
+}
+```
+
+Removes the manual break above row 41.
+
+### EXAMPLE 3
+```powershell
+Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+    Remove-OfficeExcelPageBreak -Sheet Servers, Services -All -PassThru
+}
+```
+
+Removes every manual page break from the report sheets so the print layout can be set up again.
+
 ## PARAMETERS
 
 ### -All

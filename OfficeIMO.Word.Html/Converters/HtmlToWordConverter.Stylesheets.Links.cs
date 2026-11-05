@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
         private async Task LoadConfiguredStylesheetsAsync(IDocument document, HtmlWordExportOptions options, CancellationToken cancellationToken) {
+            Uri? configuredBaseUri = ResolveDocumentBaseUri(document, options.BasePath);
             foreach (var path in options.StylesheetPaths) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (string.IsNullOrEmpty(path)) {
@@ -21,8 +22,8 @@ namespace OfficeIMO.Word.Html {
                             ParseCss(ReadCssFileWithLimit(absolute.LocalPath), absolute.LocalPath);
                         }
                     }
-                } else if (document.BaseUrl != null) {
-                    var url = new Url(new Url(document.BaseUrl), path);
+                } else if (configuredBaseUri != null) {
+                    var url = new Url(new Url(configuredBaseUri.AbsoluteUri), path);
                     if (url.Scheme == "http" || url.Scheme == "https") {
                         await LoadAndParseCssAsync(url, cancellationToken).ConfigureAwait(false);
                     } else if (url.Scheme == "file") {

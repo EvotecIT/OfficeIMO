@@ -17,7 +17,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 [OutputType(typeof(AccessTable))]
 public sealed class GetOfficeAccessTableCommand : PSCmdlet {
     /// <summary>Live database document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public AccessDocument Document { get; set; } = null!;
 
     /// <summary>Optional table names.</summary>

@@ -13,7 +13,7 @@ public static partial class PowerPointPdfConverterExtensions {
         A.RunProperties? properties = paragraph.Paragraph.Elements<A.Run>().FirstOrDefault()?.RunProperties;
         PdfCore.PdfTextRun inherited = CreatePdfTableCellTextRun(cell, paragraph.Paragraph,
             properties, marker, fallbackFontFamily, slideNumber, options, tableDefaults, fallbackFontSize);
-        string? family = paragraph.BulletFontName ?? inherited.FontFamily;
+        string? family = paragraph.BulletFontFamily ?? inherited.FontFamily;
         double? size = paragraph.BulletSize?.ToPoints();
         if (!size.HasValue && paragraph.BulletSizePercent is int percent)
             size = ((inherited.FontSize?.ToPoints()) ?? fallbackFontSize) * percent / 100d;

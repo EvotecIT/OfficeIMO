@@ -11,7 +11,7 @@ Creates discoverable slide selection and rendering settings for Export-OfficePow
 ## SYNTAX
 ### Default (Default)
 ```powershell
-New-OfficePowerPointImageOptions [-SlideNumber <int[]>] [-IncludeHiddenSlides] [-NoSlideBackground] [-NoSlideContent] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoTables] [-NoCharts] [-IncludeHiddenShapes] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficePowerPointImageOptions [-IncludeHiddenSlides] [-NoSlideBackground] [-NoSlideContent] [-NoPictures] [-NoAutoShapes] [-NoTextBoxes] [-NoTables] [-NoCharts] [-IncludeHiddenShapes] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,28 +21,12 @@ Creates discoverable slide selection and rendering settings for Export-OfficePow
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficePowerPointImageOptions -SlideNumber 1,3 -NoPictures
-Export-OfficePowerPointImage -Path .\Deck.pptx -OutputPath .\Slides -Options $options
+$options = New-OfficePowerPointImageOptions -NoPictures
+Export-OfficeDocumentImage -Path ./Deck.pptx -Page 1,3 -OutputDirectory ./Slides -Options $options
 ```
 
 
 ## PARAMETERS
-
-### -BackgroundColor
-Background color name or hex value.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -IncludeHiddenShapes
 Render hidden shapes.
@@ -318,54 +302,6 @@ Accept wildcard characters: False
 
 ### -RenderTimeoutSeconds
 Maximum seconds allowed for one render.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Scale
-Output scale multiplier.
-
-```yaml
-Type: Double
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SlideNumber
-One-based slide numbers to export.
-
-```yaml
-Type: Int32[]
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TargetDpi
-Target output density in dots per inch.
 
 ```yaml
 Type: Double

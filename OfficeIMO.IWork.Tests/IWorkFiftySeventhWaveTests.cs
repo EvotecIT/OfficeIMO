@@ -10,9 +10,9 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePagesImagePackage(
             duplicateMetadata: false, imageCount: 1,
             imageBytes: ValidPreviewPng(), metadataOuterFieldCount: 2);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedImages = 1 });
+            new IWorkLoadOptions { MaxProjectedImages = 1 });
         IWorkArchiveRecord image = Assert.Single(source.Records,
             record => record.MessageType == 3005);
         var budget = new IWorkProjectionBudget(source.Options);
@@ -31,7 +31,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] formulaBytes = Message(BytesField(1,
             Message(BytesField(1, node))));
         IWorkWireMessage formula = IWorkProtobuf.Parse(formulaBytes,
-            new IWorkReadOptions());
+            new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(
             formula, 0, 0, maximumNodes: 32, maximumCharacters: 128);
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreateKeynotePackageWithRepeatedSlides(
             1, rotation: 0.00001f);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.Projection.HasEditableContent);
         Assert.True(result.IsVisualFallback);

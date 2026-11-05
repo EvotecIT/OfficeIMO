@@ -13,14 +13,14 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Inserts a footer displaying “Page X of Y”.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordFooter", DefaultParameterSetName = "Default")]
-[Alias("WordFooter")]
+[Alias("WordFooter") ]
 public sealed class AddOfficeWordFooterCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>The footer kind (Default/First/Even).</summary>
     [Parameter]
     public WordHeaderFooterType Type { get; set; } = WordHeaderFooterType.Default;
 
     /// <summary>DSL scriptblock executed within the footer context.</summary>
-    [Parameter(Position = 0)]
+    [Parameter(Position = 0, ParameterSetName = "Default")]
     public ScriptBlock? Content { get; set; }
 
     /// <inheritdoc />

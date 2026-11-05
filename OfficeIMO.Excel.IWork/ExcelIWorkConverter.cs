@@ -180,7 +180,7 @@ public static partial class ExcelIWorkConverter {
                             };
                             ExcelCell targetCell = sheet.Cell(cell.Row, cell.Column);
                             // Reconstructed worksheets start unfilled; explicit no-fill keeps that state.
-                            if (cell.Fill?.Color is { } fillColor) targetCell.SetFillColor(fillColor.RgbHex);
+                            if (cell.Fill?.Color is { } fillColor) targetCell.SetFillColor(OfficeColor.FromRgba(fillColor.Red, fillColor.Green, fillColor.Blue, fillColor.Alpha));
                             bool formulaWritten = false;
                             bool hasErrorValue = cell.Kind == IWorkCellKind.Error
                                 || cell.Kind == IWorkCellKind.Formula

@@ -17,7 +17,7 @@ public sealed class WordPdfTextFormattingTests {
         authored.Bold = true;
         authored.Italic = true;
         authored.Underline = WordUnderlineStyle.Dotted;
-        authored.DoubleStrike = true;
+        authored.DoubleStrikethrough = true;
         authored.VerticalTextAlignment = WordVerticalTextPosition.Superscript;
         authored.CapsStyle = WordCapsStyle.Caps;
         authored.Color = OfficeColor.Parse("336699");

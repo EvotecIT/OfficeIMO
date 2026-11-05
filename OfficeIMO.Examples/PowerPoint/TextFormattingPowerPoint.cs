@@ -68,8 +68,8 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             PowerPointTextBox callout = slide.AddTextBox(
                 "Auto-fit + margins keep text readable.",                global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Left.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Top.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Width.ToCentimeters()),global::OfficeIMO.OfficeLength.Centimeters(rightColumn.Height.ToCentimeters()));
-            callout.FillColor = "E7F7FF";
-            callout.OutlineColor = "5B9BD5";
+            callout.FillColor = OfficeColor.Parse("E7F7FF");
+            callout.OutlineColor = OfficeColor.Parse("5B9BD5");
             callout.TextVerticalAlignment = PowerPointTextVerticalAlignment.Center;
             callout.SetTextMargins(global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3), global::OfficeIMO.OfficeLength.Centimeters(0.3));
             callout.ApplyTextStyle(PowerPointTextStyle.Body.WithColor(OfficeColor.Parse("1F4E79")));

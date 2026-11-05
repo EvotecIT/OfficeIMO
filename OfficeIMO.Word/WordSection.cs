@@ -542,7 +542,7 @@ namespace OfficeIMO.Word {
         public List<WordCheckBox> CheckBoxes {
             get {
                 List<WordCheckBox> list = new List<WordCheckBox>();
-                var paragraphs = Paragraphs.Where(p => p.IsCheckBox).ToList();
+                var paragraphs = GetContentControlParagraphs().Where(p => p.IsCheckBox).ToList();
                 foreach (var paragraph in paragraphs) {
                     var checkBox = paragraph.CheckBox;
                     if (checkBox != null) {
@@ -559,7 +559,7 @@ namespace OfficeIMO.Word {
         public List<WordDatePicker> DatePickers {
             get {
                 List<WordDatePicker> list = new List<WordDatePicker>();
-                var paragraphs = Paragraphs.Where(p => p.IsDatePicker).ToList();
+                var paragraphs = GetContentControlParagraphs().Where(p => p.IsDatePicker).ToList();
                 foreach (var paragraph in paragraphs) {
                     var datePicker = paragraph.DatePicker;
                     if (datePicker != null) {
@@ -576,7 +576,7 @@ namespace OfficeIMO.Word {
         public List<WordDropDownList> DropDownLists {
             get {
                 List<WordDropDownList> list = new List<WordDropDownList>();
-                var paragraphs = Paragraphs.Where(p => p.IsDropDownList).ToList();
+                var paragraphs = GetContentControlParagraphs().Where(p => p.IsDropDownList).ToList();
                 foreach (var paragraph in paragraphs) {
                     var dropDownList = paragraph.DropDownList;
                     if (dropDownList != null) {
@@ -593,7 +593,7 @@ namespace OfficeIMO.Word {
         public List<WordComboBox> ComboBoxes {
             get {
                 List<WordComboBox> list = new List<WordComboBox>();
-                var paragraphs = Paragraphs.Where(p => p.IsComboBox).ToList();
+                var paragraphs = GetContentControlParagraphs().Where(p => p.IsComboBox).ToList();
                 foreach (var paragraph in paragraphs) {
                     var comboBox = paragraph.ComboBox;
                     if (comboBox != null) {
@@ -610,7 +610,7 @@ namespace OfficeIMO.Word {
         public List<WordPictureControl> PictureControls {
             get {
                 List<WordPictureControl> list = new List<WordPictureControl>();
-                var paragraphs = Paragraphs.Where(p => p.IsPictureControl).ToList();
+                var paragraphs = GetContentControlParagraphs().Where(p => p.IsPictureControl).ToList();
                 foreach (var paragraph in paragraphs) {
                     var pictureControl = paragraph.PictureControl;
                     if (pictureControl != null) {
@@ -627,7 +627,7 @@ namespace OfficeIMO.Word {
         public List<WordRepeatingSection> RepeatingSections {
             get {
                 List<WordRepeatingSection> list = new List<WordRepeatingSection>();
-                var paragraphs = Paragraphs.Where(p => p.IsRepeatingSection).ToList();
+                var paragraphs = GetContentControlParagraphs().Where(p => p.IsRepeatingSection).ToList();
                 foreach (var paragraph in paragraphs) {
                     var repeatingSection = paragraph.RepeatingSection;
                     if (repeatingSection != null) {
@@ -637,6 +637,11 @@ namespace OfficeIMO.Word {
                 return list;
             }
         }
+        // Use the table's native traversal for every specialized family so its SDT
+        // identities match the generic collection, including nested table cells.
+        private IEnumerable<WordParagraph> GetContentControlParagraphs() =>
+            Paragraphs.Concat(Tables.SelectMany(table => table.ContentControlParagraphs));
+
         internal WordFooters Footers { get; set; } = new WordFooters();
 
         internal WordHeaders Headers { get; set; } = new WordHeaders();

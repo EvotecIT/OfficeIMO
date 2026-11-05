@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 [OutputType(typeof(FileInfo))]
 public sealed class SaveOfficeMarkdownCommand : OfficeCmdlet, IMarkdownWriteOptionSource {
     /// <summary>Markdown document to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true), ValidateNotNull]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document"), ValidateNotNull]
     public MarkdownDocument Document { get; set; } = null!;
     /// <summary>Optional destination; omission saves to the associated path.</summary>
     [Parameter(Position = 0), ValidateNotNullOrEmpty]

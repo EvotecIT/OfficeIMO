@@ -24,17 +24,10 @@ OfficeIMO.Excel.ExcelCell.Equals(OfficeIMO.Excel.ExcelCell other) -> bool
 OfficeIMO.Excel.ExcelCell.ExcelCell() -> void
 OfficeIMO.Excel.ExcelCell.SetBaseline() -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetBold(bool bold = true) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetBorder(OfficeIMO.Excel.ExcelCellBorders borders, OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetError(string! errorText) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetFillColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetFillColor(string! hexColor) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetFontColor(string! hexColor) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetFontName(string! fontName) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetFormula(string! formula) -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelCell.SetGradientFill(string! fromHexColor, string! toHexColor, double degree = 0) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment alignment) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetItalic(bool italic = true) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelCell.SetNumberFormat(string! numberFormat) -> OfficeIMO.Excel.ExcelCell
@@ -117,29 +110,16 @@ OfficeIMO.Excel.ExcelRange.AutoFilter() -> OfficeIMO.Excel.ExcelAutoFilter!
 OfficeIMO.Excel.ExcelRange.Cell(int rowOffset, int columnOffset) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelRange.ConditionalFormat() -> OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder!
 OfficeIMO.Excel.ExcelRange.FirstCell.get -> OfficeIMO.Excel.ExcelCell
-OfficeIMO.Excel.ExcelRange.SetBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.SetBorder(OfficeIMO.Excel.ExcelCellBorders borders, OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null) -> OfficeIMO.Excel.ExcelRange!
-OfficeIMO.Excel.ExcelRange.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetFillColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment alignment) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetVerticalAlignment(OfficeIMO.Excel.ExcelVerticalAlignment alignment) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.SetWrapText(bool wrapText = true) -> OfficeIMO.Excel.ExcelRange!
 OfficeIMO.Excel.ExcelRange.Validation() -> OfficeIMO.Excel.ExcelRangeDataValidationBuilder!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage(bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, string? fillColor = null, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Blanks(bool containsBlanks = true, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2 = null, string? fillColor = null, bool stopIfTrue = false, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(OfficeIMO.OfficeColor startColor, OfficeIMO.OfficeColor endColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(string! startColor, string! endColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DataBar(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DataBar(string! color) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DuplicateValues(string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Errors(bool containsErrors = true, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string! formula, string? fillColor = null, bool stopIfTrue = false, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.IconSet(OfficeIMO.Excel.ExcelIconSet iconSet = OfficeIMO.Excel.ExcelIconSet.ThreeTrafficLights1, bool showValue = true, bool reverseIconOrder = false, double[]? percentThresholds = null, double[]? numberThresholds = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Text(OfficeIMO.Excel.ExcelConditionalFormatType type, string! text, string? fillColor = null, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TimePeriod(OfficeIMO.Excel.ExcelConditionalTimePeriod timePeriod, string? fillColor = null, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TopBottom(uint rank, bool bottom = false, bool percent = false, string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
-OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.UniqueValues(string? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
 OfficeIMO.Excel.ExcelSheet.Cell(int row, int column) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelSheet.Cell(string! reference) -> OfficeIMO.Excel.ExcelCell
 OfficeIMO.Excel.ExcelSheet.DeleteColumns(int firstColumn, int count = 1) -> void
@@ -363,5 +343,183 @@ static OfficeIMO.Excel.Reports.ExcelReportExtensions.ApplyDashboardPreset(this O
 *REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.HasLoss.get -> bool
 *REMOVED*OfficeIMO.Excel.ExcelSpreadsheetXmlReport.RequireNoLoss() -> void
 *REMOVED*OfficeIMO.Excel.Legacy.LegacySpreadsheetImportResult.RequireNoLoss() -> OfficeIMO.Excel.ExcelDocument!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(string! seriesName, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(string! seriesName, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontName = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontName.get -> string?
+*REMOVED*OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontName.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.AlignCenter() -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.AlignLeft() -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.AlignRight() -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.Background(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.Background(string! hexColor) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BackgroundByTextMap(System.Collections.Generic.IDictionary<string!, OfficeIMO.OfficeColor>! map, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BackgroundByTextMap(System.Collections.Generic.IDictionary<string!, string!>! map, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BackgroundWhenTextEquals(string! text, string! hexColor, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.Bold() -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BoldByTextSet(System.Collections.Generic.ISet<string!>! values, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.BoldWhenTextEquals(string! text, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.FontColor(string! hexColor) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.FontColorByTextMap(System.Collections.Generic.IDictionary<string!, string!>! map, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.NumberFormat(string! format) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelRange.SetFillColor(string! hexColor) -> OfficeIMO.Excel.ExcelRange!
+*REMOVED*OfficeIMO.Excel.ExcelRange.SetFontColor(string! hexColor) -> OfficeIMO.Excel.ExcelRange!
+*REMOVED*OfficeIMO.Excel.ExcelRange.SetFontName(string! fontName) -> OfficeIMO.Excel.ExcelRange!
+*REMOVED*OfficeIMO.Excel.ExcelRange.SetGradientFill(string! fromHexColor, string! toHexColor, double degree = 0) -> OfficeIMO.Excel.ExcelRange!
+*REMOVED*OfficeIMO.Excel.ExcelRichTextRun.FontColor.get -> string?
+*REMOVED*OfficeIMO.Excel.ExcelRichTextRun.FontColor.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelRichTextRun.FontFamily.get -> byte?
+*REMOVED*OfficeIMO.Excel.ExcelRichTextRun.FontName.get -> string?
+*REMOVED*OfficeIMO.Excel.ExcelRichTextRun.FontName.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelRowLayoutOptions.BackgroundColor.get -> string?
+*REMOVED*OfficeIMO.Excel.ExcelRowLayoutOptions.FontName.get -> string?
+*REMOVED*OfficeIMO.Excel.ExcelRowLayoutOptions.FontName.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelSheet.SetTabColor(string! color) -> void
+*REMOVED*OfficeIMO.Excel.ExcelStyleDefinition.FontColor.get -> OfficeIMO.OfficeColor?
+*REMOVED*OfficeIMO.Excel.ExcelStyleDefinition.FontColor.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelStyleDefinition.FontName.get -> string?
+*REMOVED*OfficeIMO.Excel.ExcelStyleDefinition.FontName.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelTableVisualOptions.TextBackgrounds.get -> System.Collections.Generic.Dictionary<string!, System.Collections.Generic.IDictionary<string!, string!>!>!
+OfficeIMO.Excel.ExcelCell.SetBorder(OfficeIMO.Excel.ExcelBorderStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetBorder(OfficeIMO.Excel.ExcelCellBorders borders, OfficeIMO.Excel.ExcelBorderStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle style, OfficeIMO.OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetFontFamily(string! fontFamily) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelCell.SetGradientFill(OfficeIMO.OfficeColor fromColor, OfficeIMO.OfficeColor toColor, double degree = 0) -> OfficeIMO.Excel.ExcelCell
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetLegendTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyle(int seriesIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPoint(int seriesIndex, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisLabelTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisTitleTextStyle(OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontFamily.get -> string?
+OfficeIMO.Excel.ExcelChartDataLabelTemplate.FontFamily.set -> void
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetBold(bool bold = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetBoldByTextSet(System.Collections.Generic.ISet<string!>! values, bool bold = true, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetBoldWhenTextEquals(string! text, bool bold = true, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetColorByTextMap(System.Collections.Generic.IDictionary<string!, OfficeIMO.OfficeColor>! map, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColorByTextMap(System.Collections.Generic.IDictionary<string!, OfficeIMO.OfficeColor>! map, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFillColorWhenTextEquals(string! text, OfficeIMO.OfficeColor color, bool caseInsensitive = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFontFamily(string! fontFamily) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetFontSize(OfficeIMO.OfficeLength fontSize) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment alignment) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetItalic(bool italic = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetNumberFormat(string! format) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetStrikethrough(bool strikethrough = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetUnderline(OfficeIMO.Excel.ExcelUnderlineStyle underlineStyle) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetVerticalAlignment(OfficeIMO.Excel.ExcelVerticalAlignment alignment) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetVerticalTextAlignment(OfficeIMO.Excel.ExcelVerticalTextAlignment alignment) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetWrapText(bool wrapText = true) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelRange.SetBorder(OfficeIMO.Excel.ExcelBorderStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetBorder(OfficeIMO.Excel.ExcelCellBorders borders, OfficeIMO.Excel.ExcelBorderStyle style, OfficeIMO.OfficeColor? color = null) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetColor(OfficeIMO.OfficeColor color) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetDiagonalBorder(OfficeIMO.Excel.ExcelBorderStyle style, OfficeIMO.OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetFontFamily(string! fontFamily) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRange.SetGradientFill(OfficeIMO.OfficeColor fromColor, OfficeIMO.OfficeColor toColor, double degree = 0) -> OfficeIMO.Excel.ExcelRange!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.AboveAverage(bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null, OfficeIMO.OfficeColor? fillColor = null, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.CellIs(OfficeIMO.Excel.ExcelConditionalFormattingOperator operator, string! formula1, string? formula2 = null, OfficeIMO.OfficeColor? fillColor = null, bool stopIfTrue = false, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.DuplicateValues(OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Formula(string! formula, OfficeIMO.OfficeColor? fillColor = null, bool stopIfTrue = false, int? priority = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.Text(OfficeIMO.Excel.ExcelConditionalFormatType type, string! text, OfficeIMO.OfficeColor? fillColor = null, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TimePeriod(OfficeIMO.Excel.ExcelConditionalTimePeriod timePeriod, OfficeIMO.OfficeColor? fillColor = null, bool stopIfTrue = false) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.TopBottom(uint rank, bool bottom = false, bool percent = false, OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.UniqueValues(OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelRichTextRun.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Excel.ExcelRichTextRun.Color.set -> void
+OfficeIMO.Excel.ExcelRichTextRun.FontFamily.get -> string?
+OfficeIMO.Excel.ExcelRichTextRun.FontFamilyClassification.get -> byte?
+OfficeIMO.Excel.ExcelRichTextRun.FontFamilyClassification.set -> void
+OfficeIMO.Excel.ExcelRowLayoutOptions.BackgroundColor.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Excel.ExcelRowLayoutOptions.FontFamily.get -> string?
+OfficeIMO.Excel.ExcelRowLayoutOptions.FontFamily.set -> void
+OfficeIMO.Excel.ExcelStyleDefinition.Color.get -> OfficeIMO.OfficeColor?
+OfficeIMO.Excel.ExcelStyleDefinition.Color.set -> void
+OfficeIMO.Excel.ExcelStyleDefinition.FontFamily.get -> string?
+OfficeIMO.Excel.ExcelStyleDefinition.FontFamily.set -> void
+OfficeIMO.Excel.ExcelTableVisualOptions.TextBackgrounds.get -> System.Collections.Generic.Dictionary<string!, System.Collections.Generic.IDictionary<string!, OfficeIMO.OfficeColor>!>!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleByName(string! seriesName, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesDataLabelTextStyleForPointByName(string! seriesName, int pointIndex, OfficeIMO.OfficeLength? fontSize = null, bool? bold = null, bool? italic = null, OfficeIMO.OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetUnderline() -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder.SetUnderline(bool underline) -> OfficeIMO.Excel.ExcelColumnStyleByHeaderBuilder!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetDataLabels(bool showValue = true, bool showCategoryName = false, bool showSeriesName = false, bool showLegendKey = false, bool showPercent = false) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetDataLabels(bool showValue, bool showCategoryName, bool showSeriesName, bool showLegendKey, bool showPercent, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position, string? numberFormat, bool sourceLinked = false) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetLegend(OfficeIMO.Drawing.OfficeChartLegendPosition position, bool overlay = false) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetSeriesMarker(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape style, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+*REMOVED*OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool showMajor = true, bool showMinor = false, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetCategoryAxisGridlines(bool? showMajor = null, bool? showMinor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetDataLabels(bool? showValue = null, bool? showCategoryName = null, bool? showSeriesName = null, bool? showLegendKey = null, bool? showPercent = null, OfficeIMO.Drawing.OfficeChartDataLabelPosition? position = null, string? numberFormat = null, bool? sourceLinked = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetLegend(OfficeIMO.Drawing.OfficeChartLegendPosition? position = null, bool? overlay = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesMarker(int seriesIndex, OfficeIMO.Drawing.OfficeChartMarkerShape? style = null, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetSeriesMarkerByName(string! seriesName, OfficeIMO.Drawing.OfficeChartMarkerShape? style = null, OfficeIMO.OfficeLength? size = null, OfficeIMO.OfficeColor? fillColor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, bool ignoreCase = true) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelChart.SetValueAxisGridlines(bool? showMajor = null, bool? showMinor = null, OfficeIMO.OfficeColor? lineColor = null, OfficeIMO.OfficeLength? lineWidth = null, OfficeIMO.Drawing.OfficeChartAxisGroup axisGroup = OfficeIMO.Drawing.OfficeChartAxisGroup.Primary) -> OfficeIMO.Excel.ExcelChart!
+OfficeIMO.Excel.ExcelRangeConditionalFormattingBuilder.ColorScale(OfficeIMO.OfficeColor startColor, OfficeIMO.OfficeColor midColor, OfficeIMO.OfficeColor endColor) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.ExcelSheet.SetConditionalFormattingColors(OfficeIMO.Excel.ExcelConditionalFormattingInfo! rule, OfficeIMO.OfficeColor? color = null, OfficeIMO.OfficeColor? fillColor = null) -> OfficeIMO.Excel.ExcelConditionalFormattingInfo!
+OfficeIMO.Excel.OfficeSheetSelector
+OfficeIMO.Excel.OfficeSheetSelector.Name.get -> string?
+OfficeIMO.Excel.OfficeSheetSelector.OfficeSheetSelector(string? name = null, int? position = null) -> void
+OfficeIMO.Excel.OfficeSheetSelector.Position.get -> int?
+OfficeIMO.Excel.OfficeSheetSelector.Resolve<T>(System.Collections.Generic.IReadOnlyList<T!>! sheets, System.Func<T!, string!>! getName) -> T!
+OfficeIMO.Excel.OfficeSheetSelector.Sheet.get -> OfficeIMO.Excel.ExcelSheet?
+static OfficeIMO.Excel.OfficeSheetSelector.From(object! value) -> OfficeIMO.Excel.OfficeSheetSelector!
+static OfficeIMO.Excel.OfficeSheetSelector.ResolveMany(OfficeIMO.Excel.ExcelDocument! document, System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.OfficeSheetSelector!>? selectors, OfficeIMO.Excel.ExcelSheet? defaultSheet = null) -> System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.ExcelSheet!>!
+static OfficeIMO.Excel.OfficeSheetSelector.ResolveNames(System.Collections.Generic.IReadOnlyList<string!>! sheetNames, System.Collections.Generic.IReadOnlyList<OfficeIMO.Excel.OfficeSheetSelector!>? selectors) -> System.Collections.Generic.IReadOnlyList<string!>!
+*REMOVED*OfficeIMO.Excel.ExcelSheet.AddPivotTable(string! sourceRange, string! destinationCell, OfficeIMO.Excel.ExcelPivotTableOptions? options = null) -> OfficeIMO.Excel.ExcelPivotTable!
+OfficeIMO.Excel.ExcelDocument.ApplyTheme(OfficeIMO.OfficeTheme! theme) -> OfficeIMO.Excel.ExcelDocument!
+OfficeIMO.Excel.ExcelIncrementalTableWriter
+OfficeIMO.Excel.ExcelIncrementalTableWriter.Complete() -> OfficeIMO.Excel.ExcelDataSetImportResult!
+OfficeIMO.Excel.ExcelIncrementalTableWriter.DeclareColumns(System.Collections.Generic.IReadOnlyList<string!>! columnNames) -> void
+OfficeIMO.Excel.ExcelIncrementalTableWriter.Dispose() -> void
+OfficeIMO.Excel.ExcelIncrementalTableWriter.WriteRow(System.Collections.Generic.IReadOnlyList<string!>! columnNames, System.Collections.Generic.IReadOnlyList<object?>! values) -> void
+OfficeIMO.Excel.ExcelSheet.AddPivotTable(OfficeIMO.Excel.ExcelSheet! sourceSheet, string! sourceRange, string! destinationCell, OfficeIMO.Excel.ExcelPivotTableOptions? options = null) -> OfficeIMO.Excel.ExcelPivotTable!
+OfficeIMO.Excel.ExcelSheet.AddPivotTable(string! sourceRange, string! destinationCell) -> OfficeIMO.Excel.ExcelPivotTable!
+OfficeIMO.Excel.ExcelSheet.AddPivotTable(string! sourceRange, string! destinationCell, OfficeIMO.Excel.ExcelPivotTableOptions? options) -> OfficeIMO.Excel.ExcelPivotTable!
+OfficeIMO.Excel.ExcelTableStyle.None = -1 -> OfficeIMO.Excel.ExcelTableStyle
+OfficeIMO.Excel.ExcelWorkbookWriter.Abort() -> void
+OfficeIMO.Excel.ExcelWorkbookWriter.BeginTable(string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> OfficeIMO.Excel.ExcelIncrementalTableWriter!
+OfficeIMO.Excel.ExcelWriterOptions.Address.get -> string!
+OfficeIMO.Excel.ExcelWriterOptions.Address.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.BoldHeaders.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.BoldHeaders.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.ColumnFormat.get -> OfficeIMO.Excel.ExcelColumnFormatPlan?
+OfficeIMO.Excel.ExcelWriterOptions.ColumnFormat.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.DocumentProperties.get -> System.Collections.Generic.IReadOnlyDictionary<string!, object?>?
+OfficeIMO.Excel.ExcelWriterOptions.DocumentProperties.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.FreezeFirstColumn.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.FreezeFirstColumn.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.FreezeHeader.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.FreezeHeader.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.IgnoreMissingColumnFormat.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.IgnoreMissingColumnFormat.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.NoClobber.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.NoClobber.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.SaveOptions.get -> OfficeIMO.Excel.ExcelSaveOptions?
+OfficeIMO.Excel.ExcelWriterOptions.SaveOptions.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.ShowColumnStripes.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.ShowColumnStripes.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.ShowFirstColumn.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.ShowFirstColumn.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.ShowLastColumn.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.ShowLastColumn.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.ShowRowStripes.get -> bool
+OfficeIMO.Excel.ExcelWriterOptions.ShowRowStripes.set -> void
+OfficeIMO.Excel.ExcelWriterOptions.Title.get -> string?
+OfficeIMO.Excel.ExcelWriterOptions.Title.set -> void
+*REMOVED*OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook() -> void
+OfficeIMO.Excel.ExcelDocument.UnprotectWorkbook(bool structure = true, bool windows = true) -> void
 static OfficeIMO.Excel.ExcelDocument.CreateWriter(OfficeIMO.Excel.ExcelFileFormat format, System.IO.Stream! stream, OfficeIMO.Excel.ExcelWriterOptions? options = null, OfficeIMO.OfficeTheme? theme = null, bool leaveOpen = false) -> OfficeIMO.Excel.ExcelWorkbookWriter!
 static OfficeIMO.Excel.ExcelDocument.CreateWriter(OfficeIMO.Excel.ExcelFileFormat format, string! path, OfficeIMO.Excel.ExcelWriterOptions? options = null, OfficeIMO.OfficeTheme? theme = null) -> OfficeIMO.Excel.ExcelWorkbookWriter!

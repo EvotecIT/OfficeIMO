@@ -1,107 +1,93 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Creates or updates a named range.</summary>
-/// <para>Defaults to the current sheet scope when used inside the Excel DSL.</para>
+/// <summary>Creates or updates a defined name.</summary>
 /// <example>
-///   <summary>Define a named range inside a sheet.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>ExcelSheet 'Data' { Set-OfficeExcelNamedRange -Name 'Totals' -Range 'B2:B50' }</code>
-///   <para>Creates a sheet-scoped name for the range.</para>
+/// <summary>Name an input cell</summary>
+/// <code>Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+///     ExcelSheet 'Assumptions' {
+///         ExcelNamedRange TaxRate 'B2'
+///     }
+/// }</code>
+/// <para>Names B2 on the Assumptions sheet TaxRate so formulas can use =Amount*TaxRate.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelNamedRange", DefaultParameterSetName = ParameterSetContext)]
+/// <example>
+/// <summary>Define the inputs of a model</summary>
+/// <code>New-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+///     ExcelSheet 'Inputs' {
+///         ExcelCell A1 'Exchange rate EUR/USD'
+///         ExcelCell B1 1.08
+///         ExcelCell A2 'Target margin'
+///         ExcelCell B2 0.32 -NumberFormat '0%'
+///         ExcelNamedRange EurUsd 'B1'
+///         ExcelNamedRange TargetMargin 'B2'
+///     }
+///     ExcelSheet 'Prices' {
+///         ExcelCell A1 'List price (USD)'
+///         ExcelCell B1 -Formula '=1000*EurUsd/(1-TargetMargin)'
+///     }
+/// }</code>
+/// <para>Writes the model inputs and names each one, so the calculation sheets read like the business rules they implement.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Set, "OfficeExcelNamedRange", DefaultParameterSetName = "Default")]
 [Alias("ExcelNamedRange")]
-public sealed class SetOfficeExcelNamedRangeCommand : PSCmdlet
-{
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
+public sealed class SetOfficeExcelNamedRangeCommand : PSCmdlet {
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Default", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook to operate on outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Worksheet name when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public string? Sheet { get; set; }
-
-    /// <summary>Worksheet index (0-based) when using <see cref="Document"/>.</summary>
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    public int? SheetIndex { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
     /// <summary>Name of the defined range.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    public string Name { get; set; } = string.Empty;
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0)]
+    public string Name { get; set; } = null!;
 
-    /// <summary>Range in A1 notation.</summary>
-    [Parameter(Mandatory = true, Position = 1)]
-    public string Range { get; set; } = string.Empty;
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 1)]
+    public string Range { get; set; } = null!;
 
     /// <summary>Mark the defined name as hidden.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Hidden { get; set; }
 
     /// <summary>Validate or sanitize the defined name.</summary>
-    [Parameter]
-    public ExcelDefinedNameValidationMode ValidationMode { get; set; } = ExcelDefinedNameValidationMode.Sanitize;
+    [Parameter(ParameterSetName = "Default")]
+    public ExcelDefinedNameValidationMode? ValidationMode { get; set; }
 
     /// <summary>Force a workbook-global name even inside a sheet block.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter Global { get; set; }
 
-    /// <summary>Save the workbook immediately after setting the name.</summary>
-    [Parameter]
-    public SwitchParameter Save { get; set; }
-
-    /// <summary>Emit the name after creation.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        ExcelDocument document;
-        ExcelSheet? scope = null;
-
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            document = Document ?? throw new PSArgumentException("Provide an Excel document.");
-
-            if (!string.IsNullOrWhiteSpace(Sheet))
-            {
-                scope = document[Sheet!];
-            }
-            else if (SheetIndex.HasValue)
-            {
-                if (SheetIndex.Value < 0 || SheetIndex.Value >= document.Sheets.Count)
-                {
-                    throw new ArgumentOutOfRangeException(nameof(SheetIndex), "SheetIndex is out of range.");
-                }
-                scope = document.Sheets[SheetIndex.Value];
-            }
-        }
-        else
-        {
-            var context = ExcelDslContext.Require(this);
-            document = context.Document;
-            if (!Global.IsPresent)
-            {
-                scope = context.CurrentSheet;
-            }
-        }
-
-        document.SetNamedRange(Name, Range, scope, save: false, hidden: Hidden.IsPresent, validationMode: ValidationMode);
-        if (Save.IsPresent)
-        {
-            document.Save();
-        }
-
-        if (PassThru.IsPresent)
-        {
-            WriteObject(Name);
+    protected override void ProcessRecord() {
+        var document = ExcelCommandTargets.Document(Document);
+        ExcelSheet? scope = Global ? null : Sheet == null ? (Document == null ? ExcelDslContext.Current?.CurrentSheet : null) : Sheet.Resolve(document.Sheets, sheet => sheet.Name);
+        document.SetNamedRange(Name, Range, scope, save: false, hidden: Hidden, validationMode: ValidationMode ?? ExcelDefinedNameValidationMode.Sanitize);
+        if (PassThru) {
+            string name = ExcelDocument.NormalizeDefinedName(Name, ValidationMode ?? ExcelDefinedNameValidationMode.Sanitize);
+            WriteObject(document.ListNamedRanges().Single(item => item.Name == name && item.SheetName == scope?.Name));
         }
     }
+
 }

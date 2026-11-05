@@ -11,12 +11,12 @@ Adds a watermark to the current section or header.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficeWordWatermark [-Text] <string> [-HorizontalOffset <Double>] [-VerticalOffset <Double>] [-Scale <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordWatermark [-Text] <string> [-X <OfficeLength>] [-Y <OfficeLength>] [-Scale <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Image
 ```powershell
-Add-OfficeWordWatermark [-ImagePath] <string> [-HorizontalOffset <Double>] [-VerticalOffset <Double>] [-Scale <double>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordWatermark [-ImagePath] <string> [-X <OfficeLength>] [-Y <OfficeLength>] [-Scale <double>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -29,7 +29,7 @@ Supports text or image watermarks using OfficeIMO.Word.
 PS> New-OfficeWord -Path .\ProtectedReport.docx {
     Add-OfficeWordParagraph -Text 'Confidential report'
     Add-OfficeWordWatermark -Text 'CONFIDENTIAL' -Scale 1.2
-    Protect-OfficeWordDocument -Password 'secret'
+    Protect-OfficeDocument -Restriction ReadOnly -RestrictionPassword 'secret'
 }
 ```
 
@@ -39,29 +39,13 @@ Applies a text watermark to the current section and then protects the document t
 ```powershell
 PS> New-OfficeWord -Path .\DraftReport.docx {
     Add-OfficeWordParagraph -Text 'Draft report'
-    Add-OfficeWordWatermark -ImagePath .\Assets\Draft.png -Scale 0.6 -HorizontalOffset 20 -VerticalOffset 40
+    Add-OfficeWordWatermark -ImagePath .\Assets\Draft.png -Scale 0.6 -X 20 -Y 40
 }
 ```
 
 Uses the image watermark path and placement parameters exposed by OfficeIMO.Word.
 
 ## PARAMETERS
-
-### -HorizontalOffset
-Horizontal offset for the watermark.
-
-```yaml
-Type: Double
-Parameter Sets: Text, Image
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -ImagePath
 Path to an image watermark, resolved literally against the current PowerShell location.
@@ -127,11 +111,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -VerticalOffset
+### -X
+Horizontal offset for the watermark.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Text, Image
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Y
 Vertical offset for the watermark.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Text, Image
 Aliases: None
 Possible values:

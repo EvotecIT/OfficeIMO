@@ -15,8 +15,11 @@ public sealed partial class CsvDocument
 
     private static CsvDocument LoadFromPath(string path, CsvParsingSettings fileOptions)
     {
+        path = Path.GetFullPath(path);
         var encoding = fileOptions.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return LoadInternal(() => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize), fileOptions, encoding);
+        var document = LoadInternal(() => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize), fileOptions, encoding);
+        document.FilePath = Path.GetFullPath(path);
+        return document;
     }
 
     /// <summary>
@@ -289,7 +292,9 @@ public sealed partial class CsvDocument
         Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         using TextReader reader = CsvFile.OpenTextReaderForAsyncRead(path, resolved, FileBufferSize);
         string text = await ReadAllTextAsync(reader, effectiveCancellation).ConfigureAwait(false);
-        return LoadInternal(() => new StringReader(text), resolved, encoding, text);
+        var document = LoadInternal(() => new StringReader(text), resolved, encoding, text);
+        document.FilePath = Path.GetFullPath(path);
+        return document;
     }
 
     /// <summary>Asynchronously loads a CSV document from a caller-owned stream.</summary>

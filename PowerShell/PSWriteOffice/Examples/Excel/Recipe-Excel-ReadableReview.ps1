@@ -43,20 +43,20 @@ $services = @(
 $workbook = New-OfficeExcel -Path $workbookPath
 try {
     $sheet = $workbook | Add-OfficeExcelSheet -Name 'Review' -PassThru
-    $sheet | Set-OfficeExcelRow -Row 1 -Values 'Service review' -Bold $true -Height 26
-    Add-OfficeExcelTable -Worksheet $sheet -InputObject $services -StartRow 3 -Name 'Services'
+    Set-OfficeExcelRow -Sheet $sheet -Row 1 -Values 'Service review' -Bold:$true -Height 26
+    Add-OfficeExcelTable -Sheet $sheet -InputObject $services -Address A3 -Name 'Services'
 
-    $sheet | Set-OfficeExcelColumn -ColumnName A -Width 20
-    $sheet | Set-OfficeExcelColumn -ColumnName B -Width 16
-    $sheet | Set-OfficeExcelColumn -ColumnName C -Width 54
+    Set-OfficeExcelColumn -Sheet $sheet -Column A -Width 20
+    Set-OfficeExcelColumn -Sheet $sheet -Column B -Width 16
+    Set-OfficeExcelColumn -Sheet $sheet -Column C -Width 54
     for ($row = 4; $row -le 6; $row++) {
-        $sheet | Set-OfficeExcelRow -Row $row -WrapText $true -AutoFit
-        $sheet | Set-OfficeExcelCell -Row $row -Column 2 -NumberFormat '0.00%'
+        Set-OfficeExcelRow -Sheet $sheet -Row $row -WrapText:$true -AutoFit
+        Set-OfficeExcelCell -Sheet $sheet -Row $row -Column 2 -NumberFormat '0.00%'
     }
 
     # A PowerShell number remains numeric, so Excel can calculate with it.
-    $sheet | Set-OfficeExcelCell -Address A8 -Value 'Availability target'
-    $sheet | Set-OfficeExcelCell -Address B8 -Value 0.999 -NumberFormat '0.00%'
+    Set-OfficeExcelCell -Sheet $sheet -Address A8 -Value 'Availability target'
+    Set-OfficeExcelCell -Sheet $sheet -Address B8 -Value 0.999 -NumberFormat '0.00%'
     $workbook | Set-OfficeExcelSheetView -Sheet 'Review' -FreezeRows 3
     $workbook | Set-OfficeExcelPageSetup -Sheet 'Review' -FitToWidth 1 -FitToHeight 0
     $workbook | Save-OfficeExcel
@@ -67,6 +67,6 @@ try {
 Get-Item -LiteralPath $workbookPath
 if ($IncludePdf) {
     $pdfPath = Join-Path $outputPath 'Service-Review.pdf'
-    Export-OfficeDocumentPdf -InputPath $workbookPath -Path $pdfPath
+    Convert-OfficeDocument -Path $workbookPath -To Pdf -OutputPath $pdfPath | Out-Null
     Get-Item -LiteralPath $pdfPath
 }

@@ -10,13 +10,13 @@ public sealed class IWorkPagesParagraphEditingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Apple_qualified_edits_and_native_resave_retain_selected_content_and_allow_another_edit(bool nativeResave) {
-        var original = IWorkSourceDocument.Open(Fixture("pages-created-layout-edited-v15.4.pages"));
+        var original = IWorkSourceDocument.Load(Fixture("pages-created-layout-edited-v15.4.pages"));
         var edit = original.BeginEdit(); var id = original.ReadPages().Body.SourceIdentity!;
         edit.SetPagesBodyParagraphText(id, 1, "Edited paragraph layout");
         edit.SetPagesBodyParagraphText(id, 3, "Start\tLeft\tCenter\tRight\t234.56");
         edit.SetPagesBodyParagraphText(id, 7, "Updated reset Native layout edit.");
-        Assert.Equal(File.ReadAllBytes(Fixture("pages-preserved-paragraphs-v15.4.pages")), edit.SaveBytes(AcceptCaches()));
-        var source = IWorkSourceDocument.Open(Fixture("pages-preserved-paragraphs" + (nativeResave ? "-edited" : "") + "-v15.4.pages"));
+        Assert.Equal(File.ReadAllBytes(Fixture("pages-preserved-paragraphs-v15.4.pages")), edit.ToBytes(AcceptCaches()));
+        var source = IWorkSourceDocument.Load(Fixture("pages-preserved-paragraphs" + (nativeResave ? "-edited" : "") + "-v15.4.pages"));
         var pages = source.ReadPages();
         Assert.True(pages.HasEditableContent); Assert.True(pages.Body.IsComplete); Assert.Empty(pages.Diagnostics);
         Assert.Equal(8, pages.Body.Paragraphs.Count);
@@ -25,7 +25,7 @@ public sealed class IWorkPagesParagraphEditingTests {
         Assert.Equal(nativeResave ? "Native checked paragraph." : "Updated reset Native layout edit.", pages.Paragraphs[6]);
         Assert.Equal("Rich layout plain Zażółć 😀", pages.Paragraphs[5]);
         Assert.Equal(2, pages.Body.Paragraphs[5].Runs.Count);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(source.BeginEdit().SaveBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(source.BeginEdit().ToBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes); bytes.Position = 0;
         using var saved = WordDocument.Load(bytes); Assert.Empty(saved.ValidateDocument());
@@ -36,9 +36,9 @@ public sealed class IWorkPagesParagraphEditingTests {
                     DocumentFormat.OpenXml.Wordprocessing.Text text => text.Text, _ => "" }))));
         var next = source.BeginEdit();
         next.SetPagesBodyParagraphText(pages.Body.SourceIdentity!, 1, "Native paragraph layout");
-        Assert.Equal("Native paragraph layout", IWorkSourceDocument.Open(next.SaveBytes(AcceptCaches())).ReadPages().Paragraphs[0]);
+        Assert.Equal("Native paragraph layout", IWorkSourceDocument.Load(next.ToBytes(AcceptCaches())).ReadPages().Paragraphs[0]);
         next.SetPagesBodyParagraphText(pages.Body.SourceIdentity!, 1, pages.Paragraphs[0]);
-        Assert.Equal(source.ComputePackageContentHash(), next.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: next.ToBytes(out var nativeReport1), Report: nativeReport1).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -48,12 +48,12 @@ public sealed class IWorkPagesParagraphEditingTests {
         byte[] payload = record.GetPayload();
         IWorkPreservingWireEdit.ReplaceBytesRange(payload, new[] { (3, -1) }, 0, new byte[] { (byte)'x' }, new(), default);
         var populated = IWorkPreservationPackageWriter.Write(original, new Dictionary<IWorkArchiveRecord, byte[]> { [record] = payload }, AcceptCaches(), default);
-        var source = IWorkSourceDocument.Open(populated.GetPackageBytes()); var pages = source.ReadPages();
+        var source = IWorkSourceDocument.Load(populated.Bytes); var pages = source.ReadPages();
         Assert.True(pages.HasEditableContent);
         Assert.Contains(pages.HeaderContents.SelectMany(item => item.Paragraphs), item => item.Text == "x");
         var edit = source.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(pages.Body.SourceIdentity!, 2, "Edited text"));
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport2), Report: nativeReport2).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -61,7 +61,7 @@ public sealed class IWorkPagesParagraphEditingTests {
         var source = Source(); var body = source.ReadPages().Body; var edit = source.BeginEdit();
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 1, "Bravo café 😃");
         edit.SetPagesBodyParagraphText(body.SourceIdentity!, 2, "Edited text");
-        var result = edit.SaveBytesResult(AcceptCaches()); var saved = IWorkSourceDocument.Open(result.GetPackageBytes());
+        var result = (Bytes: edit.ToBytes(out var nativeReport3, AcceptCaches()), Report: nativeReport3); var saved = IWorkSourceDocument.Load(result.Bytes);
         var projected = saved.ReadPages();
         Assert.True(projected.HasEditableContent); Assert.Empty(projected.Diagnostics);
         Assert.Equal("Bravo café 😃", projected.Paragraphs[0]); Assert.Equal("Edited text", projected.Paragraphs[1]);
@@ -82,7 +82,7 @@ public sealed class IWorkPagesParagraphEditingTests {
             Assert.Equal(entry.GetBytes(), saved.Entries.Single(item => item.Path == entry.Path).GetBytes());
         Assert.Equal(body.Paragraphs[0].Runs[0].Style.FontName, projected.Body.Paragraphs[0].Runs[0].Style.FontName);
         Assert.Equal(body.Paragraphs[0].Runs[0].Style.Color!.RgbHex, projected.Body.Paragraphs[0].Runs[0].Style.Color!.RgbHex);
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(result.GetPackageBytes()), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(result.Bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var bytes = new MemoryStream(); converted.Value.Save(bytes); bytes.Position = 0;
         using var reopened = WordDocument.Load(bytes);
@@ -96,7 +96,7 @@ public sealed class IWorkPagesParagraphEditingTests {
         var source = Source(); var body = source.ReadPages().Body; var id = body.SourceIdentity!; var edit = source.BeginEdit();
         edit.SetPagesBodyParagraphText(id, 1, "Bravo café 😃");
         edit.SetPagesBodyParagraphText(id, 2, "Edited text");
-        byte[] before = edit.SaveBytes(AcceptCaches());
+        byte[] before = edit.ToBytes(AcceptCaches());
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(id, 2, "short"));
         // Both replacements contain eleven UTF-16 units, but the second has twelve UTF-8 bytes.
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(id, 2, "Edited téxt"));
@@ -105,13 +105,13 @@ public sealed class IWorkPagesParagraphEditingTests {
         Assert.Throws<ArgumentException>(() => edit.SetPagesBodyParagraphText(source.ReadPages().SourceIdentity!, 2, "Edited text"));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => edit.SetPagesBodyParagraphText(id, 2, "Second body", cancellation.Token));
-        Assert.Equal(before, edit.SaveBytes(AcceptCaches()));
+        Assert.Equal(before, edit.ToBytes(AcceptCaches()));
         using var output = new MemoryStream(); output.WriteByte(9);
         Assert.Throws<InvalidOperationException>(() => edit.Save(output)); Assert.Equal(new byte[] { 9 }, output.ToArray());
         edit.SetPagesBodyParagraphText(id, 1, body.Paragraphs[0].Text);
-        Assert.Single(edit.SaveBytesResult(AcceptCaches()).Report.UpdatedRecords);
+        Assert.Single((Bytes: edit.ToBytes(out var nativeReport4, AcceptCaches()), Report: nativeReport4).Report.UpdatedRecords);
         edit.SetPagesBodyParagraphText(id, 2, body.Paragraphs[1].Text);
-        var restored = edit.SaveBytesResult(); Assert.Empty(restored.Report.UpdatedRecords);
+        var restored = (Bytes: edit.ToBytes(out var nativeReport5), Report: nativeReport5); Assert.Empty(restored.Report.UpdatedRecords);
         Assert.Equal(source.ComputePackageContentHash(), restored.Report.OutputPackageContentHash);
     }
 
@@ -124,7 +124,7 @@ public sealed class IWorkPagesParagraphEditingTests {
     public void Paragraph_separators_inline_markers_and_invalid_Unicode_are_rejected_without_mutation(string replacement) {
         var source = Source(); var edit = source.BeginEdit();
         Assert.Throws<ArgumentException>(() => edit.SetPagesBodyParagraphText(source.ReadPages().Body.SourceIdentity!, 2, replacement));
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport6), Report: nativeReport6).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -133,7 +133,7 @@ public sealed class IWorkPagesParagraphEditingTests {
         // Construct at runtime: custom-attribute serialization replaces an unpaired UTF-16 value.
         string replacement = "Edited" + new string('\ud800', 1) + "text";
         Assert.Throws<ArgumentException>(() => edit.SetPagesBodyParagraphText(source.ReadPages().Body.SourceIdentity!, 2, replacement));
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport7), Report: nativeReport7).Report.OutputPackageContentHash);
     }
 
     [Fact]
@@ -161,24 +161,24 @@ public sealed class IWorkPagesParagraphEditingTests {
             foreach (var entry in original.Entries.Where(item => !item.Path.StartsWith("Index/", StringComparison.Ordinal)))
                 using (var stream = package.CreateEntry(entry.Path).Open()) { byte[] data = entry.GetBytes(); stream.Write(data); }
         }
-        var nested = IWorkSourceDocument.Open(outer.ToArray(), IWorkDocumentKind.Pages); var edit = nested.BeginEdit();
+        var nested = IWorkSourceDocument.Load(outer.ToArray(), IWorkDocumentKind.Pages); var edit = nested.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(nested.ReadPages().Body.SourceIdentity!, 2, "Edited text"));
-        Assert.Equal(nested.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
-        var bounded = IWorkSourceDocument.Open(original.BeginEdit().SaveBytes(), options: new() { MaxProjectedTextCharacters = 1 });
+        Assert.Equal(nested.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport8), Report: nativeReport8).Report.OutputPackageContentHash);
+        var bounded = IWorkSourceDocument.Load(original.BeginEdit().ToBytes(), options: new() { MaxProjectedTextCharacters = 1 });
         edit = bounded.BeginEdit();
         Assert.Throws<InvalidDataException>(() => edit.SetPagesBodyParagraphText(body.SourceIdentity!, 2, "Edited text"));
-        Assert.Equal(bounded.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(bounded.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport9), Report: nativeReport9).Report.OutputPackageContentHash);
     }
 
     private static void Reject(IWorkPagesDocument model, string text) {
-        var source = IWorkSourceDocument.Open(model.SaveBytes()); var edit = source.BeginEdit();
+        var source = IWorkSourceDocument.Load(model.ToBytes()); var edit = source.BeginEdit();
         Assert.Throws<NotSupportedException>(() => edit.SetPagesBodyParagraphText(source.ReadPages().Body.SourceIdentity!, 1, text));
-        Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+        Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport10), Report: nativeReport10).Report.OutputPackageContentHash);
     }
 
     private static IWorkSourceDocument Source() {
         var model = IWorkPagesDocument.Create(); model.AddParagraph("Alpha café 😀", fontSizePoints: 14, color: "123456");
-        model.AddParagraph("Second body"); model.AddParagraph(""); return IWorkSourceDocument.Open(model.SaveBytes());
+        model.AddParagraph("Second body"); model.AddParagraph(""); return IWorkSourceDocument.Load(model.ToBytes());
     }
 
     private static IWorkNativeSaveOptions AcceptCaches() => new() { AllowUnassessedVisualCaches = true };

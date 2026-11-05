@@ -100,11 +100,11 @@ internal static class ConversionApiCompileContract {
         _ = htmlToTarget.DiagnosticsContract;
         _ = targetToHtml?.DiagnosticsContract;
         _ = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(source);
-        _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToMarkdownDocumentResult(asciiDoc);
-        _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToAsciiDocDocumentResult(markdown);
+        _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToMarkdown(asciiDoc);
+        _ = OfficeIMO.AsciiDoc.Markdown.AsciiDocMarkdownConverterExtensions.ToAsciiDoc(markdown);
         _ = OfficeIMO.AsciiDoc.Pdf.AsciiDocPdfConverterExtensions.ToPdf(asciiDoc);
-        _ = OfficeIMO.Latex.Markdown.LatexMarkdownConverterExtensions.ToMarkdownDocumentResult(latex);
-        _ = OfficeIMO.Latex.Markdown.LatexMarkdownConverterExtensions.ToLatexDocumentResult(markdown);
+        _ = OfficeIMO.Latex.Markdown.LatexMarkdownConverterExtensions.ToMarkdown(latex);
+        _ = OfficeIMO.Latex.Markdown.LatexMarkdownConverterExtensions.ToLatex(markdown);
         _ = OfficeIMO.Latex.Pdf.LatexPdfConverterExtensions.ToPdf(latex);
         _ = OfficeIMO.Markdown.Html.HtmlMarkdownConverterExtensions.ToMarkdown(html);
         _ = OfficeIMO.Markdown.Pdf.MarkdownPdfConverterExtensions.ToPdf(markdown);
@@ -154,7 +154,7 @@ internal static class ConversionApiCompileContract {
             "source", "html", "source.html", "text/html", 1, new string('0', 64)));
         galleryResult.Diagnostics.Add(new HtmlDiagnostic("Compatibility", "EstablishedApi", "Established gallery diagnostics API"));
         _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToPdf(rtf);
-        _ = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtfDocumentResult(pdf);
+        using RtfDocument pdfRtf = OfficeIMO.Rtf.Pdf.RtfPdfConverterExtensions.ToRtf(pdf, null, out OfficeConversionReport pdfRtfReport);
         _ = OfficeIMO.OpenDocument.Odg.Pdf.OdgPdfConversionExtensions.ToPdf(odg);
         _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToPdf(odt);
         _ = OfficeIMO.OpenDocument.Odt.Pdf.OdtPdfConversionExtensions.ToOdt(pdf);
@@ -192,8 +192,8 @@ internal static class ConversionApiCompileContract {
         _ = ConfluenceContentConverter.FromHtml(source);
         _ = ConfluenceContentConverter.ToMarkdown(confluencePage);
         _ = ConfluenceContentConverter.ToHtml(confluencePage);
-        _ = ExcelDocumentCsvExtensions.ToExcelDocument(csv);
-        _ = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
+        using ExcelDocument csvExcel = ExcelDocumentCsvExtensions.ToExcel(csv, null, out OfficeConversionReport csvExcelReport);
+        using CsvDocument excelCsv = ExcelSheetCsvExtensions.ToCsv(excel.Sheets[0]);
         using (DbfDataReader dbf = DbfDataReader.Open(source))
         using (StringWriter csvOutput = new StringWriter()) {
             CsvDocument.WriteDataReader(csvOutput, dbf);
@@ -213,9 +213,9 @@ internal static class ConversionApiCompileContract {
             if (destination1.CanSeek)
                 destination1.Position = 0;
         }
-        _ = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWordDocumentResult(officeMarkup);
-        _ = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcelDocumentResult(officeMarkup);
-        _ = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPointDocumentResult(officeMarkup);
+        using WordDocument markupWord = OfficeIMO.Markup.Word.OfficeMarkupWordConverterExtensions.ToWord(officeMarkup, null, out OfficeConversionReport markupWordReport);
+        using ExcelDocument markupExcel = OfficeIMO.Markup.Excel.OfficeMarkupExcelConverterExtensions.ToExcel(officeMarkup, null, out OfficeConversionReport markupExcelReport);
+        using PowerPointDocument markupPowerPoint = OfficeIMO.Markup.PowerPoint.OfficeMarkupPowerPointConverterExtensions.ToPowerPoint(officeMarkup, null, out OfficeConversionReport markupPowerPointReport);
 
         // Every cataloged image source compiles against the same five-format owner
         // contract. Runtime tests enumerate PNG, SVG, JPEG, TIFF, and WebP.

@@ -6,15 +6,15 @@ public sealed class IdentityStabilityTests {
     [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
     public void RepeatedSectionWritesRetainAssignedLogicalIdentities(OneNoteStorageFormat storageFormat) {
         OneNoteSection section = CreateSection("Standalone");
-        var options = new OneNoteWriterOptions { StorageFormat = storageFormat };
+        var options = new OneNoteSaveOptions { StorageFormat = storageFormat };
 
-        byte[] first = OneNoteSectionWriter.Write(section, options);
+        byte[] first = section.ToBytes(options);
         AssertSectionIdentitiesAssigned(section);
         string[] assigned = CaptureSectionIdentities(section);
-        byte[] second = OneNoteSectionWriter.Write(section, options);
+        byte[] second = section.ToBytes(options);
 
-        OneNoteSection firstRead = OneNoteSectionReader.Read(new MemoryStream(first));
-        OneNoteSection secondRead = OneNoteSectionReader.Read(new MemoryStream(second));
+        OneNoteSection firstRead = OneNoteSection.Load(new MemoryStream(first));
+        OneNoteSection secondRead = OneNoteSection.Load(new MemoryStream(second));
         Assert.Equal(assigned, CaptureSectionIdentities(section));
         Assert.Equal(assigned, CaptureSectionIdentities(firstRead));
         Assert.Equal(assigned, CaptureSectionIdentities(secondRead));
@@ -63,16 +63,16 @@ public sealed class IdentityStabilityTests {
         page.DirectContent.Add(first);
         page.DirectContent.Add(second);
         section.Pages.Add(page);
-        var options = new OneNoteWriterOptions { StorageFormat = storageFormat };
+        var options = new OneNoteSaveOptions { StorageFormat = storageFormat };
 
-        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section, options)));
+        OneNoteSection loaded = OneNoteSection.Load(new MemoryStream(section.ToBytes(options)));
         OneNoteParagraph[] loadedParagraphs = BodyParagraphs(loaded.Pages[0]);
         OneNoteParagraph loadedFirst = loadedParagraphs[0];
         OneNoteParagraph loadedSecond = loadedParagraphs[1];
         Assert.Equal(loadedFirst.Author!.ObjectId, loadedSecond.Author!.ObjectId);
 
         loadedSecond.Author.Name = "Edited author";
-        OneNoteSection edited = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(loaded, options)));
+        OneNoteSection edited = OneNoteSection.Load(new MemoryStream(loaded.ToBytes(options)));
         OneNoteParagraph[] editedParagraphs = BodyParagraphs(edited.Pages[0]);
         OneNoteParagraph editedFirst = editedParagraphs[0];
         OneNoteParagraph editedSecond = editedParagraphs[1];
@@ -80,7 +80,7 @@ public sealed class IdentityStabilityTests {
         Assert.Equal("Edited author", editedSecond.Author!.Name);
         Assert.NotEqual(editedFirst.Author.ObjectId, editedSecond.Author.ObjectId);
 
-        OneNoteSection repeated = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(edited, options)));
+        OneNoteSection repeated = OneNoteSection.Load(new MemoryStream(edited.ToBytes(options)));
         OneNoteParagraph[] repeatedParagraphs = BodyParagraphs(repeated.Pages[0]);
         Assert.Equal(editedFirst.Author.ObjectId, repeatedParagraphs[0].Author!.ObjectId);
         Assert.Equal(editedSecond.Author.ObjectId, repeatedParagraphs[1].Author!.ObjectId);

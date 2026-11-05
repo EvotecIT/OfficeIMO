@@ -396,11 +396,13 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        // differentialFormatMap maps the source workbook's dxf indexes to the target's when the copy merged the source styles.
         private Dictionary<string, string> CopyWorksheetTables(
             WorksheetPart sourcePart,
             WorksheetPart copiedPart,
             bool rewriteCopiedTableReferences = false,
-            bool preserveTableFormulas = true) {
+            bool preserveTableFormulas = true,
+            IReadOnlyDictionary<uint, uint>? differentialFormatMap = null) {
             TableParts? copiedTableParts = null;
             var tableNameMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             var copiedTables = new List<Table>();
@@ -417,6 +419,9 @@ namespace OfficeIMO.Excel {
                 StripCopiedTableQueryBindings(copiedTable);
                 if (!preserveTableFormulas) {
                     StripCopiedTableFormulas(copiedTable);
+                }
+                if (differentialFormatMap != null) {
+                    RemapCopiedDifferentialFormatIds(copiedTable, differentialFormatMap);
                 }
                 string? sourceTableName = sourceTable.Name?.Value ?? sourceTable.DisplayName?.Value;
                 string? sourceDisplayName = sourceTable.DisplayName?.Value;

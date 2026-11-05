@@ -32,7 +32,7 @@ public sealed class XpsJpegXrTests {
             if (embed) bytes = OfficeIMO.TestAssets.JpegXrTestFixture.WithField(bytes, 0x8773, 7, profile);
             var document = XpsDocument.Create();
             string uri = document.AddResource("Images/source", bytes, type);
-            var page = document.AddPage(57, 39).AddImage(uri, 0, 0, 57, 39);
+            var page = document.AddPage(57, 39).AddImage(uri, 0, 0, 57, 39).Page;
             if (!embed) {
                 string icc = document.AddResource("Profiles/source.icc", profile, "application/vnd.ms-color.iccprofile");
                 var markup = page.GetMarkup();

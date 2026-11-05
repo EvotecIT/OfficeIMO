@@ -16,8 +16,8 @@ public sealed class ExcelAddedRuleObjectTests {
         sheet.Cell(2, 1).SetValue(10);
         var first = sheet.Range("A2:A4").ConditionalFormat().CellIs(ExcelConditionalFormattingOperator.GreaterThan, "5");
         var second = sheet.Range("A2:A4").ConditionalFormat().Formula("A2<2");
-        var scale = sheet.Range("B2:B4").ConditionalFormat().ColorScale("FF0000", "00FF00");
-        var bar = sheet.Range("C2:C4").ConditionalFormat().DataBar("0000FF");
+        var scale = sheet.Range("B2:B4").ConditionalFormat().ColorScale(global::OfficeIMO.OfficeColor.Parse("FF0000"), global::OfficeIMO.OfficeColor.Parse("00FF00"));
+        var bar = sheet.Range("C2:C4").ConditionalFormat().DataBar(global::OfficeIMO.OfficeColor.Parse("0000FF"));
         var icons = sheet.Range("D2:D4").ConditionalFormat().IconSet();
         Assert.Equal("ColorScale", scale.Type);
         Assert.Equal("DataBar", bar.Type);

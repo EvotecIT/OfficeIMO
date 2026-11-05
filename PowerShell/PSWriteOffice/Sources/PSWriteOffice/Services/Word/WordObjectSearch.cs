@@ -45,7 +45,7 @@ internal static class WordObjectSearch
         }
 
         var options = caseSensitive ? RegexOptions.None : RegexOptions.IgnoreCase;
-        var regex = new Regex(pattern, options);
+        var regex = new Regex(pattern, options, TimeSpan.FromSeconds(2));
         return value => regex.IsMatch(value);
     }
 }

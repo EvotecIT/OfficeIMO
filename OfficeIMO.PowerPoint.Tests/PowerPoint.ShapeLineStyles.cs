@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), "ArrowLine");
-                    line.OutlineColor = "FF0000";
+                    line.OutlineColor = OfficeColor.Parse("FF0000");
                     line.OutlineDash = PowerPointLineDashStyle.Dash;
                     line.SetLineEnds(OfficeLineMarkerKind.Triangle, OfficeLineMarkerKind.Stealth, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
                     presentation.Save();
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 using (PowerPointDocument presentation = PowerPointDocument.Create(filePath)) {
                     PowerPointSlide slide = presentation.AddSlide();
                     PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), "JoinedArrowLine");
-                    line.OutlineColor = "156082";
+                    line.OutlineColor = OfficeColor.Parse("156082");
                     presentation.Save();
                 }
 
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
                     PowerPointAutoShape line = slide.AddLine(OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(0), OfficeIMO.OfficeLength.Emus(4000), OfficeIMO.OfficeLength.Emus(0), "ReverseStyledArrowLine");
 
                     line.SetLineEnds(OfficeLineMarkerKind.Triangle, OfficeLineMarkerKind.Stealth, PowerPointLineEndWidth.Medium, PowerPointLineEndLength.Medium);
-                    line.OutlineColor = "156082";
+                    line.OutlineColor = OfficeColor.Parse("156082");
                     line.OutlineDash = PowerPointLineDashStyle.DashDot;
 
                     presentation.Save();
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.AddSlide();
             PowerPointAutoShape noFillShape = slide.AddRectangle(
                 OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
-            noFillShape.OutlineColor = "112233";
+            noFillShape.OutlineColor = OfficeColor.Parse("112233");
             A.Outline noFillOutline = ((Shape)noFillShape.Element)
                 .ShapeProperties!.GetFirstChild<A.Outline>()!;
             noFillOutline.RemoveAllChildren<A.SolidFill>();
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
 
             PowerPointAutoShape gradientShape = slide.AddRectangle(
                 OfficeIMO.OfficeLength.Points(130), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
-            gradientShape.OutlineColor = "445566";
+            gradientShape.OutlineColor = OfficeColor.Parse("445566");
             A.Outline gradientOutline = ((Shape)gradientShape.Element)
                 .ShapeProperties!.GetFirstChild<A.Outline>()!;
             gradientOutline.RemoveAllChildren<A.SolidFill>();
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(noFillProperties.GetFirstChild<A.NoFill>());
             Assert.Null(noFillProperties.GetFirstChild<A.SolidFill>());
             Assert.Null(noFillShape.FillTransparency);
-            noFillShape.FillColor = "445566";
+            noFillShape.FillColor = OfficeColor.Parse("445566");
             Assert.Null(noFillProperties.GetFirstChild<A.NoFill>());
             Assert.Equal("445566", noFillProperties
                 .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
@@ -332,8 +332,8 @@ namespace OfficeIMO.Tests {
                 PowerPointDocument.Create();
             PowerPointAutoShape shape = presentation.AddSlide()
                 .AddRectangle(OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(10), OfficeIMO.OfficeLength.Points(100), OfficeIMO.OfficeLength.Points(60));
-            shape.FillColor = "112233";
-            shape.OutlineColor = "445566";
+            shape.FillColor = OfficeColor.Parse("112233");
+            shape.OutlineColor = OfficeColor.Parse("445566");
             ShapeProperties properties = ((Shape)shape.Element)
                 .ShapeProperties!;
             A.RgbColorModelHex fillColor = properties

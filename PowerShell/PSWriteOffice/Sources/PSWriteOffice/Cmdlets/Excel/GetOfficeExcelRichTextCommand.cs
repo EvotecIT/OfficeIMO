@@ -1,74 +1,68 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Gets mixed-format rich text runs from an Excel cell.</summary>
+/// <summary>Gets the rich-text runs of a cell.</summary>
 /// <example>
-///   <summary>Inspect rich text runs from a workbook.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$runs = Get-OfficeExcelRichText -Path .\Report.xlsx -Sheet Summary -Address A1
-/// $runs |
-///     Format-Table Index, Text, Bold, Italic, Color</code>
-///   <para>Returns one object per inline rich text run with text and style properties.</para>
+/// <summary>Read the text runs of a cell</summary>
+/// <code>Get-OfficeExcelRichText -Path .\Reports\Migration.xlsx -Sheet Overview -Address B3</code>
+/// <para>Returns each formatted run of B3 on the Overview sheet.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelRichText", DefaultParameterSetName = ParameterSetContext)]
-[Alias("ExcelRichTextRuns")]
-[OutputType(typeof(PSObject))]
+/// <example>
+/// <summary>Find the bold parts of a status cell</summary>
+/// <code>$book = Open-OfficeExcel -Path .\Reports\Status.xlsx -ReadOnly
+/// Get-OfficeExcelRichText -Document $book -Sheet Summary -Address B2 | Where-Object Bold
+/// Close-OfficeExcel -Document $book</code>
+/// <para>Reads the runs of a status cell from an open workbook and keeps only the bold text.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Get, "OfficeExcelRichText", DefaultParameterSetName = "Document")]
 public sealed class GetOfficeExcelRichTextCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook path to inspect.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter()]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector? Sheet { get; set; }
 
-    /// <summary>Workbook to inspect outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>A1 address of the target cell.</summary>
+    [Parameter(Mandatory = true)]
+    public string Address { get; set; } = null!;
 
-    /// <summary>Worksheet name. Defaults to the current sheet inside an ExcelSheet block.</summary>
-    [Parameter]
-    [Alias("WorksheetName")]
-    public string? Sheet { get; set; }
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>Worksheet index when using a workbook object or path.</summary>
-    [Parameter]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>1-based row index.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    public int? Row { get; set; }
-
-    /// <summary>1-based column index.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    public int? Column { get; set; }
-
-    /// <summary>A1-style cell address.</summary>
-    [Parameter(ParameterSetName = ParameterSetContext)]
-    [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Parameter(ParameterSetName = ParameterSetPath)]
-    public string? Address { get; set; }
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: true);
-        var sheet = ExcelWorkbookCommandService.ResolveSheet(this, workbook.Document, ParameterSetName, Sheet, SheetIndex);
-        var (row, column) = ExcelHostExtensions.ResolveCellAddress(Row, Column, Address);
-        var address = ExcelA1.CellReference(row, column);
-        var path = string.Equals(ParameterSetName, ParameterSetPath, System.StringComparison.OrdinalIgnoreCase)
-            ? Path
-            : null;
-        var runs = sheet.Cell(row, column).GetRichText();
-        for (var index = 0; index < runs.Count; index++) {
-            WriteObject(ExcelRichTextRunService.CreateRecord(runs[index], index, address, row, column, sheet.Name, path));
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) {
+            var document = scope.Document;
+            var current = Document == null && !scope.OwnsDocument ? ExcelDslContext.Current?.CurrentSheet : null;
+            foreach (var sheet in ExcelSheetResolver.ResolveMany(document, Sheet == null ? null : new[] { Sheet }, current)) {
+                var (row, column) = ExcelHostExtensions.ResolveCellAddress(null, null, Address);
+                var runs = sheet.Cell(row, column).GetRichText();
+                for (int i = 0; i < runs.Count; i++) WriteObject(ExcelRichTextRunService.CreateRecord(runs[i], i, Address, row, column, sheet.Name, document.FilePath));
+            }
         }
     }
+
 }

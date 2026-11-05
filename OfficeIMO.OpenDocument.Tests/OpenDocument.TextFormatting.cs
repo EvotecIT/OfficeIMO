@@ -10,28 +10,28 @@ public class OpenDocumentTextFormattingTests {
     [Fact]
     public void DecorationBooleanStateHonorsExplicitNoneLineCounts() {
         OdtDocument document = OdtDocument.Create();
-        OdtSpan span = document.AddParagraph().AddSpan("Disabled decorations");
+        OdtSpan span = document.AddParagraph().AddRun("Disabled decorations");
         span.UnderlineStyle = OdfTextDecorationStyle.Solid;
         span.UnderlineType = OdfTextDecorationType.None;
         span.LineThroughStyle = OdfTextDecorationStyle.Solid;
         span.LineThroughType = OdfTextDecorationType.None;
 
         Assert.False(span.Underline);
-        Assert.False(span.StrikeThrough);
+        Assert.False(span.Strikethrough);
 
         span.Underline = true;
-        span.StrikeThrough = true;
+        span.Strikethrough = true;
 
         Assert.True(span.Underline);
         Assert.Equal(OdfTextDecorationType.Single, span.UnderlineType);
-        Assert.True(span.StrikeThrough);
+        Assert.True(span.Strikethrough);
         Assert.Equal(OdfTextDecorationType.Single, span.LineThroughType);
     }
 
     [Fact]
     public void OdtSpanNativeDecorationScriptAndCaseStylesRoundTrip() {
         OdtDocument document = OdtDocument.Create();
-        OdtSpan span = document.AddParagraph().AddSpan("Styled");
+        OdtSpan span = document.AddParagraph().AddRun("Styled");
         span.Bold = true;
         span.Italic = true;
         span.UnderlineStyle = OdfTextDecorationStyle.Wave;
@@ -54,7 +54,7 @@ public class OpenDocumentTextFormattingTests {
         Assert.True(actual.Underline);
         Assert.Equal(OdfTextDecorationStyle.Wave, actual.UnderlineStyle);
         Assert.Equal(OdfTextDecorationType.Double, actual.UnderlineType);
-        Assert.True(actual.StrikeThrough);
+        Assert.True(actual.Strikethrough);
         Assert.Equal(OdfTextDecorationStyle.Dotted, actual.LineThroughStyle);
         Assert.Equal(OdfTextDecorationType.Single, actual.LineThroughType);
         Assert.Equal(OdfTextPosition.Superscript, actual.TextPosition);
@@ -119,7 +119,7 @@ public class OpenDocumentTextFormattingTests {
     public void ParagraphCaseTransformsPreserveRunsAndHyperlinks() {
         OdtDocument odt = OdtDocument.Create();
         OdtParagraph odtParagraph = odt.AddParagraph().AddText("Plain ");
-        OdtSpan odtSpan = odtParagraph.AddSpan("Styled ");
+        OdtSpan odtSpan = odtParagraph.AddRun("Styled ");
         odtSpan.Bold = true;
         odtParagraph.AddHyperlink("Link", "https://example.test/odt");
         odtParagraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.Uppercase, CultureInfo.InvariantCulture);
@@ -152,7 +152,7 @@ public class OpenDocumentTextFormattingTests {
     public void ContextualCaseTransformsContinueAcrossInlineNodeBoundaries() {
         OdtDocument odt = OdtDocument.Create();
         OdtParagraph odtParagraph = odt.AddParagraph().AddText("mi");
-        OdtSpan odtSpan = odtParagraph.AddSpan("XED ti");
+        OdtSpan odtSpan = odtParagraph.AddRun("XED ti");
         odtSpan.Bold = true;
         odtParagraph.AddHyperlink("TLE", "https://example.test/title");
         odtParagraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.TitleCase, CultureInfo.InvariantCulture);
@@ -189,7 +189,7 @@ public class OpenDocumentTextFormattingTests {
         var embeddedObject = new XElement(OdfNamespaces.Draw + "object",
             new XElement(OdfNamespaces.Office + "binary-data", "mETADATA."));
         paragraph.Element.Add(annotation, embeddedObject);
-        OdtSpan trailing = paragraph.AddSpan("wORLD");
+        OdtSpan trailing = paragraph.AddRun("wORLD");
 
         paragraph.TransformTextCase(OfficeIMO.Drawing.OfficeTextCase.SentenceCase, CultureInfo.InvariantCulture);
 
@@ -205,9 +205,9 @@ public class OpenDocumentTextFormattingTests {
     public void PercentageTextPositionsMapToNativeBaselineValues() {
         OdtDocument document = OdtDocument.Create();
         OdtParagraph paragraph = document.AddParagraph();
-        OdtSpan raised = paragraph.AddSpan("raised");
-        OdtSpan lowered = paragraph.AddSpan("lowered");
-        OdtSpan normal = paragraph.AddSpan("normal");
+        OdtSpan raised = paragraph.AddRun("raised");
+        OdtSpan lowered = paragraph.AddRun("lowered");
+        OdtSpan normal = paragraph.AddRun("normal");
         raised.TextPosition = OdfTextPosition.Normal;
         lowered.TextPosition = OdfTextPosition.Normal;
         normal.TextPosition = OdfTextPosition.Superscript;

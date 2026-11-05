@@ -53,7 +53,7 @@ public sealed class NewOfficePowerPointCommand : OfficeNewLifecycleCmdlet<PowerP
     public DateTime? Date { get; set; }
 
     /// <summary>Brand accent used to derive the theme's accent palette while retaining its fonts and surfaces.</summary>
-    [Parameter, OfficeColorTransformation]
+    [Parameter, OfficeColorTransformation, ArgumentCompleter(typeof(OfficeColorCompleter))]
     public OfficeColor Accent { get; set; }
 
     /// <summary>Composition tuning layered on the theme; Auto uses the theme and purpose-matched recipe.</summary>
@@ -139,7 +139,7 @@ public sealed class NewOfficePowerPointCommand : OfficeNewLifecycleCmdlet<PowerP
                 OfficeColor color = Accent.Resolve(theme);
                 var brand = PowerPointDesignTheme.FromBrand(color.ToRgbHex());
                 document.ApplyTheme(theme.WithPalette(theme.Palette.With(accent1: color,
-                    accent2: OfficeColor.ParseHex(brand.Accent2Color), accent3: OfficeColor.ParseHex(brand.Accent3Color))));
+                    accent2: brand.Accent2Color, accent3: brand.Accent3Color)));
             }
             if (Author != null) {
                 document.Properties.Creator = Author;

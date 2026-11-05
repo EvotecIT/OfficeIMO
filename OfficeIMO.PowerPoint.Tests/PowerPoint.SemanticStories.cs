@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
             using (PowerPointDocument presentation = PowerPointDocument.Create(new MemoryStream())) {
                 presentation.Compose(new PowerPointDeckPlan().AddAppendixTable("Evidence", null, table),
                     PowerPointCompositionOptions.FromDesign(design));
-                int[] parts = presentation.Slides.Select(slide => slide.Tables.Single().Rows - 1).ToArray();
+                int[] parts = presentation.Slides.Select(slide => slide.Tables.Single().RowCount - 1).ToArray();
                 Assert.True(parts.Length >= 3);
                 Assert.Equal(30, parts.Sum());
                 Assert.True(parts.Max() - parts.Min() <= 1);

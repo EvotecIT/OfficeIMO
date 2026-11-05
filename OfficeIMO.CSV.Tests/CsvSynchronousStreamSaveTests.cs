@@ -19,7 +19,7 @@ public class CsvSynchronousStreamSaveTests
 #endif
     public void Save_Replaces_Seekable_Stream_And_Rewinds(CsvCompressionType compression)
     {
-        var document = new CsvDocument().WithHeader("Name", "Notes")
+        var document = CsvDocument.Create().WithHeader("Name", "Notes")
             .AddRow("Alpha", "Łódź, line1\nline2");
         var options = new CsvSaveOptions { NewLine = "\n", CompressionType = compression };
         using var output = new MemoryStream();
@@ -43,7 +43,7 @@ public class CsvSynchronousStreamSaveTests
     [InlineData(CsvCompressionType.GZip, true)]
     public void Save_Formatting_Failure_Preserves_Contents_And_Position(CsvCompressionType compression, bool useUtf16)
     {
-        var document = new CsvDocument().WithHeader("Value")
+        var document = CsvDocument.Create().WithHeader("Value")
             .AddRow(new string('x', 600_000))
             .AddRow(new ThrowingValue());
         var options = new CsvSaveOptions {
@@ -76,7 +76,7 @@ public class CsvSynchronousStreamSaveTests
             {
                 output.Position = 5;
                 Assert.Throws<NotSupportedException>(() =>
-                    new CsvDocument().WithHeader("Name").AddRow("Alpha").Save(output));
+                    CsvDocument.Create().WithHeader("Name").AddRow("Alpha").Save(output));
                 Assert.True(output.CanWrite);
                 output.Flush();
             }
@@ -95,7 +95,7 @@ public class CsvSynchronousStreamSaveTests
         byte[] prefix = Encoding.UTF8.GetBytes("prefix\n");
         output.Write(prefix, 0, prefix.Length);
 
-        new CsvDocument().WithHeader("Name").AddRow("Alpha")
+        CsvDocument.Create().WithHeader("Name").AddRow("Alpha")
             .Save(output, new CsvSaveOptions { NewLine = "\n" });
 
         Assert.True(output.CanWrite);

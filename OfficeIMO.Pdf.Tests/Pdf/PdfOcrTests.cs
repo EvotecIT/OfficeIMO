@@ -1071,7 +1071,7 @@ public class PdfOcrTests {
         string html = result.Document.ToHtml();
         Assert.Contains("Quarterly review", html, StringComparison.Ordinal);
         Assert.Contains("Ready", html, StringComparison.Ordinal);
-        Assert.Contains("Summary narrative", result.Document.ToRtfDocument().ToRtf(), StringComparison.Ordinal);
+        Assert.Contains("Summary narrative", result.Document.ToRtf().ToRtf(), StringComparison.Ordinal);
         PdfOdtConversionResult odtResult = result.Document.ConvertToOdtWithEvidence(null, default);
         Assert.Contains(odtResult.Value.Paragraphs, paragraph => paragraph.Text.Contains("Summary narrative", StringComparison.Ordinal));
     }

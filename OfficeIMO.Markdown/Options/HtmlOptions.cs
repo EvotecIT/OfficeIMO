@@ -299,6 +299,9 @@ public sealed class MarkdownHtmlExportOptions {
     /// <summary>Shared visual theme used to keep Markdown HTML, PDF, and Word exports visually aligned.</summary>
     public MarkdownVisualTheme? Theme { get; set; }
 
+    /// <summary>Parser settings used by source-to-HTML conversion routes before rendering. An already parsed document keeps its existing syntax tree.</summary>
+    public MarkdownLoadOptions? ReaderOptions { get; set; }
+
     /// <summary>Applies the shared default visual theme when <see cref="Theme"/> is omitted and the selected HTML style supports document theming.</summary>
     public bool ApplyDefaultTheme { get; set; } = true;
 
@@ -373,6 +376,7 @@ public sealed class MarkdownHtmlExportOptions {
             ImagesDecodingAsync = ImagesDecodingAsync,
             ImagesReferrerPolicy = ImagesReferrerPolicy,
             Theme = Theme?.Clone(),
+            ReaderOptions = ReaderOptions?.Clone(),
             ApplyDefaultTheme = ApplyDefaultTheme,
             ColorOverrides = ColorOverrides?.CloneForRender() ?? new MarkdownHtmlColorOverrides(),
             InjectTocAtTop = InjectTocAtTop,

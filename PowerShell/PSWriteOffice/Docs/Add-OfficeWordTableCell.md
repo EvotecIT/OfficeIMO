@@ -11,12 +11,12 @@ Enters a specific table cell and executes nested DSL content inside it.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeWordTableCell [[-Content] <scriptblock>] -Row <int> -Column <int> [-Text <string>] [-Run <Object[]>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordTableCell [[-Content] <scriptblock>] -Row <int> -Column <int> [-Text <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Table
 ```powershell
-Add-OfficeWordTableCell [[-Content] <scriptblock>] -Table <WordTable> -Row <int> -Column <int> [-Text <string>] [-Run <Object[]>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordTableCell [[-Content] <scriptblock>] -Table <WordTable> -Row <int> -Column <int> [-Text <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -34,7 +34,7 @@ Targets the data cell at row 1, column 0 and writes text inside it.
 ## PARAMETERS
 
 ### -Column
-Zero-based column index.
+One-based column index.
 
 ```yaml
 Type: Int32
@@ -82,7 +82,7 @@ Accept wildcard characters: False
 ```
 
 ### -Row
-Zero-based row index.
+One-based row index.
 
 ```yaml
 Type: Int32
@@ -91,22 +91,6 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Run
-Rich text runs to append to the selected cell before nested content runs.
-
-```yaml
-Type: Object[]
-Parameter Sets: Context, Table
-Aliases: Runs
-Possible values:
-
-Required: False
 Position: named
 Default value: None
 Accept pipeline input: False

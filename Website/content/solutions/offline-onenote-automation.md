@@ -16,7 +16,7 @@ Use this route when the input is a native file or offline archive. Graph remains
 ```csharp
 using OfficeIMO.OneNote;
 
-OneNoteSection section = OneNoteSectionReader.Read("Projects.one");
+OneNoteSection section = OneNoteSection.Load("Projects.one");
 OneNotePage page = section.Pages[0];
 
 var paragraph = new OneNoteParagraph();

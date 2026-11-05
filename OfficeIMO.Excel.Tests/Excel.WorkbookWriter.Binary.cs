@@ -102,9 +102,12 @@ public partial class Excel {
     [InlineData(ExcelFileFormat.Xlsx, "_'_")]
     [InlineData(ExcelFileFormat.Xlsb, "_'_")]
     [InlineData(ExcelFileFormat.Xls, "_'_")]
+    [InlineData(ExcelFileFormat.Xlsx, "'   '")]
+    [InlineData(ExcelFileFormat.Xlsb, "'   '")]
+    [InlineData(ExcelFileFormat.Xls, "'   '")]
     public void WorkbookWriter_PreservesResolvedNamesInResultsAndPackages(ExcelFileFormat format, string suffix) {
-        string stem = suffix == "_'_" ? "" : new string('A', 30);
-        string expected = suffix == "_'_" ? "Sheet1" : suffix == "_x" ? stem + "_" : stem;
+        string stem = suffix is "_'_" or "'   '" ? "" : new string('A', 30);
+        string expected = suffix == "_'_" ? "_'_" : suffix == "'   '" ? "Sheet1" : suffix == "_x" ? stem + "_" : stem;
         using var output = new MemoryStream();
         using (var writer = ExcelDocument.CreateWriter(format, output, new ExcelWriterOptions(), leaveOpen: true)) {
             var first = writer.WriteTable(stem + suffix, new[] { 41 }, new[] { "Id" }, static (row, value) => row.Write(value));
@@ -125,6 +128,31 @@ public partial class Excel {
             Assert.Equal(42, second.GetInt32(0));
             Assert.False(second.Read());
         }
+    }
+
+
+    [Theory]
+    [InlineData(ExcelFileFormat.Xlsb)]
+    [InlineData(ExcelFileFormat.Xls)]
+    public void WorkbookWriter_BinaryIncrementalTableUsesTheFinalUnionSchema(ExcelFileFormat format) {
+        using var output = new MemoryStream();
+        using (var writer = ExcelDocument.CreateWriter(format, output, leaveOpen: true)) {
+            using var table = writer.BeginTable("Growing");
+            table.WriteRow(new[] { "Id" }, new object?[] { 1 });
+            table.WriteRow(new[] { "Name", "Id" }, new object?[] { "later", 2 });
+            var result = table.Complete();
+            Assert.Equal(("A1:B3", 2, 2), (result.Range, result.RowCount, result.ColumnCount));
+        }
+        using var reader = ExcelDocument.OpenReader(output.ToArray());
+        Assert.Equal("Id", reader.GetName(0));
+        Assert.Equal("Name", reader.GetName(1));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.True(reader.IsDBNull(1));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.Equal("later", reader.GetString(1));
+        Assert.False(reader.Read());
     }
 
 }

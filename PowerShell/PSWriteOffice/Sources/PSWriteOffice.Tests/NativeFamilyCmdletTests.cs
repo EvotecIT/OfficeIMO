@@ -14,11 +14,10 @@ public sealed class NativeFamilyCmdletTests {
         InDirectory(directory => {
             using var runspace = CreateRunspace();
             runspace.SessionStateProxy.SetVariable("outputPath", Path.Combine(directory, "contacts" + extension));
-            runspace.SessionStateProxy.SetVariable("databaseFormat", format);
             using var shell = PowerShell.Create();
             shell.Runspace = runspace;
             shell.AddScript("""
-                $database = New-OfficeAccess -Format $databaseFormat -Title Contacts
+                $database = New-OfficeAccess -Path $outputPath -Title Contacts
                 try {
                     $table = $database | Add-OfficeAccessTable -Name Contacts -PassThru
                     $table | Add-OfficeAccessColumn -Name Id -Type AutoNumber
@@ -35,9 +34,9 @@ public sealed class NativeFamilyCmdletTests {
                 } finally {
                     $database | Close-OfficeAccess
                 }
-                $saved = Get-Item -LiteralPath $outputPath | Get-OfficeAccess
+                $saved = Get-Item -LiteralPath $outputPath | Open-OfficeAccess
                 try {
-                    $saved | Get-OfficeAccessRow -TableName Contacts
+                    $saved | Get-OfficeAccessRow -Table Contacts
                 } finally {
                     $saved | Close-OfficeAccess
                 }
@@ -51,6 +50,8 @@ public sealed class NativeFamilyCmdletTests {
             Assert.Equal(true, rows[1].Properties["Enabled"].Value);
             Assert.Equal(1, rows[0].Properties["Id"].Value);
             Assert.Equal(2, rows[1].Properties["Id"].Value);
+            using var native = OfficeIMO.Access.AccessDocument.Load(Path.Combine(directory, "contacts" + extension));
+            Assert.Equal(format, native.Format.ToString());
         });
     }
 

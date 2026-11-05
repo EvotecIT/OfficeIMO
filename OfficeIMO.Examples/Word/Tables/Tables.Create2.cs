@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
                 wordTable.AddRow();
                 wordTable.AddRow(7);
                 wordTable.AddRow();
-                wordTable.AddRow(5, 5);
+                wordTable.AddRows(5, 5);
                 Console.WriteLine(wordTable.Rows.Count);
 
                 wordTable.Rows[8].Cells[1].Paragraphs[0].Text = "This should be in row 8th";

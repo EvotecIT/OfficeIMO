@@ -20,7 +20,7 @@ public sealed class NotebookOrderingWriterTests {
 
         byte[] rewritten = OneNoteTableOfContentsWriter.Write(
             loaded,
-            new OneNoteWriterOptions { PreserveUnknownData = false });
+            new OneNoteSaveOptions { PreserveUnknownData = false });
         OneNoteTocData result = OneNoteTocMapper.Map(OneNoteRevisionStoreReader.Read(new MemoryStream(rewritten)));
 
         Assert.Equal(

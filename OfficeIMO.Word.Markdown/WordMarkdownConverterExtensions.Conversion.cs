@@ -99,6 +99,9 @@ public static partial class WordMarkdownConverterExtensions {
 
     /// <summary>Converts Markdown to Word and returns completed-stage findings.</summary>
     public static WordDocument ToWord(this MarkdownDocument document, MarkdownWordExportOptions? options, out OfficeConversionReport report, CancellationToken cancellationToken = default) {
+        ArgumentNullException.ThrowIfNull(document);
+        options = (options ?? new MarkdownWordExportOptions()).CloneForConversion();
+        MarkdownWordRemoteImages.PrepareAsync(document, options, cancellationToken).GetAwaiter().GetResult();
         var timer = Stopwatch.StartNew();
         var result = ConvertToWordWithEvidence(document, options, cancellationToken);
         report = CreateReport(result.Report, "Markdown", "Word", timer.Elapsed);
@@ -112,6 +115,7 @@ public static partial class WordMarkdownConverterExtensions {
     /// <summary>Converts Markdown to Word with its completed-stage report.</summary>
     public static async Task<OfficeConversionResult<WordDocument>> ToWordAsync(this MarkdownDocument document, MarkdownWordExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new MarkdownWordExportOptions()).CloneForConversion();
+        await MarkdownWordRemoteImages.PrepareAsync(document, options, cancellationToken).ConfigureAwait(false);
         return await Task.Run(() => { var value = document.ToWord(options, out var report, cancellationToken); try { cancellationToken.ThrowIfCancellationRequested(); }
             catch { if (options.Template == null) value.Dispose(); throw; }
             return new OfficeConversionResult<WordDocument>(value, report); }, cancellationToken).ConfigureAwait(false);
@@ -133,7 +137,9 @@ public static partial class WordMarkdownConverterExtensions {
     public static async Task<OfficeConversionReport> SaveAsWordAsync(this MarkdownDocument document, string path, MarkdownWordExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new MarkdownWordExportOptions()).CloneForConversion();
 
-        var value = document.ToWord(options, out var report, cancellationToken);
+        var converted = await document.ToWordAsync(options, cancellationToken).ConfigureAwait(false);
+        var value = converted.Value;
+        var report = converted.Report;
         try {
             byte[] bytes = value.ToBytes();
             await OfficeConversionFailures.RunAsync(report, () => OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken)).ConfigureAwait(false);
@@ -157,7 +163,9 @@ public static partial class WordMarkdownConverterExtensions {
     public static async Task<OfficeConversionReport> SaveAsWordAsync(this MarkdownDocument document, Stream stream, MarkdownWordExportOptions? options = null, CancellationToken cancellationToken = default) {
         options = (options ?? new MarkdownWordExportOptions()).CloneForConversion();
 
-        var value = document.ToWord(options, out var report, cancellationToken);
+        var converted = await document.ToWordAsync(options, cancellationToken).ConfigureAwait(false);
+        var value = converted.Value;
+        var report = converted.Report;
         try {
             byte[] bytes = value.ToBytes();
             await OfficeConversionFailures.RunAsync(report, () => OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken)).ConfigureAwait(false);

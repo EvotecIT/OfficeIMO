@@ -18,6 +18,15 @@
       "category": "naming",
       "reason": "One report contract, one loss check and one policy name across formats; format evidence stays on the derived report or its exception.",
       "applied": true
+    },
+    {
+      "old": "BibliographyDocument.ToStream(...)",
+      "kind": "method",
+      "action": "merge",
+      "new": "BibliographyDocument.ToBytes(...) / Save(callerStream, ...)",
+      "replacement": "Use ToBytes for owned bytes or Save for a caller-owned stream. Construct new MemoryStream(document.ToBytes(...)) only when the caller needs a new seekable memory stream.",
+      "reason": "The removed helper only allocated a memory stream over the existing byte serializer; output and stream ownership are explicit at their existing owners.",
+      "category": "lifecycle"
     }
   ]
 }

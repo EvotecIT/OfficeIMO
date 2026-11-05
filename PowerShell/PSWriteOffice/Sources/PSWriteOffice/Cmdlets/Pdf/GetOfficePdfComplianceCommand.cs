@@ -1,3 +1,4 @@
+using System;
 using System.Management.Automation;
 using System.Security;
 using OfficeIMO.Pdf;
@@ -17,7 +18,7 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 /// $pdf | Get-OfficePdfCompliance -Profile PdfA3B</code>
 ///   <para>Returns the OfficeIMO.Pdf readiness report before saving.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePdfCompliance")]
+[Cmdlet(VerbsCommon.Get, "OfficePdfCompliance", DefaultParameterSetName = "Document")]
 [OutputType(typeof(PdfComplianceReadinessReport), typeof(PdfComplianceProofReport))]
 public sealed class GetOfficePdfComplianceCommand : PSCmdlet
 {
@@ -29,22 +30,28 @@ public sealed class GetOfficePdfComplianceCommand : PSCmdlet
     public PdfDocument Document { get; set; } = null!;
 
     /// <summary>Existing PDF file path to assess after generation.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath, ValueFromPipeline = true)]
-    [Alias("FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
+        public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Literal input files.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Native input loading policy.</summary>
+    [Parameter(ParameterSetName = "Path"), Parameter(ParameterSetName = "LiteralPath"), OfficeOptionsTransformation(typeof(PdfLoadOptions))]
+    public PdfLoadOptions? LoadOptions { get; set; }
 
     /// <summary>Compliance profile to assess. When omitted, the document's configured profile is used.</summary>
     [Parameter(ParameterSetName = ParameterSetDocument)]
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetPath)]
+    [Parameter(ParameterSetName = ParameterSetPath), Parameter(ParameterSetName = "LiteralPath")]
     public PdfComplianceProfile? Profile { get; set; }
 
     /// <summary>Password used to inspect a Standard password-encrypted PDF.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
+    [Parameter(ParameterSetName = ParameterSetPath), Parameter(ParameterSetName = "LiteralPath")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
 
     /// <summary>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</summary>
-    [Parameter(ParameterSetName = ParameterSetPath)]
+    [Parameter(ParameterSetName = ParameterSetPath), Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter IgnorePermissionRestrictions { get; set; }
 
     /// <summary>Return a proof report that combines readiness with required external validator evidence placeholders.</summary>
@@ -101,26 +108,12 @@ public sealed class GetOfficePdfComplianceCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
-        if (ParameterSetName == ParameterSetPath)
-        {
-            var pathDocument = PdfDocument.Load(
-                PdfCommandUtilities.ResolvePath(this, Path),
-                PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent));
-            WriteObject(Proof.IsPresent
-                ? AssessProof(pathDocument, Profile!.Value)
-                : pathDocument.AssessCompliance(Profile!.Value));
-            return;
-        }
-
-        var document = Document ?? throw new PSArgumentNullException(
-            nameof(Document),
-            "New-OfficePdf builds content as one composition. Run Get-OfficePdfCompliance on the document returned by New-OfficePdf.");
-        var profile = Profile ?? document.AssessCompliance().Profile;
-        WriteObject(Proof.IsPresent
-            ? AssessProof(document, profile)
-            : Profile.HasValue
-                ? document.AssessCompliance(Profile.Value)
-                : document.AssessCompliance());
+        PdfInspectionSource.Visit(this, ParameterSetName, Path, LiteralPath,
+            Document ?? OfficeDocumentContext.Find<PdfDocument>(), LoadOptions, Password, IgnorePermissionRestrictions.IsPresent, document => {
+                var profile = Profile ?? document.AssessCompliance().Profile;
+                WriteObject(Proof.IsPresent ? AssessProof(document, profile) :
+                    Profile.HasValue ? document.AssessCompliance(Profile.Value) : document.AssessCompliance());
+            });
     }
 
     private PdfComplianceProofReport AssessProof(PdfDocument document, PdfComplianceProfile profile)

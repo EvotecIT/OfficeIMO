@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2),
                 BytesField(3, FormatEntry(NumericFormat(258, 2))),
                 BytesField(3, Message(VarintField(1, 2), BytesField(6, other))))));
-        var selected = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        var selected = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, selected.Kind);
         Assert.Null(selected.NumberFormat);
         Assert.True(selected.UnsupportedFeatures.HasFlag(IWorkCellUnsupportedFeatures.AmbiguousNumberFormat));
@@ -37,6 +37,6 @@ public sealed partial class IWorkBoundaryTests {
             && d.Kind == IWorkSourceDeclarationIssueKind.UnsupportedField);
         if (kind != IWorkDocumentKind.Numbers) return;
         package.Position = 0;
-        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
+        Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly }));
     }
 }

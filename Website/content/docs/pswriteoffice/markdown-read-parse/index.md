@@ -17,4 +17,4 @@ $nodes = Get-OfficeMarkdownNode -Path '.\Article.md' -MaxDepth 3
 
 Reader profiles and URL restrictions make parsing behavior explicit. Use heading level, text, anchor, node type, and depth filters to return only the structures the workflow needs.
 
-The [inspect-content recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-InspectContent.ps1) creates a document with front matter and a table, then reads those structures with dedicated commands.
+The [inspect-content recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-InspectContent.ps1) creates a document with front matter and a table, then reads those structures with dedicated commands.

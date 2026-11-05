@@ -21,7 +21,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -59,7 +59,7 @@
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -445,7 +445,7 @@
         }
       ],
       "shouldProcess": true,
-      "notes": "The old -Current switch is dropped; the Current set is the default when neither -Document nor -All is given. -Path implies -Save. ShouldProcess applies only when it saves.",
+      "notes": "The old -Current switch is dropped; the Current set is the default when neither -Document nor -All is given. -Path implies -Save. ShouldProcess protects saving and closing. Without -Save or -Path, -WhatIf leaves the live document open and tracked; refusing confirmation does the same.",
       "examples": [
         {
           "title": "Close a document without saving",
@@ -912,6 +912,20 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Preserves named highlight and arbitrary shading from the retired run factory. Explicit null clears both."
+            },
+            {
+              "name": "Baseline",
+              "type": "OfficeTextBaseline",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Normal, Superscript, Subscript; preserves the retired run factory baseline capability."
             }
           ]
         },
@@ -1003,6 +1017,20 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Preserves named highlight and arbitrary shading from the retired run factory. Explicit null clears both."
+            },
+            {
+              "name": "Baseline",
+              "type": "OfficeTextBaseline",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Normal, Superscript, Subscript; preserves the retired run factory baseline capability."
             }
           ]
         },
@@ -1094,11 +1122,25 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "BackgroundColor",
+              "type": "OfficeColor",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Preserves named highlight and arbitrary shading from the retired run factory. Explicit null clears both."
+            },
+            {
+              "name": "Baseline",
+              "type": "OfficeTextBaseline",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Normal, Superscript, Subscript; preserves the retired run factory baseline capability."
             }
           ]
         }
       ],
-      "notes": "The single styled-run command: shared run vocabulary -Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link. Absorbs Add-OfficeWordHyperlink (-Link for URLs, -Anchor for bookmarks) and the WordBold/WordItalic aliases. Hyperlinks use the theme Hyperlink style unless -NoLinkStyle. -PassThru returns the paragraph, or the hyperlink in the Link/Anchor sets. Outside a paragraph it creates one, as today. -Size is a length (11pt; a bare number means points).",
+      "notes": "The single styled-run command: shared run vocabulary -Text -Bold -Italic -Strikethrough -Underline -Color -Font -Size -Link. Absorbs Add-OfficeWordHyperlink (-Link for URLs, -Anchor for bookmarks) and the WordBold/WordItalic aliases. Hyperlinks use the theme Hyperlink style unless -NoLinkStyle. -PassThru emits each newly created run for each Text item, or each hyperlink in the Link/Anchor sets. The emitted WordParagraph is scoped to that new run, not the paragraph's original run. This deliberately changes output cardinality for multiple Text items. Outside a paragraph it creates one, as today. -Size is a length (11pt; a bare number means points). BackgroundColor and Baseline retain highlight/shading and script positioning from New-OfficeTextRun; paragraph and cell children use the same native runs.",
       "examples": [
         {
           "title": "Add bold and colored runs",
@@ -7724,7 +7766,7 @@
             },
             {
               "name": "RevisionType",
-              "type": "WordRevisionType",
+              "type": "OfficeIMO.Word.WordReviewRevisionType",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7742,7 +7784,7 @@
             },
             {
               "name": "LocationKind",
-              "type": "WordRevisionLocationKind",
+              "type": "OfficeIMO.Word.WordReviewLocationKind",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -7821,7 +7863,7 @@
               "type": "string[]",
               "mandatory": true,
               "position": 0,
-              "pipeline": "none",
+              "pipeline": "byValue",
               "wildcards": true
             },
             {
@@ -8043,7 +8085,7 @@
           "parameters": [
             {
               "name": "PdfOptions",
-              "type": "PdfOptions",
+              "type": "OfficeIMO.Pdf.PdfCreateOptions",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8055,7 +8097,7 @@
             },
             {
               "name": "PageSize",
-              "type": "OfficePageSize",
+              "type": "PdfPageSize",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8142,11 +8184,25 @@
               "type": "switch",
               "mandatory": false,
               "pipeline": "none"
+            },
+            {
+              "name": "FallbackPageSize",
+              "type": "PdfPageSize",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Used only when the source has no page dimensions; PageSize remains an unconditional export override."
+            },
+            {
+              "name": "FallbackOrientation",
+              "type": "OfficePageOrientation",
+              "mandatory": false,
+              "pipeline": "none",
+              "notes": "Used only when the source has no orientation; Orientation remains an unconditional export override."
             }
           ]
         }
       ],
-      "notes": "Margins in PDF points become lengths. Moves with the Word-to-PDF adapter (OfficeIMO.Word.Pdf). -PageSize and -Orientation are the page used for sections that do not set their own page setup (the former -DefaultPageSize/-DefaultOrientation); the overriding -PageSize/-Orientation pair is removed. -PageSize takes the shared OfficePageSize: a name (A3, A4, A5, Letter, Legal, Executive, Tabloid) or a size such as 210mm x 297mm. -FontFamily becomes -Font.",
+      "notes": "Margins and physical page sizes accept unit-suffixed lengths. PageSize and Orientation override exported section geometry. FallbackPageSize and FallbackOrientation apply only when source geometry or orientation is absent, preserving the distinct former Default* capability. FontFamily becomes Font.",
       "examples": [
         {
           "title": "Number PDF pages",
@@ -8215,9 +8271,10 @@
             },
             {
               "name": "RenderTimeoutSeconds",
-              "type": "int",
+              "type": "double",
               "mandatory": false,
-              "pipeline": "none"
+              "pipeline": "none",
+              "notes": "Native TimeSpan timeout accepts fractional seconds, consistently with the shared image-options base."
             },
             {
               "name": "MaximumDegreeOfParallelism",
@@ -8791,25 +8848,25 @@
             },
             {
               "name": "ReaderOptions",
-              "type": "MarkdownReaderOptions",
+              "type": "OfficeIMO.Markdown.MarkdownLoadOptions",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Profile",
-              "type": "MarkdownReaderProfile",
+              "type": "OfficeIMO.Markdown.MarkdownLoadOptions+MarkdownDialectProfile",
               "mandatory": false,
               "pipeline": "none"
             },
             {
-              "name": "NoNormalizeInput",
-              "type": "switch",
+              "name": "NormalizeInput",
+              "type": "MarkdownInputNormalizationPreset",
               "mandatory": false,
               "pipeline": "none"
             },
             {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -8864,7 +8921,7 @@
           ]
         }
       ],
-      "notes": "Carries every format-specific parameter of ConvertFrom-OfficeWordMarkdown, including inserting the Markdown into a template at a bookmark or content control. bool? NormalizeInput (default on) becomes -NoNormalizeInput; Front matter is rendered and data-URI images are allowed by default; -NoFrontMatter and -NoDataUriImages turn them off. -TemplatePath becomes -Template. Pixel image limits become lengths. -Theme takes the shared OfficeTheme instead of the Markdown-specific theme enum. Inner enum names follow the C# options.",
+      "notes": "Carries every format-specific parameter of ConvertFrom-OfficeWordMarkdown, including inserting the Markdown into a template at a bookmark or content control. NormalizeInput retains the native named normalization preset; Front matter follows the native template-aware default and data-URI images are allowed by default; -NoFrontMatter and -NoDataUriImages turn them off. -TemplatePath becomes -Template. Pixel image limits become lengths. -Theme takes the shared OfficeTheme instead of the Markdown-specific theme enum. Inner enum names follow the C# options.",
       "examples": [
         {
           "title": "Convert Markdown with local images",
@@ -8928,8 +8985,15 @@
               "pipeline": "none"
             },
             {
+              "name": "NoHeader",
+              "type": "switch",
+              "mandatory": false,
+              "pipeline": "none",
+              "note": "Retains the existing one-line export capability to omit column-name and repeating header rows."
+            },
+            {
               "name": "Theme",
-              "type": "OfficeTheme",
+              "type": "PSWriteOffice.Foundation.OfficeThemeInput",
               "mandatory": false,
               "pipeline": "none"
             },
@@ -9275,7 +9339,7 @@
         "Open": "Show",
         "Current": null
       },
-      "reason": "Parameter names follow the shared vocabulary: -Open -> -Show, -Current -> removed."
+      "reason": "Native ShouldProcess protects saving and no-save closure, including disposal and untracking. -WhatIf without Save leaves the document usable."
     },
     {
       "old": "Compare-OfficeWordDocument",
@@ -9287,7 +9351,7 @@
         "RedlinePath": "OutputPath"
       },
       "hint": "Compare-OfficeDocument -ReferencePath .\\Before.docx -DifferencePath .\\After.docx -OutputPath .\\Redline.docx -Options (New-OfficeWordComparisonOptions)",
-      "reason": "Version comparison is a cross-format job; Word settings stay in New-OfficeWordComparisonOptions and the result stays WordComparisonResult. The redline is the command's -OutputPath."
+      "reason": "Compare-OfficeDocument retains WordComparisonResult in OfficeComparisonReport.NativeReport; common AreEqual/Differences describe the result and OutputPath writes the native model redline."
     },
     {
       "old": "ConvertFrom-OfficeWordHtml",
@@ -9633,9 +9697,9 @@
       "kind": "cmdlet",
       "action": "cross-format",
       "new": "Get-OfficeDocumentInfo",
-      "parameterSet": "Path | Document",
-      "hint": "Get-OfficeDocumentInfo -Path .\\Report.docx",
-      "reason": "Page, paragraph, word, image, table, chart and shape counts are generic document info; Word counts appear in the Word section of the info result. Live documents use its -Document set."
+      "parameterSet": "Path | LiteralPath | Document",
+      "hint": "(Get-OfficeDocumentInfo -Path .\\Report.docx -Detailed).Details.Statistics",
+      "reason": "The native Word details snapshot preserves all eleven statistics counters after source disposal and for unsaved live documents. Select Details.Statistics from Get-OfficeDocumentInfo -Detailed; the separate command, alias and PowerShell snapshot model are retired."
     },
     {
       "old": "Invoke-OfficeWordMailMerge",
@@ -9736,9 +9800,10 @@
       "new": "New-OfficeWordPdfOptions",
       "parameters": {
         "FontFamily": "Font",
-        "DefaultPageSize": "PageSize",
-        "DefaultOrientation": "Orientation"
-      }
+        "DefaultPageSize": "FallbackPageSize",
+        "DefaultOrientation": "FallbackOrientation"
+      },
+      "reason": "Retains unconditional PageSize/Orientation overrides and independently preserves source-missing fallback defaults as physical PdfPageSize and shared OfficePageOrientation."
     },
     {
       "old": "New-OfficeWordRevisionFilter",
@@ -9775,7 +9840,7 @@
         "Password": "RestrictionPassword"
       },
       "hint": "Protect-OfficeDocument -Document $doc -Restriction ReadOnly -RestrictionPassword $secure",
-      "reason": "Passwords and editing restrictions are the cross-format Protect-OfficeDocument job; Word restriction kinds become its -Restriction values and the restriction password is -RestrictionPassword (-Password there means encryption). Inside New-OfficeWord blocks it binds the current document."
+      "reason": "Word editing restrictions use the canonical -Restriction values. Prefer -RestrictionPassword for the restriction credential; without -Encrypt, -Password also supplies that credential. With -Encrypt, -Password is the open password and -RestrictionPassword remains separate. Inside New-OfficeWord blocks, omitting -Document uses the current document."
     },
     {
       "old": "Remove-OfficeWordTableOfContents",
@@ -10273,8 +10338,8 @@
       "kind": "alias",
       "action": "cross-format",
       "new": "Get-OfficeDocumentInfo",
-      "hint": "Get-OfficeDocumentInfo -Path .\\Report.docx",
-      "reason": "Get-OfficeWordStatistics moved to Get-OfficeDocumentInfo; aliases exist only for DSL commands."
+      "hint": "(Get-OfficeDocumentInfo -Path .\\Report.docx -Detailed).Details.Statistics",
+      "reason": "The native Word details snapshot preserves all eleven statistics counters after source disposal and for unsaved live documents. Select Details.Statistics from Get-OfficeDocumentInfo -Detailed; the separate command, alias and PowerShell snapshot model are retired."
     },
     {
       "old": "WordTableCells",

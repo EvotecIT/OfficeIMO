@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportSpacer
 ## SYNOPSIS
-Adds vertical spacing to the current Excel report sheet.
+Adds vertical space to the report.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,27 +15,40 @@ Add-OfficeExcelReportSpacer [[-Rows] <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds vertical spacing to the current Excel report sheet.
+Adds vertical space to the report.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\Operations.xlsx {
-    Add-OfficeExcelReportSheet -Name Summary {
-        Add-OfficeExcelReportTitle -Title 'Operational Summary'
-        Add-OfficeExcelReportSpacer -Rows 2
-        Add-OfficeExcelReportSection -Text 'Details'
+New-OfficeExcel -Path .\Reports\Operations.xlsx {
+    ExcelReportSheet 'Summary' {
+        ExcelReportTitle 'Operations summary'
+        ExcelReportSpacer
+        ExcelReportParagraph 'Week 43, 2026'
     }
 }
 ```
 
-Advances the composer cursor before adding the next report block.
+Leaves one empty row between two report blocks.
+
+### EXAMPLE 2
+```powershell
+New-OfficeExcel -Path .\Reports\Helpdesk-Review.xlsx {
+    ExcelReportSheet 'Review' {
+        ExcelReportKpi ([ordered]@{ Opened = 412; Closed = 398; 'Median age' = '1.6 days' })
+        ExcelReportSpacer 2
+        ExcelReportTable (Import-OfficeCsv -Path .\Data\Tickets-By-Team.csv) 'Tickets by team'
+    }
+}
+```
+
+Leaves two rows between the KPI cards and the detail table to give the summary room.
 
 ## PARAMETERS
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -51,7 +64,7 @@ Accept wildcard characters: False
 ```
 
 ### -Rows
-Rows to advance. Defaults to the composer theme spacing.
+Auto-fit all rows.
 
 ```yaml
 Type: Int32

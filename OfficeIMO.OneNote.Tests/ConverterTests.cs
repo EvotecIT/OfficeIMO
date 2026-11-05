@@ -600,8 +600,8 @@ public sealed class ConverterTests {
 
     [Fact]
     public void ProjectionDepthOptionsEnforceTheHardTraversalCeiling() {
-        int invalid = OneNoteWriterOptions.MaximumTraversalDepth + 1;
-        var section = new OneNoteSection();
+        int invalid = OneNoteSaveOptions.MaximumTraversalDepth + 1;
+        var section = OneNoteSection.Create();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxSectionGroupDepth = invalid }));
         Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownExportOptions { MaxPageRelationshipDepth = invalid }));

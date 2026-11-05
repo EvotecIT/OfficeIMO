@@ -15,12 +15,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a combo box control with the selected default value.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordComboBox", DefaultParameterSetName = "Default")]
-[Alias("WordComboBox")]
 [OutputType(typeof(WordComboBox))]
+[Alias("WordComboBox") ]
 public sealed class AddOfficeWordComboBoxCommand : PSCmdlet
 {
     /// <summary>Items to include in the combo box.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
     public string[] Items { get; set; } = Array.Empty<string>();
 
     /// <summary>Optional default value (must match one of the items).</summary>

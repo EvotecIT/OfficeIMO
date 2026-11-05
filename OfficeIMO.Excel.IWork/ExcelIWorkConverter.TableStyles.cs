@@ -21,7 +21,7 @@ public static partial class ExcelIWorkConverter {
         for (int row = 1; row <= table.RowCount; row++) {
             token.ThrowIfCancellationRequested();
             for (int column = 1; column <= table.ColumnCount; column++) {
-                if (table.GetFill(row, column)?.Color is { } fill) sheet.Cell(row, column).SetFillColor(fill.RgbHex);
+                if (table.GetFill(row, column)?.Color is { } fill) sheet.Cell(row, column).SetFillColor(OfficeColor.FromRgba(fill.Red, fill.Green, fill.Blue, fill.Alpha));
                 var borders = table.GetBorders(row, column);
                 if (borders.Left.HasValue || borders.Top.HasValue || borders.Right.HasValue || borders.Bottom.HasValue)
                     ApplyTableBorders(sheet.Cell(row, column), borders);
@@ -38,8 +38,8 @@ public static partial class ExcelIWorkConverter {
                 if (text.Underline.HasValue) sheet.Cell(row, column).SetUnderline(text.Underline.Value);
                 if (text.Strikethrough.HasValue) sheet.Cell(row, column).SetStrikethrough(text.Strikethrough.Value);
                 if (text.FontSizePoints.HasValue) cell.SetFontSize(global::OfficeIMO.OfficeLength.Points(text.FontSizePoints.Value));
-                if (!string.IsNullOrWhiteSpace(text.FontName)) cell.SetFontName(text.FontName!);
-                if (text.Color != null) cell.SetFontColor(text.Color.RgbHex);
+                if (!string.IsNullOrWhiteSpace(text.FontName)) cell.SetFontFamily(text.FontName!);
+                if (text.Color != null) cell.SetColor(OfficeColor.FromRgba(text.Color.Red, text.Color.Green, text.Color.Blue, text.Color.Alpha));
                 if (style.Alignment is { } alignment) sheet.Cell(row, column).SetHorizontalAlignment(alignment switch {
                     IWorkTextAlignment.Center => ExcelHorizontalAlignment.Center,
                     IWorkTextAlignment.Right => ExcelHorizontalAlignment.Right,

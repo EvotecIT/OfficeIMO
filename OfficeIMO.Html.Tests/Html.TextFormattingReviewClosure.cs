@@ -303,7 +303,7 @@ public sealed class HtmlTextFormattingReviewClosureTests {
             .RequireValue();
         WordParagraph actual = Assert.Single(imported.Paragraphs);
         Assert.Equal(WordUnderlineStyle.Wave, actual.Underline);
-        Assert.True(actual.DoubleStrike);
+        Assert.True(actual.DoubleStrikethrough);
     }
 
     [Fact]

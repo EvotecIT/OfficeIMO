@@ -13,13 +13,14 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets the width of a specific column as a physical length.
         /// </summary>
-        public void SetColumnWidth(int columnIndex, OfficeLength width) {
+        public PowerPointTable SetColumnWidth(int columnIndex, OfficeLength width) {
             long nativeWidth = width.ToEmus();
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, Columns);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
             column.Width = nativeWidth;
             SyncFrameWidthToGrid();
+            return this;
         }
 
         /// <summary>
@@ -50,29 +51,30 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public OfficeLength GetColumnWidth(int columnIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(columnIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, Columns);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(columnIndex, ColumnCount);
             A.GridColumn column = TableElement.TableGrid!.Elements<A.GridColumn>().ElementAt(columnIndex);
             return OfficeLength.Emus(column.Width?.Value ?? 0L);
         }
         /// <summary>Sets physical sizes for the first rows or columns supplied.</summary>
-        public void SetColumnWidths(params OfficeLength[] widths) {
+        public PowerPointTable SetColumnWidths(params OfficeLength[] widths) {
             ArgumentNullException.ThrowIfNull(widths);
-            int count = Math.Min(widths.Length, Columns);
+            int count = Math.Min(widths.Length, ColumnCount);
             for (int i = 0; i < count; i++) {
                 SetColumnWidth(i, widths[i]);
             }
+            return this;
         }
 
         /// <summary>
         ///     Sets column widths proportionally using ratios.
         /// </summary>
-        public void SetColumnWidthsByRatio(params double[] ratios) {
+        public PowerPointTable SetColumnWidthsByRatio(params double[] ratios) {
             ArgumentNullException.ThrowIfNull(ratios);
             if (ratios.Length == 0) {
                 throw new ArgumentException("At least one ratio is required.", nameof(ratios));
             }
 
-            int count = Math.Min(ratios.Length, Columns);
+            int count = Math.Min(ratios.Length, ColumnCount);
             double totalRatio = 0;
             for (int i = 0; i < count; i++) {
                 if (ratios[i] <= 0) {
@@ -103,28 +105,31 @@ namespace OfficeIMO.PowerPoint {
                 column.Width = (column.Width ?? 0) + (totalWidth - assigned);
             }
             SyncFrameWidthToGrid();
+            return this;
         }
 
         /// <summary>
         ///     Sets column widths evenly across the table width.
         /// </summary>
-        public void SetColumnWidthsEvenly() {
-            if (Columns == 0) {
-                return;
+        public PowerPointTable SetColumnWidthsEvenly() {
+            if (ColumnCount == 0) {
+                return this;
             }
-            SetColumnWidthsByRatio(Enumerable.Repeat(1d, Columns).ToArray());
+            SetColumnWidthsByRatio(Enumerable.Repeat(1d, ColumnCount).ToArray());
+            return this;
         }
 
         /// <summary>
         ///     Sets the height of a specific row as a physical length.
         /// </summary>
-        public void SetRowHeight(int rowIndex, OfficeLength height) {
+        public PowerPointTable SetRowHeight(int rowIndex, OfficeLength height) {
             long nativeHeight = height.ToEmus();
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, Rows);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
             A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
             row.Height = nativeHeight;
             SyncFrameHeightToGrid();
+            return this;
         }
 
         /// <summary>
@@ -132,25 +137,26 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public OfficeLength GetRowHeight(int rowIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, Rows);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, RowCount);
             A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(rowIndex);
             return OfficeLength.Emus(row.Height?.Value ?? 0L);
         }
         /// <summary>Sets physical sizes for the first rows or columns supplied.</summary>
-        public void SetRowHeights(params OfficeLength[] heights) {
+        public PowerPointTable SetRowHeights(params OfficeLength[] heights) {
             ArgumentNullException.ThrowIfNull(heights);
-            int count = Math.Min(heights.Length, Rows);
+            int count = Math.Min(heights.Length, RowCount);
             for (int i = 0; i < count; i++) {
                 SetRowHeight(i, heights[i]);
             }
+            return this;
         }
 
         /// <summary>
         ///     Sets row heights evenly across the table height.
         /// </summary>
-        public void SetRowHeightsEvenly() {
-            if (Rows == 0) {
-                return;
+        public PowerPointTable SetRowHeightsEvenly() {
+            if (RowCount == 0) {
+                return this;
             }
 
             long totalHeight = Height.ToEmus();
@@ -159,34 +165,35 @@ namespace OfficeIMO.PowerPoint {
                     .Sum(r => r.Height?.Value ?? 0L);
             }
             if (totalHeight <= 0) {
-                return;
+                return this;
             }
 
-            long rowHeight = (long)Math.Floor(totalHeight / (double)Rows);
+            long rowHeight = (long)Math.Floor(totalHeight / (double)RowCount);
             long assigned = 0;
-            for (int i = 0; i < Rows; i++) {
+            for (int i = 0; i < RowCount; i++) {
                 SetRowHeight(i, OfficeLength.Emus(rowHeight));
                 assigned += rowHeight;
             }
 
-            if (assigned != totalHeight && Rows > 0) {
-                int adjustIndex = Rows - 1;
+            if (assigned != totalHeight && RowCount > 0) {
+                int adjustIndex = RowCount - 1;
                 A.TableRow row = TableElement.Elements<A.TableRow>().ElementAt(adjustIndex);
                 row.Height = (row.Height ?? 0) + (totalHeight - assigned);
             }
             SyncFrameHeightToGrid();
+            return this;
         }
 
         /// <summary>
         ///     Sets row heights proportionally using ratios.
         /// </summary>
-        public void SetRowHeightsByRatio(params double[] ratios) {
+        public PowerPointTable SetRowHeightsByRatio(params double[] ratios) {
             ArgumentNullException.ThrowIfNull(ratios);
             if (ratios.Length == 0) {
                 throw new ArgumentException("At least one ratio is required.", nameof(ratios));
             }
 
-            int count = Math.Min(ratios.Length, Rows);
+            int count = Math.Min(ratios.Length, RowCount);
             double totalRatio = 0;
             for (int i = 0; i < count; i++) {
                 if (ratios[i] <= 0) {
@@ -217,6 +224,7 @@ namespace OfficeIMO.PowerPoint {
                 row.Height = (row.Height ?? 0) + (totalHeight - assigned);
             }
             SyncFrameHeightToGrid();
+            return this;
         }
 
         private static long ToEmus(double points) {

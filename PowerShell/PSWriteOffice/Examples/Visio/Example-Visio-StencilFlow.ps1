@@ -13,7 +13,7 @@ $svgPath = Join-Path $OutputDirectory 'Example-Visio-StencilFlow.svg'
 $pngPath = Join-Path $OutputDirectory 'Example-Visio-StencilFlow.png'
 
 New-OfficeVisio -Path $path -Title 'Customer onboarding flow' -Author 'PSWriteOffice' -Width 11in -Height 8.5in -UseMastersByDefault -RequestRecalcOnOpen {
-    VisioStencilImport -BuiltIn Flowchart -Name Flow -Default
+    VisioStencilCatalog -BuiltIn Flowchart -Name Flow -Default
 
     VisioTextBox 'Customer onboarding' -X 5.5in -Y 7.55in -Width 5.2in -Height 0.42in -FillColor '#FFFFFF' -LineColor '#FFFFFF'
     VisioTextBox 'A compact, editable flowchart generated from PowerShell and OfficeIMO stencils.' -X 5.5in -Y 7.08in -Width 6.4in -Height 0.32in -FillColor '#FFFFFF' -LineColor '#FFFFFF'

@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System;
 using System.IO;
 using System.Linq;
@@ -17,10 +18,11 @@ namespace PSWriteOffice.Cmdlets.Project;
 [OutputType(typeof(ProjectDependency))]
 public sealed class GetOfficeProjectDependencyCommand : PSCmdlet {
     /// <summary>Project document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Document")]
     public ProjectDocument Document { get; set; } = null!;
     /// <inheritdoc />
     protected override void ProcessRecord() {
+        Document ??= OfficeDocumentContext.Find<ProjectDocument>() ?? throw new PSInvalidOperationException("Provide -Document or use a Project content block.");
         foreach (var item in Document.Dependencies) {
             WriteObject(item);
         }

@@ -14,7 +14,7 @@ internal static class OneNoteRevisionStoreObjectReader {
         Stream stream,
         OneNoteFileNodeList root,
         ulong declaredFileLength,
-        OneNoteReaderOptions options) {
+        OneNoteLoadOptions options) {
         var state = new ReaderState(stream, declaredFileLength, options);
         state.ProcessList(root, null);
         return state.Result;
@@ -23,14 +23,14 @@ internal static class OneNoteRevisionStoreObjectReader {
     private sealed class ReaderState {
         private readonly Stream _stream;
         private readonly ulong _declaredFileLength;
-        private readonly OneNoteReaderOptions _options;
+        private readonly OneNoteLoadOptions _options;
         private readonly HashSet<OneNoteFileNodeList> _visited = new HashSet<OneNoteFileNodeList>();
         private readonly Dictionary<OneNoteExtendedGuid, OneNoteRevisionManifest> _knownRevisions = new Dictionary<OneNoteExtendedGuid, OneNoteRevisionManifest>();
         private readonly Dictionary<ExtendedGuidKey, OneNoteJcid> _knownJcids = new Dictionary<ExtendedGuidKey, OneNoteJcid>();
         private int _nextRoleAssociationOrder;
         private long _totalAssetBytes;
 
-        public ReaderState(Stream stream, ulong declaredFileLength, OneNoteReaderOptions options) {
+        public ReaderState(Stream stream, ulong declaredFileLength, OneNoteLoadOptions options) {
             _stream = stream;
             _declaredFileLength = declaredFileLength;
             _options = options;

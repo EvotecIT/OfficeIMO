@@ -11,7 +11,7 @@ Saves an OfficeIMO LaTeX document.
 ## SYNTAX
 ### Document (Default)
 ```powershell
-Save-OfficeLatex [-Document] <LatexDocument> [-Path] <string> [-Options <LatexWriterOptions>] [-Mode <LatexWriterMode>] [-LineEnding <OfficeLineEnding>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Save-OfficeLatex [-Path] <string> -Document <LatexDocument> [-Mode <LatexWriterMode>] [-LineEnding <OfficeLineEnding>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,7 +21,7 @@ Saves an OfficeIMO LaTeX document.
 
 ### EXAMPLE 1
 ```powershell
-PS> $document = Get-OfficeLatex -Path .\Article.tex
+PS> $document = Open-OfficeLatex -Path .\Article.tex
 $document | Save-OfficeLatex -Path .\Article-normalized.tex -Mode Canonical
 ```
 
@@ -38,7 +38,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: 0
+Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
@@ -76,22 +76,6 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Options
-Optional writer settings.
-
-```yaml
-Type: LatexWriterOptions
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -PassThru
 Return the saved document.
 
@@ -118,7 +102,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: 1
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

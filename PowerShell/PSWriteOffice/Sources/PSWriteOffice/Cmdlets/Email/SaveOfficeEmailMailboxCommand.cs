@@ -14,9 +14,9 @@ namespace PSWriteOffice.Cmdlets.Email;
 [Cmdlet(VerbsData.Save, "OfficeEmailMailbox", SupportsShouldProcess = true, DefaultParameterSetName = "Document")]
 [OutputType(typeof(EmailWriteResult))]
 public sealed class SaveOfficeEmailMailboxCommand : OfficeMutationCmdlet {
-    /// <summary>Mailbox to save.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
-    public EmailMailbox Mailbox { get; set; } = null!;
+    /// <summary>Document to save.</summary>
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
+    public EmailMailbox Document { get; set; } = null!;
 
     /// <summary>Destination mbox path.</summary>
     [Parameter(Mandatory = true, Position = 0)]
@@ -31,6 +31,6 @@ public sealed class SaveOfficeEmailMailboxCommand : OfficeMutationCmdlet {
         var output = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path);
         if (!ShouldProcess(output, "Save mbox mailbox")) return;
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        WritePassThru(Mailbox.Save(output, Options));
+        WritePassThru(Document.Save(output, Options));
     }
 }

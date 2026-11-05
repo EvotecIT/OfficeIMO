@@ -6,7 +6,7 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportParagraph
 ## SYNOPSIS
-Adds a paragraph line to the current Excel report sheet.
+Adds a paragraph of text to the report.
 
 ## SYNTAX
 ### Default (Default)
@@ -15,26 +15,38 @@ Add-OfficeExcelReportParagraph [-Text] <string> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds a paragraph line to the current Excel report sheet.
+Adds a paragraph of text to the report.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\Operations.xlsx {
-    Add-OfficeExcelReportSheet -Name Summary {
-        Add-OfficeExcelReportTitle -Title 'Operational Summary'
-        Add-OfficeExcelReportParagraph -Text 'This workbook was generated from the validated source data.'
+New-OfficeExcel -Path .\Reports\Operations.xlsx {
+    ExcelReportSheet 'Summary' {
+        ExcelReportParagraph 'Figures cover all production services from 1 to 31 October.'
     }
 }
 ```
 
-Adds prose to an OfficeIMO-composed Excel report sheet.
+Adds a paragraph under the title.
+
+### EXAMPLE 2
+```powershell
+New-OfficeExcel -Path .\Reports\Service-Review-October.xlsx {
+    ExcelReportSheet 'Review' {
+        ExcelReportHeading 'Availability by site'
+        ExcelReportParagraph 'Availability is measured every minute from two external probes. Planned maintenance announced five days ahead is excluded.'
+        ExcelReportTable (Import-OfficeCsv -Path .\Data\Site-Availability.csv)
+    }
+}
+```
+
+Describes how availability is measured before the site table, so readers do not need a separate methods document.
 
 ## PARAMETERS
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -50,7 +62,7 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Paragraph text.
+Comment text.
 
 ```yaml
 Type: String

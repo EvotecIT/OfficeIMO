@@ -9,8 +9,8 @@ namespace OfficeIMO.Examples.Visio {
             Console.WriteLine("[*] Visio - Timeline diagram builder");
             string filePath = Path.Combine(folderPath, "Timeline Diagram Builder.vsdx");
 
-            VisioDocument.Create(filePath)
-                .TimelineDiagram("Product Roadmap", timeline => timeline
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.TimelineDiagram("Product Roadmap", timeline => timeline
                     .Theme(VisioStyleTheme.Modern())
                     .Range(new DateTime(2026, 1, 1), new DateTime(2026, 6, 30))
                     .Span("discovery", new DateTime(2026, 1, 8), new DateTime(2026, 2, 20), "Discovery", 0)
@@ -20,8 +20,8 @@ namespace OfficeIMO.Examples.Visio {
                     .Decision("gate", new DateTime(2026, 2, 25), "Go / no-go", VisioTimelinePlacement.Below)
                     .Risk("risk", new DateTime(2026, 3, 18), "Security review", VisioTimelinePlacement.Above)
                     .Release("preview", new DateTime(2026, 5, 20), "Public preview", VisioTimelinePlacement.Below)
-                    .Milestone("ga", new DateTime(2026, 6, 25), "GA", VisioTimelinePlacement.Above))
-                .Save();
+                    .Milestone("ga", new DateTime(2026, 6, 25), "GA", VisioTimelinePlacement.Above));
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(filePath) { UseShellExecute = true });

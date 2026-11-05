@@ -11,7 +11,7 @@ Attaches conditional formatting logic to the current table.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeWordTableCondition -FilterScript <scriptblock> [-TableStyle <WordTableStyle>] [-BackgroundColor <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordTableCondition [-FilterScript] <scriptblock> [-TableStyle <WordTableStyle>] [-BackgroundColor <OfficeColor>] [-Column <string>] [-Color <OfficeColor>] [-Bold] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -30,6 +30,54 @@ Applies a light highlight when the quantity column exceeds 10.
 
 ### -BackgroundColor
 Row highlight color applied when the predicate matches.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bold
+Enable or explicitly disable bold on matching cells.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Color
+Text color on matching cells.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Column
+Header name of a single target column; omission targets the whole row.
 
 ```yaml
 Type: String
@@ -54,7 +102,7 @@ Aliases: None
 Possible values:
 
 Required: True
-Position: named
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

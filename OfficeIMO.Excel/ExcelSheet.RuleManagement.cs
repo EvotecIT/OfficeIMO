@@ -401,15 +401,15 @@ namespace OfficeIMO.Excel {
             WriteLock(() => ClearConditionalFormattingCore(a1Range));
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalFormulaRule(string range, string formula, string? fillColor, bool stopIfTrue, int? priority) {
+        internal ExcelConditionalFormattingInfo CreateConditionalFormulaRule(string range, string formula, OfficeColor? fillColor, bool stopIfTrue, int? priority) {
             return AddConditionalRuleCore(range, ConditionalFormatValues.Expression, null, new[] { formula }, stopIfTrue, fillColor, priority);
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalDuplicateValuesRule(string range, string? fillColor) {
+        internal ExcelConditionalFormattingInfo CreateConditionalDuplicateValuesRule(string range, OfficeColor? fillColor) {
             return AddConditionalRuleCore(range, ConditionalFormatValues.DuplicateValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalUniqueValuesRule(string range, string? fillColor) {
+        internal ExcelConditionalFormattingInfo CreateConditionalUniqueValuesRule(string range, OfficeColor? fillColor) {
             return AddConditionalRuleCore(range, ConditionalFormatValues.UniqueValues, null, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor, priority: null);
         }
 
@@ -418,7 +418,7 @@ namespace OfficeIMO.Excel {
             bool aboveAverage,
             bool equalAverage,
             uint? standardDeviation,
-            string? fillColor,
+            OfficeColor? fillColor,
             bool stopIfTrue) {
             return AddConditionalRuleCore(range, ConditionalFormatValues.AboveAverage, rule => {
                 rule.AboveAverage = aboveAverage;
@@ -429,7 +429,7 @@ namespace OfficeIMO.Excel {
             }, Array.Empty<string>(), stopIfTrue, fillColor: fillColor);
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalTopBottomRule(string range, uint rank, bool bottom, bool percent, string? fillColor) {
+        internal ExcelConditionalFormattingInfo CreateConditionalTopBottomRule(string range, uint rank, bool bottom, bool percent, OfficeColor? fillColor) {
             if (rank == 0) throw new ArgumentOutOfRangeException(nameof(rank));
             return AddConditionalRuleCore(range, ConditionalFormatValues.Top10, rule => {
                 rule.Rank = rank;
@@ -438,7 +438,7 @@ namespace OfficeIMO.Excel {
             }, Array.Empty<string>(), stopIfTrue: false, fillColor: fillColor);
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalTextRule(string range, ExcelConditionalFormatType type, string text, string? fillColor, bool stopIfTrue) {
+        internal ExcelConditionalFormattingInfo CreateConditionalTextRule(string range, ExcelConditionalFormatType type, string text, OfficeColor? fillColor, bool stopIfTrue) {
             if (string.IsNullOrEmpty(text)) throw new ArgumentNullException(nameof(text));
             string firstCell = GetFirstCellReference(range);
             string literal = EscapeFormulaString(text);
@@ -480,7 +480,7 @@ namespace OfficeIMO.Excel {
             return AddConditionalRuleCore(range, type, null, new[] { formula }, stopIfTrue, fillColor: null);
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalTimePeriodRule(string range, ExcelConditionalTimePeriod timePeriod, string? fillColor, bool stopIfTrue) {
+        internal ExcelConditionalFormattingInfo CreateConditionalTimePeriodRule(string range, ExcelConditionalTimePeriod timePeriod, OfficeColor? fillColor, bool stopIfTrue) {
             string firstCell = GetFirstCellReference(range);
             return AddConditionalRuleCore(range, ConditionalFormatValues.TimePeriod, rule => {
                 rule.TimePeriod = timePeriod.ToOpenXml();
@@ -608,7 +608,7 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        private ExcelConditionalFormattingInfo AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, string? fillColor = null, int? priority = null) {
+        private ExcelConditionalFormattingInfo AddConditionalRuleCore(string range, ConditionalFormatValues type, Action<ConditionalFormattingRule>? configure, IReadOnlyList<string> formulas, bool stopIfTrue, OfficeColor? fillColor = null, int? priority = null) {
             if (string.IsNullOrWhiteSpace(range)) throw new ArgumentNullException(nameof(range));
             using var preserveDirectDataSet = _excelDocument.PreserveDirectDataSetSaveCandidateDuringDirtyMarks();
             ExcelConditionalFormattingInfo? createdRule = null;
@@ -624,8 +624,8 @@ namespace OfficeIMO.Excel {
                     StopIfTrue = stopIfTrue
                 };
                 configure?.Invoke(rule);
-                if (!string.IsNullOrWhiteSpace(fillColor)) {
-                    rule.FormatId = GetOrCreateDifferentialFillFormatId(fillColor!);
+                if (fillColor.HasValue) {
+                    rule.FormatId = GetOrCreateDifferentialFillFormatId(fillColor.Value);
                 }
 
                 foreach (var formula in formulas) {
@@ -639,19 +639,19 @@ namespace OfficeIMO.Excel {
             return createdRule!;
         }
 
-        private uint GetOrCreateDifferentialFillFormatId(string fillColor) {
+        private uint GetOrCreateDifferentialFillFormatId(OfficeColor fillColor) {
             var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             WorkbookStylesPart stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
             stylesPart.Stylesheet ??= new Stylesheet();
             EnsureDefaultStylePrimitives(stylesPart.Stylesheet);
 
-            string argb = NormalizeHexColor(fillColor);
+            Color nativeColor = ExcelColor.ToSpreadsheetColor(fillColor, _excelDocument.ColorTheme);
             var candidate = new DifferentialFormat(
                 new Fill(
                     new PatternFill {
                         PatternType = PatternValues.Solid,
-                        ForegroundColor = new ForegroundColor { Rgb = argb },
-                        BackgroundColor = new BackgroundColor { Rgb = argb }
+                        ForegroundColor = new ForegroundColor { Rgb = nativeColor.Rgb, Theme = nativeColor.Theme },
+                        BackgroundColor = new BackgroundColor { Rgb = nativeColor.Rgb, Theme = nativeColor.Theme }
                     }));
 
             DifferentialFormats differentialFormats = stylesPart.Stylesheet.DifferentialFormats ??= new DifferentialFormats();

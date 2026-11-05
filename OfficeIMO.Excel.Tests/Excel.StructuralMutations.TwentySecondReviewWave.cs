@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             ExcelSheet first = document.AddSheet("First");
             ExcelSheet second = document.AddSheet("Second");
             first.Cell(1, 1).SetValue("Replacement");
-            first.Cell(1, 1).SetFillColor("C6EFCE");
+            first.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("C6EFCE"));
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             CellStyle normal = stylesheet.CellStyles!.Elements<CellStyle>()
                 .Single(style => style.Name?.Value == "Normal");

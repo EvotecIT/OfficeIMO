@@ -338,8 +338,8 @@ Zażółć gęślą jaźń
         table.GetCell(1, 1).Text = "Athens";
         table.GetCell(2, 0).Text = "Україна";
         table.GetCell(2, 1).Text = "Київ";
-        for (int row = 0; row < table.Rows; row++)
-            for (int column = 0; column < table.Columns; column++) table.GetCell(row, column).FontFamily = FamilyName;
+        for (int row = 0; row < table.Rows.Count; row++)
+            for (int column = 0; column < table.Columns.Count; column++) table.GetCell(row, column).FontFamily = FamilyName;
 
         var options = new PowerPointPdfExportOptions {
             ResourcePolicy = PdfCore.PdfResourcePolicy.CreatePortableDeterministic(),
@@ -386,7 +386,7 @@ Zażółć gęślą jaźń
             string workbookPath = Path.Combine(directory, "opentype.xlsx");
             using ExcelDocument document = ExcelDocument.Create(workbookPath, new ExcelCreateOptions { FirstSheetName = "Report" });
             document.Sheets[0].Cell(1, 1).SetValue("office cafe\u0301");
-            document.Sheets[0].Cell(1, 1).SetFontName(FamilyName);
+            document.Sheets[0].Cell(1, 1).SetFontFamily(FamilyName);
             document.Save();
 
             var options = new ExcelPdfExportOptions {

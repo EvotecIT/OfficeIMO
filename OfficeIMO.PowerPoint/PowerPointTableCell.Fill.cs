@@ -3,11 +3,11 @@ using DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public partial class PowerPointTableCell {
         /// <summary>
-        /// Gets or sets the explicit RGB cell fill. Setting a color replaces other local fill choices.
+        /// Gets or sets the local cell fill. Setting a color replaces other local fill choices.
         /// Null removes the local solid fill and allows the remaining local or table style fill to apply.
         /// </summary>
-        public string? FillColor {
-            get => Cell.TableCellProperties?.GetFirstChild<SolidFill>()?.RgbColorModelHex?.Val;
+        public OfficeColor? FillColor {
+            get => PowerPointDrawingColor.Read(Cell.TableCellProperties?.GetFirstChild<SolidFill>());
             set {
                 Cell.TableCellProperties ??= new TableCellProperties();
                 if (value == null) {
@@ -15,7 +15,7 @@ namespace OfficeIMO.PowerPoint {
                     return;
                 }
                 RemoveCellFillChoices();
-                Cell.TableCellProperties.AddChild(new SolidFill(new RgbColorModelHex { Val = value }), true);
+                Cell.TableCellProperties.AddChild(PowerPointDrawingColor.Fill(value, PowerPointDrawingColor.ThemeFor(_slidePart ?? _ownerPart)), true);
             }
         }
 

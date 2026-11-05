@@ -9,19 +9,14 @@ schema: 2.0.0
 Adds a stencil shape to the current Visio page.
 
 ## SYNTAX
-### CatalogName (Default)
+### Catalog (Default)
 ```powershell
-Add-OfficeVisioStencilShape [-Stencil] <string> [[-Text] <string>] [-Page <VisioPage>] [-Catalog <string>] [-Key <string>] [-X <double>] [-Y <double>] [-Width <Double>] [-Height <Double>] [-ShapeName <string>] [-NameU <string>] [-FillColor <string>] [-LineColor <string>] [-LineWeight <Double>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-PassThru] [<CommonParameters>]
-```
-
-### CatalogObject
-```powershell
-Add-OfficeVisioStencilShape [-Stencil] <string> [[-Text] <string>] -CatalogObject <VisioStencilCatalog> [-Page <VisioPage>] [-Key <string>] [-X <double>] [-Y <double>] [-Width <Double>] [-Height <Double>] [-ShapeName <string>] [-NameU <string>] [-FillColor <string>] [-LineColor <string>] [-LineWeight <Double>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioStencilShape [-Stencil] <string> [[-Text] <string>] [-Page <VisioPage>] [-Catalog <Object>] [-Key <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Name <string>] [-NameU <string>] [-FillColor <OfficeColor>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-Bold] [-Italic] [-Strikethrough] [-Underline <OfficeTextDecorationStyle>] [-Font <string>] [-Size <OfficeLength>] [-Color <OfficeColor>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ### BuiltIn
 ```powershell
-Add-OfficeVisioStencilShape [-Stencil] <string> [[-Text] <string>] [-Page <VisioPage>] [-BuiltIn <OfficeVisioBuiltInStencilCatalog>] [-Key <string>] [-X <double>] [-Y <double>] [-Width <Double>] [-Height <Double>] [-ShapeName <string>] [-NameU <string>] [-FillColor <string>] [-LineColor <string>] [-LineWeight <Double>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficeVisioStencilShape [-Stencil] <string> [[-Text] <string>] -BuiltIn <OfficeVisioBuiltInStencilCatalog> [-Page <VisioPage>] [-Key <string>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Width <OfficeLength>] [-Height <OfficeLength>] [-Name <string>] [-NameU <string>] [-FillColor <OfficeColor>] [-LineColor <OfficeColor>] [-LineWeight <OfficeLength>] [-LinePattern <Int32>] [-FillPattern <Int32>] [-Angle <Double>] [-Bold] [-Italic] [-Strikethrough] [-Underline <OfficeTextDecorationStyle>] [-Font <string>] [-Size <OfficeLength>] [-Color <OfficeColor>] [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -41,12 +36,44 @@ Registers a built-in catalog and places a stencil shape on the active page.
 
 ## PARAMETERS
 
+### -Alignment
+Whole-shape horizontal text alignment.
+
+```yaml
+Type: OfficeAlignment
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values: Left, Center, Right, Justify, Start, End
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Angle
-Shape angle in radians.
+Shape angle in degrees.
 
 ```yaml
 Type: Double
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bold
+Apply bold text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -66,7 +93,7 @@ Parameter Sets: BuiltIn
 Aliases: None
 Possible values: All, BasicShapes, Flowchart, BlockDiagram, Architecture, Network, Infrastructure, Cloud, SecurityIdentity, ContainersKubernetes, DataPlatform, CollaborationBusiness, Swimlane, OrgChart, Timeline, Sequence
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -74,12 +101,12 @@ Accept wildcard characters: False
 ```
 
 ### -Catalog
-Catalog previously registered in the active Visio DSL scope.
+A stencil catalog object or a name registered in the current Visio block.
 
 ```yaml
-Type: String
-Parameter Sets: CatalogName
-Aliases: CatalogName
+Type: Object
+Parameter Sets: Catalog
+Aliases: None
 Possible values:
 
 Required: False
@@ -89,16 +116,16 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CatalogObject
-Catalog object containing the stencil shape.
+### -Color
+Text color, including CSS names and theme roles.
 
 ```yaml
-Type: VisioStencilCatalog
-Parameter Sets: CatalogObject
+Type: OfficeColor
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: False
@@ -109,8 +136,8 @@ Accept wildcard characters: False
 Fill color name or hex value.
 
 ```yaml
-Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeColor
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -126,7 +153,23 @@ Native Visio fill-pattern index: 0 has no fill, 1 is solid, and 2 through 40 sel
 
 ```yaml
 Type: Int32
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Font
+Font family for the shape's text.
+
+```yaml
+Type: String
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -141,8 +184,24 @@ Accept wildcard characters: False
 Optional shape height. Omit to use the stencil default height.
 
 ```yaml
-Type: Double
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeLength
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Italic
+Apply italic text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -158,7 +217,7 @@ DSL key used by connector commands.
 
 ```yaml
 Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -173,8 +232,8 @@ Accept wildcard characters: False
 Line color name or hex value.
 
 ```yaml
-Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeColor
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -190,7 +249,7 @@ Native Visio line-pattern index: 0 hides the line, 1 is solid, and 2 through 23 
 
 ```yaml
 Type: Int32
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -205,8 +264,24 @@ Accept wildcard characters: False
 Line weight.
 
 ```yaml
-Type: Double
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeLength
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Name
+Optional shape name.
+
+```yaml
+Type: String
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -222,7 +297,7 @@ Optional universal shape name.
 
 ```yaml
 Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -238,7 +313,7 @@ Target page. Optional inside VisioPage or OfficeVisio.
 
 ```yaml
 Type: VisioPage
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -254,7 +329,7 @@ Emit the object created or changed by the command.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -265,12 +340,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -ShapeName
-Optional shape name.
+### -Size
+Font size; a number means points.
 
 ```yaml
-Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeLength
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -286,12 +361,28 @@ Stencil id, name, master name, keyword, alias, or tag.
 
 ```yaml
 Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
-Aliases: Name
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Strikethrough
+Apply one strikethrough line; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -302,7 +393,7 @@ Text placed inside the shape. Omit to use the stencil display name.
 
 ```yaml
 Type: String
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -313,12 +404,28 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Underline
+Native Visio underline variant.
+
+```yaml
+Type: OfficeTextDecorationStyle
+Parameter Sets: Catalog, BuiltIn
+Aliases: None
+Possible values: None, Single, Double
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -Width
 Optional shape width. Omit to use the stencil default width.
 
 ```yaml
-Type: Double
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeLength
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -333,8 +440,8 @@ Accept wildcard characters: False
 X coordinate of the stencil shape center.
 
 ```yaml
-Type: Double
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeLength
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 
@@ -349,8 +456,8 @@ Accept wildcard characters: False
 Y coordinate of the stencil shape center.
 
 ```yaml
-Type: Double
-Parameter Sets: CatalogName, CatalogObject, BuiltIn
+Type: OfficeLength
+Parameter Sets: Catalog, BuiltIn
 Aliases: None
 Possible values:
 

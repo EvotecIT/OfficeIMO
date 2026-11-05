@@ -9,7 +9,7 @@ internal static class CandidateFrameLayout {
         PublisherNativeCreationProjection.FrameLayouts(Author(edited, languageId));
 
     internal static PublisherDocument Author(bool edited, uint? languageId = null) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         document.AddPage(master.Id);
@@ -25,10 +25,10 @@ internal static class CandidateFrameLayout {
             var layout = layouts[index];
             string text = index is 3 or 4 ? "Short native body." : string.Concat(Enumerable.Repeat("One two three four five six seven eight nine ten. ", 12)).TrimEnd();
             PublisherTextFrame frame = document.AddTextFrame(document.Pages[index / 3].Id,
-                54, 54 + index % 3 * 228, 504, 180, new[] { new OfficeRichTextParagraph(new[] {
+                OfficeLength.Points(54), OfficeLength.Points(54 + index % 3 * 228), OfficeLength.Points(504), OfficeLength.Points(180), new[] { new OfficeRichTextParagraph(new[] {
                     new OfficeRichTextRun(text, 12, OfficeColor.Black, fontFamily: "Arial").WithLanguageId(languageId)
                 }, lineHeight: 18) });
-            document.SetTextFrameLayout(frame.Id, edited ? 2 : layout.Columns, edited ? 14 : layout.Gap,
+            document.SetTextFrameLayout(frame.Id, edited ? 2 : layout.Columns, OfficeLength.Points(edited ? 14 : layout.Gap),
                 edited ? new OfficeTextPadding(9, 3, 15, 6) : layout.Padding,
                 edited ? OfficeTextVerticalAlignment.Bottom : layout.Alignment);
         }

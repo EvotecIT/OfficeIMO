@@ -11,7 +11,7 @@ Creates discoverable page and rendering settings for Export-OfficeVisioImage.
 ## SYNTAX
 ### Options (Default)
 ```powershell
-New-OfficeVisioImageOptions [-PageIndex <Int32>] [-PageCount <Int32>] [-RenderText] [-RenderStencilArtwork] [-RenderConnectorLabels] [-ResolveConnectorLabelOverlaps] [-Supersampling <Int32>] [-IncludeSvgXmlDeclaration] [-Scale <Double>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-BackgroundColor <string>] [-TargetDpi <Double>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
+New-OfficeVisioImageOptions [-NoText] [-NoStencilArtwork] [-NoConnectorLabels] [-NoConnectorLabelOverlapResolution] [-Supersampling <Int32>] [-IncludeSvgXmlDeclaration] [-FontPath <string>] [-Font <string>] [-FontCollectionIndex <Int32>] [-MaximumOutputWidth <Int32>] [-MaximumOutputHeight <Int32>] [-MaximumRasterPixelCount <Int64>] [-RasterOverflowBehavior <OfficeRasterOverflowBehavior>] [-MaximumOutputCount <Int32>] [-MaximumTotalRasterPixelCount <Int64>] [-MaximumTotalEncodedBytes <Int64>] [-RenderTimeoutSeconds <Double>] [-MaximumDegreeOfParallelism <Int32>] [-TextShapingLanguage <string>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -21,15 +21,47 @@ Creates discoverable page and rendering settings for Export-OfficeVisioImage.
 
 ### EXAMPLE 1
 ```powershell
-PS> $options = New-OfficeVisioImageOptions -PageIndex 0 -PageCount 1 -RenderText -RenderConnectorLabels
-Export-OfficeVisioImage -Path .\Diagram.vsdx -OutputPath .\Preview -Format Svg -Options $options
+$options = New-OfficeVisioImageOptions -Font Arial -NoConnectorLabels
+Export-OfficeDocumentImage -Path ./Diagram.vsdx -Page 1 -Format Svg -OutputDirectory ./Preview -Options $options
 ```
 
 
 ## PARAMETERS
 
-### -BackgroundColor
-Background color name or hex value.
+### -Font
+Font face name used for text rendering.
+
+```yaml
+Type: String
+Parameter Sets: Options
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FontCollectionIndex
+Face index within a font collection.
+
+```yaml
+Type: Int32
+Parameter Sets: Options
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -FontPath
+Literal font file used for text rendering.
 
 ```yaml
 Type: String
@@ -172,11 +204,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageCount
-Maximum pages exported.
+### -NoConnectorLabelOverlapResolution
+Resolve connector-label overlaps.
 
 ```yaml
-Type: Int32
+Type: SwitchParameter
 Parameter Sets: Options
 Aliases: None
 Possible values:
@@ -188,11 +220,43 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageIndex
-Zero-based first page index.
+### -NoConnectorLabels
+Render connector labels.
 
 ```yaml
-Type: Int32
+Type: SwitchParameter
+Parameter Sets: Options
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoStencilArtwork
+Render supported stencil artwork.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Options
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoText
+Render page text.
+
+```yaml
+Type: SwitchParameter
 Parameter Sets: Options
 Aliases: None
 Possible values:
@@ -220,88 +284,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -RenderConnectorLabels
-Render connector labels.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RenderStencilArtwork
-Render supported stencil artwork.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -RenderText
-Render page text.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -RenderTimeoutSeconds
 Maximum seconds allowed for one render.
-
-```yaml
-Type: Double
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -ResolveConnectorLabelOverlaps
-Resolve connector-label overlaps.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Scale
-Output scale multiplier.
 
 ```yaml
 Type: Double
@@ -321,22 +305,6 @@ Raster supersampling factor.
 
 ```yaml
 Type: Int32
-Parameter Sets: Options
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -TargetDpi
-Target output density in dots per inch.
-
-```yaml
-Type: Double
 Parameter Sets: Options
 Aliases: None
 Possible values:

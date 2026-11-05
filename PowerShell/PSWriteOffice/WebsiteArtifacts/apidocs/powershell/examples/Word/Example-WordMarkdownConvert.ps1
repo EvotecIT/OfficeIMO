@@ -14,8 +14,8 @@ New-OfficeWord -Path $docPath {
     }
 }
 
-ConvertTo-OfficeWordMarkdown -Path $docPath -OutputPath $markdownPath
-ConvertFrom-OfficeWordMarkdown -Path $markdownPath -OutputPath $roundtripPath
+Convert-OfficeDocument -To Markdown -Path $docPath -OutputPath $markdownPath
+Convert-OfficeDocument -To Word -Path $markdownPath -OutputPath $roundtripPath
 
 Write-Host "Markdown saved to $markdownPath"
 Write-Host "Round-trip document saved to $roundtripPath"

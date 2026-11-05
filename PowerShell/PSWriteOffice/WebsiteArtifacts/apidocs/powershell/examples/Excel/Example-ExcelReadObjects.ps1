@@ -9,16 +9,17 @@ $rows = @(
 
 New-OfficeExcel -Path $path {
     Add-OfficeExcelSheet -Name 'Data' -Content {
-        Add-OfficeExcelTable -Data $rows -Name 'Sales' -AutoFit
-        Add-OfficeExcelValidationList -Range 'C2:C3' -Values 'New','In Progress','Done'
+        Add-OfficeExcelTable -InputObject $rows -Name 'Sales'
+        Add-OfficeExcelValidation -Type List -Range 'C2:C3' -Values 'New','In Progress','Done'
         Set-OfficeExcelNamedRange -Name 'SalesData' -Range 'A1:C3'
-        Set-OfficeExcelFormula -Address 'D2' -Formula 'SUM(A2:C2)'
-        Set-OfficeExcelHeaderFooter -HeaderCenter 'Demo' -FooterRight 'Page &P of &N'
-        Invoke-OfficeExcelAutoFit -Columns
+        Set-OfficeExcelCell -Address 'D2' -Formula 'SUM(A2:C2)'
+        Set-OfficeExcelHeader -Center 'Demo'
+        ExcelFooter -Right 'Page &P of &N'
+        Invoke-OfficeExcelAutoFit -Column '*'
     }
 }
 
-$data = Get-OfficeExcelData -Path $path -Sheet 'Data'
+$data = Import-OfficeExcel -Path $path -Sheet 'Data'
 $data | Format-Table
 
 Write-Host 'Named ranges:'

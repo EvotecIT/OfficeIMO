@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 17), DoubleField(4, 1d))),
             BytesField(1, Message(VarintField(1, 16), VarintField(2, 212), VarintField(3, 1))));
         IWorkWireMessage formula = IWorkProtobuf.Parse(
-            Message(BytesField(1, nodeArray)), new IWorkReadOptions());
+            Message(BytesField(1, nodeArray)), new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 32, 128);
 
@@ -27,7 +27,7 @@ public sealed partial class IWorkBoundaryTests {
             BytesField(1, Message(VarintField(1, 17), DoubleField(4, 2d))),
             BytesField(1, Message(VarintField(1, 5))));
         IWorkWireMessage formula = IWorkProtobuf.Parse(
-            Message(BytesField(1, nodeArray)), new IWorkReadOptions());
+            Message(BytesField(1, nodeArray)), new IWorkLoadOptions());
 
         IWorkFormulaResult result = IWorkFormulaReader.Render(formula, 0, 0, 32, 128);
 
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("\uFFFC")]
     [InlineData("\uFFFB")]
     public void Numbers_text_storage_reports_removed_inline_object_markers(string marker) {
-        var options = new IWorkReadOptions();
+        var options = new IWorkLoadOptions();
         IWorkWireMessage storage = IWorkProtobuf.Parse(
             Message(StringField(3, "Before" + marker + "After")), options);
 
@@ -53,8 +53,8 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reused_pages_headers_are_charged_by_destination_text_complexity() {
         using MemoryStream package = CreatePagesPackageWithRepeatedHeader(sectionCount: 2);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxProjectedTextItems = 5 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxProjectedTextItems = 5 });
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => source.ReadPages());
 
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Table", 1, 1, 42d)
         }, includePreview: true, includeWrongWireDrawableReference: true);
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
 
         Assert.True(result.IsVisualFallback);
         Assert.Contains(result.Projection.Diagnostics,
@@ -80,7 +80,7 @@ public sealed partial class IWorkBoundaryTests {
             new TableSpec("Tall table", 4097, 1, 42d, defaultRowHeight: 20d)
         });
 
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
 
         Assert.Equal(OfficeIMO.Excel.ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(20d)), result.Value.Sheets[0].DefaultRowHeight);
     }

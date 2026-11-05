@@ -40,7 +40,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage scene = OfficeDrawingRasterRenderer.Render(visual.Drawing);
         Assert.Equal(OfficeColor.FromRgb(0, 0, 0), scene.GetPixel(21, 10));
         AssertSvgFilterPurple(scene.GetPixel(40, 10));
-        Assert.True(OfficeRasterImageDecoder.TryDecode(document.ToPng(options), out OfficeRasterImage? png));
+        Assert.True(OfficeRasterImageDecoder.TryDecode(document.ToImage(options), out OfficeRasterImage? png));
         AssertSvgFilterPurple(png!.GetPixel(40, 10));
         byte[] pdf = document.ConvertToPdfWithEvidence(new HtmlPdfExportOptions(options)).ToBytes();
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);

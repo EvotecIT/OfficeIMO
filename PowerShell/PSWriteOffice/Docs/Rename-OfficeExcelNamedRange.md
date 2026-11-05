@@ -6,45 +6,52 @@ schema: 2.0.0
 ---
 # Rename-OfficeExcelNamedRange
 ## SYNOPSIS
-Renames a workbook or sheet-scoped Excel named range.
+Renames a defined name.
 
 ## SYNTAX
-### Context (Default)
+### Default (Default)
 ```powershell
-Rename-OfficeExcelNamedRange [-Name] <string> [-NewName] <string> [-Global] [-ValidationMode <ExcelDefinedNameValidationMode>] [-PassThru] [-Save] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Rename-OfficeExcelNamedRange [-Name] <string> [-NewName] <string> -Document <ExcelDocument> [-Sheet <string>] [-SheetIndex <Int32>] [-ValidationMode <ExcelDefinedNameValidationMode>] [-PassThru] [-Save] [-WhatIf] [-Confirm] [<CommonParameters>]
+Rename-OfficeExcelNamedRange [-Name] <string> [-NewName] <string> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-Global] [-ValidationMode <ExcelDefinedNameValidationMode>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Renames a workbook or sheet-scoped Excel named range.
+Renames a defined name.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $workbook = Open-OfficeExcel -Path .\Report.xlsx
-$renamed = $workbook | Rename-OfficeExcelNamedRange -Name RevenueRange -NewName Revenue_Current -PassThru
-Save-OfficeExcel -Document $workbook
+Open-OfficeExcel -Path .\Finance\Budget-2027.xlsx {
+    Rename-OfficeExcelNamedRange Rate TaxRate
+}
 ```
 
-Renames the defined name through OfficeIMO validation before saving the workbook.
+Renames Rate to TaxRate; formulas that use the name follow the change.
+
+### EXAMPLE 2
+```powershell
+$names = Get-OfficeExcelNamedRange -Path .\Finance\Pricing-Model.xlsx | Where-Object SheetName -eq 'Inputs'
+Open-OfficeExcel -Path .\Finance\Pricing-Model.xlsx {
+    foreach ($name in $names) {
+        Rename-OfficeExcelNamedRange -Name $name.Name -NewName "in_$($name.Name)" -ValidationMode Strict
+    }
+}
+```
+
+Prefixes every input name of the pricing model with in_ so inputs are easy to tell apart from calculations.
 
 ## PARAMETERS
 
 ### -Document
-Workbook document.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -56,7 +63,7 @@ Use workbook-global scope from inside the DSL.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -72,7 +79,7 @@ Named range name.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -88,7 +95,7 @@ New named range name.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -100,27 +107,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit a result object.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Save
-Save the workbook immediately after renaming the name.
-
-```yaml
-Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -132,27 +123,11 @@ Accept wildcard characters: False
 ```
 
 ### -Sheet
-Worksheet name for a sheet-scoped operation.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Zero-based worksheet index for a sheet-scoped operation.
-
-```yaml
-Type: Int32
-Parameter Sets: Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -168,7 +143,7 @@ Defined-name validation mode.
 
 ```yaml
 Type: ExcelDefinedNameValidationMode
-Parameter Sets: Context, Document
+Parameter Sets: Default
 Aliases: None
 Possible values: Sanitize, Strict
 
@@ -188,7 +163,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## OUTPUTS
 
-- `System.Boolean`
+- `None`
 
 ## RELATED LINKS
 

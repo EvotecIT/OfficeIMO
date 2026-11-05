@@ -34,8 +34,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("This is a bar chart 2");
                 var barChart2 = document.AddChart();
                 barChart2.AddCategories(categories);
-                barChart2.AddBar("USA", 15, Color.Aqua);
-                barChart2.AddBar("Poland", 11, Color.Blue);
+                barChart2.AddBar("USA", new[] { 15 }, Color.Aqua);
+                barChart2.AddBar("Poland", new[] { 11 }, Color.Blue);
                 barChart2.RoundedCorners = true;
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Adding a line chart as required 1");
 
                 var lineChart = document.AddChart();
-                lineChart.AddChartAxisX(categories);
+                lineChart.AddCategories(categories);
                 lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
@@ -70,7 +70,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Adding a line chart as required 2");
 
                 var lineChart2 = document.AddChart();
-                lineChart2.AddChartAxisX(categories);
+                lineChart2.AddCategories(categories);
                 lineChart2.AddLine("USA", new List<int>() { 10, 35, 50, 50 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart2.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart2.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
@@ -92,7 +92,7 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph1 = document.AddParagraph("This is a bar chart - but assigned to paragraph 2");
                 var barChart5 = paragraph1.AddChart();
                 barChart5.AddCategories(categories);
-                barChart5.AddBar("USA", 15, Color.Aqua);
+                barChart5.AddBar("USA", new[] { 15 }, Color.Aqua);
                 barChart5.RoundedCorners = true;
 
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph3 = document.AddParagraph("Adding a line chart as required 1 - but assigned to paragraph");
                 var lineChart3 = paragraph3.AddChart();
-                lineChart3.AddChartAxisX(categories);
+                lineChart3.AddCategories(categories);
                 lineChart3.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart3.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart3.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
@@ -115,7 +115,7 @@ namespace OfficeIMO.Examples.Word {
 
                 var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
                 var lineChart4 = paragraph4.AddChart();
-                lineChart4.AddChartAxisX(categories);
+                lineChart4.AddCategories(categories);
                 lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
@@ -124,7 +124,7 @@ namespace OfficeIMO.Examples.Word {
 
                 // let's add chart to first paragraph
                 var lineChart5 = paragraphToTest.AddChart();
-                lineChart5.AddChartAxisX(categories);
+                lineChart5.AddCategories(categories);
                 lineChart5.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.Parse("#3F64D7"));
                 lineChart5.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart5.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);

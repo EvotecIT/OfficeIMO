@@ -101,9 +101,9 @@ namespace OfficeIMO.PowerPoint {
             for (int i = 0; i < _authoringContent.Count; i++) {
                 PowerPointShape shape = _authoringContent[i].Shape;
                 double[]? columns = shape is PowerPointTable table
-                    ? Enumerable.Range(0, table.Columns).Select(column => (double)table.GetColumnWidth(column).ToEmus()).ToArray() : null;
+                    ? Enumerable.Range(0, table.ColumnCount).Select(column => (double)table.GetColumnWidth(column).ToEmus()).ToArray() : null;
                 double[]? rows = shape is PowerPointTable rowTable
-                    ? Enumerable.Range(0, rowTable.Rows).Select(row => (double)rowTable.GetRowHeight(row).ToEmus()).ToArray() : null;
+                    ? Enumerable.Range(0, rowTable.RowCount).Select(row => (double)rowTable.GetRowHeight(row).ToEmus()).ToArray() : null;
                 shape.Bounds = PowerPointLayoutEngine.PhysicalBox(frames[i]);
                 if (shape is PowerPointTable resized) {
                     resized.SetColumnWidthsByRatio(columns!);

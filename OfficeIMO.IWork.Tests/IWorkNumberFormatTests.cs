@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Numeric_formats_are_shared_metadata_without_changing_raw_values(IWorkDocumentKind kind) {
         using MemoryStream package = NumberFormatPackage(kind, NumericFormat(258, 2, 3, 1));
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal(0.5d, cell.Value);
         Assert.Equal("0.5", cell.DisplayText);
         Assert.False(cell.HasDecodeError);
@@ -39,7 +39,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(259u, 253u, 0u, 0u, "0.###############E+00")]
     public void Excel_numeric_format_survives_save_with_typed_cache(uint type, uint decimals, uint negative, uint grouping, string code) {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(type, decimals, negative, grouping), value: -0.5d);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.False(result.IsVisualFallback);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -77,12 +77,12 @@ public sealed partial class IWorkBoundaryTests {
             _ => new byte[] { 0x80 }
         };
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, format);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(0.5d, cell.Value); Assert.Null(cell.NumberFormat); Assert.False(cell.HasDecodeError);
         Assert.Equal(IWorkCellUnsupportedFeatures.NumericFormat, cell.UnsupportedFeatures);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.True(report.IsPartialEditableReconstruction);
         IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues, issue => issue.Owner.RecordIdentifier == 13);
         Assert.Equal(13ul, issue.Owner.RecordIdentifier); Assert.Equal("3[1]/6", issue.FieldPath);
@@ -101,7 +101,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] healthy = BytesField(3, FormatEntry(NumericFormat(258, 0)));
         byte[] bad = BytesField(3, unknownKey ? Message(BytesField(6, NumericFormat(256, 0))) : FormatEntry(NumericFormat(256, 0)));
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, catalog: Message(VarintField(1, 2), healthy, bad));
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Null(cell.NumberFormat); Assert.Equal(0.5d, cell.Value);
         package.Position = 0;
         var issue = Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13);
@@ -113,11 +113,11 @@ public sealed partial class IWorkBoundaryTests {
         byte[] catalog = Message(VarintField(1, 2), BytesField(3, FormatEntry(NumericFormat(258, 0))),
             BytesField(3, Message(VarintField(1, 99), BytesField(6, new byte[] { 0x80 }))));
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, catalog: catalog);
-        Assert.NotNull(Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).NumberFormat);
+        Assert.NotNull(Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).NumberFormat);
         package.Position = 0;
         Assert.Empty(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues);
         package.Position = 0;
-        IWorkSourceDocument limited = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxTableCatalogEntries = 1 });
+        IWorkSourceDocument limited = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxTableCatalogEntries = 1 });
         Assert.Contains("catalog limit", Assert.Throws<InvalidDataException>(() => limited.ReadNumbers()).Message);
     }
 
@@ -125,7 +125,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Format_payload_field_limit_remains_fatal() {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers,
             Message(NumericFormat(258, 0), Enumerable.Range(6, 8).Select(field => VarintField(field, 0)).SelectMany(bytes => bytes).ToArray()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProtobufFieldCount = 8 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProtobufFieldCount = 8 });
         Assert.Contains("field limit", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -137,7 +137,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] marker = failure == 0 ? VarintField(5, 2) : failure == 1 ? BytesField(5, Message()) : Message(VarintField(5, 1), VarintField(5, 0));
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, catalog: Message(VarintField(1, 2), marker,
             BytesField(3, FormatEntry(NumericFormat(258, 0)))));
-        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Null(cell.NumberFormat); Assert.Equal(0.5d, cell.Value);
         package.Position = 0; Assert.Single(ConvertUnitReport(package, IWorkDocumentKind.Numbers).SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13);
     }
@@ -145,7 +145,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Currency_selection_does_not_apply_an_inactive_numeric_format() {
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, 0), currency: true);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         var cell = Assert.Single(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells);
         Assert.Null(cell.NumberFormat); Assert.Equal(0.5d, cell.Value);
         Assert.Contains(projection.Diagnostics, diagnostic => diagnostic.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
@@ -157,13 +157,13 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Empty_numeric_format_cells_remain_materialized(IWorkDocumentKind kind) {
         using var package = EmptyNumericFormatPackage(kind, NumericFormat(258, 2));
-        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, cell.Kind);
         Assert.Null(cell.Value);
         Assert.Equal(IWorkNumberFormatKind.Percentage, cell.NumberFormat!.Kind);
         if (kind != IWorkDocumentKind.Numbers) return;
         package.Position = 0;
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
         Assert.Equal("0.00%", reopened.Sheets[0].Cell(1, 1).GetStyle().NumberFormatCode);
@@ -177,7 +177,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Numbers, true)]
     public void Unsupported_empty_numeric_format_is_reported_instead_of_silently_dropped(IWorkDocumentKind kind, bool currency) {
         using var package = EmptyNumericFormatPackage(kind, NumericFormat(258, 254), currency: currency);
-        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind).Item1.Cells);
+        var cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind).Item1.Cells);
         Assert.Equal(IWorkCellKind.Empty, cell.Kind);
         Assert.Equal(1, cell.Row); Assert.Equal(1, cell.Column);
         Assert.Null(cell.NumberFormat);
@@ -194,14 +194,14 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(254u)]
     public void Empty_numeric_formats_consume_the_materialized_cell_budget(uint decimals) {
         using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, NumericFormat(258, decimals), columns: 2);
-        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
+        Assert.Contains("source-wide limit", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxMaterializedCells = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]
     public void Empty_currency_selection_ignores_inactive_numeric_catalog() {
         using var package = EmptyNumericFormatPackage(IWorkDocumentKind.Numbers, CurrencyFormat("GBP", 2), currency: true);
-        var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        var cell = Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.Equal("GBP", cell.NumberFormat!.CurrencyCode);
         Assert.Equal(IWorkCellUnsupportedFeatures.None, cell.UnsupportedFeatures);
     }

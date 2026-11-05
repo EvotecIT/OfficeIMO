@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
                 AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19))))),
             ArchiveRecord(19, 2023, Message(VarintField(11, markerKind), StringField(16, "•"))));
         using var package = CreatePackage(("Index/Document.iwa", FrameIwa(records)));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete);
         Assert.All(projection.Body.Paragraphs, paragraph => {
@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Inline_table_lists_cannot_capture_surrounding_DOCX_continuation() {
         using var seed = DecimalCounterPackage(IWorkDocumentKind.Pages);
         var records = new List<byte[]>();
-        foreach (var record in IWorkSourceDocument.Open(seed).Records) {
+        foreach (var record in IWorkSourceDocument.Load(seed).Records) {
             records.Add(record.Identifier switch {
                 1 => ArchiveRecord(1, 10000, ReferenceField(4, 2), new ulong[] { 2, 10, 20 }),
                 2 => ArchiveRecord(2, 2001, Message(StringField(3, "Before\n\ufffc\nAfter"),
@@ -48,7 +48,7 @@ public sealed partial class IWorkBoundaryTests {
         records.Add(ArchiveRecord(20, 2003, Message(ReferenceField(1, 10), VarintField(2, 0),
             FloatField(3, 0), VarintField(4, 0), FloatField(5, 0)), new ulong[] { 10 }));
         using var package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(new int?[] { 7, 8, 9 }, result.Projection.Body.Paragraphs.Select(p => p.ListNumber));
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;

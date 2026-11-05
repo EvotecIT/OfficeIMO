@@ -8,14 +8,16 @@ Validation is a delivery stage, not an incidental side effect of opening a workb
 
 ## Preflight first
 
-- `Get-OfficeExcelRuntimePreflight` reports runtime capabilities and warnings.
-- `Get-OfficeExcelPreflight` reports workbook-specific readiness and repair hints.
-- `Test-OfficeExcelWorkbook` checks workbook integrity.
-- `Test-OfficeExcelAccessibility` checks accessible-delivery concerns.
-- `Get-OfficeExcelSummary -IncludeSchema` inventories package features such as queries, slicers, timelines, and external structures.
+- `Import-OfficeExcel -Path .\Report.xlsx -Culture en-US -WarningAction Stop` surfaces runtime import warnings as errors.
+- `Test-OfficeDocument -Path .\Report.xlsx` checks workbook integrity.
+- Add `-Options (New-OfficeExcelTestOptions -Capability EditCellValues,ExportPdfReport -IncludeFeatures -IncludeRepairHints)` to evaluate the intended operations and retain their repair hints.
+- `Test-OfficeDocument -Path .\Report.xlsx -Check Accessibility` checks accessible-delivery concerns.
+- `Get-OfficeDocumentInfo -Path .\Report.xlsx -Detailed` returns common counts and a native workbook snapshot in `Details`.
+
+Validation returns `IsValid`, `Diagnostics`, and `NativeReports`. Inspect the native reports for workbook doctor and capability-preflight findings; use `-Quiet` only when the consumer needs a Boolean.
 
 ## Repair explicitly
 
-Use `Repair-OfficeExcelWorkbook` only after inspecting the proposed repair class and preserving the original when required. Reopen the result, repeat the integrity checks, and compare it with the source if preservation matters.
+Use `Repair-OfficeDocument` only after inspecting the proposed repair class and preserving the original when required. Reopen the result, repeat the integrity checks, and compare it with the source if preservation matters.
 
-For automated delivery, a useful gate is: create or update, save, preflight, test integrity, test accessibility when applicable, compare against a reference contract, then publish. The [operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) provides a substantial artifact for exercising that path.
+For automated delivery, a useful gate is: create or update, save, preflight, test integrity, test accessibility when applicable, compare against a reference contract, then publish. The [operational dashboard](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Showcase/Showcase-Excel-OperationalDashboard.ps1) provides a substantial artifact for exercising that path.

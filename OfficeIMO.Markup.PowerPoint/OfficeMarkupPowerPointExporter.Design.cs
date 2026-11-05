@@ -26,7 +26,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             || layout == "twocolumns";
     }
 
-    private static PowerPointDeckDesign CreateDeckDesign(OfficeMarkupDocument document) {
+    private static PowerPointDeckDesign CreateDeckDesign(OfficeMarkupDocument document, OfficeTheme? theme) {
         var accent = ToPowerPointColor(GetMetadata(document, "accent")
             ?? GetMetadata(document, "accent-color")
             ?? GetMetadata(document, "brand-color")
@@ -40,7 +40,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         var footerRight = GetMetadata(document, "footer-right") ?? GetMetadata(document, "author");
         var eyebrow = GetMetadata(document, "eyebrow");
 
-        return PowerPointDeckDesign.FromBrand(
+        var design = PowerPointDeckDesign.FromBrand(
             accent,
             seed,
             ParseDesignMood(GetMetadata(document, "mood") ?? GetMetadata(document, "design-mood")),
@@ -48,6 +48,26 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             eyebrow: eyebrow,
             footerLeft: footerLeft,
             footerRight: footerRight);
+        if (theme != null) {
+            var appearance = design.Theme;
+            appearance.Name = theme.Name;
+            appearance.HeadingFontFamily = theme.Fonts.Heading.Family;
+            appearance.BodyFontFamily = theme.Fonts.Body.Family;
+            appearance.BackgroundColor = theme.Palette.Background;
+            appearance.PrimaryTextColor = theme.Palette.Text;
+            appearance.SecondaryTextColor = theme.Palette.TextMuted;
+            appearance.MutedTextColor = theme.Palette.TextMuted;
+            appearance.SurfaceColor = theme.Surfaces.Surface;
+            appearance.PanelColor = theme.Surfaces.Surface;
+            appearance.PanelBorderColor = theme.Surfaces.Rule;
+            appearance.AccentColor = theme.Palette.Accent1;
+            appearance.Accent2Color = theme.Palette.Accent2;
+            appearance.Accent3Color = theme.Palette.Accent3;
+            appearance.AccentDarkColor = theme.Palette.Accent1;
+            appearance.AccentLightColor = theme.Surfaces.Accent1Tint;
+            appearance.WarningColor = theme.Palette.Warning;
+        }
+        return design;
     }
 
     private static PowerPointDesignMood ParseDesignMood(string? value) {
@@ -86,14 +106,8 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
     private static bool IsDarkBackground(string? background, PowerPointDesignTheme theme) {
         var color = ParseBackgroundColor(background, theme);
-        if (string.IsNullOrWhiteSpace(color)) {
-            return false;
-        }
-
-        var red = Convert.ToInt32(color!.Substring(0, 2), 16);
-        var green = Convert.ToInt32(color.Substring(2, 2), 16);
-        var blue = Convert.ToInt32(color.Substring(4, 2), 16);
-        return ((red * 299) + (green * 587) + (blue * 114)) / 1000 < 128;
+        if (!OfficeColor.TryParse(color, out var paint) || paint.IsThemeRole) return false;
+        return ((paint.R * 299) + (paint.G * 587) + (paint.B * 114)) / 1000 < 128;
     }
 
     private static bool HasAnyExplicitPlacement(IEnumerable<OfficeMarkupBlock> blocks) =>
@@ -198,7 +212,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         SlideCanvasMetrics metrics,
         bool strong = false) {
         if (!HasExplicitBackground(slideBlock)) {
-            slide.BackgroundColor = strong ? theme.SurfaceColor : theme.BackgroundColor;
+            slide.BackgroundColor = (strong ? theme.SurfaceColor : theme.BackgroundColor);
         }
 
         var wash = slide.AddShape(
@@ -266,24 +280,24 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                 OfficeIMO.OfficeLength.Inches(cardWidth),
                 OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.08)),
                 "OfficeIMO Markup Summary Card Accent");
-            accent.FillColor = index % 2 == 0 ? theme.AccentColor : theme.WarningColor;
+            accent.FillColor = (index % 2 == 0 ? theme.AccentColor : theme.WarningColor);
             accent.OutlineColor = accent.FillColor;
             accent.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
             var number = slide.AddTextBox((index + 1).ToString("00", CultureInfo.InvariantCulture),global::OfficeIMO.OfficeLength.Inches(x + metrics.Horizontal(0.18)),global::OfficeIMO.OfficeLength.Inches(top + metrics.Vertical(0.25)),global::OfficeIMO.OfficeLength.Inches(metrics.Horizontal(0.52)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.3)));
             ApplyTextStyle(number, new OfficeMarkupResolvedStyle {
-                FontName = theme.HeadingFontName,
+                FontFamily = theme.HeadingFontFamily,
                 FontSize = 10,
                 Bold = true,
-                TextColor = theme.AccentColor
+                TextColor = theme.AccentColor.ToString()
             });
 
             var text = slide.AddTextBox(items[index],global::OfficeIMO.OfficeLength.Inches(x + metrics.Horizontal(0.18)),global::OfficeIMO.OfficeLength.Inches(top + metrics.Vertical(0.65)),global::OfficeIMO.OfficeLength.Inches(cardWidth - metrics.Horizontal(0.36)),global::OfficeIMO.OfficeLength.Inches(metrics.Vertical(0.68)));
             ApplyTextStyle(text, new OfficeMarkupResolvedStyle {
-                FontName = theme.BodyFontName,
+                FontFamily = theme.BodyFontFamily,
                 FontSize = 14,
                 Bold = true,
-                TextColor = theme.PrimaryTextColor
+                TextColor = theme.PrimaryTextColor.ToString()
             });
         }
     }
@@ -332,7 +346,7 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
 
         var accent = slide.AddRectangle(bounds.Left, bounds.Top, bounds.Width, OfficeIMO.OfficeLength.Centimeters(0.14),
             "OfficeIMO Markup Semantic Column Accent");
-        accent.FillColor = columnIndex % 2 == 0 ? theme.AccentColor : theme.Accent2Color;
+        accent.FillColor = (columnIndex % 2 == 0 ? theme.AccentColor : theme.Accent2Color);
         accent.OutlineColor = accent.FillColor;
         accent.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0);
 
@@ -346,10 +360,10 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
         if (blocks.Count > 0 && blocks[0] is OfficeMarkupHeadingBlock heading) {
             var headingBox = slide.AddTextBox(heading.Text,global::OfficeIMO.OfficeLength.Inches(cursor.Left),global::OfficeIMO.OfficeLength.Inches(cursor.Top),global::OfficeIMO.OfficeLength.Inches(cursor.Width),global::OfficeIMO.OfficeLength.Inches(0.42));
             ApplyTextStyle(headingBox, new OfficeMarkupResolvedStyle {
-                FontName = theme.HeadingFontName,
+                FontFamily = theme.HeadingFontFamily,
                 FontSize = 18,
                 Bold = true,
-                TextColor = theme.PrimaryTextColor
+                TextColor = theme.PrimaryTextColor.ToString()
             });
 
             var rule = slide.AddShape(

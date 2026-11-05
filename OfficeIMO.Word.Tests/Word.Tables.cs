@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(wordTable.Rows.Count == 3);
 
-                wordTable.AddRow(2, 2);
+                wordTable.AddRows(2, 2);
 
                 Assert.True(wordTable.Rows.Count == 5);
 
@@ -86,9 +86,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable2.Paragraphs.Count == 25, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
 
                 wordTable2.Rows[4].Remove();
-                Assert.True(wordTable2.RowsCount == 4);
-                wordTable2.AddRow(2, 0);
-                Assert.True(wordTable2.RowsCount == 6);
+                Assert.True(wordTable2.RowCount == 4);
+                wordTable2.AddRows(2, 0);
+                Assert.True(wordTable2.RowCount == 6);
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "");
                 wordTable2.Rows[4].Cells[0].Paragraphs[0].Text = "Test 5";
                 Assert.True(wordTable2.Rows[3].CellsCount == 5);
@@ -173,7 +173,7 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = wordTable.AddRow();
                 row.Cells[0].Paragraphs[0].Text = "Test 2";
 
-                List<WordTableRow> rows = wordTable.AddRow(2, 0);
+                List<WordTableRow> rows = wordTable.AddRows(2, 0);
                 rows[0].Cells[0].Paragraphs[0].Text = "Test 3";
                 rows[1].Cells[0].Paragraphs[0].Text = "Test 4";
 
@@ -210,7 +210,7 @@ namespace OfficeIMO.Tests {
                 WordTableRow row = wordTable2.AddRow();
                 row.Cells[0].Paragraphs[0].Text = "Test 2";
 
-                List<WordTableRow> rows = wordTable2.AddRow(3, 0);
+                List<WordTableRow> rows = wordTable2.AddRows(3, 0);
                 rows[0].Cells[0].Paragraphs[0].Text = "Test 3";
                 rows[1].Cells[0].Paragraphs[0].Text = "Test 4";
                 rows[2].Cells[0].Paragraphs[0].Text = "Test 5";
@@ -222,9 +222,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "Test 5", "Text in table does not match. Actual text: " + wordTable2.Rows[4].Cells[0].Paragraphs[0].Text);
 
                 wordTable2.Rows[4].Remove();
-                Assert.True(wordTable2.RowsCount == 4);
-                wordTable2.AddRow(2, 0);
-                Assert.True(wordTable2.RowsCount == 6);
+                Assert.True(wordTable2.RowCount == 4);
+                wordTable2.AddRows(2, 0);
+                Assert.True(wordTable2.RowCount == 6);
                 Assert.True(wordTable2.Rows[4].Cells[0].Paragraphs[0].Text == "");
                 wordTable2.Rows[4].Cells[0].Paragraphs[0].Text = "Test 5";
                 Assert.True(wordTable2.Rows[3].CellsCount == 5);
@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(wordTable2.Paragraphs.Count == 25, "Number of paragraphs during creation in table is wrong. Current: " + wordTable2.Paragraphs.Count);
 
                 var wordTable3 = document.Tables[styleCount + 2];
-                Assert.True(wordTable3.RowsCount == 7);
+                Assert.True(wordTable3.RowCount == 7);
                 Assert.True(wordTable3.Rows[0].CellsCount == 6);
 
                 document.Save();
@@ -623,14 +623,14 @@ namespace OfficeIMO.Tests {
                 Assert.True(table.Rows[1].Cells[0].HasVerticalMerge);
                 Assert.True(table.Rows[2].Cells[0].HasVerticalMerge);
 
-                Assert.Equal(4, table.RowsCount);
+                Assert.Equal(4, table.RowCount);
                 foreach (var row in table.Rows) {
                     Assert.Equal(2, row.CellsCount);
                 }
 
                 table.Rows[0].Cells[0].SplitVertically(2);
 
-                Assert.Equal(4, table.RowsCount);
+                Assert.Equal(4, table.RowCount);
                 foreach (var row in table.Rows) {
                     Assert.Equal(2, row.CellsCount);
                 }
@@ -641,7 +641,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SplitVerticallyIndices.docx"))) {
                 var table = document.Tables[0];
 
-                Assert.Equal(4, table.RowsCount);
+                Assert.Equal(4, table.RowCount);
                 foreach (var row in table.Rows) {
                     Assert.Equal(2, row.CellsCount);
                 }
@@ -661,7 +661,7 @@ namespace OfficeIMO.Tests {
 
                 table.Rows[0].Cells[1].MergeHorizontally(2, true);
 
-                Assert.Equal(2, table.RowsCount);
+                Assert.Equal(2, table.RowCount);
                 foreach (var row in table.Rows) {
                     Assert.Equal(4, row.CellsCount);
                 }
@@ -686,7 +686,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SplitHorizontallyIndices.docx"))) {
                 var table = document.Tables[0];
 
-                Assert.Equal(2, table.RowsCount);
+                Assert.Equal(2, table.RowCount);
                 foreach (var row in table.Rows) {
                     Assert.Equal(4, row.CellsCount);
                 }
@@ -1419,7 +1419,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Tables[0].Rows.Count == 5);
 
-                wordTable.AddRow(3, 4);
+                wordTable.AddRows(3, 4);
                 Assert.True(document.Tables[0].Rows.Count == 8);
 
                 document.Save();

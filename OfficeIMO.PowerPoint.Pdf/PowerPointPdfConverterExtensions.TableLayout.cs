@@ -15,9 +15,9 @@ public static partial class PowerPointPdfConverterExtensions {
         Func<string?, double, string?, OfficeFontStyle, double> measure = options.NativeTextMeasure
             ?? OfficeDrawingTextLayout.CreateMetrics(null).MeasureText;
         double gap = style.CellSpacing.ToPoints();
-        if (width <= Math.Max(0, table.Columns - 1) * gap || height <= Math.Max(0, table.Rows - 1) * gap) return height;
-        double[] widths = NormalizeTableLayoutSegments(style.ColumnWidths?.ConvertAll(static length => length?.ToPoints())!, width - Math.Max(0, table.Columns - 1) * gap);
-        double[] heights = NormalizeTableLayoutSegments(style.RowMinHeights?.ConvertAll(static length => length?.ToPoints())!, height - Math.Max(0, table.Rows - 1) * gap);
+        if (width <= Math.Max(0, table.ColumnCount - 1) * gap || height <= Math.Max(0, table.RowCount - 1) * gap) return height;
+        double[] widths = NormalizeTableLayoutSegments(style.ColumnWidths?.ConvertAll(static length => length?.ToPoints())!, width - Math.Max(0, table.ColumnCount - 1) * gap);
+        double[] heights = NormalizeTableLayoutSegments(style.RowMinHeights?.ConvertAll(static length => length?.ToPoints())!, height - Math.Max(0, table.RowCount - 1) * gap);
         bool reportedFit = false;
         var cellIndexes = new int[rows.Count];
         foreach (var anchor in table.EnumerateAnchorCells()) {
@@ -26,8 +26,8 @@ public static partial class PowerPointPdfConverterExtensions {
             PptCore.PowerPointTableCell source = anchor.Cell;
             options.CancellationToken.ThrowIfCancellationRequested();
             PdfCore.PdfTableCell cell = rows[row][cellIndex];
-            int columnEnd = Math.Min(table.Columns, column + cell.ColumnSpan);
-            int rowEnd = Math.Min(table.Rows, row + cell.RowSpan);
+            int columnEnd = Math.Min(table.ColumnCount, column + cell.ColumnSpan);
+            int rowEnd = Math.Min(table.RowCount, row + cell.RowSpan);
             double cellWidth = gap * Math.Max(0, columnEnd - column - 1);
             for (int index = column; index < columnEnd; index++) cellWidth += widths[index];
             PdfCore.PdfCellPadding? padding = null;
@@ -39,9 +39,9 @@ public static partial class PowerPointPdfConverterExtensions {
             // Leave the original diagnostic path active for impossible margins.
             double innerWidth = Math.Max(1D, cellWidth - left - right);
             double fontSize = row < style.HeaderRowCount ? style.HeaderFontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? 18D
-                : row >= table.Rows - style.FooterRowCount ? style.FooterFontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? 18D
+                : row >= table.RowCount - style.FooterRowCount ? style.FooterFontSize?.ToPoints() ?? style.FontSize?.ToPoints() ?? 18D
                 : style.FontSize?.ToPoints() ?? 18D;
-            bool rowBold = row < style.HeaderRowCount ? style.HeaderBold : row >= table.Rows - style.FooterRowCount && style.FooterBold;
+            bool rowBold = row < style.HeaderRowCount ? style.HeaderBold : row >= table.RowCount - style.FooterRowCount && style.FooterBold;
             OfficeRichTextRun[] runs = CreateTableLayoutRuns(cell.Runs, fontSize, rowBold, options);
             string text = string.Concat(runs.Select(run => run.Text));
             // An unbreakable label such as Status should remain a word. Use
@@ -69,7 +69,7 @@ public static partial class PowerPointPdfConverterExtensions {
         }
         style.RowMinHeights = (heights.Select(value => (double?)value).ToList()) is { } lengths4814 ? System.Linq.Enumerable.ToList(System.Linq.Enumerable.Select(lengths4814, static length => length.HasValue ? (global::OfficeIMO.OfficeLength?)global::OfficeIMO.OfficeLength.Points(length.Value) : null)) : null;
         if (style.FixedRowHeights != null) style.FixedRowHeights = style.RowMinHeights;
-        return heights.Sum() + Math.Max(0, table.Rows - 1) * gap;
+        return heights.Sum() + Math.Max(0, table.RowCount - 1) * gap;
     }
 
     private static OfficeRichTextRun[] CreateTableLayoutRuns(IEnumerable<PdfCore.PdfTextRun> runs,

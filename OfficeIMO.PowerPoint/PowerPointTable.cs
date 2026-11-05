@@ -28,24 +28,24 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Returns number of rows in the table.
         /// </summary>
-        public int Rows => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.Elements<A.TableRow>().Count();
+        public int RowCount => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.Elements<A.TableRow>().Count();
 
         /// <summary>
         ///     Returns number of columns in the table.
         /// </summary>
-        public int Columns => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!.Elements<A.GridColumn>()
+        public int ColumnCount => Frame.Graphic!.GraphicData!.GetFirstChild<A.Table>()!.TableGrid!.Elements<A.GridColumn>()
             .Count();
 
         /// <summary>
         ///     Row wrappers for the table.
         /// </summary>
-        public IReadOnlyList<PowerPointTableRow> RowItems =>
+        public IReadOnlyList<PowerPointTableRow> Rows =>
             TableElement.Elements<A.TableRow>().Select(r => new PowerPointTableRow(this, r)).ToList();
 
         /// <summary>
         ///     Column wrappers for the table.
         /// </summary>
-        public IReadOnlyList<PowerPointTableColumn> ColumnItems =>
+        public IReadOnlyList<PowerPointTableColumn> Columns =>
             TableElement.TableGrid?.Elements<A.GridColumn>()
                 .Select(c => new PowerPointTableColumn(this, c))
                 .ToList() ?? new List<PowerPointTableColumn>();

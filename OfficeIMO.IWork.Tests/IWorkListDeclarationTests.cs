@@ -12,8 +12,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Invalid_child_list_labels_preserve_parent_positions_and_physical_evidence(IWorkDocumentKind kind) {
         using MemoryStream package = ListDeclarationPackage(kind,
             Message(BytesField(16, new byte[] { 0xff }), StringField(16, "9.")), aliases: true);
-        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }), kind).Item1;
+        IWorkTable table = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }), kind).Item1;
         Assert.Equal(2, table.Cells.Count);
         foreach (IWorkTableCell cell in table.Cells) {
             IWorkTextParagraph paragraph = Assert.Single(cell.RichText!.Paragraphs);
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         }
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: true,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false,
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false,
                 MaxSourceDeclarationIssues = 1 });
         AssertListDeclaration(Assert.Single(report.SourceDeclarationIssues), "16", 2);
         Assert.Empty(report.PreservedRecords);
@@ -51,7 +51,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers, fields);
         IWorkTextContent text = Assert.Single(ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
+            IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(text.IsFormattingComplete);
         IWorkTextParagraph paragraph = Assert.Single(text.Paragraphs);
         Assert.Equal(1, paragraph.ListLevel);
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(11, 2), VarintField(11, 2), FloatField(13, 0), FloatField(13, 18),
                 BytesField(16, new byte[] { 0xff }), StringField(16, "9.")), inherited: false, indent: 0);
         IWorkTextParagraph paragraph = Assert.Single(Assert.Single(ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!.Paragraphs);
+            IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells).RichText!.Paragraphs);
         Assert.Equal(0, paragraph.ListLevel);
         Assert.Null(paragraph.ListLabel);
     }
@@ -78,7 +78,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(11, 0), BytesField(11, new byte[] { 2, 2 }),
                 FloatField(13, 0), FloatField(13, 18), FloatField(13, 36),
                 StringField(16, ""), StringField(16, "a."), StringField(16, "4.")), indent: 36);
-        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
+        IWorkTextContent text = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         IWorkTextParagraph paragraph = Assert.Single(text.Paragraphs);
@@ -93,7 +93,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Parent_list_level_and_literal_label_survive_saved_partial_editable_output(IWorkDocumentKind kind) {
         using MemoryStream package = InvalidListLabelPackage(kind);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         var policy = new IWorkConversionOptions { AllowPartialEditableReconstruction = true };
         using var saved = new MemoryStream();
         if (kind == IWorkDocumentKind.Pages) {
@@ -137,11 +137,11 @@ public sealed partial class IWorkBoundaryTests {
             _ => Message(BytesField(16, new byte[] { 0xff }), StringField(16, new string('X', 100)))
         };
         var options = limit switch {
-            "declaration" => new IWorkReadOptions { MaxSourceDeclarationIssues = 1 },
-            _ => new IWorkReadOptions { MaxProjectedTextCharacters = 10 }
+            "declaration" => new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 },
+            _ => new IWorkLoadOptions { MaxProjectedTextCharacters = 10 }
         };
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Numbers, fields);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, options);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, options);
         Assert.Contains(message, Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }
@@ -168,7 +168,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(VarintField(11, 3), VarintField(15, (ulong)kind), StringField(16, "•")),
             inherited: false, indent: 0);
         IWorkTextContent text = Assert.Single(ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package), IWorkDocumentKind.Pages).Item1.Cells).RichText!;
+            IWorkSourceDocument.Load(package), IWorkDocumentKind.Pages).Item1.Cells).RichText!;
         Assert.Equal(marker, Assert.Single(text.Paragraphs).ListLabel);
         Assert.False(text.IsFormattingComplete);
     }
@@ -194,7 +194,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = ListDeclarationPackage(IWorkDocumentKind.Keynote,
             Message(VarintField(11, 3), BytesField(15, new byte[] { 0 })),
             inherited: false, indent: 0);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(
+        using var result = IWorkSourceDocument.Load(package).ToPowerPointResult(
             new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
                 AllowPartialEditableReconstruction = true });
         Assert.True(result.Report.IsPartialEditableReconstruction);

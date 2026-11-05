@@ -14,8 +14,8 @@ public sealed class IWorkPagesMixedFontListTests {
             document.CreateNumberedList(markerFont, 12).AddRichItem(new[] {
                 new IWorkTextRunData("Same body", "Times New Roman", 12, bold: true)
             });
-            byte[] bytes = document.SaveBytes(); Assert.Equal(bytes, document.SaveBytes());
-            Assert.Equal(markerFont, IWorkSourceDocument.Open(bytes).ReadPages().Body.Paragraphs[0].ListFontName);
+            byte[] bytes = document.ToBytes(); Assert.Equal(bytes, document.ToBytes());
+            Assert.Equal(markerFont, IWorkSourceDocument.Load(bytes).ReadPages().Body.Paragraphs[0].ListFontName);
             using var package = new System.IO.Compression.ZipArchive(new MemoryStream(bytes));
             using var identifier = new StreamReader(package.GetEntry("Metadata/DocumentIdentifier")!.Open());
             identities.Add(identifier.ReadToEnd());
@@ -26,9 +26,9 @@ public sealed class IWorkPagesMixedFontListTests {
     [Fact]
     public void Mixed_character_families_keep_owned_markers_counters_and_saved_Word_fonts() {
         var document = Example();
-        byte[] bytes = document.SaveBytes();
-        Assert.Equal(bytes, document.SaveBytes());
-        var source = IWorkSourceDocument.Open(bytes);
+        byte[] bytes = document.ToBytes();
+        Assert.Equal(bytes, document.ToBytes());
+        var source = IWorkSourceDocument.Load(bytes);
         var projection = source.ReadPages();
         Assert.True(projection.Body.IsFormattingComplete);
         Assert.Empty(projection.Diagnostics);

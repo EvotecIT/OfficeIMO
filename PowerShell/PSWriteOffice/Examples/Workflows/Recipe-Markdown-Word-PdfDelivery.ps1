@@ -8,7 +8,7 @@ Add-OfficeMarkdownParagraph -Document $document -Text 'The service is ready for 
 Add-OfficeMarkdownTaskList -Document $document -Items 'Review the evidence', 'Confirm the owner', 'Approve the handoff'
 $document | Save-OfficeMarkdown -Path $markdownPath
 
-ConvertFrom-OfficeWordMarkdown -Document $document -OutputPath $wordPath
+Convert-OfficeDocument -Document $document -To Word -OutputPath $wordPath
 $word = Open-OfficeWord -Path $wordPath
-$word | Export-OfficeDocumentPdf -Path $pdfPath
+$word | Convert-OfficeDocument -To Pdf -OutputPath $pdfPath
 $word | Close-OfficeWord

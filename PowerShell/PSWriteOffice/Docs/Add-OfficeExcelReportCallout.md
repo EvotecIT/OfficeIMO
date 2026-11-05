@@ -6,50 +6,52 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelReportCallout
 ## SYNOPSIS
-Adds a colored callout block to the current Excel report sheet.
+Adds a highlighted info, success, warning or error callout.
 
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeExcelReportCallout [[-Kind] <OfficeExcelReportCalloutKind>] [-Title] <string> [-Body] <string> [-WidthColumns <int>] [-PassThru] [<CommonParameters>]
+Add-OfficeExcelReportCallout [[-Kind] <OfficeExcelReportCalloutKind>] [-Title] <string> [-Text] <string> [-Span <int>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Adds a colored callout block to the current Excel report sheet.
+Adds a highlighted info, success, warning or error callout.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> New-OfficeExcel -Path .\Operations.xlsx {
-    Add-OfficeExcelReportSheet -Name Summary {
-        Add-OfficeExcelReportCallout -Kind Warning -Title 'Manual validation' -Body 'Open the workbook in desktop Excel before publishing pivot-heavy reports.'
+New-OfficeExcel -Path .\Reports\Operations.xlsx {
+    ExcelReportSheet 'Summary' {
+        ExcelReportCallout Info 'Data source' 'Monitoring export from 1 November, 06:00.'
     }
 }
 ```
 
-Renders a composer callout block using the current report theme.
+Highlights a note for readers in an information callout.
+
+### EXAMPLE 2
+```powershell
+$failed = Import-OfficeCsv -Path .\Data\Backup-Results.csv | Where-Object Result -ne 'Success'
+New-OfficeExcel -Path .\Reports\Backup-Check.xlsx {
+    ExcelReportSheet 'Backups' {
+        ExcelReportTitle 'Nightly backup check' (Get-Date).ToString('d MMMM yyyy')
+        if ($failed) {
+            ExcelReportCallout Error 'Backups failed' "$(@($failed).Count) jobs did not complete. Details are below."
+            ExcelReportTable $failed 'Failed jobs'
+        } else {
+            ExcelReportCallout Success 'All backups completed' 'Every scheduled job finished successfully.'
+        }
+    }
+}
+```
+
+Adds a success or error callout depending on whether the backup checks passed, so the outcome is the first thing a reader sees.
 
 ## PARAMETERS
 
-### -Body
-Callout body text.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: True
-Position: 2
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Kind
-Callout kind. Supported values include info, success, warning, error, and critical.
+Metadata kind to add.
 
 ```yaml
 Type: OfficeExcelReportCalloutKind
@@ -65,7 +67,7 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the object created or changed by the command.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
@@ -80,24 +82,8 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Title
-Callout title.
-
-```yaml
-Type: String
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: True
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -WidthColumns
-Width of the highlighted callout band in worksheet columns.
+### -Span
+Number of worksheet columns occupied by the report block.
 
 ```yaml
 Type: Int32
@@ -107,6 +93,38 @@ Possible values:
 
 Required: False
 Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Text
+Comment text.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: True
+Position: 2
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Title
+Chart title.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

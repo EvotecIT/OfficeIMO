@@ -134,7 +134,7 @@ public static class OneNotePackageReader {
             try {
                 using (var stream = new MemoryStream(source.Data, false)) section = OneNoteSectionReader.Read(stream, state.Options.OneNoteOptions);
             } catch (Exception exception) when (state.Options.ContinueOnSectionError && IsRecoverableSectionError(exception)) {
-                section = new OneNoteSection();
+                section = OneNoteSection.Create();
                 AddDiagnostic(
                     notebook,
                     exception is OneNoteFormatException format ? format.Code : "ONENOTE_PACKAGE_SECTION_READ",
@@ -143,7 +143,7 @@ public static class OneNotePackageReader {
                     global::OfficeIMO.OfficeConversionLossKind.Omission);
             }
         } else {
-            section = new OneNoteSection();
+            section = OneNoteSection.Create();
             if (state.Options.LoadSectionContent) AddDiagnostic(notebook, "ONENOTE_TOC_SECTION_MISSING", "A section referenced by the packaged TOC is missing.", state.SourcePath + "::" + path,
                 global::OfficeIMO.OfficeConversionLossKind.Omission);
         }

@@ -56,7 +56,7 @@ public sealed partial class IWorkRuntimeWorkload {
             var slide = presentation.Slides[i];
             int profile = i % 2;
             PowerPointTextBox[] boxes = slide.TextBoxes.ToArray();
-            if (slide.Hidden || slide.Shapes.Count != boxes.Length || slide.BackgroundColor != NativeKeynoteColors[profile]
+            if (slide.Hidden || slide.Shapes.Count != boxes.Length || slide.BackgroundColor != OfficeColor.Parse(NativeKeynoteColors[profile])
                 || slide.GetSpeakerNotesText() != NativeKeynoteNotes(profile)
                 || !boxes.Select(box => box.Text.TrimEnd('\n')).SequenceEqual(NativeKeynoteText[profile]))
                 throw new InvalidDataException("Native PPTX text, notes, order or background differs.");

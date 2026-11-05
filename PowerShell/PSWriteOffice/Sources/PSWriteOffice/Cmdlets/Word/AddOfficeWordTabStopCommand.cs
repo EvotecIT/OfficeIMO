@@ -11,18 +11,18 @@ namespace PSWriteOffice.Cmdlets.Word;
 /// <example>
 ///   <summary>Add a decimal tab stop.</summary>
 ///   <prefix>PS&gt; </prefix>
-///   <code>Add-OfficeWordParagraph { Add-OfficeWordTabStop -Position 4320 -Alignment Decimal -Leader Dot }</code>
+///   <code>Add-OfficeWordParagraph { Add-OfficeWordTabStop -Position 3in -Alignment Decimal -Leader Dot }</code>
 ///   <para>Adds a decimal tab stop at three inches.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordTabStop", DefaultParameterSetName = "Default")]
-[Alias("WordTabStop")]
 [OutputType(typeof(WordTabStop))]
+[Alias("WordTabStop") ]
 public sealed class AddOfficeWordTabStopCommand : PSCmdlet
 {
-    /// <summary>Tab position in twips.</summary>
-    [Parameter(Mandatory = true, Position = 0)]
-    [ValidateRange(0, int.MaxValue)]
-    public int Position { get; set; }
+    /// <summary>Tab position; numbers mean points.</summary>
+    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Default")]
+    [PSWriteOffice.Foundation.OfficeLengthTransformation]
+    public OfficeIMO.OfficeLength Position { get; set; }
 
     /// <summary>Paragraph to update.</summary>
     [Parameter(ValueFromPipeline = true)]
@@ -43,8 +43,9 @@ public sealed class AddOfficeWordTabStopCommand : PSCmdlet
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
+        if (Position < OfficeIMO.OfficeLength.Zero) throw new PSArgumentOutOfRangeException(nameof(Position), Position, "Position must not be negative.");
         var paragraph = ResolveParagraph();
-        var tabStop = paragraph.AddTabStop(global::OfficeIMO.OfficeLength.Points(Position / 20D), Alignment, Leader);
+        var tabStop = paragraph.AddTabStop(Position, Alignment, Leader);
 
         if (PassThru.IsPresent)
         {

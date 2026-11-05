@@ -19,22 +19,22 @@ public sealed class IWorkPagesNineLevelNativeExportTests {
         foreach (JsonElement scenario in manifest.RootElement.GetProperty("cases").EnumerateArray())
             foreach (string field in new[] { "source", "nativeDocx", "nativePdf", "officeimoDocx", "officeimoPdf" })
                 Assert.Contains(scenario.GetProperty(field).GetString()!, paths);
-        Assert.Equal(File.ReadAllBytes(Corpus("pages-nine-level-created.pages")), IWorkPagesNineLevelWritingTests.Example().SaveBytes());
-        var original = IWorkSourceDocument.Open(Corpus("pages-nine-level-saved-v15.4.pages"));
+        Assert.Equal(File.ReadAllBytes(Corpus("pages-nine-level-created.pages")), IWorkPagesNineLevelWritingTests.Example().ToBytes());
+        var original = IWorkSourceDocument.Load(Corpus("pages-nine-level-saved-v15.4.pages"));
         var body = original.ReadPages().Body; var edit = original.BeginEdit();
         foreach (string text in IWorkPagesNineLevelWritingTests.LevelNames) {
             int index = body.Paragraphs.ToList().FindIndex(p => p.Text == text);
             edit.SetPagesBodyParagraphText(body.SourceIdentity!, index + 1, text.ToUpperInvariant());
         }
         Assert.Equal(File.ReadAllBytes(Corpus("pages-nine-level-preserved.pages")),
-            edit.SaveBytes(new() { AllowUnassessedVisualCaches = true }));
+            edit.ToBytes(new() { AllowUnassessedVisualCaches = true }));
     }
 
     [Theory]
     [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
     public void Native_creation_save_preservation_and_edit_retain_all_nine_levels_in_strict_saved_Word(int caseIndex) {
         using var manifest = Manifest(); var scenario = manifest.RootElement.GetProperty("cases")[caseIndex];
-        var source = IWorkSourceDocument.Open(Corpus(scenario.GetProperty("source").GetString()!));
+        var source = IWorkSourceDocument.Load(Corpus(scenario.GetProperty("source").GetString()!));
         var projection = source.ReadPages();
         Assert.True(projection.Body.IsComplete); Assert.True(projection.Body.IsFormattingComplete);
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
@@ -49,13 +49,13 @@ public sealed class IWorkPagesNineLevelNativeExportTests {
             Assert.Equal(8, projection.Body.Paragraphs[last].ListLevel);
             var edit = source.BeginEdit();
             edit.SetPagesBodyParagraphText(projection.Body.SourceIdentity!, last + 1, "Native deep six");
-            var saved = IWorkSourceDocument.Open(edit.SaveBytes(new() { AllowUnassessedVisualCaches = true }));
+            var saved = IWorkSourceDocument.Load(edit.ToBytes(new() { AllowUnassessedVisualCaches = true }));
             Assert.Equal("Native deep six", saved.ReadPages().Body.Paragraphs[last].Text);
             Assert.Equal(2, saved.ReadPages().Body.Paragraphs[last].ListNumber);
             IWorkPagesDecimalTextEditingTests.CheckWord(saved);
             edit.SetPagesBodyParagraphText(projection.Body.SourceIdentity!, last + 1, "Native deep two");
-            Assert.Empty(edit.SaveBytesResult().Report.UpdatedRecords);
-            Assert.Equal(source.ComputePackageContentHash(), edit.SaveBytesResult().Report.OutputPackageContentHash);
+            Assert.Empty((Bytes: edit.ToBytes(out var nativeReport1), Report: nativeReport1).Report.UpdatedRecords);
+            Assert.Equal(source.ComputePackageContentHash(), (Bytes: edit.ToBytes(out var nativeReport2), Report: nativeReport2).Report.OutputPackageContentHash);
         }
     }
 

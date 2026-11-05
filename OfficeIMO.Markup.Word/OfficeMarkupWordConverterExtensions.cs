@@ -1,76 +1,77 @@
 using OfficeIMO.Word;
+using OfficeIMO.Core.Internal;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Markup.Word;
 
-/// <summary>Typed OfficeIMO Markup to Word conversion helpers.</summary>
+/// <summary>Converts typed OfficeIMO Markup into editable Word documents.</summary>
 public static class OfficeMarkupWordConverterExtensions {
-    /// <summary>Converts document-profile markup to an editable detached Word document.</summary>
-    public static WordDocument ToWordDocument(this OfficeMarkupDocument document, MarkupWordExportOptions? options = null) {
-        OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
-        if (result.Succeeded) return result.Value;
-        result.Value.Dispose();
-        return result.RequireValue();
-    }
+    /// <summary>Converts markup into a detached document owned by the caller.</summary>
+    public static WordDocument ToWord(this OfficeMarkupDocument document, MarkupWordExportOptions? options = null,
+        CancellationToken cancellationToken = default) => document.ToWord(options, out _, cancellationToken);
 
-    /// <summary>Converts document-profile markup and returns the Word document with structured diagnostics.</summary>
-    public static OfficeMarkupConversionResult<WordDocument> ToWordDocumentResult(
-        this OfficeMarkupDocument document,
-        MarkupWordExportOptions? options = null) {
+    /// <summary>Converts markup and retains mapping and native validation evidence.</summary>
+    public static WordDocument ToWord(this OfficeMarkupDocument document, MarkupWordExportOptions? options,
+        out OfficeConversionReport report, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(document);
+        cancellationToken.ThrowIfCancellationRequested();
         MarkupWordExportOptions resolved = options ?? new MarkupWordExportOptions();
         IReadOnlyList<OfficeMarkupDiagnostic> diagnostics = CollectDiagnostics(document, resolved);
         WordDocument value = new OfficeMarkupWordExporter().Convert(document, resolved);
-        return new OfficeMarkupConversionResult<WordDocument>(value, diagnostics);
+        var result = new OfficeMarkupConversionResult<WordDocument>(value, diagnostics);
+        report = result.Report;
+        try {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!result.Succeeded) throw new OfficeConversionException("Markup conversion failed validation.", report);
+            if (resolved.FailOnLoss) report.ThrowIfLoss();
+            return result.Value;
+        } catch { result.Value.Dispose(); throw; }
     }
 
-    /// <summary>Converts document-profile markup and saves it as a Word document.</summary>
-    public static OfficeMarkupConversionReport SaveAsWord(
-        this OfficeMarkupDocument document,
-        string path,
-        MarkupWordExportOptions? options = null,
-        WordSaveOptions? saveOptions = null) {
-        OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
-        using (result.Value) result.RequireValue().Save(path, saveOptions);
-        return result.Report;
-    }
+    /// <summary>Converts markup asynchronously and returns the document with its completed report.</summary>
+    public static Task<OfficeConversionResult<WordDocument>> ToWordAsync(this OfficeMarkupDocument document,
+        MarkupWordExportOptions? options = null, CancellationToken cancellationToken = default) =>
+        OfficeConversionOutput.RunAsync(() => (document.ToWord(options, out OfficeConversionReport report, cancellationToken), report), cancellationToken);
 
-    /// <summary>Converts document-profile markup and writes it to a caller-owned stream.</summary>
-    public static OfficeMarkupConversionReport SaveAsWord(
-        this OfficeMarkupDocument document,
-        Stream stream,
-        MarkupWordExportOptions? options = null,
-        WordSaveOptions? saveOptions = null) {
-        OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
-        using (result.Value) result.RequireValue().Save(stream, saveOptions);
-        return result.Report;
-    }
-
-    /// <summary>Converts document-profile markup and asynchronously saves it as a Word document.</summary>
-    public static async Task<OfficeMarkupConversionReport> SaveAsWordAsync(
-        this OfficeMarkupDocument document,
-        string path,
-        MarkupWordExportOptions? options = null,
-        WordSaveOptions? saveOptions = null,
+    /// <summary>Writes converted Word output and returns its report.</summary>
+    public static OfficeConversionReport SaveAsWord(
+        this OfficeMarkupDocument document, string path, MarkupWordExportOptions? options = null, WordSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
+        using WordDocument value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
-        using (result.Value) await result.RequireValue().SaveAsync(path, saveOptions, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        OfficeConversionFailures.Run(report, () => value.Save(path, saveOptions));
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
     }
 
-    /// <summary>Converts document-profile markup and asynchronously writes it to a caller-owned stream.</summary>
-    public static async Task<OfficeMarkupConversionReport> SaveAsWordAsync(
-        this OfficeMarkupDocument document,
-        Stream stream,
-        MarkupWordExportOptions? options = null,
-        WordSaveOptions? saveOptions = null,
+    /// <summary>Writes converted Word output and returns its report.</summary>
+    public static OfficeConversionReport SaveAsWord(
+        this OfficeMarkupDocument document, Stream stream, MarkupWordExportOptions? options = null, WordSaveOptions? saveOptions = null,
         CancellationToken cancellationToken = default) {
+        using WordDocument value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        OfficeMarkupConversionResult<WordDocument> result = document.ToWordDocumentResult(options);
-        using (result.Value) await result.RequireValue().SaveAsync(stream, saveOptions, cancellationToken).ConfigureAwait(false);
-        return result.Report;
+        OfficeConversionFailures.Run(report, () => value.Save(stream, saveOptions));
+        return report;
+    }
+
+    /// <summary>Asynchronously writes converted Word output and returns its report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsWordAsync(
+        this OfficeMarkupDocument document, string path, MarkupWordExportOptions? options = null, WordSaveOptions? saveOptions = null,
+        CancellationToken cancellationToken = default) {
+        using WordDocument value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(path, saveOptions, cancellationToken)).ConfigureAwait(false);
+        return OfficeConversionOutput.WithPath(report, Path.GetFullPath(path));
+    }
+
+    /// <summary>Asynchronously writes converted Word output and returns its report.</summary>
+    public static async Task<OfficeConversionReport> SaveAsWordAsync(
+        this OfficeMarkupDocument document, Stream stream, MarkupWordExportOptions? options = null, WordSaveOptions? saveOptions = null,
+        CancellationToken cancellationToken = default) {
+        using WordDocument value = document.ToWord(options, out OfficeConversionReport report, cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
+        await OfficeConversionFailures.RunAsync(report, () => value.SaveAsync(stream, saveOptions, cancellationToken)).ConfigureAwait(false);
+        return report;
     }
 
     private static IReadOnlyList<OfficeMarkupDiagnostic> CollectDiagnostics(

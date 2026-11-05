@@ -16,8 +16,8 @@ public sealed partial class IWorkBoundaryTests {
             ("Index/Document.iwa", FrameIwa(stream)));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-                new IWorkReadOptions { MaxRecordCount = 1 }));
+            IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+                new IWorkLoadOptions { MaxRecordCount = 1 }));
 
         Assert.Contains("record count", exception.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -37,7 +37,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)));
 
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(package,
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages).ReadPages();
 
         Assert.False(projection.HasEditableContent);
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = CreatePackage(
             ("Index/Document.iwa", FrameIwa(records)),
             ($"Data/{fallbackName}", ValidPreviewPng()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
             IWorkDocumentKind.Pages);
         IWorkArchiveRecord imageRecord = Assert.Single(source.Records,
             record => record.MessageType == 3005);

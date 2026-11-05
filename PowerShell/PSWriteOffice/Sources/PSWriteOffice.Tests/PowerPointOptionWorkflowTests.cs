@@ -20,7 +20,7 @@ public sealed partial class PowerPointOptionWorkflowTests {
     [InlineData("Image", "-NoPictures -NoSlideContent", false)]
     [InlineData("Image", "-NoPictures:$false -NoSlideContent:$false", true)]
     [InlineData("OpenDocument", "", true)]
-    [InlineData("OpenDocument", "-NoImages -NoSpeakerNotes -NoBasicFormatting -LossPolicy Block", false)]
+    [InlineData("OpenDocument", "-NoImages -NoSpeakerNotes -NoBasicFormatting -LossPolicy ThrowOnSkippedOrUnsupported", false)]
     [InlineData("OpenDocument", "-NoImages:$false -NoSpeakerNotes:$false -NoBasicFormatting:$false", true)]
     [InlineData("Html", "", true)]
     [InlineData("Html", "-NoNotes -NoTables -NoHeading -NoSlideHeadings -NoRenderDiagnostics -NoMasterInventory -NoExtractionProof -NoDefaultStyles", false)]
@@ -43,7 +43,7 @@ public sealed partial class PowerPointOptionWorkflowTests {
             Assert.Equal(included, options.IncludeImages);
             Assert.Equal(included, options.IncludeSpeakerNotes);
             Assert.Equal(included, options.IncludeBasicFormatting);
-            Assert.Equal(arguments.Contains("Block", StringComparison.Ordinal)
+            Assert.Equal(arguments.Contains("ThrowOnSkippedOrUnsupported", StringComparison.Ordinal)
                 ? OdfConversionLossPolicy.ThrowOnSkippedOrUnsupported : OdfConversionLossPolicy.ReportOnly, options.LossPolicy);
         } else if (format == "Html") {
             var options = Assert.IsType<PowerPointHtmlExportOptions>(value);

@@ -6,75 +6,60 @@ schema: 2.0.0
 ---
 # Get-OfficeWordList
 ## SYNOPSIS
-Gets lists from a Word document or section.
+Gets lists, optionally only those with an item matching a pattern.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordList [-Path] <string> [-IncludeEmpty] [<CommonParameters>]
+Get-OfficeWordList [-IncludeEmpty] [-Pattern <string>] [-SimpleMatch] [-CaseSensitive] [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordList -Document <WordDocument> [-IncludeEmpty] [<CommonParameters>]
+Get-OfficeWordList [-Path] <string[]> [-IncludeEmpty] [-Pattern <string>] [-SimpleMatch] [-CaseSensitive] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordList -LiteralPath <string[]> [-IncludeEmpty] [-Pattern <string>] [-SimpleMatch] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ### Section
 ```powershell
-Get-OfficeWordList -Section <WordSection> [-IncludeEmpty] [<CommonParameters>]
+Get-OfficeWordList -Section <WordSection> [-IncludeEmpty] [-Pattern <string>] [-SimpleMatch] [-CaseSensitive] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Returns existing WordList objects so scripts can inspect list items, report on
-checklist content, or pipe a selected list to Add-OfficeWordListItem. Use this command when
-the script needs to work with list objects directly instead of using a text search first.
+Gets lists, optionally only those with an item matching a pattern.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Open-OfficeWord -Path .\Report.docx
-$list = $doc | Get-OfficeWordList | Select-Object -First 1
-$list.ListItems | Select-Object -Property Text
+Get-OfficeWordList -CaseSensitive
 ```
 
-Returns OfficeIMO list objects so existing list items can be reviewed or appended to.
 
 ### EXAMPLE 2
 ```powershell
-PS> $doc = Open-OfficeWord -Path .\Report.docx
-Get-OfficeWordList -Document $doc |
-    Where-Object { $_.ListItems.Text -contains 'Initial review' } |
-    Add-OfficeWordListItem -Text 'Final approval'
-$doc | Close-OfficeWord -Save
+Get-OfficeWordList -LiteralPath @('C:\Path')
 ```
 
-Inspects list objects directly when the caller wants custom selection logic.
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordList -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
-### -Document
-Open document to inspect. The caller controls the document lifetime.
-
-```yaml
-Type: WordDocument
-Parameter Sets: Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -IncludeEmpty
-Include numbering definitions that do not currently have list items.
+### -CaseSensitive
+Use case-sensitive matching.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document, Section
+Parameter Sets: Document, Path, LiteralPath, Section
 Aliases: None
 Possible values:
 
@@ -85,24 +70,88 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the document to open read-only for list inspection.
+### -Document
+Caller-owned document; omission uses the enclosing Word content block.
 
 ```yaml
-Type: String
+Type: WordDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -IncludeEmpty
+Include list definitions with no items.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document, Path, LiteralPath, Section
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Exact document paths, including literal brackets.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Document paths; supports wildcards.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
+```
+
+### -Pattern
+Optional regular expression, or literal text with SimpleMatch.
+
+```yaml
+Type: String
+Parameter Sets: Document, Path, LiteralPath, Section
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Section
-Section to inspect when the caller only wants lists in a specific section.
+Caller-owned section to inspect.
 
 ```yaml
 Type: WordSection
@@ -117,12 +166,28 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -SimpleMatch
+Treat Pattern as literal text.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Document, Path, LiteralPath, Section
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Word.WordSection`
 

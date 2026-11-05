@@ -4,12 +4,12 @@ public partial class MarkdownDocument {
     /// <summary>Appends a paragraph containing plain text and returns it.</summary>
     public ParagraphBlock AddParagraph(string text) => Add(new ParagraphBlock(new InlineSequence().Text(text)));
 
-    /// <summary>Appends a paragraph composed with <see cref="MarkdownParagraphBuilder"/> and returns it.</summary>
-    public ParagraphBlock AddParagraph(Action<MarkdownParagraphBuilder> build) {
+    /// <summary>Appends a paragraph composed with <see cref="InlineSequence"/> and returns it.</summary>
+    public ParagraphBlock AddParagraph(Action<InlineSequence> build) {
         ArgumentNullException.ThrowIfNull(build);
-        MarkdownParagraphBuilder builder = new MarkdownParagraphBuilder();
+        InlineSequence builder = new InlineSequence();
         build(builder);
-        return Add(new ParagraphBlock(builder.Inlines));
+        return Add(new ParagraphBlock(builder));
     }
 
     /// <summary>Appends an ATX heading and returns it.</summary>

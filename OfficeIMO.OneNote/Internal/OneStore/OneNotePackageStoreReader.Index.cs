@@ -1,7 +1,7 @@
 namespace OfficeIMO.OneNote;
 
 internal static partial class OneNotePackageStoreReader {
-    private static PackageIndex ReadStorageIndex(Stream stream, PackageDataElement element, OneNoteReaderOptions options) {
+    private static PackageIndex ReadStorageIndex(Stream stream, PackageDataElement element, OneNoteLoadOptions options) {
         var index = new PackageIndex();
         foreach (FssHttpStreamObject child in element.Node.Children) {
             if (child.Type == 0x0E) {

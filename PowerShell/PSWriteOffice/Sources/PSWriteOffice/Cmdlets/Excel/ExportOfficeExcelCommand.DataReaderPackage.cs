@@ -29,9 +29,7 @@ public sealed partial class ExportOfficeExcelCommand
             IncludeAutoFilter = !NoAutoFilter.IsPresent,
             IncludeCellReferences = false,
             UseSharedStrings = false,
-            DateSystem = string.IsNullOrWhiteSpace(DateSystem)
-                ? ExcelDateSystem.NineteenHundred
-                : ExcelDateSystemService.Resolve(DateSystem!, nameof(DateSystem))
+            DateSystem = DateSystem ?? ExcelDateSystem.NineteenHundred
         };
         var result = ExcelDocumentService.WriteDataReaderPackage(
             resolvedPath,
@@ -57,8 +55,8 @@ public sealed partial class ExportOfficeExcelCommand
         bool preserveWorkbook,
         ExcelColumnFormatPlan? columnFormatPlan)
     {
-        return !preserveWorkbook &&
-            !AppendToTable.IsPresent &&
+        return SaveOptions == null && Theme == null && !preserveWorkbook &&
+            !AppendsToNamedTable &&
             StartRow == 1 &&
             StartColumn == 1 &&
             (!NoHeader.IsPresent || NoTable.IsPresent) &&
@@ -74,28 +72,8 @@ public sealed partial class ExportOfficeExcelCommand
             !ShowLastColumn.IsPresent &&
             !NoRowStripes.IsPresent &&
             !ShowColumnStripes.IsPresent &&
-            !SafePreflight.IsPresent &&
-            !SafeRepairDefinedNames.IsPresent &&
-            !ValidateOpenXml.IsPresent &&
-            !DisableFastPackageWriter.IsPresent &&
-            !EvaluateFormulas.IsPresent &&
-            !ClearCachedFormulaResults.IsPresent &&
-            !MarkFormulasDirty.IsPresent &&
-            !ForceFullCalculationOnOpen.IsPresent &&
             !HasWorkbookProperties();
     }
 
-    private bool HasWorkbookProperties()
-    {
-        return !string.IsNullOrWhiteSpace(DocumentTitle) ||
-            !string.IsNullOrWhiteSpace(Author) ||
-            !string.IsNullOrWhiteSpace(Subject) ||
-            !string.IsNullOrWhiteSpace(Keywords) ||
-            !string.IsNullOrWhiteSpace(Description) ||
-            !string.IsNullOrWhiteSpace(Category) ||
-            !string.IsNullOrWhiteSpace(Company) ||
-            !string.IsNullOrWhiteSpace(Manager) ||
-            !string.IsNullOrWhiteSpace(ApplicationName) ||
-            !string.IsNullOrWhiteSpace(LastModifiedBy);
-    }
+    private bool HasWorkbookProperties() => DocumentProperty is { Count: > 0 };
 }

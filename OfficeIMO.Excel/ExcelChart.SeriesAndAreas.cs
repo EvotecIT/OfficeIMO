@@ -156,7 +156,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the marker style for a chart series by index.
         /// </summary>
-        public ExcelChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
+        public ExcelChart SetSeriesMarker(int seriesIndex, OfficeChartMarkerShape? style = null, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");
@@ -178,7 +178,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the marker style for a chart series by name.
         /// </summary>
-        public ExcelChart SetSeriesMarker(string seriesName, OfficeChartMarkerShape style, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
+        public ExcelChart SetSeriesMarkerByName(string seriesName, OfficeChartMarkerShape? style = null, OfficeLength? size = null, OfficeColor? fillColor = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null, bool ignoreCase = true) {
             ArgumentNullException.ThrowIfNull(seriesName);
             if (size.HasValue && (size.Value < OfficeLength.Points(2) || size.Value > OfficeLength.Points(72))) {
                 throw new ArgumentOutOfRangeException(nameof(size), "Marker size must be between 2 and 72.");

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Management.Automation;
 using System.Threading.Tasks;
 using OfficeIMO.Adf;
+using PSWriteOffice.Models.Confluence;
 using OfficeIMO.Confluence;
 
 namespace PSWriteOffice.Cmdlets.Confluence;
@@ -49,19 +50,15 @@ public sealed class GetOfficeConfluencePageCommand : AsyncPSCmdlet
 
     /// <summary>Return listing batches rather than enumerating their pages.</summary>
     [Parameter(ParameterSetName = ParameterSetList)]
-    public SwitchParameter AsPage { get; set; }
+    public SwitchParameter AsBatch { get; set; }
 
     /// <summary>Body representation requested from Confluence.</summary>
     [Parameter]
     public ConfluenceBodyFormat BodyFormat { get; set; } = ConfluenceBodyFormat.AtlasDocFormat;
 
-    /// <summary>Project each page body to Markdown and include conversion evidence.</summary>
+    /// <summary>Native page, Markdown or HTML projection with fidelity evidence.</summary>
     [Parameter]
-    public SwitchParameter AsMarkdown { get; set; }
-
-    /// <summary>Project each page body to HTML and include conversion evidence.</summary>
-    [Parameter]
-    public SwitchParameter AsHtml { get; set; }
+    public OfficeConfluencePageOutput As { get; set; } = OfficeConfluencePageOutput.Page;
 
     /// <summary>Throw when a requested projection reports reduced fidelity.</summary>
     [Parameter]
@@ -70,15 +67,8 @@ public sealed class GetOfficeConfluencePageCommand : AsyncPSCmdlet
     /// <inheritdoc />
     protected override async Task ProcessRecordAsync()
     {
-        if (AsMarkdown.IsPresent && AsHtml.IsPresent)
-        {
-            throw new PSArgumentException("Use either -AsMarkdown or -AsHtml, not both.");
-        }
-
-        if (AsPage.IsPresent && (AsMarkdown.IsPresent || AsHtml.IsPresent))
-        {
-            throw new PSArgumentException("-AsPage cannot be combined with a content projection.");
-        }
+        if (AsBatch.IsPresent && As != OfficeConfluencePageOutput.Page)
+            throw new PSArgumentException("-AsBatch returns native batches; per-page projections require -AsBatch:$false.");
 
         using var client = Session.CreateClient();
         if (ParameterSetName == ParameterSetById)
@@ -106,7 +96,7 @@ public sealed class GetOfficeConfluencePageCommand : AsyncPSCmdlet
                 BodyFormat = BodyFormat
             }, CancelToken).ConfigureAwait(false);
 
-            if (AsPage.IsPresent)
+            if (AsBatch.IsPresent)
             {
                 WriteObject(batch);
             }
@@ -130,13 +120,13 @@ public sealed class GetOfficeConfluencePageCommand : AsyncPSCmdlet
 
     private void WritePage(ConfluencePage page)
     {
-        if (AsMarkdown.IsPresent)
+        if (As == OfficeConfluencePageOutput.Markdown)
         {
             var result = ConfluenceContentConverter.ToMarkdown(page);
             EnsureNoLoss(result.Report);
             WriteObject(result);
         }
-        else if (AsHtml.IsPresent)
+        else if (As == OfficeConfluencePageOutput.Html)
         {
             var result = ConfluenceContentConverter.ToHtml(page);
             EnsureNoLoss(result.Report);

@@ -6,12 +6,22 @@ schema: 2.0.0
 ---
 # Get-OfficeWordText
 ## SYNOPSIS
-Gets text segments from Word paragraphs.
+Gets the text runs of paragraphs, sections or documents.
 
 ## SYNTAX
-### Paragraph (Default)
+### Document (Default)
 ```powershell
-Get-OfficeWordText -Paragraph <WordParagraph> [<CommonParameters>]
+Get-OfficeWordText [-Document <WordDocument>] [<CommonParameters>]
+```
+
+### Path
+```powershell
+Get-OfficeWordText [-Path] <string[]> [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordText -LiteralPath <string[]> [<CommonParameters>]
 ```
 
 ### Section
@@ -19,32 +29,38 @@ Get-OfficeWordText -Paragraph <WordParagraph> [<CommonParameters>]
 Get-OfficeWordText -Section <WordSection> [<CommonParameters>]
 ```
 
-### Document
+### Paragraph
 ```powershell
-Get-OfficeWordText -Document <WordDocument> [<CommonParameters>]
-```
-
-### Path
-```powershell
-Get-OfficeWordText [-Path] <string> [<CommonParameters>]
+Get-OfficeWordText -Paragraph <WordParagraph> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets text segments from Word paragraphs.
+Gets the text runs of paragraphs, sections or documents.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> Get-OfficeWordParagraph -Path .\Report.docx | Get-OfficeWordText
+Get-OfficeWordText -Document 'Value'
 ```
 
-Returns each text segment as a WordParagraph instance.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordText -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordText -Paragraph 'Value'
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Document to enumerate.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -52,15 +68,31 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -LiteralPath
+LiteralPath for this inspection.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
 ### -Paragraph
-Paragraph to enumerate.
+Paragraph for this inspection.
 
 ```yaml
 Type: WordParagraph
@@ -76,23 +108,23 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the document.
+Path for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -Section
-Section to enumerate.
+Section for this inspection.
 
 ```yaml
 Type: WordSection
@@ -112,10 +144,10 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `OfficeIMO.Word.WordParagraph`
-- `OfficeIMO.Word.WordSection`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
-- `System.String`
+- `OfficeIMO.Word.WordSection`
+- `OfficeIMO.Word.WordParagraph`
 
 ## OUTPUTS
 

@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Decimal_starts_restarts_and_contiguous_counters_are_recovered(IWorkDocumentKind kind) {
         using var package = DecimalCounterPackage(kind);
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells).RichText!;
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells).RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, 8, 3, 4 }, content.Paragraphs.Select(p => p.ListNumber));
         Assert.Equal(new int?[] { 7, null, 3, null }, content.Paragraphs.Select(p => p.ListStartNumber));
@@ -25,7 +25,7 @@ public sealed partial class IWorkBoundaryTests {
         var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly,
             AllowPartialEditableReconstruction = true };
         if (kind == IWorkDocumentKind.Pages) {
-            using var result = IWorkSourceDocument.Open(package).ToWordResult(policy);
+            using var result = IWorkSourceDocument.Load(package).ToWordResult(policy);
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var word = WordprocessingDocument.Open(saved, false);
             var paragraphs = word.MainDocumentPart!.Document!.Body!.Descendants<W.Paragraph>()
@@ -42,7 +42,7 @@ public sealed partial class IWorkBoundaryTests {
             }));
             Assert.Empty(new DocumentFormat.OpenXml.Validation.OpenXmlValidator().Validate(word));
         } else if (kind == IWorkDocumentKind.Keynote) {
-            using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(policy);
+            using var result = IWorkSourceDocument.Load(package).ToPowerPointResult(policy);
             using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
             using var pptx = PowerPointDocument.Load(saved);
             var paragraphs = Assert.Single(Assert.Single(pptx.Slides).Tables).GetCell(0, 0).Paragraphs;
@@ -59,7 +59,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Sparse_restart_level_boundary_applies_only_to_its_own_paragraph(IWorkDocumentKind kind) {
         using var package = DecimalCounterPackage(kind,
             levels: AttributeTable(6, ListLevelEntry(0, 0, 1), ListLevelEntry(11, 0, 1)));
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells).RichText!;
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells).RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, 8, 3, 4 }, content.Paragraphs.Select(paragraph => paragraph.ListNumber));
         Assert.Equal(new int?[] { 7, null, 3, null }, content.Paragraphs.Select(paragraph => paragraph.ListStartNumber));
@@ -82,7 +82,7 @@ public sealed partial class IWorkBoundaryTests {
         };
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers, starts,
             tiered: fault == "tiered", level: fault == "deeper" ? 3ul : 0ul);
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.All(content.Paragraphs, paragraph => {
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers,
             listStyles: AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)),
                 AttributeEntry(6, ReferenceField(2, 22)), AttributeEntry(11, ReferenceField(2, 19))));
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, null, 3, 4 }, content.Paragraphs.Select(p => p.ListNumber));
@@ -103,7 +103,7 @@ public sealed partial class IWorkBoundaryTests {
             AttributeTable(14, ListLevelEntry(0, 7), ListLevelEntry(6, 0)),
             listStyles: AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)),
                 AttributeEntry(6, ReferenceField(2, 22)), AttributeEntry(11, ReferenceField(2, 19))));
-        var continued = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(continuation),
+        var continued = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(continuation),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.True(continued.IsFormattingComplete);
         Assert.Equal(new int?[] { 7, null, 8, 9 }, continued.Paragraphs.Select(p => p.ListNumber));
@@ -113,7 +113,7 @@ public sealed partial class IWorkBoundaryTests {
     public void PPTX_counter_range_is_checked_before_destination_mutation() {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Keynote,
             AttributeTable(14, ListLevelEntry(0, 32_767), ListLevelEntry(6, 0)));
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         Assert.Equal(32_768, source.ReadKeynote().Slides[0].Tables[0].Cells[0].RichText!.Paragraphs[1].ListNumber);
         Assert.Contains("counter outside", Assert.Throws<InvalidDataException>(() => source.ToPowerPointResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true })).Message);
@@ -121,7 +121,7 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Reader_retains_large_counter_metadata_and_reports_Markdown_range_loss() {
-        var source = IWorkSourceDocument.Open(CorpusFixture("native-exports/pages-paragraph-list-v15.4.pages"));
+        var source = IWorkSourceDocument.Load(CorpusFixture("native-exports/pages-paragraph-list-v15.4.pages"));
         var original = source.ReadPages();
         var selected = original.Body.Paragraphs[3];
         var paragraph = new IWorkTextParagraph(selected.Runs, selected.Style, selected.ListIdentifier,
@@ -145,7 +145,7 @@ public sealed partial class IWorkBoundaryTests {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers,
             AttributeTable(14, ListLevelEntry(0, int.MaxValue), ListLevelEntry(6, 0),
                 ListLevelEntry(11, 3), ListLevelEntry(19, 0)));
-        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package),
+        var content = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package),
             IWorkDocumentKind.Numbers).Item1.Cells).RichText!;
         Assert.False(content.IsFormattingComplete);
         Assert.Equal(new int?[] { int.MaxValue, null, 3, 4 }, content.Paragraphs.Select(p => p.ListNumber));
@@ -155,7 +155,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Counter_boundaries_charge_the_shared_text_budget() {
         using var package = DecimalCounterPackage(IWorkDocumentKind.Numbers,
             AttributeTable(14, Enumerable.Range(0, 20).Select(_ => ListLevelEntry(0, 0)).ToArray()));
-        var source = IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 10 });
+        var source = IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProjectedTextItems = 10 });
         Assert.Contains("attribute", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message,
             StringComparison.OrdinalIgnoreCase);
     }

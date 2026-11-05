@@ -1,122 +1,134 @@
-using OfficeIMO;
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Drawing;
-using C = DocumentFormat.OpenXml.Drawing.Charts;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 using PSWriteOffice.Services;
+using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Configures Excel chart series colors, line style, and markers.</summary>
+/// <summary>Styles a chart series or one of its data points.</summary>
 /// <example>
-///   <summary>Format a series by name.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$chart | Set-OfficeExcelChartSeries -SeriesName 'Revenue' -FillColor '#4472C4' -LineColor '#1F4E79' -MarkerStyle Circle -MarkerSize 6</code>
-///   <para>Applies fill, line, and marker settings to the Revenue series.</para>
+/// <summary>Colour a series</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Helpdesk-Trend.xlsx {
+///     ExcelSheet 'Trend' {
+///         ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Ticket-Trend.csv) -Category Week -Value Opened, Closed -Type Line -Address A1 -PassThru | ExcelChartSeries -Index 2 -LineColor Success
+///     }
+/// }</code>
+/// <para>Draws the second series, Closed, in the theme's success colour.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelChartSeries", DefaultParameterSetName = ParameterSetIndex)]
+/// <example>
+/// <summary>Highlight one bar</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Regions.xlsx {
+///     ExcelSheet 'Summary' {
+///         $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Region-Revenue.csv) -Category Region -Value Revenue -Address A1 -Type Column -PassThru
+///         ExcelChartSeries -Chart $chart -Name Revenue -Point 3 -FillColor Danger
+///     }
+/// }</code>
+/// <para>Colours the bar of the region that missed its target in the danger colour and leaves the others on the theme palette.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Set, "OfficeExcelChartSeries", DefaultParameterSetName = "Index")]
 [Alias("ExcelChartSeries")]
-[OutputType(typeof(ExcelChart))]
-public sealed class SetOfficeExcelChartSeriesCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
-    private const string ParameterSetIndex = "Index";
-    private const string ParameterSetSeriesName = "Name";
-
+public sealed class SetOfficeExcelChartSeriesCommand : PSCmdlet {
     /// <summary>Chart to update.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true)]
     public ExcelChart Chart { get; set; } = null!;
 
-    /// <summary>Zero-based series index.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetIndex)]
-    public int SeriesIndex { get; set; }
+    /// <summary>One-based index identifying the target item.</summary>
+    [Parameter(ParameterSetName = "Index", Mandatory = true)]
+    [ValidateRange(1, int.MaxValue)]
+    public int Index { get; set; }
 
-    /// <summary>Series name.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetSeriesName)]
-    public string SeriesName { get; set; } = string.Empty;
-
-    /// <summary>Ignore case when matching series name.</summary>
-    [Parameter(ParameterSetName = ParameterSetSeriesName)]
-    public bool IgnoreCase { get; set; } = true;
+    /// <summary>One-based point index within the selected chart series.</summary>
+    [Parameter()]
+    [ValidateRange(1, uint.MaxValue)]
+    public uint? Point { get; set; }
 
     /// <summary>Series fill color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? FillColor { get; set; }
+    [Parameter()]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? FillColor { get; set; }
 
     /// <summary>Series line color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? LineColor { get; set; }
+    [Parameter()]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? LineColor { get; set; }
 
-    /// <summary>Series line width in points.</summary>
-    [Parameter]
-    public double? LineWidthPoints { get; set; }
+    /// <summary>Physical line width; numbers are interpreted as points.</summary>
+    [Parameter()]
+    [OfficeLengthTransformation]
+    public OfficeLength? LineWidth { get; set; }
 
     /// <summary>Marker style name.</summary>
-    [Parameter]
+    [Parameter()]
     public OfficeChartMarkerShape? MarkerStyle { get; set; }
 
     /// <summary>Marker size.</summary>
-    [Parameter]
+    [Parameter()]
     public int? MarkerSize { get; set; }
 
     /// <summary>Marker fill color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? MarkerFillColor { get; set; }
+    [Parameter()]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? MarkerFillColor { get; set; }
 
     /// <summary>Marker line color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? MarkerLineColor { get; set; }
+    [Parameter()]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? MarkerLineColor { get; set; }
 
-    /// <summary>Marker line width in points.</summary>
-    [Parameter]
-    public double? MarkerLineWidthPoints { get; set; }
+    /// <summary>Physical width of the marker outline; omission preserves the existing width.</summary>
+    [Parameter()]
+    [OfficeLengthTransformation]
+    public OfficeLength? MarkerLineWidth { get; set; }
+
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
+    public SwitchParameter PassThru { get; set; }
+
+    /// <summary>Named range name.</summary>
+    [Parameter(ParameterSetName = "Name", Mandatory = true)]
+    public string Name { get; set; } = null!;
+
+    /// <summary>Matches names and text using ordinal case sensitivity. Omission ignores case.</summary>
+    [Parameter(ParameterSetName = "Name")]
+    public SwitchParameter CaseSensitive { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        try {
-            var fillColor = FillColor;
-            if (!string.IsNullOrWhiteSpace(fillColor)) {
-                if (ParameterSetName == ParameterSetSeriesName) {
-                    Chart.SetSeriesFillColor(SeriesName, OfficeColor.Parse(fillColor!), IgnoreCase);
-                } else {
-                    Chart.SetSeriesFillColor(SeriesIndex, OfficeColor.Parse(fillColor!));
-                }
+        if (Point.HasValue) {
+            if (Name != null) Chart.SetDataPointColor(Name, Point.Value - 1, FillColor, LineColor, LineWidth, !CaseSensitive);
+            else Chart.SetDataPointColor(Index - 1, Point.Value - 1, FillColor, LineColor, LineWidth);
+        } else {
+            if (FillColor.HasValue) {
+                if (Name != null) Chart.SetSeriesFillColor(Name, FillColor.Value, !CaseSensitive);
+                else Chart.SetSeriesFillColor(Index - 1, FillColor.Value);
             }
-
-            var lineColor = LineColor;
-            if (!string.IsNullOrWhiteSpace(lineColor) || LineWidthPoints.HasValue) {
-                if (string.IsNullOrWhiteSpace(lineColor)) {
-                    throw new PSArgumentException("LineColor is required when LineWidthPoints is used because the current OfficeIMO chart API applies series line width together with a line color.");
-                }
-
-                if (ParameterSetName == ParameterSetSeriesName) {
-                    Chart.SetSeriesLineColor(SeriesName, OfficeColor.Parse(lineColor!), LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null, IgnoreCase);
-                } else {
-                    Chart.SetSeriesLineColor(SeriesIndex, OfficeColor.Parse(lineColor!), LineWidthPoints.HasValue ? OfficeLength.Points(LineWidthPoints.Value) : (OfficeLength?)null);
-                }
+            if (LineColor.HasValue || LineWidth.HasValue) {
+                if (!LineColor.HasValue) throw new PSArgumentException("LineColor is required when changing LineWidth.");
+                if (Name != null) Chart.SetSeriesLineColor(Name, LineColor.Value, LineWidth, !CaseSensitive);
+                else Chart.SetSeriesLineColor(Index - 1, LineColor.Value, LineWidth);
             }
-
-            var markerStyle = MarkerStyle ?? OfficeChartMarkerShape.Circle;
-            bool markerRequested = MarkerStyle.HasValue || MarkerSize.HasValue ||
-                !string.IsNullOrWhiteSpace(MarkerFillColor) || !string.IsNullOrWhiteSpace(MarkerLineColor) || MarkerLineWidthPoints.HasValue;
-            if (markerRequested) {
-                if (ParameterSetName == ParameterSetSeriesName) {
-                    Chart.SetSeriesMarker(SeriesName, markerStyle, MarkerSize.HasValue ? OfficeLength.Points(MarkerSize.Value) : (OfficeLength?)null, MarkerFillColor != null ? OfficeColor.Parse(MarkerFillColor) : (OfficeColor?)null, MarkerLineColor != null ? OfficeColor.Parse(MarkerLineColor) : (OfficeColor?)null, MarkerLineWidthPoints.HasValue ? OfficeLength.Points(MarkerLineWidthPoints.Value) : (OfficeLength?)null, IgnoreCase);
-                } else {
-                    Chart.SetSeriesMarker(SeriesIndex, markerStyle, MarkerSize.HasValue ? OfficeLength.Points(MarkerSize.Value) : (OfficeLength?)null, MarkerFillColor != null ? OfficeColor.Parse(MarkerFillColor) : (OfficeColor?)null, MarkerLineColor != null ? OfficeColor.Parse(MarkerLineColor) : (OfficeColor?)null, MarkerLineWidthPoints.HasValue ? OfficeLength.Points(MarkerLineWidthPoints.Value) : (OfficeLength?)null);
-                }
+            if (MarkerStyle.HasValue || MarkerSize.HasValue || MarkerFillColor.HasValue || MarkerLineColor.HasValue || MarkerLineWidth.HasValue) {
+                OfficeLength? size = MarkerSize.HasValue ? OfficeLength.Points(MarkerSize.Value) : (OfficeLength?)null;
+                if (Name != null) Chart.SetSeriesMarkerByName(Name, MarkerStyle, size, MarkerFillColor, MarkerLineColor, MarkerLineWidth, !CaseSensitive);
+                else Chart.SetSeriesMarker(Index - 1, MarkerStyle, size, MarkerFillColor, MarkerLineColor, MarkerLineWidth);
             }
-
-            WritePassThru(Chart);
-        } catch (Exception ex) {
-            WriteError(new ErrorRecord(ex, "ExcelChartSeriesFailed", ErrorCategory.InvalidOperation, Chart));
         }
+        if (PassThru) WriteObject(Chart);
     }
+
 }

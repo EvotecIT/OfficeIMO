@@ -4,7 +4,7 @@ using System.Threading;
 namespace OfficeIMO.IWork.Internal;
 
 internal static class IWorkNumbersPackageWriter {
-    internal static byte[] Write(IWorkNumbersDocument document, IWorkNumbersWriteOptions limits, CancellationToken token) {
+    internal static byte[] Write(IWorkNumbersDocument document, IWorkNumbersSaveOptions limits, CancellationToken token) {
         token.ThrowIfCancellationRequested();
         if (document.Sheets.Count == 0) throw new InvalidOperationException("A native Numbers spreadsheet requires at least one sheet.");
         if (document.Sheets.Count > limits.MaxSheets) throw new InvalidDataException("The native Numbers sheet limit was exceeded.");

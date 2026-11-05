@@ -9,14 +9,19 @@ schema: 2.0.0
 Adds a visually separated panel paragraph to a PDF document.
 
 ## SYNTAX
-### Context (Default)
+### Text (Default)
 ```powershell
-Add-OfficePdfPanel [-Text] <string> [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfPanel [-Text] <string> [-Alignment <OfficeAlignment>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfPanel [-Text] <string> -Document <PdfDocument> [-Align <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfPanel [-Text] <string> -Document <PdfDocument> [-Alignment <OfficeAlignment>] [-PassThru] [<CommonParameters>]
+```
+
+### Content
+```powershell
+Add-OfficePdfPanel [-Content] <scriptblock> [-Alignment <OfficeAlignment>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -28,7 +33,7 @@ Adds a visually separated panel paragraph to a PDF document.
 ```powershell
 PS> New-OfficePdf -Path .\Examples\Documents\PdfPanel.pdf {
     Add-OfficePdfHeading -Text 'Executive summary'
-    Add-OfficePdfPanel -Text 'No critical incidents were detected in the current reporting window.' -Align Center
+    Add-OfficePdfPanel -Text 'No critical incidents were detected in the current reporting window.' -Alignment Center
 }
 ```
 
@@ -36,17 +41,33 @@ Adds a highlighted panel paragraph to the generated PDF.
 
 ## PARAMETERS
 
-### -Align
+### -Alignment
 Panel alignment.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: Context, Document
+Parameter Sets: Text, Document, Content
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Content
+Rich PdfText child content.
+
+```yaml
+Type: ScriptBlock
+Parameter Sets: Content
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
@@ -73,7 +94,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -89,7 +110,7 @@ Panel text.
 
 ```yaml
 Type: String
-Parameter Sets: Context, Document
+Parameter Sets: Text, Document
 Aliases: None
 Possible values:
 

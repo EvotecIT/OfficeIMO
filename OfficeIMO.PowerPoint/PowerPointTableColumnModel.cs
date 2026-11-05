@@ -62,7 +62,7 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public PowerPointTableCell GetCell(int rowIndex) {
             ArgumentOutOfRangeException.ThrowIfNegative(rowIndex);
-            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, _table.Rows);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(rowIndex, _table.RowCount);
 
             int index = Index;
             if (index < 0) {

@@ -5,7 +5,7 @@ using OfficeColor = OfficeIMO.OfficeColor;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>Adds a cell-value comparison rule; authored through <see cref="ExcelRangeConditionalFormattingBuilder.CellIs"/>.</summary>
-        internal ExcelConditionalFormattingInfo CreateConditionalCellIsRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, string? fillColor, bool stopIfTrue, int? priority) {
+        internal ExcelConditionalFormattingInfo CreateConditionalCellIsRule(string range, ExcelConditionalFormattingOperator @operator, string formula1, string? formula2, OfficeColor? fillColor, bool stopIfTrue, int? priority) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -32,8 +32,8 @@ namespace OfficeIMO.Excel {
                     rule.Append(new Formula(formula2));
                 }
 
-                if (!string.IsNullOrWhiteSpace(fillColor)) {
-                    rule.FormatId = GetOrCreateDifferentialFillFormatId(fillColor!);
+                if (fillColor.HasValue) {
+                    rule.FormatId = GetOrCreateDifferentialFillFormatId(fillColor.Value);
                 }
 
                 conditionalFormatting.Append(rule);
@@ -46,21 +46,18 @@ namespace OfficeIMO.Excel {
         }
 
         internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, OfficeColor startColor, OfficeColor endColor) {
-            return CreateConditionalColorScaleCore(range, ExcelColor.ToSpreadsheetColor(startColor), ExcelColor.ToSpreadsheetColor(endColor));
+            return CreateConditionalColorScaleCore(range, ExcelColor.ToSpreadsheetColor(startColor, _excelDocument.ColorTheme), ExcelColor.ToSpreadsheetColor(endColor, _excelDocument.ColorTheme));
         }
 
-        internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, string startColor, string endColor) {
-            if (string.IsNullOrEmpty(range)) {
-                throw new ArgumentNullException(nameof(range));
-            }
-            return CreateConditionalColorScaleCore(range,
-                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(startColor) },
-                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(endColor) });
-        }
+        internal ExcelConditionalFormattingInfo CreateConditionalColorScale(string range, OfficeColor startColor, OfficeColor midColor, OfficeColor endColor) =>
+            CreateConditionalColorScaleCore(range,
+                ExcelColor.ToSpreadsheetColor(startColor, _excelDocument.ColorTheme),
+                ExcelColor.ToSpreadsheetColor(midColor, _excelDocument.ColorTheme),
+                ExcelColor.ToSpreadsheetColor(endColor, _excelDocument.ColorTheme));
 
         /// <summary>Adds the native color-scale rule through the existing worksheet mutation path.</summary>
         private ExcelConditionalFormattingInfo CreateConditionalColorScaleCore(string range,
-            DocumentFormat.OpenXml.Spreadsheet.Color startColor, DocumentFormat.OpenXml.Spreadsheet.Color endColor) {
+            params DocumentFormat.OpenXml.Spreadsheet.Color[] colors) {
             if (string.IsNullOrEmpty(range)) {
                 throw new ArgumentNullException(nameof(range));
             }
@@ -81,9 +78,11 @@ namespace OfficeIMO.Excel {
 
                 ColorScale colorScale = new ColorScale();
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Min });
+                if (colors.Length == 3) colorScale.Append(new ConditionalFormatValueObject {
+                    Type = ConditionalFormatValueObjectValues.Percentile, Val = "50"
+                });
                 colorScale.Append(new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Max });
-                colorScale.Append(startColor);
-                colorScale.Append(endColor);
+                foreach (var color in colors) colorScale.Append(color);
                 rule.Append(colorScale);
 
                 conditionalFormatting.Append(rule);
@@ -96,15 +95,7 @@ namespace OfficeIMO.Excel {
         }
 
         internal ExcelConditionalFormattingInfo CreateConditionalDataBar(string range, OfficeColor color) {
-            return CreateConditionalDataBarCore(range, ExcelColor.ToSpreadsheetColor(color));
-        }
-
-        internal ExcelConditionalFormattingInfo CreateConditionalDataBar(string range, string color) {
-            if (string.IsNullOrEmpty(range)) {
-                throw new ArgumentNullException(nameof(range));
-            }
-            return CreateConditionalDataBarCore(range,
-                new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = NormalizeHexColor(color) });
+            return CreateConditionalDataBarCore(range, ExcelColor.ToSpreadsheetColor(color, _excelDocument.ColorTheme));
         }
 
         /// <summary>Adds the native data-bar rule through the existing worksheet mutation path.</summary>

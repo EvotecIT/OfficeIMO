@@ -13,7 +13,7 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 [OutputType(typeof(MarkdownLoadOptions))]
 public sealed class NewOfficeMarkdownReaderOptionsCommand : OfficeCmdlet, IMarkdownReaderOptionSource {
     /// <summary>Native Markdown dialect profile.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
     /// <summary>Base URI for relative links and images.</summary>
     [Parameter]

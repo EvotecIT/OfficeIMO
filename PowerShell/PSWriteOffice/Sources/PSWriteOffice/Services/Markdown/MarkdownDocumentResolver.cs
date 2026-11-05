@@ -2,11 +2,26 @@ using System;
 using System.IO;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Services.Markdown;
 
 internal static class MarkdownDocumentResolver
 {
+    internal static MarkdownDocument Resolve(PSCmdlet cmdlet, string parameterSetName,
+        MarkdownDocument? document, string path, string literalPath, string text, object[]? options, bool captureSyntax = false) {
+        if (parameterSetName == "Document")
+            return document ?? OfficeDocumentContext.Find<MarkdownDocument>() ?? MarkdownDslContext.Require(cmdlet).Document;
+        var engine = (EngineIntrinsics)cmdlet.SessionState.PSVariable.GetValue("ExecutionContext");
+        var reader = MarkdownOptionUtilities.BindReaderOptions(engine, options);
+        if (captureSyntax) { reader ??= new MarkdownLoadOptions(); reader.CaptureSyntaxTree = true; }
+        if (parameterSetName == "Text") return MarkdownDocument.Parse(text, reader);
+        var sources = OfficePath.ResolveInput(cmdlet.SessionState, parameterSetName == "LiteralPath" ? literalPath : path,
+            parameterSetName == "LiteralPath");
+        if (sources.Count != 1) throw new PSArgumentException("The inspection source must resolve to one Markdown file; pipe files to inspect each separately.");
+        return MarkdownDocument.Load(sources[0], reader);
+    }
+
     public static MarkdownDocument Resolve(
         PSCmdlet cmdlet,
         string parameterSetName,

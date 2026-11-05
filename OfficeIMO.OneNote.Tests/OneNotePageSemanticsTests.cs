@@ -21,7 +21,7 @@ public sealed class OneNotePageSemanticsTests {
             Height = 1
         });
 
-        OneNoteSection result = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection result = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
 
         Assert.Equal(17D, result.Pages[0].Width!.Value, 6);
         Assert.Equal(22D, result.Pages[0].Height!.Value, 6);
@@ -38,7 +38,7 @@ public sealed class OneNotePageSemanticsTests {
             Width = 17
         });
 
-        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+        OneNoteFormatException error = Assert.Throws<OneNoteFormatException>(() => section.ToBytes());
 
         Assert.Equal("ONENOTE_WRITE_PAGE_SIZE_DIMENSIONS", error.Code);
     }
@@ -104,7 +104,7 @@ public sealed class OneNotePageSemanticsTests {
         Assert.DoesNotContain(imageNode.Properties, property =>
             (property.RawId & 0x7FFFFFFFU) == OneNoteSchema.RichEditTextLanguageId);
 
-        OneNoteSection result = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        OneNoteSection result = OneNoteSection.Load(new MemoryStream(section.ToBytes()));
         OneNotePage actual = Assert.Single(result.Pages);
         OneNoteImage actualBackground = Assert.IsType<OneNoteImage>(Assert.Single(actual.DirectContent));
         OneNoteLayout actualLayout = Assert.Single(actual.Outlines).Layout!;

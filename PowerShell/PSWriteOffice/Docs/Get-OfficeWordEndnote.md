@@ -6,17 +6,22 @@ schema: 2.0.0
 ---
 # Get-OfficeWordEndnote
 ## SYNOPSIS
-Gets endnotes from a Word document or section.
+Gets endnotes of a document or section.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordEndnote [-Path] <string> [<CommonParameters>]
+Get-OfficeWordEndnote [-Document <WordDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordEndnote -Document <WordDocument> [<CommonParameters>]
+Get-OfficeWordEndnote [-Path] <string[]> [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordEndnote -LiteralPath <string[]> [<CommonParameters>]
 ```
 
 ### Section
@@ -25,24 +30,32 @@ Get-OfficeWordEndnote -Section <WordSection> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets endnotes from a Word document or section.
+Gets endnotes of a document or section.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $endnotes = Get-OfficeWordEndnote -Path .\ResearchReport.docx
-$endnotes |
-    Select-Object -Property Kind, ReferenceId, ParentText, Text |
-    Export-Csv -Path .\Endnotes.csv -NoTypeInformation
+Get-OfficeWordEndnote -Document 'Value'
 ```
 
-Reads endnotes from the document and exports the PowerShell-friendly note snapshot.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordEndnote -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordEndnote -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -Document
-Document to inspect.
+Document for this inspection.
 
 ```yaml
 Type: WordDocument
@@ -50,31 +63,47 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the document.
+### -LiteralPath
+LiteralPath for this inspection.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Path for this inspection.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
 ```
 
 ### -Section
-Section to inspect.
+Section for this inspection.
 
 ```yaml
 Type: WordSection
@@ -94,7 +123,7 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 - `OfficeIMO.Word.WordSection`
 

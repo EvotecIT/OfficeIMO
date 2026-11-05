@@ -9,7 +9,12 @@ schema: 2.0.0
 Adds native password encryption or editing restrictions to a document.
 
 ## SYNTAX
-### Path (Default)
+### Document (Default)
+```powershell
+Protect-OfficeDocument [[-Document] <IDisposable>] [-Password <securestring>] [-Encrypt] [-Restriction <OfficeProtectionRestriction[]>] [-RestrictionPassword <securestring>] [-OutputPath <string>] [-Options <Object[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Path
 ```powershell
 Protect-OfficeDocument [-Path] <string[]> [-Password <securestring>] [-Encrypt] [-Restriction <OfficeProtectionRestriction[]>] [-RestrictionPassword <securestring>] [-OutputPath <string>] [-Options <Object[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
@@ -17,11 +22,6 @@ Protect-OfficeDocument [-Path] <string[]> [-Password <securestring>] [-Encrypt] 
 ### LiteralPath
 ```powershell
 Protect-OfficeDocument -LiteralPath <string[]> [-Password <securestring>] [-Encrypt] [-Restriction <OfficeProtectionRestriction[]>] [-RestrictionPassword <securestring>] [-OutputPath <string>] [-Options <Object[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Protect-OfficeDocument [-Document] <IDisposable> [-Password <securestring>] [-Encrypt] [-Restriction <OfficeProtectionRestriction[]>] [-RestrictionPassword <securestring>] [-OutputPath <string>] [-Options <Object[]>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -64,7 +64,7 @@ Protect-OfficeDocument -Path ./board.pdf -Restriction Copy -Password $ownerPassw
 ## PARAMETERS
 
 ### -Document
-Caller-owned native Word, Excel, PowerPoint or PDF document.
+Caller-owned native document; defaults to the enclosing document content block.
 
 ```yaml
 Type: IDisposable
@@ -72,7 +72,7 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: 0
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -84,7 +84,7 @@ Encrypt the saved artifact using its native engine.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -119,7 +119,7 @@ options retain their owner password, permission mask, algorithm, metadata settin
 
 ```yaml
 Type: Object[]
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -135,7 +135,7 @@ Protected file destination; accepts exactly one input when supplied.
 
 ```yaml
 Type: String
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -151,7 +151,7 @@ Emit FileInfo for file input, or the protected native document for Document inpu
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -167,7 +167,7 @@ Open password with Encrypt; otherwise the restriction password. Accepts a creden
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -199,7 +199,7 @@ Word editing mode, Excel protection/reservation, or PDF permissions to withhold.
 
 ```yaml
 Type: OfficeProtectionRestriction[]
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values: ReadOnly, Comments, TrackedChanges, Forms, Structure, Windows, ReadOnlyRecommended, Print, Copy, Modify, Annotate, FillForms, Assemble
 
@@ -215,7 +215,7 @@ Restriction password, separate from the open password when Encrypt is used; PDF 
 
 ```yaml
 Type: SecureString
-Parameter Sets: Path, LiteralPath, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 

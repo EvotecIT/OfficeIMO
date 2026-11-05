@@ -6,38 +6,55 @@ schema: 2.0.0
 ---
 # Get-OfficePdfImage
 ## SYNOPSIS
-Gets or extracts image resources from a PDF.
+Lists image resources, or extracts them with -OutputDirectory.
 
 ## SYNTAX
-### __AllParameterSets
+### Path (Default)
 ```powershell
-Get-OfficePdfImage [-Path] <string> [-PageRange <string>] [-OutputDirectory <string>] [-BaseName <string>] [-Password <securestring>] [-IgnorePermissionRestrictions] [<CommonParameters>]
+Get-OfficePdfImage [-Path] <string[]> [-Page <OfficePageRange>] [-OutputDirectory <string>] [-BaseName <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficePdfImage -LiteralPath <string[]> [-Page <OfficePageRange>] [-OutputDirectory <string>] [-BaseName <string>] [-NoClobber] [-Password <securestring>] [-IgnorePermissionRestrictions] [-LoadOptions <PdfLoadOptions>] [-WhatIf] [-Confirm] [<CommonParameters>]
+```
+
+### Document
+```powershell
+Get-OfficePdfImage -Document <PdfDocument> [-Page <OfficePageRange>] [-OutputDirectory <string>] [-BaseName <string>] [-NoClobber] [-WhatIf] [-Confirm] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets or extracts image resources from a PDF.
+Lists image resources, or extracts them with -OutputDirectory.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $proof = @(
-    Get-OfficePdfImage -Path .\Examples\Documents\Report.pdf -PageRange '1-2'
-    Get-OfficePdfImage -Path .\Examples\Documents\Report.pdf -OutputDirectory .\Examples\Documents\PdfImages -BaseName 'report-image'
-)
-$proof
+Get-OfficePdfImage -Path @('C:\Path')
 ```
 
-Returns image metadata or writes extracted images to disk.
+
+### EXAMPLE 2
+```powershell
+Get-OfficePdfImage -Document 'Value'
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficePdfImage -LiteralPath @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -BaseName
-Base file name used when extracting images to disk.
+BaseName for PDF inspection or extraction.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -48,12 +65,76 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
+### -Document
+Document for PDF inspection or extraction.
+
+```yaml
+Type: PdfDocument
+Parameter Sets: Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
 ### -IgnorePermissionRestrictions
-After successful password authentication, explicitly ignore owner-imposed extraction restrictions.
+IgnorePermissionRestrictions for PDF inspection or extraction.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+LiteralPath for PDF inspection or extraction.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -LoadOptions
+LoadOptions for PDF inspection or extraction.
+
+```yaml
+Type: PdfLoadOptions
+Parameter Sets: Path, LiteralPath
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -NoClobber
+NoClobber for PDF inspection or extraction.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -65,11 +146,11 @@ Accept wildcard characters: False
 ```
 
 ### -OutputDirectory
-Optional directory where images should be written.
+OutputDirectory for PDF inspection or extraction.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -80,12 +161,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -PageRange
-Optional page ranges such as 1-3,5.
+### -Page
+Page for PDF inspection or extraction.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: OfficePageRange
+Parameter Sets: Path, LiteralPath, Document
 Aliases: None
 Possible values:
 
@@ -97,11 +178,11 @@ Accept wildcard characters: False
 ```
 
 ### -Password
-Password used to authenticate an encrypted PDF.
+Password for PDF inspection or extraction.
 
 ```yaml
 Type: SecureString
-Parameter Sets: __AllParameterSets
+Parameter Sets: Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -113,19 +194,19 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-PDF file path.
+Path for PDF inspection or extraction.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: FilePath, FullName, LiteralPath
+Type: String[]
+Parameter Sets: Path
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
-Accept wildcard characters: False
+Accept pipeline input: False
+Accept wildcard characters: True
 ```
 
 ### CommonParameters
@@ -133,7 +214,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
+- `OfficeIMO.Pdf.PdfDocument`
 
 ## OUTPUTS
 

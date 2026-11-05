@@ -7,15 +7,15 @@ internal static partial class NativeKeynoteWriterSmoke {
 
     internal static void Run() {
         IWorkKeynoteDocument document = CreateAcceptedModel();
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256,
             "NativeAOT writer differs from the independently accepted package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "NativeAOT writer is nondeterministic.");
+        Require(bytes.SequenceEqual(document.ToBytes()), "NativeAOT writer is nondeterministic.");
         using var stream = new MemoryStream();
         document.Save(stream);
         Require(stream.CanWrite && stream.ToArray().SequenceEqual(bytes), "Stream save differs or closed the caller stream.");
 
-        IWorkKeynoteProjection projection = IWorkSourceDocument.Open(bytes).ReadKeynote();
+        IWorkKeynoteProjection projection = IWorkSourceDocument.Load(bytes).ReadKeynote();
         Require(projection.HasEditableContent && projection.Slides.Count == 3
             && projection.SlideSize is { WidthPoints: 960, HeightPoints: 540 }, "NativeAOT writer/readback is incomplete.");
         Require(projection.Slides[0].BackgroundColor?.RgbHex == "E6F2FF"

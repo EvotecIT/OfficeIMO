@@ -17,7 +17,7 @@ public sealed class IWorkScalarFormatCorpusTests {
             string path = Path.Combine(root, package.GetProperty("source").GetString()!);
             Assert.Equal(package.GetProperty("sourceSha256").GetString(),
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-            var projection = IWorkSourceDocument.Open(path, new IWorkReadOptions { PreserveSourceRecords = false }).ReadNumbers();
+            var projection = IWorkSourceDocument.Load(path, new IWorkLoadOptions { PreserveSourceRecords = false }).ReadNumbers();
             var cells = projection.Sheets.SelectMany(s => s.Tables).SelectMany(t => t.Cells).ToArray();
             Assert.Equal(package.GetProperty("selectorCounts").GetProperty("15").GetInt32(),
                 cells.Count(c => c.NumberFormat?.Kind == IWorkNumberFormatKind.DateTime

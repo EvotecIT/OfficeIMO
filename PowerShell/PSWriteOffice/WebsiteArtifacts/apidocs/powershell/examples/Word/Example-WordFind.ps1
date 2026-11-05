@@ -9,13 +9,13 @@ New-OfficeWord -Path $path {
 
 $doc = Open-OfficeWord -Path $path
 try {
-    $paragraph = Add-OfficeWordParagraph -Target $doc -Text 'Page' -PassThru
+    $paragraph = Add-OfficeWordParagraph -Document $doc -Text 'Page' -PassThru
     Add-OfficeWordBookmark -Paragraph $paragraph -Name 'Bookmark1'
     Add-OfficeWordField -Paragraph $paragraph -Type Page
 } finally {
     Close-OfficeWord -Document $doc -Save
 }
 
-Find-OfficeWord -Path $path -Text 'Hello'
+Get-OfficeWordParagraph -Path $path -Pattern 'Hello' -SimpleMatch
 Get-OfficeWordBookmark -Path $path
 Get-OfficeWordField -Path $path -FieldType Page

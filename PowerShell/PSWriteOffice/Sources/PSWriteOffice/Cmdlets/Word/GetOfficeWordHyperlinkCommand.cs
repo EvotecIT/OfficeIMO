@@ -1,4 +1,3 @@
-using PSWriteOffice.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,119 +7,61 @@ using PSWriteOffice.Services.Word;
 
 namespace PSWriteOffice.Cmdlets.Word;
 
-/// <summary>Gets hyperlinks from a Word document.</summary>
-/// <example>
-///   <summary>Audit external hyperlinks in a report.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$links = Get-OfficeWordHyperlink -Path .\Report.docx -Url 'https://*'
-/// $links |
-///     Select-Object -Property Text, Uri |
-///     Export-Csv -Path .\ReportLinks.csv -NoTypeInformation</code>
-///   <para>Filters external hyperlinks and exports them for link validation or review.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeWordHyperlink")]
+/// <summary>Gets hyperlinks, filtered by text, URL or bookmark anchor.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficeWordHyperlink", DefaultParameterSetName = "Document")]
 [OutputType(typeof(WordHyperLink))]
 public sealed class GetOfficeWordHyperlinkCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetSection = "Section";
-    private const string ParameterSetParagraph = "Paragraph";
-
-    /// <summary>Path to the document.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public WordDocument Document { get; set; } = null!;
-
-    /// <summary>Section to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetSection)]
-    public WordSection Section { get; set; } = null!;
-
-    /// <summary>Paragraph to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetParagraph)]
-    public WordParagraph Paragraph { get; set; } = null!;
-
-    /// <summary>Filter by hyperlink text (wildcards supported).</summary>
-    [Parameter]
+    /// <summary>Path for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Text for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    [Parameter(ParameterSetName = "Paragraph")]
     public string[]? Text { get; set; }
-
-    /// <summary>Filter by external URL (wildcards supported).</summary>
-    [Parameter]
-    [SupportsWildcards]
-    [Alias("Uri")]
+    /// <summary>Url for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    [Parameter(ParameterSetName = "Paragraph")]
     public string[]? Url { get; set; }
-
-    /// <summary>Filter by bookmark anchor (wildcards supported).</summary>
-    [Parameter]
-    [SupportsWildcards]
-    [Alias("Bookmark")]
+    /// <summary>Anchor for this inspection.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Document")]
+    [Parameter(ParameterSetName = "Section")]
+    [Parameter(ParameterSetName = "Paragraph")]
     public string[]? Anchor { get; set; }
+    /// <summary>LiteralPath for this inspection.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for this inspection.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public WordDocument? Document { get; set; }
+    /// <summary>Section for this inspection.</summary>
+    [Parameter(ParameterSetName = "Section", Mandatory = true, ValueFromPipeline = true)]
+    public WordSection? Section { get; set; }
+    /// <summary>Paragraph for this inspection.</summary>
+    [Parameter(ParameterSetName = "Paragraph", Mandatory = true, ValueFromPipeline = true)]
+    public WordParagraph? Paragraph { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        WordDocument? document = null;
-        var dispose = false;
-
-        try {
-            IEnumerable<WordHyperLink> hyperlinks = ResolveHyperlinks(ref document, ref dispose);
-
-            hyperlinks = FilterByPatterns(hyperlinks, Text, hyperlink => hyperlink.Text);
-            hyperlinks = FilterByPatterns(hyperlinks, Url, hyperlink => hyperlink.Uri?.ToString());
-            hyperlinks = FilterByPatterns(hyperlinks, Anchor, hyperlink => hyperlink.Anchor);
-
-            WriteObject(hyperlinks, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
-            }
-        }
+        if (ParameterSetName == "Section") { Emit(Section!.HyperLinks); return; }
+        if (ParameterSetName == "Paragraph") { if (Paragraph!.Hyperlink != null) Emit(new[] { Paragraph.Hyperlink }); return; }
+        WordQuerySource.Visit(this, ParameterSetName, Path, LiteralPath, Document, Inspect);
     }
 
-    private IEnumerable<WordHyperLink> ResolveHyperlinks(ref WordDocument? document, ref bool dispose) {
-        switch (ParameterSetName) {
-            case ParameterSetParagraph:
-                return Paragraph.IsHyperLink && Paragraph.Hyperlink != null
-                    ? new[] { Paragraph.Hyperlink }
-                    : Array.Empty<WordHyperLink>();
-            case ParameterSetSection:
-                return Section != null ? Section.HyperLinks : Array.Empty<WordHyperLink>();
-            case ParameterSetDocument:
-                return Document != null ? Document.HyperLinks : Array.Empty<WordHyperLink>();
-            default:
-                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                document = WordDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                dispose = true;
-                return document.HyperLinks;
-        }
-    }
-
-    private static IEnumerable<WordHyperLink> FilterByPatterns(
-        IEnumerable<WordHyperLink> hyperlinks,
-        string[]? patterns,
-        Func<WordHyperLink, string?> valueSelector) {
-        var compiledPatterns = BuildPatterns(patterns);
-        if (compiledPatterns.Count == 0) {
-            return hyperlinks;
-        }
-
-        return hyperlinks.Where(hyperlink => {
-            var value = valueSelector(hyperlink);
-            return value != null && compiledPatterns.Any(pattern => pattern.IsMatch(value));
-        });
-    }
-
-    private static List<WildcardPattern> BuildPatterns(string[]? patterns) {
-        var compiled = new List<WildcardPattern>();
-        foreach (var pattern in patterns ?? Array.Empty<string>()) {
-            if (!string.IsNullOrWhiteSpace(pattern)) {
-                compiled.Add(new WildcardPattern(pattern, WildcardOptions.IgnoreCase));
-            }
-        }
-
-        return compiled;
+    private void Inspect(WordDocument document) => Emit(document.HyperLinks);
+    private void Emit(IEnumerable<WordHyperLink> items) {
+        var text = WordFilterHelpers.BuildPatterns(Text);
+        var url = WordFilterHelpers.BuildPatterns(Url);
+        var anchor = WordFilterHelpers.BuildPatterns(Anchor);
+        WriteObject(items.Where(item => WordFilterHelpers.Matches(item.Text, text) && WordFilterHelpers.Matches(item.Uri?.ToString(), url) && WordFilterHelpers.Matches(item.Anchor, anchor)), true);
     }
 }

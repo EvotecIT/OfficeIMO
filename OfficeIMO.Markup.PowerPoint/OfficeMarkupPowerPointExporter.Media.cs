@@ -4,7 +4,7 @@ using OfficeIMO.PowerPoint;
 namespace OfficeIMO.Markup.PowerPoint;
 
 internal sealed partial class OfficeMarkupPowerPointExporter {
-    private static void AddImage(
+    private static IReadOnlyList<OfficeMarkupDiagnostic> AddImage(
         PowerPointSlide slide,
         OfficeMarkupImageBlock image,
         LayoutCursor cursor,
@@ -41,10 +41,20 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
                     ? new LayoutCursor(box.Left, box.Top + box.Height + 0.12, box.Width, 0.4) : cursor;
                 AddText(slide, image.Caption!, captionCursor, height: 0.4);
             }
-        } else if (options.IncludeUnsupportedBlocksAsText) {
-            AddText(slide, "Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
-                ? image.Alt ?? image.Title ?? "Unsupported embedded image" : image.Source), cursor, height: 0.4);
+        } else {
+            if (options.IncludeUnsupportedBlocksAsText) {
+                AddText(slide, "Image: " + (image.Source.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                    ? image.Alt ?? image.Title ?? "Unsupported embedded image" : image.Source), cursor, height: 0.4);
+            }
+            return new[] { new OfficeMarkupDiagnostic(
+                OfficeMarkupDiagnosticSeverity.Warning,
+                options.IncludeUnsupportedBlocksAsText
+                    ? "Image content could not be embedded under the configured source, format and byte limits; text fallback is used."
+                    : "Image content is omitted because it could not be embedded under the configured source, format and byte limits.",
+                image,
+                OfficeConversionLossKind.Omission) };
         }
+        return Array.Empty<OfficeMarkupDiagnostic>();
     }
 
     private static bool TryResolveFilePath(
@@ -137,9 +147,9 @@ internal sealed partial class OfficeMarkupPowerPointExporter {
             OfficeIMO.OfficeLength.Inches(Math.Max(0.5, right - left)),
             OfficeIMO.OfficeLength.Inches(Math.Max(0.5, bottom - top)),
             name);
-        panel.FillColor = "FFFFFF";
+        panel.FillColor = OfficeColor.Parse("FFFFFF");
         panel.FillTransparency = 4;
-        panel.OutlineColor = "D9E2EF";
+        panel.OutlineColor = OfficeColor.Parse("D9E2EF");
         panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0.75);
     }
 

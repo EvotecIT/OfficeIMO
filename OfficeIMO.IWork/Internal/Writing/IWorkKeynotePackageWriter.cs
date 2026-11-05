@@ -5,7 +5,7 @@ namespace OfficeIMO.IWork.Internal;
 
 /// <summary>Encodes native archives and deterministic stored ZIP entries through the shared Core ZIP owner.</summary>
 internal static class IWorkKeynotePackageWriter {
-    internal static byte[] Write(IWorkKeynoteDocument document, IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken) {
+    internal static byte[] Write(IWorkKeynoteDocument document, IWorkKeynoteSaveOptions limits, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         if (document.Slides.Count == 0) throw new InvalidOperationException("A native Keynote presentation requires at least one slide.");
         if (document.Slides.Count > limits.MaxSlides) throw new InvalidDataException("The native Keynote slide limit was exceeded.");
@@ -62,7 +62,7 @@ internal static class IWorkKeynotePackageWriter {
 
     private static byte[] ModelHash(IWorkCanvasSize size,
         IEnumerable<(IWorkKeynoteSlideBuilder Slide, IWorkKeynoteCreationDrawable[] Drawables)> slides,
-        IWorkKeynoteWriteOptions limits, CancellationToken cancellationToken) {
+        IWorkKeynoteSaveOptions limits, CancellationToken cancellationToken) {
         IWorkProtoWriter P() => new(limits.MaxPackageBytes, cancellationToken);
         var input = P().Float(1, (float)size.WidthPoints).Float(2, (float)size.HeightPoints);
         foreach (var slide in slides) {

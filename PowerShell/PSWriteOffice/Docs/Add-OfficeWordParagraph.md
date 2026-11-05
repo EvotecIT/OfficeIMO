@@ -11,12 +11,22 @@ Adds a paragraph to the current section/header/footer context.
 ## SYNTAX
 ### Text (Default)
 ```powershell
-Add-OfficeWordParagraph [[-Text] <string>] [-Target <Object>] [-Run <Object[]>] [-Alignment <WordParagraphAlignment>] [-Style <WordParagraphStyles>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordParagraph [[-Text] <string>] [-Document <WordDocument>] [-Alignment <OfficeAlignment>] [-Style <WordParagraphStyles>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ### Content
 ```powershell
-Add-OfficeWordParagraph [[-Content] <scriptblock>] [-Target <Object>] [-Text <string>] [-Alignment <WordParagraphAlignment>] [-Style <WordParagraphStyles>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+Add-OfficeWordParagraph [-Content] <scriptblock> [-Document <WordDocument>] [-Alignment <OfficeAlignment>] [-Style <WordParagraphStyles>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+```
+
+### SectionText
+```powershell
+Add-OfficeWordParagraph [[-Text] <string>] -Section <WordSection> [-Alignment <OfficeAlignment>] [-Style <WordParagraphStyles>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
+```
+
+### SectionContent
+```powershell
+Add-OfficeWordParagraph [-Content] <scriptblock> -Section <WordSection> [-Alignment <OfficeAlignment>] [-Style <WordParagraphStyles>] [-StyleId <string>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -53,10 +63,10 @@ Creates a paragraph on a live document and appends two differently formatted run
 Paragraph justification.
 
 ```yaml
-Type: WordParagraphAlignment
-Parameter Sets: Text, Content
+Type: OfficeAlignment
+Parameter Sets: Text, Content, SectionText, SectionContent
 Aliases: None
-Possible values: Left, Start, Center, Right, End, Both, MediumKashida, Distribute, NumTab, HighKashida, LowKashida, ThaiDistribute
+Possible values: Left, Center, Right, Justify, Start, End
 
 Required: False
 Position: named
@@ -66,18 +76,34 @@ Accept wildcard characters: False
 ```
 
 ### -Content
-Nested DSL content (runs, lists, images).
+Nested WordText and inline content.
 
 ```yaml
 Type: ScriptBlock
-Parameter Sets: Content
+Parameter Sets: Content, SectionContent
+Aliases: None
+Possible values:
+
+Required: True
+Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Document
+Live document to receive the paragraph; omitted in a content block.
+
+```yaml
+Type: WordDocument
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
 Required: False
-Position: 0
+Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -86,7 +112,7 @@ Emit the WordParagraph for further use.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Text, Content
+Parameter Sets: Text, Content, SectionText, SectionContent
 Aliases: None
 Possible values:
 
@@ -97,19 +123,19 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Run
-Rich text runs. Each run can be created with TextRun/WordTextRun or provided as a hashtable/object.
+### -Section
+Section to receive the paragraph.
 
 ```yaml
-Type: Object[]
-Parameter Sets: Text
-Aliases: Runs
+Type: WordSection
+Parameter Sets: SectionText, SectionContent
+Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
-Accept pipeline input: False
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -118,7 +144,7 @@ Paragraph style.
 
 ```yaml
 Type: WordParagraphStyles
-Parameter Sets: Text, Content
+Parameter Sets: Text, Content, SectionText, SectionContent
 Aliases: None
 Possible values: Normal, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, Heading7, Heading8, Heading9, ListParagraph, Custom, Title, Subtitle
 
@@ -134,7 +160,7 @@ Paragraph style id, including custom style ids from a template document.
 
 ```yaml
 Type: String
-Parameter Sets: Text, Content
+Parameter Sets: Text, Content, SectionText, SectionContent
 Aliases: None
 Possible values:
 
@@ -145,28 +171,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Target
-Document or section that will receive the paragraph.
-
-```yaml
-Type: Object
-Parameter Sets: Text, Content
-Aliases: Document, Section
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
 ### -Text
-Optional initial paragraph text.
+Initial paragraph text; omission creates an empty paragraph.
 
 ```yaml
 Type: String
-Parameter Sets: Text, Content
+Parameter Sets: Text, SectionText
 Aliases: None
 Possible values:
 
@@ -182,7 +192,8 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.Object`
+- `OfficeIMO.Word.WordDocument`
+- `OfficeIMO.Word.WordSection`
 
 ## OUTPUTS
 

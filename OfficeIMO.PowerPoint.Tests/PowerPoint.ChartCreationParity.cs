@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                         .SetDataLabels(showValue: true, showPercent: true)
                         .SetDataLabelPosition(OfficeChartDataLabelPosition.BestFit)
                         .SetDataLabelNumberFormat("0.0%", sourceLinked: false)
-                        .SetSeriesFillColor(0, "4472C4");
+                        .SetSeriesFillColor(0, OfficeColor.Parse("4472C4"));
                     chart.UpdateData(updatedData);
 
                     presentation.Save();
@@ -118,8 +118,8 @@ namespace OfficeIMO.Tests {
 
                     chart.SetTitle("Monthly Revenue")
                         .SetDataLabels(showValue: true)
-                        .SetSeriesLineColor(0, "ED7D31", OfficeLength.Points(2.5))
-                        .SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(9), fillColor: "ED7D31", lineColor: "A64D13");
+                        .SetSeriesLineColor(0, OfficeColor.Parse("ED7D31"), OfficeLength.Points(2.5))
+                        .SetSeriesMarker(0, OfficeChartMarkerShape.Circle, size: OfficeLength.Points(9), fillColor: OfficeColor.Parse("ED7D31"), lineColor: OfficeColor.Parse("A64D13"));
 
                     presentation.Save();
                 }
@@ -205,8 +205,8 @@ namespace OfficeIMO.Tests {
                         .SetDataLabels(showValue: true)
                         .SetDataLabelPosition(OfficeChartDataLabelPosition.Right)
                         .SetDataLabelNumberFormat("0.00", sourceLinked: false)
-                        .SetSeriesLineColor("Revenue", "5B9BD5", OfficeLength.Points(2))
-                        .SetSeriesMarker("Forecast", OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(8), fillColor: "ED7D31", lineColor: "A64D13");
+                        .SetSeriesLineColor("Revenue", OfficeColor.Parse("5B9BD5"), OfficeLength.Points(2))
+                        .SetSeriesMarker("Forecast", OfficeChartMarkerShape.Diamond, size: OfficeLength.Points(8), fillColor: OfficeColor.Parse("ED7D31"), lineColor: OfficeColor.Parse("A64D13"));
 
                     presentation.Save();
                 }

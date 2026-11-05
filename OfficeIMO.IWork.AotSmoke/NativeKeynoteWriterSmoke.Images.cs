@@ -8,11 +8,11 @@ internal static partial class NativeKeynoteWriterSmoke {
 
     private static void RunImages() {
         IWorkKeynoteDocument document = CreateImageExample();
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == ImageAcceptedSha256,
             "NativeAOT image graph differs from the independently decoded and Apple-opened package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "NativeAOT image graph is nondeterministic.");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(bytes);
+        Require(bytes.SequenceEqual(document.ToBytes()), "NativeAOT image graph is nondeterministic.");
+        IWorkSourceDocument source = IWorkSourceDocument.Load(bytes);
         IWorkKeynoteProjection projection = source.ReadKeynote();
         Require(projection.Slides.Count == 3 && projection.Slides.All(slide => slide.Images.Count == 1),
             "NativeAOT image readback is incomplete.");
@@ -22,7 +22,7 @@ internal static partial class NativeKeynoteWriterSmoke {
             IWorkKeynoteDrawableKind.TextBox, IWorkKeynoteDrawableKind.TextBox,
             IWorkKeynoteDrawableKind.Image, IWorkKeynoteDrawableKind.TextBox
         }), "NativeAOT text/image insertion order differs.");
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Keynote).ToPowerPointResult(new IWorkConversionOptions { Mode = IWorkConversionMode.EditableOnly });
         converted.Report.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var saved = PowerPointDocument.Load(output);
@@ -35,7 +35,7 @@ internal static partial class NativeKeynoteWriterSmoke {
         }
         using var unchanged = new MemoryStream(new byte[] { 9, 8, 7 });
         try {
-            document.Save(unchanged, new IWorkKeynoteWriteOptions { MaxImages = 2 });
+            document.Save(unchanged, new IWorkKeynoteSaveOptions { MaxImages = 2 });
             throw new InvalidOperationException("NativeAOT image-count budget was not enforced.");
         } catch (InvalidDataException) { }
         Require(unchanged.ToArray().SequenceEqual(new byte[] { 9, 8, 7 }), "NativeAOT image-budget failure changed the destination.");

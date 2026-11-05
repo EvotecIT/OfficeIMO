@@ -114,11 +114,11 @@ Describe 'CSV and Excel mutation contracts' {
             ForEach-Object { [pscustomobject]@{ Name = "Row$_"; Value = $_ } } |
             Export-Csv -Path $csv -NoTypeInformation
 
-        $result = Import-OfficeExcelDelimitedText -Path $xlsx -SourcePath $csv -PassThru
+        $result = Import-OfficeCsv -Path $csv -DetectDelimiter | Export-OfficeExcel -Path $xlsx -Sheet Import -PassThru
 
         Test-Path -LiteralPath $xlsx | Should -BeTrue
-        $result.RowCount | Should -Be 3
-        $rows = Import-OfficeExcel -Path $xlsx -WorksheetName Import
+        $result | Should -BeOfType ([System.IO.FileInfo])
+        $rows = Import-OfficeExcel -Path $xlsx -Sheet Import
         $rows.Count | Should -Be 3
         $rows[0].Name | Should -Be 'Row1'
     }
@@ -128,10 +128,10 @@ Describe 'CSV and Excel mutation contracts' {
         $xlsx = Join-Path $TestDrive 'created-semicolon.xlsx'
         Set-Content -LiteralPath $csv -Value "Name;Value`r`nAlpha;1" -Encoding UTF8
 
-        $result = Import-OfficeExcelDelimitedText -Path $xlsx -SourcePath $csv -PassThru
-
-        $result.Delimiter | Should -Be ';'
-        $result.RowCount | Should -Be 1
+        $source = Import-OfficeCsv -Path $csv -DetectDelimiter -As Document
+        $source.Delimiter | Should -Be ';'
+        Import-OfficeCsv -Document $source | Export-OfficeExcel -Path $xlsx -Sheet Import
+        @(Import-OfficeExcel -Path $xlsx -Sheet Import).Count | Should -Be 1
     }
 
     It 'reports the actual sanitized and unique table name for downstream commands' {
@@ -139,16 +139,22 @@ Describe 'CSV and Excel mutation contracts' {
         $xlsx = Join-Path $TestDrive 'created-table-name.xlsx'
         Set-Content -LiteralPath $csv -Value "Name,Value`r`nAlpha,1" -Encoding UTF8
         [pscustomobject]@{ Name = 'Existing'; Value = 0 } |
-            Export-OfficeExcel -Path $xlsx -WorksheetName Seed -TableName Sales_Data
+            Export-OfficeExcel -Path $xlsx -Sheet Seed -TableName Sales_Data
 
-        $result = Import-OfficeExcelDelimitedText -Path $xlsx -SourcePath $csv -SheetName 'Sales Data' -PassThru
-
-        $result.TableName | Should -Be 'Sales_Data2'
-        $table = Get-OfficeExcelTable -Path $xlsx | Where-Object Name -eq $result.TableName
-        $table.Name | Should -Be $result.TableName
-        [pscustomobject]@{ Name = 'Beta'; Value = 2 } |
-            Add-OfficeExcelTableRow -Path $xlsx -Sheet 'Sales Data' -TableName $result.TableName
-        @(Import-OfficeExcel -Path $xlsx -WorksheetName 'Sales Data').Count | Should -Be 2
+        $script:importedTableName = $null
+        Open-OfficeExcel -Path $xlsx {
+            ExcelSheet 'Sales Data' {
+                $table = Add-OfficeExcelTable -InputObject (Import-OfficeCsv -Path $csv) -Name 'Sales Data' -PassThru
+                $script:importedTableName = $table.NameOrRange
+            }
+        }
+        $script:importedTableName | Should -Be 'Sales_Data2'
+        $table = Get-OfficeExcelTable -Path $xlsx | Where-Object Name -eq $script:importedTableName
+        $table.Name | Should -Be $script:importedTableName
+        Open-OfficeExcel -Path $xlsx {
+            [pscustomobject]@{ Name = 'Beta'; Value = 2 } | Add-OfficeExcelTableRow -Sheet 'Sales Data' -Table $script:importedTableName
+        }
+        @(Import-OfficeExcel -Path $xlsx -Sheet 'Sales Data').Count | Should -Be 2
     }
 
     It 'preserves the first data row when importing headerless CSV into Excel' {
@@ -156,10 +162,10 @@ Describe 'CSV and Excel mutation contracts' {
         $xlsx = Join-Path $TestDrive 'created-no-header.xlsx'
         Set-Content -LiteralPath $csv -Value "Alpha,1`r`nBeta,2" -Encoding UTF8
 
-        $result = Import-OfficeExcelDelimitedText -Path $xlsx -SourcePath $csv -NoHeader -PassThru
+        $result = Import-OfficeCsv -Path $csv -NoHeader | Export-OfficeExcel -Path $xlsx -Sheet Import -NoHeader -PassThru
 
-        $result.RowCount | Should -Be 2
-        $rows = @(Import-OfficeExcel -Path $xlsx -WorksheetName Import -NoHeader)
+        $result | Should -BeOfType ([System.IO.FileInfo])
+        $rows = @(Import-OfficeExcel -Path $xlsx -Sheet Import -NoHeader)
         $rows.Count | Should -Be 2
         $rows[0].Column1 | Should -Be 'Alpha'
         $rows[0].Column2 | Should -Be 1
@@ -178,7 +184,7 @@ Describe 'CSV and Excel mutation contracts' {
             }
         }
 
-        $table = Import-OfficeExcel -Path $xlsx -WorksheetName Data -AsDataTable
+        $table = Import-OfficeExcel -Path $xlsx -Sheet Data -As DataTable
 
         $table.Columns['Name'].DataType | Should -Be ([string])
         $table.Columns['Quantity'].DataType | Should -Not -Be ([object])
@@ -198,7 +204,7 @@ Describe 'CSV and Excel mutation contracts' {
             }
         }
 
-        $data = Import-OfficeExcel -Path $xlsx -WorksheetName Data
+        $data = Import-OfficeExcel -Path $xlsx -Sheet Data
         $data.Count | Should -Be 2
         ($null -eq $data[1].Name) | Should -BeTrue
         $data[1].Value | Should -Be 'Beta'
@@ -209,10 +215,10 @@ Describe 'CSV and Excel mutation contracts' {
         $xlsx = Join-Path $TestDrive 'created-preamble.xlsx'
         Set-Content -LiteralPath $csv -Value "generated by vendor`r`nName,Value`r`nRow1,1`r`nRow2,2" -Encoding UTF8
 
-        $result = Import-OfficeExcelDelimitedText -Path $xlsx -SourcePath $csv -SkipRows 1 -PassThru
+        $result = Import-OfficeCsv -Path $csv -SkipRows 1 | Export-OfficeExcel -Path $xlsx -Sheet Import -PassThru
 
-        $result.RowCount | Should -Be 2
-        $rows = @(Import-OfficeExcel -Path $xlsx -WorksheetName Import)
+        $result | Should -BeOfType ([System.IO.FileInfo])
+        $rows = @(Import-OfficeExcel -Path $xlsx -Sheet Import)
         $rows.Count | Should -Be 2
         $rows[0].Name | Should -Be 'Row1'
     }
@@ -223,9 +229,9 @@ Describe 'CSV and Excel mutation contracts' {
         @(
             [pscustomobject]@{ Name = 'Row1'; Value = 1 }
             [pscustomobject]@{ Name = 'Row2'; Extra = 'Ignored' }
-        ) | Export-OfficeExcel -Path $xlsx -WorksheetName Data -TableName Data
+        ) | Export-OfficeExcel -Path $xlsx -Sheet Data -TableName Data
 
-        $rows = @(Import-OfficeExcel -Path $xlsx -WorksheetName Data)
+        $rows = @(Import-OfficeExcel -Path $xlsx -Sheet Data)
         $rows.Count | Should -Be 2
         $rows[0].Name | Should -Be 'Row1'
         $rows[0].Value | Should -Be 1
@@ -238,9 +244,9 @@ Describe 'CSV and Excel mutation contracts' {
         $xlsx = Join-Path $TestDrive 'excel-data-rows.xlsx'
 
         [pscustomobject]@{ Name = 'Row1'; Value = 1 } |
-            Export-OfficeExcel -Path $xlsx -WorksheetName Data -TableName Data
+            Export-OfficeExcel -Path $xlsx -Sheet Data -TableName Data
 
-        $rows = @(Get-OfficeExcelData -Path $xlsx -Sheet Data)
+        $rows = @(Import-OfficeExcel -Path $xlsx -Sheet Data)
 
         $rows.Count | Should -Be 1
         $rows[0].GetType().FullName | Should -Be 'System.Management.Automation.PSCustomObject'
@@ -248,20 +254,21 @@ Describe 'CSV and Excel mutation contracts' {
         $rows[0].Value | Should -Be 1
     }
 
-    It 'does not append Excel table rows when Add-OfficeExcelTableRow is invoked with WhatIf' {
+    It 'does not append Excel table rows when lifecycle publication uses WhatIf' {
         $xlsx = Join-Path $TestDrive 'table.xlsx'
         [pscustomobject]@{ Name = 'Row1'; Value = 1 } |
-            Export-OfficeExcel -Path $xlsx -WorksheetName Data -TableName Data
+            Export-OfficeExcel -Path $xlsx -Sheet Data -TableName Data
 
-        [pscustomobject]@{ Name = 'Row2'; Value = 2 } |
-            Add-OfficeExcelTableRow -Path $xlsx -Sheet Data -TableName Data -WhatIf
+        Open-OfficeExcel -Path $xlsx -WhatIf {
+            [pscustomobject]@{ Name = 'Row2'; Value = 2 } | Add-OfficeExcelTableRow -Sheet Data -Table Data
+        }
 
-        $rows = @(Import-OfficeExcel -Path $xlsx -WorksheetName Data)
+        $rows = @(Import-OfficeExcel -Path $xlsx -Sheet Data)
         $rows.Count | Should -Be 1
         $rows[0].Name | Should -Be 'Row1'
     }
 
-    It 'does not add threaded comments to live Excel documents when WhatIf is used' {
+    It 'does not add threaded comments when lifecycle publication uses WhatIf' {
         $xlsx = Join-Path $TestDrive 'threaded-comment-whatif.xlsx'
         New-OfficeExcel -Path $xlsx {
             Add-OfficeExcelSheet -Name Data
@@ -269,9 +276,9 @@ Describe 'CSV and Excel mutation contracts' {
 
         $document = Open-OfficeExcel -Path $xlsx
         try {
-            $document | Add-OfficeExcelThreadedComment -Sheet Data -Address A1 -Text 'Nope' -Author Reviewer -WhatIf
-            $audit = $document | Get-OfficeExcelCommentAudit -IncludeComments
-            $audit.ThreadedCommentCount | Should -Be 0
+            Open-OfficeExcel -Path $xlsx -WhatIf { Add-OfficeExcelComment -Threaded -Sheet Data -Address A1 -Text 'Nope' -Author Reviewer }
+            @($document | Get-OfficeExcelComment -Kind Threaded).Count | Should -Be 0
+            @(Get-OfficeExcelComment -Path $xlsx -Kind Threaded).Count | Should -Be 0
         } finally {
             $document | Close-OfficeExcel
         }
@@ -290,10 +297,10 @@ Describe 'CSV and Excel mutation contracts' {
         $document = Open-OfficeExcel -Path $target
         try {
             $document | Copy-OfficeExcelSheet -Source $source -WhatIf | Should -BeNullOrEmpty
-            $summary = $document | Get-OfficeExcelSummary -IncludeSheets
+            $summary = $document | Get-OfficeDocumentInfo -Detailed
             $summary.SheetCount | Should -Be 1
-            $summary.Sheets.Name | Should -Contain 'Target'
-            $summary.Sheets.Name | Should -Not -Contain 'Source'
+            $summary.Details.Worksheets.Name | Should -Contain 'Target'
+            $summary.Details.Worksheets.Name | Should -Not -Contain 'Source'
         } finally {
             $document | Close-OfficeExcel
         }
@@ -307,7 +314,7 @@ Describe 'CSV and Excel mutation contracts' {
 
         $document = Open-OfficeExcel -Path $xlsx
         try {
-            $document | Repair-OfficeExcelWorkbook -PassThru -WhatIf | Should -BeNullOrEmpty
+            $document | Repair-OfficeDocument -PassThru -WhatIf | Should -BeNullOrEmpty
         } finally {
             $document | Close-OfficeExcel
         }

@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Services.Pdf;
@@ -17,8 +18,8 @@ namespace PSWriteOffice.Cmdlets.Pdf;
 ///   <para>Adds a visual divider between generated PDF sections.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficePdfHorizontalRule", DefaultParameterSetName = ParameterSetContext)]
-[Alias("PdfHorizontalRule", "PdfHr")]
 [OutputType(typeof(PdfDocument))]
+[Alias("PdfHorizontalRule") ]
 public sealed class AddOfficePdfHorizontalRuleCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";
@@ -29,32 +30,32 @@ public sealed class AddOfficePdfHorizontalRuleCommand : PSCmdlet
     public PdfDocument Document { get; set; } = null!;
 
     /// <summary>Rule thickness in PDF points.</summary>
-    [Parameter]
-    public double? Thickness { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? Thickness { get; set; }
 
     /// <summary>Rule color. Named colors and hexadecimal values are accepted.</summary>
     [Parameter]
-    [OfficeColorArgumentTransformation]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? Color { get; set; }
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? Color { get; set; }
 
     /// <summary>Spacing before the rule in PDF points.</summary>
-    [Parameter]
-    public double? SpacingBefore { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? SpacingBefore { get; set; }
 
     /// <summary>Spacing after the rule in PDF points.</summary>
-    [Parameter]
-    public double? SpacingAfter { get; set; }
+    [Parameter, OfficeLengthTransformation]
+    public OfficeLength? SpacingAfter { get; set; }
 
     /// <summary>Emit the updated document.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = ParameterSetDocument)]
     public SwitchParameter PassThru { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord()
     {
         var document = PdfCommandUtilities.ComposeContent(this, Document, ParameterSetName, ParameterSetDocument,
-            content => content.HR(((double?)(Thickness) is double physicalLength1 ? global::OfficeIMO.OfficeLength.Points(physicalLength1) : (global::OfficeIMO.OfficeLength?)null), PdfCommandUtilities.ParseColor(Color), ((double?)(SpacingBefore) is double physicalLength2 ? global::OfficeIMO.OfficeLength.Points(physicalLength2) : (global::OfficeIMO.OfficeLength?)null), ((double?)(SpacingAfter) is double physicalLength3 ? global::OfficeIMO.OfficeLength.Points(physicalLength3) : (global::OfficeIMO.OfficeLength?)null)));
+            content => content.HR(Thickness, Color, SpacingBefore, SpacingAfter));
         if (PassThru.IsPresent && document != null)
         {
             WriteObject(document);

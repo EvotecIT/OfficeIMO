@@ -221,8 +221,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the font family name.
         /// </summary>
-        public ExcelCell SetFontName(string fontName) {
-            Sheet.CellFontName(Row, Column, fontName);
+        public ExcelCell SetFontFamily(string fontFamily) {
+            Sheet.CellFontName(Row, Column, fontFamily);
             return this;
         }
 
@@ -237,8 +237,8 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Sets the font color using a hex color value.
         /// </summary>
-        public ExcelCell SetFontColor(string hexColor) {
-            Sheet.CellFontColor(Row, Column, hexColor);
+        public ExcelCell SetColor(OfficeColor color) {
+            Sheet.CellFontColor(Row, Column, color);
             return this;
         }
 
@@ -276,14 +276,6 @@ namespace OfficeIMO.Excel {
             return this;
         }
 
-        /// <summary>
-        /// Sets the solid fill color using a hex value, <c>#RRGGBB</c> or <c>#AARRGGBB</c>.
-        /// </summary>
-        public ExcelCell SetFillColor(string hexColor) {
-            Sheet.CellBackground(Row, Column, hexColor);
-            return this;
-        }
-
         /// <summary>Sets the solid fill color. Theme colors stay linked to the workbook theme.</summary>
         public ExcelCell SetFillColor(OfficeColor color) {
             Sheet.CellBackground(Row, Column, color);
@@ -291,32 +283,32 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Sets a two-color linear gradient fill using hex color values.
+        /// Sets a two-color linear gradient fill using literal or theme colors.
         /// </summary>
-        public ExcelCell SetGradientFill(string fromHexColor, string toHexColor, double degree = 0) {
-            Sheet.CellGradientBackground(Row, Column, fromHexColor, toHexColor, degree);
+        public ExcelCell SetGradientFill(OfficeColor fromColor, OfficeColor toColor, double degree = 0) {
+            Sheet.CellGradientBackground(Row, Column, fromColor, toColor, degree);
             return this;
         }
 
         /// <summary>
         /// Applies a border style to the cell.
         /// </summary>
-        public ExcelCell SetBorder(ExcelBorderStyle style, string? hexColor = null) {
-            Sheet.CellBorder(Row, Column, style, hexColor);
+        public ExcelCell SetBorder(ExcelBorderStyle style, OfficeColor? color = null) {
+            Sheet.CellBorder(Row, Column, style, color);
             return this;
         }
 
         /// <summary>Sets selected border edges while preserving other edges and cell styles.</summary>
-        public ExcelCell SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null) {
-            Sheet.CellBorder(Row, Column, borders, style, hexColor);
+        public ExcelCell SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, OfficeColor? color = null) {
+            Sheet.CellBorder(Row, Column, borders, style, color);
             return this;
         }
 
         /// <summary>
         /// Applies diagonal borders to the cell.
         /// </summary>
-        public ExcelCell SetDiagonalBorder(ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
-            Sheet.CellDiagonalBorder(Row, Column, style, hexColor, diagonalUp, diagonalDown);
+        public ExcelCell SetDiagonalBorder(ExcelBorderStyle style, OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true) {
+            Sheet.CellDiagonalBorder(Row, Column, style, color, diagonalUp, diagonalDown);
             return this;
         }
 
@@ -510,18 +502,10 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Applies a fill color to every cell in the range.
-        /// </summary>
-        public ExcelRange SetFillColor(string hexColor) {
-            ForEachArea(area => Sheet.FillRange(area, hexColor));
-            return this;
-        }
-
-        /// <summary>
         /// Applies a two-color linear gradient fill to every cell in the range.
         /// </summary>
-        public ExcelRange SetGradientFill(string fromHexColor, string toHexColor, double degree = 0) {
-            ForEachArea(area => Sheet.FillRangeGradient(area, fromHexColor, toHexColor, degree));
+        public ExcelRange SetGradientFill(OfficeColor fromColor, OfficeColor toColor, double degree = 0) {
+            ForEachArea(area => Sheet.FillRangeGradient(area, fromColor, toColor, degree));
             return this;
         }
 
@@ -550,36 +534,36 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Applies a border style to every edge of every cell in the range.</summary>
-        public ExcelRange SetBorder(ExcelBorderStyle style, string? hexColor = null) {
-            ForEachCell((row, column) => Sheet.CellBorder(row, column, style, hexColor));
+        public ExcelRange SetBorder(ExcelBorderStyle style, OfficeColor? color = null) {
+            ForEachCell((row, column) => Sheet.CellBorder(row, column, style, color));
             return this;
         }
 
         /// <summary>Sets selected border edges of every cell in the range while preserving other edges and styles.</summary>
-        public ExcelRange SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, string? hexColor = null) {
-            ForEachCell((row, column) => Sheet.CellBorder(row, column, borders, style, hexColor));
+        public ExcelRange SetBorder(ExcelCellBorders borders, ExcelBorderStyle style, OfficeColor? color = null) {
+            ForEachCell((row, column) => Sheet.CellBorder(row, column, borders, style, color));
             return this;
         }
 
         /// <summary>Applies diagonal borders to every cell in the range.</summary>
-        public ExcelRange SetDiagonalBorder(ExcelBorderStyle style, string? hexColor = null, bool diagonalUp = true, bool diagonalDown = true) {
-            ForEachCell((row, column) => Sheet.CellDiagonalBorder(row, column, style, hexColor, diagonalUp, diagonalDown));
+        public ExcelRange SetDiagonalBorder(ExcelBorderStyle style, OfficeColor? color = null, bool diagonalUp = true, bool diagonalDown = true) {
+            ForEachCell((row, column) => Sheet.CellDiagonalBorder(row, column, style, color, diagonalUp, diagonalDown));
             return this;
         }
 
         /// <summary>
         /// Applies a font color to every cell in the range.
         /// </summary>
-        public ExcelRange SetFontColor(string hexColor) {
-            ForEachCell((row, column) => Sheet.CellFontColor(row, column, hexColor));
+        public ExcelRange SetColor(OfficeColor color) {
+            ForEachCell((row, column) => Sheet.CellFontColor(row, column, color));
             return this;
         }
 
         /// <summary>
         /// Applies a font family name to every cell in the range.
         /// </summary>
-        public ExcelRange SetFontName(string fontName) {
-            ForEachCell((row, column) => Sheet.CellFontName(row, column, fontName));
+        public ExcelRange SetFontFamily(string fontFamily) {
+            ForEachCell((row, column) => Sheet.CellFontName(row, column, fontFamily));
             return this;
         }
 
@@ -848,264 +832,5 @@ namespace OfficeIMO.Excel {
         }
     }
 
-    /// <summary>
-    /// Describes a run of rich text inside a cell.
-    /// </summary>
-    public sealed class ExcelRichTextRun {
-        private bool _bold;
-        private bool _italic;
-        private bool _underline;
-        private bool _strikethrough;
-        private ExcelUnderlineStyle? _underlineStyle;
-        private OfficeLength? _fontSize;
-
-        /// <summary>
-        /// Creates a rich text run with the supplied text.
-        /// </summary>
-        public ExcelRichTextRun(string text) {
-            Text = text ?? string.Empty;
-        }
-
-        /// <summary>Gets or sets the run text.</summary>
-        public string Text { get; set; }
-        /// <summary>Gets or sets whether the run is bold.</summary>
-        public bool Bold {
-            get => _bold;
-            set {
-                _bold = value;
-                BoldSpecified = true;
-            }
-        }
-        /// <summary>Gets or sets whether the run is italic.</summary>
-        public bool Italic {
-            get => _italic;
-            set {
-                _italic = value;
-                ItalicSpecified = true;
-            }
-        }
-        /// <summary>Gets or sets whether the run is underlined.</summary>
-        public bool Underline {
-            get => _underline;
-            set {
-                _underline = value;
-                if (!value) {
-                    _underlineStyle = ExcelUnderlineStyle.None;
-                } else if (!_underlineStyle.HasValue || _underlineStyle == ExcelUnderlineStyle.None) {
-                    _underlineStyle = ExcelUnderlineStyle.Single;
-                }
-                UnderlineSpecified = true;
-            }
-        }
-        /// <summary>Gets or sets whether the run is struck through.</summary>
-        public bool Strikethrough {
-            get => _strikethrough;
-            set {
-                _strikethrough = value;
-                StrikethroughSpecified = true;
-            }
-        }
-        /// <summary>Gets or sets the run underline style.</summary>
-        public ExcelUnderlineStyle? UnderlineStyle {
-            get => _underlineStyle;
-            set {
-                _underlineStyle = value;
-                if (value.HasValue) {
-                    _underline = value != ExcelUnderlineStyle.None;
-                    UnderlineSpecified = true;
-                }
-            }
-        }
-        /// <summary>Gets or sets the run font color as a hex value.</summary>
-        public string? FontColor { get; set; }
-        /// <summary>Gets or sets the run font name.</summary>
-        public string? FontName { get; set; }
-        /// <summary>Gets or sets the positive physical run font size; null inherits the cell font size.</summary>
-        public OfficeLength? FontSize {
-            get => _fontSize;
-            set {
-                if (value.HasValue && value.Value <= OfficeLength.Zero)
-                    throw new ArgumentOutOfRangeException(nameof(FontSize), "Font size must be positive.");
-                _fontSize = value;
-            }
-        }
-        /// <summary>Gets or sets the run vertical text alignment.</summary>
-        public ExcelVerticalTextAlignment? VerticalTextAlignment { get; set; }
-        /// <summary>Gets or sets whether the run font uses outline text.</summary>
-        public bool Outline { get; set; }
-        /// <summary>Gets or sets whether the run font uses shadow text.</summary>
-        public bool Shadow { get; set; }
-        /// <summary>Gets or sets whether the run font uses condensed text.</summary>
-        public bool Condense { get; set; }
-        /// <summary>Gets or sets whether the run font uses extended text.</summary>
-        public bool Extend { get; set; }
-        /// <summary>Gets or sets the run font family classification byte.</summary>
-        public byte? FontFamily { get; set; }
-        /// <summary>Gets or sets the run font character set byte.</summary>
-        public byte? FontCharacterSet { get; set; }
-
-        internal bool BoldSpecified { get; private set; }
-        internal bool ItalicSpecified { get; private set; }
-        internal bool UnderlineSpecified { get; private set; }
-        internal bool StrikethroughSpecified { get; private set; }
-
-        /// <summary>
-        /// Creates a plain rich text run.
-        /// </summary>
-        public static ExcelRichTextRun Plain(string text) => new ExcelRichTextRun(text);
-
-        /// <summary>
-        /// Changes the stored run text casing while preserving rich-text formatting.
-        /// </summary>
-        public ExcelRichTextRun TransformTextCase(OfficeTextCase textCase, CultureInfo? culture = null) {
-            Text = OfficeTextCaseTransformer.Apply(Text, textCase, culture);
-            return this;
-        }
-
-        /// <summary>Projects native run properties without losing explicit disabled values.</summary>
-        internal static ExcelRichTextRun FromOpenXml(string text, RunProperties? properties, string? resolvedFontColor = null) {
-            var result = new ExcelRichTextRun(text) {
-                FontColor = resolvedFontColor ?? properties?.GetFirstChild<Color>()?.Rgb?.Value,
-                FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value is double points ? OfficeLength.Points(points) : (OfficeLength?)null,
-                VerticalTextAlignment = GetVerticalTextAlignment(properties),
-                Outline = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Outline>()),
-                Shadow = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Shadow>()),
-                Condense = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Condense>()),
-                Extend = ExcelOpenXmlFontProperty.IsEnabled(properties?.GetFirstChild<Extend>()),
-                FontFamily = GetFontFamily(properties),
-                FontCharacterSet = GetFontCharacterSet(properties)
-            };
-
-            DocumentFormat.OpenXml.Spreadsheet.Bold? bold = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Bold>();
-            if (bold != null) result.Bold = ExcelOpenXmlFontProperty.IsEnabled(bold);
-            DocumentFormat.OpenXml.Spreadsheet.Italic? italic = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Italic>();
-            if (italic != null) result.Italic = ExcelOpenXmlFontProperty.IsEnabled(italic);
-            DocumentFormat.OpenXml.Spreadsheet.Underline? underline = properties?.GetFirstChild<DocumentFormat.OpenXml.Spreadsheet.Underline>();
-            if (underline != null) {
-                result.Underline = ExcelOpenXmlFontProperty.IsUnderlineEnabled(underline);
-                result.UnderlineStyle = GetUnderlineStyle(properties);
-            }
-            Strike? strike = properties?.GetFirstChild<Strike>();
-            if (strike != null) result.Strikethrough = ExcelOpenXmlFontProperty.IsEnabled(strike);
-            return result;
-        }
-
-        /// <summary>Copies a run while retaining which direct Boolean properties were present.</summary>
-        internal ExcelRichTextRun Clone(string? text = null) {
-            var result = new ExcelRichTextRun(text ?? Text) {
-                FontColor = FontColor,
-                FontName = FontName,
-                FontSize = FontSize,
-                VerticalTextAlignment = VerticalTextAlignment,
-                Outline = Outline,
-                Shadow = Shadow,
-                Condense = Condense,
-                Extend = Extend,
-                FontFamily = FontFamily,
-                FontCharacterSet = FontCharacterSet
-            };
-            if (BoldSpecified) result.Bold = Bold;
-            if (ItalicSpecified) result.Italic = Italic;
-            if (UnderlineSpecified) {
-                result.Underline = Underline;
-                result.UnderlineStyle = UnderlineStyle;
-            }
-            if (StrikethroughSpecified) result.Strikethrough = Strikethrough;
-            return result;
-        }
-
-        internal static void AppendFontMetadata(RunProperties properties, ExcelRichTextRun run) {
-            if (run.VerticalTextAlignment.HasValue) {
-                properties.Append(new VerticalTextAlignment { Val = run.VerticalTextAlignment.Value.ToOpenXml() });
-            }
-
-            if (run.Outline) {
-                properties.Append(new Outline());
-            }
-
-            if (run.Shadow) {
-                properties.Append(new Shadow());
-            }
-
-            if (run.Condense) {
-                properties.Append(new Condense());
-            }
-
-            if (run.Extend) {
-                properties.Append(new Extend());
-            }
-
-            if (run.FontFamily.HasValue) {
-                properties.Append(new FontFamilyNumbering { Val = run.FontFamily.Value });
-            }
-
-            if (run.FontCharacterSet.HasValue) {
-                var charset = new OpenXmlUnknownElement(string.Empty, "charset", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-                charset.SetAttribute(new OpenXmlAttribute("val", string.Empty, run.FontCharacterSet.Value.ToString(CultureInfo.InvariantCulture)));
-                properties.Append(charset);
-            }
-        }
-
-        internal static byte? GetFontFamily(RunProperties? properties) {
-            return TryGetByte(properties?.GetFirstChild<FontFamilyNumbering>()?.Val?.Value, out byte family)
-                ? family
-                : null;
-        }
-
-        internal static byte? GetFontCharacterSet(RunProperties? properties) {
-            OpenXmlElement? charset = properties?.ChildElements.FirstOrDefault(child =>
-                string.Equals(child.LocalName, "charset", StringComparison.Ordinal)
-                && string.Equals(child.NamespaceUri, "http://schemas.openxmlformats.org/spreadsheetml/2006/main", StringComparison.Ordinal));
-            return TryGetByte(charset?.GetAttribute("val", string.Empty).Value, out byte characterSet)
-                ? characterSet
-                : null;
-        }
-
-        internal static ExcelVerticalTextAlignment? GetVerticalTextAlignment(RunProperties? properties) {
-            return properties?.GetFirstChild<VerticalTextAlignment>()?.Val?.Value.ToOfficeEnum();
-        }
-
-        internal static ExcelUnderlineStyle? GetUnderlineStyle(RunProperties? properties) {
-            Underline? underline = properties?.GetFirstChild<Underline>();
-            if (underline == null) {
-                return null;
-            }
-
-            return underline.Val?.Value.ToOfficeEnum() ?? ExcelUnderlineStyle.Single;
-        }
-
-        private static bool TryGetByte(uint? value, out byte result) {
-            if (value.HasValue && value.Value <= byte.MaxValue) {
-                result = checked((byte)value.Value);
-                return true;
-            }
-
-            result = 0;
-            return false;
-        }
-
-        private static bool TryGetByte(int? value, out byte result) {
-            if (value.HasValue && value.Value >= 0 && value.Value <= byte.MaxValue) {
-                result = checked((byte)value.Value);
-                return true;
-            }
-
-            result = 0;
-            return false;
-        }
-
-        private static bool TryGetByte(string? value, out byte result) {
-            if (!string.IsNullOrWhiteSpace(value)
-                && uint.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out uint parsed)
-                && parsed <= byte.MaxValue) {
-                result = checked((byte)parsed);
-                return true;
-            }
-
-            result = 0;
-            return false;
-        }
-    }
 }
 #pragma warning restore RS0026, RS0027

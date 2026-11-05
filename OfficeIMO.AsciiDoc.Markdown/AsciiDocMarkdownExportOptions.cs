@@ -2,6 +2,9 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Options for converting native AsciiDoc blocks to Markdown.</summary>
 public sealed class AsciiDocMarkdownExportOptions {
+    /// <summary>Rejects conversion when the completed report describes fidelity loss.</summary>
+    public bool FailOnLoss { get; set; }
+
     /// <summary>Maps set document attributes to YAML front matter. Defaults to true.</summary>
     public bool IncludeDocumentAttributesAsFrontMatter { get; set; } = true;
 
@@ -24,7 +27,11 @@ public sealed class AsciiDocMarkdownExportOptions {
     public AsciiDocReferenceCatalog? References { get; set; }
     internal HashSet<string> UsedFootnotes { get; } = new HashSet<string>(StringComparer.Ordinal);
 
-    internal AsciiDocMarkdownExportOptions WithReferences(AsciiDocReferenceCatalog references) => new AsciiDocMarkdownExportOptions {
+    /// <summary>Captures the conversion settings without sharing mutable operation state.</summary>
+    public AsciiDocMarkdownExportOptions Clone() => WithReferences(References);
+
+    internal AsciiDocMarkdownExportOptions WithReferences(AsciiDocReferenceCatalog? references) => new AsciiDocMarkdownExportOptions {
+        FailOnLoss = FailOnLoss,
         IncludeDocumentAttributesAsFrontMatter = IncludeDocumentAttributesAsFrontMatter,
         PreserveUnsupportedAsSource = PreserveUnsupportedAsSource,
         PreserveCommentsAsSource = PreserveCommentsAsSource,

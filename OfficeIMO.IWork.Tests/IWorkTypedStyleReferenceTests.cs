@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
             : ArchiveRecord(19, wrongType, Message());
         using var package = SelectedRichTextPackage(kind, AttributeTable(field, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: records);
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTextContent text = Assert.Single(table.Cells).RichText!;
         Assert.Equal("Value", text.PlainText);
         Assert.False(text.IsFormattingComplete);
@@ -45,8 +45,8 @@ public sealed partial class IWorkBoundaryTests {
         using var package = SelectedRichTextPackage(IWorkDocumentKind.Numbers,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))), aliases: true,
             additionalRecords: ArchiveRecord(19, 2023, Message()));
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 }), IWorkDocumentKind.Numbers);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 }), IWorkDocumentKind.Numbers);
         Assert.Equal(2, table.Cells.Count);
         Assert.Single(issues);
         Assert.All(table.Cells, cell => Assert.False(cell.RichText!.IsFormattingComplete));
@@ -54,8 +54,8 @@ public sealed partial class IWorkBoundaryTests {
         using var repeated = SelectedRichTextPackage(IWorkDocumentKind.Numbers,
             AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19)), AttributeEntry(5, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2023, Message()));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(repeated,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(repeated,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         Assert.Contains("source reference issues", Assert.Throws<InvalidDataException>(() => source.ReadNumbers()).Message);
     }
 
@@ -66,7 +66,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Character_attributes_can_select_paragraph_styles_and_inherit_character_properties(IWorkDocumentKind kind) {
         using var package = SelectedRichTextPackage(kind, AttributeTable(8, AttributeEntry(0, ReferenceField(2, 19))),
             additionalRecords: ArchiveRecord(19, 2022, BytesField(11, VarintField(1, 1))));
-        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Open(package, kind), kind);
+        var (table, issues) = ReadSelectedRichTable(IWorkSourceDocument.Load(package, kind), kind);
         IWorkTextContent text = Assert.Single(table.Cells).RichText!;
         Assert.True(text.IsFormattingComplete);
         Assert.True(Assert.Single(Assert.Single(text.Paragraphs).Runs).Style.Bold);

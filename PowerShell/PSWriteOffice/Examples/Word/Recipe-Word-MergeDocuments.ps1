@@ -23,4 +23,4 @@ New-OfficeWord -Path $appendix {
     }
 }
 
-Join-OfficeWordDocument -Path $cover -AppendPath $detail,$appendix -OutputPath $merged
+Merge-OfficeDocument -OutputPath $merged -Path @($cover; $detail,$appendix)

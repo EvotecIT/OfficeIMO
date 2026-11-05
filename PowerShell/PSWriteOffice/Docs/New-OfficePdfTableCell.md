@@ -6,34 +6,44 @@ schema: 2.0.0
 ---
 # New-OfficePdfTableCell
 ## SYNOPSIS
-Creates a reusable PDF table cell definition for explicit table rows.
+Creates a native PDF cell containing text, images or form fields.
 
 ## SYNTAX
-### __AllParameterSets
+### Text (Default)
 ```powershell
-New-OfficePdfTableCell [[-Text] <string>] [-Run <Object[]>] [-ColumnSpan <int>] [-RowSpan <int>] [-TextColor <string>] [-FillColor <string>] [-FontSize <Double>] [-Bold] [-Italic] [-Underline] [-UnderlineStyle <string>] [-Strike] [-Align <OfficeAlignment>] [-VerticalAlign <PdfCellVerticalAlign>] [-CheckBox <PdfTableCellCheckBox[]>] [-Image <PdfTableCellImage[]>] [-FormField <PdfTableCellFormField[]>] [-LinkUri <string>] [-LinkDestinationName <string>] [-LinkContents <string>] [-NamedDestinationName <string>] [-NoWrap] [<CommonParameters>]
+New-OfficePdfTableCell [[-Text] <string>] [-ColumnSpan <int>] [-RowSpan <int>] [-Color <OfficeColor>] [-BackgroundColor <OfficeColor>] [-Size <OfficeLength>] [-Bold] [-Italic] [-Underline <OfficeTextDecorationStyle>] [-Strikethrough] [-Alignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-Link <string>] [-LinkBookmark <string>] [-LinkContents <string>] [-Bookmark <string>] [-NoWrap] [<CommonParameters>]
+```
+
+### Content
+```powershell
+New-OfficePdfTableCell [-Content] <scriptblock> [-ColumnSpan <int>] [-RowSpan <int>] [-Color <OfficeColor>] [-BackgroundColor <OfficeColor>] [-Size <OfficeLength>] [-Alignment <OfficeAlignment>] [-VerticalAlignment <OfficeTextVerticalAlignment>] [-Bookmark <string>] [-NoWrap] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Creates a reusable PDF table cell definition for explicit table rows.
+Creates a native PDF cell containing text, images or form fields.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $row = @(New-OfficePdfTableCell -Text 'Identity systems' -ColumnSpan 3 -FillColor '#DBEAFE' -TextColor '#1E3A8A' -Bold)
+New-OfficePdfTableCell -Alignment 'Value'
 ```
 
-The returned cell can be passed to PdfTable inside explicit row arrays.
+
+### EXAMPLE 2
+```powershell
+New-OfficePdfTableCell -Content { }
+```
+
 
 ## PARAMETERS
 
-### -Align
-Horizontal cell alignment.
+### -Alignment
+Alignment for this content.
 
 ```yaml
 Type: OfficeAlignment
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values: Left, Center, Right, Justify, Start, End
 
@@ -44,12 +54,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Bold
-Render the cell text in bold.
+### -BackgroundColor
+BackgroundColor for this content.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Type: OfficeColor
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -60,13 +70,45 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -CheckBox
-Typed check boxes rendered inside the cell.
+### -Bold
+Bold for this content.
 
 ```yaml
-Type: PdfTableCellCheckBox[]
-Parameter Sets: __AllParameterSets
-Aliases: CheckBoxes
+Type: SwitchParameter
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bookmark
+Bookmark for this content.
+
+```yaml
+Type: String
+Parameter Sets: Text, Content
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Color
+Color for this content.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Text, Content
+Aliases: None
 Possible values:
 
 Required: False
@@ -77,11 +119,11 @@ Accept wildcard characters: False
 ```
 
 ### -ColumnSpan
-Number of logical columns covered by the cell.
+ColumnSpan for this content.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -92,76 +134,60 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -FillColor
-Cell fill color. Named colors and hexadecimal colors are accepted.
+### -Content
+Content for this content.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: BackgroundColor, CellFill
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FontSize
-Cell font size in PDF points.
-
-```yaml
-Type: Double
-Parameter Sets: __AllParameterSets
+Type: ScriptBlock
+Parameter Sets: Content
 Aliases: None
 Possible values:
 
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -FormField
-Typed text or choice form fields rendered inside the cell.
-
-```yaml
-Type: PdfTableCellFormField[]
-Parameter Sets: __AllParameterSets
-Aliases: FormFields
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Image
-Typed images rendered inside the cell.
-
-```yaml
-Type: PdfTableCellImage[]
-Parameter Sets: __AllParameterSets
-Aliases: Images
-Possible values:
-
-Required: False
-Position: named
+Required: True
+Position: 0
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Italic
-Render the cell text in italics.
+Italic for this content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Link
+Link for this content.
+
+```yaml
+Type: String
+Parameter Sets: Text
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -LinkBookmark
+LinkBookmark for this content.
+
+```yaml
+Type: String
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -173,59 +199,11 @@ Accept wildcard characters: False
 ```
 
 ### -LinkContents
-Accessible annotation text for the cell link.
+LinkContents for this content.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LinkDestinationName
-Named PDF destination linked from the cell.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -LinkUri
-Absolute or catalog-base-relative URI linked from the cell.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -NamedDestinationName
-Named PDF destination defined at this cell.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -237,11 +215,11 @@ Accept wildcard characters: False
 ```
 
 ### -NoWrap
-Keep the cell content on one visual line.
+NoWrap for this content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -253,11 +231,11 @@ Accept wildcard characters: False
 ```
 
 ### -RowSpan
-Number of logical rows covered by the cell.
+RowSpan for this content.
 
 ```yaml
 Type: Int32
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text, Content
 Aliases: None
 Possible values:
 
@@ -268,13 +246,13 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Run
-Rich text runs for the cell. Each run can be created with TextRun/PdfTextRun or provided as a hashtable/object.
+### -Size
+Size for this content.
 
 ```yaml
-Type: Object[]
-Parameter Sets: __AllParameterSets
-Aliases: Runs
+Type: OfficeLength
+Parameter Sets: Text, Content
+Aliases: None
 Possible values:
 
 Required: False
@@ -284,12 +262,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Strike
-Render the cell text with strikethrough.
+### -Strikethrough
+Strikethrough for this content.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -301,11 +279,11 @@ Accept wildcard characters: False
 ```
 
 ### -Text
-Cell text.
+Text for this content.
 
 ```yaml
 Type: String
-Parameter Sets: __AllParameterSets
+Parameter Sets: Text
 Aliases: None
 Possible values:
 
@@ -316,30 +294,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -TextColor
-Cell text color. Named colors and hexadecimal colors are accepted.
-
-```yaml
-Type: String
-Parameter Sets: __AllParameterSets
-Aliases: Color, FontColor
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Underline
-Render the cell text with underline.
+Underline for this content.
 
 ```yaml
-Type: SwitchParameter
-Parameter Sets: __AllParameterSets
+Type: OfficeTextDecorationStyle
+Parameter Sets: Text
 Aliases: None
-Possible values:
+Possible values: None, Single, Double, Dotted, Dashed, Wavy, Words
 
 Required: False
 Position: named
@@ -348,30 +310,14 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -UnderlineStyle
-Optional underline style name. PDF table rendering treats any supported value as underline.
+### -VerticalAlignment
+VerticalAlignment for this content.
 
 ```yaml
-Type: String
-Parameter Sets: __AllParameterSets
+Type: OfficeTextVerticalAlignment
+Parameter Sets: Text, Content
 Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -VerticalAlign
-Vertical cell alignment.
-
-```yaml
-Type: PdfCellVerticalAlign
-Parameter Sets: __AllParameterSets
-Aliases: None
-Possible values: Top, Middle, Bottom
+Possible values: Top, Center, Bottom
 
 Required: False
 Position: named

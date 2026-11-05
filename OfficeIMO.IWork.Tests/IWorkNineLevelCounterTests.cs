@@ -13,7 +13,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Nine_level_source_counters_reset_through_the_full_shared_native_vector(IWorkDocumentKind kind) {
         using var package = NineLevelCounterPackage(kind);
-        var content = ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells.Single().RichText!;
+        var content = ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells.Single().RichText!;
         Assert.True(content.IsFormattingComplete);
         Assert.Equal(NineLevelSourceLevels, content.Paragraphs.Select(p => p.ListLevel));
         Assert.Equal(NineLevelSourceNumbers, content.Paragraphs.Select(p => p.ListNumber!.Value));
@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Saved_PPTX_retains_all_nine_levels_and_deep_counters_through_the_existing_drawing_owner() {
         using var package = NineLevelCounterPackage(IWorkDocumentKind.Keynote);
-        using var result = IWorkSourceDocument.Open(package).ToPowerPointResult(new() {
+        using var result = IWorkSourceDocument.Load(package).ToPowerPointResult(new() {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         var content = Assert.Single(Assert.Single(result.Projection.Slides).Tables).Cells[0].RichText!;
         Assert.True(content.IsFormattingComplete);
@@ -53,7 +53,7 @@ public sealed partial class IWorkBoundaryTests {
             Message(AttributeTable(6, ListLevelEntry(0, 8)), AttributeTable(14, ListLevelEntry(0, 7)),
                 AttributeTable(7, AttributeEntry(0, ReferenceField(2, 19)))),
             additionalRecords: ArchiveRecord(19, 2023, style));
-        var content = ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells.Single().RichText!;
+        var content = ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells.Single().RichText!;
         Assert.False(content.IsFormattingComplete); Assert.Null(content.Paragraphs.Single().ListNumber);
         Assert.Equal("Value", content.Paragraphs.Single().Text);
     }

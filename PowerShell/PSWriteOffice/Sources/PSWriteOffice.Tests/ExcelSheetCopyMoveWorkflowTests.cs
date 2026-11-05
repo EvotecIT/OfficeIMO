@@ -28,10 +28,9 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
         Assert.Equal("Keep", target["Summary"].Cell(1, 1).GetValue<string>());
         Assert.Equal(3, source.Sheets.Count);
         runspace.SessionStateProxy.SetVariable("copied", copied[1]);
-        Assert.Empty(Invoke(runspace, "$book | Move-OfficeExcelSheet -Sheet $copied -Position 1 -WhatIf"));
         Assert.Equal("Summary", target.Sheets[0].Name);
         Assert.Same(copied[1], Assert.Single(Invoke(runspace,
-            "$book | Move-OfficeExcelSheet -Sheet $copied -Position 1 -PassThru -Confirm:$false")).BaseObject);
+            "$book | Move-OfficeExcelSheet -Sheet $copied -Position 1 -PassThru")).BaseObject);
 
         using var saved = new MemoryStream();
         target.Save(saved);
@@ -105,7 +104,7 @@ public sealed class ExcelSheetCopyMoveWorkflowTests {
         runspace.SessionStateProxy.SetVariable("foreign", keep);
         using var shell = PowerShell.Create();
         shell.Runspace = runspace;
-        shell.AddScript(command + " -Confirm:$false");
+        shell.AddScript(command + (command.StartsWith("Copy-", StringComparison.Ordinal) ? " -Confirm:$false" : string.Empty));
         Exception? error = Record.Exception(() => shell.Invoke());
         Assert.True(error != null || shell.HadErrors);
         Assert.Equal("Keep", Assert.Single(target.Sheets).Name);

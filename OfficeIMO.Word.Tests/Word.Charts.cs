@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Charts.Count == 1);
 
                 var lineChart = paragraphToTest.AddChart();
-                lineChart.AddChartAxisX(categories);
+                lineChart.AddCategories(categories);
                 lineChart.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
                 lineChart.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
 
                 var paragraph4 = document.AddParagraph("Adding a line chart as required 2 - but assigned to paragraph");
                 var lineChart4 = paragraph4.AddChart();
-                lineChart4.AddChartAxisX(categories);
+                lineChart4.AddCategories(categories);
                 lineChart4.AddLine("USA", new List<int>() { 10, 35, 18, 23 }, OfficeIMO.OfficeColor.AliceBlue);
                 lineChart4.AddLine("Brazil", new List<int>() { 10, 35, 300, 18 }, OfficeIMO.OfficeColor.Brown);
                 lineChart4.AddLine("Poland", new List<int>() { 13, 20, 230, 150 }, OfficeIMO.OfficeColor.Green);
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
                 // between Microsoft documentation and actual schema implementation
                 /*
                 var line3d = document.AddChart();
-                line3d.AddChartAxisX(categories);
+                line3d.AddCategories(categories);
                 line3d.AddLine3D("USA", new List<int> { 1, 2, 3, 4 }, Color.Purple);
                 var line3dPart = document._wordprocessingDocument.MainDocumentPart.ChartParts.Last();
                 var line3dXml = line3dPart.ChartSpace.GetFirstChild<Chart>().PlotArea.GetFirstChild<Line3DChart>();
@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
         //    using (WordDocument document = WordDocument.Create(filePath)) {
         //        var categories = new List<string> { "A", "B", "C" };
         //        var chart = document.AddChart();
-        //        chart.AddChartAxisX(categories);
+        //        chart.AddCategories(categories);
         //        chart.AddLine3D("Series", new List<int> { 1, 2, 3 }, Color.Blue);
 
         //        document.Save();
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                 // Test Line Chart with decimal values
                 document.AddParagraph("Line Chart with Decimal Values:");
                 var lineChart = document.AddChart("Line Chart Test");
-                lineChart.AddChartAxisX(new List<string> { "Jan", "Feb", "Mar", "Apr" });
+                lineChart.AddCategories(new List<string> { "Jan", "Feb", "Mar", "Apr" });
                 lineChart.AddLine("Growth", new List<double> { decimalValues[0], decimalValues[1], decimalValues[2], decimalValues[3] }, Color.Red);
 
                 document.Save();
@@ -414,7 +414,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var categories = new List<string> { "A", "B", "C" };
                 var chart = document.AddComboChart();
-                chart.AddChartAxisX(categories);
+                chart.AddCategories(categories);
                 chart.AddBar("Sales", new List<int> { 1, 2, 3 }, Color.Blue);
                 chart.AddLine("Trend", new List<int> { 3, 2, 1 }, Color.Red);
                 document.Save();

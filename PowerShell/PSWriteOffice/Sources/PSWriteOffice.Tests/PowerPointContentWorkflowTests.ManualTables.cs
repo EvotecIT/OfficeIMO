@@ -31,7 +31,7 @@ public sealed partial class PowerPointContentWorkflowTests {
         Assert.Equal(1778000L, table.Top.ToEmus());
         Assert.Equal(5334000L, table.Width.ToEmus());
         Assert.Equal(2540000L, table.Height.ToEmus());
-        Assert.Equal(2, table.Rows);
+        Assert.Equal(2, table.RowCount);
         if (headers) {
             Assert.Equal("Product", table.GetCell(0, 0).Text);
             Assert.Equal("Alpha", table.GetCell(1, 0).Text);

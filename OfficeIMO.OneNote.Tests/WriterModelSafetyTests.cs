@@ -9,7 +9,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_PAGE_CYCLE", exception.Code);
     }
@@ -19,7 +19,7 @@ public sealed class WriterModelSafetyTests {
         OneNoteSection section = CreateConflictChain(4);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+            section.ToBytes(new OneNoteSaveOptions {
                 MaxPageRelationshipDepth = 3,
                 ValidateRoundTrip = false
             }));
@@ -29,11 +29,11 @@ public sealed class WriterModelSafetyTests {
 
     [Fact]
     public void WriterAllowsRelatedPageDepthAtTheConfiguredLimit() {
-        byte[] data = OneNoteSectionWriter.Write(CreateConflictChain(3), new OneNoteWriterOptions {
+        byte[] data = (CreateConflictChain(3)).ToBytes(new OneNoteSaveOptions {
             MaxPageRelationshipDepth = 3
         });
 
-        OneNotePage page = Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages);
+        OneNotePage page = Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages);
         Assert.Equal("Page 2", Assert.Single(Assert.Single(page.ConflictPages).ConflictPages).Title);
     }
 
@@ -43,7 +43,7 @@ public sealed class WriterModelSafetyTests {
         notebook.Sections.Add(CreateConflictChain(3));
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNotePackageWriter.Write(notebook, new OneNoteWriterOptions {
+            OneNotePackageWriter.Write(notebook, new OneNoteSaveOptions {
                 MaxPageRelationshipDepth = 2,
                 ValidateRoundTrip = false
             }));
@@ -63,7 +63,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_CONTENT_CYCLE", exception.Code);
     }
@@ -87,7 +87,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_SHARED_CONTENT", exception.Code);
     }
@@ -105,7 +105,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_SHARED_TABLE_ROW", exception.Code);
     }
@@ -126,7 +126,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_SHARED_TABLE_CELL", exception.Code);
     }
@@ -141,7 +141,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_NULL_TEXT_RUN", exception.Code);
     }
@@ -154,7 +154,7 @@ public sealed class WriterModelSafetyTests {
         section.Pages.Add(page);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_SHARED_PAGE", exception.Code);
     }
@@ -164,7 +164,7 @@ public sealed class WriterModelSafetyTests {
         OneNoteSection section = CreateOutlineChain(4);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+            section.ToBytes(new OneNoteSaveOptions {
                 MaxContentDepth = 3,
                 ValidateRoundTrip = false
             }));
@@ -174,11 +174,11 @@ public sealed class WriterModelSafetyTests {
 
     [Fact]
     public void WriterAllowsContentDepthAtTheConfiguredLimit() {
-        byte[] data = OneNoteSectionWriter.Write(CreateOutlineChain(3), new OneNoteWriterOptions {
+        byte[] data = (CreateOutlineChain(3)).ToBytes(new OneNoteSaveOptions {
             MaxContentDepth = 3
         });
 
-        OneNotePage page = Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages);
+        OneNotePage page = Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages);
         OneNoteOutline first = Assert.Single(page.Outlines);
         OneNoteOutline second = Assert.IsType<OneNoteOutline>(Assert.Single(first.Children));
         Assert.IsType<OneNoteOutline>(Assert.Single(second.Children));
@@ -192,7 +192,7 @@ public sealed class WriterModelSafetyTests {
         OneNoteSection section = CreateListedSection(level);
 
         OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
-            OneNoteSectionWriter.Write(section, NoRoundTrip()));
+            section.ToBytes(NoRoundTrip()));
 
         Assert.Equal("ONENOTE_WRITE_LIST_LEVEL", exception.Code);
         Assert.Single(Assert.Single(section.Pages).DirectContent);
@@ -200,9 +200,9 @@ public sealed class WriterModelSafetyTests {
 
     [Fact]
     public void WriterRoundTripsTheMaximumNativeListLevel() {
-        byte[] data = OneNoteSectionWriter.Write(CreateListedSection(OneNoteListInfo.MaxLevel));
+        byte[] data = (CreateListedSection(OneNoteListInfo.MaxLevel)).ToBytes();
 
-        OneNotePage page = Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages);
+        OneNotePage page = Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages);
         OneNoteParagraph paragraph = Assert.IsType<OneNoteParagraph>(
             Assert.Single(Assert.Single(page.Outlines).Children));
         Assert.Equal(OneNoteListInfo.MaxLevel, paragraph.List!.Level);
@@ -220,9 +220,9 @@ public sealed class WriterModelSafetyTests {
         }
         section.Pages.Add(page);
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
 
-        OneNoteOutline outline = Assert.Single(Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages).Outlines);
+        OneNoteOutline outline = Assert.Single(Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages).Outlines);
         OneNoteParagraph[] paragraphs = outline.Children.Cast<OneNoteParagraph>().ToArray();
         Assert.Equal(2, paragraphs.Length);
         Assert.All(paragraphs, paragraph => Assert.Equal(1, paragraph.List!.Level));
@@ -246,9 +246,9 @@ public sealed class WriterModelSafetyTests {
         page.DirectContent.Add(second);
         section.Pages.Add(page);
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
 
-        OneNoteParagraph[] paragraphs = Assert.Single(Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages).Outlines)
+        OneNoteParagraph[] paragraphs = Assert.Single(Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages).Outlines)
             .Children.Cast<OneNoteParagraph>().ToArray();
         Assert.True(paragraphs[0].List!.Ordered);
         Assert.Equal(3U, paragraphs[0].List!.Format);
@@ -276,9 +276,9 @@ public sealed class WriterModelSafetyTests {
         page.DirectContent.Add(second);
         section.Pages.Add(page);
 
-        byte[] data = OneNoteSectionWriter.Write(section);
+        byte[] data = section.ToBytes();
 
-        OneNoteParagraph[] paragraphs = Assert.Single(Assert.Single(OneNoteSectionReader.Read(new MemoryStream(data)).Pages).Outlines)
+        OneNoteParagraph[] paragraphs = Assert.Single(Assert.Single(OneNoteSection.Load(new MemoryStream(data)).Pages).Outlines)
             .Children.Cast<OneNoteParagraph>().ToArray();
         Assert.Equal(OneNoteParagraphAlignment.Left, paragraphs[0].Style.Alignment);
         Assert.Equal(OneNoteParagraphAlignment.Right, paragraphs[1].Style.Alignment);
@@ -289,10 +289,8 @@ public sealed class WriterModelSafetyTests {
     public void WriterRejectsTraversalOptionsAboveTheHardSafetyLimit() {
         OneNoteSection section = CreateOutlineChain(1);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => OneNoteSectionWriter.Write(
-            section,
-            new OneNoteWriterOptions {
-                MaxContentDepth = OneNoteWriterOptions.MaximumTraversalDepth + 1
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToBytes(new OneNoteSaveOptions {
+                MaxContentDepth = OneNoteSaveOptions.MaximumTraversalDepth + 1
             }));
     }
 
@@ -336,7 +334,7 @@ public sealed class WriterModelSafetyTests {
         return section;
     }
 
-    private static OneNoteWriterOptions NoRoundTrip() => new OneNoteWriterOptions {
+    private static OneNoteSaveOptions NoRoundTrip() => new OneNoteSaveOptions {
         ValidateRoundTrip = false
     };
 }

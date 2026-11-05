@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 using PowerPointDocument presentation = PowerPointDocument.Create(filePath, new PowerPointCreateOptions { Theme = theme });
                 // The design repeats the theme's own accent and fonts, so composition keeps the theme as it is.
                 PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#" + theme.Palette.Accent1.ToRgbHex(), "layout-comparison-" + name,
-                    headingFontName: theme.Fonts.Heading.Family, bodyFontName: theme.Fonts.Body.Family, footerLeft: "OfficeIMO · " + name + " theme");
+                    headingFontFamily: theme.Fonts.Heading.Family, bodyFontFamily: theme.Fonts.Body.Family, footerLeft: "OfficeIMO · " + name + " theme");
                 PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(design);
                 options.ApplyTheme = false;
                 presentation.Compose(plan, options);

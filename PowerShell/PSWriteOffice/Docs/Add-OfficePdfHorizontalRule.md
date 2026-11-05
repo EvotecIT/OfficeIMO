@@ -11,12 +11,12 @@ Adds a horizontal rule divider to a generated PDF document.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficePdfHorizontalRule [-Thickness <Double>] [-Color <string>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfHorizontalRule [-Thickness <OfficeLength>] [-Color <OfficeColor>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficePdfHorizontalRule -Document <PdfDocument> [-Thickness <Double>] [-Color <string>] [-SpacingBefore <Double>] [-SpacingAfter <Double>] [-PassThru] [<CommonParameters>]
+Add-OfficePdfHorizontalRule -Document <PdfDocument> [-Thickness <OfficeLength>] [-Color <OfficeColor>] [-SpacingBefore <OfficeLength>] [-SpacingAfter <OfficeLength>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -42,7 +42,7 @@ Adds a visual divider between generated PDF sections.
 Rule color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -75,7 +75,7 @@ Emit the updated document.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Context, Document
+Parameter Sets: Document
 Aliases: None
 Possible values:
 
@@ -90,7 +90,7 @@ Accept wildcard characters: False
 Spacing after the rule in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -106,7 +106,7 @@ Accept wildcard characters: False
 Spacing before the rule in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:
@@ -122,7 +122,7 @@ Accept wildcard characters: False
 Rule thickness in PDF points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Context, Document
 Aliases: None
 Possible values:

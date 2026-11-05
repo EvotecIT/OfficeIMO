@@ -17,7 +17,7 @@ public sealed partial class IWorkBoundaryTests {
             byte[] bytes = File.ReadAllBytes(CorpusFixture("native-exports/" + input.GetProperty("path").GetString()));
             Assert.Equal(input.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(bytes)).ToLowerInvariant());
         }
-        using var result = IWorkSourceDocument.Open(CorpusFixture("native-exports/" +
+        using var result = IWorkSourceDocument.Load(CorpusFixture("native-exports/" +
             evidence.GetProperty(changed ? "changedSource" : "source").GetString()), IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Assert.Contains(result.Report.Diagnostics, d => d.Code == "IWORK_TABLE_FORMULA_PARTIAL");
         IWorkTable operands = result.Projection.Sheets[0].Tables.Single(), checks = result.Projection.Sheets[1].Tables.Single();
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (int function in new[] { 58, 75 }) {
             var formula = IntegerReferenceFormula(function, IntegerTextSingleCell());
             Assert.Equal(complete, IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
-                owningTable: own, budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+                owningTable: own, budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         }
     }
 
@@ -91,20 +91,20 @@ public sealed partial class IWorkBoundaryTests {
             var own = new IWorkFormulaTableBinding(new IWorkTable("Inputs", 1, 1, new[] { cell }), string.Empty, false);
             var formula = IntegerReferenceFormula(75, Message(VarintField(1, 17), DoubleField(4, 0)), IntegerTextSingleCell());
             Assert.False(IWorkFormulaReader.Render(formula, 0, 0, 100, 1000, owningTable: own,
-                budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+                budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         }
         var text = new IWorkTableCell(1, 1, IWorkCellKind.Text, "12");
         var single = new IWorkFormulaTableBinding(new IWorkTable("Inputs", 1, 1, new[] { text }), string.Empty, false);
         var rectangle = IntegerReferenceFormula(75, IntegerRectangle(0));
         Assert.False(IWorkFormulaReader.Render(rectangle, 0, 0, 100, 1000, owningTable: single,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         // A source colon expression remains a range even when both endpoints
         // identify the same cell. Native-normalized single cells use type 36.
         var colon = IWorkProtobuf.Parse(BytesField(1, Message(BytesField(1, IntegerTextSingleCell()),
             BytesField(1, IntegerTextSingleCell()), BytesField(1, VarintField(1, 29)),
-            BytesField(1, Message(VarintField(1, 16), VarintField(2, 75), VarintField(3, 1))))), new IWorkReadOptions());
+            BytesField(1, Message(VarintField(1, 16), VarintField(2, 75), VarintField(3, 1))))), new IWorkLoadOptions());
         Assert.False(IWorkFormulaReader.Render(colon, 0, 0, 100, 1000, owningTable: single,
-            budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+            budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
     }
 
     [Theory]
@@ -113,7 +113,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("12", true)]
     public void Integer_text_references_require_complete_decoded_rich_text(string nativeText, bool complete) {
         using var package = CreateNumbersWithPartialRichCell(hasFormula: false, richText: nativeText);
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         IWorkTable table = result.Projection.Sheets.Single().Tables.Single();
         IWorkTableCell source = table.Cells.Single();
         Assert.Equal("12", source.Value);
@@ -122,7 +122,7 @@ public sealed partial class IWorkBoundaryTests {
         foreach (int function in new[] { 58, 75 }) {
             var formula = IntegerReferenceFormula(function, IntegerTextSingleCell());
             Assert.Equal(complete, IWorkFormulaReader.Render(formula, 0, 0, 100, 1000,
-                owningTable: own, budget: new IWorkProjectionBudget(new IWorkReadOptions())).IsComplete);
+                owningTable: own, budget: new IWorkProjectionBudget(new IWorkLoadOptions())).IsComplete);
         }
         Assert.Equal(complete, source.CachedValueIsComplete);
     }

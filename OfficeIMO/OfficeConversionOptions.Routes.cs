@@ -8,6 +8,7 @@ public sealed partial class OfficeConversionOptions {
         OfficeConversionOptions copy = Snapshot();
         string id = route.Id;
         copy.RouteId = id;
+        copy.CsvSave = null;
         if (id is not ("doc-pdf" or "docx-pdf")) copy.Word = null;
         if (id is not ("xlsx-pdf" or "xls-pdf" or "xlsb-pdf")) copy.Excel = null;
         if (id is not ("pptx-pdf" or "ppt-pdf")) copy.PowerPoint = null;

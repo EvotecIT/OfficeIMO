@@ -49,8 +49,8 @@ namespace OfficeIMO.Examples.Visio {
                 pair => AsDiagramIcon(pair.Value),
                 StringComparer.Ordinal);
 
-            VisioDocument.Create(filePath)
-                .GraphDiagram("Order processing integration map", graph => graph
+            using var nativeDocument1 = VisioDocument.Create(filePath);
+            nativeDocument1.GraphDiagram("Order processing integration map", graph => graph
                     .Title()
                     .Theme(VisioStyleTheme.Technical())
                     .Layout(VisioGraphLayout.Layered)
@@ -81,13 +81,13 @@ namespace OfficeIMO.Examples.Visio {
                     .DataEdge("logic", "sql", "upsert")
                     .DataEdge("function", "storage", "archive")
                     .Relationship("apim", "insights", "telemetry")
-                    .Relationship("function", "insights", "traces"))
-                .EnsureVisualQuality(new VisioDiagramQualityOptions {
+                    .Relationship("function", "insights", "traces"));
+            nativeDocument1.EnsureVisualQuality(new VisioDiagramQualityOptions {
                     CheckShapeOverlaps = false,
                     CheckConnectorShapeIntersections = false,
                     CheckConnectorLabelShapeOverlaps = false
-                })
-                .Save();
+                });
+            nativeDocument1.Save();
 
             IReadOnlyList<string> issues = VisioValidator.Validate(filePath);
             if (issues.Count > 0) {

@@ -486,6 +486,27 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
             Assert.Throws<InvalidOperationException>(() => ExcelDocument.CreateWriter(memory, leaveOpen: true).Dispose());
             Assert.Equal(0, memory.Length);
+            Assert.True(memory.CanWrite);
+
+            foreach (bool leaveOpen in new[] { false, true }) {
+                using var existing = new MemoryStream();
+                byte[] content = Encoding.UTF8.GetBytes("existing");
+                existing.Write(content, 0, content.Length);
+                existing.Position = 2;
+                var writer = ExcelDocument.CreateWriter(existing, leaveOpen: leaveOpen);
+                Assert.Equal(content, existing.ToArray());
+                Assert.Equal(2, existing.Position);
+                Assert.Throws<InvalidOperationException>(() => writer.Dispose());
+                Assert.Equal(content, existing.ToArray());
+                Assert.Equal(leaveOpen, existing.CanWrite);
+                if (leaveOpen) Assert.Equal(2, existing.Position);
+                writer.Dispose();
+            }
+
+            using var nonSeekable = new NonSeekableWriteStream();
+            Assert.Throws<InvalidOperationException>(() => ExcelDocument.CreateWriter(nonSeekable, leaveOpen: true).Dispose());
+            Assert.Empty(nonSeekable.ToArray());
+            Assert.True(nonSeekable.CanWrite);
         }
     }
 }

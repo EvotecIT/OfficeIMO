@@ -21,7 +21,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup formula = Assert.Single(rendered.Pages.SelectMany(page => EnumerateMathMlScene(page.Scene)).OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Formula);
         Assert.True(formula.MathMlSource!.IsOriginalMarkup, formula.MathMlSource.MathMl);
         Assert.Equal(SourceMath, formula.MathMlSource.MathMl);
-        byte[] pdf = (document.ToPdf()).ToBytes();
+        byte[] pdf = document.ToPdf().ToBytes();
         PdfCore.PdfExtractedAttachment attachment = Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(pdf));
         Assert.Equal(Encoding.UTF8.GetBytes(SourceMath), attachment.Bytes);
         Assert.Equal("application/mathml+xml", attachment.MimeType);
@@ -51,8 +51,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.False(source.IsOriginalMarkup);
         Assert.Equal("z", XElement.Parse(source.MathMl).Descendants().Single(element => element.Name.LocalName == "mi").Value);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceNormalized);
-        Assert.Equal(source.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((edited.ToPdf()).ToBytes())).Bytes));
-        Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((original.ToPdf()).ToBytes())).Bytes));
+        Assert.Equal(source.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(edited.ToPdf().ToBytes())).Bytes));
+        Assert.Equal(SourceMath, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(original.ToPdf().ToBytes())).Bytes));
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal("z", XElement.Parse(formula.MathMlSource.MathMl).Value);
         Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceNormalized);
         Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MathMlSourceUnavailable);
-        Assert.Equal(formula.MathMlSource.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments((edited.ToPdf()).ToBytes())).Bytes));
+        Assert.Equal(formula.MathMlSource.MathMl, Encoding.UTF8.GetString(Assert.Single(PdfCore.PdfAttachmentExtractor.ExtractAttachments(edited.ToPdf().ToBytes())).Bytes));
     }
 
     [Theory]

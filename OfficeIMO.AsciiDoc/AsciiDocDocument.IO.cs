@@ -72,10 +72,6 @@ public sealed partial class AsciiDocDocument {
     public byte[] ToBytes(AsciiDocWriterOptions? options = null, Encoding? encoding = null) =>
         (encoding ?? Utf8WithoutBom).GetBytes(ToAsciiDoc(options));
 
-    /// <summary>Encodes the current document in a new writable memory stream positioned at the beginning.</summary>
-    public MemoryStream ToStream(AsciiDocWriterOptions? options = null, Encoding? encoding = null) =>
-        new MemoryStream(ToBytes(options, encoding));
-
     /// <summary>Saves the current document text to a file.</summary>
     public void Save(string path, AsciiDocWriterOptions? options = null, Encoding? encoding = null) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));

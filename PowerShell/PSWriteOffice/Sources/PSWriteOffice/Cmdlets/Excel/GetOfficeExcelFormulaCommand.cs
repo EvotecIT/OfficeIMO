@@ -12,15 +12,27 @@ namespace PSWriteOffice.Cmdlets.Excel;
 /// <code>Get-OfficeExcelFormula -Path .\Models\*.xlsx -Volatile | Format-Table SheetName, Address, Formula</code></example>
 /// <example><summary>Inspect literal file names from the pipeline.</summary>
 /// <code>Get-ChildItem -LiteralPath .\Models -Filter *.xlsx | Get-OfficeExcelFormula -External</code></example>
+/// <example>
+/// <summary>List formulas in a workbook</summary>
+/// <code>Get-OfficeExcelFormula -Path .\Finance\Budget-2027.xlsx</code>
+/// <para>Shows every formula with its references and functions.</para>
+/// </example>
+/// <example>
+/// <summary>Audit links to other workbooks</summary>
+/// <code>Get-ChildItem -Path .\Finance -Filter *.xlsx |
+///     Get-OfficeExcelFormula -External |
+///     Select-Object SheetName, Address, Formula</code>
+/// <para>Finds formulas that refer to other workbooks across the finance folder before the folder is moved.</para>
+/// </example>
 [Cmdlet(VerbsCommon.Get, "OfficeExcelFormula", DefaultParameterSetName = "Document")]
 [OutputType(typeof(ExcelFormulaInfo))]
 public sealed class GetOfficeExcelFormulaCommand : ExcelQueryCmdlet {
     /// <summary>Return only formulas containing volatile functions.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter Volatile { get; set; }
 
     /// <summary>Return only formulas referring to external workbooks.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter External { get; set; }
 
     /// <inheritdoc />

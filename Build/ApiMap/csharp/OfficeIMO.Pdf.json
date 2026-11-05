@@ -7243,6 +7243,13 @@
     "PdfCreateOptions.Theme : OfficeTheme?",
     "PdfTheme.FromOfficeTheme(OfficeTheme)",
     "PdfSaveOptions.Encryption : PdfStandardEncryptionOptions? applies output-only security after native loss validation",
-    "PdfRedactionMatchKind.FormField = 4 identifies cleared form values; match Text exposes only the field name."
+    "PdfRedactionMatchKind.FormField = 4 identifies cleared form values; match Text exposes only the field name.",
+    "PdfTextStampOptions.Opacity : double = 1, finite [0,1], multiplies OfficeColor alpha through native ExtGState paint",
+    "PdfImageStampOptions.Opacity : double = 1, finite [0,1], multiplies intrinsic image alpha through native ExtGState paint",
+    "PdfPageOverlayOptions.RotationDegrees : double = 0, finite, rotates placement and clipping around the normalized target rectangle origin",
+    "PdfAnnotation.Uri : string? exposes only the valid primary URI action target with native annotation identity, through ordinary and authorized mutation metadata readers",
+    "PdfFormFillerOptions.Clone() : PdfFormFillerOptions snapshots font/fallback configuration and preserves the registered diagnostics sink and native cancellation token",
+    "PdfLayoutDebugOverlayOptions.Clone() : PdfLayoutDebugOverlayOptions independently snapshots all existing scalar/color settings",
+    "PdfRewritePreservationOptions.Clone() : PdfRewritePreservationOptions independently copies all six collections and both PdfLoadOptions policies, preserving all scalars and internal action-filter state"
   ]
 }

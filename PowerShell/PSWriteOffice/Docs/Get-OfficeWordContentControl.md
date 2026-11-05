@@ -6,42 +6,55 @@ schema: 2.0.0
 ---
 # Get-OfficeWordContentControl
 ## SYNOPSIS
-Gets structured content controls from a Word document.
+Gets typed native content controls filtered by family, alias, tag, rendered text or checkbox state.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeWordContentControl [-Path] <string> [-Alias <string[]>] [-Tag <string[]>] [-Text <string[]>] [<CommonParameters>]
+Get-OfficeWordContentControl [-Document <WordDocument>] [-Type <WordContentControlType[]>] [-Alias <string[]>] [-Tag <string[]>] [-Text <string[]>] [-State <WordCheckBoxState>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeWordContentControl -Document <WordDocument> [-Alias <string[]>] [-Tag <string[]>] [-Text <string[]>] [<CommonParameters>]
+Get-OfficeWordContentControl [-Path] <string[]> [-Type <WordContentControlType[]>] [-Alias <string[]>] [-Tag <string[]>] [-Text <string[]>] [-State <WordCheckBoxState>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeWordContentControl -LiteralPath <string[]> [-Type <WordContentControlType[]>] [-Alias <string[]>] [-Tag <string[]>] [-Text <string[]>] [-State <WordCheckBoxState>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets structured content controls from a Word document.
+Gets typed native content controls filtered by family, alias, tag, rendered text or checkbox state.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $controls = Get-OfficeWordContentControl -Path .\Template.docx -Tag 'report-*'
-$controls |
-    Group-Object -Property Tag |
-    Select-Object -Property Name, Count
+Get-OfficeWordContentControl -Alias @('Value')
 ```
 
-Returns structured document tags matching the template tag convention and summarizes their counts.
+
+### EXAMPLE 2
+```powershell
+Get-OfficeWordContentControl -LiteralPath @('C:\Path')
+```
+
+
+### EXAMPLE 3
+```powershell
+Get-OfficeWordContentControl -Path @('C:\Path')
+```
+
 
 ## PARAMETERS
 
 ### -Alias
-Filter by content control alias (wildcards supported).
+Wildcard control aliases.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -53,7 +66,7 @@ Accept wildcard characters: True
 ```
 
 ### -Document
-Word document to read.
+Caller-owned document; omission reads the enclosing Word document.
 
 ```yaml
 Type: WordDocument
@@ -61,35 +74,67 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-Path to the .docx file.
+### -LiteralPath
+Literal Word files, including FileInfo.FullName.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: FullName, PSPath
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Word files with FileSystem wildcard expansion.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
+Accept wildcard characters: True
+```
+
+### -State
+Checked or unchecked; implies the checkbox family.
+
+```yaml
+Type: WordCheckBoxState
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values: Checked, Unchecked
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
 ### -Tag
-Filter by content control tag (wildcards supported).
+Wildcard control tags.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -101,11 +146,11 @@ Accept wildcard characters: True
 ```
 
 ### -Text
-Filter by content control text (wildcards supported).
+Wildcard native rendered text.
 
 ```yaml
 Type: String[]
-Parameter Sets: Path, Document
+Parameter Sets: Document, Path, LiteralPath
 Aliases: None
 Possible values:
 
@@ -116,17 +161,39 @@ Accept pipeline input: False
 Accept wildcard characters: True
 ```
 
+### -Type
+Control families; omission includes all seven native families.
+
+```yaml
+Type: WordContentControlType[]
+Parameter Sets: Document, Path, LiteralPath
+Aliases: None
+Possible values: Text, CheckBox, ComboBox, DatePicker, DropDownList, Picture, RepeatingSection
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### CommonParameters
 This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable, -InformationAction, -InformationVariable, -OutVariable, -OutBuffer, -PipelineVariable, -Verbose, -WarningAction, and -WarningVariable. For more information, see [about_CommonParameters](http://go.microsoft.com/fwlink/?LinkID=113216).
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Word.WordDocument`
 
 ## OUTPUTS
 
 - `OfficeIMO.Word.WordStructuredDocumentTag`
+- `OfficeIMO.Word.WordCheckBox`
+- `OfficeIMO.Word.WordComboBox`
+- `OfficeIMO.Word.WordDatePicker`
+- `OfficeIMO.Word.WordDropDownList`
+- `OfficeIMO.Word.WordPictureControl`
+- `OfficeIMO.Word.WordRepeatingSection`
 
 ## RELATED LINKS
 

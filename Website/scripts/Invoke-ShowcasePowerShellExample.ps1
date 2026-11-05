@@ -29,9 +29,11 @@ $startedUtc = [datetime]::UtcNow.ToString('o')
 $generationRoot = Join-Path $DocumentsRoot ('ShowcaseGeneration-' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $generationRoot -ErrorAction Stop | Out-Null
 try {
-    # The child host owns these variables. Capture the existing exporter's report without changing the recipe.
-    $PSDefaultParameterValues['Export-OfficeDocumentPdf:PdfWarningVariable'] = 'global:showcasePdfWarnings'
-    $PSDefaultParameterValues['Export-OfficeDocumentPdf:PdfConversionReportVariable'] = 'global:showcasePdfReport'
+    # Capture the public result and warning stream in this isolated child host.
+    $global:showcaseConversionResults = @()
+    $global:showcaseConversionWarnings = @()
+    $PSDefaultParameterValues['Convert-OfficeDocument:OutVariable'] = '+global:showcaseConversionResults'
+    $PSDefaultParameterValues['Convert-OfficeDocument:WarningVariable'] = '+global:showcaseConversionWarnings'
     & (Resolve-ShowcasePath $RepositoryRoot $card.source_path) -OutputDirectory (Join-Path $generationRoot 'PowerShell') -ModuleVersion $ModuleVersion
     # Hash again so a concurrent edit cannot label output with an input it did not consistently use.
     foreach ($binding in $bindings) {
@@ -59,7 +61,7 @@ try {
         if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "Current showcase generation did not produce: $($artifact.source)" }
         $diagnostics = $null
         if ([IO.Path]::GetExtension($path) -ceq '.pdf') {
-            $info = Get-OfficePdfInfo -Path $path
+            $info = (Get-OfficeDocumentInfo -LiteralPath $path -Detailed).Details
             $diagnostics = [ordered]@{
                 pageCount = $info.PageCount
                 fonts = @(Get-OfficePdfFont -Path $path | ForEach-Object {
@@ -83,7 +85,21 @@ try {
             diagnostics = $diagnostics
         }
     }
-    # Verify the complete set before replacing any existing destination file.
+    $pdfOutputs = @($outputs | Where-Object { $_.path.EndsWith('.pdf', [StringComparison]::Ordinal) })
+    $docxOutputs = @($outputs | Where-Object { $_.path.EndsWith('.docx', [StringComparison]::Ordinal) })
+    if ($pdfOutputs.Count -ne 1 -or $docxOutputs.Count -ne 1 -or $global:showcaseConversionResults.Count -ne 1) {
+        throw 'Showcase generation requires one DOCX-to-PDF conversion result.'
+    }
+    $report = $global:showcaseConversionResults[0]
+    $pdfArtifact = $nativeArtifacts | Where-Object { '/downloads/showcase/' + $_.destination -ceq $pdfOutputs[0].path }
+    $docxArtifact = $nativeArtifacts | Where-Object { '/downloads/showcase/' + $_.destination -ceq $docxOutputs[0].path }
+    if ($report -isnot [OfficeIMO.OfficeConversionReport] -or
+        $report.Target -cne 'Pdf' -or
+        $report.Source -cne (Resolve-ShowcasePath $generationRoot $docxArtifact.source) -or
+        $report.OutputPath -cne (Resolve-ShowcasePath $generationRoot $pdfArtifact.source)) {
+        throw 'Showcase conversion report must identify the generated DOCX and PDF.'
+    }
+    # Verify the complete set and actual conversion evidence before replacing destinations.
     foreach ($artifact in $nativeArtifacts) {
         $destination = Resolve-ShowcasePath $DocumentsRoot $artifact.source
         New-Item -ItemType Directory -Path (Split-Path -Parent $destination) -Force | Out-Null
@@ -98,8 +114,16 @@ try {
         sources = $bindings
         evidenceProducer = $producer
         package = [ordered]@{ name = $module.Name; version = $module.Version.ToString(); fileCount = $packageFiles.Count; files = $packageFiles }
-        conversions = @($outputs | Where-Object { $_.path.EndsWith('.pdf', [StringComparison]::Ordinal) } | ForEach-Object {
-            [ordered]@{ outputPath = $_.path; outputSha256 = $_.sha256; routeId = 'docx-pdf'; command = 'Export-OfficeDocumentPdf'; routeEvidence = 'recipe-uses-single-document-DOCX-export'; report = $global:showcasePdfReport; warnings = @($global:showcasePdfWarnings) }
+        conversions = @([ordered]@{
+            inputPath = $docxOutputs[0].path
+            inputSha256 = $docxOutputs[0].sha256
+            outputPath = $pdfOutputs[0].path
+            outputSha256 = $pdfOutputs[0].sha256
+            routeId = 'docx-pdf'
+            command = 'Convert-OfficeDocument'
+            routeEvidence = 'recipe-explicit-Route-docx-pdf-with-public-conversion-report'
+            report = $report
+            warnings = @($global:showcaseConversionWarnings | ForEach-Object { $_.ToString() })
         })
         outputs = @($outputs)
     } | ConvertTo-Json -Depth 12 | Set-Content -LiteralPath $ReceiptPath -Encoding utf8NoBOM

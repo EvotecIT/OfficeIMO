@@ -40,8 +40,8 @@ public sealed class IWorkNumericFormatNativeExportTests {
     public void Created_and_Apple_edited_values_and_formats_survive_source_read_and_saved_destinations(IWorkDocumentKind kind, bool edited) {
         using var manifest = Manifest(); var root = manifest.RootElement; var family = Family(root, kind);
         var source = edited
-            ? IWorkSourceDocument.Open(Corpus(family.GetProperty("edited").GetString()!))
-            : IWorkSourceDocument.Open(CreateExample(kind, root));
+            ? IWorkSourceDocument.Load(Corpus(family.GetProperty("edited").GetString()!))
+            : IWorkSourceDocument.Load(CreateExample(kind, root));
         IWorkTable table = ReadTable(source, kind);
         Assert.Equal(20, table.RowCount); Assert.Equal(2, table.ColumnCount);
         foreach (JsonElement row in root.GetProperty("expectedRows").EnumerateArray()) {
@@ -163,14 +163,14 @@ public sealed class IWorkNumericFormatNativeExportTests {
         }
         if (kind == IWorkDocumentKind.Numbers) {
             var document = IWorkNumbersDocument.Create(); document.AddSheet("Formats").AddTable(data, "Formats", 20, 20, 280, 24);
-            return document.SaveBytes();
+            return document.ToBytes();
         }
         if (kind == IWorkDocumentKind.Pages) {
             var document = IWorkPagesDocument.Create(); document.AddTable(data, "Formats", 234, 24, fontSizePoints: 10);
-            return document.SaveBytes();
+            return document.ToBytes();
         }
         var deck = IWorkKeynoteDocument.Create(); deck.AddSlide().AddTable(data, 120, 40, 720, 480, "Formats", fontSizePoints: 12);
-        return deck.SaveBytes();
+        return deck.ToBytes();
     }
 
     private static JsonElement Family(JsonElement root, IWorkDocumentKind kind) => root.GetProperty("families").EnumerateArray()

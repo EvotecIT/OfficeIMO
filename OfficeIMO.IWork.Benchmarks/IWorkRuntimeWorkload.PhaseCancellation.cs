@@ -25,7 +25,7 @@ public sealed partial class IWorkRuntimeWorkload {
 
     private void PreparePhaseCancellation(string operation) {
         RequirePhaseCancellationProfile(operation);
-        _phaseSource = IWorkSourceDocument.Open(_input);
+        _phaseSource = IWorkSourceDocument.Load(_input);
         _phaseSourceHash = _phaseSource.ComputePackageContentHash();
         _phaseDestinationUnchanged = false;
     }

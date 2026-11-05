@@ -10,10 +10,10 @@ internal static class BranchingPlaybook {
         Title(menu, "Choose the support path");
         Text(menu, "Select a card in presentation mode to open the relevant checklist.", 1.5, 3.5, 30, 2, 22);
         var accessLink = menu.AddTextBox("One person cannot sign in\nOpen the access checklist",global::OfficeIMO.OfficeLength.Centimeters(2),global::OfficeIMO.OfficeLength.Centimeters(7),global::OfficeIMO.OfficeLength.Centimeters(14),global::OfficeIMO.OfficeLength.Centimeters(5));
-        accessLink.FontSize = global::OfficeIMO.OfficeLength.Points(25); accessLink.Color = OfficeColor.Parse("17365D"); accessLink.FillColor = "EAF1FB";
+        accessLink.FontSize = global::OfficeIMO.OfficeLength.Points(25); accessLink.Color = OfficeColor.Parse("17365D"); accessLink.FillColor = OfficeColor.Parse("EAF1FB");
         accessLink.SetHyperlink(access, "Open the access checklist");
         var serviceLink = menu.AddTextBox("Several people report failure\nOpen the service checklist",global::OfficeIMO.OfficeLength.Centimeters(18),global::OfficeIMO.OfficeLength.Centimeters(7),global::OfficeIMO.OfficeLength.Centimeters(14),global::OfficeIMO.OfficeLength.Centimeters(5));
-        serviceLink.FontSize = global::OfficeIMO.OfficeLength.Points(25); serviceLink.Color = OfficeColor.Parse("17365D"); serviceLink.FillColor = "E7F6ED";
+        serviceLink.FontSize = global::OfficeIMO.OfficeLength.Points(25); serviceLink.Color = OfficeColor.Parse("17365D"); serviceLink.FillColor = OfficeColor.Parse("E7F6ED");
         serviceLink.SetHyperlink(service, "Open the service checklist");
         Title(access, "Access checklist");
         Text(access, "1. Confirm the affected account and exact error.\n2. Check the user's access and recent changes.\n3. Record the result and route to the access owner.", 2, 5, 29, 8, 26);

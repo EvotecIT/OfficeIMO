@@ -186,7 +186,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (style.Bold == true) run.SetBold();
             if (style.Italic == true) run.SetItalic();
             if (style.Underline == true) run.SetUnderline(WordUnderlineStyle.Single);
-            if (style.Strikethrough == true) run.SetStrike();
+            if (style.Strikethrough == true) run.SetStrikethrough();
             if (style.FontSize?.Magnitude is double size && size > 0) run.SetFontSize(global::OfficeIMO.OfficeLength.Points((int)Math.Round(size)));
             if (!string.IsNullOrWhiteSpace(style.WeightedFontFamily?.FontFamily)) run.SetFontFamily(style.WeightedFontFamily!.FontFamily);
             if (style.ForegroundColor?.Color.RgbColor is GoogleDocsApiRgbColorPayload color) run.SetColor(OfficeIMO.OfficeColor.Parse(ToHex(color)));

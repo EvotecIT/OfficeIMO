@@ -483,7 +483,7 @@ namespace OfficeIMO.Tests {
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddSheet("Report");
             FillPageBreakGrid(sheet);
-            sheet.Cell(3, 4).SetFillColor("#00FF00");
+            sheet.Cell(3, 4).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#00FF00"));
             for (int column = 1; column <= 4; column++) {
                 sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(40D));
             }

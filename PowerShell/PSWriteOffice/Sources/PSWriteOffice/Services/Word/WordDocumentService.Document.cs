@@ -153,7 +153,7 @@ public static partial class WordDocumentService
         return GetAliveTrackedDocuments();
     }
 
-    private static T RegisterDocument<T>(T document) where T : WordDocument
+    internal static T RegisterDocument<T>(T document) where T : WordDocument
     {
         var tracked = GetAliveTrackedDocuments();
         TrackedDocuments.Value = tracked

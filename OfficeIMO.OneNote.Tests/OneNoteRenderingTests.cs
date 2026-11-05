@@ -30,7 +30,7 @@ public sealed partial class OneNoteRenderingTests {
     [InlineData("testOneNoteFromOffice365.one")]
     [InlineData("handwriting_recognition.one")]
     public void LoadedProducerFixturesExportDeterministicallyToBoundedRasterAndVectorSurfaces(string fixtureName) {
-        OneNoteSection section = OneNoteSectionReader.Read(Path.Combine(AppContext.BaseDirectory, "Fixtures", fixtureName));
+        OneNoteSection section = OneNoteSection.Load(Path.Combine(AppContext.BaseDirectory, "Fixtures", fixtureName));
         OneNotePage page = Assert.IsType<OneNotePage>(section.Pages.FirstOrDefault());
         var options = new OneNotePageRenderingOptions {
             Scale = 0.25D,

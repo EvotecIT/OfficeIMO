@@ -6,7 +6,7 @@ namespace OfficeIMO.IWork;
 
 /// <summary>Creates native Keynote presentations containing positioned text, PNG/JPEG images and scalar tables.</summary>
 /// <remarks>This creation model does not modify loaded iWork packages. Instances are not thread safe.</remarks>
-public sealed class IWorkKeynoteDocument {
+public sealed partial class IWorkKeynoteDocument {
     private readonly List<IWorkKeynoteSlideBuilder> _slides = new();
 
     private IWorkKeynoteDocument(float widthPoints, float heightPoints) {
@@ -34,27 +34,29 @@ public sealed class IWorkKeynoteDocument {
 
     /// <summary>Encodes a deterministic native single-file Keynote package without a template or native application.</summary>
     /// <remarks>At least one slide is required. Bounds apply before output is returned; no font files are embedded.</remarks>
-    public byte[] SaveBytes(IWorkKeynoteWriteOptions? options = null, CancellationToken cancellationToken = default) =>
-        IWorkKeynotePackageWriter.Write(this, (options ?? new IWorkKeynoteWriteOptions()).Snapshot(), cancellationToken);
+    public byte[] ToBytes(IWorkKeynoteSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+        IWorkKeynotePackageWriter.Write(this, (options ?? new IWorkKeynoteSaveOptions()).Snapshot(), cancellationToken);
 
     /// <summary>Writes a completed package at the stream's current position and leaves the stream open.</summary>
     /// <remarks>Encoding finishes before the first write. Cancellation or an I/O failure during copying can leave partial stream data.</remarks>
-    public void Save(Stream destination, IWorkKeynoteWriteOptions? options = null, CancellationToken cancellationToken = default) {
+    public void Save(Stream destination, IWorkKeynoteSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(destination);
         if (!destination.CanWrite) throw new ArgumentException("The destination stream must be writable.", nameof(destination));
-        byte[] bytes = SaveBytes(options, cancellationToken);
+        byte[] bytes = ToBytes(options, cancellationToken);
         IWorkNativePackageWriter.Copy(bytes, destination, cancellationToken);
     }
 
     /// <summary>Atomically saves a native Keynote package, rejecting an existing path unless overwrite is enabled.</summary>
     /// <remarks>Validation and encoding finish before staging. Cancellation and failed staging preserve the existing destination.</remarks>
-    public void Save(string path, bool overwrite = false, IWorkKeynoteWriteOptions? options = null,
+    public void Save(string path, bool overwrite = false, IWorkKeynoteSaveOptions? options = null,
         CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(path);
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A destination path is required.", nameof(path));
-        byte[] bytes = SaveBytes(options, cancellationToken);
-        OfficeFileCommit.WriteAtomically(path, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken), cancellationToken,
+        string fullPath = Path.GetFullPath(path);
+        byte[] bytes = ToBytes(options, cancellationToken);
+        OfficeFileCommit.WriteAtomically(fullPath, stream => IWorkNativePackageWriter.Copy(bytes, stream, cancellationToken), cancellationToken,
             overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
+        FilePath = fullPath;
     }
 
 }

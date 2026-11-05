@@ -60,6 +60,5 @@ internal static class OfficeConversionOutput {
             return new OfficeConversionResult<T>(converted.Value, converted.Report);
         }, cancellationToken);
 
-    private static OfficeConversionReport WithPath(OfficeConversionReport report, string path) =>
-        new OfficeConversionReport(report.Source, report.Target, path, report.ItemsWritten, report.Elapsed, report.Diagnostics);
+    internal static OfficeConversionReport WithPath(OfficeConversionReport report, string path) => report.WithOutputPath(path);
 }

@@ -15,8 +15,8 @@ namespace PSWriteOffice.Cmdlets.PowerPoint;
 ///     }
 /// }</code></example>
 [Cmdlet(VerbsCommon.Add, "OfficePowerPointTextBox", DefaultParameterSetName = "Text")]
-[Alias("PowerPointTextBox")]
 [OutputType(typeof(PowerPointTextBox))]
+[Alias("PowerPointTextBox") ]
 public sealed class AddOfficePowerPointTextBoxCommand : PowerPointTextPlacementCmdlet {
     /// <summary>Gets or sets plain text; an empty string creates an empty box.</summary>
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text"), AllowEmptyString]

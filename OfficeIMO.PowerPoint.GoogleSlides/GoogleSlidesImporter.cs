@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     slide.Hidden = sourceSlide.SlideProperties?.IsSkipped == true;
                     GoogleSlidesApiRgbColor? backgroundColor = sourceSlide.PageProperties?.PageBackgroundFill?.SolidFill?.Color?.RgbColor;
                     if (backgroundColor != null) {
-                        slide.BackgroundColor = ToHex(backgroundColor);
+                        slide.BackgroundColor = OfficeColor.ParseHex(ToHex(backgroundColor));
                     } else if (sourceSlide.PageProperties?.PageBackgroundFill?.StretchedPictureFill?.ContentUrl is string backgroundUrl
                         && !string.IsNullOrWhiteSpace(backgroundUrl)) {
                         try {
@@ -141,10 +141,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         } else if (element.Table != null && element.Table.Rows > 0 && element.Table.Columns > 0) {
                             PowerPointTable table = slide.AddTable(element.Table.Rows,element.Table.Columns,global::OfficeIMO.OfficeLength.Points(left),global::OfficeIMO.OfficeLength.Points(top),global::OfficeIMO.OfficeLength.Points(Math.Max(1, width)),global::OfficeIMO.OfficeLength.Points(Math.Max(1, height)));
                             ApplyTransform(table, geometry);
-                            for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
-                                for (int column = 0; column < Math.Min(table.RowItems[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {
+                            for (int row = 0; row < Math.Min(table.Rows.Count, element.Table.TableRows.Count); row++) {
+                                for (int column = 0; column < Math.Min(table.Rows[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {
                                     GoogleSlidesApiTextContent? cellText = element.Table.TableRows[row].TableCells[column].Text;
-                                    PowerPointTableCell cell = table.RowItems[row].Cells[column];
+                                    PowerPointTableCell cell = table.Rows[row].Cells[column];
                                     if (cellText != null) ApplyTextRuns(cell, cellText);
                                 }
                             }
@@ -332,10 +332,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             GoogleSlidesApiShapeBackgroundFill? background = source.ShapeProperties?.ShapeBackgroundFill;
             if (background != null) {
                 if (string.Equals(background.PropertyState, "NOT_RENDERED", StringComparison.OrdinalIgnoreCase)) {
-                    target.FillColor = "FFFFFF";
+                    target.FillColor = OfficeColor.White;
                     target.FillTransparency = 100;
                 } else if (background.SolidFill?.Color?.RgbColor is GoogleSlidesApiRgbColor fillColor) {
-                    target.FillColor = ToHex(fillColor);
+                    target.FillColor = OfficeColor.ParseHex(ToHex(fillColor));
                     if (background.SolidFill.Alpha.HasValue) {
                         target.FillTransparency = ToTransparency(background.SolidFill.Alpha.Value);
                     }
@@ -354,7 +354,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
             GoogleSlidesApiSolidFill? outlineFill = outline.OutlineFill?.SolidFill;
             if (outlineFill?.Color?.RgbColor is GoogleSlidesApiRgbColor outlineColor) {
-                target.OutlineColor = ToHex(outlineColor);
+                target.OutlineColor = OfficeColor.ParseHex(ToHex(outlineColor));
             } else if (outlineFill != null) {
                 AddShapeStyleDiagnostic(report, objectId, "outline uses a theme color that cannot be resolved without its inherited color scheme");
             }

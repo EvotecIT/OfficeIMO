@@ -29,28 +29,28 @@ namespace OfficeIMO.Examples.Visio {
             flowchart.Save();
 
             VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
-            VisioDocument.Create(blockPath)
-                .BlockDiagram("Styled System Blocks", diagram => diagram
+            using var nativeDocument2 = VisioDocument.Create(blockPath);
+            nativeDocument2.BlockDiagram("Styled System Blocks", diagram => diagram
                     .Theme(enterprise)
                     .Region("zone", "Processing Zone", 0, 0, 3, 1)
                     .Block("input", "Input", 0, 0)
                     .EmphasisBlock("processor", "Processor", 1, 0)
                     .Block("output", "Output", 2, 0)
                     .DataFlow("input", "processor")
-                    .ControlFlow("processor", "output", "control"))
-                .Save();
+                    .ControlFlow("processor", "output", "control"));
+            nativeDocument2.Save();
 
             VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
-            VisioDocument.Create(darkPath)
-                .Flowchart("Dark-Safe Theme Approval", flow => flow
+            using var nativeDocument1 = VisioDocument.Create(darkPath);
+            nativeDocument1.Flowchart("Dark-Safe Theme Approval", flow => flow
                     .Theme(darkSafe)
                     .Start("start", "New request")
                     .Step("triage", "Triage")
                     .Decision("ready", "Ready?")
                     .Step("ship", "Ship")
                     .End("done", "Done")
-                    .Branch("ready", "No", "triage"))
-                .Save();
+                    .Branch("ready", "No", "triage"));
+            nativeDocument1.Save();
 
             if (openVisio) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(flowchartPath) { UseShellExecute = true });

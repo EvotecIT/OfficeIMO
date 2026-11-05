@@ -10,99 +10,47 @@ namespace OfficeIMO.Visio {
     /// Headless SVG export helpers for OfficeIMO Visio documents and pages.
     /// </summary>
     public static class VisioSvgExportExtensions {
-        /// <summary>
-        /// Renders the selected document page to SVG without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static string ToSvg(this VisioDocument document, VisioSvgSaveOptions? options = null) {
-            return Encoding.UTF8.GetString(CreateResult(document, options).Bytes);
-        }
+        /// <summary>Renders the selected page as decoded SVG text.</summary>
+        public static string ToSvg(this VisioDocument document, VisioSvgSaveOptions? options = null,
+            CancellationToken cancellationToken = default) => document.ToSvg(options, out _, cancellationToken);
 
-        /// <summary>
-        /// Renders a page to SVG without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static string ToSvg(this VisioPage page, VisioSvgSaveOptions? options = null) {
-            return Encoding.UTF8.GetString(CreateResult(page, options).Bytes);
-        }
-
-        /// <summary>
-        /// Saves the selected document page as SVG without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static OfficeImageExportResult SaveAsSvg(this VisioDocument document, string path, VisioSvgSaveOptions? options = null) {
-            return CreateResult(document, options).Save(path);
-        }
-
-        /// <summary>
-        /// Saves a page as SVG without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static OfficeImageExportResult SaveAsSvg(this VisioPage page, string path, VisioSvgSaveOptions? options = null) {
-            return CreateResult(page, options).Save(path);
-        }
-
-        /// <summary>
-        /// Writes the selected document page as SVG to a stream without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static OfficeImageExportResult SaveAsSvg(this VisioDocument document, Stream stream, VisioSvgSaveOptions? options = null) {
-            return CreateResult(document, options).Save(stream);
-        }
-
-        /// <summary>
-        /// Writes a page as SVG to a stream without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static OfficeImageExportResult SaveAsSvg(this VisioPage page, Stream stream, VisioSvgSaveOptions? options = null) {
-            return CreateResult(page, options).Save(stream);
-        }
-
-        /// <summary>
-        /// Asynchronously saves the selected document page as SVG without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
-            this VisioDocument document,
-            string path,
-            VisioSvgSaveOptions? options = null,
-            CancellationToken cancellationToken = default) {
+        /// <summary>Renders SVG text while retaining structured image fidelity diagnostics.</summary>
+        public static string ToSvg(this VisioDocument document, VisioSvgSaveOptions? options,
+            out OfficeConversionReport report, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(document, options, cancellationToken);
-            return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
+            report = OfficeImageExportEvidence.CreateReport("Visio", result);
+            return Encoding.UTF8.GetString(result.Bytes);
         }
 
-        /// <summary>
-        /// Asynchronously saves a page as SVG without requiring Microsoft Visio desktop automation.
-        /// </summary>
-        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
-            this VisioPage page,
-            string path,
-            VisioSvgSaveOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(page, options, cancellationToken);
-            return await result.SaveAsync(path, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
+        /// <summary>Renders SVG text asynchronously and returns the completed report.</summary>
+        public static Task<OfficeConversionResult<string>> ToSvgAsync(this VisioDocument document,
+            VisioSvgSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+            Task.Run(() => {
+                string value = document.ToSvg(options, out OfficeConversionReport report, cancellationToken);
+                return new OfficeConversionResult<string>(value, report);
+            }, cancellationToken);
 
-        /// <summary>
-        /// Asynchronously writes the selected document page as SVG to a stream without closing it.
-        /// </summary>
-        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
-            this VisioDocument document,
-            Stream stream,
-            VisioSvgSaveOptions? options = null,
-            CancellationToken cancellationToken = default) {
+        /// <summary>Renders the selected page as decoded SVG text.</summary>
+        public static string ToSvg(this VisioPage document, VisioSvgSaveOptions? options = null,
+            CancellationToken cancellationToken = default) => document.ToSvg(options, out _, cancellationToken);
+
+        /// <summary>Renders SVG text while retaining structured image fidelity diagnostics.</summary>
+        public static string ToSvg(this VisioPage document, VisioSvgSaveOptions? options,
+            out OfficeConversionReport report, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
             OfficeImageExportResult result = CreateResult(document, options, cancellationToken);
-            return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+            report = OfficeImageExportEvidence.CreateReport("Visio", result);
+            return Encoding.UTF8.GetString(result.Bytes);
         }
 
-        /// <summary>
-        /// Asynchronously writes a page as SVG to a stream without closing it.
-        /// </summary>
-        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
-            this VisioPage page,
-            Stream stream,
-            VisioSvgSaveOptions? options = null,
-            CancellationToken cancellationToken = default) {
-            cancellationToken.ThrowIfCancellationRequested();
-            OfficeImageExportResult result = CreateResult(page, options, cancellationToken);
-            return await result.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
-        }
+        /// <summary>Renders SVG text asynchronously and returns the completed report.</summary>
+        public static Task<OfficeConversionResult<string>> ToSvgAsync(this VisioPage document,
+            VisioSvgSaveOptions? options = null, CancellationToken cancellationToken = default) =>
+            Task.Run(() => {
+                string value = document.ToSvg(options, out OfficeConversionReport report, cancellationToken);
+                return new OfficeConversionResult<string>(value, report);
+            }, cancellationToken);
 
         private static OfficeImageExportResult CreateResult(
             VisioDocument document,

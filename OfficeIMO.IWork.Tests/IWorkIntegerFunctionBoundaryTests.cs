@@ -11,7 +11,7 @@ public sealed partial class IWorkBoundaryTests {
         JsonElement evidence = manifest.RootElement;
         string path = Fixture(evidence.GetProperty("source").GetString()!);
         Assert.Equal(evidence.GetProperty("sha256").GetString(), Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(path))).ToLowerInvariant());
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(path).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(path).ReadNumbers();
         IWorkTable table = projection.Sheets.Single(s => s.Name == evidence.GetProperty("sourceSheet").GetString())
             .Tables.Single(t => t.Name == evidence.GetProperty("sourceTable").GetString());
         foreach (JsonElement expected in evidence.GetProperty("cases").EnumerateArray()) {

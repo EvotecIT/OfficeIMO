@@ -3,118 +3,127 @@ using System.Management.Automation;
 using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
 /// <summary>Configures common Excel chart axis titles, formats, scale, and gridlines.</summary>
 /// <example>
-///   <summary>Format value axis and gridlines.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$chart | Set-OfficeExcelChartAxis -CategoryTitle 'Month' -ValueTitle 'Revenue' -ValueNumberFormat '$#,##0' -ValueMinimum 0 -ValueMajorUnit 100 -ShowValueMajorGridlines</code>
-///   <para>Sets axis titles, value formatting, scale, and major value gridlines.</para>
+/// <summary>Title the value axis</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Regions.xlsx {
+///     ExcelSheet 'Summary' {
+///         ExcelTable (Import-OfficeCsv -Path .\Data\Region-Revenue.csv) -Name RegionSummary
+///         ExcelChart -Table RegionSummary -Address F2 -Type Column -PassThru | ExcelChartAxis -ValueTitle 'Revenue (USD)'
+///     }
+/// }</code>
+/// <para>Adds a value axis title to a new chart.</para>
 /// </example>
 /// <example>
-///   <summary>Use a scaled date/category axis for a line chart.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$chart |
-///     Set-OfficeExcelChartAxis -CategoryTitle 'Week' -CategoryNumberFormat 'yyyy-mm-dd' -CategoryMinimum 46000 -CategoryMaximum 46090 -CategoryMajorUnit 14 -CategoryMinorUnit 7</code>
-///   <para>Configures the chart's X axis through OfficeIMO's category/date-axis scale support while keeping the workbook chart object on the pipeline.</para>
+/// <summary>Fix the scale of an availability chart</summary>
+/// <code>New-OfficeExcel -Path .\Reports\Availability.xlsx {
+///     ExcelSheet 'Uptime' {
+///         $chart = ExcelChart -InputObject (Import-OfficeCsv -Path .\Data\Site-Uptime.csv) -Category Site -Value Uptime -Address A1 -Type Column -PassThru
+///         ExcelChartAxis -Chart $chart -ValueMinimum 0.95 -ValueMaximum 1 -ValueMajorUnit 0.01 -ValueNumberFormat '0%' -CategoryTitle 'Site'
+///     }
+/// }</code>
+/// <para>Scales the value axis from 95 to 100 percent with a percentage format, so small differences in site uptime are visible.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Set, "OfficeExcelChartAxis", DefaultParameterSetName = "Default")]
 [Alias("ExcelChartAxis")]
 [OutputType(typeof(ExcelChart))]
 public sealed class SetOfficeExcelChartAxisCommand : PSWriteOffice.Cmdlets.OfficeMutationCmdlet {
     /// <summary>Chart to update.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "Default", Mandatory = true, Position = 0, ValueFromPipeline = true)]
     public ExcelChart Chart { get; set; } = null!;
 
     /// <summary>Axis group to configure.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public OfficeChartAxisGroup AxisGroup { get; set; } = OfficeChartAxisGroup.Primary;
 
     /// <summary>Category axis title.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? CategoryTitle { get; set; }
 
     /// <summary>Value axis title.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? ValueTitle { get; set; }
 
     /// <summary>Category axis number format code.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? CategoryNumberFormat { get; set; }
 
     /// <summary>Value axis number format code.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public string? ValueNumberFormat { get; set; }
 
     /// <summary>Keep axis number formats linked to source cells.</summary>
-    [Parameter]
-    public bool SourceLinked { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    public SwitchParameter SourceLinked { get; set; }
 
     /// <summary>Value axis minimum.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? ValueMinimum { get; set; }
 
     /// <summary>Value axis maximum.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? ValueMaximum { get; set; }
 
     /// <summary>Value axis major unit.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? ValueMajorUnit { get; set; }
 
     /// <summary>Value axis minor unit.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? ValueMinorUnit { get; set; }
 
     /// <summary>Category/date axis minimum.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? CategoryMinimum { get; set; }
 
     /// <summary>Category/date axis maximum.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? CategoryMaximum { get; set; }
 
     /// <summary>Category/date axis major unit.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? CategoryMajorUnit { get; set; }
 
     /// <summary>Category/date axis minor unit.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public double? CategoryMinorUnit { get; set; }
 
     /// <summary>Show category major gridlines.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowCategoryMajorGridlines { get; set; }
 
     /// <summary>Show category minor gridlines.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowCategoryMinorGridlines { get; set; }
 
     /// <summary>Show value major gridlines.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowValueMajorGridlines { get; set; }
 
     /// <summary>Show value minor gridlines.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Default")]
     public SwitchParameter ShowValueMinorGridlines { get; set; }
 
     /// <summary>Optional category gridline color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? CategoryGridlineColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? CategoryGridlineColor { get; set; }
 
     /// <summary>Optional value gridline color. Named colors and hexadecimal values are accepted.</summary>
-    [Parameter]
-    [OfficeColorArgumentTransformation(UseExcelArgb = true)]
-    [ArgumentCompleter(typeof(OfficeColorArgumentCompleter))]
-    public string? ValueGridlineColor { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeColorTransformation]
+    [ArgumentCompleter(typeof(OfficeColorCompleter))]
+    public OfficeColor? ValueGridlineColor { get; set; }
 
     /// <summary>Optional gridline width in points.</summary>
-    [Parameter]
-    public double? GridlineWidthPoints { get; set; }
+    [Parameter(ParameterSetName = "Default")]
+    [OfficeLengthTransformation]
+    public OfficeLength? GridlineWidth { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
@@ -147,32 +156,17 @@ public sealed class SetOfficeExcelChartAxisCommand : PSWriteOffice.Cmdlets.Offic
                 Chart.SetCategoryAxisScale(CategoryMinimum, CategoryMaximum, CategoryMajorUnit, CategoryMinorUnit, axisGroup: AxisGroup);
             }
 
-            var categoryGridlineColor = CategoryGridlineColor;
-            var valueGridlineColor = ValueGridlineColor;
-
-            bool categoryGridlinesRequested = ShowCategoryMajorGridlines.IsPresent ||
-                ShowCategoryMinorGridlines.IsPresent ||
-                !string.IsNullOrWhiteSpace(categoryGridlineColor);
-            bool valueGridlinesRequested = ShowValueMajorGridlines.IsPresent ||
-                ShowValueMinorGridlines.IsPresent ||
-                !string.IsNullOrWhiteSpace(valueGridlineColor);
-            bool widthOnlyRequest = GridlineWidthPoints.HasValue && !categoryGridlinesRequested && !valueGridlinesRequested;
-
-            bool categoryStyleRequested = !string.IsNullOrWhiteSpace(categoryGridlineColor) ||
-                (GridlineWidthPoints.HasValue && (categoryGridlinesRequested || widthOnlyRequest));
-            if (categoryGridlinesRequested || widthOnlyRequest) {
-                bool showMajor = ShowCategoryMajorGridlines.IsPresent || ShowCategoryMinorGridlines.IsPresent || categoryStyleRequested;
-                Chart.SetCategoryAxisGridlines(showMajor,
-                    ShowCategoryMinorGridlines.IsPresent, categoryGridlineColor != null ? OfficeColor.Parse(categoryGridlineColor) : (OfficeColor?)null, GridlineWidthPoints.HasValue ? OfficeLength.Points(GridlineWidthPoints.Value) : (OfficeLength?)null, AxisGroup);
-            }
-
-            bool valueStyleRequested = !string.IsNullOrWhiteSpace(valueGridlineColor) ||
-                (GridlineWidthPoints.HasValue && (valueGridlinesRequested || widthOnlyRequest));
-            if (valueGridlinesRequested || widthOnlyRequest) {
-                bool showMajor = ShowValueMajorGridlines.IsPresent || ShowValueMinorGridlines.IsPresent || valueStyleRequested;
-                Chart.SetValueAxisGridlines(showMajor,
-                    ShowValueMinorGridlines.IsPresent, valueGridlineColor != null ? OfficeColor.Parse(valueGridlineColor) : (OfficeColor?)null, GridlineWidthPoints.HasValue ? OfficeLength.Points(GridlineWidthPoints.Value) : (OfficeLength?)null, AxisGroup);
-            }
+            bool categoryRequest = MyInvocation.BoundParameters.ContainsKey(nameof(ShowCategoryMajorGridlines)) ||
+                MyInvocation.BoundParameters.ContainsKey(nameof(ShowCategoryMinorGridlines)) || CategoryGridlineColor.HasValue;
+            bool valueRequest = MyInvocation.BoundParameters.ContainsKey(nameof(ShowValueMajorGridlines)) ||
+                MyInvocation.BoundParameters.ContainsKey(nameof(ShowValueMinorGridlines)) || ValueGridlineColor.HasValue;
+            bool widthOnly = GridlineWidth.HasValue && !categoryRequest && !valueRequest;
+            if (categoryRequest || widthOnly)
+                Chart.SetCategoryAxisGridlines(OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowCategoryMajorGridlines)),
+                    OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowCategoryMinorGridlines)), CategoryGridlineColor, GridlineWidth, AxisGroup);
+            if (valueRequest || widthOnly)
+                Chart.SetValueAxisGridlines(OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowValueMajorGridlines)),
+                    OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(ShowValueMinorGridlines)), ValueGridlineColor, GridlineWidth, AxisGroup);
 
             WritePassThru(Chart);
         } catch (Exception ex) {

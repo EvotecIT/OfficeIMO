@@ -76,7 +76,7 @@ try {
 
     $table = Import-OfficeCsv `
         -Path $Path `
-        -AsDataTable `
+        -As DataTable `
         -ErrorAction Stop
 
     $writeResult = $table |

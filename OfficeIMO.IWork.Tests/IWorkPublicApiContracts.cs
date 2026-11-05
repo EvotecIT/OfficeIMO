@@ -17,7 +17,7 @@ public sealed class IWorkPublicApiContracts {
 
     [Fact]
     public void SourceReadingAndDestinationConversionRemainSeparate() {
-        Assert.Null(typeof(IWorkReadOptions).GetProperty("ImportMode"));
+        Assert.Null(typeof(IWorkLoadOptions).GetProperty("ImportMode"));
         Assert.NotNull(typeof(IWorkConversionOptions).GetProperty("Mode"));
 
         AssertSourceExtension(typeof(WordIWorkConverter), "ToWordResult");
@@ -36,12 +36,12 @@ public sealed class IWorkPublicApiContracts {
     }
 
     [Fact]
-    public void OpenSupportsDetectedStreamsAndByteArrays() {
+    public void LoadSupportsDetectedStreamsAndByteArrays() {
         MethodInfo[] methods = typeof(IWorkSourceDocument).GetMethods(
             BindingFlags.Public | BindingFlags.Static);
 
-        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(Stream), typeof(IWorkReadOptions)));
-        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(byte[]), typeof(IWorkReadOptions)));
+        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(Stream), typeof(IWorkLoadOptions)));
+        Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(byte[]), typeof(IWorkLoadOptions)));
         Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(Stream), typeof(IWorkDocumentKind)));
         Assert.Contains(methods, static method => HasLeadingParameters(method, typeof(byte[]), typeof(IWorkDocumentKind)));
     }
@@ -85,7 +85,7 @@ public sealed class IWorkPublicApiContracts {
     }
 
     private static bool HasLeadingParameters(MethodInfo method, params Type[] expected) {
-        if (method.Name != "Open") return false;
+        if (method.Name != nameof(IWorkSourceDocument.Load)) return false;
         ParameterInfo[] parameters = method.GetParameters();
         return parameters.Length >= expected.Length
             && expected.Select((type, index) => parameters[index].ParameterType == type).All(static match => match);

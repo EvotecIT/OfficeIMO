@@ -14,6 +14,7 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentSlide")]
 [OutputType(typeof(OdpSlide))]
+[Alias("OpenDocumentSlide") ]
 public sealed class AddOfficeOpenDocumentSlideCommand : PSCmdlet {
     /// <summary>OpenDocument presentation. Omit inside New-OfficeOpenDocument -Content.</summary>
     [Parameter(ValueFromPipeline = true)]

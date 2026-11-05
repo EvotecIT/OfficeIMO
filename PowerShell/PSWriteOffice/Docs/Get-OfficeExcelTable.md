@@ -6,38 +6,49 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelTable
 ## SYNOPSIS
-Gets Excel tables defined in a workbook.
+Lists the tables defined in a workbook.
 
 ## SYNTAX
+### Document (Default)
+```powershell
+Get-OfficeExcelTable [-Name <string>] [-Sheet <OfficeSheetSelector>] [-Document <ExcelDocument>] [<CommonParameters>]
+```
+
 ### Path
 ```powershell
-Get-OfficeExcelTable [-Path] <string> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+Get-OfficeExcelTable [-Path] <string[]> [-Name <string>] [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeExcelTable -LiteralPath <string[]> [-Name <string>] [-Sheet <OfficeSheetSelector>] [<CommonParameters>]
 ```
 
 ### Uri
 ```powershell
-Get-OfficeExcelTable [-Uri] <uri> [-AllowHttp] [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Get-OfficeExcelTable -Document <ExcelDocument> [-Name <string>] [-Sheet <string>] [-SheetIndex <Int32>] [<CommonParameters>]
+Get-OfficeExcelTable [-Uri] <uri> [-Name <string>] [-Sheet <OfficeSheetSelector>] [-AllowHttp] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Gets Excel tables defined in a workbook.
+Lists the tables defined in a workbook.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $tables = Get-OfficeExcelTable -Path .\report.xlsx -Sheet Data
-$tables |
-    Select-Object -Property Name, Sheet, Range |
-    Export-Csv -Path .\ExcelTables.csv -NoTypeInformation
+Get-OfficeExcelTable -Path .\Reports\Q3-Sales.xlsx
 ```
 
-Returns table metadata for workbook documentation or generated-artifact proof.
+Shows every table with its sheet, range and style.
+
+### EXAMPLE 2
+```powershell
+Get-ChildItem -Path .\Reports -Filter *.xlsx |
+                Get-OfficeExcelTable |
+                Select-Object SheetName, Name, Range, StyleName
+```
+
+Lists the tables of every workbook in the Reports folder with where they live, to plan which ones a dashboard should read.
 
 ## PARAMETERS
 
@@ -58,7 +69,7 @@ Accept wildcard characters: False
 ```
 
 ### -Document
-Workbook to inspect.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -66,10 +77,26 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
+Accept wildcard characters: False
+```
+
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
+
+```yaml
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
 Accept wildcard characters: False
 ```
 
@@ -78,7 +105,7 @@ Optional table name filter.
 
 ```yaml
 Type: String
-Parameter Sets: Path, Uri, Document
+Parameter Sets: Document, Path, LiteralPath, Uri
 Aliases: None
 Possible values:
 
@@ -90,43 +117,27 @@ Accept wildcard characters: False
 ```
 
 ### -Path
-Path to the workbook.
+Workbook paths resolved with filesystem wildcard support.
 
 ```yaml
-Type: String
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
 ### -Sheet
-Optional sheet name filter.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Uri, Document
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Optional sheet index (0-based) filter.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Uri, Document
+Type: OfficeSheetSelector
+Parameter Sets: Document, Path, LiteralPath, Uri
 Aliases: None
 Possible values:
 
@@ -143,7 +154,7 @@ Remote workbook URI to inspect.
 ```yaml
 Type: Uri
 Parameter Sets: Uri
-Aliases: Url
+Aliases: None
 Possible values:
 
 Required: True
@@ -158,12 +169,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 

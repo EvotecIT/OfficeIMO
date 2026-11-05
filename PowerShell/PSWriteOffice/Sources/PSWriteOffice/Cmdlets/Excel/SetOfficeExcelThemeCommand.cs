@@ -1,103 +1,73 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Sets or resets the workbook theme package part for an Excel workbook.</summary>
+/// <summary>Applies an OfficeTheme or theme XML to a workbook.</summary>
 /// <example>
-///   <summary>Reset and rename the workbook theme.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$theme = Set-OfficeExcelTheme -Path .\Report.xlsx -Default -Name 'Contoso Workbook Theme' -PassThru
-/// Get-OfficeExcelSummary -Path .\Report.xlsx |
-///     Select-Object Path, WorksheetCount</code>
-///   <para>Writes the built-in OfficeIMO workbook theme and updates its theme name.</para>
+/// <summary>Apply a built-in theme</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx {
+///     ExcelTheme Minimal
+/// }</code>
+/// <para>Restyles the workbook's cell styles, table styles and charts with the Minimal theme.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Set, "OfficeExcelTheme", DefaultParameterSetName = ParameterSetContext, SupportsShouldProcess = true)]
+/// <example>
+/// <summary>Apply the corporate theme from a template</summary>
+/// <code>Open-OfficeExcel -Path .\Reports\Legacy-Report.xlsx {
+///     ExcelTheme .\Templates\Northwind.xltx
+/// }</code>
+/// <para>Takes the colours and fonts from the company template so an older workbook matches current branding.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Set, "OfficeExcelTheme", DefaultParameterSetName = "Name")]
 [Alias("ExcelTheme")]
-[OutputType(typeof(PSObject))]
 public sealed class SetOfficeExcelThemeCommand : PSCmdlet {
-    private const string ParameterSetContext = "Context";
-    private const string ParameterSetDocument = "Document";
-    private const string ParameterSetPath = "Path";
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
-    /// <summary>Workbook path to update.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath)]
-    [Alias("InputPath", "FilePath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Workbook to update outside the DSL context.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
-
-    /// <summary>Reset the workbook to the built-in OfficeIMO theme.</summary>
-    [Parameter]
-    public SwitchParameter Default { get; set; }
-
-    /// <summary>Theme XML to write to the workbook theme part.</summary>
-    [Parameter]
-    public string? Xml { get; set; }
-
-    /// <summary>Path to a DrawingML theme XML file.</summary>
-    [Parameter]
-    public string? XmlPath { get; set; }
+    /// <summary>Built-in Office theme, native theme object or a document whose visual theme is read.</summary>
+    [Parameter(ParameterSetName = "Theme", Mandatory = true, Position = 0)]
+    [OfficeThemeTransformation]
+    public OfficeThemeInput Theme { get; set; } = null!;
 
     /// <summary>Optional workbook theme name to apply after writing the theme.</summary>
-    [Parameter]
+    [Parameter(ParameterSetName = "Theme")]
+    [Parameter(ParameterSetName = "Xml")]
+    [Parameter(ParameterSetName = "XmlPath")]
+    [Parameter(ParameterSetName = "Name", Mandatory = true)]
     public string? Name { get; set; }
 
-    /// <summary>Emit workbook theme metadata after applying the update.</summary>
-    [Parameter]
+    /// <summary>Emits the native result after the operation.</summary>
+    [Parameter()]
     public SwitchParameter PassThru { get; set; }
+
+    /// <summary>Theme XML to write to the workbook theme part.</summary>
+    [Parameter(ParameterSetName = "Xml", Mandatory = true)]
+    public string Xml { get; set; } = null!;
+
+    /// <summary>Literal path to an XML definition.</summary>
+    [Parameter(ParameterSetName = "XmlPath", Mandatory = true)]
+    public string XmlPath { get; set; } = null!;
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        using var workbook = ExcelWorkbookCommandService.ResolveWorkbook(this, ParameterSetName, Path, Document, readOnly: false);
-        if (!ExcelShouldProcessService.ShouldProcessWorkbook(this, workbook.Document, Path, "Update Excel workbook")) {
-            return;
-        }
-
-
-        string? xml = ResolveThemeXml();
-        if (Default.IsPresent) {
-            workbook.Document.ResetWorkbookTheme(Name);
-        } else if (xml != null) {
-            workbook.Document.SetWorkbookThemeXml(xml);
-            if (!string.IsNullOrWhiteSpace(Name)) {
-                workbook.Document.SetWorkbookThemeName(Name!);
-            }
-        } else if (!string.IsNullOrWhiteSpace(Name)) {
-            workbook.Document.SetWorkbookThemeName(Name!);
-        } else {
-            throw new PSArgumentException("Specify -Default, -Xml, -XmlPath, or -Name.");
-        }
-
-        ExcelWorkbookThemeInfo info = workbook.Document.GetWorkbookTheme(includeXml: false);
-        workbook.SaveIfOwned();
-
-        if (PassThru.IsPresent) {
-            var result = new PSObject();
-            result.Properties.Add(new PSNoteProperty("HasTheme", info.HasTheme));
-            result.Properties.Add(new PSNoteProperty("Name", info.Name));
-            WriteObject(result);
-        }
+        var document = ExcelCommandTargets.Document(Document);
+        if (ParameterSetName == "Theme") document.ApplyTheme(Theme!.Resolve(OfficeTheme.FromDocument));
+        else if (ParameterSetName != "Name") document.SetWorkbookThemeXml(Xml ?? File.ReadAllText(OfficePath.ResolveInput(SessionState, XmlPath!, literal: true)[0]));
+        if (Name != null) document.SetWorkbookThemeName(Name);
+        if (PassThru) WriteObject(document.GetWorkbookTheme(includeXml: true));
     }
 
-    private string? ResolveThemeXml() {
-        if (!string.IsNullOrWhiteSpace(Xml) && !string.IsNullOrWhiteSpace(XmlPath)) {
-            throw new PSArgumentException("Specify either Xml or XmlPath, not both.");
-        }
-
-        if (!string.IsNullOrWhiteSpace(Xml)) {
-            return Xml;
-        }
-
-        if (string.IsNullOrWhiteSpace(XmlPath)) {
-            return null;
-        }
-
-        string resolved = SessionState.Path.GetUnresolvedProviderPathFromPSPath(XmlPath!);
-        return File.ReadAllText(resolved);
-    }
 }

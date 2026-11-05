@@ -11,7 +11,7 @@ Adds a paragraph to an OpenDocument text document.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Add-OfficeOpenDocumentParagraph [-Text] <string> [-Document <OdtDocument>] [-PassThru] [<CommonParameters>]
+Add-OfficeOpenDocumentParagraph [-Text] <string> [-Document <OdtDocument>] [-PassThru] [-Bold] [-Italic] [-Strikethrough] [-Underline <OdfTextDecorationStyle>] [-Font <string>] [-Size <OfficeLength>] [-Color <OfficeColor>] [-Alignment <OfficeAlignment>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -26,6 +26,54 @@ PS> New-OfficeOpenDocument -Kind Text -Path .\Report.odt -Content { Add-OfficeOp
 
 
 ## PARAMETERS
+
+### -Alignment
+Paragraph horizontal alignment.
+
+```yaml
+Type: OfficeAlignment
+Parameter Sets: Default
+Aliases: None
+Possible values: Left, Center, Right, Justify, Start, End
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Bold
+Apply bold text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Color
+Opaque RGB text color, including CSS names and theme roles.
+
+```yaml
+Type: OfficeColor
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
 
 ### -Document
 OpenDocument text document. Omit inside New-OfficeOpenDocument -Content.
@@ -43,8 +91,72 @@ Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
+### -Font
+Font family.
+
+```yaml
+Type: String
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Italic
+Apply italic text; explicit false clears it.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
 ### -PassThru
 Emit the created paragraph.
+
+```yaml
+Type: SwitchParameter
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Size
+Font size; a number means points.
+
+```yaml
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Strikethrough
+Apply strikethrough; explicit false clears it.
 
 ```yaml
 Type: SwitchParameter
@@ -70,6 +182,22 @@ Possible values:
 
 Required: True
 Position: 0
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Underline
+Native ODF underline line style.
+
+```yaml
+Type: OdfTextDecorationStyle
+Parameter Sets: Default
+Aliases: None
+Possible values: None, Solid, Dotted, Dash, LongDash, DotDash, DotDotDash, Wave
+
+Required: False
+Position: named
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

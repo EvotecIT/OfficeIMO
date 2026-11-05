@@ -26,6 +26,26 @@ $workbook | Save-OfficeExcel
 ```
 
 
+### EXAMPLE 2
+```powershell
+$book = Open-OfficeExcel -Path .\Reports\Q3-Sales.xlsx -ReadOnly
+Close-OfficeExcel -Document $book
+```
+
+Releases a workbook that was only read; nothing is written to disk.
+
+### EXAMPLE 3
+```powershell
+$book = Open-OfficeExcel -Path .\Finance\Purchase-Requests.xlsx -ReadOnly
+try {
+    Import-OfficeExcel -Document $book -Table Requests | Where-Object Status -eq 'Awaiting approval'
+} finally {
+    Close-OfficeExcel -Document $book
+}
+```
+
+Reads the open purchase requests and closes the workbook in a finally block, so the file is released even if the filter fails.
+
 ## PARAMETERS
 
 ### -Document

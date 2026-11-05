@@ -11,7 +11,7 @@ Updates OfficeIMO Word shape metadata, sizing, and colors.
 ## SYNTAX
 ### Default (Default)
 ```powershell
-Set-OfficeWordShape [-Shape] <WordShape> [-Width <Double>] [-Height <Double>] [-Left <Double>] [-Top <Double>] [-Rotation <Double>] [-FillColor <string>] [-StrokeColor <string>] [-StrokeWidth <Double>] [-Stroked <Boolean>] [-ZIndex <Int32>] [-Title <string>] [-Description <string>] [-Hidden <Boolean>] [-PassThru] [<CommonParameters>]
+Set-OfficeWordShape [-Shape] <WordShape> [-Width <OfficeLength>] [-Height <OfficeLength>] [-X <OfficeLength>] [-Y <OfficeLength>] [-Rotation <Double>] [-FillColor <OfficeColor>] [-StrokeColor <OfficeColor>] [-StrokeWidth <OfficeLength>] [-Stroked] [-ZIndex <Int32>] [-Title <string>] [-Description <string>] [-Hidden] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -52,7 +52,7 @@ Accept wildcard characters: False
 Fill color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -68,7 +68,7 @@ Accept wildcard characters: False
 Shape height in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -84,23 +84,7 @@ Accept wildcard characters: False
 Whether the shape is hidden.
 
 ```yaml
-Type: Boolean
-Parameter Sets: Default
-Aliases: None
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Left
-Anchored left position in points.
-
-```yaml
-Type: Double
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -164,7 +148,7 @@ Accept wildcard characters: False
 Stroke color. Named colors and hexadecimal values are accepted.
 
 ```yaml
-Type: String
+Type: OfficeColor
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -180,7 +164,7 @@ Accept wildcard characters: False
 Whether the shape stroke is enabled.
 
 ```yaml
-Type: Boolean
+Type: SwitchParameter
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -196,7 +180,7 @@ Accept wildcard characters: False
 Stroke width in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -224,11 +208,11 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Top
-Anchored top position in points.
+### -Width
+Shape width in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:
@@ -240,11 +224,27 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Width
-Shape width in points.
+### -X
+Anchored left position in points.
 
 ```yaml
-Type: Double
+Type: OfficeLength
+Parameter Sets: Default
+Aliases: None
+Possible values:
+
+Required: False
+Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Y
+Anchored top position in points.
+
+```yaml
+Type: OfficeLength
 Parameter Sets: Default
 Aliases: None
 Possible values:

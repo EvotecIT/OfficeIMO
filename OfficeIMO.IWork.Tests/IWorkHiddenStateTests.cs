@@ -10,11 +10,11 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Hidden_state_selectors_require_partial_output_even_with_zero_model_counts(IWorkDocumentKind kind) {
         using MemoryStream package = HiddenStatePackage(kind, HiddenOwner(rowFields: BytesField(2, VarintField(2, 1))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         Assert.Equal(42d, Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells).Value);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, kind, visual: false,
-            new IWorkReadOptions { PreserveSourceRecords = false });
+            new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.True(report.IsPartialEditableReconstruction);
         Assert.Throws<InvalidOperationException>(() => report.RequireCompleteEditableReconstruction());
         IWorkSourceDeclarationIssue issue = Assert.Single(report.SourceDeclarationIssues);
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Base_and_summary_user_filtered_and_pivot_selectors_keep_physical_paths(int field, int flag) {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(columnFields: BytesField(field, VarintField(flag, 1))));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         Assert.Equal($"70/2[1]/2/{field}[1]/{flag}", Assert.Single(projection.SourceDeclarationIssues).FieldPath);
     }
@@ -50,7 +50,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Unqualified_extent_payloads_keep_evidence_without_inferred_positions(int field) {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(field, Message())));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         Assert.Equal($"70/2[1]/3/{field}", Assert.Single(projection.SourceDeclarationIssues).FieldPath);
         Assert.Equal(42d, Assert.Single(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells).Value);
@@ -75,7 +75,7 @@ public sealed partial class IWorkBoundaryTests {
         byte[] field = defect == "malformed" ? BytesField(70, new byte[] { 0x80 }) : BytesField(70, owner);
         if (defect == "duplicate") field = Message(field, field);
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers, ownerField: field);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         IWorkSourceDeclarationIssue issue = Assert.Single(projection.SourceDeclarationIssues);
         Assert.Equal(path, issue.FieldPath);
@@ -92,7 +92,7 @@ public sealed partial class IWorkBoundaryTests {
                 modelFields: modern ? Message() : ReferenceField(38, 30),
                 records: ArchiveRecord(30, 6220, Message(VarintField(2, enabled ? 1ul : 0ul),
                     BytesField(7, new byte[] { 0x80 }), ReferenceField(3, 999))));
-            IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+            IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
             Assert.Equal(!enabled, projection.HasEditableContent);
             Assert.Empty(projection.SourceReferenceIssues);
             if (!enabled) Assert.Empty(projection.SourceDeclarationIssues);
@@ -116,7 +116,7 @@ public sealed partial class IWorkBoundaryTests {
                 defect == "malformed" ? new byte[] { 0x80 } : Message());
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: ReferenceField(8, 30)), records: records);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         if (defect == "missing") Assert.Equal("70/2[1]/3/8", Assert.Single(projection.SourceReferenceIssues).FieldPath);
         else Assert.Equal(30ul, Assert.Single(projection.SourceDeclarationIssues).Owner.RecordIdentifier);
@@ -127,7 +127,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: Message(VarintField(6, 0), BytesField(2,
                 Message(VarintField(2, 0), VarintField(3, 0), VarintField(4, 0))))));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceDeclarationIssues);
     }
@@ -136,33 +136,33 @@ public sealed partial class IWorkBoundaryTests {
     public void Hidden_state_entries_are_charged_before_nested_decode_and_parser_limits_remain_fatal() {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, new byte[] { 0x80 })));
-        Assert.Contains("dimension entries", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxTableDimensionEntries = 4 }).ReadNumbers()).Message);
+        Assert.Contains("dimension entries", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxTableDimensionEntries = 4 }).ReadNumbers()).Message);
         using MemoryStream depth = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, VarintField(2, 0))));
-        Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(depth,
-            new IWorkReadOptions { MaxProtobufDepth = 3 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("depth", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(depth,
+            new IWorkLoadOptions { MaxProtobufDepth = 3 }).ReadNumbers()).Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public void Shared_hidden_states_deduplicate_evidence_and_distinct_selectors_use_the_existing_limit() {
         byte[] rowFields = BytesField(2, VarintField(2, 1));
         using MemoryStream shared = HiddenStatePackage(IWorkDocumentKind.Numbers, HiddenOwner(rowFields: rowFields), repeatModel: true);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(shared,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(shared,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Single(projection.SourceDeclarationIssues);
         using MemoryStream distinct = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: Message(rowFields, rowFields)));
-        Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Open(distinct,
-            new IWorkReadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
+        Assert.Contains("declaration issues", Assert.Throws<InvalidDataException>(() => IWorkSourceDocument.Load(distinct,
+            new IWorkLoadOptions { MaxSourceDeclarationIssues = 1 }).ReadNumbers()).Message);
     }
 
     [Fact]
     public void Hidden_state_partial_output_and_reader_keep_values_and_visibility_warning() {
         using MemoryStream package = HiddenStatePackage(IWorkDocumentKind.Numbers,
             HiddenOwner(rowFields: BytesField(2, VarintField(2, 1))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package);
         using var automatic = source.ToExcelResult(options:new IWorkConversionOptions { RequireCompleteVisualCoverage = false });
         Assert.True(automatic.IsVisualFallback);
         using var partial = source.ToExcelResult(new IWorkConversionOptions { AllowPartialEditableReconstruction = true });

@@ -16,7 +16,7 @@ Update-OfficeWordTableOfContents [-Document <WordDocument>] [-Regenerate] [-Pass
 
 ### TableOfContents
 ```powershell
-Update-OfficeWordTableOfContents [-TableOfContents <WordTableOfContent>] [-Regenerate] [-PassThru] [<CommonParameters>]
+Update-OfficeWordTableOfContents -TableOfContents <WordTableOfContent> [-Regenerate] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -104,7 +104,7 @@ Parameter Sets: TableOfContents
 Aliases: None
 Possible values:
 
-Required: False
+Required: True
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)

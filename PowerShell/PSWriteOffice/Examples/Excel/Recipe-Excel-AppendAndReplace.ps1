@@ -7,11 +7,11 @@ $afternoon = @(
     [pscustomobject]@{ Order = 'SO-1003'; Owner = 'Support'; Status = 'Ready' }
 )
 
-$morning | Export-OfficeExcel -Path $path -WorksheetName 'Orders' -TableName 'Orders' -AutoFit
-$afternoon | Export-OfficeExcel -Path $path -WorksheetName 'Orders' -TableName 'Orders' -Append -AppendToTable
+$morning | Export-OfficeExcel -Path $path -Sheet 'Orders' -TableName 'Orders'
+$afternoon | Export-OfficeExcel -Path $path -Sheet 'Orders' -TableName 'Orders' -Append
 
 $summary = @(
     [pscustomobject]@{ Status = 'Ready'; Count = 2 }
     [pscustomobject]@{ Status = 'Review'; Count = 1 }
 )
-$summary | Export-OfficeExcel -Path $path -WorksheetName 'Summary' -TableName 'Summary' -ClearSheet -AutoFit
+$summary | Export-OfficeExcel -Path $path -Sheet 'Summary' -TableName 'Summary' -ReplaceSheet

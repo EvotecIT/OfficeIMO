@@ -51,8 +51,8 @@ public sealed partial class IWorkBoundaryTests {
             Message(ArchiveRecord(10, 2021, Message(BytesField(1, Message(ReferenceField(3, 999))))),
                 ArchiveRecord(12, 2022, Message(BytesField(11, Message(FloatField(3, 10))))),
                 ArchiveRecord(13, 2022, Message(BytesField(11, Message(FloatField(3, 20)))))), text: "A\nB");
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         IWorkPagesProjection pages = source.ReadPages();
         AssertMissingReference(Assert.Single(pages.SourceReferenceIssues), 10, "1/3", 999);
         Assert.Equal(2, pages.Body.Paragraphs.Count);
@@ -106,8 +106,8 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(17, Message(BytesField(1, Message(ReferenceField(2, 3)))))),
             Message(ArchiveRecord(3, 10011, Message(ReferenceField(25, 4))),
                 ArchiveRecord(4, 10143, Message(ReferenceField(1, 2)))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, IWorkDocumentKind.Pages,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, IWorkDocumentKind.Pages,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         IWorkPagesProjection pages = source.ReadPages();
         AssertMissingReference(Assert.Single(pages.SourceReferenceIssues), 2, "8/1[1]/2", 999);
         Assert.Equal("Text", Assert.Single(pages.HeaderContents).PlainText);
@@ -134,8 +134,8 @@ public sealed partial class IWorkBoundaryTests {
             Message(AttributeTable(5, AttributeEntry(0, ReferenceField(2, 10))),
                 AttributeTable(11, AttributeEntry(0, ReferenceField(2, 999)))),
             ArchiveRecord(10, 2022, Message(BytesField(1, Message(ReferenceField(3, 998))))));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 1 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 1 });
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => {
             if (kind == IWorkDocumentKind.Pages) source.ReadPages(); else source.ReadKeynote();
         });

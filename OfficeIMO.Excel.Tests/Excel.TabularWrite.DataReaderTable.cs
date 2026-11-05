@@ -170,8 +170,12 @@ namespace OfficeIMO.Tests {
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }
 
-        [Fact]
-        public void WriteDataReader_CompactTableNormalizesPackageNames() {
+        [Theory]
+        [InlineData("'[]:*?/ '", "Sheet1")]
+        [InlineData("\u0001[]:*?/", "Sheet1")]
+        [InlineData("___", "___")]
+        [InlineData("_\u0001Revenue_", "__Revenue_")]
+        public void WriteDataReader_CompactTableNormalizesPackageNames(string requestedSheetName, string expectedSheetName) {
             var table = new DataTable("ReaderData");
             table.Columns.Add("Id", typeof(int));
             table.Rows.Add(1);
@@ -184,7 +188,7 @@ namespace OfficeIMO.Tests {
             var destination4 = output;
 
             var writeOptions4 = new ExcelWriterOptions {
-                SheetName = "'[]:*?/ '",
+                SheetName = requestedSheetName,
                 CreateTable = true,
                 TableName = requestedTableName,
                 IncludeCellReferences = false,
@@ -198,13 +202,13 @@ namespace OfficeIMO.Tests {
             if (destination4.CanSeek)
                 destination4.Position = 0;
 
-            Assert.Equal("Sheet1", result.SheetName);
+            Assert.Equal(expectedSheetName, result.SheetName);
             Assert.Equal(255, result.TableName?.Length);
 
             using var spreadsheet = SpreadsheetDocument.Open(output, false);
             var savedSheet = spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Single();
             var savedTable = spreadsheet.WorkbookPart.WorksheetParts.Single().TableDefinitionParts.Single().Table!;
-            Assert.Equal("Sheet1", savedSheet.Name?.Value);
+            Assert.Equal(expectedSheetName, savedSheet.Name?.Value);
             Assert.Equal(requestedTableName.Substring(0, 255), savedTable.Name?.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
         }

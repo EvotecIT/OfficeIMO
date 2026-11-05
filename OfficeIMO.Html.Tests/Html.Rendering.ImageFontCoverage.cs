@@ -23,7 +23,7 @@ public sealed class HtmlImageFontCoverageTests {
 
         Assert.Contains(pdf.Output.Report.Warnings, warning => warning.Code == HtmlPdfDiagnosticCodes.UnavailableTextGlyphReplaced
             && warning.Message.Contains("U+072B", StringComparison.Ordinal));
-        Assert.NotEmpty(document.ToPng(options));
+        Assert.NotEmpty(document.ToImage(options));
         Assert.Equal(html, document.SourceHtml);
     }
 
@@ -50,8 +50,8 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add(ManagedTextShapingTestAssets.FamilyName,
             ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs((text + " ").Select(character => (int)character).ToArray()));
 
-        byte[] synchronous = pdfRoute ? (document.ToPdf(options)).ToBytes() : document.ToPng(options);
-        byte[] asynchronous = pdfRoute ? (await document.ToPdfAsync(options)).Value.ToBytes() : await document.ToPngAsync(options);
+        byte[] synchronous = pdfRoute ? (document.ToPdf(options)).ToBytes() : document.ToImage(options);
+        byte[] asynchronous = pdfRoute ? (await document.ToPdfAsync(options)).Value.ToBytes() : (await document.ToImageAsync(options)).Value;
 
         Assert.NotEmpty(synchronous);
         Assert.NotEmpty(asynchronous);
@@ -152,7 +152,7 @@ public sealed class HtmlImageFontCoverageTests {
         options.Fonts.Add("Primary", ManagedTextShapingTestAssets.CreateFontWithDistinctGlyphs('A', 'B'));
 
         HtmlConversionException pdf = Assert.Throws<HtmlConversionException>(() => (document.ToPdf(options)).ToBytes());
-        HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToPng(options));
+        HtmlConversionException png = Assert.Throws<HtmlConversionException>(() => document.ToImage(options));
 
         foreach (HtmlConversionException failure in new[] { pdf, png }) {
             Assert.Contains(failure.Diagnostics, diagnostic => diagnostic.Code == "unsupported-text-glyph"

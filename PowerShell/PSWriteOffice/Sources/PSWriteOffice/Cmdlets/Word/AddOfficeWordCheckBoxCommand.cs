@@ -12,8 +12,8 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a checked checkbox content control.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordCheckBox", DefaultParameterSetName = "Default")]
-[Alias("WordCheckBox")]
 [OutputType(typeof(WordCheckBox))]
+[Alias("WordCheckBox") ]
 public sealed class AddOfficeWordCheckBoxCommand : PSCmdlet
 {
     /// <summary>Set the checkbox as checked.</summary>
@@ -29,7 +29,7 @@ public sealed class AddOfficeWordCheckBoxCommand : PSCmdlet
     public string? Tag { get; set; }
 
     /// <summary>Explicit paragraph to receive the control.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordParagraph? Paragraph { get; set; }
 
     /// <summary>Emit the created control.</summary>

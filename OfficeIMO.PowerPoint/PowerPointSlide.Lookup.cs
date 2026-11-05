@@ -116,8 +116,8 @@ namespace OfficeIMO.PowerPoint {
 
             if (options?.IncludeTables ?? true) {
                 foreach (PowerPointTable table in Tables) {
-                    for (int r = 0; r < table.Rows; r++) {
-                        for (int c = 0; c < table.Columns; c++) {
+                    for (int r = 0; r < table.RowCount; r++) {
+                        for (int c = 0; c < table.ColumnCount; c++) {
                             count += table.GetCell(r, c).ReplaceAll(text, replacement, options);
                         }
                     }

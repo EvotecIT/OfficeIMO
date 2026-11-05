@@ -113,7 +113,7 @@ public sealed partial class IWorkWorkflowTests {
             + int.Parse(evidence.Facts["sourceMalformedReferenceCount"])
             + int.Parse(evidence.Facts["sourceRejectedReferenceSetCount"])
             + int.Parse(evidence.Facts["sourceUnexpectedReferenceTargetTypeCount"]));
-        IWorkSourceDocument coreSource = IWorkSourceDocument.Open(files.Input);
+        IWorkSourceDocument coreSource = IWorkSourceDocument.Load(files.Input);
         int declarationIssues = coreSource.Kind switch {
             IWorkDocumentKind.Pages => coreSource.ReadPages().SourceDeclarationIssues.Count,
             IWorkDocumentKind.Numbers => coreSource.ReadNumbers().SourceDeclarationIssues.Count,
@@ -173,7 +173,7 @@ public sealed partial class IWorkWorkflowTests {
     public async Task Configured_policy_is_captured_and_unknown_visual_coverage_is_rejected() {
         using var files = new Files("pages", "docx");
         var policy = new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly, RequireCompleteVisualCoverage = true };
-        var reading = new IWorkReadOptions();
+        var reading = new IWorkLoadOptions();
         OfficeWorkflowRunner runner = IWorkWorkflow.CreateRunner(reading, policy);
         policy.RequireCompleteVisualCoverage = false;
         policy.Mode = IWorkConversionMode.EditableOnly;

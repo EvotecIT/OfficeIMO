@@ -88,6 +88,9 @@ internal static class OfficeConversionSupportAssessments {
         "markdown-docx" => Established(
             "Representative Markdown fixtures reopen as editable DOCX and verify headings, paragraphs, lists, tables, links, and images with diagnostics.",
             "Raw HTML, extension-specific syntax, and constructs without a Word equivalent may be simplified."),
+        "markdown-pptx" => Targeted(
+            "Editable slide fixtures verify heading and thematic-break boundaries, front matter, speaker notes, slide dimensions, image policy, and conversion diagnostics in reopened PowerPoint output.",
+            "Markdown is projected through the supported OfficeIMO Markup presentation profile. Unsupported blocks and styling are simplified or diagnosed; automatic layout, pagination, and native PowerPoint visual equivalence are not promised."),
         "docx-html" or "docx-markdown" => Established(
             "Representative Word fixtures verify readable structure, tables, lists, links, images, and deterministic semantic output.",
             "Page layout, floating objects, advanced fields, tracked changes, and unsupported DrawingML are simplified in semantic output."),
@@ -119,6 +122,9 @@ internal static class OfficeConversionSupportAssessments {
         "pdf-html" => Targeted(
             "Semantic and positioned-review profiles verify readable text, detected tables, page geometry hints, images, links, forms, and deterministic diagnostics.",
             "The result is review HTML, not a full PDF renderer; complex graphics, optional content, scans without OCR, and pixel-perfect composition are not preserved."),
+        "pdf-markdown" => Targeted(
+            "Native logical readback fixtures verify Markdown headings, paragraphs, tables, selected page order, stream output, and configurable page separators.",
+            "Reading order and structure are reconstructed from supported PDF content. Fixed page layout, graphics, interactive behavior, and scans without OCR are not preserved; the canonical conversion reports layout approximation."),
         "pdf-rtf" or "pdf-odt" => Targeted(
             "Reopen tests verify parser-supported logical text and basic structure in an editable text-document destination with loss diagnostics.",
             "Page layout, complex graphics, columns, clipping, annotations, scans without OCR, and exact pagination are not reconstructed."),

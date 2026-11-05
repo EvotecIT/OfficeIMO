@@ -89,7 +89,7 @@ public sealed class MermaidDocumentTests {
             Profile = OfficeMarkupProfile.Document,
             MarkdownOptions = reader
         });
-        using var word = parsed.Document.ToWordDocument(new MarkupWordExportOptions {
+        using var word = parsed.Document.ToWord(new MarkupWordExportOptions {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024
         });
@@ -145,7 +145,7 @@ public sealed class MermaidDocumentTests {
         });
         var image = Assert.Single(parsed.Document.DescendantsAndSelf().OfType<OfficeMarkupImageBlock>());
         Assert.Equal("Request approval", image.Caption);
-        using var presentation = parsed.Document.ToPowerPointDocument();
+        using var presentation = parsed.Document.ToPowerPoint();
         var picture = Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>());
         Assert.Equal(image.Alt, picture.AltText);
         Assert.Equal("Approval flow", picture.AltText);
@@ -171,7 +171,7 @@ public sealed class MermaidDocumentTests {
             Caption = "Request approval",
             Placement = new OfficeMarkupPlacement { X = "3", Y = "2", Width = "4", Height = "1" }
         });
-        using var presentation = markup.ToPowerPointDocument();
+        using var presentation = markup.ToPowerPoint();
         var caption = Assert.Single(presentation.Slides.SelectMany(slide => slide.TextBoxes), text => text.Text == "Request approval");
         Assert.Equal(3, caption.Left.ToInches(), precision: 4);
         Assert.Equal(3.12, caption.Top.ToInches(), precision: 4);
@@ -188,7 +188,7 @@ public sealed class MermaidDocumentTests {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(mismatched
             ? rendered.Path.Replace("image/png", "image/jpeg") : rendered.Path, "Diagram"));
-        using var presentation = markup.ToPowerPointDocument(new MarkupPowerPointExportOptions {
+        using var presentation = markup.ToPowerPoint(new MarkupPowerPointExportOptions {
             AllowDataUriImages = allowed,
             MaximumDataUriImageBytes = oversized ? 1 : 16L * 1024 * 1024
         });
@@ -218,10 +218,10 @@ public sealed class MermaidDocumentTests {
         Assert.False(OfficeImageReader.TryReadBase64DataUri("data:" + mime + ";base64," + Convert.ToBase64String(bytes.Take(24).ToArray()), bytes.Length, out _, out _));
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupImageBlock(uri, "Embedded image"));
-        using var presentation = markup.ToPowerPointDocument();
+        using var presentation = markup.ToPowerPoint();
         Assert.Equal(bytes, Assert.Single(presentation.Slides.SelectMany(slide => slide.Shapes).OfType<PowerPointImage>()).GetImageBytes());
         markup.Profile = OfficeMarkupProfile.Document;
-        using var word = markup.ToWordDocument();
+        using var word = markup.ToWord();
         AssertWordImageFitsContent(word);
     }
 
@@ -236,7 +236,7 @@ public sealed class MermaidDocumentTests {
     public void PowerPointSourceFallbackRetainsTheAuthoredDiagram() {
         var markup = new OfficeMarkupDocument(OfficeMarkupProfile.Presentation);
         markup.Blocks.Add(new OfficeMarkupDiagramBlock("mermaid", "flowchart LR\nA --> B"));
-        using var presentation = markup.ToPowerPointDocument(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
+        using var presentation = markup.ToPowerPoint(new MarkupPowerPointExportOptions { RenderMermaidDiagrams = false });
         using var stream = new MemoryStream();
         presentation.Save(stream);
         stream.Position = 0;

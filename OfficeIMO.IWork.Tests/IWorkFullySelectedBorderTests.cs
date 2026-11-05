@@ -12,7 +12,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, 0f)]
     public void Complete_explicit_grid_edges_shadow_unsupported_inherited_border_defaults(IWorkDocumentKind kind, float width) {
         using var package = FullySelectedBorderPackage(kind, width);
-        var source = IWorkSourceDocument.Open(package);
+        var source = IWorkSourceDocument.Load(package);
         IWorkTable table;
         IReadOnlyList<IWorkDiagnostic> diagnostics;
         if (kind == IWorkDocumentKind.Pages) {
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("equal-order-conflict")]
     public void Incomplete_or_rejected_explicit_grid_cannot_hide_unsupported_defaults(string defect) {
         using var package = FullySelectedBorderPackage(IWorkDocumentKind.Pages, 1, defect);
-        var projection = IWorkSourceDocument.Open(package).ReadPages();
+        var projection = IWorkSourceDocument.Load(package).ReadPages();
         Assert.Contains(projection.Diagnostics, d => d.Code == "IWORK_TABLE_BORDERS_UNSUPPORTED");
         Assert.NotEmpty(projection.SourceDeclarationIssues);
     }

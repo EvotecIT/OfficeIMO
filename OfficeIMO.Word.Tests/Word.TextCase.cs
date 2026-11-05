@@ -14,7 +14,7 @@ public partial class Word {
         using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "TextCase.docx"));
         WordParagraph run = document.AddParagraph("Styled");
         run.SetBold().SetItalic().SetUnderline(WordUnderlineStyle.WavyDouble)
-            .SetDoubleStrike().SetSuperScript().SetColor(OfficeColor.FromRgb(51, 102, 153)).SetFontFamily("Aptos");
+            .SetDoubleStrikethrough().SetSuperscript().SetColor(OfficeColor.FromRgb(51, 102, 153)).SetFontFamily("Aptos");
 
         run.TransformTextCase(OfficeTextCase.ToggleCase);
 
@@ -23,7 +23,7 @@ public partial class Word {
         Assert.True(actual.Bold);
         Assert.True(actual.Italic);
         Assert.Equal(WordUnderlineStyle.WavyDouble, actual.Underline);
-        Assert.True(actual.DoubleStrike);
+        Assert.True(actual.DoubleStrikethrough);
         Assert.Equal(WordVerticalTextPosition.Superscript, actual.VerticalTextAlignment);
         Assert.Equal("Aptos", actual.FontFamily);
     }

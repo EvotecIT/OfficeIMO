@@ -22,53 +22,53 @@ namespace OfficeIMO.Excel {
         /// <param name="operator">Comparison operator.</param>
         /// <param name="formula1">Primary value or formula.</param>
         /// <param name="formula2">Secondary value or formula for Between and NotBetween.</param>
-        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="fillColor">Optional literal or theme-based fill applied when the rule matches.</param>
         /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
         /// <param name="priority">Optional explicit rule priority.</param>
         public ExcelConditionalFormattingInfo CellIs(ExcelConditionalFormattingOperator @operator, string formula1, string? formula2 = null,
-            string? fillColor = null, bool stopIfTrue = false, int? priority = null) =>
+            OfficeColor? fillColor = null, bool stopIfTrue = false, int? priority = null) =>
             _range.Sheet.CreateConditionalCellIsRule(_range.Reference, @operator, formula1, formula2, fillColor, stopIfTrue, priority);
 
         /// <summary>Adds a formula rule that matches when the formula evaluates to true for the top-left cell.</summary>
         /// <param name="formula">Formula relative to the top-left cell of the range.</param>
-        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="fillColor">Optional literal or theme-based fill applied when the rule matches.</param>
         /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
         /// <param name="priority">Optional explicit rule priority.</param>
-        public ExcelConditionalFormattingInfo Formula(string formula, string? fillColor = null, bool stopIfTrue = false, int? priority = null) =>
+        public ExcelConditionalFormattingInfo Formula(string formula, OfficeColor? fillColor = null, bool stopIfTrue = false, int? priority = null) =>
             _range.Sheet.CreateConditionalFormulaRule(_range.Reference, formula, fillColor, stopIfTrue, priority);
 
         /// <summary>Adds a text rule: contains, does not contain, begins with or ends with.</summary>
         /// <param name="type">ContainsText, NotContainsText, BeginsWith or EndsWith.</param>
         /// <param name="text">Text to match.</param>
-        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="fillColor">Optional literal or theme-based fill applied when the rule matches.</param>
         /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
-        public ExcelConditionalFormattingInfo Text(ExcelConditionalFormatType type, string text, string? fillColor = null, bool stopIfTrue = false) =>
+        public ExcelConditionalFormattingInfo Text(ExcelConditionalFormatType type, string text, OfficeColor? fillColor = null, bool stopIfTrue = false) =>
             _range.Sheet.CreateConditionalTextRule(_range.Reference, type, text, fillColor, stopIfTrue);
 
         /// <summary>Adds a duplicate-values rule.</summary>
-        public ExcelConditionalFormattingInfo DuplicateValues(string? fillColor = null) =>
+        public ExcelConditionalFormattingInfo DuplicateValues(OfficeColor? fillColor = null) =>
             _range.Sheet.CreateConditionalDuplicateValuesRule(_range.Reference, fillColor);
 
         /// <summary>Adds a unique-values rule.</summary>
-        public ExcelConditionalFormattingInfo UniqueValues(string? fillColor = null) =>
+        public ExcelConditionalFormattingInfo UniqueValues(OfficeColor? fillColor = null) =>
             _range.Sheet.CreateConditionalUniqueValuesRule(_range.Reference, fillColor);
 
         /// <summary>Adds an above-average or, with <paramref name="aboveAverage"/> false, a below-average rule.</summary>
         /// <param name="aboveAverage">True for values above the average; false for values below it.</param>
         /// <param name="equalAverage">Whether values equal to the average match.</param>
         /// <param name="standardDeviation">Optional number of standard deviations from the average.</param>
-        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
+        /// <param name="fillColor">Optional literal or theme-based fill applied when the rule matches.</param>
         /// <param name="stopIfTrue">Whether lower-priority rules stop when this rule matches.</param>
         public ExcelConditionalFormattingInfo AboveAverage(bool aboveAverage = true, bool equalAverage = false, uint? standardDeviation = null,
-            string? fillColor = null, bool stopIfTrue = false) =>
+            OfficeColor? fillColor = null, bool stopIfTrue = false) =>
             _range.Sheet.CreateConditionalAboveAverageRule(_range.Reference, aboveAverage, equalAverage, standardDeviation, fillColor, stopIfTrue);
 
         /// <summary>Adds a top or bottom N (or N percent) rule.</summary>
         /// <param name="rank">Number of items, or percentage when <paramref name="percent"/> is true.</param>
         /// <param name="bottom">True for the lowest values; false for the highest.</param>
         /// <param name="percent">Whether <paramref name="rank"/> is a percentage.</param>
-        /// <param name="fillColor">Optional hex fill applied when the rule matches.</param>
-        public ExcelConditionalFormattingInfo TopBottom(uint rank, bool bottom = false, bool percent = false, string? fillColor = null) =>
+        /// <param name="fillColor">Optional literal or theme-based fill applied when the rule matches.</param>
+        public ExcelConditionalFormattingInfo TopBottom(uint rank, bool bottom = false, bool percent = false, OfficeColor? fillColor = null) =>
             _range.Sheet.CreateConditionalTopBottomRule(_range.Reference, rank, bottom, percent, fillColor);
 
         /// <summary>Adds a blanks or, with <paramref name="containsBlanks"/> false, a non-blanks rule.</summary>
@@ -80,23 +80,19 @@ namespace OfficeIMO.Excel {
             _range.Sheet.CreateConditionalErrorsRule(_range.Reference, containsErrors, stopIfTrue);
 
         /// <summary>Adds a date rule for a time period such as yesterday, this week or last month.</summary>
-        public ExcelConditionalFormattingInfo TimePeriod(ExcelConditionalTimePeriod timePeriod, string? fillColor = null, bool stopIfTrue = false) =>
+        public ExcelConditionalFormattingInfo TimePeriod(ExcelConditionalTimePeriod timePeriod, OfficeColor? fillColor = null, bool stopIfTrue = false) =>
             _range.Sheet.CreateConditionalTimePeriodRule(_range.Reference, timePeriod, fillColor, stopIfTrue);
 
         /// <summary>Adds a two-color scale from the minimum to the maximum value.</summary>
         public ExcelConditionalFormattingInfo ColorScale(OfficeColor startColor, OfficeColor endColor) =>
             _range.Sheet.CreateConditionalColorScale(_range.Reference, startColor, endColor);
 
-        /// <summary>Adds a two-color scale from hex colors such as F8D7DA.</summary>
-        public ExcelConditionalFormattingInfo ColorScale(string startColor, string endColor) =>
-            _range.Sheet.CreateConditionalColorScale(_range.Reference, startColor, endColor);
+        /// <summary>Adds a three-color scale with a 50th-percentile midpoint.</summary>
+        public ExcelConditionalFormattingInfo ColorScale(OfficeColor startColor, OfficeColor midColor, OfficeColor endColor) =>
+            _range.Sheet.CreateConditionalColorScale(_range.Reference, startColor, midColor, endColor);
 
         /// <summary>Adds a data bar.</summary>
         public ExcelConditionalFormattingInfo DataBar(OfficeColor color) =>
-            _range.Sheet.CreateConditionalDataBar(_range.Reference, color);
-
-        /// <summary>Adds a data bar from a hex color such as 4472C4.</summary>
-        public ExcelConditionalFormattingInfo DataBar(string color) =>
             _range.Sheet.CreateConditionalDataBar(_range.Reference, color);
 
         /// <summary>Adds an icon set.</summary>

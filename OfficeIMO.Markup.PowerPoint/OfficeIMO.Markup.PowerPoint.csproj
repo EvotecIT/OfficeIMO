@@ -2,11 +2,11 @@
 
     <PropertyGroup>
         <Description>PowerPoint renderer for OfficeIMO Markup semantic AST.</Description>
-        <VersionPrefix>3.3.0</VersionPrefix>
+        <VersionPrefix>3.5.3</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-        <IsPackable>False</IsPackable>
+        <IsPackable>True</IsPackable>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
         <PackageId>OfficeIMO.Markup.PowerPoint</PackageId>
@@ -19,7 +19,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-        <IsPublishable>False</IsPublishable>
+        <IsPublishable>True</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>

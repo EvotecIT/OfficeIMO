@@ -21,7 +21,7 @@ internal static partial class Paragraphs {
                 var parentTable = parentCell.ParentTable;
 
                 Console.WriteLine($"Paragraph is stored in a cell that currently has {parentCell.Paragraphs.Count} paragraph(s).");
-                Console.WriteLine($"The parent row exposes {parentRow.CellsCount} cell(s) and belongs to a table with {parentTable.RowsCount} row(s).");
+                Console.WriteLine($"The parent row exposes {parentRow.CellsCount} cell(s) and belongs to a table with {parentTable.RowCount} row(s).");
                 Console.WriteLine($"Table style: {parentTable.Style}");
             }
 

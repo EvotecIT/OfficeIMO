@@ -34,9 +34,9 @@ namespace OfficeIMO.Word {
         public OfficeLength Width { get; }
         /// <summary>Shape height.</summary>
         public OfficeLength Height { get; }
-        /// <summary>Optional RGB fill.</summary>
+        /// <summary>Optional literal or theme-role fill.</summary>
         public OfficeIMO.OfficeColor? FillColor { get; set; }
-        /// <summary>Optional RGB outline.</summary>
+        /// <summary>Optional literal or theme-role outline.</summary>
         public OfficeIMO.OfficeColor? StrokeColor { get; set; }
     }
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
                 Wps.WordprocessingShape shape = WordShape.BuildWpsShape(cx, cy, item.ShapeType);
                 A.Transform2D transform = shape.Descendants<A.Transform2D>().First();
                 transform.Offset = new A.Offset { X = x, Y = y };
-                ApplyColors(shape, item.FillColor, item.StrokeColor);
+                ApplyColors(shape, item.FillColor, item.StrokeColor, paragraph._document);
                 children.Add(shape);
                 groupCx = Math.Max(groupCx, checked(x + cx));
                 groupCy = Math.Max(groupCy, checked(y + cy));
@@ -160,14 +160,14 @@ namespace OfficeIMO.Word {
             return inline;
         }
 
-        private static void ApplyColors(Wps.WordprocessingShape shape, OfficeIMO.OfficeColor? fillColor, OfficeIMO.OfficeColor? strokeColor) {
+        private static void ApplyColors(Wps.WordprocessingShape shape, OfficeIMO.OfficeColor? fillColor, OfficeIMO.OfficeColor? strokeColor, WordDocument? document) {
             Wps.ShapeProperties properties = shape.GetFirstChild<Wps.ShapeProperties>()!;
             if (fillColor.HasValue) {
-                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = fillColor.Value.ToRgbHex() }));
+                WordRunColor.SetDrawingFill(properties, fillColor.Value, document);
             }
             if (strokeColor.HasValue) {
                 properties.Append(new A.Outline(
-                    new A.SolidFill(new A.RgbColorModelHex { Val = strokeColor.Value.ToRgbHex() })));
+                    WordRunColor.CreateDrawingFill(strokeColor.Value, document)));
             }
         }
     }

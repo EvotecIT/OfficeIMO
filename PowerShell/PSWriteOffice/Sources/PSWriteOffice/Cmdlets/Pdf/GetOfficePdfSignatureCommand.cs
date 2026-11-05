@@ -1,49 +1,48 @@
+using System;
+using System.IO;
 using System.Management.Automation;
 using System.Security;
+using OfficeIMO.Core.Internal;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Gets lightweight PDF signature structure and preservation validation.</summary>
-/// <remarks>
-/// Reports signature fields, byte-range structure, DocMDP permissions, DSS/LTV evidence, and append-only preservation markers.
-/// Certificate-chain trust, revocation, digest, and CMS cryptographic verification are intentionally not performed.
-/// </remarks>
-/// <example>
-///   <summary>Inspect signatures before preserving or migrating a PDF.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$report = Get-OfficePdfSignature -Path .\Signed.pdf
-/// $report.Signatures
-/// $report.Findings</code>
-///   <para>Reads signature structure and reports whether OfficeIMO.Pdf found structural issues.</para>
-/// </example>
-[Cmdlet(VerbsCommon.Get, "OfficePdfSignature")]
+/// <summary>Reports signature fields, byte ranges, DocMDP, DSS/LTV evidence and preservation markers.</summary>
+[Cmdlet(VerbsCommon.Get, "OfficePdfSignature", DefaultParameterSetName = "Path")]
 [OutputType(typeof(PdfSignatureValidationReport))]
-public sealed class GetOfficePdfSignatureCommand : PSCmdlet
-{
-    /// <summary>PDF file path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ValueFromPipelineByPropertyName = true)]
-    [Alias("FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Password used to inspect a Standard password-encrypted PDF.</summary>
-    [Parameter]
+public sealed class GetOfficePdfSignatureCommand : PSCmdlet {
+    /// <summary>Path for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0)]
+    [SupportsWildcards]
+    public string[] Path { get; set; } = Array.Empty<string>();
+    /// <summary>Password for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     [OfficePasswordTransformation]
     public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed usage restrictions.</summary>
-    [Parameter]
+    /// <summary>IgnorePermissionRestrictions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
     public SwitchParameter IgnorePermissionRestrictions { get; set; }
+    /// <summary>LoadOptions for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [OfficeOptionsTransformation(typeof(PdfLoadOptions))]
+    public PdfLoadOptions? LoadOptions { get; set; }
+    /// <summary>LiteralPath for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+    /// <summary>Document for PDF inspection or extraction.</summary>
+    [Parameter(ParameterSetName = "Document", Mandatory = true, ValueFromPipeline = true)]
+    public PdfDocument? Document { get; set; }
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        WriteObject(PdfDocument
-            .Load(
-                PdfCommandUtilities.ResolvePath(this, Path),
-                PdfCommandUtilities.CreateReadOptions(Password, IgnorePermissionRestrictions.IsPresent))
-            .Security.ValidateSignatures());
+    protected override void ProcessRecord() => PdfInspectionSource.Visit(this, ParameterSetName, Path, LiteralPath, Document, LoadOptions, Password, IgnorePermissionRestrictions, Inspect);
+
+    private void Inspect(PdfDocument document) {
+        WriteObject(document.Security.ValidateSignatures());
     }
 }

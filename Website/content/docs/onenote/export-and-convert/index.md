@@ -10,29 +10,31 @@ OfficeIMO reads and writes desktop `.one`, FSSHTTP-encoded `.one`, `.onetoc2` no
 ## Export a page or notebook to images
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.OneNote;
 
-OneNoteSection section = OneNoteSectionReader.Read("Planning.one");
+OneNoteSection section = OneNoteSection.Load("Planning.one");
 OneNotePage page = section.Pages.Count > 0
     ? section.Pages[0]
     : throw new InvalidOperationException("Planning.one contains no pages.");
 
 OfficeDrawing canvas = page.ToDrawing();
 
-page.ToImage()
-    .AtDpi(144)
-    .AsPng()
-    .Save("page.png");
+page.SaveAsImage("page.png", new OneNotePageRenderingOptions {
+    TargetDpi = 144,
+    Format = OfficeImageExportFormat.Png
+});
 
 OneNoteNotebook notebook =
     OneNoteNotebookReader.Read(Path.Combine("Notebook", "Open Notebook.onetoc2"));
 
-notebook.ToImages()
-    .AllPages()
-    .AtDpi(144)
-    .AsTiff()
-    .Save("Notebook pages");
+notebook.SaveAsImages("Notebook pages", new OneNotePageBatchRenderingOptions {
+    PageIndex = 0,
+    PageCount = null,
+    TargetDpi = 144,
+    Format = OfficeImageExportFormat.Tiff
+});
 ```
 
 Load a `.one` section when you need one page, or its notebook's `.onetoc2` table of contents when you need every page. The same Drawing canvas owns SVG and pixel output, so PNG, JPEG, TIFF, and lossless WebP do not rely on separate OneNote renderers. Rendering includes positioned outlines, styled text, lists and tags, tables, images, printouts, ink, and structured math.

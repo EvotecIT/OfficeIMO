@@ -5,27 +5,23 @@ BeforeAll {
         Join-Path $PSScriptRoot '..\PSWriteOffice.psd1'
     }
     Import-Module $ModuleManifest -Global -ErrorAction Stop
+    . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
+    $oneNoteSectionType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.OneNote' -TypeName 'OfficeIMO.OneNote.OneNoteSection'
+    $oneNotePageType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.OneNote' -TypeName 'OfficeIMO.OneNote.OneNotePage'
+    $oneNoteMarkdownOptionsType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.OneNote.Markdown' -TypeName 'OfficeIMO.OneNote.Markdown.OneNoteMarkdownExportOptions'
+    $oneNotePdfOptionsType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.OneNote.Pdf' -TypeName 'OfficeIMO.OneNote.Pdf.OneNotePdfExportOptions'
 }
 
 Describe 'OfficeIMO 3.4 PowerShell surfaces' {
-    It 'exposes bounded iWork inspection and loss-aware conversion contracts' {
-        $get = Get-Command Get-OfficeIWork
-        $convert = Get-Command ConvertFrom-OfficeIWork
-
-        $get.Parameters['Options'].ParameterType.FullName | Should -Be 'OfficeIMO.IWork.IWorkReadOptions'
-        [Nullable]::GetUnderlyingType($get.Parameters['Kind'].ParameterType).FullName | Should -Be 'OfficeIMO.IWork.IWorkDocumentKind'
-        $convert.Parameters['ReadOptions'].ParameterType.FullName | Should -Be 'OfficeIMO.IWork.IWorkReadOptions'
-        $convert.Parameters['ConversionOptions'].ParameterType.FullName | Should -Be 'OfficeIMO.IWork.IWorkConversionOptions'
-        $convert.Parameters.Keys | Should -Contain 'FailOnLoss'
-        $convert.Parameters.Keys | Should -Contain 'PassThruReport'
-
+    It 'rejects invalid native iWork package bytes' {
+        Get-Command Open-OfficeIWork -ErrorAction Stop | Out-Null
         $invalid = Join-Path $TestDrive 'not-iwork.pages'
         [IO.File]::WriteAllText($invalid, 'not an iWork package')
-        { Get-OfficeIWork -Path $invalid -ErrorAction Stop } | Should -Throw
+        { Open-OfficeIWork -Path $invalid -ErrorAction Stop } | Should -Throw
     }
 
     It 'reads native OneNote and converts it with explicit fidelity evidence' {
-        $oneNoteAssembly = (Get-Command Get-OfficeOneNote).Parameters['Options'].ParameterType.Assembly
+        $oneNoteAssembly = $oneNoteSectionType.Assembly
         $newOneNoteObject = {
             param([string] $TypeName)
             [Activator]::CreateInstance($oneNoteAssembly.GetType($TypeName, $true))
@@ -45,29 +41,31 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
 
         $onePath = Join-Path $TestDrive 'operations.one'
         $section.Save($onePath)
-        $loaded = Get-OfficeOneNote -Path $onePath
+        $loaded = Open-OfficeOneNote -Path $onePath
         $loaded.GetType().FullName | Should -Be 'OfficeIMO.OneNote.OneNoteSection'
         $loaded.Pages[0].Title | Should -Be 'Daily checks'
 
         $markdownPath = Join-Path $TestDrive 'operations.md'
-        $markdownReport = ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $markdownPath -PassThruReport
-        $markdownReport.GetType().FullName | Should -Be 'OfficeIMO.OneNote.Markdown.OneNoteMarkdownConversionReport'
+        $markdownReport = Convert-OfficeDocument -Path $onePath -OutputPath $markdownPath
+        $markdownReport | Should -BeOfType OfficeIMO.OfficeConversionReport
         Get-Content -LiteralPath $markdownPath -Raw | Should -Match 'Review backup status'
 
         [IO.File]::WriteAllText($markdownPath, 'caller-owned')
-        { ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $markdownPath -ErrorAction Stop } | Should -Throw
+        $skipped = Convert-OfficeDocument -Path $onePath -OutputPath $markdownPath -NoClobber -ErrorAction Stop
+        $skipped.Skipped | Should -BeTrue
+        $skipped.SkippedReason | Should -Be 'OutputExists'
         [IO.File]::ReadAllText($markdownPath) | Should -Be 'caller-owned'
-        ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $markdownPath -Force | Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -Path $onePath -OutputPath $markdownPath | Should -BeOfType OfficeIMO.OfficeConversionReport
         Get-Content -LiteralPath $markdownPath -Raw | Should -Match 'Review backup status'
 
         $htmlPath = Join-Path $TestDrive 'operations.html'
-        ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $htmlPath | Should -BeOfType System.IO.FileInfo
+        Convert-OfficeDocument -Path $onePath -OutputPath $htmlPath | Should -BeOfType OfficeIMO.OfficeConversionReport
         Get-Content -LiteralPath $htmlPath -Raw | Should -Match 'Review backup status'
 
         $pdfPath = Join-Path $TestDrive 'operations.pdf'
-        $pdfEvidence = ConvertFrom-OfficeOneNote -Path $onePath -OutputPath $pdfPath -PassThruReport
+        $pdfEvidence = Convert-OfficeDocument -Path $onePath -OutputPath $pdfPath
         $pdfEvidence.GetType().FullName | Should -Be 'OfficeIMO.OfficeConversionReport'
-        Get-OfficePdfText -Path $pdfPath | Should -Match 'Review backup status'
+        Read-OfficeDocument -As Text -Path $pdfPath | Should -Match 'Review backup status'
 
         # Semantic PDF projection flattens an explicitly sized OneNote canvas.
         $page.Width = 1200
@@ -75,44 +73,45 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
         $lossPath = Join-Path $TestDrive 'operations-loss.pdf'
         [IO.File]::WriteAllText($lossPath, 'caller-owned')
         {
-            ConvertFrom-OfficeOneNote `
-                -Path $onePath `
-                -OutputPath $lossPath `
-                -FailOnLoss `
-                -Force `
-                -ErrorAction Stop
+            Convert-OfficeDocument -Path $onePath -OutputPath $lossPath -FailOnLoss -ErrorAction Stop
         } | Should -Throw
         [IO.File]::ReadAllText($lossPath) | Should -Be 'caller-owned'
     }
 
     It 'does not silently ignore OneNote projection options supplied beside PDF options' {
         $output = Join-Path $TestDrive 'conflicting-options.pdf'
-        $command = Get-Command ConvertFrom-OfficeOneNote
-        $projection = [Activator]::CreateInstance($command.Parameters['ProjectionOptions'].ParameterType)
-        $pdf = [Activator]::CreateInstance($command.Parameters['PdfOptions'].ParameterType)
-
-        { ConvertFrom-OfficeOneNote -Path (Join-Path $TestDrive 'unused.one') -OutputPath $output -ProjectionOptions $projection -PdfOptions $pdf -ErrorAction Stop } |
-            Should -Throw '*either through -ProjectionOptions or through -PdfOptions*'
+        $source = Join-Path $TestDrive 'options-source.one'
+        $section = $oneNoteSectionType::Create()
+        $page = $oneNotePageType::new()
+        $page.Title = 'Projection options'
+        $section.Pages.Add($page)
+        $section.Save($source)
+        $projection = $oneNoteMarkdownOptionsType::new()
+        $pdf = $oneNotePdfOptionsType::new()
+        { Convert-OfficeDocument -Path $source -OutputPath $output -Options $projection, $pdf -ErrorAction Stop } |
+            Should -Throw '*projection*'
+        Test-Path -LiteralPath $output | Should -BeFalse
     }
 
     It 'rejects OneNote renderer options for a different output format' -TestCases @(
-        @{ Parameter = 'HtmlOptions'; Extension = '.md'; Message = '*HtmlOptions can only be used with .html output*' }
-        @{ Parameter = 'HtmlOptions'; Extension = '.pdf'; Message = '*HtmlOptions can only be used with .html output*' }
-        @{ Parameter = 'PdfOptions'; Extension = '.md'; Message = '*PdfOptions can only be used with .pdf output*' }
-        @{ Parameter = 'PdfOptions'; Extension = '.html'; Message = '*PdfOptions can only be used with .pdf output*' }
+        @{ Type = 'OfficeIMO.Markdown.MarkdownHtmlExportOptions'; Extension = '.md' }
+        @{ Type = 'OfficeIMO.Markdown.MarkdownHtmlExportOptions'; Extension = '.pdf' }
+        @{ Type = 'OfficeIMO.OneNote.Pdf.OneNotePdfExportOptions'; Extension = '.md' }
+        @{ Type = 'OfficeIMO.OneNote.Pdf.OneNotePdfExportOptions'; Extension = '.html' }
     ) {
-        param($Parameter, $Extension, $Message)
-
-        $command = Get-Command ConvertFrom-OfficeOneNote
-        $options = [Activator]::CreateInstance($command.Parameters[$Parameter].ParameterType)
-        $arguments = @{
-            Path = Join-Path $TestDrive 'unused.one'
-            OutputPath = Join-Path $TestDrive ("mismatched-options$Extension")
-            ErrorAction = 'Stop'
-        }
-        $arguments[$Parameter] = $options
-
-        { ConvertFrom-OfficeOneNote @arguments } | Should -Throw $Message
+        param($Type, $Extension)
+        $source = Join-Path $TestDrive 'renderer-options.one'
+        $section = $oneNoteSectionType::Create()
+        $page = $oneNotePageType::new()
+        $page.Title = 'Renderer options'
+        $section.Pages.Add($page)
+        $section.Save($source)
+        $optionsType = Get-TestPSWriteOfficeType -AssemblyName ($Type -replace '\.[^.]+$', '') -TypeName $Type
+        $options = [Activator]::CreateInstance($optionsType)
+        $output = Join-Path $TestDrive ("mismatched-options$Extension")
+        { Convert-OfficeDocument -Path $source -OutputPath $output -Options $options -ErrorAction Stop } |
+            Should -Throw '*option*'
+        Test-Path -LiteralPath $output | Should -BeFalse
     }
 
     It 'keeps structural package inspection separate from active-content policy' {
@@ -121,16 +120,58 @@ Describe 'OfficeIMO 3.4 PowerShell surfaces' {
             WordParagraph 'Package security fixture'
         } | Out-Null
 
-        $inventory = Get-OfficePackageSecurity -Path $path
+        $securityReportType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.Core' -TypeName 'OfficeIMO.OfficePackageSecurityReport'
+        $securityOptionsType = Get-TestPSWriteOfficeType -AssemblyName 'OfficeIMO.Core' -TypeName 'OfficeIMO.OfficePackageSecurityOptions'
+        $inventoryReport = Test-OfficeDocument -Path $path -Check Security
+        $nativeInventory = @($inventoryReport.NativeReports | Where-Object { $securityReportType.IsInstanceOfType($_) })
+        $nativeInventory | Should -HaveCount 1
+        $inventory = $nativeInventory[0]
         $inventory.ContainerKind.ToString() | Should -Be 'OpenXml'
         $inventory.IsValid | Should -BeTrue
         $inventory.MacroPartCount | Should -Be 0
 
-        $untrusted = Get-OfficePackageSecurity -Path $path -Untrusted
+        $untrusted = Test-OfficeDocument -Path $path -Check Security -Untrusted
         $untrusted.IsValid | Should -BeTrue
-        $securityOptionsType = (Get-Command Get-OfficePackageSecurity).Parameters['Options'].ParameterType
-        $secureDefaults = $securityOptionsType.GetProperty('SecureDefaults').GetValue($null)
-        { Get-OfficePackageSecurity -Path $path -Options $secureDefaults -Untrusted -ErrorAction Stop } | Should -Throw
+
+        # The security inventory recognizes package-part identity without executing its bytes.
+        $activePath = Join-Path $TestDrive 'active-content.docx'
+        Copy-Item -LiteralPath $path -Destination $activePath
+        $archive = [IO.Compression.ZipFile]::Open($activePath, [IO.Compression.ZipArchiveMode]::Update)
+        try {
+            $part = $archive.CreateEntry('word/vbaProject.bin')
+            $writer = [IO.StreamWriter]::new($part.Open())
+            try { $writer.Write('Inert package security inventory fixture') }
+            finally { $writer.Dispose() }
+        } finally { $archive.Dispose() }
+
+        $activeHash = (Get-FileHash -LiteralPath $activePath -Algorithm SHA256).Hash
+        $secureDefaults = $securityOptionsType::SecureDefaults
+        $secureDefaults.MaxPartCount = 512
+        $allowed = Test-OfficeDocument -Path $activePath -Check Security -Options $secureDefaults
+        $allowed.IsValid | Should -BeTrue
+        $combined = Test-OfficeDocument -Path $activePath -Check Security -Options $secureDefaults -Untrusted
+        $combined.IsValid | Should -BeFalse
+        $combinedEvidence = @($combined.NativeReports | Where-Object { $securityReportType.IsInstanceOfType($_) })
+        $combinedEvidence | Should -HaveCount 1
+        $combinedEvidence[0].ContainerKind.ToString() | Should -Be 'OpenXml'
+        $combinedEvidence[0].IsValid | Should -BeFalse
+        $combinedEvidence[0].MacroPartCount | Should -Be 1
+        @($combinedEvidence[0].Findings | Where-Object { $_.Rule.ToString() -eq 'Macros' -and $_.Severity.ToString() -eq 'Error' }).Count | Should -Be 1
+        $secureDefaults.MaxPartCount | Should -Be 512
+        foreach ($policy in 'Macros', 'ActiveX', 'EmbeddedPayloads', 'ExternalRelationships') {
+            $secureDefaults.$policy.ToString() | Should -Be 'Allow'
+        }
+
+        $secureDefaults.MaxPackageBytes = 1
+        $limited = Test-OfficeDocument -Path $path -Check Security -Options $secureDefaults -Untrusted
+        $limited.IsValid | Should -BeFalse
+        $limitEvidence = @($limited.NativeReports | Where-Object { $_.GetType().FullName -eq 'OfficeIMO.OfficePackageSecurityException' })
+        $limitEvidence | Should -HaveCount 1
+        $limitEvidence[0].Rule.ToString() | Should -Be PackageSize
+        $limitEvidence[0].Limit | Should -Be 1
+        $secureDefaults.MaxPackageBytes | Should -Be 1
+        $secureDefaults.Macros.ToString() | Should -Be Allow
+        (Get-FileHash -LiteralPath $activePath -Algorithm SHA256).Hash | Should -Be $activeHash
     }
 
     It 'reports provenance evidence without claiming authorship' {

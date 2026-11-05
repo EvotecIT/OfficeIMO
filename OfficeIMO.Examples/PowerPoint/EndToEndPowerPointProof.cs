@@ -116,8 +116,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 DetectShapeCollisions = false
             };
             PowerPointDeckDesign design = brief.CreateDesign(0);
-            design.Theme.SecondaryTextColor = "4F5963";
-            design.Theme.MutedTextColor = "59636D";
+            design.Theme.SecondaryTextColor = OfficeColor.ParseHex("4F5963");
+            design.Theme.MutedTextColor = OfficeColor.ParseHex("59636D");
             PowerPointCompositionOptions composition = PowerPointCompositionOptions.FromDesign(design);
             composition.Preflight = preflightOptions;
             PowerPointCompositionResult result = presentation.Compose(plan, composition);

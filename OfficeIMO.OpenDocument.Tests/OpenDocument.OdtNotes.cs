@@ -323,7 +323,7 @@ public sealed class OpenDocumentOdtNotesTests {
         OdtDocument source = OdtDocument.Create();
         OdtParagraph anchor = source.AddParagraph("Anchor");
         OdtParagraph body = anchor.AddFootnote("Body").Paragraphs[0];
-        body.AddSpan(" emphasis").Bold = true;
+        body.AddRun(" emphasis").Bold = true;
         body.AddHyperlink(" link", "https://example.com");
         body.AddImage(Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="),

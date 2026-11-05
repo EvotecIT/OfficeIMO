@@ -16,7 +16,7 @@ public sealed partial class IWorkBoundaryTests {
             additionalRecords: Message(
                 ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(CurrencyFormat("GBP", 2, negative: 3))))),
                 ArchiveRecord(14, 6201, Message(VarintField(1, 3), BytesField(3, Message(VarintField(1, 0), BytesField(5, FormulaConstant(1d))))))));
-        IWorkTableCell value = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        IWorkTableCell value = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(IWorkCellKind.Formula, value.Kind);
         Assert.Equal(IWorkCellKind.Number, value.ValueKind);
         Assert.Equal(-0.5d, value.Value);
@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
         Assert.True(value.CachedValueIsComplete);
         Assert.Equal("GBP", value.NumberFormat!.CurrencyCode);
         package.Position = 0;
-        using var converted = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var converted = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         Assert.DoesNotContain(converted.Report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED");
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = global::OfficeIMO.Excel.ExcelDocument.Load(saved);
@@ -40,7 +40,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Selected_currency_metadata_is_shared_without_interpreting_a_symbol(IWorkDocumentKind kind) {
         using MemoryStream package = NumberFormatPackage(kind, CurrencyFormat("PLN", 3, accounting: 1), currency: true);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), kind).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), kind).Item1.Cells);
         Assert.Equal(0.5d, cell.Value);
         Assert.Equal("0.5", cell.DisplayText);
         Assert.Equal(IWorkNumberFormatKind.Currency, cell.NumberFormat!.Kind);
@@ -73,13 +73,13 @@ public sealed partial class IWorkBoundaryTests {
             _ => CurrencyFormat("USD", 2)
         };
         using MemoryStream package = NumberFormatPackage(IWorkDocumentKind.Numbers, format, currency: failure != 6);
-        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers).Item1.Cells);
+        IWorkTableCell cell = Assert.Single(ReadSelectedRichTable(IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers).Item1.Cells);
         Assert.Equal(0.5d, cell.Value);
         Assert.Null(cell.NumberFormat);
         Assert.False(cell.HasDecodeError);
         package.Position = 0;
         IWorkConversionReport report = ConvertUnitReport(package, IWorkDocumentKind.Numbers, visual: false,
-            readOptions: new IWorkReadOptions { PreserveSourceRecords = false });
+            readOptions: new IWorkLoadOptions { PreserveSourceRecords = false });
         Assert.Equal("3[1]/6", Assert.Single(report.SourceDeclarationIssues, d => d.Owner.RecordIdentifier == 13).FieldPath);
         Assert.Contains(report.Diagnostics, d => d.Code == "IWORK_TABLE_NUMBER_FORMAT_UNSUPPORTED"
             && d.LossKind == global::OfficeIMO.OfficeConversionLossKind.Unassessed);
@@ -87,14 +87,14 @@ public sealed partial class IWorkBoundaryTests {
 
     [Fact]
     public void Currency_identifiers_consume_the_projection_text_budget() {
-        var options = new IWorkReadOptions { MaxProjectedTextCharacters = 2 };
+        var options = new IWorkLoadOptions { MaxProjectedTextCharacters = 2 };
         using MemoryStream numeric = TableDependencyPackage(IWorkDocumentKind.Numbers, Message(), sheetName: "");
-        Assert.NotNull(IWorkSourceDocument.Open(numeric, options).ReadNumbers());
+        Assert.NotNull(IWorkSourceDocument.Load(numeric, options).ReadNumbers());
         using MemoryStream currency = TableDependencyPackage(IWorkDocumentKind.Numbers, ReferenceField(22, 13),
             cellPayload: CurrencyCell(1), sheetName: "",
             additionalRecords: ArchiveRecord(13, 6005, Message(VarintField(1, 2), BytesField(3, FormatEntry(CurrencyFormat("USD", 2))))));
         Assert.Contains("Text character", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(currency, options).ReadNumbers()).Message);
+            IWorkSourceDocument.Load(currency, options).ReadNumbers()).Message);
     }
 
     [Fact]
@@ -106,7 +106,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(3, FormatEntry(CurrencyFormat("USD", 2))),
                 BytesField(3, Message(VarintField(1, 2), BytesField(6, CurrencyFormat("EUR", 2)))))));
         Assert.Contains("Text item", Assert.Throws<InvalidDataException>(() =>
-            IWorkSourceDocument.Open(package, new IWorkReadOptions { MaxProjectedTextItems = 1 }).ReadNumbers()).Message);
+            IWorkSourceDocument.Load(package, new IWorkLoadOptions { MaxProjectedTextItems = 1 }).ReadNumbers()).Message);
     }
 
     private static byte[] CurrencyCell(uint identifier) {

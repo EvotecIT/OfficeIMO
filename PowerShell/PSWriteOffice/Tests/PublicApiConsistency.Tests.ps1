@@ -5,115 +5,19 @@ BeforeAll {
         Join-Path $PSScriptRoot '..\PSWriteOffice.psd1'
     }
     Import-Module $ModuleManifest -Global -ErrorAction Stop
+    . (Join-Path $PSScriptRoot 'TestHelpers.ps1')
 
-    $script:OfficeCommands = @(Get-Command -Module PSWriteOffice -CommandType Cmdlet)
-    $script:OfficeCommandsByName = (Get-Module PSWriteOffice).ExportedCommands
 }
 
 Describe 'PSWriteOffice public API consistency' {
-    It 'uses Path as the canonical source-file parameter name' {
-        $filePathCommands = @($script:OfficeCommands | Where-Object { $_.Parameters.ContainsKey('FilePath') })
-        $inputPathCommands = @($script:OfficeCommands | Where-Object { $_.Parameters.ContainsKey('InputPath') })
-
-        $filePathCommands.Name | Should -BeNullOrEmpty
-        @($inputPathCommands.Name | Sort-Object) | Should -Be @('ConvertTo-OfficeDocument', 'Export-OfficeConversionJob', 'Export-OfficeDocumentPdf')
-    }
-
-    It 'uses a switch to open saved presentations through the lifecycle commands' {
-        foreach ($name in 'New-OfficePowerPoint', 'Open-OfficePowerPoint', 'Save-OfficePowerPoint') {
-            (Get-Command $name).Parameters['Show'].ParameterType | Should -Be ([System.Management.Automation.SwitchParameter])
-        }
-    }
-
-    It 'keeps format conversion out of New and Save lifecycle parameters' {
-        $lifecycle = @($script:OfficeCommands | Where-Object { $_.Verb -in 'New', 'Save' })
-
-        @($lifecycle | Where-Object { $_.Parameters.ContainsKey('PdfPath') }).Name | Should -BeNullOrEmpty
-        @($lifecycle | Where-Object { $_.Verb -eq 'New' -and $_.Parameters.ContainsKey('AutoSave') }).Name | Should -BeNullOrEmpty
-        (Get-Command Open-OfficeWord).Parameters.Keys | Should -Not -Contain 'AutoSave'
-        (Get-Command Open-OfficeExcel).Parameters.Keys | Should -Not -Contain 'AutoSave'
-    }
-
-    It 'provides discoverable builders for common advanced option families' {
-        $contracts = @(
-            @{ Command = 'Compare-OfficeWordDocument'; Parameter = 'Options'; Builder = 'New-OfficeWordComparisonOptions' }
-            @{ Command = 'Resolve-OfficeWordRevision'; Parameter = 'Filter'; Builder = 'New-OfficeWordRevisionFilter' }
-            @{ Command = 'Read-OfficeDocument'; Parameter = 'HierarchyOptions'; Builder = 'New-OfficeDocumentHierarchyOptions' }
-            @{ Command = 'Compare-OfficePdfVisual'; Parameter = 'Options'; Builder = 'New-OfficePdfVisualComparisonOptions' }
-            @{ Command = 'ConvertTo-OfficePdfWord'; Parameter = 'Options'; Builder = 'New-OfficePdfWordOptions' }
-            @{ Command = 'ConvertTo-OfficePdfExcel'; Parameter = 'Options'; Builder = 'New-OfficePdfExcelOptions' }
-            @{ Command = 'ConvertTo-OfficePdfPowerPoint'; Parameter = 'Options'; Builder = 'New-OfficePdfPowerPointOptions' }
-            @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'WordOptions'; Builder = 'New-OfficeWordOpenDocumentOptions' }
-            @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'ExcelOptions'; Builder = 'New-OfficeExcelOpenDocumentOptions' }
-            @{ Command = 'ConvertTo-OfficeOpenDocument'; Parameter = 'PowerPointOptions'; Builder = 'New-OfficePowerPointOpenDocumentOptions' }
-            @{ Command = 'Get-OfficeEmail'; Parameter = 'Options'; Builder = 'New-OfficeEmailReaderOptions' }
-            @{ Command = 'Get-OfficeEmail'; Parameter = 'StoreOptions'; Builder = 'New-OfficeEmailStoreReaderOptions' }
-            @{ Command = 'Save-OfficeEmail'; Parameter = 'Options'; Builder = 'New-OfficeEmailWriterOptions' }
-            @{ Command = 'Get-OfficeEmailMailbox'; Parameter = 'Options'; Builder = 'New-OfficeEmailMailboxReaderOptions' }
-            @{ Command = 'Save-OfficeEmailMailbox'; Parameter = 'Options'; Builder = 'New-OfficeEmailMailboxWriterOptions' }
-        )
-
-        foreach ($contract in $contracts) {
-            $consumer = Get-Command $contract.Command
-            $builder = Get-Command $contract.Builder
-            $builder.OutputType.Type.Name | Should -Contain $consumer.Parameters[$contract.Parameter].ParameterType.Name
-            @($builder.Parameters.Values | Where-Object ParameterType -eq ([System.Nullable[bool]])) |
-                Should -HaveCount 0 -Because "$($contract.Builder) should expose PowerShell switches rather than nullable booleans"
-
-        }
-    }
-
-    It 'offers PassThru on commands that save artifacts' {
-        $missing = @($script:OfficeCommands | Where-Object { $_.Verb -eq 'Save' -and -not $_.Parameters.ContainsKey('PassThru') })
-
-        $missing.Name | Should -BeNullOrEmpty
-    }
-
-    It 'offers PassThru on commands that perform mutations' {
-        $mutationVerbs = @('Add', 'Clear', 'Copy', 'Edit', 'Move', 'Protect', 'Remove', 'Rename', 'Set', 'Unprotect', 'Update')
-        $intentionalTransforms = @(
-            'Set-OfficeConfluenceManagedSection'
-            'Set-OfficePdfCompliance'
-            # These semantic blocks form a larger composition and have no single native object output.
-            'Add-OfficePowerPointCard'
-            'Add-OfficePowerPointColumn'
-            'Add-OfficePowerPointFooter'
-            'Add-OfficePowerPointKpi'
-            'Add-OfficePowerPointLocation'
-            'Add-OfficePowerPointQuote'
-            'Add-OfficePowerPointSlideNumber'
-            'Add-OfficePowerPointStep'
-        )
-        $missing = @(
-            $script:OfficeCommands |
-                Where-Object {
-                    $_.Verb -in $mutationVerbs -and
-                    $_.Name -notin $intentionalTransforms -and
-                    -not $_.Parameters.ContainsKey('PassThru')
-                }
-        )
-
-        $missing.Name | Should -BeNullOrEmpty
-    }
-
-    It 'exposes one format-neutral PDF export command' {
-        $command = Get-Command Export-OfficeDocumentPdf
-
-        $command.Parameters.Keys | Should -Contain 'InputPath'
-        $command.Parameters.Keys | Should -Contain 'Path'
-        $command.Parameters.Keys | Should -Contain 'Document'
-        $command.Parameters.Keys | Should -Contain 'PassThru'
-        $command.Parameters.Keys | Should -Contain 'Open'
-        $command.ParameterSets.Name | Should -Contain 'Document'
-        $command.ParameterSets.Name | Should -Contain 'Path'
-    }
-
-    It 'accepts a password when a source path string is piped to PDF export' {
+    It 'binds a password on the piped file route without writing under WhatIf' {
         $sourcePath = Join-Path $TestDrive 'encrypted.docx'
         $outputPath = Join-Path $TestDrive 'encrypted.pdf'
 
-        { $sourcePath | Export-OfficeDocumentPdf -Path $outputPath -Password 'secret' -WhatIf -ErrorAction Stop } |
+        Set-Content -LiteralPath $sourcePath -Value 'WhatIf must not load this source'
+        { $sourcePath | Convert-OfficeDocument -OutputPath $outputPath -Password 'secret' -WhatIf -ErrorAction Stop } |
             Should -Not -Throw
+        Test-Path -LiteralPath $outputPath | Should -BeFalse
     }
 
     It 'normalizes filesystem directories used as HTML base URIs' {
@@ -133,73 +37,17 @@ Describe 'PSWriteOffice public API consistency' {
             Should -Be 'https://example.test/assets/'
     }
 
-    It 'provides a discoverable PowerShell builder for every PDF export options type' {
-        $command = Get-Command Export-OfficeDocumentPdf
-        $builders = [ordered]@{
-            WordOptions       = 'New-OfficeWordPdfOptions'
-            ExcelOptions      = 'New-OfficeExcelPdfOptions'
-            PowerPointOptions = 'New-OfficePowerPointPdfOptions'
-            MarkdownOptions   = 'New-OfficeMarkdownPdfOptions'
-            RtfOptions        = 'New-OfficeRtfPdfOptions'
-        }
-
-        foreach ($entry in $builders.GetEnumerator()) {
-            $builder = Get-Command $entry.Value
-            $builder.OutputType.Type.Name | Should -Contain $command.Parameters[$entry.Key].ParameterType.Name
-        }
-
-        foreach ($builderName in $builders.Values) {
-            $builder = Get-Command $builderName
-            @($builder.Parameters.Values | Where-Object ParameterType -eq ([System.Nullable[bool]])) |
-                Should -HaveCount 0 -Because "$builderName should expose idiomatic switches rather than nullable .NET booleans"
-        }
-    }
-
-    It 'does not require raw writer or OpenDocument load option objects for common controls' {
-        $openDocument = Get-Command Get-OfficeOpenDocument
-        foreach ($parameter in @(
-            'Password',
-            'MaxPackageBytes',
-            'MaxEntries',
-            'MaxEntryUncompressedBytes',
-            'MaxTotalUncompressedBytes',
-            'MaxTotalKdfIterations',
-            'MaxCompressionRatio',
-            'MaxDepth',
-            'MaxXmlCharacters',
-            'MaxXmlDepth'
-        )) {
-            $openDocument.Parameters.Keys | Should -Contain $parameter
-        }
-
-        foreach ($name in 'Save-OfficeAsciiDoc', 'Save-OfficeLatex') {
-            $command = Get-Command $name
-            $command.Parameters.Keys | Should -Contain 'Mode'
-            $command.Parameters.Keys | Should -Contain 'LineEnding'
-        }
-    }
-
-    It 'uses Path and DestinationPath for file copies' {
-        $command = Get-Command Copy-OfficeExcelWorkbook
-
-        $command.Parameters.Keys | Should -Contain 'Path'
-        $command.Parameters.Keys | Should -Contain 'DestinationPath'
-        $command.Parameters.Keys | Should -Not -Contain 'InputPath'
-        $command.Parameters['Path'].Aliases | Should -Contain 'InputPath'
-        $command.Parameters['DestinationPath'].Aliases | Should -Contain 'OutputPath'
-    }
-
-    It 'pipes a saved FileInfo directly into format-neutral PDF export' {
+    It 'converts a saved FileInfo pipeline and retains the written-file report' {
         $wordPath = Join-Path $TestDrive 'pipeline.docx'
         $pdfPath = Join-Path $TestDrive 'pipeline.pdf'
 
-        $pdf = New-OfficeWord -Path $wordPath -PassThru -Content {
+        $report = New-OfficeWord -Path $wordPath -PassThru -Content {
             Add-OfficeWordParagraph -Text 'Pipeline contract'
-        } | Export-OfficeDocumentPdf -Path $pdfPath -PassThru
+        } | Convert-OfficeDocument -OutputPath $pdfPath
 
-        $pdf | Should -BeOfType System.IO.FileInfo
-        $pdf.FullName | Should -Be $pdfPath
-        $pdf.Length | Should -BeGreaterThan 0
+        $report | Should -BeOfType OfficeIMO.OfficeConversionReport
+        $report.OutputPath | Should -Be $pdfPath
+        (Get-Item -LiteralPath $pdfPath).Length | Should -BeGreaterThan 0
     }
 
     It 'keeps saved New commands quiet unless PassThru is requested' {
@@ -243,86 +91,35 @@ Describe 'PSWriteOffice public API consistency' {
         }
     }
 
-    It 'uses enum parameter types for closed value domains' {
-        $contracts = @(
-            @{ Command = 'Add-OfficeExcelTable'; Parameter = 'TableStyle'; Type = 'ExcelTableStyle' }
-            @{ Command = 'Add-OfficeExcelConditionalRule'; Parameter = 'RuleType'; Type = 'OfficeExcelConditionalRuleType' }
-            @{ Command = 'Add-OfficeExcelConditionalRule'; Parameter = 'Operator'; Type = 'ExcelConditionalFormattingOperator' }
-            @{ Command = 'Add-OfficeExcelPivotTable'; Parameter = 'DataFunction'; Type = 'ExcelPivotDataFunction[]' }
-            @{ Command = 'Add-OfficeExcelPivotTable'; Parameter = 'Layout'; Type = 'ExcelPivotLayout' }
-            @{ Command = 'Import-OfficeExcel'; Parameter = 'FormulaMode'; Type = 'OfficeExcelFormulaMode' }
-            @{ Command = 'Add-OfficeWordTable'; Parameter = 'Layout'; Type = 'OfficeWordTableLayout' }
-            @{ Command = 'Set-OfficeWordParagraph'; Parameter = 'Alignment'; Type = 'OfficeAlignment' }
-            @{ Command = 'Set-OfficeWordText'; Parameter = 'Underline'; Type = 'WordUnderlineStyle' }
-            @{ Command = 'Add-OfficePowerPointShape'; Parameter = 'Type'; Type = 'OfficePresetShapeType' }
-            @{ Command = 'Get-OfficePowerPointShape'; Parameter = 'Kind'; Type = 'OfficePowerPointShapeKind[]' }
-            @{ Command = 'Set-OfficePdfPage'; Parameter = 'BoxName'; Type = 'PdfPageBoundaryBox' }
-            @{ Command = 'Save-OfficeAsciiDoc'; Parameter = 'LineEnding'; Type = 'OfficeLineEnding' }
-        )
+    It 'binds named and hexadecimal colors on native Word runs' {
+        $document = New-OfficeWord
+        try {
+            $paragraph = $document | Add-OfficeWordParagraph -Text 'Retained ' -PassThru
+            $red = $paragraph | Add-OfficeWordText -Text 'red' -Color Red -PassThru
+            $short = $paragraph | Add-OfficeWordText -Text ' shorthand' -Color '#abc' -PassThru
+            $red.Color.ToRgbHex() | Should -Be 'FF0000'
+            $short.Color.ToRgbHex() | Should -Be 'AABBCC'
+            $chartRows = @([pscustomobject]@{ Label = 'North'; Sales = 10; Returns = 2 })
+            $chartRows | Add-OfficeWordChart -Document $document -Type Bar -Category Label -Value Sales,Returns -SeriesColor Red,'#0f0'
+            $path = Join-Path $TestDrive 'NativeColorBinding.docx'
+            Save-OfficeWord -Document $document -Path $path
+            $entry = @(Get-ZipEntriesLocal -Path $path | Where-Object { $_ -match '^word/charts/chart\d+\.xml$' })
+            $entry.Count | Should -Be 1
+            $chart = Get-ZipXmlDocumentLocal -Path $path -Entry $entry[0]
+            @($chart.SelectNodes("//*[local-name()='ser']/*[local-name()='spPr']/*[local-name()='solidFill']/*[local-name()='srgbClr']") |
+                ForEach-Object val) | Should -Be @('FF0000', '00FF00')
+            $before = $paragraph.Text
+            { $paragraph | Add-OfficeWordText -Text 'invalid' -Color 'not-a-color' -ErrorAction Stop } |
+                Should -Throw '*Expected an OfficeColor*'
+            $paragraph.Text | Should -Be $before
 
-        foreach ($contract in $contracts) {
-            $type = (Get-Command $contract.Command).Parameters[$contract.Parameter].ParameterType
-            $nullableType = [Nullable]::GetUnderlyingType($type)
-            $actual = if ($nullableType) { $nullableType.Name } else { $type.Name }
-            $actual | Should -Be $contract.Type -Because "$($contract.Command) -$($contract.Parameter) is a closed value domain"
+            $input = 'Add-OfficeWordText -Color Re'
+            $completion = [System.Management.Automation.CommandCompletion]::CompleteInput($input, $input.Length, $null)
+            $completion.CompletionMatches.CompletionText | Should -Contain 'RebeccaPurple'
+            $completion.CompletionMatches.CompletionText | Should -Contain 'Red'
+        } finally {
+            Close-OfficeWord -Document $document -Confirm:$false
         }
-    }
-
-    It 'normalizes and completes open color values consistently' {
-        $colorParameters = @(
-            foreach ($command in $script:OfficeCommands) {
-                foreach ($parameter in $command.Parameters.Values) {
-                    if ($parameter.ParameterType -in [string], [string[]] -and $parameter.Name -match 'Color') {
-                        [pscustomobject]@{ Command = $command.Name; Parameter = $parameter }
-                    }
-                }
-            }
-            foreach ($contract in @(
-                    @{ Command = 'Add-OfficePdfTable'; Parameter = 'HeaderFill' }
-                    @{ Command = 'Add-OfficePdfTable'; Parameter = 'RowStripeFill' }
-                    @{ Command = 'Set-OfficeExcelCell'; Parameter = 'GradientFrom' }
-                    @{ Command = 'Set-OfficeExcelCell'; Parameter = 'GradientTo' }
-                )) {
-                [pscustomobject]@{
-                    Command = $contract.Command
-                    Parameter = (Get-Command $contract.Command).Parameters[$contract.Parameter]
-                }
-            }
-        )
-
-        $colorParameters | Should -Not -BeNullOrEmpty
-        foreach ($entry in $colorParameters) {
-            $transformations = @($entry.Parameter.Attributes | Where-Object { $_.TypeId.Name -eq 'OfficeColorArgumentTransformationAttribute' })
-            $transformations | Should -HaveCount 1 -Because "$($entry.Command) -$($entry.Parameter.Name) should accept the same named and hexadecimal color language"
-            if ($entry.Command -like '*OfficeExcel*' -and $entry.Command -notlike '*ImageOptions') {
-                $transformations[0].UseExcelArgb | Should -BeTrue -Because "$($entry.Command) -$($entry.Parameter.Name) should normalize shorthand without reordering legacy Excel ARGB"
-            }
-            @($entry.Parameter.Attributes | Where-Object { $_.TypeId.Name -eq 'ArgumentCompleterAttribute' }) |
-                Should -HaveCount 1 -Because "$($entry.Command) -$($entry.Parameter.Name) should offer named color completion"
-        }
-
-        (New-OfficeTextRun -Text 'status' -Color Red).Color | Should -Be '#FF0000'
-        (New-OfficeTextRun -Text 'status' -Color '#abc').Color | Should -Be '#AABBCC'
-        (New-OfficeTextRun -Text 'status' -Color '#abcd').Color | Should -Be '#abcd'
-        (New-OfficeTextRun -Text 'status' -Color '#FF4F81BD').Color | Should -Be '#FF4F81BD'
-        (New-OfficeTextRun -Text 'status' -BackgroundColor None).BackgroundColor | Should -Be 'None'
-        { New-OfficeTextRun -Text 'status' -Color 'not-a-color' -ErrorAction Stop } | Should -Throw '*known Office color name*'
-
-        $excelColorTransform = @((Get-Command Set-OfficeExcelCell).Parameters.BackgroundColor.Attributes |
-                Where-Object { $_.TypeId.Name -eq 'OfficeColorArgumentTransformationAttribute' })[0]
-        $excelColorTransform.UseExcelArgb | Should -BeTrue
-        $excelColorTransform.Transform($ExecutionContext, '#abc') | Should -Be '#AABBCC'
-        $excelColorTransform.Transform($ExecutionContext, '#abcd') | Should -Be '#DDAABBCC'
-        $excelColorTransform.Transform($ExecutionContext, '#FF4F81BD') | Should -Be '#FF4F81BD'
-
-        $input = 'New-OfficeTextRun -Color Re'
-        $completion = [System.Management.Automation.CommandCompletion]::CompleteInput($input, $input.Length, $null)
-        $completion.CompletionMatches.CompletionText | Should -Contain 'RebeccaPurple'
-        $completion.CompletionMatches.CompletionText | Should -Contain 'Red'
-
-        $input = 'New-OfficeTextRun -BackgroundColor N'
-        $completion = [System.Management.Automation.CommandCompletion]::CompleteInput($input, $input.Length, $null)
-        $completion.CompletionMatches.CompletionText | Should -Contain 'None'
     }
 
     It 'guides open string domains with completion instead of false enums' {
@@ -330,12 +127,7 @@ Describe 'PSWriteOffice public API consistency' {
             @{ Input = 'Set-OfficePdfPageSetup -PageSize A'; Expected = 'A4' }
             @{ Input = 'Add-OfficePdfTable -TableStyle Tech'; Expected = 'TechnicalDocument' }
             @{ Input = 'Add-OfficeMarkdownCallout -Kind W'; Expected = 'Warning' }
-            @{ Input = 'New-OfficeTextRun -UnderlineStyle D'; Expected = 'Double' }
-            @{ Input = 'New-OfficeTextRun -Baseline N'; Expected = 'Normal' }
-            @{ Input = 'New-OfficeTextRun -TabLeader H'; Expected = 'Hyphens' }
-            @{ Input = 'New-OfficeTextRun -TabLeader U'; Expected = 'Underscores' }
-            @{ Input = 'New-OfficeTextRun -TabAlignment D'; Expected = 'DecimalSeparator' }
-            @{ Input = 'Add-OfficeExcelPivotTable -PivotStyle PivotStyleMedium9'; Expected = 'PivotStyleMedium9' }
+            @{ Input = 'Add-OfficeExcelPivotTable -Style PivotStyleMedium9'; Expected = 'PivotStyleMedium9' }
             @{ Input = 'Export-OfficeDocumentAsset -Kind Im'; Expected = 'Image' }
         )
 

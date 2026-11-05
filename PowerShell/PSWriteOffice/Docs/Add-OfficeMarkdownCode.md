@@ -11,12 +11,12 @@ Adds a Markdown code block.
 ## SYNTAX
 ### Context (Default)
 ```powershell
-Add-OfficeMarkdownCode [[-Language] <string>] [-Content] <string> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownCode [[-Language] <string>] [-Text] <string> [-PassThru] [<CommonParameters>]
 ```
 
 ### Document
 ```powershell
-Add-OfficeMarkdownCode [[-Language] <string>] [-Content] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
+Add-OfficeMarkdownCode [[-Language] <string>] [-Text] <string> -Document <MarkdownDocument> [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -32,29 +32,13 @@ PS> $script = @(
 ) -join [Environment]::NewLine
 New-OfficeMarkdown -Path .\Cookbook.md {
     Add-OfficeMarkdownHeading -Level 2 -Text 'Workbook summary'
-    Add-OfficeMarkdownCode -Language 'powershell' -Content $script
+    Add-OfficeMarkdownCode -Language 'powershell' -Text $script
 }
 ```
 
 Appends a fenced code block with a language identifier.
 
 ## PARAMETERS
-
-### -Content
-Code content.
-
-```yaml
-Type: String
-Parameter Sets: Context, Document
-Aliases: None
-Possible values:
-
-Required: True
-Position: 1
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
 
 ### -Document
 Markdown document to update outside the DSL context.
@@ -99,6 +83,22 @@ Possible values:
 
 Required: False
 Position: named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Text
+Code content.
+
+```yaml
+Type: String
+Parameter Sets: Context, Document
+Aliases: None
+Possible values:
+
+Required: True
+Position: 1
 Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False

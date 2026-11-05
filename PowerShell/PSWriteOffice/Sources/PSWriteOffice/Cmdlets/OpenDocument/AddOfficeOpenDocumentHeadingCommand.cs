@@ -12,9 +12,10 @@ namespace PSWriteOffice.Cmdlets.OpenDocument;
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeOpenDocumentHeading", DefaultParameterSetName = "Default")]
 [OutputType(typeof(OdtParagraph))]
-public sealed class AddOfficeOpenDocumentHeadingCommand : PSCmdlet {
+[Alias("OpenDocumentHeading") ]
+public sealed class AddOfficeOpenDocumentHeadingCommand : OfficeOpenDocumentTextCmdlet {
     /// <summary>OpenDocument text document. Omit inside New-OfficeOpenDocument -Content.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public OdtDocument? Document { get; set; }
 
     /// <summary>Heading text.</summary>
@@ -34,6 +35,7 @@ public sealed class AddOfficeOpenDocumentHeadingCommand : PSCmdlet {
     protected override void ProcessRecord() {
         OdtDocument document = Document ?? OpenDocumentDslContext.Require(this).RequireDocument<OdtDocument>(this, "text");
         OdtParagraph heading = document.AddHeading(Text, Level);
+        ApplyTextStyle(heading);
         if (PassThru.IsPresent) WriteObject(heading);
     }
 }

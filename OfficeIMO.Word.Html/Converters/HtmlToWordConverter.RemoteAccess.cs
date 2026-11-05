@@ -34,7 +34,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
 
-            Uri? configuredBaseUri = ResolveDocumentBaseUri(document);
+            Uri? configuredBaseUri = ResolveDocumentBaseUri(document, options.BasePath);
             foreach (string path in options.StylesheetPaths) {
                 if (TryResolveUri(path, configuredBaseUri, out Uri? uri)
                     && IsAllowedRemoteStylesheet(uri, options)) {
@@ -66,12 +66,17 @@ namespace OfficeIMO.Word.Html {
             return false;
         }
 
-        private static Uri? ResolveDocumentBaseUri(IHtmlDocument document) {
+        private static Uri? ResolveDocumentBaseUri(IDocument document, string? basePath = null) {
             string? baseHref = document.QuerySelector("base[href]")?.GetAttribute("href");
             if (Uri.TryCreate(baseHref, UriKind.Absolute, out Uri? explicitBase)) return explicitBase;
             if (Uri.TryCreate(document.BaseUrl?.Href, UriKind.Absolute, out Uri? documentBase)
                 && !documentBase.Scheme.Equals("about", StringComparison.OrdinalIgnoreCase)) {
                 return documentBase;
+            }
+            if (!string.IsNullOrEmpty(basePath)) {
+                string directory = Path.GetFullPath(basePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                    + Path.DirectorySeparatorChar;
+                return new Uri(directory, UriKind.Absolute);
             }
             return null;
         }

@@ -133,7 +133,7 @@ public class HtmlTextExportConsistencyTests {
         var scene = HtmlRenderTestDriver.Render(source);
         foreach (var drawing in scene.Pages[0].Visuals.OfType<HtmlRenderDrawing>())
             foreach (var run in drawing.Drawing.Elements.OfType<OfficeDrawingText>()) _log.WriteLine($"Scene [{run.Text}] x={run.X} width={run.Width} advance={run.TextAdvanceWidth}");
-        byte[] bytes = (source.ToPdf()).ToBytes();
+        byte[] bytes = source.ToPdf().ToBytes();
         using var pdf = UglyToad.PdfPig.PdfDocument.Open(bytes);
         var letters = pdf.GetPage(1).Letters.ToArray();
         string text = string.Concat(letters.Select(x => x.Value));

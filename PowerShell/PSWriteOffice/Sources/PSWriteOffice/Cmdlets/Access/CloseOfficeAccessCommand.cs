@@ -16,7 +16,7 @@ namespace PSWriteOffice.Cmdlets.Access;
 [Cmdlet(VerbsCommon.Close, "OfficeAccess", DefaultParameterSetName = "Document")]
 public sealed class CloseOfficeAccessCommand : PSCmdlet {
     /// <summary>Live database document.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true)]
+    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Document")]
     public AccessDocument Document { get; set; } = null!;
 
     /// <inheritdoc />

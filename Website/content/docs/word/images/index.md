@@ -91,8 +91,8 @@ When using a wrapping mode other than `InLineWithText`, the image is anchored an
 
 ```csharp
 var paragraph = document.AddParagraph();
-paragraph.AddImage("chart.png", 400, 300,
-    wrapImageText: WordImageTextWrapping.Square);
+paragraph.AddImage("chart.png", OfficeLength.Pixels(400), OfficeLength.Pixels(300),
+    new WordImageOptions { Wrapping = WordImageTextWrapping.Square });
 
 // Access the image through the paragraph
 var image = document.Images.Last();
@@ -144,8 +144,8 @@ Set alt text for accessibility:
 
 ```csharp
 var paragraph = document.AddParagraph();
-paragraph.AddImage("chart.png", 400, 300,
-    description: "Q4 revenue chart showing 15% growth");
+paragraph.AddImage("chart.png", OfficeLength.Pixels(400), OfficeLength.Pixels(300),
+    new WordImageOptions { AltText = "Q4 revenue chart showing 15% growth" });
 ```
 
 ## Listing All Images

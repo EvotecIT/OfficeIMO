@@ -17,8 +17,8 @@ public sealed class PublisherShapeEditingTests {
         string[] stories = document.TextStories.Select(story => story.Text).ToArray();
         var sourceReport = document.SourceReadReport;
         string oldDrawing = OfficeDrawingSvgExporter.ToSvg(originalPage.CreateDrawing());
-        document.SetShapeBounds(original.Id, 36, 48, 120, 84);
-        document.SetShapePaint(original.Id, OfficeColor.FromRgb(0, 255, 0), OfficeColor.Black, 2);
+        document.SetShapeBounds(original.Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
+        document.SetShapePaint(original.Id, OfficeColor.FromRgb(0, 255, 0), OfficeColor.Black, OfficeLength.Points(2));
         PublisherShape current = Assert.Single(document.Pages[0].Shapes);
         PublisherTextFrame currentFrame = Assert.Single(document.Pages[0].TextFrames);
         Assert.Equal((36D, 48D, 120D, 84D), (current.X, current.Y, current.Width, current.Height));
@@ -37,7 +37,7 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(72, original.X); Assert.Equal(144, original.Width);
         OfficeShape detached = current.CreateShape(); detached.FillColor = OfficeColor.Black; detached.Width = 5;
         Assert.Equal(120, current.CreateShape().Width); Assert.Equal(OfficeColor.FromRgb(0, 255, 0), current.CreateShape().FillColor);
-        document.SetTextFrameBounds(current.Id, 90, 100, 150, 90);
+        document.SetTextFrameBounds(current.Id, OfficeLength.Points(90), OfficeLength.Points(100), OfficeLength.Points(150), OfficeLength.Points(90));
         PublisherShape movedByFrame = Assert.Single(document.Pages[0].Shapes);
         Assert.Equal((90D, 100D, 150D, 90D), (movedByFrame.X, movedByFrame.Y, movedByFrame.Width, movedByFrame.Height));
         Assert.Equal(150, Painted(document.Pages[0], current.Id).Shape.Width);
@@ -50,12 +50,12 @@ public sealed class PublisherShapeEditingTests {
         PublisherPage oldPage = document.Pages[0], oldMaster = Assert.Single(document.MasterPages);
         int sourceObjects = document.ReadReport.SourceObjectCount, records = document.ReadReport.InspectedRecordCount;
         var input = OfficeShape.Ellipse(40, 30); input.FillColor = OfficeColor.FromRgb(0, 255, 0);
-        PublisherShape pageShape = document.AddShape(10, input, 220, 40);
+        PublisherShape pageShape = document.AddShape(10, input, OfficeLength.Points(220), OfficeLength.Points(40));
         input.FillColor = OfficeColor.Black; input.Width = 1;
         Assert.Same(pageShape, document.Pages[0].Shapes.Last());
         Assert.Equal(OfficeColor.FromRgb(0, 255, 0), pageShape.CreateShape().FillColor); Assert.Equal(40, pageShape.Width);
         OfficeShape masterInput = OfficeShape.RoundedRectangle(40, 24, 4); masterInput.FillColor = OfficeColor.FromRgb(0, 0, 255);
-        PublisherShape masterShape = document.AddShape(20, masterInput, 50, 250);
+        PublisherShape masterShape = document.AddShape(20, masterInput, OfficeLength.Points(50), OfficeLength.Points(250));
         Assert.Equal(new uint[] { 101, 102, pageShape.Id }, document.Pages[0].Shapes.Select(shape => shape.Id));
         Assert.Equal(new uint[] { 103, masterShape.Id }, document.MasterPages[0].Shapes.Select(shape => shape.Id));
         Assert.Empty(document.Pages[1].Shapes);
@@ -73,7 +73,7 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(sourceObjects, document.ReadReport.SourceObjectCount);
         Assert.Equal(sourceObjects + 2, document.ReadReport.CurrentObjectCount);
         Assert.Equal(sourceObjects + 2, document.ReadReport.ProjectedObjectCount); Assert.Equal(records, document.ReadReport.InspectedRecordCount);
-        document.SetShapeBounds(masterShape.Id, -5, 240, 50, 30);
+        document.SetShapeBounds(masterShape.Id, OfficeLength.Points(-5), OfficeLength.Points(240), OfficeLength.Points(50), OfficeLength.Points(30));
         Assert.All(document.Pages, page => Assert.Equal(50, Painted(page, masterShape.Id).Shape.Width));
         Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "Contents/object/" + masterShape.Id);
@@ -86,10 +86,10 @@ public sealed class PublisherShapeEditingTests {
     public void Authored_line_keeps_logical_zero_extents_and_endpoint_direction_through_resize_and_exports(double width, double height) {
         PublisherDocument document = PublisherShapeEditingFixture.Create();
         OfficeShape line = OfficeShape.Line(width, 0, 0, height); line.StrokeColor = OfficeColor.Black; line.StrokeWidth = 2;
-        PublisherShape created = document.AddShape(10, line, 30, 110);
+        PublisherShape created = document.AddShape(10, line, OfficeLength.Points(30), OfficeLength.Points(110));
         Assert.Equal(width, created.Width); Assert.Equal(height, created.Height);
         Assert.Equal(line.Points, Painted(document.Pages[0], created.Id).Shape.Points);
-        document.SetShapeBounds(created.Id, 30, 110, width * 2, height * 2);
+        document.SetShapeBounds(created.Id, OfficeLength.Points(30), OfficeLength.Points(110), OfficeLength.Points(width * 2), OfficeLength.Points(height * 2));
         PublisherShape current = document.Pages[0].Shapes.Single(shape => shape.Id == created.Id);
         OfficeShape painted = Painted(document.Pages[0], created.Id).Shape;
         Assert.Equal(width * 2, current.Width); Assert.Equal(height * 2, current.Height);
@@ -98,7 +98,7 @@ public sealed class PublisherShapeEditingTests {
         Assert.Contains("<line", document.ToSvg());
         using PdfDocument pdf = PublisherNativeTests.ExportAndReloadPdf(document);
         Assert.Equal(2, pdf.Pages.Count);
-        Assert.Throws<ArgumentException>(() => document.SetShapeBounds(created.Id, 30, 110, 0, 0));
+        Assert.Throws<ArgumentException>(() => document.SetShapeBounds(created.Id, OfficeLength.Points(30), OfficeLength.Points(110), OfficeLength.Points(0), OfficeLength.Points(0)));
     }
 
     [Theory]
@@ -118,7 +118,7 @@ public sealed class PublisherShapeEditingTests {
         PublisherShape original = document.Pages[0].Shapes.Single(shape => shape.Id == 293);
         Assert.True(original.CanEdit, original.EditLimitation);
         OfficeShape before = original.CreateShape();
-        document.SetShapeBounds(original.Id, 30, 40, 120, 60);
+        document.SetShapeBounds(original.Id, OfficeLength.Points(30), OfficeLength.Points(40), OfficeLength.Points(120), OfficeLength.Points(60));
         OfficeShape current = document.Pages[0].Shapes.Single(shape => shape.Id == original.Id).CreateShape();
         Assert.Equal(kind, current.Kind); Assert.Equal(120, current.Width); Assert.Equal(60, current.Height);
         Assert.Equal(before.FillColor, current.FillColor); Assert.Equal(before.StrokeWidth, current.StrokeWidth);
@@ -141,10 +141,10 @@ public sealed class PublisherShapeEditingTests {
         PublisherTextFrame first = Assert.Single(document.Pages[0].TextFrames);
         int source = document.ReadReport.SourceObjectCount;
         var red = OfficeShape.Rectangle(20, 20); red.FillColor = OfficeColor.FromRgb(255, 0, 0);
-        PublisherShape firstShape = document.AddShape(document.Pages[1].Id, red, 10, 10);
-        PublisherTextFrame second = document.AddLinkedTextFrame(first.Id, document.Pages[1].Id, 72, 72, 100, 100);
-        PublisherShape secondShape = document.AddShape(document.Pages[1].Id, red, 140, 10);
-        PublisherTextFrame third = document.AddLinkedTextFrame(second.Id, document.Pages[1].Id, 200, 72, 100, 100);
+        PublisherShape firstShape = document.AddShape(document.Pages[1].Id, red, OfficeLength.Points(10), OfficeLength.Points(10));
+        PublisherTextFrame second = document.AddLinkedTextFrame(first.Id, document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100));
+        PublisherShape secondShape = document.AddShape(document.Pages[1].Id, red, OfficeLength.Points(140), OfficeLength.Points(10));
+        PublisherTextFrame third = document.AddLinkedTextFrame(second.Id, document.Pages[1].Id, OfficeLength.Points(200), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(100));
         Assert.True(firstShape.Id > fixture.ReservedId);
         Assert.Equal(firstShape.Id + 1, second.Id); Assert.Equal(second.Id + 1, secondShape.Id); Assert.Equal(secondShape.Id + 1, third.Id);
         Assert.Equal(new[] { firstShape.Id, secondShape.Id }, document.Pages[1].Shapes.Select(shape => shape.Id));
@@ -159,7 +159,7 @@ public sealed class PublisherShapeEditingTests {
         string complete = document.TextStories.Single().Text;
         var before = TextRegions(document.Pages[0], 201).Select(text => (text.X, text.Y, text.Width, text.Height)).ToArray();
         Assert.NotEmpty(before);
-        document.SetShapeBounds(101, 180, 30, 40, 72);
+        document.SetShapeBounds(101, OfficeLength.Points(180), OfficeLength.Points(30), OfficeLength.Points(40), OfficeLength.Points(72));
         var after = TextRegions(document.Pages[0], 201).Select(text => (text.X, text.Y, text.Width, text.Height)).ToArray();
         Assert.NotEqual(before, after);
         Assert.All(TextRegions(document.Pages[0], 201), region => Assert.False(region.X < 220 - .001 && region.X + region.Width > 180 + .001
@@ -188,7 +188,7 @@ public sealed class PublisherShapeEditingTests {
         Assert.Equal(restriction != "no-anchor", shape.HasPlacement);
         Assert.Throws<NotSupportedException>(() => shape.CreateShape());
         string before = document.ToSvg(); var pages = document.Pages; var report = document.ReadReport;
-        Assert.Throws<NotSupportedException>(() => document.SetShapeBounds(101, 10, 10, 50, 50));
+        Assert.Throws<NotSupportedException>(() => document.SetShapeBounds(101, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(50), OfficeLength.Points(50)));
         Assert.Throws<NotSupportedException>(() => document.SetShapePaint(101, OfficeColor.White, OfficeColor.Black));
         Assert.Same(pages, document.Pages); Assert.Same(report, document.ReadReport); Assert.Equal(before, document.ToSvg());
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PUB_SHAPE_EDIT_UNSUPPORTED"
@@ -242,7 +242,7 @@ public sealed class PublisherShapeEditingTests {
         Assert.True(line.CanEdit, line.EditLimitation); Assert.True(line.HasPlacement);
         Assert.Equal(0, line.Height);
         Assert.DoesNotContain(document.Pages[0].Pictures, picture => picture.Id == line.Id);
-        document.SetShapeBounds(line.Id, 20, 100, 120, 0);
+        document.SetShapeBounds(line.Id, OfficeLength.Points(20), OfficeLength.Points(100), OfficeLength.Points(120), OfficeLength.Points(0));
         OfficeShape current = Painted(document.Pages[0], line.Id).Shape;
         Assert.Equal(OfficeShapeKind.Line, current.Kind); Assert.Equal(120, current.Width); Assert.Equal(0, current.Height);
         Assert.Equal(new[] { new OfficePoint(0, 0), new OfficePoint(120, 0) }, current.Points);

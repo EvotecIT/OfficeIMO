@@ -1,325 +1,204 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Management.Automation;
-using System.Threading;
+using System.Security;
 using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Imports rows from an Excel workbook as PowerShell objects.</summary>
-/// <para>Provides a fast PowerShell read command over the OfficeIMO reader pipeline.</para>
+/// <summary>Reads rows from a worksheet, range or table as objects.</summary>
 /// <example>
-///   <summary>Import worksheet rows and filter pending items.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$rows = Import-OfficeExcel -Path .\Report.xlsx -WorksheetName Data -NumericAsDecimal
-/// $rows |
-///     Where-Object Status -eq 'Pending' |
-///     Export-Csv -Path .\PendingRows.csv -NoTypeInformation</code>
-///   <para>Reads the used range on the Data worksheet, emits PSCustomObjects, and filters them in PowerShell.</para>
+/// <summary>Read the first sheet as objects</summary>
+/// <code>Import-OfficeExcel -Path .\Reports\Q3-Sales.xlsx</code>
+/// <para>Reads the used range of the first worksheet, using the header row as property names.</para>
 /// </example>
 /// <example>
-///   <summary>Import every worksheet and keep the source sheet name.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$rows = Import-OfficeExcel -Path .\Workbook.xlsx -AllSheets
-/// $rows | Group-Object WorksheetName</code>
-///   <para>Reads the used range from each worksheet and adds a WorksheetName property to each emitted row.</para>
+/// <summary>Find the largest open orders</summary>
+/// <code>Import-OfficeExcel -Path .\Reports\Q3-Sales.xlsx -Sheet Orders -Range A5 |
+///     Where-Object Status -eq 'Open' |
+///     Sort-Object Amount -Descending |
+///     Select-Object -First 10 OrderId, Customer, Region, Amount</code>
+/// <para>Reads the Orders sheet from row 5, where the header starts below a title block, and lists the ten largest open orders.</para>
 /// </example>
 /// <example>
-///   <summary>Import a worksheet by column.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>Import-OfficeExcel -Path .\Workbook.xlsx -WorksheetName Metrics -ByColumn |
-///     Where-Object ColumnName -eq 'Revenue' |
-///     Select-Object -ExpandProperty Values</code>
-///   <para>Returns one object per column with the column name, 1-based column index, and the column values as an array.</para>
+/// <summary>Read a named table</summary>
+/// <code>Import-OfficeExcel -Path .\Reports\Helpdesk.xlsx -Table Tickets |
+///     Where-Object Status -ne 'Closed' |
+///     Group-Object Assignee |
+///     Sort-Object Count -Descending |
+///     Select-Object Name, Count</code>
+/// <para>Reads the rows of the Tickets table wherever it sits in the workbook and counts open tickets per assignee.</para>
 /// </example>
-[Cmdlet(VerbsData.Import, "OfficeExcel")]
-[Alias("ExcelImport")]
-public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet
-{
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetUri = "Uri";
-    private const string ParameterSetDocument = "Document";
+/// <example>
+/// <summary>Combine every sheet of many workbooks</summary>
+/// <code>Get-ChildItem -Path .\Branches -Filter *.xlsx |
+///     Import-OfficeExcel -Sheet * |
+///     Export-OfficeExcel -Path .\Reports\All-Branches.xlsx -Sheet 'All branches' -Title 'Branch sales, October 2026'</code>
+/// <para>Reads every worksheet of each branch workbook (each row carries its WorksheetName) and writes one consolidated workbook.</para>
+/// </example>
+[Cmdlet(VerbsData.Import, "OfficeExcel", DefaultParameterSetName = "Document")]
+public sealed class ImportOfficeExcelCommand : AsyncPSCmdlet {
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "PathTable", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
-    /// <summary>Workbook path to import.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetPath, ValueFromPipeline = true)]
-    [Alias("FilePath", "InputPath", "FullName", "LiteralPath")]
-    public string? Path { get; set; }
+    /// <summary>Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Uri")]
+    [Parameter(ParameterSetName = "Document")]
+    [OfficeSheetTransformation]
+    public OfficeSheetSelector[]? Sheet { get; set; }
 
-    /// <summary>Remote workbook URI to import.</summary>
-    [Parameter(Mandatory = true, Position = 0, ValueFromPipelineByPropertyName = true, ParameterSetName = ParameterSetUri)]
-    [Alias("Url")]
-    public Uri? Uri { get; set; }
-
-    /// <summary>Workbook document to import from.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument? Document { get; set; }
-
-    /// <summary>Allow HTTP workbook downloads in addition to HTTPS.</summary>
-    [Parameter(ParameterSetName = ParameterSetUri)]
-    public SwitchParameter AllowHttp { get; set; }
-
-    /// <summary>Worksheet name to read; defaults to the first sheet.</summary>
-    [Parameter(ValueFromPipelineByPropertyName = true)]
-    [Alias("Sheet")]
-    public string? WorksheetName { get; set; }
-
-    /// <summary>Zero-based worksheet index to read.</summary>
-    [Parameter(ValueFromPipelineByPropertyName = true)]
-    public int? SheetIndex { get; set; }
-
-    /// <summary>Import all worksheets. Each emitted row or column includes WorksheetName.</summary>
-    [Parameter]
-    public SwitchParameter AllSheets { get; set; }
-
-    /// <summary>Optional A1 range to read. When omitted, the used range is imported.</summary>
-    [Parameter(ValueFromPipelineByPropertyName = true)]
-    public string? Range { get; set; }
-
-    /// <summary>Starting row for an explicit rectangular range.</summary>
-    [Parameter]
-    public int? StartRow { get; set; }
-
-    /// <summary>Ending row for an explicit rectangular range.</summary>
-    [Parameter]
-    public int? EndRow { get; set; }
-
-    /// <summary>Starting column for an explicit rectangular range.</summary>
-    [Parameter]
-    public int? StartColumn { get; set; }
-
-    /// <summary>Ending column for an explicit rectangular range.</summary>
-    [Parameter]
-    public int? EndColumn { get; set; }
-
-    /// <summary>Treat all rows as data and generate column names instead of using the first row as headers.</summary>
-    [Parameter]
+    /// <summary>Writes data without a header row.</summary>
+    [Parameter()]
     public SwitchParameter NoHeader { get; set; }
 
+    /// <summary>Selects objects, hashtables, a DataTable, an owned IDataReader or column output.</summary>
+    [Parameter()]
+    public ExcelImportOutput As { get; set; } = ExcelImportOutput.Object;
+
     /// <summary>Prefer decimals instead of doubles for numeric values.</summary>
-    [Parameter]
+    [Parameter()]
     public SwitchParameter NumericAsDecimal { get; set; }
 
     /// <summary>Formula read mode. CachedValue returns workbook cached results; FormulaText returns formula expressions when present.</summary>
-    [Parameter]
+    [Parameter()]
     public OfficeExcelFormulaMode FormulaMode { get; set; } = OfficeExcelFormulaMode.CachedValue;
 
-    /// <summary>Culture used when parsing numbers and dates stored as text.</summary>
-    [Parameter]
-    public string? CultureName { get; set; }
-
-    /// <summary>Emit rows as hashtables instead of PSCustomObjects.</summary>
-    [Parameter]
-    public SwitchParameter AsHashtable { get; set; }
-
-    /// <summary>Emit a DataTable instead of enumerating row objects.</summary>
-    [Parameter]
-    public SwitchParameter AsDataTable { get; set; }
-
-    /// <summary>Emit a forward-only IDataReader for database bulk-copy workflows.</summary>
-    [Parameter]
-    public SwitchParameter AsDataReader { get; set; }
-
-    /// <summary>Emit one object per column with ColumnName, ColumnIndex, and Values instead of row objects.</summary>
-    [Parameter]
-    public SwitchParameter ByColumn { get; set; }
+    /// <summary>Culture used for value conversion and number-format presets.</summary>
+    [Parameter()]
+    public CultureInfo? Culture { get; set; }
 
     /// <summary>Maximum row count inspected when -AsDataReader infers the reader schema.</summary>
-    [Parameter]
+    [Parameter()]
     [ValidateRange(1, int.MaxValue)]
     public int SchemaSampleRows { get; set; } = 1024;
 
     /// <summary>Worksheet row count requested from each streaming chunk when -AsDataReader is used.</summary>
-    [Parameter]
+    [Parameter()]
     [ValidateRange(1, int.MaxValue)]
     public int ChunkRows { get; set; } = 1024;
 
+    /// <summary>A1 cell range on the selected worksheet.</summary>
+    [Parameter(ParameterSetName = "Path")]
+    [Parameter(ParameterSetName = "LiteralPath")]
+    [Parameter(ParameterSetName = "Uri")]
+    [Parameter(ParameterSetName = "Document")]
+    public string? Range { get; set; }
+
+    /// <summary>Native Excel table used to resolve the source range or header.</summary>
+    [Parameter(ParameterSetName = "PathTable", Mandatory = true)]
+    [Parameter(ParameterSetName = "LiteralPathTable", Mandatory = true)]
+    [Parameter(ParameterSetName = "UriTable", Mandatory = true)]
+    [Parameter(ParameterSetName = "DocumentTable", Mandatory = true)]
+    public string Table { get; set; } = null!;
+
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Parameter(ParameterSetName = "LiteralPathTable", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
+
+    /// <summary>Remote workbook URI to import.</summary>
+    [Parameter(ParameterSetName = "Uri", Mandatory = true, Position = 0)]
+    [Parameter(ParameterSetName = "UriTable", Mandatory = true, Position = 0)]
+    public Uri Uri { get; set; } = null!;
+
+    /// <summary>Allow HTTP workbook downloads in addition to HTTPS.</summary>
+    [Parameter(ParameterSetName = "Uri")]
+    [Parameter(ParameterSetName = "UriTable")]
+    public SwitchParameter AllowHttp { get; set; }
+
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    [Parameter(ParameterSetName = "DocumentTable", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
+
     /// <inheritdoc />
-    protected override async Task ProcessRecordAsync()
-    {
-        if (!string.IsNullOrWhiteSpace(Range) && HasCoordinateRange())
-        {
-            throw new PSArgumentException("Specify either -Range or coordinate bounds, but not both.");
-        }
-
-        if (AsDataReader.IsPresent && (AsDataTable.IsPresent || AsHashtable.IsPresent || ByColumn.IsPresent))
-        {
-            throw new PSArgumentException("Specify only one of -AsDataTable, -AsDataReader, -AsHashtable, or -ByColumn.");
-        }
-
-        if (AsDataReader.IsPresent && AllSheets.IsPresent)
-        {
-            throw new PSArgumentException("-AsDataReader reads one worksheet range at a time. Specify a single worksheet instead of -AllSheets.");
-        }
-
-        var options = ExcelReadOutputService.CreateOptions(
-            NumericAsDecimal.IsPresent,
-            useCachedFormulaResult: FormulaMode == OfficeExcelFormulaMode.CachedValue,
-            culture: ResolveCulture());
-        options.CancellationToken = AsDataReader.IsPresent ? CancellationToken.None : CancelToken;
-        options.InferSchema = AsDataReader.IsPresent || AsDataTable.IsPresent;
-        options.SchemaSampleRows = SchemaSampleRows;
-        options.MaxDataReaderChunkRows = ChunkRows;
-
-        if (AllSheets.IsPresent)
-        {
-            if (!string.IsNullOrWhiteSpace(WorksheetName) || SheetIndex.HasValue)
-            {
-                throw new PSArgumentException("Specify either -AllSheets or a specific worksheet, not both.");
+    protected override async Task ProcessRecordAsync() {
+        if (!ParameterSetName.StartsWith("Document", StringComparison.Ordinal) && Sheet?.Any(selector => selector.Sheet != null) == true) throw new PSArgumentException("Native worksheet objects require their caller-owned -Document or enclosing Excel content block.");
+        if (Culture != null && ExcelRuntimePreflight.InspectCurrent().GlobalizationInvariantMode) WriteWarning("Culture-aware Excel parsing is affected by globalization-invariant mode.");
+        if (ParameterSetName.StartsWith("Uri", StringComparison.Ordinal)) {
+            if (Table != null) {
+                var document = await ExcelDocumentService.LoadDocumentAsync(Uri!, readOnly: true, allowHttp: AllowHttp, cancellationToken: CancelToken).ConfigureAwait(false);
+                await ImportDocument(document, ownsDocument: true).ConfigureAwait(false);
+            } else {
+                var options = Options();
+                options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
+                await Emit(await ExcelDocument.OpenReaderAsync(Uri!, options, CancelToken).ConfigureAwait(false), null).ConfigureAwait(false);
             }
-
-            ExcelReadOutputService.ConfigureSelection(options, null, null, ResolveRange(), !NoHeader.IsPresent);
-        }
-        else
-        {
-            var selectedIndex = SheetIndex ?? (string.IsNullOrWhiteSpace(WorksheetName) ? 0 : null);
-            ExcelReadOutputService.ConfigureSelection(options, WorksheetName, selectedIndex, ResolveRange(), !NoHeader.IsPresent);
-        }
-
-        if (AsDataReader.IsPresent)
-        {
-            await WriteDataReaderAsync(options).ConfigureAwait(false);
-            return;
-        }
-
-        using var reader = await CreateDataReaderAsync(options).ConfigureAwait(false);
-        if (AllSheets.IsPresent)
-        {
-            do
-            {
-                if (AsDataTable.IsPresent || ByColumn.IsPresent)
-                {
-                    var currentTable = ExcelReadOutputService.ReadCurrentResultAsDataTable(reader, reader.CurrentSheetName);
-                    ExcelReadOutputService.WriteOutput(
-                        this,
-                        currentTable,
-                        AsDataTable.IsPresent,
-                        AsHashtable.IsPresent,
-                        ByColumn.IsPresent,
-                        reader.CurrentSheetName);
-                }
-                else
-                {
-                    ExcelReadOutputService.WriteRows(this, reader, AsHashtable.IsPresent, reader.CurrentSheetName);
+        } else if (ParameterSetName.StartsWith("Document", StringComparison.Ordinal)) {
+            await ImportDocument(ExcelCommandTargets.Document(Document)).ConfigureAwait(false);
+        } else {
+            bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
+            foreach (string path in OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal)) {
+                if (Table == null) await Emit(ExcelDocument.OpenReader(path, Options()), null).ConfigureAwait(false);
+                else {
+                    var document = ExcelDocumentService.LoadDocument(path, readOnly: true, autoSave: false);
+                    await ImportDocument(document, ownsDocument: true).ConfigureAwait(false);
                 }
             }
-            while (reader.NextResult());
-
-            return;
-        }
-
-        if (AsDataTable.IsPresent || ByColumn.IsPresent)
-        {
-            var table = ExcelReadOutputService.ReadCurrentResultAsDataTable(reader);
-            ExcelReadOutputService.WriteOutput(this, table, AsDataTable.IsPresent, AsHashtable.IsPresent, ByColumn.IsPresent, null);
-        }
-        else
-        {
-            ExcelReadOutputService.WriteRows(this, reader, AsHashtable.IsPresent, null);
         }
     }
-
-    private async Task WriteDataReaderAsync(ExcelReaderOptions options)
-    {
-        var reader = await CreateDataReaderAsync(options).ConfigureAwait(false);
-        try
-        {
-            WriteObject(PSObject.AsPSObject(new OwnedDataReader(reader)), enumerateCollection: false);
+    private ExcelReaderOptions Options() => new ExcelReaderOptions {
+        NumericAsDecimal = NumericAsDecimal, UseCachedFormulaResult = FormulaMode == OfficeExcelFormulaMode.CachedValue,
+        Culture = Culture ?? CultureInfo.InvariantCulture, HasHeaderRow = !NoHeader, A1Range = Range,
+        InferSchema = As is ExcelImportOutput.DataReader or ExcelImportOutput.DataTable,
+        SchemaSampleRows = SchemaSampleRows, MaxDataReaderChunkRows = ChunkRows,
+        CancellationToken = As == ExcelImportOutput.DataReader ? System.Threading.CancellationToken.None : CancelToken
+    };
+    private async Task ImportDocument(ExcelDocument document, bool ownsDocument = false) {
+        try {
+        var options = Options();
+        OfficeSheetSelector[]? selection = Sheet;
+        if (Table != null) {
+            var matches = document.GetTables().Where(table => string.Equals(table.Name, Table, StringComparison.OrdinalIgnoreCase)).ToArray();
+            if (matches.Length != 1) throw new PSArgumentException("Table must identify exactly one table in the workbook.");
+            options.SheetName = matches[0].SheetName;
+            options.A1Range = matches[0].Range;
+            selection = new[] { OfficeSheetSelector.From(matches[0].SheetName) };
+        } else if (selection == null && Document == null && ExcelDslContext.Current?.CurrentSheet is ExcelSheet current) selection = new[] { OfficeSheetSelector.From(current) };
+        if (selection != null) {
+            var sheets = ExcelSheetResolver.ResolveMany(document, selection);
+            selection = sheets.Select(sheet => OfficeSheetSelector.From(sheet.Name)).ToArray();
         }
-        catch
-        {
-            reader.Dispose();
-            throw;
-        }
+        // The native reader retains its own tabular source; caller-owned workbooks are never disposed here.
+        await Emit(document.CreateDataReader(options), selection, ownsDocument ? document : null).ConfigureAwait(false);
+        } catch { if (ownsDocument) document.Dispose(); throw; }
+    }
+    private Task Emit(ExcelWorkbookDataReader reader, OfficeSheetSelector[]? selection, IDisposable? ownedDocument = null) {
+        bool transferred = false;
+        try {
+            selection ??= Sheet;
+            var selected = new HashSet<string>(OfficeSheetSelector.ResolveNames(reader.SheetNames,
+                selection ?? new[] { new OfficeSheetSelector(position: 1) }), StringComparer.OrdinalIgnoreCase);
+            if (As == ExcelImportOutput.DataReader && selected.Count > 1) throw new PSArgumentException("DataReader output reads one sheet at a time; choose a single sheet.");
+            bool multiple = selected.Count > 1 || (Sheet ?? selection)?.Any(s => s.Name != null && WildcardPattern.ContainsWildcardCharacters(s.Name)) == true;
+            do {
+                if (!selected.Contains(reader.CurrentSheetName)) continue;
+                if (As == ExcelImportOutput.DataReader) {
+                    WriteObject(PSObject.AsPSObject(new OwnedDataReader(reader, ownedDocument)), enumerateCollection: false);
+                    transferred = true;
+                    break;
+                }
+                if (As is ExcelImportOutput.DataTable or ExcelImportOutput.Column) {
+                    var data = ExcelReadOutputService.ReadCurrentResultAsDataTable(reader, reader.CurrentSheetName);
+                    ExcelReadOutputService.WriteOutput(this, data, As == ExcelImportOutput.DataTable, false, As == ExcelImportOutput.Column, multiple ? reader.CurrentSheetName : null);
+                } else ExcelReadOutputService.WriteRows(this, reader, As == ExcelImportOutput.Hashtable, multiple ? reader.CurrentSheetName : null);
+            } while (reader.NextResult());
+        } finally { if (!transferred) { try { reader.Dispose(); } finally { ownedDocument?.Dispose(); } } }
+        return Task.CompletedTask;
     }
 
-    private async Task<ExcelWorkbookDataReader> CreateDataReaderAsync(ExcelReaderOptions options)
-    {
-        if (ParameterSetName == ParameterSetDocument)
-        {
-            if (Document == null)
-            {
-                throw new PSArgumentException("Excel document was not provided.", nameof(Document));
-            }
-
-            return Document.CreateDataReader(options);
-        }
-
-        if (ParameterSetName == ParameterSetUri)
-        {
-            if (Uri == null)
-            {
-                throw new PSArgumentException("Workbook URI was not provided.", nameof(Uri));
-            }
-
-            options.Transport = ExcelHttpLoadService.CreateOptions(AllowHttp);
-            return await ExcelDocument.OpenReaderAsync(Uri, options, CancelToken)
-                .ConfigureAwait(false);
-        }
-
-        if (string.IsNullOrWhiteSpace(Path))
-        {
-            throw new PSArgumentException("Workbook path was not provided.", nameof(Path));
-        }
-
-        var resolvedPath = SessionState.Path.GetUnresolvedProviderPathFromPSPath(Path!);
-        if (!File.Exists(resolvedPath))
-        {
-            throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
-        }
-
-        return ExcelDocument.OpenReader(resolvedPath, options);
-    }
-
-    private string? ResolveRange()
-    {
-        if (!string.IsNullOrWhiteSpace(Range))
-        {
-            return Range!;
-        }
-
-        if (HasCoordinateRange())
-        {
-            if (!StartRow.HasValue || !EndRow.HasValue || !StartColumn.HasValue || !EndColumn.HasValue)
-            {
-                throw new PSArgumentException("StartRow, EndRow, StartColumn, and EndColumn must all be provided when using coordinate bounds.");
-            }
-
-            if (StartRow.Value < 1 || EndRow.Value < 1 || StartColumn.Value < 1 || EndColumn.Value < 1)
-            {
-                throw new PSArgumentException("Coordinate bounds must be 1 or greater.");
-            }
-
-            if (StartRow.Value > EndRow.Value)
-            {
-                throw new PSArgumentException("StartRow must be less than or equal to EndRow.");
-            }
-
-            if (StartColumn.Value > EndColumn.Value)
-            {
-                throw new PSArgumentException("StartColumn must be less than or equal to EndColumn.");
-            }
-
-            return $"{ExcelA1.CellReference(StartRow.Value, StartColumn.Value)}:{ExcelA1.CellReference(EndRow.Value, EndColumn.Value)}";
-        }
-
-        return null;
-    }
-
-    private bool HasCoordinateRange()
-    {
-        return StartRow.HasValue || EndRow.HasValue || StartColumn.HasValue || EndColumn.HasValue;
-    }
-
-    private CultureInfo ResolveCulture()
-    {
-        if (string.IsNullOrWhiteSpace(CultureName))
-        {
-            return CultureInfo.InvariantCulture;
-        }
-
-        return CultureInfo.GetCultureInfo(CultureName!);
-    }
 }

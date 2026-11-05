@@ -84,6 +84,8 @@ internal sealed class ExcelDslContext : IDisposable
         }
     }
 
+    public ExcelTable? LastReportTable { get; set; }
+
     public ExcelSheet? CurrentSheet => _scopes.OfType<ExcelSheet>().FirstOrDefault();
 
     public ExcelReportBuilder? CurrentComposer => _scopes.OfType<ExcelReportBuilder>().FirstOrDefault();

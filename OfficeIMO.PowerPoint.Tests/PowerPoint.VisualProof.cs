@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
                 PowerPointVisualProofReport report;
                 using (PowerPointDocument presentation = PowerPointDocument.Create(presentationPath)) {
                     PowerPointSlide slide = presentation.AddSlide();
-                    slide.BackgroundColor = "FFFFFF";
+                    slide.BackgroundColor = OfficeColor.Parse("FFFFFF");
                     PowerPointTextBox title = slide.AddTextBox("Shared fidelity proof",global::OfficeIMO.OfficeLength.Points(40),global::OfficeIMO.OfficeLength.Points(36),global::OfficeIMO.OfficeLength.Points(480),global::OfficeIMO.OfficeLength.Points(46));
                     title.Title = "Slide title";
                     title.SetLanguage("en-US");
@@ -60,8 +60,8 @@ namespace OfficeIMO.Tests {
                     body.Color = OfficeColor.Parse("30343B");
                     body.FontSize = global::OfficeIMO.OfficeLength.Points(16);
                     PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(40), OfficeIMO.OfficeLength.Points(205), OfficeIMO.OfficeLength.Points(300), OfficeIMO.OfficeLength.Points(18), "Decorative accent");
-                    accent.FillColor = "0098C8";
-                    accent.OutlineColor = "0098C8";
+                    accent.FillColor = OfficeColor.Parse("0098C8");
+                    accent.OutlineColor = OfficeColor.Parse("0098C8");
                     accent.Decorative = true;
                     presentation.Save();
 

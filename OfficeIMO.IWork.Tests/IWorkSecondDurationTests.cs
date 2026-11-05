@@ -24,7 +24,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Fixed_second_ranges_preserve_raw_seconds_and_editable_saved_table_display(
         IWorkDocumentKind kind, IWorkDurationUnit largest, double seconds, string code, string expected) {
         using var package = DurationFormatPackage(kind, seconds, DurationFormat(largest: (ulong)largest, smallest: 16));
-        var source = IWorkSourceDocument.Open(package, kind);
+        var source = IWorkSourceDocument.Load(package, kind);
         var cell = Assert.Single(ReadSelectedRichTable(source, kind).Item1.Cells);
         Assert.Equal(seconds, cell.Value);
         Assert.Equal(IWorkCellKind.Duration, cell.ValueKind);
@@ -67,7 +67,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Fixed_second_ranges_preserve_explicit_formats_on_blank_saved_cells(IWorkDurationUnit largest, string code) {
         using var package = EmptyDurationFormatPackage(IWorkDocumentKind.Numbers,
             format: DurationFormat(largest: (ulong)largest, smallest: 16));
-        using var result = IWorkSourceDocument.Open(package, IWorkDocumentKind.Numbers).ToExcelResult();
+        using var result = IWorkSourceDocument.Load(package, IWorkDocumentKind.Numbers).ToExcelResult();
         result.Report.RequireCompleteEditableReconstruction();
         Assert.Equal(IWorkCellKind.Empty, Assert.Single(result.Projection.Sheets[0].Tables[0].Cells).ValueKind);
         using var saved = new MemoryStream(); result.Value.Save(saved); saved.Position = 0;
@@ -97,7 +97,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Other_duration_ranges_retain_raw_cache_and_unsupported_format_evidence(ulong largest, ulong smallest) {
         using var package = DurationFormatPackage(IWorkDocumentKind.Numbers, 3661.75,
             DurationFormat(largest: largest, smallest: smallest));
-        var cell = Assert.Single(IWorkSourceDocument.Open(package).ReadNumbers().Sheets[0].Tables[0].Cells);
+        var cell = Assert.Single(IWorkSourceDocument.Load(package).ReadNumbers().Sheets[0].Tables[0].Cells);
         Assert.Equal(3661.75d, cell.Value);
         Assert.Null(cell.NumberFormat);
         Assert.Equal(IWorkCellUnsupportedFeatures.DurationFormat, cell.UnsupportedFeatures);

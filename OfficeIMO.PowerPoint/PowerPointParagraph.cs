@@ -414,7 +414,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Gets or sets the bullet font name.
         /// </summary>
-        public string? BulletFontName {
+        public string? BulletFontFamily {
             get => Paragraph.ParagraphProperties?.GetFirstChild<A.BulletFont>()?.Typeface;
             set {
                 A.ParagraphProperties props = EnsureParagraphProperties();
@@ -464,8 +464,8 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Sets the bullet font and returns the paragraph for chaining.
         /// </summary>
-        public PowerPointParagraph SetBulletFont(string fontName) {
-            BulletFontName = fontName;
+        public PowerPointParagraph SetBulletFontFamily(string fontFamily) {
+            BulletFontFamily = fontFamily;
             return this;
         }
 

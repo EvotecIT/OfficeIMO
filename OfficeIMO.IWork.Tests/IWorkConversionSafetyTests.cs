@@ -14,7 +14,7 @@ public sealed partial class IWorkBoundaryTests {
         var options = new IWorkConversionOptions {
             Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true
         };
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         Assert.Throws<InvalidOperationException>(() => ConvertValue(source, options));
         package.Position = 0;
         Assert.Throws<InvalidOperationException>(() => ConvertValue(package, kind, options));
@@ -36,7 +36,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData("nim-iwork/simple.key", IWorkDocumentKind.Keynote)]
     public void Visual_previews_require_explicit_opt_in_and_value_only_entrypoints_still_reject_them(
         string fixture, IWorkDocumentKind kind) {
-        IWorkSourceDocument source = IWorkSourceDocument.Open(CorpusFixture(fixture));
+        IWorkSourceDocument source = IWorkSourceDocument.Load(CorpusFixture(fixture));
         var strict = new IWorkConversionOptions { Mode = IWorkConversionMode.VisualOnly };
         Assert.Throws<InvalidDataException>(() => ConvertValue(source, strict));
         var preview = new IWorkConversionOptions {
@@ -67,33 +67,33 @@ public sealed partial class IWorkBoundaryTests {
 
     private static void ConvertValue(Stream stream, IWorkDocumentKind kind, IWorkConversionOptions options) {
         using IDisposable value = kind switch {
-            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages).ToWordResult(options).RequireCompleteEditableReconstruction(),
-            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers).ToExcelResult(options).RequireCompleteEditableReconstruction(),
-            _ => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Keynote).ToPowerPointResult(options).RequireCompleteEditableReconstruction()
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Pages).ToWordResult(options).RequireCompleteEditableReconstruction(),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Numbers).ToExcelResult(options).RequireCompleteEditableReconstruction(),
+            _ => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Keynote).ToPowerPointResult(options).RequireCompleteEditableReconstruction()
         };
     }
 
     private static void ConvertValue(string path, IWorkDocumentKind kind, IWorkConversionOptions options) {
         using IDisposable value = kind switch {
-            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages).ToWordResult(options).RequireCompleteEditableReconstruction(),
-            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers).ToExcelResult(options).RequireCompleteEditableReconstruction(),
-            _ => IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote).ToPowerPointResult(options).RequireCompleteEditableReconstruction()
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Load(path, IWorkDocumentKind.Pages).ToWordResult(options).RequireCompleteEditableReconstruction(),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers).ToExcelResult(options).RequireCompleteEditableReconstruction(),
+            _ => IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote).ToPowerPointResult(options).RequireCompleteEditableReconstruction()
         };
     }
 
     private static void ConvertValue(Stream stream, IWorkDocumentKind kind, IWorkConversionOptions options, CancellationToken token) {
         using IDisposable value = kind switch {
-            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Pages, null, token).ToWordResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
-            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Numbers, null, token).ToExcelResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
-            _ => IWorkSourceDocument.Open(stream, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(options, cancellationToken: token).RequireCompleteEditableReconstruction()
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Pages, null, token).ToWordResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Numbers, null, token).ToExcelResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
+            _ => IWorkSourceDocument.Load(stream, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(options, cancellationToken: token).RequireCompleteEditableReconstruction()
         };
     }
 
     private static void ConvertValue(string path, IWorkDocumentKind kind, IWorkConversionOptions options, CancellationToken token) {
         using IDisposable value = kind switch {
-            IWorkDocumentKind.Pages => IWorkSourceDocument.Open(path, IWorkDocumentKind.Pages, null, token).ToWordResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
-            IWorkDocumentKind.Numbers => IWorkSourceDocument.Open(path, IWorkDocumentKind.Numbers, null, token).ToExcelResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
-            _ => IWorkSourceDocument.Open(path, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(options, cancellationToken: token).RequireCompleteEditableReconstruction()
+            IWorkDocumentKind.Pages => IWorkSourceDocument.Load(path, IWorkDocumentKind.Pages, null, token).ToWordResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
+            IWorkDocumentKind.Numbers => IWorkSourceDocument.Load(path, IWorkDocumentKind.Numbers, null, token).ToExcelResult(options, cancellationToken: token).RequireCompleteEditableReconstruction(),
+            _ => IWorkSourceDocument.Load(path, IWorkDocumentKind.Keynote, null, token).ToPowerPointResult(options, cancellationToken: token).RequireCompleteEditableReconstruction()
         };
     }
 }

@@ -63,8 +63,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Enables callout-style labels for a series by index.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelCallouts(int seriesIndex, bool enabled = true,
-            OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeLength? lineWidth = null) {
+            OfficeChartDataLabelPosition? position = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
 
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
@@ -76,9 +78,11 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Enables callout-style labels for a series by name.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelCallouts(string seriesName, bool enabled = true,
-            OfficeChartDataLabelPosition? position = null, string? lineColor = null, OfficeLength? lineWidth = null,
+            OfficeChartDataLabelPosition? position = null, OfficeColor? lineColor = null, OfficeLength? lineWidth = null,
             bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
 
             OfficeChartDataLabelPosition? resolvedPosition = enabled ? position ?? OfficeChartDataLabelPosition.OutsideEnd : position;
@@ -91,13 +95,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label text style for a series by index.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelTextStyle(int seriesIndex, OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, string? color = null, string? fontName = null) {
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
-            ValidateTextStyle(fontSize, color, fontName);
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByIndex(seriesIndex, series => {
-                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -111,13 +117,15 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label text style for a series by name.
         /// </summary>
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
         public PowerPointChart SetSeriesDataLabelTextStyle(string seriesName, OfficeLength? fontSize = null, bool? bold = null,
-            bool? italic = null, string? color = null, string? fontName = null, bool ignoreCase = true) {
+            bool? italic = null, OfficeColor? color = null, string? fontFamily = null, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
-            ValidateTextStyle(fontSize, color, fontName);
+            ValidateTextStyle(fontSize, color, fontFamily);
 
             bool applied = ApplySeriesByName(seriesName, ignoreCase, series => {
-                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontName);
+                ApplyDataLabelTextStyle(EnsureDataLabels(series), fontSize, bold, italic, color, fontFamily);
             });
 
             if (!applied) {
@@ -131,8 +139,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label shape styling for a series by index.
         /// </summary>
-        public PowerPointChart SetSeriesDataLabelShapeStyle(int seriesIndex, string? fillColor = null, string? lineColor = null,
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesDataLabelShapeStyle(int seriesIndex, OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
@@ -151,8 +161,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Sets data label shape styling for a series by name.
         /// </summary>
-        public PowerPointChart SetSeriesDataLabelShapeStyle(string seriesName, string? fillColor = null, string? lineColor = null,
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesDataLabelShapeStyle(string seriesName, OfficeColor? fillColor = null, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool noFill = false, bool noLine = false, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
             ValidateAreaStyle(fillColor, lineColor, lineWidth, noFill, noLine);
 
@@ -171,8 +183,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Configures data label leader lines for a series by index.
         /// </summary>
-        public PowerPointChart SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, string? lineColor = null,
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesDataLabelLeaderLines(int seriesIndex, bool showLeaderLines = true, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null) {
+#pragma warning restore RS0026
             ArgumentOutOfRangeException.ThrowIfNegative(seriesIndex);
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 
@@ -191,8 +205,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Configures data label leader lines for a series by name.
         /// </summary>
-        public PowerPointChart SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = true, string? lineColor = null,
+#pragma warning disable RS0026 // Existing overload family; only the color type or font-family parameter names changed.
+        public PowerPointChart SetSeriesDataLabelLeaderLines(string seriesName, bool showLeaderLines = true, OfficeColor? lineColor = null,
             OfficeLength? lineWidth = null, bool ignoreCase = true) {
+#pragma warning restore RS0026
             ArgumentNullException.ThrowIfNull(seriesName);
             ValidateDataLabelLeaderLines(lineColor, lineWidth);
 

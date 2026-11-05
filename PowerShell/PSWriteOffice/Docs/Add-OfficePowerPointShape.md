@@ -46,7 +46,7 @@ Accept wildcard characters: False
 ```
 
 ### -FillColor
-Gets or sets the fill color or theme role.
+Gets or sets the fill color or theme role; explicit null clears the local override.
 
 ```yaml
 Type: OfficeColor
@@ -94,7 +94,7 @@ Accept wildcard characters: False
 ```
 
 ### -OutlineColor
-Gets or sets the outline color or theme role.
+Gets or sets the outline color or theme role; explicit null clears the local override.
 
 ```yaml
 Type: OfficeColor

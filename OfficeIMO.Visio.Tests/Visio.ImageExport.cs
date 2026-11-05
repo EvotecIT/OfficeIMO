@@ -16,18 +16,18 @@ public class VisioImageExport {
         VisioDocument document = VisioDocument.Create(package);
         VisioPage page = document.AddPage("RetainedBounded").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
         page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.2, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), "Bounded retained PNG export");
-        var options = new VisioPngSaveOptions {
+        var options = new VisioImageExportOptions {
             MaximumTotalEncodedBytes = 8L,
             Supersampling = 1
         };
 
         OfficeImageExportBatchLimitException pageToPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            page.ToPng(options));
+            page.ToImage(options));
         OfficeImageExportBatchLimitException documentToPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            document.ToPng(options));
+            document.ToImage(options));
         using var output = new MemoryStream();
         OfficeImageExportBatchLimitException saveAsPng = Assert.Throws<OfficeImageExportBatchLimitException>(() =>
-            document.SaveAsPng(output, options));
+            document.SaveAsImage(output, options));
 
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), pageToPng.LimitName);
         Assert.Equal(nameof(OfficeImageExportOptions.MaximumTotalEncodedBytes), documentToPng.LimitName);
@@ -643,20 +643,20 @@ public class VisioImageExport {
     }
 
     [Fact]
-    public async System.Threading.Tasks.Task SaveAsSvgAsync_CancellationDoesNotMutateCallerOptions() {
+    public async System.Threading.Tasks.Task SaveAsImageAsync_CancellationDoesNotMutateCallerOptions() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
         VisioPage page = document.AddPage("Reusable options").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
         page.AddRectangle(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Reusable");
-        var options = new VisioSvgSaveOptions();
+        var options = new VisioImageExportOptions { Format = OfficeImageExportFormat.Svg };
         using var cancellation = new System.Threading.CancellationTokenSource();
         cancellation.Cancel();
         using var output = new MemoryStream();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
-            page.SaveAsSvgAsync(output, options, cancellation.Token));
+            page.SaveAsImageAsync(output, options, cancellation.Token));
 
-        string svg = page.ToSvg(options);
+        string svg = System.Text.Encoding.UTF8.GetString(page.ToImage(options));
         Assert.Contains("Reusable", svg, StringComparison.Ordinal);
     }
 
@@ -749,16 +749,16 @@ public class VisioImageExport {
     }
 
     [Fact]
-    public void DocumentAndPageConvenienceMethods_ProduceRequestedRasterFormats() {
+    public void DocumentAndPageConversion_ProducesRequestedRasterFormats() {
         using MemoryStream package = new();
         VisioDocument document = VisioDocument.Create(package);
         VisioPage page = document.AddPage("Convenience").Size(OfficeLength.Inches(2), OfficeLength.Inches(1));
         page.AddDiamond(OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.5, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(1, page.DefaultUnit)), OfficeLength.Inches(VisioMeasurementUnitExtensions.ToInches(0.6, page.DefaultUnit)), "Choice");
         var options = new VisioImageExportOptions { Scale = 0.5D, Supersampling = 1 };
 
-        Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToJpeg(options)).MimeType);
-        Assert.Equal("image/tiff", OfficeImageReader.Identify(document.ToTiff(options)).MimeType);
-        Assert.Equal("image/webp", OfficeImageReader.Identify(page.ToWebp(options)).MimeType);
+        Assert.Equal("image/jpeg", OfficeImageReader.Identify(page.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Jpeg, Scale = options.Scale, Supersampling = options.Supersampling })).MimeType);
+        Assert.Equal("image/tiff", OfficeImageReader.Identify(document.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Tiff, Scale = options.Scale, Supersampling = options.Supersampling })).MimeType);
+        Assert.Equal("image/webp", OfficeImageReader.Identify(page.ToImage(new VisioImageExportOptions { Format = OfficeImageExportFormat.Webp, Scale = options.Scale, Supersampling = options.Supersampling })).MimeType);
         var imageOptions5 = new VisioImageExportOptions();
         imageOptions5.TargetDpi = 48D;
         imageOptions5.Format = OfficeImageExportFormat.Svg;

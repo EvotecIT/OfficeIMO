@@ -9,7 +9,7 @@ namespace OfficeIMO.IWork.Tests;
 public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Reader_preserves_explicit_source_fidelity_categories_in_json_diagnostics() {
-        var source = IWorkSourceDocument.Open(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote);
+        var source = IWorkSourceDocument.Load(Fixture("nim-iwork/simple.key"), IWorkDocumentKind.Keynote);
         var kinds = new[] { OfficeConversionLossKind.None, OfficeConversionLossKind.Approximation,
             OfficeConversionLossKind.Omission, OfficeConversionLossKind.Failure, OfficeConversionLossKind.Unassessed };
         var diagnostics = kinds.Select(kind => new IWorkDiagnostic(IWorkDiagnosticSeverity.Warning,

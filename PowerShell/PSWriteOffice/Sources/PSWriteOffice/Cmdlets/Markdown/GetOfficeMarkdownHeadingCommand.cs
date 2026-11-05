@@ -1,3 +1,4 @@
+using PSWriteOffice.Foundation;
 using System.Management.Automation;
 using OfficeIMO.Markdown;
 using PSWriteOffice.Services.Markdown;
@@ -18,78 +19,35 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <code>Open-OfficeMarkdown -Path .\README.md | Get-OfficeMarkdownHeading -MinLevel 2</code>
 ///   <para>Returns headings from an existing Markdown document object.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeMarkdownHeading")]
+[Cmdlet(VerbsCommon.Get, "OfficeMarkdownHeading", DefaultParameterSetName = "Document")]
 [OutputType(typeof(MarkdownDocument.HeadingInfo))]
-public sealed class GetOfficeMarkdownHeadingCommand : PSCmdlet
-    , IMarkdownReaderOptionSource {
+public sealed class GetOfficeMarkdownHeadingCommand : PSCmdlet {
     private const string ParameterSetDocument = "Document";
     private const string ParameterSetPath = "Path";
     private const string ParameterSetText = "Text";
 
-    /// <summary>Markdown document to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public MarkdownDocument Document { get; set; } = null!;
-
-    /// <summary>Path to the Markdown file.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
+    /// <summary>Caller-owned document; omission uses the enclosing Markdown document.</summary>
+    [Parameter(ValueFromPipeline = true, ParameterSetName = ParameterSetDocument), ValidateNotNull]
+    public MarkdownDocument? Document { get; set; }
+    /// <summary>Input file with FileSystem wildcard expansion.</summary>
+    [Parameter(Mandatory = true, Position = 0, ValueFromPipeline = true, ParameterSetName = ParameterSetPath)]
+    [SupportsWildcards, ValidateNotNullOrEmpty]
     public string Path { get; set; } = string.Empty;
-
-    /// <summary>Markdown text to parse.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = ParameterSetText)]
+    /// <summary>Literal input file, including a FileInfo pipeline.</summary>
+    [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")]
+    [Alias("FullName", "PSPath"), ValidateNotNullOrEmpty]
+    public string LiteralPath { get; set; } = string.Empty;
+    /// <summary>Markdown source text.</summary>
+    [Parameter(Mandatory = true, ParameterSetName = ParameterSetText), AllowEmptyString]
     public string Text { get; set; } = string.Empty;
-
-    /// <summary>Optional reader options used when parsing path or text input.</summary>
-    [Parameter]
-    [Alias("ReaderOptions")]
-    public MarkdownLoadOptions? Options { get; set; }
-
-    /// <summary>Named reader profile used when <see cref="Options"/> is not supplied.</summary>
-    [Parameter]
-    public MarkdownLoadOptions.MarkdownDialectProfile? Profile { get; set; }
-
-    /// <summary>Base URI used to resolve and restrict relative Markdown links and images.</summary>
-    [Parameter]
-    public string? BaseUri { get; set; }
-
-    /// <summary>Maximum Markdown input length accepted by the reader.</summary>
-    [Parameter]
-    public int? MaxInputCharacters { get; set; }
-
-    /// <summary>Applies a built-in Markdown input normalization preset before parsing.</summary>
-    [Parameter]
-    public MarkdownInputNormalizationPreset? NormalizeInput { get; set; }
-
-    /// <summary>Block file URLs while parsing Markdown links and images.</summary>
-    [Parameter]
-    public bool? DisallowFileUrls { get; set; }
-
-    /// <summary>Allow data URLs while parsing Markdown links and images.</summary>
-    [Parameter]
-    public bool? AllowDataUrls { get; set; }
-
-    /// <summary>Allow mailto URLs while parsing Markdown links.</summary>
-    [Parameter]
-    public bool? AllowMailtoUrls { get; set; }
-
-    /// <summary>Allow protocol-relative URLs while parsing Markdown links and images.</summary>
-    [Parameter]
-    public bool? AllowProtocolRelativeUrls { get; set; }
-
-    /// <summary>Restrict parsed URL schemes to the allow-list.</summary>
-    [Parameter]
-    public bool? RestrictUrlSchemes { get; set; }
-
-    /// <summary>Allowed URL schemes when URL scheme restriction is enabled.</summary>
-    [Parameter]
-    public string[]? AllowedUrlScheme { get; set; }
+    /// <summary>Native reader options and optional native-property hashtable overrides.</summary>
+    [Parameter(ParameterSetName = ParameterSetPath), Parameter(ParameterSetName = "LiteralPath"), Parameter(ParameterSetName = ParameterSetText)]
+    public object[]? Options { get; set; }
 
     /// <summary>Minimum heading level to return.</summary>
     [Parameter]
     [ValidateRange(1, 6)]
     public int MinLevel { get; set; } = 1;
-
-    MarkdownLoadOptions? IMarkdownReaderOptionSource.ReaderOptions => Options;
 
     /// <summary>Maximum heading level to return.</summary>
     [Parameter]
@@ -114,14 +72,7 @@ public sealed class GetOfficeMarkdownHeadingCommand : PSCmdlet
             throw new PSArgumentException("-MinLevel cannot be greater than -MaxLevel.");
         }
 
-        var document = MarkdownDocumentResolver.Resolve(
-            this,
-            ParameterSetName,
-            ParameterSetDocument,
-            Document,
-            Path,
-            Text,
-            this);
+        var document = MarkdownDocumentResolver.Resolve(this, ParameterSetName, Document, Path, LiteralPath, Text, Options);
 
         var wildcardOptions = CaseSensitive
             ? WildcardOptions.None

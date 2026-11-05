@@ -270,8 +270,8 @@ namespace OfficeIMO.Tests {
                 source.Cell(1, 2).SetValue("Revenue");
                 source.Cell(1, 1).SetBold(true);
                 source.Cell(1, 2).SetBold(true);
-                source.Cell(1, 1).SetFillColor("#D9EAD3");
-                source.Cell(1, 2).SetFillColor("#D9EAD3");
+                source.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
+                source.Cell(1, 2).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
                 sourceDocument.Save();
             }
 
@@ -461,7 +461,7 @@ namespace OfficeIMO.Tests {
             using (var sourceDocument = ExcelDocument.Create(sourcePath)) {
                 ExcelSheet source = sourceDocument.AddSheet("Styled");
                 source.Cell(1, 1).SetValue(10);
-                source.Cell(1, 1).SetFillColor("#D9EAD3");
+                source.Cell(1, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse("#D9EAD3"));
                 sourceDocument.Save();
             }
 

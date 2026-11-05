@@ -47,24 +47,28 @@ $outputRoot = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromP
 $pdfRoot = Join-Path $outputRoot 'Pdf'
 $checkpointRoot = Join-Path $outputRoot 'State'
 $routes = @(Get-OfficeDocumentCapability -Conversion -To Pdf -Executable)
+$runId = [datetime]::UtcNow.ToString('yyyyMMddTHHmmssfffffffZ')
+$reportRoot = Join-Path $outputRoot "Reports/$runId"
+$nativeReportPath = Join-Path $reportRoot 'native-batch.json'
+$null = [IO.Directory]::CreateDirectory($reportRoot)
 $batchSummary = $null
 $batch = @{
-    InputDirectory = $sourceRoot
+    Path = $sourceRoot
+    To = 'Pdf'
     OutputDirectory = $pdfRoot
-    CheckpointDirectory = $checkpointRoot
-    MaximumConcurrency = $MaximumConcurrency
+    CheckpointPath = (Join-Path $checkpointRoot 'batch.json')
+    ReportPath = $nativeReportPath
+    ThrottleLimit = $MaximumConcurrency
     MaximumFiles = $MaximumFiles
     MaximumInputBytes = $MaximumInputBytes
     MaximumOutputBytes = $MaximumOutputBytes
-    ConflictPolicy = 'Fail'
+    Resume = $true
     RetryFailed = $RetryFailed
-    ItemResults = $true
     SummaryVariable = 'batchSummary'
-    MarkdownOptions = (New-OfficeMarkdownPdfOptions -ApplyWordLikeTheme -UseFirstHeadingAsTitle)
 }
 # Retain streamed outcomes before reporting the batch's terminal failure.
 $batchErrors = @()
-$items = @(Export-OfficeDocumentPdf @batch -ErrorAction SilentlyContinue -ErrorVariable batchErrors)
+$null = Convert-OfficeDocument @batch -ErrorAction SilentlyContinue -ErrorVariable batchErrors
 if ($null -eq $batchSummary) {
     if ($batchErrors.Count -gt 0) {
         throw $batchErrors[0]
@@ -72,11 +76,9 @@ if ($null -eq $batchSummary) {
     throw 'The conversion did not return a batch summary.'
 }
 
-# Keep each run's review separate. The engine owns and verifies Pdf and State.
-$runId = [datetime]::UtcNow.ToString('yyyyMMddTHHmmssfffffffZ')
-$reportRoot = Join-Path $outputRoot "Reports/$runId"
-$null = New-Item -ItemType Directory -Path $reportRoot
-$outcomes = @($items | Sort-Object InputPath | ForEach-Object {
+# The native recorded report retains per-file identity and checkpoint reuse evidence.
+$nativeReport = Import-OfficeConversionReport -LiteralPath $nativeReportPath -ErrorAction Stop
+$outcomes = @($nativeReport.Items | Sort-Object InputPath | ForEach-Object {
     $item = $_
     $diagnostics = @($item.Diagnostics | ForEach-Object {
         [ordered]@{
@@ -116,7 +118,7 @@ if ($diagnosticRows.Count) {
     $diagnosticRows | Export-Csv -LiteralPath (Join-Path $reportRoot 'diagnostics.csv') -NoTypeInformation -Encoding utf8
 }
 $reviewCount = @($outcomes | Where-Object ReviewRequired).Count
-$assemblyPath = (Get-Command Export-OfficeDocumentPdf).ImplementingType.Assembly.Location
+$assemblyPath = (Get-Command Convert-OfficeDocument).ImplementingType.Assembly.Location
 [ordered]@{
     SchemaVersion = 1; RunId = $runId; ModuleVersion = [string]$module.Version
     ModuleProductVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($assemblyPath).ProductVersion

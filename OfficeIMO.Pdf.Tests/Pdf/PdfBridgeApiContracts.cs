@@ -32,7 +32,7 @@ public sealed class PdfBridgeApiContracts {
         Assert.Throws<PdfReadLimitException>(() =>
             document.ToExcel(new PdfExcelExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
-            document.ToRtfDocument(new PdfRtfExportOptions { ReadOptions = readOptions }));
+            document.ToRtf(new PdfRtfExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>
             document.ToHtml(new PdfHtmlExportOptions { ReadOptions = readOptions }));
         Assert.Throws<PdfReadLimitException>(() =>

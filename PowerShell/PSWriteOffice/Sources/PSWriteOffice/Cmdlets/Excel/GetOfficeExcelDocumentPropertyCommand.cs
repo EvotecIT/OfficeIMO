@@ -1,104 +1,64 @@
-using PSWriteOffice.Services;
 using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
+using System.Security;
+using System.Threading.Tasks;
+using OfficeIMO;
 using OfficeIMO.Excel;
-using PSWriteOffice.Models.Excel;
+using PSWriteOffice.Foundation;
+using PSWriteOffice.Services;
 using PSWriteOffice.Services.Excel;
 
 namespace PSWriteOffice.Cmdlets.Excel;
 
-/// <summary>Gets built-in and application document properties from an Excel workbook.</summary>
+/// <summary>Gets built-in, application and custom document properties.</summary>
 /// <example>
-///   <summary>Audit workbook metadata before publishing a report.</summary>
-///   <prefix>PS&gt; </prefix>
-///   <code>$properties = Get-OfficeExcelDocumentProperty -Path .\Report.xlsx -Name Title,Company,Department
-/// $properties |
-///     Format-Table Name, Value, Scope</code>
-///   <para>Returns matching built-in, application, and custom workbook properties as structured objects.</para>
+/// <summary>Show document properties</summary>
+/// <code>Get-OfficeExcelDocumentProperty -Path .\Reports\Q3-Sales.xlsx</code>
+/// <para>Lists the built-in, application and custom properties of a workbook.</para>
 /// </example>
-[Cmdlet(VerbsCommon.Get, "OfficeExcelDocumentProperty")]
-[OutputType(typeof(ExcelDocumentPropertyInfo))]
+/// <example>
+/// <summary>Report owners of shared workbooks</summary>
+/// <code>Get-ChildItem -Path \\files\Reports -Filter *.xlsx |
+///     Get-OfficeExcelDocumentProperty -Name Owner, Classification -Kind Custom |
+///     Format-Table</code>
+/// <para>Reads the custom Owner and Classification properties of every workbook on the share.</para>
+/// </example>
+[Cmdlet(VerbsCommon.Get, "OfficeExcelDocumentProperty", DefaultParameterSetName = "Document")]
 public sealed class GetOfficeExcelDocumentPropertyCommand : PSCmdlet {
-    private const string ParameterSetPath = "Path";
-    private const string ParameterSetDocument = "Document";
-
-    /// <summary>Path to the workbook.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = ParameterSetPath, ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Alias("InputPath", "FilePath", "FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>Workbook to inspect.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = ParameterSetDocument)]
-    public ExcelDocument Document { get; set; } = null!;
+    /// <summary>Workbook paths resolved with filesystem wildcard support.</summary>
+    [Parameter(ParameterSetName = "Path", Mandatory = true, Position = 0, ValueFromPipeline = true)]
+    public string[] Path { get; set; } = Array.Empty<string>();
 
     /// <summary>Property name filter (wildcards supported).</summary>
-    [Parameter]
-    [SupportsWildcards]
+    [Parameter()]
     public string[]? Name { get; set; }
 
-    /// <summary>Only return core package properties.</summary>
-    [Parameter]
-    public SwitchParameter BuiltIn { get; set; }
+    /// <summary>Metadata kind to add.</summary>
+    [Parameter()]
+    public ExcelDocumentPropertyKind[]? Kind { get; set; }
 
-    /// <summary>Only return application properties such as Company and Manager.</summary>
-    [Parameter]
-    public SwitchParameter Application { get; set; }
+    /// <summary>Literal workbook paths, including FileInfo.FullName and provider PSPath.</summary>
+    [Parameter(ParameterSetName = "LiteralPath", Mandatory = true, ValueFromPipelineByPropertyName = true)]
+    [Alias("PSPath", "FullName")]
+    public string[] LiteralPath { get; set; } = Array.Empty<string>();
 
-    /// <summary>Only return custom workbook properties.</summary>
-    [Parameter]
-    public SwitchParameter Custom { get; set; }
+    /// <summary>Caller-owned workbook; omission uses the enclosing Excel content block.</summary>
+    [Parameter(ParameterSetName = "Document", ValueFromPipeline = true)]
+    public ExcelDocument? Document { get; set; }
 
     /// <inheritdoc />
     protected override void ProcessRecord() {
-        ExcelDocument? document = null;
-        var dispose = false;
-
-        try {
-            if (ParameterSetName == ParameterSetPath) {
-                var resolvedPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-                if (!File.Exists(resolvedPath)) {
-                    throw new FileNotFoundException($"File '{resolvedPath}' was not found.", resolvedPath);
-                }
-
-                document = ExcelDocumentService.LoadDocument(resolvedPath, readOnly: true, autoSave: false);
-                dispose = true;
-            } else {
-                document = Document;
-            }
-
-            if (document == null) {
-                throw new InvalidOperationException("Excel workbook was not provided.");
-            }
-
-            var includeBuiltIn = !Application.IsPresent && !Custom.IsPresent || BuiltIn.IsPresent;
-            var includeApplication = !BuiltIn.IsPresent && !Custom.IsPresent || Application.IsPresent;
-            var includeCustom = !BuiltIn.IsPresent && !Application.IsPresent || Custom.IsPresent;
-
-            IEnumerable<ExcelDocumentPropertyInfo> properties = ExcelDocumentPropertyService.GetProperties(document, includeBuiltIn, includeApplication, includeCustom);
-            var patterns = BuildPatterns(Name);
-            if (patterns.Count > 0) {
-                properties = properties.Where(property => patterns.Any(pattern => pattern.IsMatch(property.Name)));
-            }
-
-            WriteObject(properties, enumerateCollection: true);
-        } finally {
-            if (dispose) {
-                document?.Dispose();
+        foreach (var scope in ExcelCommandTargets.Workbooks(this, ParameterSetName, Path, LiteralPath, Document, readOnly: true)) {
+            var kinds = new HashSet<ExcelDocumentPropertyKind>(Kind ?? (ExcelDocumentPropertyKind[])Enum.GetValues(typeof(ExcelDocumentPropertyKind)));
+            foreach (var property in ExcelDocumentPropertyService.GetProperties(scope.Document, kinds.Contains(ExcelDocumentPropertyKind.BuiltIn), kinds.Contains(ExcelDocumentPropertyKind.Application), kinds.Contains(ExcelDocumentPropertyKind.Custom))) {
+                if (Name == null || Name.Any(name => new WildcardPattern(name, WildcardOptions.IgnoreCase).IsMatch(property.Name))) WriteObject(property);
             }
         }
     }
 
-    private static List<WildcardPattern> BuildPatterns(string[]? patterns) {
-        var compiled = new List<WildcardPattern>();
-        foreach (var pattern in patterns ?? Array.Empty<string>()) {
-            if (!string.IsNullOrWhiteSpace(pattern)) {
-                compiled.Add(new WildcardPattern(pattern, WildcardOptions.IgnoreCase));
-            }
-        }
-
-        return compiled;
-    }
 }

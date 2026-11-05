@@ -48,18 +48,18 @@ internal static class NativeNumericFormatWriterSmoke {
         }
         if (kind == "Numbers") {
             var document = IWorkNumbersDocument.Create(); document.AddSheet("Formats").AddTable(data, "Formats", 20, 20, 280, 24);
-            return document.SaveBytes();
+            return document.ToBytes();
         }
         if (kind == "Pages") {
             var document = IWorkPagesDocument.Create(); document.AddTable(data, "Formats", 234, 24, fontSizePoints: 10);
-            return document.SaveBytes();
+            return document.ToBytes();
         }
         var deck = IWorkKeynoteDocument.Create(); deck.AddSlide().AddTable(data, 120, 40, 720, 480, "Formats", fontSizePoints: 12);
-        return deck.SaveBytes();
+        return deck.ToBytes();
     }
 
     private static void Validate(string kind, byte[] bytes, JsonElement root, bool edited) {
-        var source = IWorkSourceDocument.Open(bytes);
+        var source = IWorkSourceDocument.Load(bytes);
         IWorkTable table = kind switch {
             "Numbers" => source.ReadNumbers().Sheets[0].Tables.Single(),
             "Pages" => source.ReadPages().Tables.Single(), _ => source.ReadKeynote().Slides[0].Tables.Single()

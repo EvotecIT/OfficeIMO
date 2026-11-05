@@ -301,7 +301,7 @@ public sealed class DocumentLifecycleCmdletTests {
                 Assert.Equal("Reviewed", text);
             }
             using (var package = SpreadsheetDocument.Open(plain, false)) {
-                var formulaCell = package.WorkbookPart!.WorksheetParts.Single().Worksheet
+                var formulaCell = Assert.IsType<DocumentFormat.OpenXml.Spreadsheet.Worksheet>(package.WorkbookPart!.WorksheetParts.Single().Worksheet)
                     .Descendants<DocumentFormat.OpenXml.Spreadsheet.Cell>().Single(cell => cell.CellReference == "B2");
                 Assert.Equal("42", formulaCell.CellValue!.Text);
             }

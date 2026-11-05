@@ -2,6 +2,7 @@ using System.Management.Automation;
 using System.Text;
 using OfficeIMO;
 using OfficeIMO.Drawing;
+using OfficeIMO.Excel;
 using PSWriteOffice.Foundation;
 
 namespace PSWriteOffice.Tests.Foundation;
@@ -49,6 +50,10 @@ public sealed class FoundationDocument : IDisposable {
 [Cmdlet(VerbsCommon.New, "OfficeFoundationDocument", SupportsShouldProcess = true)]
 [OutputType(typeof(FoundationDocument), typeof(FileInfo))]
 public sealed class NewOfficeFoundationDocumentCommand : OfficeLifecycleCmdlet<FoundationDocument> {
+    [Parameter(Position = 1)] public override ScriptBlock? Content { get => base.Content; set => base.Content = value; }
+    [Parameter] public override SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
+    [Parameter] public override SwitchParameter AllowLoss { get => base.AllowLoss; set => base.AllowLoss = value; }
+    [Parameter] public override SwitchParameter Show { get => base.Show; set => base.Show = value; }
     [Parameter(Position = 0)] public string? Path { get; set; }
     [Parameter] public SwitchParameter Force { get; set; }
     protected override void ProcessRecord() => RunDocument(Path, isNew: true, Force, path => {
@@ -60,6 +65,10 @@ public sealed class NewOfficeFoundationDocumentCommand : OfficeLifecycleCmdlet<F
 [Cmdlet(VerbsCommon.Open, "OfficeFoundationDocument", SupportsShouldProcess = true, DefaultParameterSetName = "Path")]
 [OutputType(typeof(FoundationDocument), typeof(FileInfo))]
 public sealed class OpenOfficeFoundationDocumentCommand : OfficeLifecycleCmdlet<FoundationDocument> {
+    [Parameter(Position = 1)] public override ScriptBlock? Content { get => base.Content; set => base.Content = value; }
+    [Parameter] public override SwitchParameter PassThru { get => base.PassThru; set => base.PassThru = value; }
+    [Parameter] public override SwitchParameter AllowLoss { get => base.AllowLoss; set => base.AllowLoss = value; }
+    [Parameter] public override SwitchParameter Show { get => base.Show; set => base.Show = value; }
     [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Path")][SupportsWildcards]
     public string? Path { get; set; }
     [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, ParameterSetName = "LiteralPath")][Alias("PSPath", "FullName")]

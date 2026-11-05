@@ -8,12 +8,23 @@ A Markdown-to-Word workflow is useful when authors prefer text-based source cont
 
 ## Create the review copy
 
-`ConvertFrom-OfficeWordMarkdown` accepts Markdown text, a file path, or a parsed Markdown document. It can use a template, target a bookmark or content control, render front matter, and control local, remote, and data-URI images.
+`Convert-OfficeDocument -To Word` accepts a Markdown path, Markdown text (`-Text -From Markdown`), or a parsed document (`-Document`). Pass `New-OfficeMarkdownWordOptions` through `-Options` for template insertion, front matter, and image policies.
+
+```powershell
+$options = New-OfficeMarkdownWordOptions -Template .\Template.docx -BookmarkName MainContent
+$report = Convert-OfficeDocument -Path .\Review.md -To Word -OutputPath .\Review.docx -Options $options
+$report.Diagnostics
+```
 
 ## Return to Markdown
 
-`ConvertTo-OfficeWordMarkdown` converts a Word path or loaded document to Markdown. Image export mode and image directory determine whether embedded images become sidecar files. Underline and highlight output are opt-in because not every Markdown target represents them consistently.
+`Convert-OfficeDocument -To Markdown` accepts a Word path or loaded document. Use `New-OfficeWordMarkdownOptions` for image export mode and directory, underline, and highlight output. Those formatting extensions are opt-in because Markdown targets represent them differently.
 
-The [Word round-trip recipe](https://github.com/EvotecIT/OfficeIMO/blob/e0f1aa49a70c3d988a2ca091b49d313ef797dda1/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-WordRoundTrip.ps1) creates Markdown, converts it to DOCX, and converts the Word file back to Markdown.
+```powershell
+$options = New-OfficeWordMarkdownOptions -ImageExportMode File -ImageDirectory .\Review-Images
+Convert-OfficeDocument -Path .\Review.docx -To Markdown -OutputPath .\Review.md -Options $options
+```
+
+The [Word round-trip recipe](https://github.com/EvotecIT/OfficeIMO/blob/3edfe3bbcf964fd078ee635a8d48562898ea0c87/PowerShell/PSWriteOffice/Examples/Markdown/Recipe-Markdown-WordRoundTrip.ps1) creates Markdown, converts it to DOCX, and converts the Word file back to Markdown.
 
 For heavily designed Word templates, define which semantic elements must survive before promising a round-trip. Tables, headings, lists, links, and basic emphasis are a better contract than exact pagination.

@@ -17,8 +17,8 @@ namespace PSWriteOffice.Cmdlets.Markdown;
 ///   <para>Appends a horizontal rule between sections of the current Markdown document.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeMarkdownHorizontalRule", DefaultParameterSetName = ParameterSetContext)]
-[Alias("MarkdownHorizontalRule", "MarkdownHr")]
 [OutputType(typeof(MarkdownDocument))]
+[Alias("MarkdownHorizontalRule") ]
 public sealed class AddOfficeMarkdownHorizontalRuleCommand : PSCmdlet
 {
     private const string ParameterSetContext = "Context";

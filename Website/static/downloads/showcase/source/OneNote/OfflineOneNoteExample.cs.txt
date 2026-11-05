@@ -40,7 +40,7 @@ internal static class OfflineOneNoteExample {
 
         string sectionPath = Path.Combine(folderPath, "OfficeIMO-OneNote.one");
         section.Save(sectionPath);
-        global::OfficeIMO.OneNote.OneNoteSection reopened = global::OfficeIMO.OneNote.OneNoteSectionReader.Read(sectionPath);
+        global::OfficeIMO.OneNote.OneNoteSection reopened = global::OfficeIMO.OneNote.OneNoteSection.Load(sectionPath);
 
         File.WriteAllText(Path.Combine(folderPath, "OfficeIMO-OneNote.md"), reopened.ToMarkdown().ToMarkdown());
         reopened.SaveAsHtml(Path.Combine(folderPath, "OfficeIMO-OneNote.html"));

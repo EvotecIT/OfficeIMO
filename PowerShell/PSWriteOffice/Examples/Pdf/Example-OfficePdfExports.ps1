@@ -23,15 +23,15 @@ New-OfficeWord -Path $wordPath {
     WordParagraph 'Create the source document, then choose the output format explicitly.'
     WordTable -InputObject $rows -Layout AutoFitToWindow
 }
-Export-OfficeDocumentPdf -InputPath $wordPath -Path $wordPdf
+Convert-OfficeDocument -Path $wordPath -To Pdf -OutputPath $wordPdf
 
 New-OfficeExcel -Path $excelPath {
     ExcelSheet -Name 'Summary' {
-        ExcelTable -Data $rows
+        ExcelTable -InputObject $rows
         ExcelAutoFit
     }
 }
-Export-OfficeDocumentPdf -InputPath $excelPath -Path $excelPdf
+Convert-OfficeDocument -Path $excelPath -To Pdf -OutputPath $excelPdf
 
 New-OfficeMarkdown -Path $markdownPath {
     MarkdownHeading -Level 1 -Text 'Markdown PDF export'
@@ -40,21 +40,19 @@ New-OfficeMarkdown -Path $markdownPath {
 }
 $markdownOptions = New-OfficeMarkdownPdfOptions `
     -Title 'Markdown PDF export' `
-    -Author 'PSWriteOffice' `
-    -CreateOutlineFromHeadings
-Export-OfficeDocumentPdf `
-    -InputPath $markdownPath `
-    -Path $markdownPdf `
-    -MarkdownOptions $markdownOptions `
-    -PdfWarningVariable markdownWarnings `
-    -PdfConversionReportVariable markdownReport
+    -Author 'PSWriteOffice'
+$markdownReport = Convert-OfficeDocument `
+    -Path $markdownPath -To Pdf `
+    -OutputPath $markdownPdf `
+    -Options $markdownOptions
+$markdownReport.Diagnostics | Format-Table Severity, Code, Message
 
 New-OfficePowerPoint -Path $powerPointPath {
     PowerPointSlide -Title 'PowerPoint PDF export' {
         PowerPointList 'Create the deck', 'Export the PDF', 'Inspect generated output'
     }
 }
-Export-OfficeDocumentPdf -InputPath $powerPointPath -Path $powerPointPdf
+Convert-OfficeDocument -Path $powerPointPath -To Pdf -OutputPath $powerPointPdf
 
 Get-Item -LiteralPath $wordPdf, $excelPdf, $markdownPdf, $powerPointPdf |
     Select-Object FullName, Length |

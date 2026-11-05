@@ -545,7 +545,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, svgRaster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, svgRaster.GetPixel(60, 20));
         Assert.Equal(OfficeColor.Lime, svgRaster.GetPixel(40, 20));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? pngRaster));
         Assert.Equal(OfficeColor.Red, pngRaster!.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, pngRaster.GetPixel(60, 20));
         Assert.Equal(OfficeColor.Lime, pngRaster.GetPixel(40, 20));
@@ -575,7 +575,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         string exportedSvg = HtmlConversionDocument.Parse(html).ToSvg(options);
-        byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+        byte[] png = HtmlConversionDocument.Parse(html).ToImage(options);
         var pdfOptions = new HtmlPdfExportOptions(options);
         PdfCore.PdfDocumentConversionResult pdfResult = HtmlConversionDocument.Parse(html).ConvertToPdfWithEvidence(pdfOptions);
         byte[] pdf = pdfResult.ToBytes();
@@ -767,7 +767,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDrawing visual = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderDrawing>());
         Assert.Single(visual.Drawing.Images);
         Assert.Equal(OfficeColor.Purple, RasterizeHtmlImageSvg(exportedSvg).GetPixel(50, 20));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? png));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? png));
         Assert.Equal(OfficeColor.Purple, png!.GetPixel(50, 20));
     }
 
@@ -953,7 +953,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(20, 10));
         Assert.True(svgRaster.GetPixel(20, 30).A > 0);
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel(45, 30));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? pngRaster));
         Assert.Equal(OfficeColor.Transparent, pngRaster!.GetPixel(20, 10));
         Assert.True(pngRaster.GetPixel(20, 30).A > 0);
         Assert.Equal(OfficeColor.Transparent, pngRaster.GetPixel(45, 30));
@@ -1211,7 +1211,7 @@ public sealed partial class HtmlRenderingTests {
         OfficeRasterImage svgRaster = RasterizeHtmlImageSvg(svg);
         Assert.True(svgRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
         Assert.Equal(OfficeColor.Transparent, svgRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(after.Y + after.Height / 2D)));
-        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToPng(options), out OfficeRasterImage? pngRaster));
+        Assert.True(OfficePngReader.TryDecode(HtmlConversionDocument.Parse(html).ToImage(options), out OfficeRasterImage? pngRaster));
         Assert.True(pngRaster!.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(image.Y + image.Height / 2D)).A > 0);
         Assert.Equal(OfficeColor.Transparent, pngRaster.GetPixel((int)Math.Round(image.X + image.Width / 2D), (int)Math.Round(after.Y + after.Height / 2D)));
         Assert.Contains("Before", pdfText, StringComparison.Ordinal);

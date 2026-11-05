@@ -253,24 +253,18 @@ namespace OfficeIMO.Excel {
             return string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
         }
 
-        private static void SetDiagonalBorder(Border border, BorderStyleValues style, string? hexColor, bool diagonalUp, bool diagonalDown) {
-            var argb = string.IsNullOrWhiteSpace(hexColor) ? null : NormalizeHexColor(hexColor!);
-            border.DiagonalBorder = CreateBorderSide<DiagonalBorder>(style, argb);
+        private static void SetDiagonalBorder(Border border, BorderStyleValues style, Color? color, bool diagonalUp, bool diagonalDown) {
+            border.DiagonalBorder = CreateBorderSide<DiagonalBorder>(style, color);
             border.DiagonalUp = diagonalUp;
             border.DiagonalDown = diagonalDown;
         }
 
-        private static T CreateBorderSide<T>(BorderStyleValues style, string? argb) where T : BorderPropertiesType, new() {
-            var side = new T {
-                Style = style
-            };
+        private static T CreateBorderSide<T>(BorderStyleValues style, string? argb) where T : BorderPropertiesType, new() =>
+            CreateBorderSide<T>(style, string.IsNullOrWhiteSpace(argb) ? null : new Color { Rgb = argb });
 
-            if (!string.IsNullOrWhiteSpace(argb)) {
-                side.Append(new Color {
-                    Rgb = argb
-                });
-            }
-
+        private static T CreateBorderSide<T>(BorderStyleValues style, Color? color) where T : BorderPropertiesType, new() {
+            var side = new T { Style = style };
+            if (color != null) side.Append((Color)color.CloneNode(true));
             return side;
         }
 

@@ -61,8 +61,8 @@ public sealed class PublisherTableDecorationEditingTests {
 
     [Fact]
     public void Authored_fills_follow_merge_anchors_and_invalid_or_cancelled_edits_are_atomic() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
-        uint id = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D, 180D }, new[] { 42D, 54D }).Id;
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
+        uint id = document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(180D) }, new OfficeLength[] { OfficeLength.Points(42D), OfficeLength.Points(54D) }).Id;
         OfficeColor anchor = OfficeColor.FromRgb(20, 40, 60), covered = OfficeColor.FromRgb(80, 100, 120);
         document.SetTableCellFillColor(id, 0, 0, anchor);
         document.SetTableCellFillColor(id, 0, 1, covered);

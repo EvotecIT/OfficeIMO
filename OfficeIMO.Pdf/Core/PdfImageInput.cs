@@ -1,5 +1,6 @@
 using System.Threading;
 using OfficeIMO.Core.Internal;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -23,6 +24,17 @@ internal static class PdfImageInput {
         ValidateMaximum(maximumBytes);
         return OfficeStreamReader.ReadRemainingBytes(stream, cancellationToken, maximumBytes);
     }
+
+    internal static void ValidateRasterContent(byte[] bytes, string? sourceName, CancellationToken cancellationToken) {
+        if (!OfficeImageReader.TryIdentifyByContent(bytes, sourceName, cancellationToken, out OfficeImageInfo info) ||
+            !IsRasterInputFormat(info.Format))
+            throw new NotSupportedException("Image content is not a supported image in the PDF raster input contract.");
+    }
+
+    private static bool IsRasterInputFormat(OfficeImageFormat format) =>
+        OfficeImagePdfCompatibility.IsSupportedFormat(format) ||
+        // Keep the existing JPEG 2000 source families; pixel decoding still requires the native codec policy.
+        format is OfficeImageFormat.Jpeg2000 or OfficeImageFormat.Jpeg2000Codestream;
 
     internal static void EnsureWithinLimit(long length, long maximumBytes) {
         ValidateMaximum(maximumBytes);

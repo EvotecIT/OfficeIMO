@@ -1,130 +1,92 @@
-using PSWriteOffice.Services;
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Management.Automation;
-using System.Security;
 using System.Text;
+using System.Threading;
+using OfficeIMO;
 using OfficeIMO.Pdf;
 using PSWriteOffice.Foundation;
 using PSWriteOffice.Services.Pdf;
 
 namespace PSWriteOffice.Cmdlets.Pdf;
 
-/// <summary>Imports bounded DTD-free XFDF through the validated PDF form filler.</summary>
-[Cmdlet(VerbsData.Import, "OfficePdfXfdf", DefaultParameterSetName = "Text", SupportsShouldProcess = true)]
+/// <summary>Imports bounded DTD-free XFDF into native PDF forms, with atomic file output or a caller-owned live result.</summary>
+/// <example><summary>Fill a literal file from XFDF.</summary><code>Import-OfficePdfXfdf -LiteralPath './Form[1].pdf' -XfdfPath ./Values.xfdf -OutputPath ./Completed.pdf</code></example>
+[Cmdlet(VerbsData.Import, "OfficePdfXfdf", DefaultParameterSetName = "Document", SupportsShouldProcess = true)]
 [OutputType(typeof(PdfDocument))]
-public sealed class ImportOfficePdfXfdfCommand : PSCmdlet
-{
-    private readonly StringBuilder _pipelineXfdf = new();
-    private long _pipelineXfdfBytes;
-    private bool _hasPipelineXfdf;
-    private string? _inputPath;
-
-    /// <summary>Source PDF path.</summary>
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "File", ValueFromPipelineByPropertyName = true, ValueFromPipeline = true)]
-    [Parameter(Mandatory = true, Position = 0, ParameterSetName = "Text")]
-    [Alias("FullName", "LiteralPath")]
-    public string Path { get; set; } = string.Empty;
-
-    /// <summary>XFDF XML.</summary>
-    [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Text")]
-    public string Xfdf { get; set; } = string.Empty;
-
-    /// <summary>Path to an XFDF file.</summary>
-    [Parameter(Mandatory = true, ParameterSetName = "File")]
-    public string XfdfPath { get; set; } = string.Empty;
-
-    /// <summary>Destination PDF path.</summary>
-    [Parameter(Mandatory = true)]
-    public string OutputPath { get; set; } = string.Empty;
-
-    /// <summary>Optional validated form filling behavior.</summary>
-    [Parameter]
-    public PdfFormFillerOptions? Options { get; set; }
-
-    /// <summary>Optional bounded PDF parsing and password settings for the source form.</summary>
-    [Parameter]
-    public PdfLoadOptions? ReadOptions { get; set; }
-
-    /// <summary>Password used to authenticate the source form.</summary>
-    [Parameter]
-    [OfficePasswordTransformation]
-    public SecureString? Password { get; set; }
-
-    /// <summary>After successful password authentication, explicitly ignore owner-imposed form-modification restrictions.</summary>
-    [Parameter]
-    public SwitchParameter IgnorePermissionRestrictions { get; set; }
-
-    /// <summary>Maximum UTF-8 byte count accepted from an XFDF file or pipeline. Default: 4 MiB.</summary>
-    [Parameter]
-    [ValidateRange(1L, long.MaxValue)]
-    public long MaxXfdfBytes { get; set; } = 4L * 1024L * 1024L;
-
-    /// <summary>Return the rewritten fluent PDF document.</summary>
-    [Parameter]
-    public SwitchParameter PassThru { get; set; }
+public sealed partial class ImportOfficePdfXfdfCommand : OfficeCmdlet, IDisposable {
+    private readonly StringBuilder _xml = new();
+    private readonly List<string> _inputs = new();
+    private readonly List<PdfDocument> _documents = new();
+    private readonly CancellationTokenSource _stop = new();
+    private long _bytes;
+    private bool _hasText;
 
     /// <inheritdoc />
-    protected override void ProcessRecord()
-    {
-        if (ParameterSetName == "File" && _inputPath != null)
-        {
-            throw new PSArgumentException("A single OutputPath accepts exactly one source PDF. Invoke the command separately for each PDF.");
+    protected override void ProcessRecord() {
+        if (MaxXfdfSize < 1) throw new PSArgumentOutOfRangeException(nameof(MaxXfdfSize));
+        bool file = ParameterSetName.Contains("File");
+        if (!file) {
+            long additional = Encoding.UTF8.GetByteCount(Xfdf ?? string.Empty) + (_hasText ? 1L : 0L);
+            if (additional > MaxXfdfSize - _bytes) throw new InvalidDataException("XFDF input exceeds MaxXfdfSize.");
+            if (_hasText) _xml.Append('\n');
+            _xml.Append(Xfdf); _bytes += additional; _hasText = true;
         }
-        _inputPath = OfficeFileCommandUtilities.ResolvePath(this, Path);
-        if (ParameterSetName == "Text")
-        {
-            AppendPipelineXfdf(Xfdf);
+        if (ParameterSetName.StartsWith("Document", StringComparison.Ordinal)) {
+            var document = Document ?? OfficeDocumentContext.Find<PdfDocument>() ?? throw new PSArgumentException("Provide Document or use an Open-/New-OfficePdf block.");
+            if (file || _documents.Count == 0) _documents.Add(document);
+        } else if (file || _inputs.Count == 0) {
+            bool literal = ParameterSetName.StartsWith("LiteralPath", StringComparison.Ordinal);
+            _inputs.AddRange(OfficePath.ResolveInputs(this, literal ? LiteralPath : Path, literal));
         }
     }
 
     /// <inheritdoc />
-    protected override void EndProcessing()
-    {
-        var input = _inputPath ?? throw new PSArgumentException("A source PDF was not provided.");
-        var output = OfficeFileCommandUtilities.ResolvePath(this, OutputPath);
-        if (!ShouldProcess(output, "Import XFDF into PDF form fields")) return;
-        var xml = ParameterSetName == "File"
-            ? ReadBoundedXfdfFile(OfficeFileCommandUtilities.ResolvePath(this, XfdfPath))
-            : _pipelineXfdf.ToString();
-        var result = PdfCommandUtilities.LoadDocument(
-            input,
-            PdfCommandUtilities.CreateReadOptions(
-                ReadOptions,
-                Password,
-                IgnorePermissionRestrictions.IsPresent)).Forms.ImportXfdf(xml, Options);
-        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(output) ?? SessionState.Path.CurrentFileSystemLocation.Path);
-        result.Save(output);
-        if (PassThru.IsPresent) WriteObject(result);
-    }
-
-    private void AppendPipelineXfdf(string value)
-    {
-        value ??= string.Empty;
-        var valueBytes = Encoding.UTF8.GetByteCount(value);
-        var separatorBytes = _hasPipelineXfdf ? 1L : 0L;
-        if (_pipelineXfdfBytes > MaxXfdfBytes - valueBytes - separatorBytes)
-        {
-            throw new InvalidDataException($"XFDF input exceeds the configured limit of {MaxXfdfBytes} bytes.");
+    protected override void EndProcessing() {
+        var binder = new OfficeOptionsTransformationAttribute(typeof(PdfFormFillerOptions));
+        PdfFormFillerOptions options = new();
+        foreach (object item in Options ?? Array.Empty<object>()) {
+            object? value = item is PSObject wrapped ? wrapped.BaseObject : item;
+            if (value is PdfFormFillerOptions native) options = native.Clone();
+            else if (value is IDictionary fields) options = (PdfFormFillerOptions)binder.ApplyTo((EngineIntrinsics)SessionState.PSVariable.GetValue("ExecutionContext"), options, fields);
+            else throw new PSArgumentException("XFDF Options accepts PdfFormFillerOptions or its property hashtables.");
         }
-        if (_hasPipelineXfdf) _pipelineXfdf.Append('\n');
-        _pipelineXfdf.Append(value);
-        _pipelineXfdfBytes += valueBytes + separatorBytes;
-        _hasPipelineXfdf = true;
-    }
-
-    private string ReadBoundedXfdfFile(string path)
-    {
-        var file = new FileInfo(path);
-        if (file.Length > MaxXfdfBytes)
-        {
-            throw new InvalidDataException($"XFDF file exceeds the configured limit of {MaxXfdfBytes} bytes.");
+        string ReadXml() {
+            if (!ParameterSetName.Contains("File")) return _xml.ToString();
+            string path = OfficePath.ResolveOutput(SessionState, XfdfPath!, false);
+            if (new FileInfo(path).Length > MaxXfdfSize) throw new InvalidDataException("XFDF file exceeds MaxXfdfSize.");
+            string xml = File.ReadAllText(path);
+            if (Encoding.UTF8.GetByteCount(xml) > MaxXfdfSize) throw new InvalidDataException("Decoded XFDF exceeds MaxXfdfSize.");
+            return xml;
         }
-        var xml = File.ReadAllText(path);
-        if (Encoding.UTF8.GetByteCount(xml) > MaxXfdfBytes)
-        {
-            throw new InvalidDataException($"Decoded XFDF exceeds the configured limit of {MaxXfdfBytes} bytes.");
+        foreach (var document in _documents) {
+            if (!ShouldProcess("PDF document", "Import XFDF form data")) continue;
+            var changed = document.Forms.ImportXfdf(ReadXml(), options, _stop.Token);
+            bool adopted = OfficeDocumentContext.Replace(document, changed);
+            if (PassThru || !adopted) WriteObject(changed);
         }
-        return xml;
+        var read = PdfCommandUtilities.CreateReadOptions(LoadOptions, Password, IgnorePermissionRestrictions.IsPresent);
+        if (OfficeSwitch.Get(MyInvocation.BoundParameters, nameof(IgnorePermissionRestrictions)) is bool ignore)
+            read = (read ?? new PdfLoadOptions()).Snapshot(null, null, ignore ? PdfPermissionPolicy.IgnoreRestrictions : PdfPermissionPolicy.Enforce);
+        if (_inputs.Count == 0) return;
+        foreach (var item in PdfFileCommandInputs.Resolve(this, null, _inputs.ToArray(), OutputPath, OutputDirectory, false)) {
+            if (!ShouldProcess(item.Output, "Import XFDF form data")) continue;
+            using var document = PdfDocument.Load(item.Input, read, _stop.Token);
+            var changed = document.Forms.ImportXfdf(ReadXml(), options, _stop.Token);
+            bool transferred = false;
+            try {
+                changed.Save(item.Output, new PdfSaveOptions { ConflictPolicy = OfficeConversionFileConflictPolicy.Replace }, _stop.Token);
+                if (PassThru) {
+                    WriteObject(changed);
+                    transferred = true;
+                }
+            } finally { if (!transferred) changed.Dispose(); }
+        }
     }
+    /// <inheritdoc />
+    protected override void StopProcessing() => _stop.Cancel();
+    /// <summary>Releases the command-owned cancellation source.</summary>
+    public void Dispose() => _stop.Dispose();
 }

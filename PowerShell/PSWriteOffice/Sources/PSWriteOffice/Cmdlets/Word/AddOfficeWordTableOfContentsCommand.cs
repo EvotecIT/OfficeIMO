@@ -20,12 +20,12 @@ namespace PSWriteOffice.Cmdlets.Word;
 ///   <para>Creates a navigable report outline and marks the TOC for refresh when the document opens.</para>
 /// </example>
 [Cmdlet(VerbsCommon.Add, "OfficeWordTableOfContents", DefaultParameterSetName = "Default")]
-[Alias("WordTableOfContents")]
 [OutputType(typeof(WordTableOfContent))]
+[Alias("WordTableOfContents") ]
 public sealed class AddOfficeWordTableOfContentsCommand : PSCmdlet
 {
     /// <summary>Document to modify when provided explicitly.</summary>
-    [Parameter(ValueFromPipeline = true)]
+    [Parameter(ValueFromPipeline = true, ParameterSetName = "Default")]
     public WordDocument? Document { get; set; }
 
     /// <summary>Table of contents template style.</summary>

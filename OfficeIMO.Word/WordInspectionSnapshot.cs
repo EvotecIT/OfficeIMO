@@ -14,6 +14,8 @@ namespace OfficeIMO.Word {
         public string? Subject { get; internal set; }
         /// <summary>Gets document keywords from core properties.</summary>
         public string? Keywords { get; internal set; }
+        /// <summary>Gets the detached native statistics captured during inspection, including recorded counts where present.</summary>
+        public WordDocumentStatisticsInfo Statistics { get; internal set; } = null!;
         /// <summary>Gets sections in document order.</summary>
         public IReadOnlyList<WordSectionInfo> Sections => _sections;
 
@@ -249,9 +251,9 @@ namespace OfficeIMO.Word {
         /// <summary>Gets the authored underline style.</summary>
         public WordUnderlineStyle? UnderlineStyle { get; internal set; }
         /// <summary>Gets whether single or double strikethrough is authored directly on the run.</summary>
-        public bool Strike { get; internal set; }
+        public bool Strikethrough { get; internal set; }
         /// <summary>Gets whether double strikethrough is authored directly on the run.</summary>
-        public bool DoubleStrike { get; internal set; }
+        public bool DoubleStrikethrough { get; internal set; }
         /// <summary>Gets the directly authored run font size with Word's native half-point precision.</summary>
         public OfficeLength? FontSize { get; internal set; }
         /// <summary>Gets the font family authored directly on the run, without resolving inherited styles.</summary>

@@ -6,69 +6,57 @@ schema: 2.0.0
 ---
 # Add-OfficeExcelTableRow
 ## SYNOPSIS
-Appends one or more data rows to an existing Excel table.
+Appends rows to an existing Excel table.
 
 ## SYNTAX
-### Path (Default)
+### Default (Default)
 ```powershell
-Add-OfficeExcelTableRow [-Path] <string> [-InputObject] <Object> -TableName <string> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Document
-```powershell
-Add-OfficeExcelTableRow [-InputObject] <Object> -Document <ExcelDocument> -TableName <string> [-Sheet <string>] [-SheetIndex <Int32>] [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
-```
-
-### Table
-```powershell
-Add-OfficeExcelTableRow [-InputObject] <Object> -Table <ExcelTable> [-PassThru] [-WhatIf] [-Confirm] [<CommonParameters>]
+Add-OfficeExcelTableRow [-InputObject] <Object> -Table <Object> [-Document <ExcelDocument>] [-Sheet <OfficeSheetSelector>] [-PassThru] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Use this command when a workbook already contains a named table and the script should extend that
-table without recreating the worksheet through the Excel DSL. The command accepts a workbook path,
-an open ExcelDocument, or an existing ExcelTable object. Objects,
-dictionaries, DataTable, DataView, IDataReader, and DataRow input are
-normalized through the same table input pipeline used by Add-OfficeExcelTable.
-
-When a path is supplied, PSWriteOffice opens the workbook, appends the rows, saves the workbook, and
-releases the document. When an open workbook or table is supplied, the caller controls the lifetime
-and should close or save the workbook after all edits are complete.
+Appends rows to an existing Excel table.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $doc = Open-OfficeExcel -Path .\Report.xlsx
-$doc | Add-OfficeExcelTableRow -Sheet Data -TableName Sales -InputObject ([pscustomobject]@{ Region='APAC'; Revenue=300 })
-$doc | Close-OfficeExcel -Save
+$servers = @(
+    [pscustomobject]@{ Name = 'NW-APP-07'; Role = 'Application'; Site = 'Warsaw' }
+    [pscustomobject]@{ Name = 'NW-SQL-03'; Role = 'Database'; Site = 'Frankfurt' }
+)
+Open-OfficeExcel -Path .\Reports\Inventory.xlsx {
+    Add-OfficeExcelTableRow -Sheet Servers -Table Servers -InputObject $servers
+}
 ```
 
-Uses the existing OfficeIMO Excel table append API and keeps the workbook open for further changes.
+Adds two new servers to the Servers table; the table range grows to include them.
 
 ### EXAMPLE 2
 ```powershell
-PS> $rows = @(
-    [pscustomobject]@{ Service='Identity'; Status='Ready'; Owner='IAM' }
-    [pscustomobject]@{ Service='Network'; Status='Investigating'; Owner='Platform' }
-)
-Add-OfficeExcelTableRow -Path .\Readiness.xlsx -Sheet Readiness -TableName ServiceReadiness -InputObject $rows
+$book = Open-OfficeExcel -Path .\Reports\Deployments.xlsx
+foreach ($target in 'NW-APP-01', 'NW-APP-02', 'NW-APP-03') {
+    $result = Invoke-Command -ComputerName $target { & C:\Deploy\Install.ps1 -Release '2026.10.2' }
+    [pscustomobject]@{ Server = $target; Release = '2026.10.2'; Finished = Get-Date; Status = $result.Status } |
+        Add-OfficeExcelTableRow -Document $book -Sheet Log -Table Deployments
+}
+Save-OfficeExcel -Document $book -PassThru | Close-OfficeExcel
 ```
 
-Opens the workbook from disk, appends both objects to the named table, and saves the file.
+Appends one row per completed deployment to the Deployments table of a workbook kept open for the whole run.
 
 ## PARAMETERS
 
 ### -Document
-Open workbook to update. The caller remains responsible for saving and closing it.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
-Parameter Sets: Document
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
@@ -76,12 +64,12 @@ Accept wildcard characters: False
 ```
 
 ### -InputObject
-Rows to append. Accepts objects, dictionaries, DataTables, DataViews, IDataReaders, and DataRows.
+Objects, dictionaries or native tabular data supplied directly or through the pipeline.
 
 ```yaml
 Type: Object
-Parameter Sets: Path, Document, Table
-Aliases: Data, Values
+Parameter Sets: Default
+Aliases: None
 Possible values:
 
 Required: True
@@ -92,12 +80,11 @@ Accept wildcard characters: False
 ```
 
 ### -PassThru
-Emit the updated table wrapper for open document or table inputs. Path-owned workbooks are saved and closed by this command,
-so they do not emit a live table wrapper.
+Emits the native result after the operation.
 
 ```yaml
 Type: SwitchParameter
-Parameter Sets: Path, Document, Table
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -108,44 +95,12 @@ Accept pipeline input: False
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path to open, update, save, and close.
-
-```yaml
-Type: String
-Parameter Sets: Path
-Aliases: InputPath, FilePath
-Possible values:
-
-Required: True
-Position: 0
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
 ### -Sheet
-Worksheet name that owns the table. Use this when table names might repeat across sheets.
+Worksheet name, one-based position or native worksheet object. Multi-sheet commands also accept wildcard names.
 
 ```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: WorksheetName
-Possible values:
-
-Required: False
-Position: named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -SheetIndex
-Zero-based worksheet index that owns the table.
-
-```yaml
-Type: Int32
-Parameter Sets: Path, Document
+Type: OfficeSheetSelector
+Parameter Sets: Default
 Aliases: None
 Possible values:
 
@@ -157,28 +112,12 @@ Accept wildcard characters: False
 ```
 
 ### -Table
-Existing OfficeIMO Excel table wrapper to append to when the table has already been resolved.
+Native Excel table used to resolve the source range or header.
 
 ```yaml
-Type: ExcelTable
-Parameter Sets: Table
+Type: Object
+Parameter Sets: Default
 Aliases: None
-Possible values:
-
-Required: True
-Position: named
-Default value: None
-Accept pipeline input: True (ByValue)
-Accept wildcard characters: False
-```
-
-### -TableName
-Existing table name or display name, for example the name returned by Get-OfficeExcelTable.
-
-```yaml
-Type: String
-Parameter Sets: Path, Document
-Aliases: Name
 Possible values:
 
 Required: True
@@ -194,12 +133,11 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 ## INPUTS
 
 - `OfficeIMO.Excel.ExcelDocument`
-- `OfficeIMO.Excel.ExcelTable`
 - `System.Object`
 
 ## OUTPUTS
 
-- `OfficeIMO.Excel.ExcelTable`
+- `None`
 
 ## RELATED LINKS
 

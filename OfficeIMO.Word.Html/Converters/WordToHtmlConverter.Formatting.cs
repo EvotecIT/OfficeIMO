@@ -43,8 +43,8 @@ namespace OfficeIMO.Word.Html {
                 bool suppressUnderline,
                 bool suppressStrikethrough,
                 string source) {
-                if (!suppressStrikethrough && (run.Strike || run.DoubleStrike)) {
-                    if (run.DoubleStrike) {
+                if (!suppressStrikethrough && (run.Strikethrough || run.DoubleStrikethrough)) {
+                    if (run.DoubleStrikethrough) {
                         var span = CreateOutputElement(htmlDocument, "span");
                         SetOutputAttribute(htmlDocument, span, "style", "text-decoration-line:line-through;text-decoration-style:double", source + ":double-strike");
                         SetOutputAttribute(htmlDocument, span, "data-officeimo-word-double-strike", "true", source + ":double-strike-metadata");

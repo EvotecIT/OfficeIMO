@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 sheet.View.ShowRowColumnHeadings = false;
                 sheet.View.ShowZeros = false;
                 sheet.View.RightToLeft = true;
-                sheet.SetTabColor("FF0000");
+                sheet.SetTabColor(global::OfficeIMO.OfficeColor.Parse("FF0000"));
 
                 Assert.Equal(0, saves());
                 document.Save();
@@ -101,8 +101,8 @@ namespace OfficeIMO.Tests {
                 for (int column = 1; column <= 3; column++) {
                     sheet.Cell(row, column).SetValue(row % 7 == 0 && column == 3 ? "Two" + Environment.NewLine + "lines" : "Value " + row);
                 }
-                sheet.Cell(row, 1).SetFillColor(fills[row % fills.Length]).SetBold(true);
-                sheet.Cell(row, 2).SetItalic(true).SetUnderline(true).SetFontColor("#1F4E79");
+                sheet.Cell(row, 1).SetFillColor(global::OfficeIMO.OfficeColor.Parse(fills[row % fills.Length])).SetBold(true);
+                sheet.Cell(row, 2).SetItalic(true).SetUnderline(true).SetColor(global::OfficeIMO.OfficeColor.Parse("#1F4E79"));
                 sheet.Cell(row, 3).SetBold(row % 2 == 0);
             }
             (string Worksheet, string Styles, int StyleSaves) Write(bool batch) {
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                     ExcelSheet sheet = document.AddSheet("Styled");
                     for (int column = 1; column <= 3; column++) {
                         sheet.Cell(1, column).SetValue("Header " + column);
-                        sheet.Cell(1, column).SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                        sheet.Cell(1, column).SetBold().SetFillColor(global::OfficeIMO.OfficeColor.Parse("D9EAF7")).SetColor(global::OfficeIMO.OfficeColor.Parse("1F4E79"));
                     }
                     Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
                     if (batch) {
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
                 summary.Cell(1, 1).SetValue("Total");
                 summary.Cell(1, 2).SetValue(5);
                 // The workbook gets its styles part with the first styled cell.
-                summary.Cell(1, 1).SetFontColor("#1F4E79");
+                summary.Cell(1, 1).SetColor(global::OfficeIMO.OfficeColor.Parse("#1F4E79"));
                 Func<int> saves = TrackPartSaves(document, document.OpenXmlDocument.WorkbookPart!.WorkbookStylesPart!);
 
                 data.Batch(sheet => {

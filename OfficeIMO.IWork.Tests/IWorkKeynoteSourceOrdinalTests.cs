@@ -32,7 +32,7 @@ public sealed partial class IWorkBoundaryTests {
             records.Add(ArchiveRecord(10, 5, Message()));
         }
         using var package = CreatePackage(("Index/Document.iwa", FrameIwa(Message(records.ToArray()))));
-        var projection = IWorkSourceDocument.Open(package, IWorkDocumentKind.Keynote).ReadKeynote();
+        var projection = IWorkSourceDocument.Load(package, IWorkDocumentKind.Keynote).ReadKeynote();
         var surviving = Assert.Single(projection.Slides, slide => slide.SourceIdentity?.RecordIdentifier == 4);
         Assert.Equal("Surviving source slide", surviving.Title);
         Assert.Equal(expectedIndex, surviving.Index);

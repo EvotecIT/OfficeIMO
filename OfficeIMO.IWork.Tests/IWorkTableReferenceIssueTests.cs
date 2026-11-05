@@ -22,7 +22,7 @@ public sealed partial class IWorkBoundaryTests {
             _ => ReferenceField(field, 999)
         };
         using MemoryStream package = TableDependencyPackage(kind, declaration, includeTile: field != 3);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         (IWorkTable table, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(source, kind);
         string path = field switch { 1 => "4/1/2", 3 => "4/3/1[1]/2", _ => "4/" + field };
         AssertMissingReference(Assert.Single(issues), 11, path, 999);
@@ -44,7 +44,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote, 6)]
     public void Declared_missing_catalog_blocks_complete_editable_reconstruction(IWorkDocumentKind kind, int field) {
         using MemoryStream package = TableDependencyPackage(kind, ReferenceField(field, 999));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         bool complete = kind switch {
             IWorkDocumentKind.Pages => source.ReadPages().HasEditableContent,
             IWorkDocumentKind.Numbers => source.ReadNumbers().HasEditableContent,
@@ -60,7 +60,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(field, 13), VarintField(field, 13)),
             additionalRecords: ArchiveRecord(13, field == 4 ? 6005u : 6201u, Message()));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         Assert.Equal(2, projection.SourceReferenceIssues.Count);
         IWorkSourceReferenceIssue first = projection.SourceReferenceIssues[0];
@@ -81,7 +81,7 @@ public sealed partial class IWorkBoundaryTests {
     public void Malformed_single_catalog_reference_is_not_an_absent_optional_catalog(int field) {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             BytesField(field, new byte[] { 0x80 }));
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.False(projection.HasEditableContent);
         IWorkSourceReferenceIssue issue = Assert.Single(projection.SourceReferenceIssues);
         Assert.Equal("4/" + field, issue.FieldPath);
@@ -95,7 +95,7 @@ public sealed partial class IWorkBoundaryTests {
     [InlineData(IWorkDocumentKind.Keynote)]
     public void Unresolved_formula_catalog_preserves_cache_in_explicit_partial_conversion_and_reopen(IWorkDocumentKind kind) {
         using MemoryStream package = TableDependencyPackage(kind, ReferenceField(6, 999), formulaCell: true);
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package, kind);
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package, kind);
         (IWorkTable table, _) = ReadSelectedRichTable(source, kind);
         IWorkTableCell cell = Assert.Single(table.Cells);
         Assert.Equal(IWorkCellKind.Formula, cell.Kind);
@@ -150,7 +150,7 @@ public sealed partial class IWorkBoundaryTests {
                 BytesField(2, new byte[] { 0x80 })),
             additionalRecords: ArchiveRecord(13, 6006, Message()));
         (_, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+            IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.Equal(new[] { "4/1/2", "4/1/2", "4/2" }, issues.Select(issue => issue.FieldPath));
         Assert.Equal(IWorkSourceReferenceIssueKind.RejectedReferenceSet, issues[0].Kind);
         Assert.Equal(13ul, issues[0].TargetIdentifier);
@@ -164,7 +164,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, tiles,
             includeTile: false, rows: 257);
         (_, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+            IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         AssertMissingReference(Assert.Single(issues), 11, "4/3/1[2]/2", 999);
     }
 
@@ -173,7 +173,7 @@ public sealed partial class IWorkBoundaryTests {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             BytesField(3, Message(BytesField(1, Message(ReferenceField(2, 999))))), includeTile: false);
         (_, IReadOnlyList<IWorkSourceReferenceIssue> issues) = ReadSelectedRichTable(
-            IWorkSourceDocument.Open(package), IWorkDocumentKind.Numbers);
+            IWorkSourceDocument.Load(package), IWorkDocumentKind.Numbers);
         Assert.Empty(issues);
     }
 
@@ -181,8 +181,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Table_reference_budget_is_cumulative_across_sizing_and_catalog_fields() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(2, 999), ReferenceField(4, 998), ReferenceField(6, 997)));
-        IWorkSourceDocument source = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 2 });
+        IWorkSourceDocument source = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 2 });
         Assert.Throws<InvalidDataException>(() => source.ReadNumbers());
     }
 
@@ -190,8 +190,8 @@ public sealed partial class IWorkBoundaryTests {
     public void Repeated_selected_table_model_reports_each_physical_failed_field_once() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers,
             Message(ReferenceField(2, 999), ReferenceField(4, 998)), repeatModel: true);
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package,
-            new IWorkReadOptions { MaxSourceReferenceIssues = 2 }).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package,
+            new IWorkLoadOptions { MaxSourceReferenceIssues = 2 }).ReadNumbers();
         Assert.Equal(2, Assert.Single(projection.Sheets).Tables.Count);
         Assert.Equal(2, projection.SourceReferenceIssues.Count);
         AssertMissingReference(projection.SourceReferenceIssues[0], 11, "4/2", 999);
@@ -201,7 +201,7 @@ public sealed partial class IWorkBoundaryTests {
     [Fact]
     public void Optional_absent_catalogs_preserve_editable_numeric_cells() {
         using MemoryStream package = TableDependencyPackage(IWorkDocumentKind.Numbers, Message());
-        IWorkNumbersProjection projection = IWorkSourceDocument.Open(package).ReadNumbers();
+        IWorkNumbersProjection projection = IWorkSourceDocument.Load(package).ReadNumbers();
         Assert.True(projection.HasEditableContent);
         Assert.Empty(projection.SourceReferenceIssues);
         Assert.Equal(42d, Assert.Single(Assert.Single(Assert.Single(projection.Sheets).Tables).Cells).Value);

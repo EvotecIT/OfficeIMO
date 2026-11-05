@@ -19,8 +19,8 @@ public sealed class IWorkKeynoteImageResizeTests {
                 edit.ResizeKeynoteImage(image.SourceIdentity!, width, height);
             }
         }
-        var saved = edit.SaveBytesResult(AcceptCaches());
-        Assert.Equal(File.ReadAllBytes(Fixture("keynote-preserved-resized-v15.4.key")), saved.GetPackageBytes());
+        var saved = (Bytes: edit.ToBytes(out var nativeReport1, AcceptCaches()), Report: nativeReport1);
+        Assert.Equal(File.ReadAllBytes(Fixture("keynote-preserved-resized-v15.4.key")), saved.Bytes);
         Assert.Equal(new ulong[] { 125, 139, 154 }, saved.Report.UpdatedRecords.Select(record => record.RecordIdentifier).Order());
         Assert.Equal(3, saved.Report.UpdatedEntryPaths.Count);
     }
@@ -31,7 +31,7 @@ public sealed class IWorkKeynoteImageResizeTests {
     public void Resized_and_Apple_edited_sources_retain_images_frames_stacking_and_strict_saved_PowerPoint(bool edited) {
         var original = Source().ReadKeynote();
         string name = "keynote-preserved-resized" + (edited ? "-edited" : "") + "-v15.4.key";
-        var source = IWorkSourceDocument.Open(Fixture(name)); var projection = source.ReadKeynote();
+        var source = IWorkSourceDocument.Load(Fixture(name)); var projection = source.ReadKeynote();
         Assert.Empty(projection.Diagnostics); Assert.Empty(projection.SourceDeclarationIssues); Assert.Empty(projection.SourceReferenceIssues);
         using var conversion = source.ToPowerPointResult(new() { Mode = IWorkConversionMode.EditableOnly });
         conversion.RequireCompleteEditableReconstruction();
@@ -70,9 +70,9 @@ public sealed class IWorkKeynoteImageResizeTests {
         first.ResizeKeynoteImage(image.SourceIdentity!, 300, 180);
         second.ResizeKeynoteImage(image.SourceIdentity!, 300, 180);
         second.MoveKeynoteImage(image.SourceIdentity!, 100, 130);
-        var saved = first.SaveBytesResult(AcceptCaches());
-        Assert.Equal(saved.GetPackageBytes(), second.SaveBytes(AcceptCaches()));
-        var edited = Jpeg(IWorkSourceDocument.Open(saved.GetPackageBytes()));
+        var saved = (Bytes: first.ToBytes(out var nativeReport2, AcceptCaches()), Report: nativeReport2);
+        Assert.Equal(saved.Bytes, second.ToBytes(AcceptCaches()));
+        var edited = Jpeg(IWorkSourceDocument.Load(saved.Bytes));
         Assert.Equal(100, edited.Geometry!.LeftPoints); Assert.Equal(130, edited.Geometry.TopPoints);
         Assert.Equal(300, edited.Geometry.WidthPoints); Assert.Equal(180, edited.Geometry.HeightPoints);
         Assert.Equal(image.GetBytes(), edited.GetBytes()); Assert.Single(saved.Report.UpdatedRecords);
@@ -80,12 +80,12 @@ public sealed class IWorkKeynoteImageResizeTests {
 
         first.MoveKeynoteImage(image.SourceIdentity!, (float)projection.SlideSize!.WidthPoints - 300,
             (float)projection.SlideSize.HeightPoints - 180);
-        byte[] beforeRejection = first.SaveBytes(AcceptCaches());
+        byte[] beforeRejection = first.ToBytes(AcceptCaches());
         Assert.Throws<ArgumentOutOfRangeException>(() => first.ResizeKeynoteImage(image.SourceIdentity!, 600, 240));
-        Assert.Equal(beforeRejection, first.SaveBytes(AcceptCaches()));
+        Assert.Equal(beforeRejection, first.ToBytes(AcceptCaches()));
         first.MoveKeynoteImage(image.SourceIdentity!, (float)image.Geometry.LeftPoints, (float)image.Geometry.TopPoints);
         first.ResizeKeynoteImage(image.SourceIdentity!, (float)image.Geometry.WidthPoints, (float)image.Geometry.HeightPoints);
-        var restored = first.SaveBytesResult();
+        var restored = (Bytes: first.ToBytes(out var nativeReport3), Report: nativeReport3);
         Assert.Empty(restored.Report.UpdatedRecords);
         Assert.Equal(source.ComputePackageContentHash(), restored.Report.OutputPackageContentHash);
     }
@@ -94,7 +94,7 @@ public sealed class IWorkKeynoteImageResizeTests {
     public void Invalid_or_cancelled_resize_preserves_prior_edits_and_requires_cache_acceptance() {
         var source = Source(); var image = Jpeg(source); var session = source.BeginEdit();
         session.MoveKeynoteImage(image.SourceIdentity!, 100, 130);
-        byte[] before = session.SaveBytes(AcceptCaches());
+        byte[] before = session.ToBytes(AcceptCaches());
         foreach (float invalid in new[] { 0, -1, float.NaN, float.NegativeInfinity, float.PositiveInfinity, float.MaxValue }) {
             Assert.Throws<ArgumentOutOfRangeException>(() => session.ResizeKeynoteImage(image.SourceIdentity!, invalid, 120));
             Assert.Throws<ArgumentOutOfRangeException>(() => session.ResizeKeynoteImage(image.SourceIdentity!, 120, invalid));
@@ -102,14 +102,14 @@ public sealed class IWorkKeynoteImageResizeTests {
         Assert.Throws<ArgumentException>(() => session.ResizeKeynoteImage(source.ReadKeynote().Slides[0].SourceIdentity!, 120, 120));
         using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         Assert.Throws<OperationCanceledException>(() => session.ResizeKeynoteImage(image.SourceIdentity!, 120, 120, cancellation.Token));
-        Assert.Equal(before, session.SaveBytes(AcceptCaches()));
+        Assert.Equal(before, session.ToBytes(AcceptCaches()));
         session.ResizeKeynoteImage(image.SourceIdentity!, 300, 180);
         using var output = new MemoryStream(); output.WriteByte(9);
         Assert.Throws<InvalidOperationException>(() => session.Save(output));
         Assert.Equal(new byte[] { 9 }, output.ToArray());
     }
 
-    private static IWorkSourceDocument Source() => IWorkSourceDocument.Open(Fixture("keynote-created-images-edited-v15.4.key"));
+    private static IWorkSourceDocument Source() => IWorkSourceDocument.Load(Fixture("keynote-created-images-edited-v15.4.key"));
     private static string Fixture(string name) => Path.Combine(AppContext.BaseDirectory, "Documents", "IWorkCorpus", "native-exports", name);
     private static IWorkImageAsset Jpeg(IWorkSourceDocument source) => source.ReadKeynote().Slides.SelectMany(slide => slide.Images)
         .Single(image => image.MediaType == "image/jpeg");

@@ -6,38 +6,49 @@ schema: 2.0.0
 ---
 # Get-OfficeExcelDataModel
 ## SYNOPSIS
-Inspects workbook data model, query, connection, and external-link package parts.
+Reports connection, query-table, data-model and external-link parts in a workbook.
 
 ## SYNTAX
-### Path
+### Document (Default)
 ```powershell
-Get-OfficeExcelDataModel [-Path] <string> [<CommonParameters>]
+Get-OfficeExcelDataModel [-Document <ExcelDocument>] [<CommonParameters>]
 ```
 
-### Document
+### Path
 ```powershell
-Get-OfficeExcelDataModel -Document <ExcelDocument> [<CommonParameters>]
+Get-OfficeExcelDataModel [-Path] <string[]> [<CommonParameters>]
+```
+
+### LiteralPath
+```powershell
+Get-OfficeExcelDataModel -LiteralPath <string[]> [<CommonParameters>]
 ```
 
 ## DESCRIPTION
-Inspects workbook data model, query, connection, and external-link package parts.
+Reports connection, query-table, data-model and external-link parts in a workbook.
 
 ## EXAMPLES
 
 ### EXAMPLE 1
 ```powershell
-PS> $model = Get-OfficeExcelDataModel -Path .\WorkbookWithQueries.xlsx
-if ($model.HasDataModelOrQueries) {
-    $model.Details | ForEach-Object { "Preserved package part: $_" }
-}
+Get-OfficeExcelDataModel -Path .\Reports\Live-Sales.xlsx
 ```
 
-Separates preserved connection/query/data-model parts from executable refresh behavior so automation can decide whether Excel refresh is required.
+Lists connections, query tables, data-model parts and external links in the workbook.
+
+### EXAMPLE 2
+```powershell
+Get-ChildItem -Path \\files\Finance -Filter *.xlsx -Recurse |
+                Get-OfficeExcelDataModel |
+                Format-List
+```
+
+Reports the data model of every workbook on the finance share, to find files that depend on databases or other workbooks.
 
 ## PARAMETERS
 
 ### -Document
-Workbook document.
+Caller-owned workbook; omission uses the enclosing Excel content block.
 
 ```yaml
 Type: ExcelDocument
@@ -45,26 +56,42 @@ Parameter Sets: Document
 Aliases: None
 Possible values:
 
-Required: True
+Required: False
 Position: named
 Default value: None
 Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
-### -Path
-Workbook path.
+### -LiteralPath
+Literal workbook paths, including FileInfo.FullName and provider PSPath.
 
 ```yaml
-Type: String
+Type: String[]
+Parameter Sets: LiteralPath
+Aliases: PSPath, FullName
+Possible values:
+
+Required: True
+Position: named
+Default value: None
+Accept pipeline input: True (ByPropertyName)
+Accept wildcard characters: False
+```
+
+### -Path
+Workbook paths resolved with filesystem wildcard support.
+
+```yaml
+Type: String[]
 Parameter Sets: Path
-Aliases: InputPath, FilePath, FullName, LiteralPath
+Aliases: None
 Possible values:
 
 Required: True
 Position: 0
 Default value: None
-Accept pipeline input: True (ByValue, ByPropertyName)
+Accept pipeline input: True (ByValue)
 Accept wildcard characters: False
 ```
 
@@ -73,12 +100,12 @@ This cmdlet supports the common parameters: -Debug, -ErrorAction, -ErrorVariable
 
 ## INPUTS
 
-- `System.String`
+- `System.String[]`
 - `OfficeIMO.Excel.ExcelDocument`
 
 ## OUTPUTS
 
-- `System.Management.Automation.PSObject`
+- `None`
 
 ## RELATED LINKS
 
