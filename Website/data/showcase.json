@@ -1965,7 +1965,7 @@
           },
           {
             "title": "Export the distribution copy",
-            "body": "Export-OfficeDocumentPdf converts the saved Word file with the first-party converter. Check the PDF before distribution, especially after adding more rows or changing fonts."
+            "body": "Convert-OfficeDocument converts the saved Word file with the first-party converter. Check the PDF before distribution, especially after adding more rows or changing fonts."
           }
         ],
         "adapt": "Group the inventory by service or business owner, replace the example branding, and add exception owners and review dates. Generate from a reviewed data snapshot so every recipient sees the same report.",
@@ -8021,7 +8021,7 @@
       "sourceRoot": "documents",
       "source": "PowerShell/PatchComplianceReport.pdf",
       "destination": "pswriteoffice/patch-compliance-report.pdf",
-      "generator": "PSWriteOffice Export-OfficeDocumentPdf",
+      "generator": "PSWriteOffice Convert-OfficeDocument -Route docx-pdf",
       "evidence": "First-party Word-to-PDF conversion of the generated DOCX."
     },
     {

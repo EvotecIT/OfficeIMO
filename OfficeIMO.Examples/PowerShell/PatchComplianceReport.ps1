@@ -65,7 +65,7 @@ New-OfficeWord -Path $docxPath {
     WordParagraph {
         Set-OfficeWordParagraph -SpacingBefore 14 -SpacingAfter 12
         WordChart -Type Bar -InputObject $rows -Category Site -Value Patched, Pending `
-            -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -HeightPixels 260
+            -Title 'Patched and pending by site' -Legend -FitToPageWidth -WidthFraction 1 -Height '260px'
     }
 
     WordParagraph {
@@ -77,7 +77,7 @@ New-OfficeWord -Path $docxPath {
         WordListItem -Text 'Singapore: confirm the maintenance slot with the regional owner.'
     }
 }
-Export-OfficeDocumentPdf -InputPath $docxPath -Path $pdfPath
+Convert-OfficeDocument -LiteralPath $docxPath -OutputPath $pdfPath -Route docx-pdf
 #endregion
 
 Get-Item -LiteralPath $docxPath, $pdfPath | Select-Object Name, Length

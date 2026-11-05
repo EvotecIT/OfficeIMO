@@ -57,8 +57,8 @@ $pdf = Join-Path $OutputDirectory 'ProjectDeliveryPack.pdf'
 New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
     ExcelSheet 'Review' {
         ExcelSheetView -NoGridlines
-        ExcelColumn -ColumnName A -Width 44
-        ExcelColumn -ColumnName B -Width 24
+        ExcelColumn -Column A -Width 44
+        ExcelColumn -Column B -Width 24
         ExcelCell -Address A1 -Value "$reviewContext | delivery review"
         ExcelRow -Row 1 -Bold $true -Height 32
         ExcelCell -Address A2 -Value 'Snapshot date'
@@ -71,29 +71,25 @@ New-OfficeExcel -Path $xlsx -SaveOptions @{ EvaluateFormulas = $true } {
         ExcelRow -Row 6 -WrapText $true -Height 42
         ExcelCell -Address A7 -Value 'Regenerate the Word/PDF review from the revised CSV for distribution.'
         ExcelRow -Row 7 -WrapText $true -Height 34
-        ExcelPageSetup -FitToWidth 1 -FitToHeight 0
-        ExcelPrintArea -Range 'A1:B7'
+        ExcelPageSetup -FitToWidth 1 -FitToHeight 0 -PrintArea 'A1:B7'
     }
     ExcelSheet 'Milestones' {
-        ExcelTable -Data $rows -Name 'DeliveryMilestones' -TableStyle TableStyleMedium4
+        ExcelTable -InputObject $rows -Name 'DeliveryMilestones' -TableStyle TableStyleMedium4
         ExcelSheetView -FreezeRows 1
-        ExcelColumn -ColumnName A -Width 36
-        ExcelColumn -ColumnName B -Width 24
-        ExcelColumn -ColumnName C -Width 18
-        ExcelColumn -ColumnName D -Width 15
-        ExcelColumn -ColumnName E -Width 18
-        ExcelColumn -ColumnName F -Width 62
+        ExcelColumn -Column A -Width 36
+        ExcelColumn -Column B -Width 24
+        ExcelColumn -Column C -Width 18
+        ExcelColumn -Column D -Width 15
+        ExcelColumn -Column E -Width 18
+        ExcelColumn -Column F -Width 62
         for ($row = 2; $row -le $lastRow; $row++) {
             ExcelCell -Address "C$row" -Value $rows[$row-2].DueDate.ToOADate() -NumberFormat 'yyyy-mm-dd'
             ExcelCell -Address "D$row" -Value ($rows[$row-2].Progress / 100.0) -NumberFormat '0%'
             ExcelCell -Address "E$row" -Formula "IF(D$row=1,`"Done`",IF(C$row<Review!`$B`$2,`"Overdue`",`"On track`"))"
             ExcelRow -Row $row -WrapText $true
         }
-        ExcelValidationDecimal -Range "D2:D$lastRow" -Operator Between -Formula1 0 -Formula2 1 -AllowBlank:$false -ErrorTitle 'Progress from 0% to 100%' -ErrorMessage 'Enter a percentage from 0% to 100%.'
-        ExcelOrientation -Orientation Landscape
-        ExcelPageSetup -FitToWidth 1 -FitToHeight 0
-        ExcelPrintTitles -FirstRow 1 -LastRow 1
-        ExcelPrintArea -Range "A1:F$lastRow"
+        ExcelValidation -Type Decimal -Range "D2:D$lastRow" -Operator Between -Value 0 -SecondValue 1 -NoBlank -ErrorTitle 'Progress from 0% to 100%' -ErrorMessage 'Enter a percentage from 0% to 100%.'
+        ExcelPageSetup -Orientation Landscape -FitToWidth 1 -FitToHeight 0 -RepeatRows '1:1' -PrintArea "A1:F$lastRow"
     }
 }
 
@@ -105,7 +101,7 @@ New-OfficeWord -Path $docx {
     WordFooter { WordPageNumber -IncludeTotal }
     WordParagraph { Set-OfficeWordParagraph -SpacingAfter 12 -KeepWithNext:$true; WordText 'Project delivery review' -Bold -Size 25 -Color '17365D' }
     WordParagraph -Text "$($done.Count) of $($rows.Count) milestones are complete; $($overdue.Count) overdue milestone(s) need an owner decision at $($snapshotDate.ToString('yyyy-MM-dd'))."
-    WordParagraph -Text 'Decisions and recovery actions' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
+    WordParagraph -Style Heading1 { WordText 'Decisions and recovery actions'; Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     WordList -Style Bulleted {
         foreach ($item in $overdue) {
             $decision = WordListItem -Text "$($item.Owner) | $($item.Milestone): $($item.NextAction)." -PassThru
@@ -113,8 +109,8 @@ New-OfficeWord -Path $docx {
         }
         if (-not $overdue.Count) { WordListItem -Text 'No overdue milestones. Confirm the next due dates and acceptance evidence with their owners.' }
     }
-    WordParagraph -Text 'Review owner: __________________  Decision: __________________' { Set-OfficeWordParagraph -SpacingBefore 12 }
-    WordParagraph -Text 'Milestone position' -Style Heading1 { Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
+    WordParagraph { WordText 'Review owner: __________________  Decision: __________________'; Set-OfficeWordParagraph -SpacingBefore 12 }
+    WordParagraph -Style Heading1 { WordText 'Milestone position'; Set-OfficeWordParagraph -KeepWithNext:$true -SpacingBefore 12 -SpacingAfter 6 }
     $table = WordTable -InputObject $reviewRows -Style GridTable4Accent1 -Layout AutoFitToWindow -PassThru {
         WordTableCondition -FilterScript { $_.Status -eq 'Overdue' } -BackgroundColor '#FFF4D6'
     }
@@ -126,6 +122,6 @@ New-OfficeWord -Path $docx {
     }
     WordParagraph -Text "${sampleNotice}Due today is on track; overdue means an incomplete milestone due before the snapshot date. Update the CSV and regenerate this review after changes. Record the review decision in the editable Word copy."
 }
-Export-OfficeDocumentPdf -InputPath $docx -Path $pdf
+Convert-OfficeDocument -LiteralPath $docx -OutputPath $pdf -Route docx-pdf
 #endregion
 Get-Item -LiteralPath $xlsx,$docx,$pdf | Select-Object Name,Length
