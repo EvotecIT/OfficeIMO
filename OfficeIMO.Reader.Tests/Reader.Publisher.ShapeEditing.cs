@@ -17,11 +17,11 @@ public sealed class ReaderPublisherShapeEditingTests {
         var sourceReport = document.SourceReadReport;
         var options = new ReaderOptions { ComputeHashes = true };
         OfficeDocumentReadResult before = document.ToOfficeDocumentReadResult("shape-edited.pub", options);
-        document.SetShapeBounds(original.Id, 90, 144, 180, 90);
-        document.SetShapePaint(original.Id, OfficeColor.FromRgb(0, 90, 170), OfficeColor.Black, 2);
+        document.SetShapeBounds(original.Id, OfficeLength.Points(90), OfficeLength.Points(144), OfficeLength.Points(180), OfficeLength.Points(90));
+        document.SetShapePaint(original.Id, OfficeColor.FromRgb(0, 90, 170), OfficeColor.Black, OfficeLength.Points(2));
         var inputShape = OfficeShape.Rectangle(60, 40);
         inputShape.FillColor = OfficeColor.FromRgb(0, 128, 0);
-        PublisherShape created = document.AddShape(document.Pages[0].Id, inputShape, 306, 144);
+        PublisherShape created = document.AddShape(document.Pages[0].Id, inputShape, OfficeLength.Points(306), OfficeLength.Points(144));
         inputShape.FillColor = OfficeColor.Black;
         Assert.NotEqual(original.Id, created.Id);
         Assert.Equal(2, document.Pages[0].Shapes.Count);

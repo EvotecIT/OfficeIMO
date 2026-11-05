@@ -22,7 +22,7 @@ public sealed class PublisherPictureEditingTests {
         string oldDrawing = OfficeDrawingSvgExporter.ToSvg(oldPage.CreateDrawing());
         document.ReplacePictureImage(original.Id, replacement);
         Array.Clear(replacement, 0, replacement.Length);
-        document.SetPictureBounds(original.Id, 36, 48, 120, 84);
+        document.SetPictureBounds(original.Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
         PublisherPicture current = Assert.Single(document.Pages[0].Pictures);
         Assert.Equal(original.Id, current.Id); Assert.Equal(original.PageId, current.PageId);
         Assert.Equal(original.Crop, current.Crop);
@@ -67,7 +67,7 @@ public sealed class PublisherPictureEditingTests {
             .Select(image => image.SourceElementIds!.Single()));
         byte[] blue = PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(0, 0, 255));
         document.ReplacePictureImage(103, blue);
-        document.SetPictureBounds(103, 24, 160, 90, 60);
+        document.SetPictureBounds(103, OfficeLength.Points(24), OfficeLength.Points(160), OfficeLength.Points(90), OfficeLength.Points(60));
         PublisherPicture masterPicture = Assert.Single(document.MasterPages[0].Pictures);
         Assert.Equal(20U, masterPicture.PageId);
         Assert.All(document.Pages, page => {
@@ -104,7 +104,7 @@ public sealed class PublisherPictureEditingTests {
         Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PICTURE_EDIT_UNSUPPORTED"
             && diagnostic.Location == "Contents/object/101" && diagnostic.Message == picture.EditLimitation);
         var pages = document.Pages; var images = document.Images; string before = document.ToSvg();
-        Assert.Throws<NotSupportedException>(() => document.SetPictureBounds(101, 10, 10, 50, 50));
+        Assert.Throws<NotSupportedException>(() => document.SetPictureBounds(101, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(50), OfficeLength.Points(50)));
         Assert.Throws<NotSupportedException>(() => document.SetPictureCrop(101, default));
         Assert.Throws<NotSupportedException>(() => document.ReplacePictureImage(101, PublisherPictureEditingFixture.Image(OfficeColor.Black)));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images); Assert.Equal(before, document.ToSvg());
@@ -120,16 +120,16 @@ public sealed class PublisherPictureEditingTests {
         Assert.Throws<ArgumentException>(() => document.ReplacePictureImage(101, new byte[] { 1, 2, 3 }));
         byte[] truncated = PublisherPictureEditingFixture.Image(OfficeColor.Black).Take(33).ToArray();
         Assert.Throws<ArgumentException>(() => document.ReplacePictureImage(101, truncated));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetPictureBounds(101, 1, 1, 0, 20));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetPictureBounds(101, double.NaN, 1, 20, 20));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetPictureBounds(999, 1, 1, 20, 20));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetPictureBounds(101, OfficeLength.Points(1), OfficeLength.Points(1), OfficeLength.Points(0), OfficeLength.Points(20)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLength.Points(double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetPictureBounds(999, OfficeLength.Points(1), OfficeLength.Points(1), OfficeLength.Points(20), OfficeLength.Points(20)));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ReplacePictureImage(999, PublisherPictureEditingFixture.Image(OfficeColor.Black)));
         using var source = new CancellationTokenSource(); source.Cancel();
-        Assert.Throws<OperationCanceledException>(() => document.SetPictureBounds(101, 1, 1, 20, 20, source.Token));
+        Assert.Throws<OperationCanceledException>(() => document.SetPictureBounds(101, OfficeLength.Points(1), OfficeLength.Points(1), OfficeLength.Points(20), OfficeLength.Points(20), source.Token));
         Assert.Throws<OperationCanceledException>(() => document.ReplacePictureImage(101, PublisherPictureEditingFixture.Image(OfficeColor.Black), source.Token));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images); Assert.Same(report, document.ReadReport);
         Assert.Equal(before, document.ToSvg());
-        document.SetPictureBounds(101, -12, 40, 60, 60);
+        document.SetPictureBounds(101, OfficeLength.Points(-12), OfficeLength.Points(40), OfficeLength.Points(60), OfficeLength.Points(60));
         Assert.Equal(-12, document.Pages[0].Pictures[0].X);
         Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_PAGE_BLEED_CLIPPED"
             && diagnostic.Location == "Contents/object/101");
@@ -160,7 +160,7 @@ public sealed class PublisherPictureEditingTests {
             .OfType<OfficeDrawingRichText>().Where(region => region.SourceElementIds?.Contains("publisher-object-201") == true).ToArray();
         OfficeDrawingRichText[] before = Regions();
         Assert.True(before.Length > 1);
-        document.SetPictureBounds(101, 280, 30, 72, 72);
+        document.SetPictureBounds(101, OfficeLength.Points(280), OfficeLength.Points(30), OfficeLength.Points(72), OfficeLength.Points(72));
         OfficeDrawingRichText[] after = Regions();
         Assert.NotEmpty(after);
         Assert.All(after, region => Assert.True(region.Width > before.Min(item => item.Width)));

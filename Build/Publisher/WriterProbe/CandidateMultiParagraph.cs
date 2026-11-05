@@ -12,18 +12,18 @@ internal static class CandidateMultiParagraph {
     }
 
     internal static PublisherDocument Author(bool linked, bool automaticHyphenation = false) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         if (linked) {
             document.AddPage(master.Id);
             document.AddPage(master.Id);
         }
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 72, 72, 216, 72, Paragraphs());
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(72), Paragraphs());
         document.SetStoryAutomaticHyphenation(first.StoryId, automaticHyphenation);
         if (linked) {
-            PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, 72, 144, 216, 72);
-            document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, 72, 216, 360, 108);
+            PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(216), OfficeLength.Points(72));
+            document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(360), OfficeLength.Points(108));
         }
         return document;
     }

@@ -133,7 +133,7 @@ public sealed class PublisherMasterAssignmentTests {
             for (int index = 0; index < document.Pages.Count; index++)
                 document.SetPageMaster(document.Pages[index].Id, document.MasterPages[index == 2 && fixture == "MultipleMasters" ? 0 : index].Id);
             PublisherTextFrame frame = document.MasterPages[0].TextFrames[0]; alignedFrame = frame.Id;
-            document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Bottom);
+            document.SetTextFrameLayout(frame.Id, frame.ColumnCount, OfficeLength.Points(frame.ColumnSpacing), frame.Padding, OfficeTextVerticalAlignment.Bottom);
         } else {
             document.SetPageMaster(document.Pages[0].Id, document.MasterPages[0].Id);
             document.SetPageMaster(document.Pages[1].Id, null);
@@ -165,7 +165,7 @@ public sealed class PublisherMasterAssignmentTests {
         PublisherPicture picture = Assert.Single(master.Pictures);
         PublisherPicture independent = Assert.Single(document.Pages[2].Pictures);
         document.SetPageMaster(document.Pages[0].Id, null);
-        document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Bottom);
+        document.SetTextFrameLayout(frame.Id, frame.ColumnCount, OfficeLength.Points(frame.ColumnSpacing), frame.Padding, OfficeTextVerticalAlignment.Bottom);
         document.ReplacePictureImage(picture.Id, PublisherPictureEditingFixture.Image(OfficeColor.Blue));
         byte[] savedBytes = document.ToBytes(Allow, out PublisherSaveReport saveReport);
         Assert.False(saveReport.HasErrors);

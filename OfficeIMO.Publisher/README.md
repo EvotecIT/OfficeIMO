@@ -25,7 +25,7 @@ Font availability and native layout fidelity remain separate rendering concerns.
 ```csharp
 using OfficeIMO.Publisher;
 
-var publication = PublisherDocument.Load("newsletter.pub");
+using var publication = PublisherDocument.Load("newsletter.pub");
 
 foreach (var page in publication.Pages)
     Console.WriteLine($"Page {page.Id}: {page.Width} x {page.Height} points");
@@ -51,7 +51,7 @@ operations to change its stories and text frames.
 using OfficeIMO;
 using OfficeIMO.Publisher;
 
-var publication = PublisherDocument.Load("flyer.pub");
+using var publication = PublisherDocument.Load("flyer.pub");
 PublisherSaveReport copyReport = publication.Save("flyer-copy.pub");
 
 // After supported edits, accept and inspect the operation's unassessed fidelity.
@@ -65,6 +65,12 @@ foreach (var diagnostic in report.Diagnostics)
 
 byte[] detachedBytes = publication.ToBytes(settings, out PublisherSaveReport bytesReport);
 ```
+
+Path loads and successful path saves set `FilePath`. `Save()` and `SaveAsync()`
+write that associated file, replacing it when options are omitted. Explicit path
+saves retain their default conflict refusal. Stream saves leave the stream open
+and keep the associated path. `LoadAsync` accepts a path or a caller-owned stream;
+`PublisherLoadOptions.UntrustedDefaults` provides fresh bounded load settings.
 
 `ToBytes`, `Save` and `SaveAsync` use the same bounded native
 codec. Unchanged semantic content produces a byte-exact copy of the original
@@ -220,33 +226,38 @@ output ceiling is 64 MiB and can be set from 1 through `int.MaxValue` bytes.
 ## Create pages, masters and styled text
 
 ```csharp
+using OfficeIMO;
 using OfficeIMO.Drawing;
 using OfficeIMO.Publisher;
 
-var newsletter = PublisherDocument.Create(792, 612);
+using var newsletter = PublisherDocument.Create(OfficeLength.Points(792), OfficeLength.Points(612));
 var firstPage = newsletter.Pages[0];
 var header = newsletter.AddMasterPage("Newsletter header");
-newsletter.AddTextFrame(header.Id, 36, 18, 600, 30, new[] {
+newsletter.AddTextFrame(header.Id, OfficeLength.Points(36), OfficeLength.Points(18),
+    OfficeLength.Points(600), OfficeLength.Points(30), new[] {
     new OfficeRichTextParagraph(new[] {
         new OfficeRichTextRun("Weekly publication", 16, OfficeColor.Black,
             bold: true, fontFamily: "Arial")
     })
 });
 newsletter.SetPageMaster(firstPage.Id, header.Id);
-var body = newsletter.AddTextFrame(firstPage.Id, 36, 84, 300, 160, new[] {
+var body = newsletter.AddTextFrame(firstPage.Id, OfficeLength.Points(36), OfficeLength.Points(84),
+    OfficeLength.Points(300), OfficeLength.Points(160), new[] {
     new OfficeRichTextParagraph(new[] {
         new OfficeRichTextRun("A complete styled story follows its linked frames.",
             12, OfficeColor.Black, fontFamily: "Arial")
     })
 });
 var secondPage = newsletter.AddPage(header.Id);
-newsletter.AddLinkedTextFrame(body.Id, secondPage.Id, 36, 84, 720, 420);
+newsletter.AddLinkedTextFrame(body.Id, secondPage.Id, OfficeLength.Points(36), OfficeLength.Points(84),
+    OfficeLength.Points(720), OfficeLength.Points(420));
 File.WriteAllText("newsletter-page.svg", newsletter.ToSvg());
 ```
 
-`Create` takes a positive finite width and height in points and creates one empty
-document page without a master or native source. Its optional `PublisherLoadOptions`
-is copied and bounds authoring and projection as well as native reading.
+`Create` takes physical widths and heights as `OfficeLength`, or a
+`PublisherCreateOptions` with `Width` and `Height`. `Create()` defaults to A4
+portrait. It creates one empty document page without a master or native source.
+Creation options are copied and bound authoring and projection work.
 `AddPage` appends at the existing publication size; omitting its master ID creates
 a page without a master. `AddMasterPage` creates a centered single-page definition
 with a nonempty name. `AddMasterPagePair` atomically appends named left and right
@@ -295,8 +306,8 @@ Add an embedded picture to a qualified document or master page:
 
 ```csharp
 var illustration = newsletter.AddImage(firstPage.Id,
-    File.ReadAllBytes("illustration.png"), 360, 84, 144, 96);
-newsletter.SetPictureBounds(illustration.Id, 360, 84, 120, 80);
+    File.ReadAllBytes("illustration.png"), OfficeLength.Points(360), OfficeLength.Points(84), OfficeLength.Points(144), OfficeLength.Points(96));
+newsletter.SetPictureBounds(illustration.Id, OfficeLength.Points(360), OfficeLength.Points(84), OfficeLength.Points(120), OfficeLength.Points(80));
 ```
 
 `AddImage` accepts a static PNG or JPEG with normal encoded orientation,
@@ -313,7 +324,7 @@ image, pass its document-scoped ID instead of bytes:
 
 ```csharp
 var repeated = newsletter.AddImage(firstPage.Id, illustration.ImageId!.Value,
-    48, 480, 72, 48);
+    OfficeLength.Points(48), OfficeLength.Points(480), OfficeLength.Points(72), OfficeLength.Points(48));
 ```
 
 The ID overload appends a placement without copying or reserving an asset. Bounds,
@@ -339,7 +350,7 @@ using System.Linq;
 using OfficeIMO;
 using OfficeIMO.Publisher;
 
-var publication = PublisherDocument.Load("flyer.pub");
+using var publication = PublisherDocument.Load("flyer.pub");
 var page = publication.Pages[0];
 publication.SetPageObjectOrder(page.Id, page.ObjectIds.Reverse().ToArray());
 
@@ -367,7 +378,7 @@ For a publication with an ordinary, resolved, untransformed top-level text frame
 using OfficeIMO.Drawing;
 using OfficeIMO.Publisher;
 
-var publication = PublisherDocument.Load("flyer.pub");
+using var publication = PublisherDocument.Load("flyer.pub");
 var frame = publication.Pages[0].TextFrames[0];
 
 publication.ReplaceStoryParagraphs(frame.StoryId, new[] {
@@ -376,7 +387,7 @@ publication.ReplaceStoryParagraphs(frame.StoryId, new[] {
             bold: true, fontFamily: "Arial")
     })
 });
-publication.SetTextFrameBounds(frame.Id, 72, 72, 360, 108);
+publication.SetTextFrameBounds(frame.Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(360), OfficeLength.Points(108));
 File.WriteAllText("edited.svg", publication.ToSvg());
 ```
 
@@ -446,7 +457,7 @@ vertical alignment without changing its bounds, graphics, story or links:
 
 ```csharp
 var current = publication.Pages[0].TextFrames[0];
-publication.SetTextFrameLayout(current.Id, 2, 18,
+publication.SetTextFrameLayout(current.Id, 2, OfficeLength.Points(18),
     new OfficeTextPadding(8, 6, 8, 6), OfficeTextVerticalAlignment.Top);
 ```
 
@@ -509,7 +520,7 @@ placement is inspection-only, with the same reason in the read report.
 ```csharp
 var picture = publication.Pages[0].Pictures.First(item => item.CanEdit);
 publication.ReplacePictureImage(picture.Id, File.ReadAllBytes("replacement.png"));
-publication.SetPictureBounds(picture.Id, 72, 216, 144, 96);
+publication.SetPictureBounds(picture.Id, OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(144), OfficeLength.Points(96));
 publication.SetPictureCrop(picture.Id,
     OfficeImageSourceCrop.FromStrictFractions(0.25, 0.125, 0.0625, 0.1875));
 File.WriteAllText("picture-edited.svg", publication.ToSvg());
@@ -545,13 +556,13 @@ model owners.
 
 ```csharp
 var shape = publication.Pages[0].Shapes.First(item => item.CanEdit);
-publication.SetShapeBounds(shape.Id, 72, 300, 180, 72);
+publication.SetShapeBounds(shape.Id, OfficeLength.Points(72), OfficeLength.Points(300), OfficeLength.Points(180), OfficeLength.Points(72));
 publication.SetShapePaint(shape.Id, OfficeColor.FromRgb(32, 120, 180),
-    OfficeColor.Black, strokeWidth: 2);
+    OfficeColor.Black, strokeWidth: OfficeLength.Points(2));
 
 var ellipse = OfficeShape.Ellipse(72, 48);
 ellipse.FillColor = OfficeColor.FromRgb(240, 180, 40);
-var added = publication.AddShape(publication.Pages[0].Id, ellipse, 300, 300);
+var added = publication.AddShape(publication.Pages[0].Id, ellipse, OfficeLength.Points(300), OfficeLength.Points(300));
 File.WriteAllText("shapes-edited.svg", publication.ToSvg());
 ```
 
@@ -652,10 +663,10 @@ publication.ReplaceTableCellParagraphs(table.Id, 0, 0, new[] {
     })
 });
 if (table.CanEditBounds)
-    publication.SetTableBounds(table.Id, 36, 180, 240, 108);
+    publication.SetTableBounds(table.Id, OfficeLength.Points(36), OfficeLength.Points(180), OfficeLength.Points(240), OfficeLength.Points(108));
 
-var addedTable = publication.AddTable(publication.Pages[0].Id, 36, 324,
-    new[] { 120D, 120D }, new[] { 30D, 30D });
+var addedTable = publication.AddTable(publication.Pages[0].Id, OfficeLength.Points(36), OfficeLength.Points(324),
+    new[] { OfficeLength.Points(120D), OfficeLength.Points(120D) }, new[] { OfficeLength.Points(30D), OfficeLength.Points(30D) });
 publication.MergeTableCells(addedTable.Id, 0, 0, rowCount: 1, columnCount: 2);
 publication.ReplaceTableCellParagraphs(addedTable.Id, 0, 0, new[] {
     new OfficeRichTextParagraph(new[] {

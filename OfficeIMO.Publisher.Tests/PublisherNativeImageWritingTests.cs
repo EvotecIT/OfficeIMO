@@ -99,8 +99,8 @@ public sealed class PublisherNativeImageWritingTests {
         PublisherTextFrame frame = document.Pages.SelectMany(page => page.TextFrames).First(item => item.CanEditLayout);
         byte[] replacement = PublisherPictureEditingFixture.Image(OfficeColor.Blue, 48, 24);
         document.ReplacePictureImage(picture.Id, replacement);
-        document.SetPictureBounds(picture.Id, picture.X + 3, picture.Y + 6, picture.Width - 6, picture.Height - 12);
-        document.SetTextFrameLayout(frame.Id, 2, 12.1, new OfficeTextPadding(1.21, 2.42, 3.63, 4.84), OfficeTextVerticalAlignment.Center);
+        document.SetPictureBounds(picture.Id, OfficeLength.Points(picture.X + 3), OfficeLength.Points(picture.Y + 6), OfficeLength.Points(picture.Width - 6), OfficeLength.Points(picture.Height - 12));
+        document.SetTextFrameLayout(frame.Id, 2, OfficeLength.Points(12.1), new OfficeTextPadding(1.21, 2.42, 3.63, 4.84), OfficeTextVerticalAlignment.Center);
         byte[] candidate = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(candidate);
         PublisherPicture edited = Pictures(reopened).Single(item => item.Id == picture.Id);

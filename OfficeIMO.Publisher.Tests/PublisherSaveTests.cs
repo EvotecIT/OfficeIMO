@@ -38,7 +38,7 @@ public sealed class PublisherSaveTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Loss_acceptance_never_enables_source_free_or_unsupported_topology_writing(bool sourceFree) {
-        PublisherDocument document = sourceFree ? PublisherDocument.Create(612, 792) : PublisherDocument.Load(Source());
+        PublisherDocument document = sourceFree ? PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792)) : PublisherDocument.Load(Source());
         if (!sourceFree) document.AddPage();
         var error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         var report = Assert.IsType<PublisherSaveReport>(error.Report);
@@ -136,7 +136,7 @@ public sealed class PublisherSaveTests {
     private static byte[] Source() => File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Rectangle/native-rectangle.pub"));
     private static PublisherDocument EditedRectangle() {
         PublisherDocument document = PublisherDocument.Load(Source());
-        document.SetShapeBounds(Assert.Single(document.Pages[0].Shapes).Id, 36, 48, 120, 84);
+        document.SetShapeBounds(Assert.Single(document.Pages[0].Shapes).Id, OfficeLength.Points(36), OfficeLength.Points(48), OfficeLength.Points(120), OfficeLength.Points(84));
         return document;
     }
     private static Task<PublisherSaveReport> SaveFile(PublisherDocument document, string path, bool asynchronous,

@@ -147,11 +147,11 @@ public sealed class PublisherTableEditingTests {
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_CELL_TEXT_EDIT_UNSUPPORTED"
             && diagnostic.Location == "Contents/object/299" && diagnostic.LossKind == OfficeConversionLossKind.None);
 
-        PublisherShape added = document.AddShape(table.PageId, OfficeShape.Rectangle(10, 10), 0, 0);
+        PublisherShape added = document.AddShape(table.PageId, OfficeShape.Rectangle(10, 10), OfficeLength.Points(0), OfficeLength.Points(0));
         document.SetShapePaint(added.Id, OfficeColor.Black, null);
-        document.SetTableBounds(table.Id, table.X + 1, table.Y, table.Width, table.Height);
+        document.SetTableBounds(table.Id, OfficeLength.Points(table.X + 1), OfficeLength.Points(table.Y), OfficeLength.Points(table.Width), OfficeLength.Points(table.Height));
         Assert.False(Table(document, table.Id).CanEditCellText);
-        PublisherTable authored = document.AddTable(table.PageId, 0, 0, new[] { 40D }, new[] { 30D });
+        PublisherTable authored = document.AddTable(table.PageId, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(40D) }, new OfficeLength[] { OfficeLength.Points(30D) });
         Assert.True(authored.CanEditCellText, authored.CellTextEditLimitation);
         document.ReplaceTableCellParagraphs(authored.Id, 0, 0, Paragraphs("Independent table story"));
         Assert.Equal("Independent table story", Table(document, authored.Id).Cells[0].Text);
@@ -168,9 +168,9 @@ public sealed class PublisherTableEditingTests {
         PublisherDocument document = PublisherTableEditingFixture.Load(withWrap: true);
         PublisherTable original = Table(document, 299);
         Assert.True(original.CanEditBounds, original.BoundsEditLimitation);
-        document.SetTableBounds(299, 60, 60, original.Width, original.Height);
+        document.SetTableBounds(299, OfficeLength.Points(60), OfficeLength.Points(60), OfficeLength.Points(original.Width), OfficeLength.Points(original.Height));
         OfficeDrawingRichText[] before = WrappedRegions(document);
-        document.SetTableBounds(299, 500, 500, original.Width * 1.5, original.Height * 2);
+        document.SetTableBounds(299, OfficeLength.Points(500), OfficeLength.Points(500), OfficeLength.Points(original.Width * 1.5), OfficeLength.Points(original.Height * 2));
         OfficeDrawingRichText[] after = WrappedRegions(document);
         Assert.NotEmpty(before); Assert.NotEmpty(after);
         Assert.NotEqual(string.Join(";", before.Select(region => $"{region.X},{region.Y},{region.Width},{region.Height}")),
@@ -182,7 +182,7 @@ public sealed class PublisherTableEditingTests {
         for (int i = 0; i < current.RowCount; i++) Assert.Equal(original.RowHeights[i] * 2, current.RowHeights[i], 6);
         Assert.Equal(original.Cells.Select(cell => cell.Text), current.Cells.Select(cell => cell.Text));
         Assert.DoesNotContain(document.Pages.SelectMany(page => page.Shapes), shape => shape.Id == 299);
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetShapeBounds(299, 10, 20, 30, 40));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetShapeBounds(299, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40)));
     }
 
     [Theory]
@@ -199,7 +199,7 @@ public sealed class PublisherTableEditingTests {
         Assert.Equal(6, table.Cells.Count); Assert.True(table.HasTextMapping);
         Assert.Equal("Table on page 2", table.Cells[0].Text);
         var pages = document.Pages;
-        Assert.Throws<NotSupportedException>(() => document.SetTableBounds(299, 10, 20, 30, 40)); Assert.Same(pages, document.Pages);
+        Assert.Throws<NotSupportedException>(() => document.SetTableBounds(299, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40))); Assert.Same(pages, document.Pages);
         if (variant is "hidden" or "no-anchor") Assert.DoesNotContain("Table on page 2", document.ToSvg(1));
         if (variant == "no-anchor") Assert.False(table.HasPlacement);
         Assert.Contains(document.ReadReport.Diagnostics, diagnostic => diagnostic.Code == "PUB_TABLE_BOUNDS_EDIT_UNSUPPORTED");
@@ -211,7 +211,7 @@ public sealed class PublisherTableEditingTests {
         PublisherShape shape = document.Pages.SelectMany(page => page.Shapes).Single(item => item.Id == 293);
         Assert.False(shape.CanEdit); Assert.NotNull(shape.EditLimitation);
         var pages = document.Pages;
-        Assert.Throws<NotSupportedException>(() => document.SetShapeBounds(shape.Id, 10, 20, 30, 40));
+        Assert.Throws<NotSupportedException>(() => document.SetShapeBounds(shape.Id, OfficeLength.Points(10), OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(40)));
         Assert.Same(pages, document.Pages);
     }
 
@@ -220,14 +220,15 @@ public sealed class PublisherTableEditingTests {
         PublisherDocument document = PublisherShapeEditingFixture.Create();
         int source = document.ReadReport.SourceObjectCount, records = document.ReadReport.InspectedRecordCount, stories = document.TextStories.Count;
         PublisherPage oldPage = document.Pages[0];
-        var columns = new List<double> { 40, 60 }; var rows = new List<double> { 24, 36 };
-        PublisherTable first = document.AddTable(10, 20, 120, columns, rows);
-        columns[0] = 1; rows.Clear();
+        var columns = new List<OfficeLength> { OfficeLength.Points(40), OfficeLength.Points(60) };
+        var rows = new List<OfficeLength> { OfficeLength.Points(24), OfficeLength.Points(36) };
+        PublisherTable first = document.AddTable(10, OfficeLength.Points(20), OfficeLength.Points(120), columns, rows);
+        columns[0] = OfficeLength.Points(1); rows.Clear();
         Assert.Equal(new[] { 40D, 60D }, first.ColumnWidths); Assert.Equal(new[] { 24D, 36D }, first.RowHeights);
         Assert.Equal(4, first.Cells.Count); Assert.All(first.Cells, cell => Assert.Empty(cell.Text));
         Assert.True(first.CanEditBounds); Assert.True(first.CanEditCellText);
-        PublisherShape shape = document.AddShape(10, OfficeShape.Ellipse(20, 20), 240, 240);
-        PublisherTable master = document.AddTable(20, 20, 220, new[] { 80D }, new[] { 40D });
+        PublisherShape shape = document.AddShape(10, OfficeShape.Ellipse(20, 20), OfficeLength.Points(240), OfficeLength.Points(240));
+        PublisherTable master = document.AddTable(20, OfficeLength.Points(20), OfficeLength.Points(220), new OfficeLength[] { OfficeLength.Points(80D) }, new OfficeLength[] { OfficeLength.Points(40D) });
         Assert.True(first.Id < first.StoryId && first.StoryId < shape.Id && shape.Id < master.Id && master.Id < master.StoryId);
         document.ReplaceTableCellParagraphs(first.Id, 0, 0, Paragraphs("Page cell"));
         document.ReplaceTableCellParagraphs(master.Id, 0, 0, Paragraphs("Master cell"));
@@ -247,13 +248,13 @@ public sealed class PublisherTableEditingTests {
     public void Table_story_and_continuation_creation_interleave_without_identity_collisions() {
         PublisherDocument document = PublisherFrameCreationFixture.Load().Document;
         PublisherTextFrame tail = document.Pages.SelectMany(page => page.TextFrames).Single();
-        PublisherTable table = document.AddTable(tail.PageId, 10, 10, new[] { 50D }, new[] { 30D });
-        PublisherTextFrame next = document.AddLinkedTextFrame(tail.Id, tail.PageId, 10, 60, 50, 30);
-        PublisherShape shape = document.AddShape(tail.PageId, OfficeShape.Rectangle(10, 10), 10, 110);
+        PublisherTable table = document.AddTable(tail.PageId, OfficeLength.Points(10), OfficeLength.Points(10), new OfficeLength[] { OfficeLength.Points(50D) }, new OfficeLength[] { OfficeLength.Points(30D) });
+        PublisherTextFrame next = document.AddLinkedTextFrame(tail.Id, tail.PageId, OfficeLength.Points(10), OfficeLength.Points(60), OfficeLength.Points(50), OfficeLength.Points(30));
+        PublisherShape shape = document.AddShape(tail.PageId, OfficeShape.Rectangle(10, 10), OfficeLength.Points(10), OfficeLength.Points(110));
         Assert.Equal(4, new[] { table.Id, table.StoryId!.Value, next.Id, shape.Id }.Distinct().Count());
         Assert.Equal(table.Id + 1, table.StoryId.Value); Assert.Equal(table.StoryId.Value + 1, next.Id); Assert.Equal(next.Id + 1, shape.Id);
         document.ReplaceStoryParagraphs(tail.StoryId, Paragraphs("Ordinary story survives"));
-        document.SetTextFrameBounds(next.Id, 20, 60, 70, 30);
+        document.SetTextFrameBounds(next.Id, OfficeLength.Points(20), OfficeLength.Points(60), OfficeLength.Points(70), OfficeLength.Points(30));
         document.SetShapePaint(shape.Id, OfficeColor.Black, null);
         Assert.Equal(table.Id, Assert.Single(document.Pages.SelectMany(page => page.Tables)).Id);
         Assert.Empty(Table(document, table.Id).Cells[0].Text);
@@ -264,22 +265,22 @@ public sealed class PublisherTableEditingTests {
         PublisherDocument document = PublisherShapeEditingFixture.Create();
         PublisherDocument control = PublisherShapeEditingFixture.Create();
         var pages = document.Pages; var stories = document.TextStories; var report = document.ReadReport;
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTable(10, 0, 0, new[] { double.NaN }, new[] { 20D }));
-        Assert.Throws<ArgumentException>(() => document.AddTable(10, 0, 0, Array.Empty<double>(), new[] { 20D }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTable(uint.MaxValue, 0, 0, new[] { 20D }, new[] { 20D }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLength.Points(double.NaN));
+        Assert.Throws<ArgumentException>(() => document.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), Array.Empty<OfficeLength>(), new OfficeLength[] { OfficeLength.Points(20D) }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddTable(uint.MaxValue, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) }));
         using var cancelled = new CancellationTokenSource(); cancelled.Cancel();
-        Assert.Throws<OperationCanceledException>(() => document.AddTable(10, 0, 0, new[] { 20D }, new[] { 20D }, cancelled.Token));
+        Assert.Throws<OperationCanceledException>(() => document.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) }, cancelled.Token));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport);
-        PublisherTable actual = document.AddTable(10, 20, 120, new[] { 50D }, new[] { 30D });
-        PublisherTable expected = control.AddTable(10, 20, 120, new[] { 50D }, new[] { 30D });
+        PublisherTable actual = document.AddTable(10, OfficeLength.Points(20), OfficeLength.Points(120), new OfficeLength[] { OfficeLength.Points(50D) }, new OfficeLength[] { OfficeLength.Points(30D) });
+        PublisherTable expected = control.AddTable(10, OfficeLength.Points(20), OfficeLength.Points(120), new OfficeLength[] { OfficeLength.Points(50D) }, new OfficeLength[] { OfficeLength.Points(30D) });
         Assert.Equal(expected.Id, actual.Id); Assert.Equal(expected.StoryId, actual.StoryId);
         pages = document.Pages; stories = document.TextStories; report = document.ReadReport;
         Assert.Throws<ArgumentException>(() => document.ReplaceTableCellParagraphs(actual.Id, 0, 0, Paragraphs("\uD800")));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.ReplaceTableCellParagraphs(actual.Id, 1, 0, Paragraphs("outside")));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetTableBounds(actual.Id, 0, 0, 0, 20));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetTableBounds(actual.Id, double.MaxValue, 0, 20, 20));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.SetTableBounds(actual.Id, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(20)));
+        Assert.Throws<OverflowException>(() => OfficeLength.Points(double.MaxValue));
         Assert.Throws<OperationCanceledException>(() => document.ReplaceTableCellParagraphs(actual.Id, 0, 0, Paragraphs("cancelled"), cancelled.Token));
-        Assert.Throws<OperationCanceledException>(() => document.SetTableBounds(actual.Id, 0, 0, 20, 20, cancelled.Token));
+        Assert.Throws<OperationCanceledException>(() => document.SetTableBounds(actual.Id, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(20), OfficeLength.Points(20), cancelled.Token));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport);
     }
 
@@ -288,23 +289,23 @@ public sealed class PublisherTableEditingTests {
         PublisherDocument document = PublisherShapeEditingFixture.Create(options: new PublisherLoadOptions {
             Limits = new OfficeLegacyImportLimits { MaxItems = 30, MaxTextCharacters = 100 }
         });
-        PublisherTable first = document.AddTable(10, 20, 120, new[] { 80D }, new[] { 30D });
+        PublisherTable first = document.AddTable(10, OfficeLength.Points(20), OfficeLength.Points(120), new OfficeLength[] { OfficeLength.Points(80D) }, new OfficeLength[] { OfficeLength.Points(30D) });
         var pages = document.Pages; var stories = document.TextStories; var report = document.ReadReport;
-        Assert.Throws<InvalidDataException>(() => document.AddTable(10, 0, 0, Enumerable.Repeat(10D, 8).ToArray(), Enumerable.Repeat(10D, 8).ToArray()));
+        Assert.Throws<InvalidDataException>(() => document.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), Enumerable.Repeat(OfficeLength.Points(10D), 8).ToArray(), Enumerable.Repeat(OfficeLength.Points(10D), 8).ToArray()));
         // Story admission fits 100 characters; repeated master scene composition does not.
-        PublisherTable master = document.AddTable(20, 10, 220, new[] { 150D }, new[] { 60D });
+        PublisherTable master = document.AddTable(20, OfficeLength.Points(10), OfficeLength.Points(220), new OfficeLength[] { OfficeLength.Points(150D) }, new OfficeLength[] { OfficeLength.Points(60D) });
         pages = document.Pages; stories = document.TextStories; report = document.ReadReport;
         Assert.Throws<InvalidDataException>(() => document.ReplaceTableCellParagraphs(master.Id, 0, 0, Paragraphs(new string('x', 50))));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories); Assert.Same(report, document.ReadReport);
         Assert.Throws<ArgumentException>(() => document.ReplaceTableCellParagraphs(first.Id, 0, 0, Paragraphs(new string('x', 101))));
         Assert.Empty(Table(document, first.Id).Cells[0].Text);
         // This grid fits its own budget but exceeds cumulative table-model work.
-        Assert.Throws<InvalidDataException>(() => document.AddTable(10, 0, 0, Enumerable.Repeat(10D, 4).ToArray(), Enumerable.Repeat(10D, 4).ToArray()));
+        Assert.Throws<InvalidDataException>(() => document.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), Enumerable.Repeat(OfficeLength.Points(10D), 4).ToArray(), Enumerable.Repeat(OfficeLength.Points(10D), 4).ToArray()));
         Assert.Same(pages, document.Pages); Assert.Same(stories, document.TextStories);
-        PublisherTable afterFailure = document.AddTable(10, 200, 200, new[] { 20D }, new[] { 20D });
+        PublisherTable afterFailure = document.AddTable(10, OfficeLength.Points(200), OfficeLength.Points(200), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) });
         Assert.Equal(master.StoryId!.Value + 1, afterFailure.Id);
         PublisherDocument exhausted = PublisherShapeEditingFixture.Create(exhaustedIds: true);
-        Assert.Throws<InvalidOperationException>(() => exhausted.AddTable(10, 0, 0, new[] { 20D }, new[] { 20D }));
+        Assert.Throws<InvalidOperationException>(() => exhausted.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) }));
     }
 
     [Fact]
@@ -312,9 +313,9 @@ public sealed class PublisherTableEditingTests {
         PublisherDocument oneId = PublisherTableEditingFixture.Load("one-id");
         uint pageId = Table(oneId, 299).PageId;
         var pages = oneId.Pages;
-        Assert.Throws<InvalidOperationException>(() => oneId.AddTable(pageId, 0, 0, new[] { 20D }, new[] { 20D }));
+        Assert.Throws<InvalidOperationException>(() => oneId.AddTable(pageId, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) }));
         Assert.Same(pages, oneId.Pages);
-        PublisherShape last = oneId.AddShape(pageId, OfficeShape.Rectangle(10, 10), 0, 0);
+        PublisherShape last = oneId.AddShape(pageId, OfficeShape.Rectangle(10, 10), OfficeLength.Points(0), OfficeLength.Points(0));
         Assert.Equal(uint.MaxValue, last.Id);
 
         PublisherDocument full = PublisherShapeEditingFixture.Create(hiddenObjects: 125, options: new PublisherLoadOptions {
@@ -322,13 +323,13 @@ public sealed class PublisherTableEditingTests {
         });
         Assert.Equal(128, full.ReadReport.CurrentObjectCount);
         pages = full.Pages;
-        Assert.Throws<InvalidDataException>(() => full.AddTable(10, 0, 0, new[] { 20D }, new[] { 20D })); Assert.Same(pages, full.Pages);
+        Assert.Throws<InvalidDataException>(() => full.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) })); Assert.Same(pages, full.Pages);
 
         PublisherDocument unqualified = PublisherShapeEditingFixture.Create("unqualified-master");
         var masters = unqualified.MasterPages;
-        Assert.Throws<NotSupportedException>(() => unqualified.AddTable(20, 0, 0, new[] { 20D }, new[] { 20D }));
+        Assert.Throws<NotSupportedException>(() => unqualified.AddTable(20, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) }));
         Assert.Same(masters, unqualified.MasterPages);
-        Assert.True(unqualified.AddTable(10, 0, 0, new[] { 20D }, new[] { 20D }).CanEditBounds);
+        Assert.True(unqualified.AddTable(10, OfficeLength.Points(0), OfficeLength.Points(0), new OfficeLength[] { OfficeLength.Points(20D) }, new OfficeLength[] { OfficeLength.Points(20D) }).CanEditBounds);
     }
 
     private static PublisherTable Table(PublisherDocument document, uint id) => document.Pages.Concat(document.MasterPages)

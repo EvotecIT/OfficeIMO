@@ -21,7 +21,7 @@ public sealed class PublisherTableBorderExtentWritingTests {
             document = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
             table = document.Pages[0].Tables[0];
         }
-        document.SetTableBounds(table.Id, table.X, table.Y, vertical ? 15 : table.Width, vertical ? table.Height : 12);
+        document.SetTableBounds(table.Id, OfficeLength.Points(table.X), OfficeLength.Points(table.Y), OfficeLength.Points(vertical ? 15 : table.Width), OfficeLength.Points(vertical ? table.Height : 12));
         Assert.Contains(document.Pages[0].Tables[0].BorderSegments, edge => edge.Side.Width == 24);
         OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Contains(error.Report.Diagnostics, item => item.Code == "PUB_NATIVE_EDIT_UNSUPPORTED" && item.LossKind == OfficeConversionLossKind.Failure);
@@ -31,10 +31,10 @@ public sealed class PublisherTableBorderExtentWritingTests {
     [InlineData(false)]
     [InlineData(true)]
     public void Fresh_utility_encoder_refuses_an_authored_edge_wider_than_the_final_table_extent(bool vertical) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
-        uint id = document.AddTable(document.Pages[0].Id, 72, 144, new[] { 120D, 180D }, new[] { 42D, 54D }).Id;
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
+        uint id = document.AddTable(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(180D) }, new OfficeLength[] { OfficeLength.Points(42D), OfficeLength.Points(54D) }).Id;
         document.SetTableBorderStyle(id, 0, 0, vertical ? 1 : 0, vertical ? 0 : 1, new OfficeBorderSide(OfficeColor.Black, 24));
-        document.SetTableBounds(id, 72, 144, vertical ? 15 : 300, vertical ? 96 : 12);
+        document.SetTableBounds(id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(vertical ? 15 : 300), OfficeLength.Points(vertical ? 96 : 12));
         PublisherTable table = document.Pages[0].Tables[0];
         // The source-free specimen consumes this codec directly; public native
         // creation remains gated before reaching it.

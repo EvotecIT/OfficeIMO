@@ -9,17 +9,17 @@ internal static class CandidateLinkedStory {
         PublisherNativeCreationProjection.LinkedStories(Author(overflow, languageId));
 
     internal static PublisherDocument Author(bool overflow, uint? languageId = null) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         document.AddPage(master.Id);
         document.AddPage(master.Id);
         string text = string.Concat(Enumerable.Repeat(
             "Linked stories preserve reading order across publication pages. ", overflow ? 24 : 6)).TrimEnd();
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 72, 72, 216, 72, Paragraph(text, 12, languageId));
-        document.AddTextFrame(document.Pages[0].Id, 360, 72, 180, 54, Paragraph("Independent story", 14, languageId));
-        PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, 72, 144, 216, 72);
-        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, 72, 216, 360, 108);
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(72), Paragraph(text, 12, languageId));
+        document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(360), OfficeLength.Points(72), OfficeLength.Points(180), OfficeLength.Points(54), Paragraph("Independent story", 14, languageId));
+        PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(216), OfficeLength.Points(72));
+        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(360), OfficeLength.Points(108));
         return document;
     }
 

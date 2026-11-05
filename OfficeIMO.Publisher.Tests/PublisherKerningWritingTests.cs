@@ -7,13 +7,13 @@ namespace OfficeIMO.Publisher.Tests;
 public sealed class PublisherKerningWritingTests {
     [Fact]
     public void Threshold_metadata_survives_authored_linked_projection_and_run_copy_methods() {
-        PublisherDocument document = PublisherDocument.Create(300, 400);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400));
         var run = new OfficeRichTextRun(string.Concat(Enumerable.Repeat("Complete threshold metadata. ", 40)), 12,
             OfficeColor.Black, fontFamily: "Arial").WithAutomaticPairKerningThreshold(8).WithLanguageId(1033).WithParagraphIndent(OfficeTextParagraphIndent.Empty);
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 20, 20, 120, 60,
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(120), OfficeLength.Points(60),
             new[] { new OfficeRichTextParagraph(new[] { run }, lineHeight: 18) });
         PublisherPage page = document.AddPage();
-        document.AddLinkedTextFrame(first.Id, page.Id, 20, 20, 120, 60);
+        document.AddLinkedTextFrame(first.Id, page.Id, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(120), OfficeLength.Points(60));
         Assert.True(document.Pages[1].TextFrames.Single().HasOverflow);
         Assert.Equal(run.Text, Assert.Single(document.TextStories).Text);
         Assert.All(Assert.Single(document.TextStories).Paragraphs.SelectMany(paragraph => paragraph.Runs),

@@ -11,14 +11,14 @@ public sealed class PublisherPictureCreationTests {
         PublisherPage oldPage = document.Pages[1]; PublisherPage oldMaster = Assert.Single(document.MasterPages);
         PublisherImage nativeAsset = Assert.Single(document.Images); byte[] original = nativeAsset.GetBytes();
         var source = document.SourceReadReport; int sourceObjects = document.ReadReport.SourceObjectCount, records = document.ReadReport.InspectedRecordCount;
-        PublisherPicture first = document.AddImage(oldPage.Id, original, 40, 80, 96, 96);
+        PublisherPicture first = document.AddImage(oldPage.Id, original, OfficeLength.Points(40), OfficeLength.Points(80), OfficeLength.Points(96), OfficeLength.Points(96));
         PublisherImage oldAuthoredAsset = document.Images.Single(asset => asset.Id == first.ImageId);
-        PublisherPicture second = document.AddImage(oldPage.Id, original, 160, 80, 96, 96);
+        PublisherPicture second = document.AddImage(oldPage.Id, original, OfficeLength.Points(160), OfficeLength.Points(80), OfficeLength.Points(96), OfficeLength.Points(96));
         Assert.NotEqual(first.ImageId, second.ImageId); Assert.NotEqual(nativeAsset.Id, first.ImageId);
         var pictures = document.Pages[1].Pictures;
         byte[] changed = PublisherPictureEditingFixture.Image(OfficeColor.White);
         document.ReplacePictureImage(first.Id, changed);
-        document.SetPictureBounds(first.Id, -8, 90, 120, 84);
+        document.SetPictureBounds(first.Id, OfficeLength.Points(-8), OfficeLength.Points(90), OfficeLength.Points(120), OfficeLength.Points(84));
         PublisherPicture current = document.Pages[1].Pictures.Single(picture => picture.Id == first.Id);
         Assert.Equal(first.Id, current.Id); Assert.Equal(first.PageId, current.PageId); Assert.Equal(first.Crop, current.Crop);
         Assert.True(current.CanEdit); Assert.Null(current.EditLimitation); Assert.True(current.HasPlacement);
@@ -46,7 +46,7 @@ public sealed class PublisherPictureCreationTests {
     public void Addition_reserves_unavailable_native_image_slots_without_resolving_the_missing_sibling() {
         PublisherDocument document = PublisherPictureEditingFixture.Create(restriction: "unresolved-sibling");
         PublisherPage original = document.Pages[0];
-        PublisherPicture added = document.AddImage(original.Id, Png(), 20, 220, 40, 40);
+        PublisherPicture added = document.AddImage(original.Id, Png(), OfficeLength.Points(20), OfficeLength.Points(220), OfficeLength.Points(40), OfficeLength.Points(40));
         Assert.True(added.ImageId > 4);
         Assert.Equal(2, document.Pages[0].Pictures.Single(picture => picture.Id == 102).ImageId);
         Assert.DoesNotContain(PublisherNativeTests.Elements(document.Pages[0].CreateDrawing()).OfType<OfficeDrawingImage>(),
@@ -63,13 +63,13 @@ public sealed class PublisherPictureCreationTests {
         byte[] source = kind == "animated" ? AnimatedPng() : OrientedJpeg();
         Assert.True(OfficeRasterImageDecoder.TryDecode(source, new OfficeRasterDecodeOptions(), out _, out OfficeRasterDecodeInfo info));
         Assert.True(kind == "animated" ? info.IsAnimated && info.FrameCount == 2 : info.SourceOrientation == OfficeImageOrientation.Rotate90Clockwise);
-        PublisherDocument document = PublisherDocument.Create(300, 400);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400));
         uint pageId = document.Pages[0].Id;
         var pages = document.Pages; var images = document.Images;
-        ArgumentException failure = Assert.Throws<ArgumentException>(() => document.AddImage(pageId, source, 10, 10, 40, 30));
+        ArgumentException failure = Assert.Throws<ArgumentException>(() => document.AddImage(pageId, source, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(30)));
         Assert.Contains("single static PNG or JPEG with normal encoded orientation", failure.Message);
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images);
-        PublisherPicture first = document.AddImage(pageId, Png(), 10, 10, 40, 30);
+        PublisherPicture first = document.AddImage(pageId, Png(), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(30));
         Assert.Equal(2U, first.Id); Assert.Equal(1, first.ImageId);
         // Replacement has an established PNG/JPEG contract independent of the
         // narrower new-placement policy. Retain those exact encoded bytes.
@@ -78,37 +78,37 @@ public sealed class PublisherPictureCreationTests {
         Assert.Equal(first.Id, Assert.Single(document.Pages[0].Pictures).Id);
         Assert.Equal(1, document.ReadReport.CurrentObjectCount);
         pages = document.Pages; images = document.Images;
-        failure = Assert.Throws<ArgumentException>(() => document.AddImage(pageId, Assert.Single(images).Id, 60, 10, 40, 30));
+        failure = Assert.Throws<ArgumentException>(() => document.AddImage(pageId, Assert.Single(images).Id, OfficeLength.Points(60), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(30)));
         Assert.Contains("single static PNG or JPEG with normal encoded orientation", failure.Message);
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images);
     }
 
     [Fact]
     public void Invalid_geometry_content_owner_and_cancellation_leave_both_allocators_and_snapshots_unchanged() {
-        PublisherDocument document = PublisherDocument.Create(300, 400);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400));
         uint pageId = document.Pages[0].Id; byte[] png = Png();
         var pages = document.Pages; var images = document.Images; var report = document.ReadReport; string before = document.ToSvg();
-        Assert.Throws<ArgumentNullException>(() => document.AddImage(pageId, null!, 10, 10, 40, 40));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(999, png, 10, 10, 40, 40));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(pageId, png, double.NaN, 10, 40, 40));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(pageId, png, 10, 10, 0, 40));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(pageId, png, double.MaxValue, 10, double.MaxValue, 40));
-        Assert.Throws<ArgumentException>(() => document.AddImage(pageId, Array.Empty<byte>(), 10, 10, 40, 40));
-        Assert.Throws<ArgumentException>(() => document.AddImage(pageId, new byte[] { 1, 2, 3 }, 10, 10, 40, 40));
-        Assert.Throws<ArgumentException>(() => document.AddImage(pageId, png.Take(33).ToArray(), 10, 10, 40, 40));
-        Assert.Throws<OperationCanceledException>(() => document.AddImage(pageId, png, 10, 10, 40, 40, new CancellationToken(true)));
+        Assert.Throws<ArgumentNullException>(() => document.AddImage(pageId, null!, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(999, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeLength.Points(double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddImage(pageId, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(0), OfficeLength.Points(40)));
+        Assert.Throws<OverflowException>(() => OfficeLength.Points(double.MaxValue));
+        Assert.Throws<ArgumentException>(() => document.AddImage(pageId, Array.Empty<byte>(), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
+        Assert.Throws<ArgumentException>(() => document.AddImage(pageId, new byte[] { 1, 2, 3 }, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
+        Assert.Throws<ArgumentException>(() => document.AddImage(pageId, png.Take(33).ToArray(), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
+        Assert.Throws<OperationCanceledException>(() => document.AddImage(pageId, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40), new CancellationToken(true)));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images); Assert.Same(report, document.ReadReport); Assert.Equal(before, document.ToSvg());
-        PublisherPicture added = document.AddImage(pageId, png, 10, 10, 40, 40);
+        PublisherPicture added = document.AddImage(pageId, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40));
         Assert.Equal(2U, added.Id); Assert.Equal(1, added.ImageId);
         byte[] detached = Assert.Single(document.Images).GetBytes(); detached[0] = 0;
         Assert.Equal(png, Assert.Single(document.Images).GetBytes());
 
         PublisherDocument unqualified = PublisherShapeEditingFixture.Create(restriction: "unqualified-master");
         var unchanged = unqualified.Pages;
-        Assert.Throws<NotSupportedException>(() => unqualified.AddImage(unqualified.MasterPages[0].Id, png, 10, 10, 40, 40));
+        Assert.Throws<NotSupportedException>(() => unqualified.AddImage(unqualified.MasterPages[0].Id, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
         Assert.Same(unchanged, unqualified.Pages);
         PublisherDocument bounded = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.pub"));
-        Assert.Throws<ArgumentOutOfRangeException>(() => bounded.AddImage(bounded.Pages[0].Id, png, 1_000_000, 0, 40, 40));
+        Assert.Throws<ArgumentOutOfRangeException>(() => bounded.AddImage(bounded.Pages[0].Id, png, OfficeLength.Points(1_000_000), OfficeLength.Points(0), OfficeLength.Points(40), OfficeLength.Points(40)));
     }
 
     [Theory]
@@ -117,33 +117,33 @@ public sealed class PublisherPictureCreationTests {
     [InlineData("retained-bytes")]
     public void Configured_image_admission_bounds_reject_addition_without_publishing_an_asset(string bound) {
         byte[] png = Png();
-        var options = new PublisherLoadOptions();
+        var options = new PublisherCreateOptions();
         if (bound == "encoded-bytes") options.MaxImageBytes = png.Length - 1;
         if (bound == "decoded-pixels") options.MaxRasterPixels = 3;
         if (bound == "retained-bytes") options.MaxTotalImageBytes = png.Length - 1;
-        PublisherDocument document = PublisherDocument.Create(300, 400, options);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400), options);
         var pages = document.Pages; var report = document.ReadReport;
-        ArgumentException failure = Assert.Throws<ArgumentException>(() => document.AddImage(pages[0].Id, png, 10, 10, 40, 40));
+        ArgumentException failure = Assert.Throws<ArgumentException>(() => document.AddImage(pages[0].Id, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
         string expected = bound == "encoded-bytes" ? "per-image limit" : bound == "decoded-pixels" ? "pixel limit" : "publication image byte limit";
         Assert.Contains(expected, failure.Message);
         Assert.Same(pages, document.Pages); Assert.Same(report, document.ReadReport); Assert.Empty(document.Images);
-        PublisherShape shape = document.AddShape(pages[0].Id, OfficeShape.Rectangle(10, 10), 10, 10);
+        PublisherShape shape = document.AddShape(pages[0].Id, OfficeShape.Rectangle(10, 10), OfficeLength.Points(10), OfficeLength.Points(10));
         Assert.Equal(2U, shape.Id);
     }
 
     [Fact]
     public void Repeated_master_image_projection_failure_can_retry_on_a_physical_page_without_consuming_either_id() {
         byte[] png = Png();
-        var options = new PublisherLoadOptions { MaxTotalImageBytes = png.Length * 4 };
-        PublisherDocument document = PublisherDocument.Create(300, 400, options);
+        var options = new PublisherCreateOptions { MaxTotalImageBytes = png.Length * 4 };
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400), options);
         PublisherPage master = document.AddMasterPage("Header");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         document.AddPage(master.Id);
         var pages = document.Pages; var masters = document.MasterPages; var report = document.ReadReport;
-        Assert.Throws<InvalidDataException>(() => document.AddImage(master.Id, png, 10, 10, 40, 40));
+        Assert.Throws<InvalidDataException>(() => document.AddImage(master.Id, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
         Assert.Same(pages, document.Pages); Assert.Same(masters, document.MasterPages); Assert.Same(report, document.ReadReport);
         Assert.Empty(document.Images); Assert.Equal(0, document.ReadReport.CurrentObjectCount);
-        PublisherPicture added = document.AddImage(pages[0].Id, png, 10, 10, 40, 40);
+        PublisherPicture added = document.AddImage(pages[0].Id, png, OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40));
         Assert.Equal(4U, added.Id); Assert.Equal(1, added.ImageId);
         Assert.Empty(document.MasterPages[0].Pictures); Assert.Single(document.Pages[0].Pictures); Assert.Empty(document.Pages[1].Pictures);
         Assert.Equal(1, document.ReadReport.CurrentObjectCount); Assert.Equal(0, document.SourceReadReport.ImageCount);
@@ -151,15 +151,15 @@ public sealed class PublisherPictureCreationTests {
 
     [Fact]
     public void Picture_copy_edits_retain_object_limits_and_failed_addition_does_not_reserve_an_asset() {
-        PublisherDocument document = PublisherDocument.Create(300, 400, new PublisherLoadOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 2 } });
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400), new PublisherCreateOptions { Limits = new OfficeLegacyImportLimits { MaxItems = 2 } });
         uint page = document.Pages[0].Id;
-        document.AddTextFrame(page, 0, 0, 40, 20, Array.Empty<OfficeRichTextParagraph>());
-        PublisherPicture picture = document.AddImage(page, Png(), 10, 50, 40, 40);
-        document.SetPictureBounds(picture.Id, 20, 50, 40, 40);
+        document.AddTextFrame(page, OfficeLength.Points(0), OfficeLength.Points(0), OfficeLength.Points(40), OfficeLength.Points(20), Array.Empty<OfficeRichTextParagraph>());
+        PublisherPicture picture = document.AddImage(page, Png(), OfficeLength.Points(10), OfficeLength.Points(50), OfficeLength.Points(40), OfficeLength.Points(40));
+        document.SetPictureBounds(picture.Id, OfficeLength.Points(20), OfficeLength.Points(50), OfficeLength.Points(40), OfficeLength.Points(40));
         Assert.Equal(2, document.ReadReport.CurrentObjectCount);
         var pages = document.Pages; var images = document.Images;
-        Assert.Throws<InvalidDataException>(() => document.AddImage(page, Png(), 70, 50, 40, 40));
-        Assert.Throws<InvalidDataException>(() => document.AddImage(page, picture.ImageId!.Value, 70, 50, 40, 40));
+        Assert.Throws<InvalidDataException>(() => document.AddImage(page, Png(), OfficeLength.Points(70), OfficeLength.Points(50), OfficeLength.Points(40), OfficeLength.Points(40)));
+        Assert.Throws<InvalidDataException>(() => document.AddImage(page, picture.ImageId!.Value, OfficeLength.Points(70), OfficeLength.Points(50), OfficeLength.Points(40), OfficeLength.Points(40)));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images);
         document.ReplacePictureImage(picture.Id, PublisherPictureEditingFixture.Image(OfficeColor.White));
         Assert.Equal(2, document.ReadReport.CurrentObjectCount); Assert.Equal(2, Assert.Single(document.Images).Id);
@@ -175,13 +175,13 @@ public sealed class PublisherPictureCreationTests {
         PublisherDocument document = PublisherDocument.Load(input);
         var pages = document.Pages; var images = document.Images;
         Assert.Equal(int.MaxValue, Assert.Single(pages[0].Pictures).ImageId);
-        Assert.Throws<InvalidOperationException>(() => document.AddImage(pages[0].Id, Png(), 10, 10, 40, 40));
+        Assert.Throws<InvalidOperationException>(() => document.AddImage(pages[0].Id, Png(), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
         Assert.Same(pages, document.Pages); Assert.Same(images, document.Images);
-        PublisherShape shape = document.AddShape(pages[0].Id, OfficeShape.Rectangle(10, 10), 10, 10);
-        PublisherShape expected = original.AddShape(original.Pages[0].Id, OfficeShape.Rectangle(10, 10), 10, 10);
+        PublisherShape shape = document.AddShape(pages[0].Id, OfficeShape.Rectangle(10, 10), OfficeLength.Points(10), OfficeLength.Points(10));
+        PublisherShape expected = original.AddShape(original.Pages[0].Id, OfficeShape.Rectangle(10, 10), OfficeLength.Points(10), OfficeLength.Points(10));
         Assert.Equal(expected.Id, shape.Id);
         PublisherDocument exhausted = PublisherShapeEditingFixture.Create(exhaustedIds: true);
-        Assert.Throws<InvalidOperationException>(() => exhausted.AddImage(exhausted.Pages[0].Id, Png(), 10, 10, 40, 40));
+        Assert.Throws<InvalidOperationException>(() => exhausted.AddImage(exhausted.Pages[0].Id, Png(), OfficeLength.Points(10), OfficeLength.Points(10), OfficeLength.Points(40), OfficeLength.Points(40)));
     }
 
     private static byte[] Png() => PublisherPictureEditingFixture.Image(OfficeColor.FromRgb(20, 130, 40));

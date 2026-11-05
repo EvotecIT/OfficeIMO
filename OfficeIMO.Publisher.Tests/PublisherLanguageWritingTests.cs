@@ -16,15 +16,15 @@ public sealed class PublisherLanguageWritingTests {
 
     [Fact]
     public void Authored_language_survives_linked_story_projection_and_overflow() {
-        PublisherDocument document = PublisherDocument.Create(300, 400);
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 20, 20, 120, 60, new[] {
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(300), OfficeLength.Points(400));
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(120), OfficeLength.Points(60), new[] {
             new OfficeRichTextParagraph(new[] {
                 new OfficeRichTextRun(string.Concat(Enumerable.Repeat("Complete language metadata. ", 40)), 12,
                     OfficeColor.Black, fontFamily: "Arial").WithLanguageId(1033)
             }, lineHeight: 18)
         });
         PublisherPage page = document.AddPage();
-        document.AddLinkedTextFrame(first.Id, page.Id, 20, 20, 120, 60);
+        document.AddLinkedTextFrame(first.Id, page.Id, OfficeLength.Points(20), OfficeLength.Points(20), OfficeLength.Points(120), OfficeLength.Points(60));
         Assert.True(document.Pages[1].TextFrames.Single().HasOverflow);
         Assert.All(Assert.Single(document.TextStories).Paragraphs.SelectMany(paragraph => paragraph.Runs), run => Assert.Equal(1033U, run.LanguageId));
         OfficeDrawingRichText[] painted = document.Pages.SelectMany(item => PublisherNativeTests.Elements(item.CreateDrawing())).OfType<OfficeDrawingRichText>().ToArray();

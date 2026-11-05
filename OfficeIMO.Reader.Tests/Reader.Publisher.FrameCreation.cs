@@ -22,10 +22,10 @@ public sealed class ReaderPublisherFrameCreationTests {
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun(heading, 16, OfficeColor.Black, bold: true, fontFamily: "Arial") }),
             new OfficeRichTextParagraph(new[] { new OfficeRichTextRun(body, 11, OfficeColor.Black, fontFamily: "Arial") })
         });
-        document.SetTextFrameBounds(original.Id, 54, 108, 228, 120);
+        document.SetTextFrameBounds(original.Id, OfficeLength.Points(54), OfficeLength.Points(108), OfficeLength.Points(228), OfficeLength.Points(120));
         PublisherTextFrame beforeAppend = Assert.Single(document.Pages[0].TextFrames);
         Assert.True(beforeAppend.HasOverflow);
-        PublisherTextFrame appended = document.AddLinkedTextFrame(original.Id, document.Pages[1].Id, 54, 72, 468, 600);
+        PublisherTextFrame appended = document.AddLinkedTextFrame(original.Id, document.Pages[1].Id, OfficeLength.Points(54), OfficeLength.Points(72), OfficeLength.Points(468), OfficeLength.Points(600));
         PublisherTextFrame first = Assert.Single(document.Pages[0].TextFrames);
         PublisherTextFrame last = Assert.Single(document.Pages[1].TextFrames);
         Assert.Equal(appended.Id, last.Id);

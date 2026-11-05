@@ -34,7 +34,7 @@ public sealed class ReaderPublisherInMemoryTests {
         };
         document.ReplaceStoryParagraphs(storyId, paragraphs);
         for (int index = 0; index < originalFrames.Length; index++)
-            document.SetTextFrameBounds(originalFrames[index].Id, 72 + index * 6, 90 + index * 12, 420, 36);
+            document.SetTextFrameBounds(originalFrames[index].Id, OfficeLength.Points(72 + index * 6), OfficeLength.Points(90 + index * 12), OfficeLength.Points(420), OfficeLength.Points(36));
 
         PublisherTextStory currentStory = Assert.Single(document.TextStories, story => story.Id == storyId);
         string expectedText = heading + "\n" + body + (originalStory.Text.EndsWith("\n", StringComparison.Ordinal) ? "\n" : string.Empty);

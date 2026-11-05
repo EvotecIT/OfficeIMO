@@ -13,7 +13,7 @@ public sealed class PublisherNativeFrameLayoutTests {
         Assert.Equal(7.2, first.ColumnSpacing, 6);
         Assert.Equal(7.2, last.ColumnSpacing, 6);
 
-        document.SetTextFrameLayout(first.Id, 2, 0, first.Padding, first.VerticalAlignment);
+        document.SetTextFrameLayout(first.Id, 2, OfficeLength.Points(0), first.Padding, first.VerticalAlignment);
         PublisherDocument reopened = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         PublisherTextFrame actual = Assert.Single(reopened.Pages[0].TextFrames);
         Assert.Equal(2, actual.ColumnCount);
@@ -45,7 +45,7 @@ public sealed class PublisherNativeFrameLayoutTests {
             Alignment = (OfficeTextVerticalAlignment)(index % 3)
         }).ToArray();
         foreach (var value in expected)
-            document.SetTextFrameLayout(value.Id, value.Columns, value.Spacing, value.Padding, value.Alignment);
+            document.SetTextFrameLayout(value.Id, value.Columns, OfficeLength.Points(value.Spacing), value.Padding, value.Alignment);
         Assert.Throws<OfficeConversionException>(() => document.ToBytes());
         byte[] candidate = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument reopened = PublisherDocument.Load(candidate);
@@ -65,7 +65,7 @@ public sealed class PublisherNativeFrameLayoutTests {
             Assert.Equal(before.Streams[name], after.Streams[name]);
         Assert.Equal(source, File.ReadAllBytes(PublisherNativeTests.Fixture($"NativeComparison/{fixture}")));
         foreach (PublisherTextFrame original in frames)
-            reopened.SetTextFrameLayout(original.Id, original.ColumnCount, original.ColumnSpacing, original.Padding, original.VerticalAlignment);
+            reopened.SetTextFrameLayout(original.Id, original.ColumnCount, OfficeLength.Points(original.ColumnSpacing), original.Padding, original.VerticalAlignment);
         PublisherDocument reset = PublisherDocument.Load(reopened.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         foreach (PublisherTextFrame original in frames) {
             PublisherTextFrame frame = reset.Pages.Concat(reset.MasterPages).SelectMany(page => page.TextFrames).Single(item => item.Id == original.Id);
@@ -78,7 +78,7 @@ public sealed class PublisherNativeFrameLayoutTests {
     public void Native_layout_save_refuses_inexact_emu_values_instead_of_rounding_or_copying_source() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/Text/native-text.pub"));
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
-        document.SetTextFrameLayout(frame.Id, 2, 12, new OfficeTextPadding(0.5 / 12700, 0, 0, 0), OfficeTextVerticalAlignment.Top);
+        document.SetTextFrameLayout(frame.Id, 2, OfficeLength.Points(12), new OfficeTextPadding(0.5 / 12700, 0, 0, 0), OfficeTextVerticalAlignment.Top);
         var preparation = document.PrepareNativeBytes(64 * 1024 * 1024);
         Assert.False(preparation.IsPrepared);
         Assert.Contains(preparation.Diagnostics, diagnostic => diagnostic.Message.Contains("EMU"));
@@ -105,7 +105,7 @@ public sealed class PublisherNativeFrameLayoutTests {
         PublisherDocument document = PublisherDocument.Load(source);
         Assert.Equal(source, document.ToBytes());
         PublisherTextFrame frame = Assert.Single(document.Pages[0].TextFrames);
-        document.SetTextFrameLayout(frame.Id, frame.ColumnCount, frame.ColumnSpacing, frame.Padding, OfficeTextVerticalAlignment.Center);
+        document.SetTextFrameLayout(frame.Id, frame.ColumnCount, OfficeLength.Points(frame.ColumnSpacing), frame.Padding, OfficeTextVerticalAlignment.Center);
         PublisherNativePreparation result = document.PrepareNativeBytes(64 * 1024 * 1024);
         Assert.False(result.IsPrepared);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("relocation"));

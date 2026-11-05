@@ -34,14 +34,14 @@ public sealed class PublisherWrapEditingTests {
     public void Moving_square_wrapped_shape_and_picture_rebuilds_membership_and_can_return_to_exact_source() {
         byte[] source = Source("WrapObjectOrderOutside"); var d = PublisherDocument.Load(source); var before = d.Pages[0];
         Assert.Empty(Frame(d).WrapObjectIds);
-        d.SetShapeBounds(294, 180, 132, 72, 72); Assert.Equal(new uint[] { 294 }, Frame(d).WrapObjectIds);
-        d.SetPictureBounds(295, 144, 264, 96, 96); Assert.Equal(new uint[] { 294, 295 }, Frame(d).WrapObjectIds);
+        d.SetShapeBounds(294, OfficeLength.Points(180), OfficeLength.Points(132), OfficeLength.Points(72), OfficeLength.Points(72)); Assert.Equal(new uint[] { 294 }, Frame(d).WrapObjectIds);
+        d.SetPictureBounds(295, OfficeLength.Points(144), OfficeLength.Points(264), OfficeLength.Points(96), OfficeLength.Points(96)); Assert.Equal(new uint[] { 294, 295 }, Frame(d).WrapObjectIds);
         var loaded = PublisherDocument.Load(d.ToBytes(Allow()));
         Assert.Equal(new uint[] { 294, 295 }, Frame(loaded).WrapObjectIds);
         Assert.Equal(d.ToSvg(), loaded.ToSvg());
         Assert.Empty(before.TextFrames.Single(f => f.Id == 293).WrapObjectIds);
-        d.SetShapeBounds(294, 480, 132, 72, 72); Assert.Equal(new uint[] { 295 }, Frame(d).WrapObjectIds);
-        d.SetPictureBounds(295, 480, 264, 96, 96); Assert.Empty(Frame(d).WrapObjectIds);
+        d.SetShapeBounds(294, OfficeLength.Points(480), OfficeLength.Points(132), OfficeLength.Points(72), OfficeLength.Points(72)); Assert.Equal(new uint[] { 295 }, Frame(d).WrapObjectIds);
+        d.SetPictureBounds(295, OfficeLength.Points(480), OfficeLength.Points(264), OfficeLength.Points(96), OfficeLength.Points(96)); Assert.Empty(Frame(d).WrapObjectIds);
         Assert.Equal(source, d.ToBytes());
     }
 
@@ -49,17 +49,17 @@ public sealed class PublisherWrapEditingTests {
     public void Moving_the_text_frame_rebuilds_exclusions_without_changing_complete_stories() {
         var d = PublisherDocument.Load(Source("WrapObjectOrder")); var before = Frame(d);
         var stories = d.TextStories.Select(s => (s.Id, s.Text)).ToArray();
-        d.SetTextFrameBounds(293, 480, 72, 100, 504); Assert.Empty(Frame(d).WrapObjectIds);
+        d.SetTextFrameBounds(293, OfficeLength.Points(480), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(504)); Assert.Empty(Frame(d).WrapObjectIds);
         var loaded = PublisherDocument.Load(d.ToBytes(Allow())); Assert.Empty(Frame(loaded).WrapObjectIds);
         Assert.Equal(stories, loaded.TextStories.Select(s => (s.Id, s.Text)).ToArray());
         Assert.Equal(new uint[] { 294, 295 }, before.WrapObjectIds);
-        d.SetTextFrameBounds(293, 72, 72, 360, 504); Assert.Equal(new uint[] { 294, 295 }, Frame(d).WrapObjectIds);
+        d.SetTextFrameBounds(293, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(360), OfficeLength.Points(504)); Assert.Equal(new uint[] { 294, 295 }, Frame(d).WrapObjectIds);
     }
 
     [Fact]
     public void Wrap_reference_growth_composes_with_native_frame_layout_growth() {
         var d = PublisherDocument.Load(Source("WrapObjectOrderReversed"));
-        d.SetTextFrameLayout(293, 2, 12, new OfficeTextPadding(4, 5, 6, 7), OfficeTextVerticalAlignment.Center);
+        d.SetTextFrameLayout(293, 2, OfficeLength.Points(12), new OfficeTextPadding(4, 5, 6, 7), OfficeTextVerticalAlignment.Center);
         d.SetPageObjectOrder(d.Pages[0].Id, new uint[] { 293, 294, 295 });
         var loaded = PublisherDocument.Load(d.ToBytes(Allow()));
         Assert.Equal(new uint[] { 294, 295 }, Frame(loaded).WrapObjectIds);
@@ -89,15 +89,15 @@ public sealed class PublisherWrapEditingTests {
         Assert.Equal(new uint[] { 294, 295 }, Frame(d).WrapObjectIds);
         Assert.Throws<NotSupportedException>(() => d.SetPageObjectOrder(page.Id, new uint[] { 295, 294, 293 }));
         Assert.Same(page, d.Pages[0]); Assert.Equal(source, d.ToBytes());
-        d.SetShapeBounds(294, 480, 132, 72, 72);
+        d.SetShapeBounds(294, OfficeLength.Points(480), OfficeLength.Points(132), OfficeLength.Points(72), OfficeLength.Points(72));
         Assert.Throws<OfficeConversionException>(() => d.ToBytes(Allow()));
-        d.SetShapeBounds(294, 180, 132, 72, 72); Assert.Equal(source, d.ToBytes());
-        d.SetPictureBounds(295, 480, 264, 96, 96);
+        d.SetShapeBounds(294, OfficeLength.Points(180), OfficeLength.Points(132), OfficeLength.Points(72), OfficeLength.Points(72)); Assert.Equal(source, d.ToBytes());
+        d.SetPictureBounds(295, OfficeLength.Points(480), OfficeLength.Points(264), OfficeLength.Points(96), OfficeLength.Points(96));
         Assert.Throws<OfficeConversionException>(() => d.ToBytes(Allow()));
-        d.SetPictureBounds(295, 144, 264, 96, 96); Assert.Equal(source, d.ToBytes());
-        d.SetTextFrameBounds(293, 480, 72, 100, 504);
+        d.SetPictureBounds(295, OfficeLength.Points(144), OfficeLength.Points(264), OfficeLength.Points(96), OfficeLength.Points(96)); Assert.Equal(source, d.ToBytes());
+        d.SetTextFrameBounds(293, OfficeLength.Points(480), OfficeLength.Points(72), OfficeLength.Points(100), OfficeLength.Points(504));
         Assert.Throws<OfficeConversionException>(() => d.ToBytes(Allow()));
-        d.SetTextFrameBounds(293, 72, 72, 360, 504); Assert.Equal(source, d.ToBytes());
+        d.SetTextFrameBounds(293, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(360), OfficeLength.Points(504)); Assert.Equal(source, d.ToBytes());
     }
 
     private static PublisherTextFrame Frame(PublisherDocument d) => d.Pages[0].TextFrames.Single(f => f.Id == 293);

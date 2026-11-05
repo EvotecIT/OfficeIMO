@@ -13,7 +13,7 @@ public sealed class PublisherMultiParagraphCreationTests {
     public void Ordinary_multi_paragraph_creation_preserves_explicit_empty_typing_styles_and_complete_overflow(bool replace) {
         PublisherDocument document = AuthoredDocument();
         OfficeRichTextParagraph[] paragraphs = Paragraphs();
-        PublisherTextFrame frame = document.AddTextFrame(document.Pages[0].Id, 72, 72, 216, 72,
+        PublisherTextFrame frame = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(72),
             replace ? new[] { new OfficeRichTextParagraph(new[] { Run("Placeholder", 12, false) }, lineHeight: 18) } : paragraphs);
         if (replace) document.ReplaceStoryParagraphs(frame.StoryId, paragraphs);
         document.SetStoryAutomaticHyphenation(frame.StoryId, false);
@@ -41,10 +41,10 @@ public sealed class PublisherMultiParagraphCreationTests {
         uint masterId = Assert.Single(document.MasterPages).Id;
         document.AddPage(masterId); document.AddPage(masterId);
         OfficeRichTextParagraph[] paragraphs = Paragraphs();
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 72, 72, 216, 72, paragraphs);
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(72), paragraphs);
         document.SetStoryAutomaticHyphenation(first.StoryId, false);
-        PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, 72, 144, 216, 72);
-        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, 72, 216, 360, 108);
+        PublisherTextFrame middle = document.AddLinkedTextFrame(first.Id, document.Pages[2].Id, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(216), OfficeLength.Points(72));
+        document.AddLinkedTextFrame(middle.Id, document.Pages[1].Id, OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(360), OfficeLength.Points(108));
         Assert.Equal(CompleteText(paragraphs), Assert.Single(document.TextStories).Text);
         Assert.True(Assert.Single(document.Pages[1].TextFrames).HasOverflow);
         PublisherNativeCreationPlan plan = PublisherNativeCreationProjection.LinkedStories(document);
@@ -78,7 +78,7 @@ public sealed class PublisherMultiParagraphCreationTests {
     [InlineData("runs")]
     public void Ordinary_creation_projection_refuses_missing_paragraphs_or_explicit_runs(string missing) {
         PublisherDocument document = AuthoredDocument();
-        PublisherTextFrame frame = document.AddTextFrame(document.Pages[0].Id, 72, 72, 216, 72,
+        PublisherTextFrame frame = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(216), OfficeLength.Points(72),
             new[] { new OfficeRichTextParagraph(new[] { Run("Placeholder", 12, false) }, lineHeight: 18) });
         OfficeRichTextParagraph[] requested = missing == "paragraphs" ? Array.Empty<OfficeRichTextParagraph>()
             : new[] { new OfficeRichTextParagraph(Array.Empty<OfficeRichTextRun>(), lineHeight: 18) };
@@ -91,7 +91,7 @@ public sealed class PublisherMultiParagraphCreationTests {
     }
 
     private static PublisherDocument AuthoredDocument() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         return document;

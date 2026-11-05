@@ -9,15 +9,15 @@ namespace OfficeIMO.Reader.Tests;
 public sealed class ReaderPublisherAuthoringTests {
     [Fact]
     public void SourceFreePublicationProjectsCompleteStoriesAndCurrentTablesWithoutNativeRecoveryClaims() {
-        PublisherDocument document = PublisherDocument.Create(792, 612);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(792), OfficeLength.Points(612));
         PublisherPage master = document.AddMasterPage("Letterhead");
-        document.AddTextFrame(master.Id, 72, 24, 648, 24, Paragraphs("Publication header"));
+        document.AddTextFrame(master.Id, OfficeLength.Points(72), OfficeLength.Points(24), OfficeLength.Points(648), OfficeLength.Points(24), Paragraphs("Publication header"));
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         string body = string.Concat(Enumerable.Repeat("An authored story stays complete across fixed pages. ", 25));
-        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, 72, 72, 180, 36, Paragraphs(body));
+        PublisherTextFrame first = document.AddTextFrame(document.Pages[0].Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(180), OfficeLength.Points(36), Paragraphs(body));
         PublisherPage second = document.AddPage(master.Id);
-        document.AddLinkedTextFrame(first.Id, second.Id, 72, 72, 648, 420);
-        PublisherTable table = document.AddTable(second.Id, 72, 510, new[] { 120D, 90D }, new[] { 24D });
+        document.AddLinkedTextFrame(first.Id, second.Id, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(648), OfficeLength.Points(420));
+        PublisherTable table = document.AddTable(second.Id, OfficeLength.Points(72), OfficeLength.Points(510), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(90D) }, new OfficeLength[] { OfficeLength.Points(24D) });
         document.ReplaceTableCellParagraphs(table.Id, 0, 0, Paragraphs("Created value"));
         OfficeDocumentReadResult result = document.ToOfficeDocumentReadResult("authored.pub", new ReaderOptions { ComputeHashes = true, MaxChars = 256 });
         Assert.Contains("officeimo.reader.publisher", result.CapabilitiesUsed);

@@ -135,10 +135,10 @@ internal static class Program {
             double Number(int index) => double.Parse(args[index], NumberStyles.Float, CultureInfo.InvariantCulture);
             double x = Number(4), y = Number(5), width = Number(6), height = Number(7);
             PublisherPage[] pages = document.Pages.Concat(document.MasterPages).ToArray();
-            if (pages.SelectMany(page => page.TextFrames).Any(frame => frame.Id == id)) document.SetTextFrameBounds(id, x, y, width, height);
-            else if (pages.SelectMany(page => page.Pictures).Any(picture => picture.Id == id)) document.SetPictureBounds(id, x, y, width, height);
-            else if (pages.SelectMany(page => page.Shapes).Any(shape => shape.Id == id)) document.SetShapeBounds(id, x, y, width, height);
-            else if (pages.SelectMany(page => page.Tables).Any(table => table.Id == id)) document.SetTableBounds(id, x, y, width, height);
+            if (pages.SelectMany(page => page.TextFrames).Any(frame => frame.Id == id)) document.SetTextFrameBounds(id, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height));
+            else if (pages.SelectMany(page => page.Pictures).Any(picture => picture.Id == id)) document.SetPictureBounds(id, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height));
+            else if (pages.SelectMany(page => page.Shapes).Any(shape => shape.Id == id)) document.SetShapeBounds(id, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height));
+            else if (pages.SelectMany(page => page.Tables).Any(table => table.Id == id)) document.SetTableBounds(id, OfficeLength.Points(x), OfficeLength.Points(y), OfficeLength.Points(width), OfficeLength.Points(height));
             else throw new ArgumentException("The source has no placed object with that publication identifier.");
             if (args.Length == 9) {
                 if (args[8].Length != 6) throw new ArgumentException("A fill requires exactly six RGB hexadecimal digits.");
@@ -146,7 +146,7 @@ internal static class Program {
                 PublisherShape shape = document.Pages.Concat(document.MasterPages).SelectMany(page => page.Shapes).Single(item => item.Id == id);
                 OfficeShape prior = shape.CreateShape();
                 document.SetShapePaint(id, OfficeColor.FromRgb((byte)(rgb >> 16), (byte)(rgb >> 8), (byte)rgb),
-                    prior.StrokeColor, prior.StrokeWidth, prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
+                    prior.StrokeColor, OfficeLength.Points(prior.StrokeWidth), prior.FillOpacity ?? 1, prior.StrokeOpacity ?? 1);
             }
         }
         PublisherNativePreparation prepared = document.PrepareNativeBytes(64L * 1024 * 1024);

@@ -4,15 +4,22 @@ using OfficeIMO.Publisher.Internal;
 namespace OfficeIMO.Publisher;
 
 public sealed partial class PublisherDocument {
-    /// <summary>Creates an in-memory publication with one empty document page, no applied master and no native source. Dimensions use points and must be positive and finite.</summary>
+    /// <summary>Creates an in-memory publication with one empty document page, defaulting to A4 portrait, no applied master and no native source.</summary>
+    /// <remarks>Settings are copied. This supports semantic editing and rendering; source-free native PUB saving remains unsupported.</remarks>
+    public static PublisherDocument Create(PublisherCreateOptions? options = null, CancellationToken cancellationToken = default) {
+        PublisherCreateOptions settings = options ?? new PublisherCreateOptions();
+        return Create(settings.Width, settings.Height, settings, cancellationToken);
+    }
+
+    /// <summary>Creates an in-memory publication with one empty document page at the given positive physical dimensions, no applied master and no native source.</summary>
     /// <remarks>Options are copied and bound current pages, objects, stories, assets and projection work. Source evidence starts at zero. This provides SVG/PDF rendering and supported semantic editing; it does not provide native PUB saving.</remarks>
-    public static PublisherDocument Create(double width, double height, PublisherLoadOptions? options = null,
+    public static PublisherDocument Create(OfficeLength width, OfficeLength height, PublisherCreateOptions? options = null,
         CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Finite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (!Finite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
-        PublisherLoadOptions operation = (options ?? new PublisherLoadOptions()).Clone();
-        return PublisherModelState.Create(width, height, operation, cancellationToken).Project(cancellationToken);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width.ToEmus(), nameof(width));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height.ToEmus(), nameof(height));
+        PublisherLoadOptions operation = (options ?? new PublisherCreateOptions()).ToLoadOptions();
+        return PublisherModelState.Create(width.ToPoints(), height.ToPoints(), operation, cancellationToken).Project(cancellationToken);
     }
 
     /// <summary>Appends an empty document page at the publication's existing size. A null master identifier means no applied master. Returns the committed immutable page snapshot.</summary>
@@ -38,18 +45,16 @@ public sealed partial class PublisherDocument {
         Commit(model.SetPageMaster(pageId, masterPageId).Project(cancellationToken), cancellationToken);
     }
 
-    /// <summary>Appends an independent styled text frame and complete story to a qualified document or master page. Bounds use page-local points; dimensions must be positive and finite. Returns the committed immutable frame snapshot.</summary>
+    /// <summary>Appends an independent styled text frame and complete story to a qualified document or master page. Bounds are page-local physical lengths; dimensions must be positive. Returns the committed immutable frame snapshot.</summary>
     /// <remarks>The frame uses one column, zero gap and padding, top alignment, no fill or outline, and no transform or wrap references. Paragraphs are copied and carriage returns normalize to newlines; an empty collection creates an empty story. Ordinary authored stories have no implicit final terminator. Complete overflow remains in TextStories. Continue a document-page story with AddLinkedTextFrame. Limits, validation, cancellation or projection failure leave the publication and both reserved identifiers unchanged. Native PUB saving is not provided.</remarks>
-    public PublisherTextFrame AddTextFrame(uint pageId, double x, double y, double width, double height,
+    public PublisherTextFrame AddTextFrame(uint pageId, OfficeLength x, OfficeLength y, OfficeLength width, OfficeLength height,
         IReadOnlyList<OfficeRichTextParagraph> paragraphs, CancellationToken cancellationToken = default) {
         ArgumentNullException.ThrowIfNull(paragraphs);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!Finite(x)) throw new ArgumentOutOfRangeException(nameof(x));
-        if (!Finite(y)) throw new ArgumentOutOfRangeException(nameof(y));
-        if (!Finite(width) || width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
-        if (!Finite(height) || height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(width.ToEmus(), nameof(width));
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(height.ToEmus(), nameof(height));
         PublisherModelState model = _model ?? throw new NotSupportedException("This publication has no editable model.");
-        PublisherDocument candidate = model.AddTextFrame(pageId, x, y, width, height, paragraphs, cancellationToken, out uint id).Project(cancellationToken);
+        PublisherDocument candidate = model.AddTextFrame(pageId, x.ToPoints(), y.ToPoints(), width.ToPoints(), height.ToPoints(), paragraphs, cancellationToken, out uint id).Project(cancellationToken);
         PublisherTextFrame result = candidate.Pages.Concat(candidate.MasterPages).SelectMany(page => page.TextFrames).Single(frame => frame.Id == id);
         Commit(candidate, cancellationToken);
         return result;

@@ -22,7 +22,7 @@ public sealed class PublisherPictureCropTests {
         if (operation == "replace-and-resize") {
             replacement = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/PictureReplacement/native-picturereplacement-replacement.png"));
             document.ReplacePictureImage(original.Id, replacement);
-            document.SetPictureBounds(original.Id, 84, 132, 120, 84);
+            document.SetPictureBounds(original.Id, OfficeLength.Points(84), OfficeLength.Points(132), OfficeLength.Points(120), OfficeLength.Points(84));
         }
         var current = document.Pages[0].Pictures.Single(picture => picture.Id == original.Id);
         Assert.Equal(crop, current.Crop);
@@ -42,10 +42,10 @@ public sealed class PublisherPictureCropTests {
 
     [Fact]
     public void Source_free_crop_updates_the_scene_without_mutating_assets_neighbors_or_old_snapshots() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         byte[] bytes = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/Image/native-image.png"));
-        PublisherPicture original = document.AddImage(document.Pages[0].Id, bytes, 72, 144, 96, 96);
-        PublisherPicture neighbor = document.AddImage(document.Pages[0].Id, bytes, 216, 144, 96, 96);
+        PublisherPicture original = document.AddImage(document.Pages[0].Id, bytes, OfficeLength.Points(72), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
+        PublisherPicture neighbor = document.AddImage(document.Pages[0].Id, bytes, OfficeLength.Points(216), OfficeLength.Points(144), OfficeLength.Points(96), OfficeLength.Points(96));
         PublisherPage oldPage = document.Pages[0];
         string oldScene = OfficeDrawingSvgExporter.ToSvg(oldPage.CreateDrawing());
         document.SetPictureCrop(original.Id, Edges);

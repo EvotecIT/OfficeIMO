@@ -9,16 +9,16 @@ internal static class CandidateObjectPages {
         PublisherNativeCreationProjection.SingleMasterContent(Author(image), includePictureNames: false);
 
     internal static PublisherDocument Author(byte[] image) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         var rectangle = OfficeShape.Rectangle(144, 72);
         rectangle.FillColor = OfficeColor.FromRgb(255, 0, 0);
         rectangle.StrokeColor = null;
-        document.AddShape(document.Pages[0].Id, rectangle, 72, 216);
+        document.AddShape(document.Pages[0].Id, rectangle, OfficeLength.Points(72), OfficeLength.Points(216));
         document.AddPage(master.Id);
         PublisherPage last = document.AddPage(master.Id);
-        document.AddImage(last.Id, image, 330, 216, 96, 96);
+        document.AddImage(last.Id, image, OfficeLength.Points(330), OfficeLength.Points(216), OfficeLength.Points(96), OfficeLength.Points(96));
         return document;
     }
 }

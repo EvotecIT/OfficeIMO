@@ -7,8 +7,8 @@ public sealed class PublisherTableBoundsWritingTests {
     public void Repeated_table_resizing_accepts_the_final_exact_native_tracks() {
         PublisherDocument document = PublisherDocument.Load(PublisherNativeTests.Fixture("NativeComparison/TableCreation/native-tablecreation.pub"));
         PublisherTable table = document.Pages[0].Tables.Single();
-        document.SetTableBounds(table.Id, table.X, table.Y, 101, 96);
-        document.SetTableBounds(table.Id, table.X, table.Y, 200, 96);
+        document.SetTableBounds(table.Id, OfficeLength.Points(table.X), OfficeLength.Points(table.Y), OfficeLength.Points(101), OfficeLength.Points(96));
+        document.SetTableBounds(table.Id, OfficeLength.Points(table.X), OfficeLength.Points(table.Y), OfficeLength.Points(200), OfficeLength.Points(96));
         PublisherTable actual = PublisherDocument.Load(document.ToBytes(new PublisherSaveOptions { AllowLoss = true })).Pages[0].Tables.Single();
         Assert.Equal(200, actual.Width); Assert.Equal(new[] { 80D, 120D }, actual.ColumnWidths);
         Assert.Equal(new[] { 42D, 54D }, actual.RowHeights);
@@ -20,13 +20,13 @@ public sealed class PublisherTableBoundsWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TableCreation/native-tablecreation.pub"));
         PublisherDocument document = PublisherDocument.Load(source); PublisherTable table = document.Pages[0].Tables.Single();
         Assert.Empty(document.Pages[0].TextFrames.Single().WrapObjectIds);
-        document.SetTableBounds(table.Id, 180, 78, table.Width, table.Height);
+        document.SetTableBounds(table.Id, OfficeLength.Points(180), OfficeLength.Points(78), OfficeLength.Points(table.Width), OfficeLength.Points(table.Height));
         Assert.Equal(new[] { table.Id }, document.Pages[0].TextFrames.Single().WrapObjectIds);
         byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherDocument loaded = PublisherDocument.Load(output);
         Assert.Equal(new[] { table.Id }, loaded.Pages[0].TextFrames.Single().WrapObjectIds);
         Assert.Equal(document.TextStories.Select(s => (s.Id, s.Text)), loaded.TextStories.Select(s => (s.Id, s.Text)));
-        document.SetTableBounds(table.Id, table.X, table.Y, table.Width, table.Height);
+        document.SetTableBounds(table.Id, OfficeLength.Points(table.X), OfficeLength.Points(table.Y), OfficeLength.Points(table.Width), OfficeLength.Points(table.Height));
         Assert.Empty(document.Pages[0].TextFrames.Single().WrapObjectIds); Assert.Equal(source, document.ToBytes());
     }
 
@@ -40,7 +40,7 @@ public sealed class PublisherTableBoundsWritingTests {
         }, "NativeComparison/TableCreation/native-tablecreation.pub");
         PublisherDocument document = PublisherDocument.Load(source); Assert.Equal(source, document.ToBytes());
         PublisherTable table = document.Pages[0].Tables.Single();
-        document.SetTableBounds(table.Id, 180, 78, table.Width, table.Height);
+        document.SetTableBounds(table.Id, OfficeLength.Points(180), OfficeLength.Points(78), OfficeLength.Points(table.Width), OfficeLength.Points(table.Height));
         OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.ToBytes(new PublisherSaveOptions { AllowLoss = true }));
         Assert.Contains(error.Report.Diagnostics, d => d.Location == "Contents/page/" + table.PageId && d.LossKind == OfficeConversionLossKind.Failure);
     }
@@ -52,7 +52,7 @@ public sealed class PublisherTableBoundsWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TableCreation/native-tablecreation.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable before = document.Pages[0].Tables.Single();
-        document.SetTableBounds(before.Id, 78, 156, resize ? 270 : 300, resize ? 86.4 : 96);
+        document.SetTableBounds(before.Id, OfficeLength.Points(78), OfficeLength.Points(156), OfficeLength.Points(resize ? 270 : 300), OfficeLength.Points(resize ? 86.4 : 96));
         Assert.Throws<OfficeConversionException>(() => document.ToBytes());
         byte[] savedBytes = document.ToBytes(new PublisherSaveOptions { AllowLoss = true }, out PublisherSaveReport saveReport);
         Assert.Contains(saveReport.Diagnostics, d => d.Code == "PUB_NATIVE_TABLE_BOUNDS_UNQUALIFIED");
@@ -76,7 +76,7 @@ public sealed class PublisherTableBoundsWritingTests {
         byte[] source = File.ReadAllBytes(PublisherNativeTests.Fixture("NativeComparison/TableLabelWrapped/native-tablelabelwrapped.pub"));
         PublisherDocument document = PublisherDocument.Load(source);
         PublisherTable before = document.Pages[0].Tables.Single();
-        document.SetTableBounds(before.Id, before.X + 6, before.Y + 12, before.Width, before.Height);
+        document.SetTableBounds(before.Id, OfficeLength.Points(before.X + 6), OfficeLength.Points(before.Y + 12), OfficeLength.Points(before.Width), OfficeLength.Points(before.Height));
         byte[] output = document.ToBytes(new PublisherSaveOptions { AllowLoss = true });
         PublisherTable actual = PublisherDocument.Load(output).Pages[0].Tables.Single();
         Assert.Equal(before.X + 6, actual.X, 8); Assert.Equal(before.Y + 12, actual.Y, 8);
@@ -94,7 +94,7 @@ public sealed class PublisherTableBoundsWritingTests {
         PublisherDocument document = PublisherDocument.Load(source);
         Assert.Equal(source, document.ToBytes());
         PublisherTable table = document.Pages[0].Tables.Single();
-        document.SetTableBounds(table.Id, table.X, table.Y, expanded ? table.Width * .9 : table.Width + 1D / 3, table.Height * .9);
+        document.SetTableBounds(table.Id, OfficeLength.Points(table.X), OfficeLength.Points(table.Y), OfficeLength.Points(expanded ? table.Width * .9 : table.Width + 1D / 3), OfficeLength.Points(table.Height * .9));
         using var destination = new MemoryStream(new byte[] { 7, 11, 13 }); destination.Position = 1;
         OfficeConversionException error = Assert.Throws<OfficeConversionException>(() => document.Save(destination,
             new PublisherSaveOptions { AllowLoss = true }));

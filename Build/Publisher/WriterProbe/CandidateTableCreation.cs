@@ -47,12 +47,12 @@ internal static class CandidateTableCreation {
     }
 
     internal static PublisherDocument AuthorMerged() {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         uint page = document.Pages[0].Id;
         document.SetPageMaster(page, master.Id);
-        document.AddTextFrame(page, 72, 72, 300, 54, Paragraphs("Independent table label"));
-        PublisherTable table = document.AddTable(page, 72, 144, new[] { 90D, 110D, 130D, 150D }, new[] { 42D, 54D, 66D });
+        document.AddTextFrame(page, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(300), OfficeLength.Points(54), Paragraphs("Independent table label"));
+        PublisherTable table = document.AddTable(page, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(90D), OfficeLength.Points(110D), OfficeLength.Points(130D), OfficeLength.Points(150D) }, new OfficeLength[] { OfficeLength.Points(42D), OfficeLength.Points(54D), OfficeLength.Points(66D) });
         document.MergeTableCells(table.Id, 0, 0, 1, 2);
         document.MergeTableCells(table.Id, 1, 0, 2, 1);
         document.MergeTableCells(table.Id, 1, 2, 2, 2);
@@ -67,12 +67,12 @@ internal static class CandidateTableCreation {
     }
 
     internal static PublisherDocument Author(bool edited) {
-        PublisherDocument document = PublisherDocument.Create(612, 792);
+        PublisherDocument document = PublisherDocument.Create(OfficeLength.Points(612), OfficeLength.Points(792));
         PublisherPage master = document.AddMasterPage("Master Page A");
         document.SetPageMaster(document.Pages[0].Id, master.Id);
         uint pageId = document.Pages[0].Id;
-        document.AddTextFrame(pageId, 72, 72, 300, 54, Paragraphs("Independent table label"));
-        PublisherTable table = document.AddTable(pageId, 72, 144, new[] { 120D, 180D }, new[] { 42D, 54D });
+        document.AddTextFrame(pageId, OfficeLength.Points(72), OfficeLength.Points(72), OfficeLength.Points(300), OfficeLength.Points(54), Paragraphs("Independent table label"));
+        PublisherTable table = document.AddTable(pageId, OfficeLength.Points(72), OfficeLength.Points(144), new OfficeLength[] { OfficeLength.Points(120D), OfficeLength.Points(180D) }, new OfficeLength[] { OfficeLength.Points(42D), OfficeLength.Points(54D) });
         string[] values = { edited ? "Updated\nItem" : "Item", "Count", "Alpha", edited ? "7" : "" };
         for (int row = 0; row < 2; row++)
             for (int column = 0; column < 2; column++)

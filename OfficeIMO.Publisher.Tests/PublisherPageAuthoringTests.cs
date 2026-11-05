@@ -23,7 +23,7 @@ public sealed class PublisherPageAuthoringTests {
         Assert.Equal(first.Width, added.Width); Assert.Equal(first.Height, added.Height);
         Assert.Equal(originalSvg.Length + 1, document.Pages.Count);
         for (int index = 0; index < originalSvg.Length; index++) Assert.Equal(originalSvg[index], document.ToSvg(index));
-        PublisherTextFrame created = document.AddTextFrame(added.Id, 20, 30, 250, 50, PublisherAuthoringTests.Paragraphs("New physical page"));
+        PublisherTextFrame created = document.AddTextFrame(added.Id, OfficeLength.Points(20), OfficeLength.Points(30), OfficeLength.Points(250), OfficeLength.Points(50), PublisherAuthoringTests.Paragraphs("New physical page"));
         Assert.Same(created, Assert.Single(document.Pages[document.Pages.Count - 1].TextFrames));
         Assert.True(document.Pages[0].HasNativeOrigin); Assert.False(document.Pages[document.Pages.Count - 1].HasNativeOrigin);
         Assert.Same(source, document.SourceReadReport); Assert.Equal(source.SourceObjectCount, document.ReadReport.SourceObjectCount);
@@ -87,12 +87,12 @@ public sealed class PublisherPageAuthoringTests {
             Assert.Empty(added.TextFrames); Assert.True(master.HasNativeOrigin); Assert.False(added.HasNativeOrigin);
         }
         PublisherPage created = document.AddMasterPage("Centered authored master");
-        PublisherTextFrame centered = document.AddTextFrame(created.Id, 22, 32, 200, 30, PublisherAuthoringTests.Paragraphs("Centered marker"));
+        PublisherTextFrame centered = document.AddTextFrame(created.Id, OfficeLength.Points(22), OfficeLength.Points(32), OfficeLength.Points(200), OfficeLength.Points(30), PublisherAuthoringTests.Paragraphs("Centered marker"));
         document.SetPageMaster(originals[0].Id, created.Id);
         OfficeDrawingRichText paint = Marker(document.Pages[0], centered.Id);
         Assert.Equal(22, paint.X); Assert.Equal(32, paint.Y);
         Assert.False(document.MasterPages.Single(master => master.Id == created.Id).HasNativeOrigin);
-        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(centered.Id, originals[0].Id, 20, 70, 200, 30));
+        Assert.Throws<NotSupportedException>(() => document.AddLinkedTextFrame(centered.Id, originals[0].Id, OfficeLength.Points(20), OfficeLength.Points(70), OfficeLength.Points(200), OfficeLength.Points(30)));
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public sealed class PublisherPageAuthoringTests {
         Assert.Throws<NotSupportedException>(() => document.SetPageMaster(page, master));
         if (variant != "page-background") Assert.Throws<NotSupportedException>(() => document.AddPage(master));
         if (variant == "unqualified-master")
-            Assert.Throws<NotSupportedException>(() => document.AddTextFrame(master, 12, 12, 100, 30, PublisherAuthoringTests.Paragraphs("Unqualified")));
+            Assert.Throws<NotSupportedException>(() => document.AddTextFrame(master, OfficeLength.Points(12), OfficeLength.Points(12), OfficeLength.Points(100), OfficeLength.Points(30), PublisherAuthoringTests.Paragraphs("Unqualified")));
         Assert.Same(pages, document.Pages); Assert.Same(masters, document.MasterPages); Assert.Same(source, document.SourceReadReport);
         Assert.Equal(before, document.ToSvg()); Assert.NotEmpty(document.ReadReport.Diagnostics);
     }
