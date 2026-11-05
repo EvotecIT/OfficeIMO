@@ -321,7 +321,7 @@ namespace OfficeIMO.Tests {
 
                 using (PowerPointDocument presentation = PowerPointDocument.Load(filePath)) {
                     Assert.Equal(PowerPointSlideTransition.Flash, presentation.Slides[0].Transition);
-                    Assert.Equal("112233", presentation.Slides[0].BackgroundColor);
+                    Assert.Equal(OfficeColor.Parse("112233"), presentation.Slides[0].BackgroundColor);
                     Assert.Equal("Updated notes", presentation.Slides[0].Notes.Text);
                     Assert.Equal(PowerPointSlideTransition.None, presentation.Slides[1].Transition);
                     Assert.Equal("Cleared transition notes", presentation.Slides[1].Notes.Text);

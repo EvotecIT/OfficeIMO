@@ -69,7 +69,8 @@ public sealed class OneNoteVisualPdfLifecycleTests {
         var notebook = new OneNoteNotebook();
         notebook.Sections.Add(section);
         var options = new OneNoteVisualPdfExportOptions { RasterScale = 0.1D };
-        byte[] bytes = notebookSource ? notebook.ToVisualPdfoptions.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true }) : section.ToVisualPdfoptions.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        using PdfDocument converted = notebookSource ? notebook.ToVisualPdf(options) : section.ToVisualPdf(options);
+        byte[] bytes = converted.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         using var stream = new MemoryStream(bytes);
         PdfDocument document = PdfDocument.Load(stream);

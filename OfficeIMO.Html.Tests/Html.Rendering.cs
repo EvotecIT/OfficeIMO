@@ -105,7 +105,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<p>Resolved image</p><img src='https://assets.example.test/logo.png' width='50' height='30' alt='logo'>",
             options);
-        string svg = await HtmlConversionDocument.Parse("<img src='https://assets.example.test/logo.png' width='50' height='30' alt='logo'>").ToSvgAsync(options);
+        string svg = (await HtmlConversionDocument.Parse("<img src='https://assets.example.test/logo.png' width='50' height='30' alt='logo'>").ToSvgAsync(options)).Value;
 
         Assert.Equal(2, calls);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual is HtmlRenderImage image && image.ContentType == "image/png" && image.Bytes.Length == imageBytes.Length);

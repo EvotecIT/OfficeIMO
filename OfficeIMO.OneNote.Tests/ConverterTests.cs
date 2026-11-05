@@ -339,7 +339,7 @@ public sealed class ConverterTests {
             PdfOptions = new PdfCreateOptions().SetEncryption("open", "owner")
         };
 
-        byte[] bytes = section.ToVisualPdfoptions.ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
+        byte[] bytes = section.ToVisualPdf(options).ToBytes(new OfficeIMO.Pdf.PdfSaveOptions { AllowLoss = true });
 
         Assert.Throws<PdfPasswordRequiredException>(() => PdfDocument.Load(new System.IO.MemoryStream(bytes)).Inspect());
         Assert.Throws<PdfInvalidPasswordException>(() =>

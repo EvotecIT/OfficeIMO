@@ -4,9 +4,9 @@ using OfficeIMO.IWork;
 
 internal static class NativePagesMixedSizeListSmoke {
     internal static void Run() {
-        var document = Example(); byte[] bytes = document.SaveBytes();
+        var document = Example(); byte[] bytes = document.ToBytes();
         Require(bytes.Length == 20751 && Hash(bytes) == "D423D6688E3B6EDBE6A1AD0A0B34BABE257232EAD2ED3D2A5154AE8679D98DC2"
-            && bytes.SequenceEqual(document.SaveBytes()), "Mixed-size creation differs from the Apple-accepted package.");
+            && bytes.SequenceEqual(document.ToBytes()), "Mixed-size creation differs from the Apple-accepted package.");
         NativePagesMixedFontListSmoke.Verify(bytes, false, Sizes);
         foreach (var (name, hash, edited) in new[] {
             ("oracle", "790E81E27F3D4FB35CD24955D25F4E886B85DA8D767B22E0EAE4B120530D0635", false),
@@ -20,8 +20,8 @@ internal static class NativePagesMixedSizeListSmoke {
         foreach (float defaultSize in new[] { 12f, 14f }) {
             var model = IWorkPagesDocument.Create();
             model.CreateNumberedList(fontSizePoints: defaultSize).AddRichItem(Runs("Same body", 18, 8, 14));
-            byte[] encoded = model.SaveBytes();
-            Require(IWorkSourceDocument.Open(encoded).ReadPages().Body.Paragraphs[0].Style.TextStyle.FontSizePoints == defaultSize,
+            byte[] encoded = model.ToBytes();
+            Require(IWorkSourceDocument.Load(encoded).ReadPages().Body.Paragraphs[0].Style.TextStyle.FontSizePoints == defaultSize,
                 "Mixed-size paragraph default changed.");
             using var package = new ZipArchive(new MemoryStream(encoded));
             using var identifier = new StreamReader(package.GetEntry("Metadata/DocumentIdentifier")!.Open());
@@ -33,7 +33,7 @@ internal static class NativePagesMixedSizeListSmoke {
             list.AddRichItem(new[] { new IWorkTextRunData("Fractional", "Arial", 14.5f) }, restartAt: 100);
             throw new InvalidOperationException("Fractional numbered run bypassed the qualification boundary.");
         } catch (ArgumentException) { }
-        Require(bytes.SequenceEqual(document.SaveBytes()) && list.AddItem("Next child", level: 1).ListNumber == 3,
+        Require(bytes.SequenceEqual(document.ToBytes()) && list.AddItem("Next child", level: 1).ListNumber == 3,
             "Fractional-size rejection changed native bytes or counters.");
         Console.WriteLine("PASS | native Pages mixed whole-point sizes | first-run markers, default em indents, deterministic identity, Apple edit/insertion/reopen and strict DOCX paragraph marks");
     }

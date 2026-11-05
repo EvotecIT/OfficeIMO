@@ -5,11 +5,11 @@ using OfficeIMO.Word.IWork;
 
 internal static class NativePagesThirdLevelSmoke {
     internal static void Run() {
-        byte[] bytes = Example().SaveBytes();
+        byte[] bytes = Example().ToBytes();
         Require(bytes.Length == 13763 && Convert.ToHexString(SHA256.HashData(bytes))
             == "50A5285D449DA02EEF7682A6A18B1F7103F6192304CC1F3173C52CAC5576F775",
             "Third-level creation differs from the independently decoded Apple-accepted input.");
-        Require(bytes.SequenceEqual(Example().SaveBytes()), "Third-level creation is nondeterministic.");
+        Require(bytes.SequenceEqual(Example().ToBytes()), "Third-level creation is nondeterministic.");
         int[] expected = [7, 1, 1, 2, 3, 2, 1, 5, 3, 6, 8, 1, 1, 4, 1, 1];
         VerifySavedWord(bytes, expected);
         byte[] edited = File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "pages-third-level-edited.pages"));
@@ -20,7 +20,7 @@ internal static class NativePagesThirdLevelSmoke {
     }
 
     private static void VerifySavedWord(byte[] bytes, int[] expected) {
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Require(projection.Body.IsFormattingComplete && projection.Diagnostics.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.SourceDeclarationIssues.Count == 0,
             "Third-level source contains unqualified declarations.");

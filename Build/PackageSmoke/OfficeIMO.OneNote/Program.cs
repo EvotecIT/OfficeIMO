@@ -20,10 +20,15 @@ page.DirectContent.Add(new OneNoteEmbeddedFile {
 });
 section.Pages.Add(page);
 
-byte[] sectionBytes = OneNoteSectionWriter.Write(section);
-OneNoteSection reopened = OneNoteSectionReader.Read(new MemoryStream(sectionBytes));
+using var sectionStream = new MemoryStream();
+section.Save(sectionStream);
+sectionStream.Position = 0;
+using OneNoteSection reopened = OneNoteSection.Load(sectionStream);
 reopened.Pages[0].Title = "Edited packed page";
-OneNoteSection edited = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(reopened)));
+using var editedStream = new MemoryStream();
+reopened.Save(editedStream);
+editedStream.Position = 0;
+using OneNoteSection edited = OneNoteSection.Load(editedStream);
 if (!string.Equals(edited.Pages[0].Title, "Edited packed page", StringComparison.Ordinal)) {
     throw new InvalidOperationException("The packed core package failed native write/edit/read validation.");
 }

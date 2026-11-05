@@ -303,9 +303,9 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetColumnHidden(4, true);
                 summary.Cell(2, 4).SetValue("HiddenColumnValue");
                 summary.SetRowHidden(8, true);
-                summary.Cell(2, 1).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
-                summary.Cell(2, 2).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
-                summary.Cell(2, 3).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, "445566");
+                summary.Cell(2, 1).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, OfficeColor.Parse("445566"));
+                summary.Cell(2, 2).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, OfficeColor.Parse("445566"));
+                summary.Cell(2, 3).SetBorder(OfficeIMO.Excel.ExcelBorderStyle.Thin, OfficeColor.Parse("445566"));
                 summary.Cell(3, 2).SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
                 summary.Cell(4, 2).SetHorizontalAlignment(OfficeIMO.Excel.ExcelHorizontalAlignment.Right);
                 summary.PageSetup.Header.Left.Text = "Daily Excel";

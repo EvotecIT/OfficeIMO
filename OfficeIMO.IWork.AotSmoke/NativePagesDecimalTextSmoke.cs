@@ -12,24 +12,24 @@ internal static class NativePagesDecimalTextSmoke {
         edit.SetPagesBodyParagraphText(id, 4, "Grandchild six");
         edit.SetPagesBodyParagraphText(id, 12, "Updated grandchild six");
         var options = new IWorkNativeSaveOptions { AllowUnassessedVisualCaches = true };
-        var output = edit.SaveBytesResult(options);
-        Require(Convert.ToHexString(SHA256.HashData(output.GetPackageBytes()))
+        byte[] output = edit.ToBytes(out var report, options);
+        Require(Convert.ToHexString(SHA256.HashData(output))
             == "8E20D81E90F339CE7E7ACBC63D89A76F9B17CB8B656D9433F656865BE3D76AB7"
-            && output.Report.UpdatedRecords.Count == 1 && body.Paragraphs[1].Text == "Parent seven",
+            && report.UpdatedRecords.Count == 1 && body.Paragraphs[1].Text == "Parent seven",
             "Decimal-item edit differs from independent/native proof or immutable source.");
-        Check(IWorkSourceDocument.Open(output.GetPackageBytes()), "Edited seven");
+        Check(IWorkSourceDocument.Load(output), "Edited seven");
         var native = Open("pages-decimal-edited.pages");
         Require(Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "pages-decimal-edited.pages"))))
             == "4E9BE6834D5544DEC4605DA1027CF7E448974657BB66E4F15AFDD2798A58501F", "Native-resaved decimal input changed.");
         Check(native, "Native seven");
-        byte[] before = output.GetPackageBytes(); using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
+        byte[] before = output; using var cancellation = new CancellationTokenSource(); cancellation.Cancel();
         try { edit.SetPagesBodyParagraphText(id, 4, "Grandchild one", cancellation.Token); throw new Exception("Decimal edit ignored cancellation."); }
-        catch (OperationCanceledException) { Require(before.SequenceEqual(edit.SaveBytes(options)), "Cancelled decimal edit changed pending values."); }
+        catch (OperationCanceledException) { Require(before.SequenceEqual(edit.ToBytes(options)), "Cancelled decimal edit changed pending values."); }
         try { edit.SetPagesBodyParagraphText(id, 4, "Short"); throw new Exception("Unsupported decimal length accepted."); }
-        catch (NotSupportedException) { Require(before.SequenceEqual(edit.SaveBytes(options)), "Rejected decimal edit changed pending values."); }
+        catch (NotSupportedException) { Require(before.SequenceEqual(edit.ToBytes(options)), "Rejected decimal edit changed pending values."); }
         foreach (int paragraph in new[] { 2, 3, 4, 12 }) edit.SetPagesBodyParagraphText(id, paragraph, body.Paragraphs[paragraph - 1].Text);
-        var restored = edit.SaveBytesResult();
-        Require(restored.Report.UpdatedRecords.Count == 0 && restored.Report.OutputPackageContentHash == source.ComputePackageContentHash(),
+        _ = edit.ToBytes(out var restoredReport);
+        Require(restoredReport.UpdatedRecords.Count == 0 && restoredReport.OutputPackageContentHash == source.ComputePackageContentHash(),
             "Restoring decimal text did not restore original native bytes.");
         Console.WriteLine("PASS | native Pages decimal-item editing | four exact UTF-8 ranges, levels0..2, preserved numbering/indents/unknown bytes, Apple edit/reopen, saved DOCX, cancellation, length rejection and restoration");
     }
@@ -48,6 +48,6 @@ internal static class NativePagesDecimalTextSmoke {
             "Saved DOCX decimal counters changed.");
     }
 
-    private static IWorkSourceDocument Open(string name) => IWorkSourceDocument.Open(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, name)));
+    private static IWorkSourceDocument Open(string name) => IWorkSourceDocument.Load(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, name)));
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }
 }

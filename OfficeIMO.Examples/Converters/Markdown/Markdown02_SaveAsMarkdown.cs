@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word.Converters {
             paragraph.AddText(" and ");
             paragraph.AddText("italic text").Italic = true;
             paragraph.AddText(", ");
-            paragraph.AddText("strikethrough").Strike = true;
+            paragraph.AddText("strikethrough").Strikethrough = true;
             paragraph.AddText(", and inline ");
             var codeFont = WordFontResolver.Resolve("monospace") ?? "Consolas";
             paragraph.AddText("code").SetFontFamily(codeFont);

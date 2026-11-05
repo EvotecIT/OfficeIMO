@@ -10,7 +10,7 @@ internal static class OperationalTrends {
         var sheet = document.AddSheet("Weekly trend");
         sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(26)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(24)); sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(24)); sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(22));
         sheet.Range("A1:D1").Merge(); sheet.Cell(1, 1).SetValue("Support workload over six weeks");
-        sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+        sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
         string[] headers = { "Week", "Received", "Resolved", "Net change" };
         for (int column = 1; column <= 4; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
         int[] received = { 82, 95, 88, 105, 97, 91 }, resolved = { 79, 90, 94, 98, 104, 100 };

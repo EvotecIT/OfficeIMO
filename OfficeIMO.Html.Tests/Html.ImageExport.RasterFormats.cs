@@ -76,9 +76,9 @@ public sealed partial class HtmlRenderingTests {
         using var tiff = new MemoryStream();
         using var webp = new MemoryStream();
 
-        OfficeImageExportResult jpegResult = document.ExportImageOfficeImageExportFormat.Jpeg.Save(jpeg);
+        OfficeImageExportResult jpegResult = document.ExportImage(OfficeImageExportFormat.Jpeg).Save(jpeg);
         OfficeImageExportResult tiffResult = await (await document.ExportImageAsync(OfficeImageExportFormat.Tiff)).SaveAsync(tiff);
-        OfficeImageExportResult webpResult = document.ExportImageOfficeImageExportFormat.Webp.Save(webp);
+        OfficeImageExportResult webpResult = document.ExportImage(OfficeImageExportFormat.Webp).Save(webp);
 
         Assert.True(jpeg.CanWrite);
         Assert.True(tiff.CanWrite);

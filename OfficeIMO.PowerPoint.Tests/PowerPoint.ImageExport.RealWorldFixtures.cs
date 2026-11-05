@@ -125,12 +125,12 @@ namespace OfficeIMO.Tests {
                 PowerPointTableCell region = table.GetCell(row, 0);
                 region.Text = regions[row];
                 region.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-                region.FillColor = row % 2 == 0 ? "F8FAFC" : "EEF2FF";
+                region.FillColor = OfficeColor.Parse(row % 2 == 0 ? "F8FAFC" : "EEF2FF");
 
                 PowerPointTableCell value = table.GetCell(row, 1);
                 value.Text = values[row];
                 value.FontSize = global::OfficeIMO.OfficeLength.Points(8);
-                value.FillColor = row % 2 == 0 ? "F8FAFC" : "EEF2FF";
+                value.FillColor = OfficeColor.Parse(row % 2 == 0 ? "F8FAFC" : "EEF2FF");
             }
 
             var data = new PowerPointChartData(
@@ -182,12 +182,12 @@ namespace OfficeIMO.Tests {
         private static void AddMetricCard(PowerPointSlide slide, string label, string value, string color, double left, double top) {
             PowerPointAutoShape card = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(86), OfficeIMO.OfficeLength.Points(46));
             card.FillColor = OfficeColor.Parse("F8FAFC");
-            card.OutlineColor = color;
+            card.OutlineColor = OfficeColor.Parse(color);
             card.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
             PowerPointAutoShape accent = slide.AddRectangle(OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(4), OfficeIMO.OfficeLength.Points(46));
-            accent.FillColor = color;
-            accent.OutlineColor = color;
+            accent.FillColor = OfficeColor.Parse(color);
+            accent.OutlineColor = OfficeColor.Parse(color);
             accent.OutlineWidth = global::OfficeIMO.OfficeLength.Points(0D);
 
             PowerPointTextBox labelBox = slide.AddTextBox(label,global::OfficeIMO.OfficeLength.Points(left + 8),global::OfficeIMO.OfficeLength.Points(top + 7),global::OfficeIMO.OfficeLength.Points(68),global::OfficeIMO.OfficeLength.Points(12));
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
 
         private static void AddProcessNode(PowerPointSlide slide, string label, string color, double left, double top) {
             PowerPointAutoShape node = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(left), OfficeIMO.OfficeLength.Points(top), OfficeIMO.OfficeLength.Points(66), OfficeIMO.OfficeLength.Points(36));
-            node.FillColor = color;
+            node.FillColor = OfficeColor.Parse(color);
             node.OutlineColor = OfficeColor.Parse("0F172A");
             node.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1D);
 

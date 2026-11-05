@@ -517,7 +517,7 @@ internal static class MarkupCommand {
             ? null
             : new OfficeMarkupResolvedStyleDto {
                 Name = style.Name,
-                FontName = style.FontName,
+                FontName = style.FontFamily,
                 FontSize = style.FontSize,
                 Bold = style.Bold,
                 Italic = style.Italic,

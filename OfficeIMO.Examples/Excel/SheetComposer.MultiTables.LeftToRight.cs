@@ -189,15 +189,15 @@ namespace OfficeIMO.Examples.Excel
                     v.NumericColumnDecimals["C2"] = 0;
                     v.NumericColumnDecimals["C3"] = 0;
                     v.NumericColumnDecimals["C4"] = 0;
-                    v.TextBackgrounds["C5"] = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                    v.TextBackgrounds["C5"] = new System.Collections.Generic.Dictionary<string, OfficeColor>(System.StringComparer.OrdinalIgnoreCase)
                     {
                         {
                             "ok",
-                            "#D1E7DD"
+                            OfficeColor.Parse("#D1E7DD")
                         },
                         {
                             "warn",
-                            "#FFF4CE"
+                            OfficeColor.Parse("#FFF4CE")
                         }
                     };
                 }).Range!;
@@ -499,15 +499,15 @@ namespace OfficeIMO.Examples.Excel
                             v.NumericColumnDecimals["C2"] = 0;
                             v.NumericColumnDecimals["C3"] = 0;
                             v.NumericColumnDecimals["C4"] = 0;
-                            v.TextBackgrounds["C5"] = new System.Collections.Generic.Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase)
+                            v.TextBackgrounds["C5"] = new System.Collections.Generic.Dictionary<string, OfficeColor>(System.StringComparer.OrdinalIgnoreCase)
                             {
                                 {
                                     "ok",
-                                    "#D1E7DD"
+                                    OfficeColor.Parse("#D1E7DD")
                                 },
                                 {
                                     "warn",
-                                    "#FFF4CE"
+                                    OfficeColor.Parse("#FFF4CE")
                                 }
                             };
                         }).Range!;

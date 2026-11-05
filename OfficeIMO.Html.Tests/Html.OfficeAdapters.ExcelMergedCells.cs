@@ -107,7 +107,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
         ExcelRichTextRun run = Assert.Single(Assert.Single(imported.Sheets).Cell(1, 1).GetRichText());
 
         Assert.Contains("A;B", html, StringComparison.Ordinal);
-        Assert.Equal("A;B", run.FontName);
+        Assert.Equal("A;B", run.FontFamily);
         Assert.True(run.Bold);
     }
 

@@ -18,13 +18,13 @@ internal static class NativePagesWriterSmoke {
         document.AddParagraph("");
         for (int index = 1; index <= 80; index++)
             document.AddParagraph("Paragraph " + index.ToString("00", CultureInfo.InvariantCulture) + ": the body flows over pages with editable text.");
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256 && bytes.Length == 47_534,
             "The NativeAOT Pages creator differs from the independently decoded Apple-accepted package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "Pages creation is not deterministic.");
+        Require(bytes.SequenceEqual(document.ToBytes()), "Pages creation is not deterministic.");
         using var destination = new MemoryStream(); document.Save(destination);
         Require(destination.CanWrite && bytes.SequenceEqual(destination.ToArray()), "Pages stream save differs or closes its caller.");
-        IWorkPagesProjection projection = IWorkSourceDocument.Open(new MemoryStream(bytes)).ReadPages();
+        IWorkPagesProjection projection = IWorkSourceDocument.Load(new MemoryStream(bytes)).ReadPages();
         Require(projection.Paragraphs.Count == 84 && projection.Paragraphs[2] == ""
             && projection.Paragraphs[82] == "Paragraph 80: the body flows over pages with editable text."
             && projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0,
@@ -34,7 +34,7 @@ internal static class NativePagesWriterSmoke {
             && runs[1].Style is { Bold: false, Italic: false, Underline: false, Strikethrough: false }
             && runs[1].Style!.FontSizePoints == 12 && runs[2].Style!.FontName == "Times New Roman",
             "Pages Unicode ranges or formatting resets differ.");
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var saved = new MemoryStream(); converted.Value.Save(saved); saved.Position = 0;
         using var reopened = WordDocument.Load(saved);

@@ -16,7 +16,7 @@ internal static partial class NativeAdapters {
         OfficeRenderingProfile profile, CancellationToken token) {
         switch (contract.Format) {
             case "one": {
-                var document = OneNoteSectionReader.Read(source);
+                var document = OneNoteSection.Load(source);
                 var imageOptions = Images<OneNotePageBatchRenderingOptions>(suite, profile);
                 imageOptions.DefaultFont = new OfficeFontInfo(suite.FontFamily, 11D);
                 var pdfOptions = new OneNoteVisualPdfExportOptions {

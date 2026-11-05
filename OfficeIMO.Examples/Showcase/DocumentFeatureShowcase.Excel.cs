@@ -18,10 +18,10 @@ internal static partial class DocumentFeatureShowcase {
         sheet.Cell(1, 1).SetValue(title);
         sheet.Cell(1, 1).SetBold(true);
         sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
-        sheet.Cell(1, 1).SetFontColor("17365D");
+        sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
         sheet.Range("A2:F2").Merge();
         sheet.Cell(2, 1).SetValue(subtitle);
-        sheet.Cell(2, 1).SetFontColor("526179");
+        sheet.Cell(2, 1).SetColor(OfficeColor.Parse("526179"));
         for (int column = 1; column <= 6; column++) {
             sheet.SetColumnWidth(column, ExcelColumnWidth.Characters(column == 1 ? 24 : 17));
         }
@@ -32,8 +32,8 @@ internal static partial class DocumentFeatureShowcase {
         for (int column = 0; column < headers.Length; column++) {
             sheet.Cell(4, column + 1).SetValue(headers[column]);
             sheet.Cell(4, column + 1).SetBold(true);
-            sheet.Cell(4, column + 1).SetFillColor("17365D");
-            sheet.Cell(4, column + 1).SetFontColor("FFFFFF");
+            sheet.Cell(4, column + 1).SetFillColor(OfficeColor.Parse("17365D"));
+            sheet.Cell(4, column + 1).SetColor(OfficeColor.Parse("FFFFFF"));
         }
     }
 
@@ -59,8 +59,8 @@ internal static partial class DocumentFeatureShowcase {
             sheet.Cell(row, 3).SetValue(17500 + index * 1400).SetNumberFormat("#,##0");
             sheet.Cell(row, 4).SetFormula($"B{row}-C{row}");
             sheet.Cell(row, 5).SetFormula($"D{row}/B{row}");
-            sheet.Cell(row, 4).SetFillColor("E8F4EC");
-            sheet.Cell(row, 5).SetFillColor("E8F4EC");
+            sheet.Cell(row, 4).SetFillColor(OfficeColor.Parse("E8F4EC"));
+            sheet.Cell(row, 5).SetFillColor(OfficeColor.Parse("E8F4EC"));
             sheet.Cell(row, 4).SetNumberFormat("#,##0");
             sheet.Cell(row, 5).SetNumberFormat("0.0%");
         }

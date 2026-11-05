@@ -2436,8 +2436,8 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.SetColumnWidth(3, ExcelColumnWidth.Characters(12));
             sheet.SetColumnWidth(4, ExcelColumnWidth.Characters(14));
             sheet.SetColumnWidth(5, ExcelColumnWidth.Characters(16));
-            sheet.Range("B4:B7").ConditionalFormat().ColorScale("FFFFF2CC", "FF70AD47");
-            sheet.Range("C4:C7").ConditionalFormat().DataBar("FF5B9BD5");
+            sheet.Range("B4:B7").ConditionalFormat().ColorScale(OfficeColor.Parse("FFF2CC"), OfficeColor.Parse("70AD47"));
+            sheet.Range("C4:C7").ConditionalFormat().DataBar(OfficeColor.Parse("5B9BD5"));
             sheet.AddImage(10, 1, PdfPngTestImages.CreateRgbPng(2, 2), new OfficeIMO.Excel.ExcelImageOptions {
                 ContentType = "image/png",
                 Width = OfficeIMO.OfficeLength.Pixels(36),
@@ -2476,7 +2476,7 @@ public sealed class PdfConversionScenarioManifestTests {
         presentation.SetThemeColor(PowerPointThemeColor.Accent1, "1D4ED8");
         presentation.SetThemeColor(PowerPointThemeColor.Accent2, "16A34A");
         PowerPointSlide slide = presentation.AddSlide();
-        slide.SetBackgroundGradient("172554", "38BDF8", 35D);
+        slide.SetBackgroundGradient(OfficeColor.Parse("172554"), OfficeColor.Parse("38BDF8"), 35D);
         PowerPointTextBox title = slide.AddTextBox("Layout Theme Group Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(8),global::OfficeIMO.OfficeLength.Points(220),global::OfficeIMO.OfficeLength.Points(34));
         title.FontSize = global::OfficeIMO.OfficeLength.Points(14);
         title.Color = OfficeColor.Parse("FFFFFF");
@@ -2484,12 +2484,12 @@ public sealed class PdfConversionScenarioManifestTests {
         marker.FontSize = global::OfficeIMO.OfficeLength.Points(9);
         marker.Color = OfficeColor.Parse("0F172A");
         PowerPointAutoShape preset = slide.AddShape(OfficeIMO.Drawing.OfficePresetShapeType.Triangle, OfficeIMO.OfficeLength.Points(176), OfficeIMO.OfficeLength.Points(44), OfficeIMO.OfficeLength.Points(36), OfficeIMO.OfficeLength.Points(36));
-        preset.FillColor = "1F4E79";
-        preset.OutlineColor = "1F4E79";
+        preset.FillColor = OfficeColor.Parse("1F4E79");
+        preset.OutlineColor = OfficeColor.Parse("1F4E79");
         PowerPointAutoShape first = slide.AddRectangle(OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
-        first.FillColor = "FF0000";
+        first.FillColor = OfficeColor.Parse("FF0000");
         PowerPointAutoShape second = slide.AddRectangle(OfficeIMO.OfficeLength.Points(60), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(30), OfficeIMO.OfficeLength.Points(20));
-        second.FillColor = "00AA00";
+        second.FillColor = OfficeColor.Parse("00AA00");
         slide.GroupShapes(new PowerPointShape[] { first, second }, "Dashboard group");
         DocumentFormat.OpenXml.Presentation.GroupShape group = slide.SlidePart.Slide!.CommonSlideData!.ShapeTree!
             .Elements<DocumentFormat.OpenXml.Presentation.GroupShape>()

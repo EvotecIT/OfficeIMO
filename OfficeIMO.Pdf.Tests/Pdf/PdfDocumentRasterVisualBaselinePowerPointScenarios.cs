@@ -26,12 +26,12 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape background = slide.AddRectangle(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
-        background.FillColor = "F6FAFC";
-        background.OutlineColor = "F6FAFC";
+        background.FillColor = OfficeColor.Parse("F6FAFC");
+        background.OutlineColor = OfficeColor.Parse("F6FAFC");
 
         PowerPointAutoShape panel = slide.AddShape(OfficePresetShapeType.RoundRectangle, OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeLength.Points(14), OfficeIMO.OfficeLength.Points(132), OfficeIMO.OfficeLength.Points(72));
-        panel.FillColor = "FFFFFF";
-        panel.OutlineColor = "B9D7EA";
+        panel.FillColor = OfficeColor.Parse("FFFFFF");
+        panel.OutlineColor = OfficeColor.Parse("B9D7EA");
         panel.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.2D);
 
         PowerPointTextBox title = slide.AddTextBox("PowerPoint PDF Visual Gate",global::OfficeIMO.OfficeLength.Points(22),global::OfficeIMO.OfficeLength.Points(20),global::OfficeIMO.OfficeLength.Points(122),global::OfficeIMO.OfficeLength.Points(32));
@@ -55,11 +55,11 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointTableCell metric = table.GetCell(0, 0);
         metric.Text = "Metric";
         metric.Bold = true;
-        metric.FillColor = "D9EAF7";
+        metric.FillColor = OfficeColor.Parse("D9EAF7");
         PowerPointTableCell score = table.GetCell(0, 1);
         score.Text = "Score";
         score.Bold = true;
-        score.FillColor = "D9EAF7";
+        score.FillColor = OfficeColor.Parse("D9EAF7");
         table.GetCell(1, 0).Text = "Quality";
         PowerPointTableCell value = table.GetCell(1, 1);
         value.Text = "99";
@@ -75,7 +75,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         chart.SetTitle("Revenue");
 
         PowerPointAutoShape rule = slide.AddShape(OfficePresetShapeType.Line, OfficeIMO.OfficeLength.Points(154), OfficeIMO.OfficeLength.Points(20), OfficeIMO.OfficeLength.Points(80), OfficeIMO.OfficeLength.Points(0));
-        rule.OutlineColor = "1E5A96";
+        rule.OutlineColor = OfficeColor.Parse("1E5A96");
         rule.OutlineWidth = global::OfficeIMO.OfficeLength.Points(1.5D);
 
         var options = new PowerPointPdfExportOptions {
@@ -101,8 +101,8 @@ public partial class PdfDocumentRasterVisualBaselineTests {
         PowerPointSlide slide = presentation.AddSlide();
 
         PowerPointAutoShape background = slide.AddRectangle(OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(0), OfficeIMO.OfficeLength.Points(320), OfficeIMO.OfficeLength.Points(180));
-        background.FillColor = "FFFDF7";
-        background.OutlineColor = "FFFDF7";
+        background.FillColor = OfficeColor.Parse("FFFDF7");
+        background.OutlineColor = OfficeColor.Parse("FFFDF7");
 
         PowerPointTextBox title = slide.AddTextBox("Dense Layout Gate",global::OfficeIMO.OfficeLength.Points(18),global::OfficeIMO.OfficeLength.Points(16),global::OfficeIMO.OfficeLength.Points(170),global::OfficeIMO.OfficeLength.Points(22));
         title.FontFamily = "Arial";

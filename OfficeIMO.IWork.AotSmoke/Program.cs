@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using OfficeIMO;
 using OfficeIMO.IWork;
 using OfficeIMO.Word;
 using OfficeIMO.Word.IWork;
@@ -23,7 +24,7 @@ foreach (var (name, hash) in fixtures) {
     using var input = new MemoryStream(bytes, writable: false);
     using var saved = new MemoryStream();
     if (name.EndsWith(".pages", StringComparison.Ordinal)) {
-        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Pages).ToWordResult();
+        using var result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Pages).ToWordResult();
         result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Pages unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
@@ -31,7 +32,7 @@ foreach (var (name, hash) in fixtures) {
         Require(reopened.Paragraphs.Any(p => p.Text == "hello pages"), "Saved DOCX lost Pages body text.");
         Require(result.Report.PreservedRecords.Count > 0, "Pages lost source evidence.");
     } else if (name.EndsWith(".key", StringComparison.Ordinal)) {
-        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Keynote).ToPowerPointResult();
+        using var result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Keynote).ToPowerPointResult();
         result.RequireCompleteEditableReconstruction();
         Require(!result.IsVisualFallback, "Keynote unexpectedly used visual fallback.");
         result.Value.Save(saved); saved.Position = 0;
@@ -44,11 +45,11 @@ foreach (var (name, hash) in fixtures) {
             "Saved PPTX lost native titles or body text.");
         Require(reopened.Slides.Any(s => s.GetSpeakerNotesText().Contains("note text here", StringComparison.Ordinal)),
             "Saved PPTX lost presenter notes.");
-        Require(reopened.Slides.All(s => s.BackgroundColor == "FFFFFF"), "Saved PPTX lost qualified backgrounds.");
+        Require(reopened.Slides.All(s => s.BackgroundColor == OfficeColor.White), "Saved PPTX lost qualified backgrounds.");
         Require(!reopened.ValidateDocument().Any(), "Saved PPTX failed validation.");
         Require(result.Report.PreservedRecords.Count > 0, "Keynote lost source evidence.");
     } else {
-        using var result = IWorkSourceDocument.Open(input, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
+        using var result = IWorkSourceDocument.Load(input, IWorkDocumentKind.Numbers).ToExcelResult(new() { Mode = IWorkConversionMode.EditableOnly, AllowPartialEditableReconstruction = true });
         Require(result.Report.IsPartialEditableReconstruction
             && result.Report.Diagnostics.Any(diagnostic => diagnostic.Code == "IWORK_NUMBERS_CELL_PADDING_OMITTED"),
             "Numbers inherited padding omission was not reported.");

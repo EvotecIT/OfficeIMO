@@ -25,8 +25,8 @@ public sealed class PowerPointSmartArtCachedDrawingTests {
 
         Assert.True(smartArt.TryCreateCachedDrawing(out PowerPointGroupShape group, out string? reason), reason);
         PowerPointShape[] shapes = slide.GetGroupChildren(group).ToArray();
-        string[] fills = shapes.Select(shape => shape.FillColor).Where(color => color != null).Select(color => color!).ToArray();
-        Assert.Equal(4, fills.Count(color => color == "156082"));
+        OfficeColor[] fills = shapes.Select(shape => shape.FillColor).Where(color => color.HasValue).Select(color => color!.Value).ToArray();
+        Assert.Equal(4, fills.Count(color => color == OfficeColor.Parse("156082")));
         Assert.Equal(3, shapes.Count(shape => shape is PowerPointAutoShape { ShapeType: OfficePresetShapeType.RightArrow }));
         Assert.Equal(new[] { "Discover", "Represent", "Round-trip", "Validate" },
             shapes.OfType<PowerPointTextBox>().Select(text => text.Text.Trim()).Where(text => text.Length > 0).ToArray());

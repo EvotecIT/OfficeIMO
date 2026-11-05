@@ -14,7 +14,7 @@ internal static class InventoryReorder {
         sheet.SetColumnWidth(7, ExcelColumnWidth.Characters(13));
         sheet.Range("A1:G1").Merge();
         sheet.Cell(1, 1).SetValue("Inventory replenishment plan");
-        sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetFontColor("17365D");
+        sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20)); sheet.Cell(1, 1).SetBold(true); sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
         sheet.Range("A2:G2").Merge(); sheet.Cell(2, 1).SetValue("Illustrative stock snapshot / quantities and unit costs are editable");
         string[] headers = { "Item", "On hand", "Target", "Stock gap", "Order qty", "Unit cost", "Order cost" };
         for (int column = 1; column <= 7; column++) sheet.Cell(4, column).SetValue(headers[column - 1]);
@@ -32,7 +32,7 @@ internal static class InventoryReorder {
         sheet.AddTable("A4:G9", hasHeader: true, name: "Stock", style: ExcelTableStyle.TableStyleMedium2);
         sheet.Range("B5:C9").Validation().WholeNumber(ExcelDataValidationOperator.Between, 0, 10000);
         sheet.Cell(11, 1).SetValue("Proposed spend"); sheet.Cell(11, 7).SetFormula("SUM(G5:G9)"); sheet.Cell(11, 7).SetNumberFormat("#,##0.00");
-        sheet.Cell(11, 7).SetBold(true); sheet.Cell(11, 7).SetFillColor("E7F6ED");
+        sheet.Cell(11, 7).SetBold(true); sheet.Cell(11, 7).SetFillColor(OfficeColor.Parse("E7F6ED"));
         sheet.Range("A13:G13").Merge(); sheet.Cell(13, 1).SetValue("Proposal only: check lead times and committed orders before purchasing.");
         document.Calculate();
         sheet.Range("A1:G15").ExportImage(OfficeImageExportFormat.Png).Save(Path.Combine(folder, "preview.png"), OfficeImageExportFileConflictPolicy.Replace);

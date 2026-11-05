@@ -256,7 +256,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         sheet.Range($"I2:I{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().ColorScale(OfficeColor.LightPink, OfficeColor.LightGreen);
         sheet.Range($"I2:I{lastRow.ToString(CultureInfo.InvariantCulture)}").ConditionalFormat().IconSet(ExcelIconSet.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
         sheet.Range($"D2:D{lastRow.ToString(CultureInfo.InvariantCulture)}").Validation().List(new[] { "NA", "EU", "APAC", "LATAM" });
-        sheet.ColumnStyleByHeader("Score").NumberFormat("#,##0.000");
+        sheet.ColumnStyleByHeader("Score").SetNumberFormat("#,##0.000");
         sheet.ColumnStyleByHeader("Created").DateTime("yyyy-mm-dd hh:mm");
     }
 

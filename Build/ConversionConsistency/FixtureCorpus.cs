@@ -37,7 +37,7 @@ internal static partial class FixtureCorpus {
                 sheet.SetColumnWidth(1, ExcelColumnWidth.Characters(196D / 8D)); sheet.SetColumnWidth(2, ExcelColumnWidth.Characters(108D / 8D));
                 for (int row = 1; row <= 3; row++) {
                     sheet.SetRowHeight(row, ExcelColumnWidth.Length(OfficeIMO.OfficeLength.Points(24)));
-                    for (int column = 1; column <= 2; column++) sheet.Cell(row, column).SetFontName(family);
+                    for (int column = 1; column <= 2; column++) sheet.Cell(row, column).SetFontFamily(family);
                 }
             }
             // Column units also use workbook font zero, independently of painted cell

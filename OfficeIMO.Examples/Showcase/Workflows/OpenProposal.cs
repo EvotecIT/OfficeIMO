@@ -12,8 +12,8 @@ internal static class OpenProposal {
         document.AddHeading("The proposed outcome", 2);
         document.AddParagraph("Reduce avoidable request handoffs by giving each service a clear intake path, named owner and agreed escalation route.");
         var decision = document.AddParagraph();
-        var label = decision.AddSpan("Decision requested: "); label.Bold = true; label.Color = OdfColor.Parse("#2563eb");
-        decision.AddSpan("approve a two-week discovery phase before committing to implementation.");
+        var label = decision.AddRun("Decision requested: "); label.Bold = true; label.Color = OdfColor.Parse("#2563eb");
+        decision.AddRun("approve a two-week discovery phase before committing to implementation.");
         document.AddHeading("Deliverables", 2);
         Deliverable("Current service map", "Operations", "Reviewed by the owners of each request queue.");
         Deliverable("Proposed intake journey", "Product", "Tested with five representative requests.");
@@ -33,8 +33,8 @@ internal static class OpenProposal {
 
         void Deliverable(string name, string owner, string acceptance) {
             var paragraph = document.AddParagraph();
-            paragraph.AddSpan(name + " / " + owner + ". ").Bold = true;
-            paragraph.AddSpan(acceptance);
+            paragraph.AddRun(name + " / " + owner + ". ").Bold = true;
+            paragraph.AddRun(acceptance);
         }
     }
 }

@@ -147,8 +147,8 @@ namespace OfficeIMO.Tests {
             Assert.InRange(picture.Height.ToPoints(), 89.9, 90.1);
             PowerPointAutoShape rectangle = Assert.Single(
                 presentation.Slides[0].Shapes.OfType<PowerPointAutoShape>());
-            Assert.Equal("D9EAF7", rectangle.FillColor, ignoreCase: true);
-            Assert.Equal("2563EB", rectangle.OutlineColor, ignoreCase: true);
+            Assert.Equal(OfficeColor.Parse("D9EAF7"), rectangle.FillColor);
+            Assert.Equal(OfficeColor.Parse("2563EB"), rectangle.OutlineColor);
             Assert.Equal(PowerPointSlideTransition.Fade,
                 presentation.Slides[0].Transition);
             var errors = presentation.ValidateDocument();

@@ -1412,7 +1412,7 @@ namespace OfficeIMO.Tests {
                 Val = A.PresetLineDashValues.Dash
             });
             chart.SetSeriesLineColor(
-                0, "AABBCC", width: OfficeLength.Points(2D));
+                0, OfficeColor.Parse("AABBCC"), width: OfficeLength.Points(2D));
 
             List<OpenXmlElement> outlineChildren =
                 outline.ChildElements.ToList();

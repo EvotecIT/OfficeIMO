@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.Benchmarks {
                 ExcelSheet sheet = document.AddSheet("Report");
                 for (int column = 1; column <= Columns; column++) {
                     sheet.Cell(1, column).SetValue("Header " + column);
-                    sheet.Cell(1, column).SetBold().SetFillColor("D9EAF7").SetFontColor("1F4E79");
+                    sheet.Cell(1, column).SetBold().SetFillColor(OfficeColor.Parse("D9EAF7")).SetColor(OfficeColor.Parse("1F4E79"));
                 }
                 if (StyleInBatch) sheet.Batch(WriteRows); else WriteRows(sheet);
                 sheet.Range("A1:L" + (RowCount + 1)).CreateTable("Report", hasHeader: true, ExcelTableStyle.TableStyleMedium2, includeAutoFilter: true);
@@ -65,7 +65,7 @@ namespace OfficeIMO.Excel.Benchmarks {
                 for (int column = 1; column <= Columns; column++) {
                     sheet.Cell(row, column).SetValue(_values[(row * 31 + column * 7) % _values.Length]);
                 }
-                sheet.Cell(row, 2).SetFillColor(Fills[(row / 50) % Fills.Length]).SetBold(true);
+                sheet.Cell(row, 2).SetFillColor(OfficeColor.Parse(Fills[(row / 50) % Fills.Length])).SetBold(true);
             }
         }
 

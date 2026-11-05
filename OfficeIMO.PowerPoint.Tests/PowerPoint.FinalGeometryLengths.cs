@@ -46,11 +46,11 @@ public sealed class PowerPointFinalGeometryLengthTests {
             Assert.Throws<ArgumentOutOfRangeException>(() => shape.OutlineWidth = OfficeLength.Emus(-1));
             Assert.Throws<ArgumentOutOfRangeException>(() => connector.Stroke(OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(-1)));
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCellBorders(
-                PowerPointTableCellBorders.All, "FFFFFF", OfficeLength.Emus(20116801)));
+                PowerPointTableCellBorders.All, OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(20116801)));
             Assert.Throws<ArgumentOutOfRangeException>(() => cell.SetBorders(
-                PowerPointTableCellBorders.All, "FFFFFF", OfficeLength.Emus(-1), PowerPointLineDashStyle.Dash));
+                PowerPointTableCellBorders.All, OfficeColor.Parse("FFFFFF"), OfficeLength.Emus(-1), PowerPointLineDashStyle.Dash));
             Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCellBorders(
-                PowerPointTableCellBorders.All, "FFFFFF", OfficeLength.Points(1), (PowerPointLineDashStyle)int.MaxValue));
+                PowerPointTableCellBorders.All, OfficeColor.Parse("FFFFFF"), OfficeLength.Points(1), (PowerPointLineDashStyle)int.MaxValue));
             Assert.Equal(before, slide.SlidePart.Slide.OuterXml);
             document.Save(output);
         }

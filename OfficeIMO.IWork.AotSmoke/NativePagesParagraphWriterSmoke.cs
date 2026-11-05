@@ -26,11 +26,11 @@ internal static class NativePagesParagraphWriterSmoke {
     }
 
     internal static void Run() {
-        var document = Example(); byte[] bytes = document.SaveBytes();
+        var document = Example(); byte[] bytes = document.ToBytes();
         Require(bytes.Length == 8450 && Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedSha256,
             "Native Pages paragraph layout differs from the Apple-qualified encoding.");
-        Require(bytes.SequenceEqual(Example().SaveBytes()), "Pages paragraph layout encoding is not deterministic.");
-        var projection = IWorkSourceDocument.Open(new MemoryStream(bytes)).ReadPages();
+        Require(bytes.SequenceEqual(Example().ToBytes()), "Pages paragraph layout encoding is not deterministic.");
+        var projection = IWorkSourceDocument.Load(new MemoryStream(bytes)).ReadPages();
         Require(projection.SourceDeclarationIssues.Count == 0 && projection.SourceReferenceIssues.Count == 0
             && projection.Diagnostics.Count == 0 && projection.Paragraphs.Count == 8,
             "Native Pages paragraph layout has incomplete source evidence.");
@@ -42,7 +42,7 @@ internal static class NativePagesParagraphWriterSmoke {
             && paragraphs[4].Style.TextStyle.FontSizePoints == 18 && paragraphs[5].Style.LineSpacingMultiplier == 1.25
             && paragraphs[6].Style.LineSpacingMultiplier == 1 && paragraphs[6].Style.TabStops!.Count == 0,
             "Native Pages spacing, tabs or paragraph resets differ.");
-        using var converted = IWorkSourceDocument.Open(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var converted = IWorkSourceDocument.Load(new MemoryStream(bytes), IWorkDocumentKind.Pages).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         converted.RequireCompleteEditableReconstruction();
         using var output = new MemoryStream(); converted.Value.Save(output); output.Position = 0;
         using var reopened = WordDocument.Load(output);

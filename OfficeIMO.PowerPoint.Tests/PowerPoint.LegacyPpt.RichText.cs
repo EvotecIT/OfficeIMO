@@ -43,13 +43,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(8, legacy.CreateImportReport().MasterTextStyleCount);
             Assert.Equal(32, legacy.CreateImportReport().MasterTextStyleLevelCount);
             Assert.Collection(textBody.CharacterRuns,
-                run => AssertRun(run, "Bold red", 0, bold: true, size: 32, color: OfficeColor.Parse("C00000")),
-                run => AssertRun(run, " | ", 8, size: 24, color: OfficeColor.Parse("222222")),
-                run => AssertRun(run, "Italic green", 11, italic: true, size: 26, color: OfficeColor.Parse("008000")),
-                run => AssertRun(run, " | ", 23, size: 24, color: OfficeColor.Parse("222222")),
+                run => AssertRun(run, "Bold red", 0, bold: true, size: 32, color: "C00000"),
+                run => AssertRun(run, " | ", 8, size: 24, color: "222222"),
+                run => AssertRun(run, "Italic green", 11, italic: true, size: 26, color: "008000"),
+                run => AssertRun(run, " | ", 23, size: 24, color: "222222"),
                 run => AssertRun(run, "Underlined blue\n", 26, underline: true, size: 22,
-                    color: OfficeColor.Parse("0000C0")),
-                run => AssertRun(run, "Regular second paragraph", 42, size: 20, color: OfficeColor.Parse("333333")));
+                    color: "0000C0"),
+                run => AssertRun(run, "Regular second paragraph", 42, size: 20, color: "333333"));
             Assert.All(textBody.CharacterRuns, run => {
                 Assert.Equal((ushort)1, run.FontIndex);
                 Assert.Equal("Arial", run.Typeface);
@@ -256,13 +256,13 @@ namespace OfficeIMO.Tests {
                 firstParagraph.TextDirection);
             Assert.Collection(binaryShape.TextBody.CharacterRuns,
                 run => AssertRun(run, "Bold red", 0, bold: true,
-                    size: 32, color: OfficeColor.Parse("C00000")),
+                    size: 32, color: "C00000"),
                 run => AssertRun(run, " italic", 8, italic: true,
                     size: 24,
                     color: binary.Masters[0].ColorScheme.Accent1),
                 run => AssertRun(run, "\n", 15, size: 20),
                 run => AssertRun(run, "Second paragraph", 16,
-                    underline: true, size: 20, color: OfficeColor.Parse("333333")));
+                    underline: true, size: 20, color: "333333"));
             Assert.All(binaryShape.TextBody.CharacterRuns.Where(run =>
                     run.Text != "\n"),
                 run => Assert.Equal("OfficeIMO Latin", run.Typeface));

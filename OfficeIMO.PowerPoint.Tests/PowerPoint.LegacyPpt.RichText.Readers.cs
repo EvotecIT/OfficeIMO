@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
             Assert.Collection(result.CharacterRuns,
                 first => {
                     AssertRun(first, "A", 0, bold: false, italic: true, underline: false,
-                        size: 18, color: OfficeColor.Parse("ABCDEF"));
+                        size: 18, color: "ABCDEF");
                     Assert.Equal((byte)5, first.ColorSchemeIndex);
                     Assert.Equal((short)-25, first.BaselinePositionPercent);
                 },

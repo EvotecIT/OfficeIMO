@@ -16,7 +16,7 @@ internal static class NamedRangePricing {
         sheet.Cell(1, 1).SetValue("A quote with readable formulas");
         sheet.Cell(1, 1).SetFontSize(global::OfficeIMO.OfficeLength.Points(20));
         sheet.Cell(1, 1).SetBold(true);
-        sheet.Cell(1, 1).SetFontColor("17365D");
+        sheet.Cell(1, 1).SetColor(OfficeColor.Parse("17365D"));
 
         string[] labels = { "Quantity", "Unit price", "Discount rate", "Gross total", "Discount amount", "Net total" };
         string[] names = { "Quantity", "UnitPrice", "DiscountRate", "GrossTotal", "DiscountAmount", "NetTotal" };
@@ -24,7 +24,7 @@ internal static class NamedRangePricing {
             int row = index + 4;
             sheet.Cell(row, 1).SetValue(labels[index]);
             sheet.Cell(row, 3).SetValue(names[index]);
-            sheet.Cell(row, 3).SetFontColor("526179");
+            sheet.Cell(row, 3).SetColor(OfficeColor.Parse("526179"));
             document.SetNamedRange(names[index], $"'Quote'!B{row}", save: false);
         }
         sheet.Cell(4, 2).SetValue(24).SetNumberFormat("#,##0");
@@ -35,7 +35,7 @@ internal static class NamedRangePricing {
         sheet.Cell(9, 2).SetFormula("GrossTotal-DiscountAmount");
         for (int row = 7; row <= 9; row++) {
             sheet.Cell(row, 2).SetNumberFormat("#,##0.00");
-            sheet.Cell(row, 2).SetFillColor("E7F6ED");
+            sheet.Cell(row, 2).SetFillColor(OfficeColor.Parse("E7F6ED"));
         }
         sheet.Cell(9, 2).SetBold(true);
         sheet.Range("A12:C12").Merge();

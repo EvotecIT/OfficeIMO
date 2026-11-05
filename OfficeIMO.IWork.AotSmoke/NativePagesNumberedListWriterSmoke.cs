@@ -17,10 +17,10 @@ internal static class NativePagesNumberedListWriterSmoke {
         document.AddImage(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "created-alpha.png")), 72, 48, "Between lists");
         list.AddItem("Resumed child six", 1); list.AddItem("Resumed parent eleven"); list.AddItem("Reset child one again", 1);
         list.AddItem("Parent restart four", restartAt: 4); list.AddItem("Parent five", layout: new(1.25f, 3, 6));
-        byte[] bytes = document.SaveBytes();
+        byte[] bytes = document.ToBytes();
         Require(bytes.Length == 17_340 && Convert.ToHexString(SHA256.HashData(bytes)) == AcceptedHash,
             "NativeAOT Pages lists differ from the independently decoded Apple-accepted package.");
-        Require(bytes.SequenceEqual(document.SaveBytes()), "Native Pages list creation is nondeterministic.");
+        Require(bytes.SequenceEqual(document.ToBytes()), "Native Pages list creation is nondeterministic.");
         VerifySavedWord(bytes, [7, 8, 9, 1, 2, 10, 1, 5, 3, 6, 11, 1, 4, 5]);
         using var unchanged = new MemoryStream(); unchanged.WriteByte(9);
         try {
@@ -30,9 +30,9 @@ internal static class NativePagesNumberedListWriterSmoke {
         Require(unchanged.CanWrite && unchanged.ToArray().SequenceEqual(new byte[] { 9 }), "List rejection changed the caller stream.");
         var only = IWorkPagesDocument.Create(); var onlyList = only.CreateNumberedList();
         onlyList.AddItem("Only parent"); onlyList.AddItem("Only child", 1);
-        Require(Convert.ToHexString(SHA256.HashData(only.SaveBytes())) == "C6BA923DA791EB24BCA60D58454CEBDDD6D52B84CA7AE7EA25EF638C7A2D9D26",
+        Require(Convert.ToHexString(SHA256.HashData(only.ToBytes())) == "C6BA923DA791EB24BCA60D58454CEBDDD6D52B84CA7AE7EA25EF638C7A2D9D26",
             "The Apple-accepted list-only profile changed.");
-        using var onlyWord = IWorkSourceDocument.Open(only.SaveBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
+        using var onlyWord = IWorkSourceDocument.Load(only.ToBytes()).ToWordResult(new() { Mode = IWorkConversionMode.EditableOnly });
         onlyWord.RequireCompleteEditableReconstruction();
         foreach (string separator in new[] { "\u2028", "\u2029" }) {
             try {
@@ -50,7 +50,7 @@ internal static class NativePagesNumberedListWriterSmoke {
     }
 
     private static void VerifySavedWord(byte[] bytes, int[] expected) {
-        var source = IWorkSourceDocument.Open(bytes); var projection = source.ReadPages();
+        var source = IWorkSourceDocument.Load(bytes); var projection = source.ReadPages();
         Require(projection.Diagnostics.Count == 0 && projection.SourceDeclarationIssues.Count == 0
             && projection.SourceReferenceIssues.Count == 0 && projection.Body.IsFormattingComplete,
             "Pages lists contain unqualified source declarations.");
